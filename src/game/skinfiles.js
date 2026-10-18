@@ -1,5 +1,5 @@
 // Large PNGs belong in IndexedDB; hero JSON in localStorage only keeps an immutable id.
-import { checkSkin, SKIN_UV, SKIN_SIZE, MAX_SKINS, cleanSkinName, skinNameKey } from '../core/skin.js';
+import { checkSkin, SKIN_UV, SKIN_SIZE, MAX_SKINS, cleanSkinName, skinNameKey, isNinjaSkinCode } from '../core/skin.js';
 // writeNamedSkin: a new name while the library holds MAX_SKINS already
 export class SkinLibraryFull extends Error {
   constructor() { super(`There are ${MAX_SKINS} skins already`); }
@@ -55,9 +55,22 @@ export async function writeSkinFile(blob) {
 export async function deleteSkinFile(skin) {
   if (checkSkin(skin)) await operation('readwrite', store => store.delete(skin.id));
 }
+let ninjaTexture;
+async function readNinjaSkin() {
+  ninjaTexture ??= fetch(new URL('../../assets/skins/ninjajavamc.png', import.meta.url))
+    .then(response => {
+      if (!response.ok) throw new Error('Could not load the secret skin');
+      return response.blob();
+    }).catch(error => { ninjaTexture = null; throw error; });
+  return { name: 'Ninjajavamc', uv: SKIN_UV, blob: await ninjaTexture,
+    revision: `builtin-ninjajavamc-${SKIN_UV}`, secret: true };
+}
+
 // The named library owns independent PNG copies: replacing/deleting a hero's immutable
 // texture must never remove a skin that another hero can still load by name.
 export async function readNamedSkin(name) {
+  // Lazy, bundled Easter egg: no storage mutation and no request before the code is used.
+  if (isNinjaSkinCode(name)) return readNinjaSkin();
   const key = skinNameKey(name);
   if (!key) return null;
   const db = await database();
@@ -79,6 +92,7 @@ export async function readNamedSkin(name) {
 export async function writeNamedSkin(name, blob, preview = null) {
   name = cleanSkinName(name);
   if (!name) throw new Error('A skin name is required');
+  if (isNinjaSkinCode(name)) throw new Error('Secret codes cannot be overwritten; choose a skin name');
   const db = await database(), key = skinNameKey(name);
   const record = { name, uv: SKIN_UV, blob, revision: crypto.randomUUID(), ...(preview instanceof Blob ? { preview } : {}) };
   return new Promise((resolve, reject) => {

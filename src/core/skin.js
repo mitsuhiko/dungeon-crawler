@@ -8,6 +8,8 @@ export function cleanSkinName(value) {
   return value.normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, SKIN_NAME_MAX);
 }
 export const skinNameKey = value => cleanSkinName(value).toLowerCase();
+export const NINJA_SKIN_CODE = ':ninjajavamc';
+export const isNinjaSkinCode = value => skinNameKey(value) === NINJA_SKIN_CODE;
 export function checkSkin(value) {
   if (!value || value.v !== 2 || value.uv !== SKIN_UV || typeof value.id !== 'string'
       || !/^skin-[a-zA-Z0-9-]{1,80}$/.test(value.id)) return null;

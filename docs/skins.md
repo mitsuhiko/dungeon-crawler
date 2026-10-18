@@ -28,6 +28,24 @@ The painter (`game/skineditor.js`):
 - **Save Skin** writes the named PNG and puts it on this hero; **Cancel** / Escape discards
   the painting (asking first if anything was painted).
 
+## Hidden Ninjajavamc skin
+
+In the painter's **Skin name** field, type `:ninjajavamc` to reveal a bundled Easter egg.
+The complete code triggers automatically; Enter can retry it. Unsaved paint
+still asks for confirmation before replacement. Save it as **Ninjajavamc** or another regular
+name to keep it in the library and apply it to the hero. The secret code itself is reserved.
+
+The gray-stone/cyan split, pixel eyes and grass/dirt back motif are adapted from the user's
+video onto the existing rounded character. The cape is painted, not a separate 3D attachment.
+Only the authored texture is bundled; the private recording is not included or needed at runtime.
+
+Regenerate `assets/skins/ninjajavamc.png` without modifying the rig or UVs:
+
+```sh
+Blender -b blender/character.blend --python blender/skin_ninjajavamc.py
+node --test tests/skinsecret.test.js
+```
+
 ## UV asset
 
 `blender/character_uv.py` runs after decimation in `blender/character.py`. It separates the
