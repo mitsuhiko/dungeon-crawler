@@ -7,7 +7,7 @@ import { setSkinMap, createSkinPicker } from '../render/skin.js';
 import { SkinPainter } from '../render/skinpaint.js';
 import { SkinPreview } from '../render/skinpreview.js';
 import { readSkinFile, writeSkinFile, deleteSkinFile, skinImage, readNamedSkin, writeNamedSkin, rollbackNamedSkin, recentNamedSkins, cacheNamedSkinPreview } from './skinfiles.js';
-import { cleanSkinName, SKIN_NAME_MAX } from '../core/skin.js';
+import { cleanSkinName, SKIN_NAME_MAX, isNinjaSkinCode } from '../core/skin.js';
 
 let active = false;
 export const skinEditorOpen = () => active;
@@ -135,6 +135,10 @@ export async function openSkinEditor(hero, save) {
     $('#skin-name').addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); $('#skin-load').click(); }
     });
+    $('#skin-name').addEventListener('input', () => {
+      const name = $('#skin-name').value;
+      if (!busy && isNinjaSkinCode(name)) void loadNamed(name);
+    });
     function showPainting() {
       previewEpoch++;
       $('#skin-recents').hidden = true; $('#skin-painting').hidden = false;
@@ -219,7 +223,9 @@ export async function openSkinEditor(hero, save) {
         strokes.length = 0; pointer = null; last = null;
         painter.copy(texture, true); texture.dispose();
         $('#skin-name').value = record.name; dirty = true; showPainting();
-        status.textContent = `Loaded “${record.name}”. Choose Save Skin to apply it to this hero.`;
+        status.textContent = record.secret
+          ? 'Easter egg unlocked: Ninjajavamc! Choose Save Skin to keep it.'
+          : `Loaded “${record.name}”. Choose Save Skin to apply it to this hero.`;
       } catch (e) { console.error(e); status.textContent = 'Could not load this named skin.'; }
       finally { busy = false; }
     }
