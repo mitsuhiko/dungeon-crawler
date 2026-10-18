@@ -530,3 +530,41 @@ body.in-menu :is(#quickbar, #teleport-menu, #chat, #minimap, #effects, #touch, #
 #title-hero small { color: #aab3c2; font-size: 11px; text-shadow: 0 1px 4px #000; }
 #title-hero:hover b { color: #fff; }
 #title-hero:focus-visible { outline: 2px solid #ffcf7a; outline-offset: 2px; border-radius: 6px; }
+
+/* Native modal keeps the game/menu behind the paint tools inert, including on touch. */
+#skin-editor { box-sizing: border-box; width: min(760px, 96vw); max-height: 94dvh; overflow: auto;
+  padding: 20px; border: 1px solid #61718b; border-radius: 12px; background: #101722; color: #e6e9ef; font: inherit; }
+#skin-editor::backdrop { background: #080c13d9; }
+#skin-editor h2 { margin: 0 0 14px; }
+.skin-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.skin-tools button { padding: 8px 14px; color: #e6e9ef; background: #263349; border: 1px solid #61718b; border-radius: 6px; cursor: pointer; }
+.skin-tools button[aria-pressed="true"] { background: #3a567f; border-color: #ffcf7a; }
+.skin-tools label { display: flex; align-items: center; gap: 6px; }
+.skin-tools input[type="color"] { width: 44px; height: 36px; padding: 2px; }
+.skin-tools input[type="range"] { width: 88px; }
+#skin-view { height: clamp(230px, 48dvh, 440px); margin-top: 12px; border-radius: 8px; overflow: hidden; }
+#skin-view canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+#skin-editor p { font-size: 13px; color: #b5c2d8; }
+#skin-recent-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  max-height: min(55dvh, calc(94dvh - 250px)); overflow: auto; align-content: start; margin: 12px 0; padding: 0; list-style: none; }
+.skin-recent-item { display: grid; gap: 6px; width: 100%; box-sizing: border-box; padding: 12px; text-align: left;
+  background: #19212f; color: #e6e9ef; border: 1px solid #61718b; border-radius: 6px; cursor: pointer; font: inherit; }
+.skin-recent-preview { display: grid; place-items: center; height: clamp(96px, 24dvh, 160px); overflow: hidden; border-radius: 4px; background: #19212f; }
+.skin-recent-preview img { display: block; width: 100%; height: clamp(96px, 24dvh, 160px); object-fit: contain; }
+.skin-recent-preview span { color: #b5c2d8; font-size: 11px; }
+.skin-recent-item:hover { background: #263349; border-color: #ffcf7a; }
+.skin-recent-item b { overflow-wrap: anywhere; }
+.skin-recent-item small { color: #b5c2d8; font-size: 11px; }
+.skin-recent-empty { grid-column: 1 / -1; padding: 18px; color: #b5c2d8; }
+.skin-chooser-footer { position: sticky; bottom: 0; flex-direction: column; align-items: stretch;
+  gap: 8px; padding-top: 12px; background: #101722; }
+#skin-editor #skin-recent-back { width: 100%; padding: 16px 24px; font-size: 18px; font-weight: bold;
+  background: #3a567f; border-color: #ffcf7a; }
+#skin-chooser-close { align-self: center; min-width: 120px; }
+@media (max-width: 480px) { #skin-recent-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.skin-library { margin-top: 12px; }
+#skin-name { flex: 1; min-width: 120px; padding: 8px 10px; border: 1px solid #61718b; border-radius: 6px;
+  background: #19212f; color: #e6e9ef; font: inherit; }
+#skin-name:invalid { border-color: #9c8154; }
+#skin-status { min-height: 1.3em; }
+#skin-editor :focus-visible { outline: 2px solid #ffcf7a; outline-offset: 2px; }

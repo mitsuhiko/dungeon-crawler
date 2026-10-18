@@ -14,6 +14,7 @@ import { newWorld, visitedKeys } from './flow.js';
 import { savedLoot } from './loot.js';
 import { knowDepths } from './log.js';
 import { packQuestLog } from '../core/quests.js';
+import { setCharacterSkin } from '../render/character.js';
 
 const CHECK_EVERY = 1000, SAVE_EVERY = 30000;
 
@@ -48,6 +49,7 @@ export function play(heroId, worldId) {
   const hero = store.hero(heroId);
   Object.assign(player, heroStats(hero));
   setHero(hero);
+  setCharacterSkin(hero.skin);
   Object.assign(current, { world, visited: new Set(world.visited) });
   knowDepths(world.seed, world.deepest);
   const started = newWorld(world.seed, { keepPlayer: true, restore: restoreOf(world, hero.id) });
@@ -64,6 +66,7 @@ export function playAsGuest(heroId) {
   saveNow();
   Object.assign(player, heroStats(hero));
   setHero(hero);
+  setCharacterSkin(hero.skin);
   Object.assign(current, { world: null, cubes: null, visited: new Set() });
   signature = ''; played = 0;
   return true;

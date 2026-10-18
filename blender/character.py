@@ -1599,6 +1599,8 @@ def main(scene=None, export_path=None, active_action="Walk"):
     mod.object = rig
     compute_weights(ob)
     figure.decimate(ob)
+    from character_uv import unwrap_character
+    unwrap_character(ob)
 
     make_animations(rig, ob)
     register_actions(rig, ("Walk", "Run", "Swim", "SwimIdle", "Climb", "Jump", "JumpLandSit",
@@ -1642,7 +1644,7 @@ def export_gltf(rig, ob, path):
         export_animation_mode="ACTIONS",
         export_anim_single_armature=False,
         export_rest_position_armature=True,
-        export_texcoords=False,
+        export_texcoords=True,
         export_cameras=False,
         export_lights=False,
         export_force_sampling=True,

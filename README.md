@@ -38,6 +38,14 @@ docs that explain how the game works, from the big ideas down to the real code:
   - Quests (`src/core/quests.js`, `src/game/quests.js`, the inventory's Quests tab in
     `src/game/questpanel.js`, U): the villagers give quests, shared by everyone in the world and
     saved with it (`docs/quests.md`).
+  - Skin chooser/painter (main menu: **Choose Skin**, `src/game/skineditor.js`): a pen, color picker,
+    closed-outline fill, eraser, rotation and zoom. Paint is a 2048² UV texture, not vertex colors;
+    GPU projection carries strokes across UV seams without painting through the body. Fill
+    refuses outlines with gaps. Save Skin requires a name; Load Skin restores a named painting
+    from the browser's IndexedDB library, including for another hero. Recent Skins lists the
+    last 20 saved skins with character previews, newest first. This is the initial Choose
+    Skin screen, with a large **Paint Skin** button at the bottom opening the painter.
+    Cancel leaves the hero unchanged. Not sent to other players online. See `docs/skins.md`.
   - Settings (`src/game/settings.js`, the menu in `src/game/settingsmenu.js`, from the Esc menu
     and the main menu): the frame rate cap (30, 60 or unlimited, `src/main.js`), the anti-aliasing (MSAA off to
     8x, `src/render/msaa.js`), music on / off,

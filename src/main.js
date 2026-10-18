@@ -16,6 +16,7 @@ import { runCommand } from './game/commands.js';
 import { chronicle } from './game/log.js';
 import { updateInventory } from './game/inventory.js';
 import { updateQuests } from './game/quests.js';
+import { skinEditorOpen } from './game/skineditor.js';
 import { devSwapWeapon, devDropWeapon, devWear } from './game/equipment.js';
 import { updateLightPool, focusPoint } from './render/lightpool.js';
 import { tickNeighbors, cullNeighbors } from './render/neighbors.js';
@@ -173,6 +174,9 @@ function frame(now = performance.now()) {
 const menuFocus = new THREE.Vector3(N / 2, 2, N / 2);
 const SWAY = 0.6, SWAY_SPEED = 0.35;   // the hero in the menu turns a little to and fro (rad, rad/s)
 function menuFrame(dt, start) {
+  // The modal has its own renderer. Do not render/simulate a hidden dungeon and
+  // portrait behind it, competing with brush input for both CPU and GPU time.
+  if (skinEditorOpen()) { requestAnimationFrame(frame); return; }
   state.time += dt;
   if (character.ready && !portraitShown()) character.group.visible = false;
   if (portraitShown()) { player.yaw = Math.sin(state.time * SWAY_SPEED) * SWAY; animateCharacter(dt, state.time); }

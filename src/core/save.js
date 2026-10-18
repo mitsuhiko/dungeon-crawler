@@ -1,3 +1,5 @@
+import { checkSkin } from './skin.js';
+
 // Saved games: heroes and worlds, apart. Pure: no DOM, no game state (game/save.js runs it).
 //
 // A hero (up to MAX_HEROES) is the character: name, XP and the bag, and its world (the one
@@ -101,8 +103,10 @@ export function checkHero(h) {
   if (!h || !isId(h.id)) return null;
   let xp = 0;
   try { xp = whole(h.xp); } catch { return null; }
+  const skin = checkSkin(h.skin);
   return { v: SAVE_VERSION, id: h.id, name: cleanName(h.name) || 'Hero', created: time(h.created), updated: time(h.updated),
-    playTime: time(h.playTime), xp, inventory: checkInventory(h.inventory), world: isId(h.world) ? h.world : null };
+    playTime: time(h.playTime), xp, inventory: checkInventory(h.inventory), world: isId(h.world) ? h.world : null,
+    ...(skin ? { skin } : {}) };
 }
 
 // --- worlds -------------------------------------------------------------------------------------

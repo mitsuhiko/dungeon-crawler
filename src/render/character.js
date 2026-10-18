@@ -8,6 +8,8 @@ import { scene } from './scene.js';
 import { prepareHeld } from './held.js';
 import { rigReady } from './figure.js';
 import { ownShadowDepth } from './skinned.js';
+import { setSkinMap } from './skin.js';
+import { readSkinFile, skinImage } from '../game/skinfiles.js';
 
 const SWORD_URL = 'assets/sword.glb';
 const FPS = 30;
@@ -93,6 +95,11 @@ function setup(gltf) {
   // the body's meshes, for tintCharacter (not what is worn or held later)
   const clay = [];
   model.traverse(o => { if (o.isMesh) clay.push(o); });
+  for (const o of clay) {
+    o.material = o.material.clone();
+    o.userData.skinMaterial = true;
+    o.userData.clay = o.material.color.clone();
+  }
 
   // silhouette shown where the character is hidden behind terrain
   const ghost = new THREE.SkinnedMesh(mesh.geometry, new THREE.MeshBasicMaterial({
@@ -226,6 +233,27 @@ export function tintCharacter(color = null) {
     if (!o.userData.clay) { o.material = o.material.clone(); o.userData.clay = o.material.color.clone(); }
     o.material.color.copy(color ? new THREE.Color(color) : o.userData.clay);
   }
+}
+
+let skinRequest = 0, skinTexture = null;
+export async function setCharacterSkin(skin = null) {
+  const request = ++skinRequest;
+  try {
+    await characterReady;
+    if (request !== skinRequest) return;
+    // Never leave a previous hero's paint on screen while a new image is loading.
+    for (const mesh of character.clay) setSkinMap(mesh, null);
+    skinTexture?.dispose(); skinTexture = null;
+    const blob = await readSkinFile(skin);
+    if (!blob || request !== skinRequest) return;
+    const canvas = await skinImage(blob);
+    if (request !== skinRequest) return;
+    skinTexture = new THREE.CanvasTexture(canvas);
+    skinTexture.colorSpace = THREE.SRGBColorSpace;
+    skinTexture.generateMipmaps = false;
+    skinTexture.minFilter = THREE.LinearFilter;
+    for (const mesh of character.clay) setSkinMap(mesh, skinTexture);
+  } catch (e) { console.error('skin failed to apply', e); }
 }
 
 export const characterReady = rigReady.then(setup);

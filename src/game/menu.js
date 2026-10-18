@@ -23,6 +23,9 @@ import { endWorld } from './flow.js';
 import { startShowcase, stopShowcase, showcaseCubes, park } from './showcase.js';
 import { syncEquippedWeapon } from './equipment.js';
 import { showPortrait } from '../render/portrait.js';
+import { setCharacterSkin } from '../render/character.js';
+import { openSkinEditor } from './skineditor.js';
+import { deleteSkinFile } from './skinfiles.js';
 import { isInterior } from '../world/town.js';
 import { DEFAULT_ZOOM } from '../core/zoom.js';
 import { store, play, playAsGuest, stopSaving, newHero, newSavedWorld, forget } from './save.js';
@@ -114,6 +117,7 @@ const screens = {
       <button class="${world ? 'title-item' : 'menu-big'}" data-act="choose-world">Choose World${world ? '' : `<small>${esc(hero.name)} has no world yet</small>`}</button>
       <button class="title-item" data-act="join-game">Join Game</button>
       <button class="title-item" data-act="characters">Choose Character</button>
+      <button class="title-item" data-act="paint-skin">Choose Skin</button>
       ${more}
     </div>`;
   },
@@ -189,6 +193,7 @@ function updateScene() {
     const k = `${hero.id} ${hero.updated}`;
     if (k !== shownHero) {
       shownHero = k;
+      setCharacterSkin(hero.skin);
       Object.assign(player, heroStats(hero));
       park();   // (heroStats put it at the start: nothing should notice it)
       syncEquippedWeapon();
@@ -268,6 +273,13 @@ const actions = {
   'join-game'() { screen = 'join'; },
   characters() { from = 'title'; screen = 'characters'; form = store.heroes().length ? null : 'hero'; },
   'first-hero'() { from = screen; screen = 'characters'; form = 'hero'; },
+  'paint-skin'() {
+    const hero = chosen();
+    if (hero) openSkinEditor(hero, skin => {
+      const current = store.hero(hero.id);
+      return !!current && store.putHero({ ...current, skin, updated: Date.now() });
+    });
+  },
   settings() { openSettings(); },
   back() {
     form = null;
@@ -317,7 +329,11 @@ const actions = {
     }
     asked = { id: null, until: 0 };
     forget(id);
-    if (store.hero(id)) store.deleteHero(id); else store.deleteWorld(id);
+    const hero = store.hero(id);
+    if (hero) {
+      store.deleteHero(id);
+      if (!store.hero(id)) deleteSkinFile(hero.skin).catch(console.warn);
+    } else store.deleteWorld(id);
   },
   'copy-name'(id) {
     const w = store.worlds().find(e => e.id === id);
