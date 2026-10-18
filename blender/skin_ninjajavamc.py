@@ -32,10 +32,16 @@ def paint(points):
     blue = x >= boundary
     colors = stone[noise % len(stone)]
     colors[blue] = cyan[noise[blue] % len(cyan)]
+    # A dark-blue, pixel-stepped stripe separates the stone and cyan halves.
+    navy = np.array([[12, 41, 72], [15, 48, 81], [17, 54, 88], [9, 36, 66]], np.uint8)
+    middle = np.abs(x - boundary) < .026
+    colors[middle] = navy[noise[middle] % len(navy)]
 
-    # Two small, blocky eyes on the front (-Y in Blender), not wrapped onto the back.
+    # The stone-side eye is dark; the cyan-side eye is extremely pale ice blue.
+    # Both are on the front (-Y in Blender), never wrapped onto the back.
     eyes = (np.abs(np.abs(x) - .105) < .032) & (z > 1.72) & (z < 1.81) & (y < -.16)
-    colors[eyes] = [12, 20, 24]
+    colors[eyes & ~blue] = [12, 20, 24]
+    colors[eyes & blue] = [231, 253, 255]
 
     # Paint the grass-block cape motif onto the torso's back. It cannot snag, clip
     # through weapons, or require a second skeleton because it is part of the texture.

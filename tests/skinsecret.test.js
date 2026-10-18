@@ -31,7 +31,7 @@ test('the bundled skin is a UV-versioned 2048² stone/cyan PNG with eyes and a g
   assert.equal(uv,SKIN_UV,'Baked paint must match the runtime UV layout');
   const rows=inflateSync(Buffer.concat(compressed)), stride=SKIN_SIZE*4+1;
   assert.equal(rows.length,stride*SKIN_SIZE);
-  let cyan=0,stone=0,grass=0,dirt=0,eyes=0,transparent=0;
+  let cyan=0,stone=0,grass=0,dirt=0,darkEye=0,iceEye=0,navy=0,transparent=0;
   for(let y=0;y<SKIN_SIZE;y++) {
     assert.equal(rows[y*stride],0,'The procedural authoring script writes unfiltered RGBA rows');
     for(let x=0;x<SKIN_SIZE;x++) {
@@ -42,10 +42,15 @@ test('the bundled skin is a UV-versioned 2048² stone/cyan PNG with eyes and a g
       if(r>70&&r<140&&g>=r&&b>=g&&b-r<45)stone++;
       if(g>70&&g>r*1.6&&g>b*1.6)grass++;
       if(r>60&&r>g*1.2&&g>b*1.2)dirt++;
-      if(r<25&&g<25&&b<25)eyes++;
+      if(r<25&&g<25&&b<25)darkEye++;
+      if(r>=225&&g>=250&&b===255)iceEye++;
+      if(r<25&&g>=30&&g<65&&b>=60&&b<100)navy++;
     }
   }
   assert.ok(cyan>10000&&stone>10000,'Both halves must be present');
   assert.ok(grass>1000&&dirt>1000,'Grass and dirt cape motif');
-  assert.ok(eyes>25,'Dark pixel eyes');assert.ok(transparent>10000,'Unused atlas space stays transparent');
+  assert.ok(darkEye>25,'The stone-side eye stays dark');
+  assert.ok(iceEye>25,'The cyan-side eye is very pale ice blue');
+  assert.ok(navy>1000,'A dark-blue stripe separates the two halves');
+  assert.ok(transparent>10000,'Unused atlas space stays transparent');
 });
