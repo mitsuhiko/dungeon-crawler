@@ -89,6 +89,33 @@ npm test
 In a git worktree the server and tests take `assets/` from the main checkout;
 see `docs/combat.md`.
 
+## Blender MCP (Pi)
+
+With Node.js, [uv](https://docs.astral.sh/uv/getting-started/installation/), and
+Blender installed, start Pi from the repository root. `.pi/mcp.json` runs
+`tools/blender-mcp.mjs`, which automatically:
+
+- Creates a Python 3.11 environment in `.pi/blender-mcp/` (ignored by Git).
+- Installs the pinned `mcp-for-blender==2.1.9` server and matching bundled addon.
+- Reuses a running addon server, or opens a new Blender window with the addon
+  loaded for that session, without modifying saved Blender preferences.
+
+The first launch needs internet access and may take longer while downloading
+Python and dependencies. Keep the Blender window open. No manual addon install
+or personal checkout path is needed. The server's tools differ from the previous
+custom Mac-only setup. Delete `.pi/blender-mcp/` to rebuild the local environment.
+
+The launcher detects standard Windows and macOS Blender installs, or uses
+`blender` on PATH. For other locations, set `BLENDER_EXECUTABLE` to the executable
+path before starting Pi. It finds uv in `~/.local/bin` or on PATH; `BLENDER_MCP_UV`
+overrides that. `BLENDER_PORT` overrides port 9876. A remote `BLENDER_HOST` requires
+an already running remote addon; the launcher will not start a local Blender for it.
+
+Run `pi mcp list` to check discovery and ask Pi for scene information to verify
+the live connection. Use `/reload` after configuration changes in an existing
+Pi session. Telemetry is disabled and Python stdio uses UTF-8. Keep the addon
+bound to localhost: it allows arbitrary Python execution. Save your work first.
+
 ## Re-exporting assets
 
 The Blender scripts export plain GLBs; `npm run compress-assets` (`tools/compress-assets.mjs`)

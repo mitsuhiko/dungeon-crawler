@@ -3,3 +3,4 @@ __pycache__/
 worktrees/
 .DS_Store
 *.blend1
+.pi/blender-mcp/

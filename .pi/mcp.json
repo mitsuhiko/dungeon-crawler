@@ -1,14 +1,9 @@
 {
   "mcpServers": {
     "blender": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/Users/mitsuhiko/blender_mcp/mcp",
-        "run",
-        "blender-mcp"
-      ],
-      "description": "Blender: inspect and modify a running Blender instance via its Python API; Blender docs lookup"
+      "command": "node",
+      "args": ["tools/blender-mcp.mjs"],
+      "description": "Blender: inspect and modify a running Blender instance via its Python API"
     }
   }
 }
