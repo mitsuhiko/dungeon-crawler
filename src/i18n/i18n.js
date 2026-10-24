@@ -30,12 +30,13 @@ import { grammar as EN_GRAMMAR, NOUNS as EN_NOUNS } from './en.js';
 export const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'de', name: 'Deutsch' },
+  { code: 'id', name: 'Bahasa Indonesia' },
 ];
 export const CODES = LANGUAGES.map(l => l.code);
 export const SOURCE = 'en';
 
 // a locale: { messages: { [english]: text | noun entry }, grammar, names? } (src/i18n/<code>/index.js)
-const loaders = { de: () => import('./de/index.js') };
+const loaders = { de: () => import('./de/index.js'), id: () => import('./id/index.js') };
 const loaded = new Map();
 let current = SOURCE, locale = null;
 const listeners = new Set();

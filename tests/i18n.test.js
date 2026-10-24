@@ -4,6 +4,7 @@ import { tr, tc, say, phrase, noun, person, useLanguage, loadLocale, language, p
 import { check } from '../tools/i18n.mjs';
 
 const de = await loadLocale('de');
+const id = await loadLocale('id');
 // run fn in German with these extra messages, then back in English
 function german(extra, fn) {
   const mod = { ...de, messages: { ...de.messages, ...extra } };
@@ -105,8 +106,8 @@ test('every quest of a world reads in every language, nothing missing', async ()
     }
     const saved = Q.checkQuestLog(JSON.parse(JSON.stringify(Q.packQuestLog(log))));   // as saved and loaded again
     assert.equal(saved.list.length, log.list.length);
-    for (const code of ['en', 'de']) {
-      useLanguage(code, code === 'de' ? de : undefined);
+    for (const code of ['en', 'de', 'id']) {
+      useLanguage(code, code === 'de' ? de : code === 'id' ? id : undefined);
       missing.clear();
       try {
         for (const q of saved.list) {
