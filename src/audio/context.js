@@ -34,8 +34,12 @@ function start() {
   }
   if (ctx.state === 'suspended') ctx.resume();
 }
-addEventListener('pointerdown', start, true);
-addEventListener('keydown', start, true);
+// (not in Node, where the tests import the sounds' tables)
+const browser = typeof window !== 'undefined';
+if (browser) {
+  addEventListener('pointerdown', start, true);
+  addEventListener('keydown', start, true);
+}
 
 // fn(ctx, sounds, music, voice) runs once the context exists (right away if it already does):
 // the buses to play the sound effects, the music and the narrator into
@@ -59,6 +63,8 @@ export function setVolume(bus, v) {
 function fitMaster() { if (master) master.gain.setTargetAtTime(masterGain(), ctx.currentTime, 0.05); }
 // quiet while the game is behind something (on), or not
 export function setQuietBehind(on) { quietBehind = !!on; fitMaster(); }
-document.addEventListener('visibilitychange', fitMaster);
-addEventListener('blur', fitMaster);
-addEventListener('focus', fitMaster);
+if (browser) {
+  document.addEventListener('visibilitychange', fitMaster);
+  addEventListener('blur', fitMaster);
+  addEventListener('focus', fitMaster);
+}

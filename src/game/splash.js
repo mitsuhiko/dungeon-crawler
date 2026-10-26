@@ -15,7 +15,7 @@
 import * as THREE from 'three';
 import { loadGLB } from '../render/gltf.js';
 import { stageUniforms, facets, glassMeshes, glowTexture, floorMesh, beamMesh, mistMesh, pointCloud, finishMesh } from '../render/stage.js';
-import { splashHit, splashShatter, splashSwell } from '../audio/splash.js';
+import { splashHit, splashShatter, splashSwell, SPLASH_CUES } from '../audio/splash.js';
 import { holdMusic } from '../audio/music.js';
 import { reduceMotion } from './settings.js';
 import { state } from './state.js';
@@ -30,13 +30,13 @@ export const splashWanted = () => params.get('splash') === '1'
 const FADE_IN = 1.6;        // from black to the bird, once it is loaded
 const HINT_AFTER = 1.8;     // then the hint comes
 // after the click:
-const HIT = 0.05;           // the blow lands; the pieces burst at full speed
+const HIT = SPLASH_CUES.hit;            // the blow lands; the pieces burst at full speed
 const SLOW_FROM = 0.07, SLOW_AT = 0.16;   // time slows down (from, reached)
 const SLOW = 0.065;         // how fast time runs then
 const FAST_FROM = 1.2, FAST_AT = 1.3;     // and runs again (from, reached), faster than before
 const FAST = 1.5;
-const SHATTER = 1.27;       // the shatter is heard
-const SWELL = 1.42;         // and the swell takes over
+const SHATTER = SPLASH_CUES.shatter;    // the shatter is heard
+const SWELL = SPLASH_CUES.swell;        // and the swell takes over
 const DARK_FROM = 1.25, DARK_AT = 2.05;   // the picture fades to black, as the pieces fall
 const REVEAL = 1.0;         // the menu comes out of the black
 const CUT = 0.3;            // a second click: to black this fast

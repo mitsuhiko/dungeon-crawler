@@ -11,7 +11,7 @@ import { gustoMusic } from '../src/core/gusto.js';
 const BOSS_SONGS = Object.values(BOSS_MUSIC).map(m => m.song);
 
 const dir = resolve(repo, 'music');
-// the game's songs, plus scores in subfolders (tools/player.html FOLDERS): the jingles, references
+// the game's songs, plus scores in subfolders (tools/player.html FOLDERS): the jingles, the films
 const files = readdirSync(dir, { recursive: true }).filter(f => f.endsWith('.scrim'));
 
 test('the game finds its songs', () => {

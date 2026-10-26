@@ -3,15 +3,20 @@
 <head>
 <meta charset="utf-8">
 <base href="../">
-<title>Music player</title>
-<!-- Plays the scores in music/ with the game's synth: /tools/player.html
-     (#overworld picks a song). The game's songs (SONGS), then any folder of reference
-     scores listed in FOLDERS (each with an index.json of { name, title, file }).
-     Moods switch voices like the game does; click a voice to mute it, shift-click to solo. -->
+<title>Player</title>
+<!-- The game's music and sounds: /tools/player.html (#overworld picks a song, #sounds/effects a
+     page of sounds). The scores in music/ with the game's synth: the game's songs (SONGS), then
+     any folder of scores listed in FOLDERS (each with an index.json of { name, title, file }).
+     Moods switch voices like the game does; click a voice to mute it, shift-click to solo.
+     Then the sounds, played by the game's own code into the same AudioContext and buses
+     (src/audio/context.js): the effects (sfx.js, grouped in tools/player-sounds.js), the
+     enemies' voices, the footsteps, the ambient beds and drones (loops.js) and the splash
+     screen's. A one-shot shows its wave, rendered again offline; the ambience a live one. -->
 <link rel="stylesheet" href="vendor/fonts/fonts.css">
 <style>
   :root { color-scheme: dark; --bg: #1b1d22; --panel: #23262d; --line: #343842; --dim: #8a909c; --hi: #e9c46a; }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: #e6e6e6; font: 15px var(--font-body); display: grid; grid-template-columns: 250px 1fr; height: 100vh; }
   nav { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 8px 0; }
   nav h3 { margin: 12px 14px 4px; font: 11px var(--font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
@@ -19,9 +24,11 @@
   nav a:hover { background: #2c3038; }
   nav a.on { background: #3a3420; color: var(--hi); }
   main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
-  header { padding: 14px 18px 8px; }
+  header { padding: 14px 18px 8px; display: flex; gap: 18px; align-items: flex-start; }
+  header > div { flex: 1; min-width: 0; }
   h1 { margin: 0; font: 600 20px var(--font-display); }
-  .about { color: var(--dim); margin-top: 4px; }
+  .about { color: var(--dim); margin-top: 4px; min-height: 1.2em; }
+  .panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .bar { display: flex; gap: 8px; align-items: center; padding: 6px 18px; flex-wrap: wrap; }
   button { background: #2f333c; color: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 5px 12px; font: 13px var(--font-display); cursor: pointer; }
   button:hover { background: #393e48; }
@@ -34,7 +41,10 @@
   #seek .mark { position: absolute; top: 0; bottom: 0; width: 1px; background: #444955; }
   #seek .mark.loop { background: var(--hi); width: 2px; }
   label { color: var(--dim); display: flex; align-items: center; gap: 6px; }
-  #roll { flex: 1; min-height: 120px; width: 100%; display: block; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #15171b; }
+  label output { min-width: 3.2em; font-variant-numeric: tabular-nums; color: #e6e6e6; }
+  canvas { width: 100%; display: block; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #15171b; }
+  #roll { flex: 1; min-height: 120px; }
+  #wave { height: 200px; flex: none; }
   #voices { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px; padding: 8px 18px; max-height: 36vh; overflow-y: auto; }
   .voice { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-radius: 3px; background: var(--panel); cursor: pointer; user-select: none; border-left: 4px solid var(--c); }
   .voice .lamp { width: 8px; height: 8px; border-radius: 50%; background: #333; flex: none; }
@@ -44,47 +54,84 @@
   .voice.solo { outline: 1px solid var(--hi); }
   #errors { color: #ff8a80; white-space: pre-wrap; padding: 0 18px; font-family: var(--font-mono); font-size: 12px; }
   .hint { color: var(--dim); padding: 4px 18px 10px; font-size: 12px; }
+  #pads { flex: 1; overflow-y: auto; padding: 4px 18px 10px; }
+  #pads h3 { margin: 12px 0 6px; font: 11px var(--font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+  #pads .pads { display: flex; flex-wrap: wrap; gap: 4px; }
+  #pads .row { display: grid; grid-template-columns: 130px auto 1fr; gap: 8px; align-items: center; padding: 2px 0; }
+  #pads .row .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  #pads .row .btns { display: flex; gap: 4px; }
+  #pads .row .desc, #pads .desc { color: var(--dim); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pads .slider { display: grid; grid-template-columns: 130px 260px 3.5em 1fr; gap: 8px; align-items: center; padding: 3px 0; }
+  #pads .slider input { width: 100%; }
 </style>
 </head>
 <body>
 <nav id="list"></nav>
 <main>
-  <header><h1 id="title">Music player</h1><div class="about" id="about"></div></header>
-  <div class="bar">
-    <button id="play">Play</button>
-    <button id="restart">Restart</button>
-    <div id="seek"><div class="fill"></div></div>
-    <span id="pos"></span>
-  </div>
-  <div class="bar">
-    <span style="color:var(--dim)">Mood</span><span id="moods"></span>
-    <label><input type="checkbox" id="loop" checked> loop</label>
-    <label>volume <input type="range" id="vol" min="0" max="1" step="0.01" value="0.7"></label>
-    <label><input type="checkbox" id="follow" checked> piano roll</label>
-  </div>
-  <div id="errors"></div>
-  <canvas id="roll"></canvas>
-  <div id="voices"></div>
-  <div class="hint">Click a voice to mute it, shift-click to solo it. Space plays and pauses, arrows move a pattern, [ and ] move a song.</div>
+  <header>
+    <div><h1 id="title">Player</h1><div class="about" id="about"></div></div>
+    <label>volume <input type="range" id="vol" min="0" max="1" step="0.01" value="0.8"></label>
+  </header>
+  <section class="panel" id="music">
+    <div class="bar">
+      <button id="play">Play</button>
+      <button id="restart">Restart</button>
+      <div id="seek"><div class="fill"></div></div>
+      <span id="pos"></span>
+    </div>
+    <div class="bar">
+      <span style="color:var(--dim)">Mood</span><span id="moods"></span>
+      <label><input type="checkbox" id="loop" checked> loop</label>
+      <label><input type="checkbox" id="follow" checked> piano roll</label>
+    </div>
+    <div id="errors"></div>
+    <canvas id="roll"></canvas>
+    <div id="voices"></div>
+    <div class="hint">Click a voice to mute it, shift-click to solo it. Space plays and pauses, arrows move a pattern, [ and ] move a song.</div>
+  </section>
+  <section class="panel" id="sounds" hidden>
+    <div class="bar" id="knobs">
+      <label data-knob="pitch">pitch <input type="range" id="pitch" min="0.5" max="2" step="0.01" value="1"><output></output></label>
+      <label data-knob="pan">pan <input type="range" id="pan" min="-1" max="1" step="0.05" value="0"><output></output></label>
+      <label data-knob="level">level <input type="range" id="level" min="0" max="1.5" step="0.01" value="1"><output></output></label>
+      <label title="the wave's height in decibels (down to -60 dB), so quiet sounds show too; off: linear"><input type="checkbox" id="db" checked> dB</label>
+      <label data-knob="repeat"><input type="checkbox" id="repeat"> repeat <span id="every-at">every <input type="number" id="every" min="50" max="5000" step="50" value="400" style="width:5em"> ms</span></label>
+    </div>
+    <canvas id="wave"></canvas>
+    <div id="pads"></div>
+    <div class="hint" id="sound-hint"></div>
+  </section>
 </main>
 <script type="module">
 import { createSynth } from './vendor/scrimshaw/synth.js';
 import { loadScore, voicesIn } from './src/audio/score.js';
 import { SONGS } from './src/themes/index.js';
+import { onAudioStart, setVolume } from './src/audio/context.js';
+import { sfx, renderSfx, SOUND_NAMES } from './src/audio/sfx.js';
+import { VOICE_KINDS } from './src/audio/voices.js';
+import { footstep, renderSteps, STEP_SOUNDS, STEP_LEVEL, GAITS } from './src/audio/footsteps.js';
+import { setAmbience, setDrone, drip, pop } from './src/audio/loops.js';
+import { splashHit, splashShatter, splashSwell, renderSplashSound, SPLASH_CUES } from './src/audio/splash.js';
+import { SFX_GROUPS, BEDS, DRONES } from './tools/player-sounds.js';
 
 const GAME = SONGS;                           // music/<name>.scrim, as src/game/music.js plays them
 const FOLDERS = { jingles: 'Jingles', films: 'Films' };   // music/<dir>: label, for scores that are not songs (the jingles, audio/jingles.js) or that the game doesn't play
+const SOUND_PAGES = { effects: 'Effects', voices: 'Enemy voices', steps: 'Footsteps', ambience: 'Ambience', splash: 'Splash screen' };
 const LOOKAHEAD = 0.3, HIDDEN_LOOKAHEAD = 1.6;
+// the synth's level as the game has it: the songs and films on the music bus (audio/music.js
+// VOLUME), the jingles on the sounds' bus (audio/jingles.js LEVEL)
+const MUSIC_LEVEL = 0.4, JINGLE_LEVEL = 0.7;
 const $ = id => document.getElementById(id);
 
-// ---------------------------------------------------------------- song list
-const songs = GAME.map(name => ({ id: name, title: name, group: 'Game' }));
+// ---------------------------------------------------------------- list
+const songs = GAME.map(name => ({ id: name, title: name, group: 'Game', kind: 'score' }));
 for (const [dir, label] of Object.entries(FOLDERS)) {
   try {
     const index = await (await fetch(`music/${dir}/index.json`)).json();
-    for (const e of index) songs.push({ id: `${dir}/${e.name}`, title: e.title, group: label });
+    for (const e of index) songs.push({ id: `${dir}/${e.name}`, title: e.title, group: label, kind: 'score' });
   } catch (e) { console.warn(`music/${dir}/index.json: ${e.message}`); }
 }
+for (const [page, title] of Object.entries(SOUND_PAGES)) songs.push({ id: `sounds/${page}`, title, group: 'Sounds', kind: 'sounds', page });
 let group = null;
 for (const s of songs) {
   if (s.group !== group) { group = s.group; $('list').insertAdjacentHTML('beforeend', `<h3>${group}</h3>`); }
@@ -95,25 +142,33 @@ for (const s of songs) {
 }
 
 // ---------------------------------------------------------------- audio
-let ctx = null, syn = null;
-function audio() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    syn = createSynth(ctx, ctx.destination);
-    syn.out.gain.value = +$('vol').value;
-    setInterval(tick, 25);
-  }
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
+// the game's AudioContext (made on the first key or click), with its buses
+let ctx = null, syn = null, scope = null;
+onAudioStart((ac, sounds, music) => {
+  ctx = ac;
+  syn = createSynth(ctx, music);
+  syn.out.disconnect(syn.analyser);   // (nothing reads it)
+  syn.out.gain.value = cur?.group === 'Jingles' ? JINGLE_LEVEL : MUSIC_LEVEL;
+  scope = ctx.createAnalyser(); scope.fftSize = 2048;   // the ambience's live wave: the sounds' bus
+  sounds.connect(scope);
+  setInterval(tick, 25);
+});
+setVolume('master', +$('vol').value);
+// whether sound can play: the context exists (a key or click made it) and runs
+async function audio() {
+  if (!ctx) return false;
+  if (ctx.state !== 'running') await ctx.resume();
+  return ctx.state === 'running';
 }
 
 // ---------------------------------------------------------------- state
-let cur = null;        // { id, score, song, total }
+let cur = null;        // { id, score, song, total, lo, hi }: the score open
 let play = null;       // { sess, origin, k, i } while playing: origin is the ctx time of song position 0
 let pausedAt = 0;      // song position to resume from
 let mood = 'explore';
 const muted = new Set(), solo = new Set();
 const lit = [];        // per voice: ctx time of its last note start
+let page = null;       // the sounds page shown (SOUND_PAGES), or null for a score
 
 // song position (seconds) <-> pass: the intro once (k = -1), then loop pass k = 0, 1, ...
 function passList(k) { return k < 0 ? cur.song.intro : cur.song.loop; }
@@ -145,10 +200,11 @@ function applyGains(fade = 0.03) {
   });
 }
 
-function start(pos = pausedAt) {
+async function start(pos = pausedAt) {
   if (!cur || cur.score.errors.length && !cur.song.loop.dur) return;
-  audio();
+  if (!await audio()) return;
   stop(true);
+  syn.out.gain.value = cur.group === 'Jingles' ? JINGLE_LEVEL : MUSIC_LEVEL;
   const sess = syn.session(cur.song);
   syn.warm(cur.song);
   sess.ch.forEach((c, i) => { c.base = c.input.gain.value; if (!voiceOn(i)) c.input.gain.value = 0; });
@@ -207,6 +263,10 @@ async function open(id) {
   stop(); pausedAt = 0;
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.id === s.id));
   document.querySelector('nav a.on')?.scrollIntoView({ block: 'nearest' });
+  $('music').hidden = s.kind !== 'score';
+  $('sounds').hidden = s.kind !== 'sounds';
+  if (s.kind === 'sounds') { cur = null; openSounds(s.page); return; }
+  closeSounds();
   let text;
   try {
     const r = await fetch(`music/${s.id}.scrim`, { cache: 'no-store' });
@@ -214,15 +274,24 @@ async function open(id) {
     text = await r.text();
   } catch (e) { $('errors').textContent = `music/${s.id}.scrim: ${e.message}`; return; }
   const score = loadScore(text);
-  cur = { id: s.id, score, song: score.song, total: score.song.intro.dur + score.song.loop.dur };
+  cur = { id: s.id, group: s.group, score, song: score.song, total: score.song.intro.dur + score.song.loop.dur, ...pitchRange(score) };
   muted.clear(); solo.clear(); lit.length = 0;
   if (!score.given.includes(mood)) mood = score.base;
   $('title').textContent = score.song.title;
   $('about').textContent = [score.song.composer, score.song.about].filter(Boolean).join(' · ');
   $('errors').textContent = score.errors.join('\n');
-  document.title = `${score.song.title} · Music player`;
+  document.title = `${score.song.title} · Player`;
   renderMoods(); renderVoices(); renderSeek();
   if (was) start(0);
+}
+// the notes' range over the whole score (intro, loop and stings), so the piano roll keeps its
+// rows while it plays
+function pitchRange(score) {
+  let lo = 127, hi = 0;
+  for (const tl of [score.song.intro, score.song.loop, ...Object.values(score.stings)])
+    for (const ev of tl.events) if (ev.m) for (const m of ev.m) { lo = Math.min(lo, m); hi = Math.max(hi, m); }
+  if (lo > hi) { lo = 48; hi = 84; }
+  return { lo: lo - 2, hi: hi + 2 };
 }
 
 const COLORS = ['#e76f51', '#f4a261', '#e9c46a', '#2a9d8f', '#8ab17d', '#60a5fa', '#a78bfa', '#f472b6',
@@ -295,14 +364,20 @@ function whereAt(pos) {
 }
 const fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
-// ---------------------------------------------------------------- piano roll
-const roll = $('roll'), g = roll.getContext('2d');
-const WINDOW = 8;                                   // seconds shown, a quarter of it before the playhead
-function drawRoll(pos) {
-  const w = roll.clientWidth, h = roll.clientHeight, dpr = devicePixelRatio;
-  if (roll.width !== w * dpr || roll.height !== h * dpr) { roll.width = w * dpr; roll.height = h * dpr; }
+// a canvas's 2D context, its drawing buffer fitted to its size on the page: [g, w, h]
+function fitCanvas(c) {
+  const w = c.clientWidth, h = c.clientHeight, dpr = devicePixelRatio;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const g = c.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
+  return [g, w, h];
+}
+
+// ---------------------------------------------------------------- piano roll
+const WINDOW = 8;                                   // seconds shown, a quarter of it before the playhead
+function drawRoll(pos) {
+  const [g, w, h] = fitCanvas($('roll'));
   if (!cur || !$('follow').checked) return;
   const t0 = pos - WINDOW / 4, t1 = t0 + WINDOW, x = t => (t - t0) / WINDOW * w;
   // gather the passes in view
@@ -315,10 +390,7 @@ function drawRoll(pos) {
     for (const ev of tl.events) { const t = base + ev.t; if (t > t1) break; if (t + (ev.d ?? 0.1) >= t0) items.push([t, ev]); }
     if (k > 0 && !$('loop').checked) break;
   }
-  let lo = 127, hi = 0;
-  for (const [, ev] of items) if (ev.m) for (const m of ev.m) { lo = Math.min(lo, m); hi = Math.max(hi, m); }
-  if (lo > hi) { lo = 48; hi = 84; }
-  lo -= 2; hi += 2;
+  const { lo, hi } = cur;
   const drums = cur.song.voices.map((v, i) => v.drum ? i : -1).filter(i => i >= 0);
   const drumH = drums.length ? Math.min(60, drums.length * 6) : 0;
   const rowH = (h - drumH) / (hi - lo + 1);
@@ -344,17 +416,324 @@ function drawRoll(pos) {
   g.fillStyle = '#e9c46a'; g.fillRect(x(pos), 0, 1, h);
 }
 
+// ---------------------------------------------------------------- sounds
+// what each recipe is, from the comment beside it in the game's code: 'sfx:hit', 'voice:spider', 'step:mud'
+const ABOUT = {};
+await Promise.allSettled([
+  ['src/audio/sfx.js', /^ {2}'?(\w+)'?\(t, out, p\) \{\s*\/\/ (.*)$/gm, 'sfx:'],
+  ['src/audio/voices.js', /^ {4}(\w+): \{\s*\/\/ (.*)$/gm, 'voice:'],
+  ['src/audio/footsteps.js', /^ {2}'?([\w-]+)'?\(k, t, out, w, R\) \{\s*\/\/ (.*)$/gm, 'step:'],
+].map(async ([file, re, prefix]) => {
+  const text = await (await fetch(file)).text();
+  for (const m of text.matchAll(re)) ABOUT[prefix + m[1]] = m[2].trim();
+}));
+
+const VOICE = new RegExp(`^(.+)_(${VOICE_KINDS.join('|')})$`);
+const SPECIES = [...new Set(SOUND_NAMES.map(n => n.match(VOICE)?.[1]).filter(Boolean))];
+const PACE = { walk: 0.5, run: 0.33, land: 1.2 };   // s between steps when repeating: about the game's walk and run
+const SPLASH = {
+  hit: { about: 'the invisible blow: a muffled knock, the glass ringing on while time stands nearly still', plan: [['hit', 0]] },
+  shatter: { about: 'the bright shatter as time runs again: a crack, then a shower of glass, panned across', plan: [['shatter', 0]] },
+  swell: { about: 'a deep swell, many detuned voices gliding down into one low chord on D', plan: [['swell', 0]] },
+  'the whole break': { about: 'all three at their moments after the click (SPLASH_CUES), as the splash screen plays them', plan: Object.entries(SPLASH_CUES) },
+};
+const SPLASH_PLAY = { hit: splashHit, shatter: splashShatter, swell: at => splashSwell(undefined, at) };
+const HINTS = {
+  effects: 'Click a sound to play it (the game varies each by ±5% in pitch). Space plays the last one again, arrows the one before or after; [ and ] move a page. The wave is rendered again offline: its noise and random details differ a little from what you heard.',
+  voices: 'Each species: noticing you, winding up an attack, dying. In the game the pitch is the species\' (its profile). Space plays the last one again, arrows the one before or after.',
+  steps: 'One footfall of a surface or a ladder\'s rungs and holds (on a ladder hands sound the walk, feet the run). Each is one of six variants rendered when audio starts, a little detuned per foot: the wave shows the one played. Repeat steps at about the gait\'s pace.',
+  ambience: 'The beds and drones as the game steers them, at the levels set here (the game sets them every frame from what is around). The wave is the sounds\' bus live, the last six seconds.',
+  splash: 'The splash screen\'s glass bird breaking (src/audio/splash.js), alone or all three at their moments.',
+};
+const KNOBS = { effects: ['pitch', 'pan', 'level', 'repeat'], voices: ['pitch', 'pan', 'level', 'repeat'], steps: ['pan', 'level', 'repeat'], ambience: [], splash: [] };
+
+let items = [];        // the page's sounds in order: { el, name, play(again) }
+let lastItem = -1;     // the one played last
+let repeatTimer = 0;
+let shown = null;      // the wave shown: { channels, sr, label, peak, heard, at (ctx time it started), image }
+let showing = 0;       // (a render still running for an older click is dropped)
+const amb = { beds: Object.fromEntries(BEDS.map(b => [b, 0])), drones: Object.fromEntries(Object.entries(DRONES).map(([n, d]) => [n, { level: 0, pitch: d.pitch }])), drips: false, pops: true };
+const lane = [];       // the ambience's live wave: [t, lo, hi] per frame
+
+const knob = id => +$(id).value;
+for (const id of ['pitch', 'pan', 'level']) {
+  const show = () => { $(id).nextElementSibling.textContent = knob(id).toFixed(2); };
+  $(id).addEventListener('input', show); show();
+  $(id).addEventListener('dblclick', () => { $(id).value = id === 'pan' ? 0 : 1; show(); });
+}
+
+function openSounds(name) {
+  page = name;
+  $('title').textContent = SOUND_PAGES[name];
+  $('about').textContent = '';
+  document.title = `${SOUND_PAGES[name]} · Player`;
+  $('sound-hint').textContent = HINTS[name];
+  for (const el of document.querySelectorAll('#knobs [data-knob]')) el.hidden = !KNOBS[name].includes(el.dataset.knob);
+  $('every-at').hidden = name === 'steps';
+  $('wave').hidden = false;
+  items = []; lastItem = -1; shown = null; disarm();
+  const pads = $('pads');
+  pads.replaceChildren();
+  if (name === 'effects') {
+    for (const [title, names] of SFX_GROUPS) {
+      pads.insertAdjacentHTML('beforeend', `<h3>${title}</h3>`);
+      const row = document.createElement('div'); row.className = 'pads';
+      for (const n of names) row.append(pad(n, ABOUT[`sfx:${n}`], again => playSfx(n, again)));
+      pads.append(row);
+    }
+  } else if (name === 'voices') {
+    for (const sp of SPECIES) pads.append(row(sp, ABOUT[`voice:${sp}`], VOICE_KINDS.map(k => pad(k, ABOUT[`voice:${sp}`], again => playSfx(`${sp}_${k}`, again), `${sp}_${k}`))));
+  } else if (name === 'steps') {
+    for (const s of STEP_SOUNDS) pads.append(row(s, ABOUT[`step:${s}`], Object.keys(GAITS).map(gt => pad(gt, ABOUT[`step:${s}`], again => playStep(s, gt, again), `${s} ${gt}`))));
+  } else if (name === 'splash') {
+    for (const [n, { about }] of Object.entries(SPLASH)) pads.append(row(n, about, [pad('play', about, again => playSplash(n, again), n)]));
+  } else if (name === 'ambience') renderAmbience(pads);
+}
+function closeSounds() { page = null; disarm(); }
+
+// a button playing a sound: label, what it is (its tooltip), play(again)
+function pad(label, about, fn, name = label) {
+  const b = document.createElement('button');
+  b.textContent = label; b.title = about ?? '';
+  const item = { el: b, name, about, play: fn };
+  const i = items.push(item) - 1;
+  b.onclick = () => pick(i);
+  return b;
+}
+function row(name, about, buttons) {
+  const d = document.createElement('div'); d.className = 'row';
+  d.innerHTML = `<span class="name"></span><span class="btns"></span><span class="desc"></span>`;
+  d.querySelector('.name').textContent = name;
+  d.querySelector('.btns').append(...buttons);
+  d.querySelector('.desc').textContent = about ?? ''; d.querySelector('.desc').title = about ?? '';
+  return d;
+}
+async function pick(i) {
+  if (!items[i] || !await audio()) return;
+  lastItem = i;
+  items.forEach((it, j) => it.el.classList.toggle('on', j === i));
+  items[i].el.scrollIntoView({ block: 'nearest' });
+  $('about').textContent = items[i].about ? `${items[i].name}: ${items[i].about}` : items[i].name;
+  items[i].play(false);
+  arm();
+}
+// repeat the last one (steps at their gait's pace)
+function arm() {
+  disarm();
+  if (!$('repeat').checked || lastItem < 0 || !KNOBS[page]?.includes('repeat')) return;
+  const it = items[lastItem], gait = page === 'steps' && it.name.split(' ').at(-1);
+  repeatTimer = setInterval(() => it.play(true), gait ? PACE[gait] * 1000 : Math.max(50, knob('every')));
+}
+function disarm() { clearInterval(repeatTimer); repeatTimer = 0; }
+$('repeat').onchange = arm;
+$('every').onchange = arm;
+
+function playSfx(name, again) {
+  const o = { pitch: knob('pitch'), pan: knob('pan'), volume: knob('level') };
+  sfx(name, o);
+  const at = ctx.currentTime + 0.005;
+  if (again && shown?.name === name) { shown.at = at; return; }
+  showWave(name, at, async () => (await renderSfx(name, o)).buffer, name);
+}
+const stepClips = {};   // 'surface/gait' -> its variants, as footsteps.js renders them
+function playStep(surface, gait, again) {
+  const v = footstep(surface, gait, { volume: knob('level'), pan: knob('pan') });
+  if (v < 0) return;   // (not rendered yet, the first moment after audio starts)
+  const key = `${surface}/${gait}`, at = ctx.currentTime;
+  showWave(`${surface} ${gait}`, at, async () => {
+    const clips = await (stepClips[key] ??= renderSteps(surface, gait, ctx.sampleRate));
+    const s = knob('level') * STEP_LEVEL, clip = clips[v].map(x => x * s);
+    return { channels: [clip], sampleRate: ctx.sampleRate, label: `variant ${v + 1} of ${clips.length}` };
+  }, `${key}/${v}`, again);
+}
+function playSplash(name, again) {
+  const { plan } = SPLASH[name];
+  for (const [n, t] of plan) SPLASH_PLAY[n](t);
+  const at = ctx.currentTime;
+  if (again && shown?.name === name) { shown.at = at; return; }
+  showWave(name, at, async () => (await renderSplashSound(plan)).buffer, name);
+}
+
+// show the wave render() makes (an AudioBuffer, or { channels, sampleRate, label }); played at ctx time `at`
+async function showWave(label, at, render, name = label, again = false) {
+  if (again && shown?.name === name) { shown.at = at; return; }
+  const token = ++showing;
+  const r = await render();
+  if (token !== showing) return;
+  let channels = r.channels ?? Array.from({ length: r.numberOfChannels }, (_, c) => r.getChannelData(c));
+  if (channels.length === 2 && channels[0].every((x, i) => x === channels[1][i])) channels = [channels[0]];
+  let peak = 0, last = 0;
+  for (const d of channels) for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; if (v > 0.001) last = Math.max(last, i); }
+  shown = { name, label: r.label ? `${label}, ${r.label}` : label, channels, sr: r.sampleRate, peak, heard: last / r.sampleRate, at, image: null };
+}
+
+const dB = v => v > 0 ? `${(20 * Math.log10(v)).toFixed(1)} dBFS` : 'silent';
+// a sample's height in the wave (-1..1, or past it): linear, or in decibels from FLOOR up
+const FLOOR = 60;
+const inDb = () => $('db').checked;
+const height = v => !inDb() ? v : Math.sign(v) * Math.max(0, 1 + 20 * Math.log10(Math.abs(v) || 1e-9) / FLOOR);
+// the guide lines: [height, label]
+const guides = () => inDb() ? [[1, '0'], [1 - 12 / FLOOR, '-12'], [1 - 24 / FLOOR, '-24'], [1 - 36 / FLOOR, '-36'], [1 - 48 / FLOOR, '-48']] : [[1, '1'], [0.5, '-6 dB']];
+function drawGuides(g, w, mid, half, clipped) {
+  g.textBaseline = 'middle';
+  for (const [y, label] of guides()) {
+    g.fillStyle = y === 1 ? (clipped ? '#7a2e2e' : '#30343c') : '#23262d';
+    g.fillRect(0, Math.round(mid - y * half), w, 1); g.fillRect(0, Math.round(mid + y * half), w, 1);
+    g.fillStyle = '#4a4f59'; g.textAlign = 'right'; g.fillText(label, w - 4, mid - y * half + 7); g.textAlign = 'left';
+  }
+  g.fillStyle = '#2b2f37'; g.fillRect(0, Math.round(mid), w, 1);
+}
+const TICKS = [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2];
+function drawWave() {
+  const c = $('wave');
+  const [g, w, h] = fitCanvas(c);
+  if (page === 'ambience') return drawLane(g, w, h);
+  if (!shown) { g.fillStyle = '#5a606c'; g.font = '13px sans-serif'; g.fillText('Play a sound to see its wave.', 12, 22); return; }
+  const dur = Math.max(0.25, shown.heard + 0.05);
+  const key = `${c.width}x${c.height}${inDb() ? 'dB' : ''}`;
+  if (shown.image?.key !== key) shown.image = { key, bitmap: paintWave(shown, dur, w, h) };
+  g.drawImage(shown.image.bitmap, 0, 0, w, h);
+  // the playhead, while it plays
+  const t = (ctx?.currentTime ?? 0) - shown.at;
+  if (t >= 0 && t <= dur) { g.fillStyle = '#e9c46a'; g.fillRect(t / dur * w, 0, 1, h - 16); }
+}
+// the wave, painted once into a canvas of its own: min and max per column, a row per channel
+function paintWave({ channels, sr, label, peak, heard }, dur, w, h) {
+  const off = document.createElement('canvas'), dpr = devicePixelRatio;
+  off.width = Math.round(w * dpr); off.height = Math.round(h * dpr);
+  const g = off.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const foot = 16, rowH = (h - foot) / channels.length;
+  // time grid
+  const step = TICKS.find(s => dur / s <= 12) ?? 5;
+  g.font = '11px sans-serif'; g.textBaseline = 'middle';
+  for (let t = 0; t <= dur + 1e-9; t += step) {
+    const x = Math.round(t / dur * w) + 0.5;
+    g.fillStyle = '#262a31'; g.fillRect(x, 0, 1, h - foot);
+    g.fillStyle = '#5a606c'; g.fillText(`${+t.toFixed(2)} s`, x + 3, h - foot / 2);
+  }
+  channels.forEach((d, ch) => {
+    const top = ch * rowH, mid = top + rowH / 2, half = rowH / 2 - 4;
+    drawGuides(g, w, mid, half, peak > 1);
+    const per = dur * sr / (w * dpr);
+    g.fillStyle = '#c9a54c';
+    for (let px = 0; px < w * dpr; px++) {
+      const a = Math.floor(px * per), b = Math.min(d.length, Math.max(a + 1, Math.floor((px + 1) * per)));
+      if (a >= d.length) break;
+      let lo = 1, hi = -1;
+      for (let i = a; i < b; i++) { const v = d[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+      const y0 = mid - Math.min(1.2, height(hi)) * half, y1 = mid - Math.max(-1.2, height(lo)) * half;
+      g.fillStyle = hi > 1 || lo < -1 ? '#ff6b5b' : '#c9a54c';
+      g.fillRect(px / dpr, y0, 1 / dpr, Math.max(1 / dpr, y1 - y0));
+    }
+    if (channels.length > 1) { g.fillStyle = '#5a606c'; g.fillText(ch ? 'R' : 'L', 8, top + rowH - 10); }
+  });
+  g.fillStyle = '#c8ccd4'; g.textBaseline = 'top';
+  g.fillText(`${label}  ·  peak ${dB(peak)}  ·  heard ${heard.toFixed(2)} s`, 8, 6);
+  return off;
+}
+// the sounds' bus live: the last LANE seconds, the loudest sample either way per frame
+const LANE = 6;
+const laneBuf = new Float32Array(2048);
+function sampleLane() {
+  if (!scope || ctx.state !== 'running') return;
+  scope.getFloatTimeDomainData(laneBuf);
+  let lo = 0, hi = 0;
+  for (let i = laneBuf.length - 1024; i < laneBuf.length; i++) { const v = laneBuf[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+  const now = ctx.currentTime;
+  lane.push([now, lo, hi]);
+  while (lane.length && lane[0][0] < now - LANE) lane.shift();
+}
+function drawLane(g, w, h) {
+  const foot = 16, mid = (h - foot) / 2, half = mid - 6, now = ctx?.currentTime ?? 0;
+  g.font = '11px sans-serif'; g.textBaseline = 'middle';
+  for (let s = 0; s <= LANE; s++) {
+    const x = Math.round(w - s / LANE * w) - 0.5;
+    g.fillStyle = '#262a31'; g.fillRect(x, 0, 1, h - foot);
+    g.fillStyle = '#5a606c'; g.fillText(s ? `-${s} s` : 'now', Math.max(2, x - (s ? 28 : 26)), h - foot / 2);
+  }
+  drawGuides(g, w, mid, half, false);
+  let peak = 0;
+  g.fillStyle = '#5fb3a5';
+  for (let i = 0; i < lane.length; i++) {
+    const [t, lo, hi] = lane[i], x0 = w - (now - t) / LANE * w, x1 = i + 1 < lane.length ? w - (now - lane[i + 1][0]) / LANE * w : w;
+    peak = Math.max(peak, hi, -lo);
+    const y0 = mid - Math.min(1, height(hi)) * half, y1 = mid - Math.max(-1, height(lo)) * half;
+    g.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
+  }
+  g.fillStyle = '#c8ccd4'; g.textBaseline = 'top';
+  g.fillText(`the sounds' bus, live  ·  peak ${dB(peak)}`, 8, 6);
+}
+
+function renderAmbience(pads) {
+  const slider = (name, about, min, max, step, get, set) => {
+    const d = document.createElement('div'); d.className = 'slider';
+    d.innerHTML = `<span class="name"></span><input type="range" min="${min}" max="${max}" step="${step}"><output></output><span class="desc"></span>`;
+    d.querySelector('.name').textContent = name;
+    d.querySelector('.desc').textContent = about;
+    const input = d.querySelector('input'), out = d.querySelector('output');
+    const show = () => { out.textContent = step < 1 ? get().toFixed(2) : `${Math.round(get())} Hz`; };
+    input.value = get(); show();
+    input.oninput = async () => { await audio(); set(+input.value); show(); };
+    pads.append(d);
+  };
+  pads.insertAdjacentHTML('beforeend', '<h3>Beds</h3>');
+  const BED_ABOUT = { water: 'still water near', falls: 'a waterfall (carries further)', lava: 'lava near, with its pops', acid: 'acid fizzing', wind: 'wind under an open sky', cave: 'cave air below ground, with drips' };
+  for (const b of BEDS) slider(b, BED_ABOUT[b], 0, 1, 0.01, () => amb.beds[b], v => { amb.beds[b] = v; });
+  pads.insertAdjacentHTML('beforeend', '<h3>Drones</h3>');
+  const DRONE_ABOUT = { charge: 'standing in a well, a ring or on the town portal pad', cast: 'reading the town portal scroll' };
+  for (const [n, d] of Object.entries(DRONES)) {
+    slider(n, DRONE_ABOUT[n], 0, 1, 0.01, () => amb.drones[n].level, v => { amb.drones[n].level = v; });
+    slider(`${n} pitch`, 'rises as it fills', d.min, d.max, 1, () => amb.drones[n].pitch, v => { amb.drones[n].pitch = v; });
+  }
+  pads.insertAdjacentHTML('beforeend', '<h3>Now and then</h3>');
+  const b = document.createElement('div'); b.className = 'pads';
+  b.append(pad('drip', 'one water drop in a cave', () => drip(0.4 + Math.random() * 0.6)), pad('pop', 'one bubble bursting on lava', () => pop(1)));
+  for (const [key, text] of [['drips', 'drips now and then'], ['pops', 'pops with the lava']]) {
+    const l = document.createElement('label');
+    l.innerHTML = `<input type="checkbox"${amb[key] ? ' checked' : ''}> ${text}`;
+    l.querySelector('input').onchange = e => { amb[key] = e.target.checked; };
+    b.append(l);
+  }
+  pads.append(b);
+  const stopAll = document.createElement('button'); stopAll.textContent = 'All quiet'; stopAll.style.marginTop = '12px';
+  stopAll.onclick = () => {
+    for (const k in amb.beds) amb.beds[k] = 0;
+    for (const k in amb.drones) amb.drones[k].level = 0;
+    items = []; lastItem = -1; pads.replaceChildren(); renderAmbience(pads);
+  };
+  pads.append(stopAll);
+}
+// the beds and drones want their levels every frame (loops.js takes one down 3 s after it is quiet)
+function steerAmbience(dt) {
+  if (!ctx || ctx.state !== 'running') return;
+  const on = page === 'ambience', levels = {};
+  for (const b of BEDS) levels[b] = on ? amb.beds[b] : 0;
+  setAmbience(levels);
+  for (const [n, d] of Object.entries(amb.drones)) setDrone(n, on ? d.level : 0, d.pitch);
+  if (on && amb.drips && Math.random() < 0.5 * dt) drip(0.4 + Math.random() * 0.6);
+  if (on && amb.pops && levels.lava > 0.05 && Math.random() < 3 * levels.lava * dt) pop(levels.lava);
+}
+
 // ---------------------------------------------------------------- frame
-function frame() {
+let lastFrame = performance.now();
+function frame(now) {
   requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
+  steerAmbience(dt);
+  if (page) {
+    if (page === 'ambience') sampleLane();
+    drawWave();
+    return;
+  }
   if (!cur) return;
   const raw = position(), pos = wrap(raw);
   $('seek').querySelector('.fill').style.width = `${100 * pos / cur.total}%`;
   $('pos').textContent = `${fmt(pos)} / ${fmt(cur.total)}  ${whereAt(pos).label}`;
-  const now = ctx?.currentTime ?? 0;
+  const t = ctx?.currentTime ?? 0;
   document.querySelectorAll('#voices .lamp').forEach((l, i) => {
-    const t = lit[i];
-    l.style.background = play && t != null && t <= now && now - t < 0.12 ? colorOf(i) : '#333';
+    const at = lit[i];
+    l.style.background = play && at != null && at <= t && t - at < 0.12 ? colorOf(i) : '#333';
   });
   drawRoll(raw);
 }
@@ -363,7 +742,7 @@ requestAnimationFrame(frame);
 // ---------------------------------------------------------------- controls
 $('play').onclick = () => (play ? stop() : start());
 $('restart').onclick = () => { pausedAt = 0; start(0); };
-$('vol').oninput = () => { if (syn) syn.out.gain.value = +$('vol').value; };
+$('vol').oninput = () => setVolume('master', +$('vol').value);
 $('loop').onchange = () => { if (play) start(wrap(position())); };
 function jumpPattern(dir) {
   const pos = wrap(position()), w = whereAt(pos);
@@ -376,16 +755,25 @@ function jumpPattern(dir) {
   if (play) start(target); else pausedAt = target;
 }
 function stepSong(dir) {
-  const i = songs.findIndex(s => s.id === cur?.id);
+  const id = page ? `sounds/${page}` : cur?.id;
+  const i = songs.findIndex(s => s.id === id);
   location.hash = songs[(i + dir + songs.length) % songs.length].id;
 }
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') return;
+  if (e.key === ']') return stepSong(1);
+  if (e.key === '[') return stepSong(-1);
+  if (page) {
+    if (!items.length) return;
+    if (e.key === ' ') { e.preventDefault(); pick(Math.max(0, lastItem)); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); pick(Math.min(items.length - 1, lastItem + 1)); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); pick(Math.max(0, lastItem - 1)); }
+    return;
+  }
+  if (!cur) return;
   if (e.key === ' ') { e.preventDefault(); play ? stop() : start(); }
   else if (e.key === 'ArrowRight') jumpPattern(1);
   else if (e.key === 'ArrowLeft') jumpPattern(-1);
-  else if (e.key === ']') stepSong(1);
-  else if (e.key === '[') stepSong(-1);
 });
 addEventListener('hashchange', () => open(decodeURIComponent(location.hash.slice(1))));
 open(decodeURIComponent(location.hash.slice(1)) || songs[0]?.id);

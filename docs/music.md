@@ -47,7 +47,9 @@ plays, at once, if it is at most 150 ms late; a later one is dropped.
 `tools/player.html` (`npm run serve`, then `/tools/player.html`) plays every score with the
 game's synth: pick a song on the left (or `#overworld` in the URL), switch
 moods, click a voice to mute it or shift-click to solo it, click the bar to seek; a piano roll
-shows what plays. It reloads the score each time you pick it, so edit, then pick the song again.
+shows what plays (its rows span the whole score, so they stay put). It reloads the score each
+time you pick it, so edit, then pick the song again. The same player plays the game's sounds too
+(`docs/sound.md`).
 
 Or paste a score into the jukebox page to hear it, see it as a piano roll and get errors per
 line, then copy it back. Its "Read guide" section documents the format; in short, settings,

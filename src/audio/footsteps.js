@@ -12,6 +12,7 @@ import { onAudioStart } from './context.js';
 export const GAITS = { walk: 0.6, run: 1, land: 1.6 };   // how hard the foot comes down
 const PEAK = { walk: 0.45, run: 0.6, land: 0.85 };       // loudest variant of each gait
 const TRIM = { grass: 0.85, snow: 0.85, ice: 0.8, iron: 0.75, rope: 0.9, ladder: 0.8, 'ladder-rope': 0.75, 'ladder-vine': 0.7, 'ladder-iron': 0.7, 'ladder-stone': 0.75 };   // per-surface level
+export const STEP_LEVEL = 0.3;   // all footsteps, into the sounds' bus
 const VARIANTS = 6, SLOT = 0.8;   // variants per surface and gait; seconds rendered for each
 
 // building blocks on context c (an OfflineAudioContext while rendering)
@@ -175,12 +176,12 @@ const RECIPES = {
   },
 };
 // what is rendered: the ground's surfaces and the ladders' rungs and holds (hands: walk, feet: run)
-const SOUNDS = [...SURFACES, ...new Set(Object.values(LADDER_STYLES).map(s => s.sound))];
+export const STEP_SOUNDS = [...SURFACES, ...new Set(Object.values(LADDER_STYLES).map(s => s.sound))];
 
 // Render all variants of one surface and gait (sample rate sr): [Float32Array] at the gait's level; exported for checks
 export async function renderSteps(surface, gait, sr = 44100, seed = 1) {
   const c = new OfflineAudioContext(1, Math.ceil(VARIANTS * SLOT * sr), sr);
-  const R = mulberry32(seed * 7919 + SOUNDS.indexOf(surface) * 131 + Object.keys(GAITS).indexOf(gait));
+  const R = mulberry32(seed * 7919 + STEP_SOUNDS.indexOf(surface) * 131 + Object.keys(GAITS).indexOf(gait));
   const k = kit(c, R), w = GAITS[gait];
   for (let v = 0; v < VARIANTS; v++) {
     const t = v * SLOT + 0.002;
@@ -210,9 +211,9 @@ const R = mulberry32(0x5735);
 
 onAudioStart((ac, output) => {
   ctx = ac;
-  bus = ctx.createGain(); bus.gain.value = 0.3;   // all footsteps
+  bus = ctx.createGain(); bus.gain.value = STEP_LEVEL;
   bus.connect(output);
-  for (const s of SOUNDS) for (const g of Object.keys(GAITS)) renderSteps(s, g, ctx.sampleRate).then(clips => {
+  for (const s of STEP_SOUNDS) for (const g of Object.keys(GAITS)) renderSteps(s, g, ctx.sampleRate).then(clips => {
     banks[`${s}/${g}`] = clips.map(clip => {
       const b = ctx.createBuffer(1, clip.length, ctx.sampleRate);
       b.copyToChannel(clip, 0);
@@ -221,10 +222,11 @@ onAudioStart((ac, output) => {
   });
 });
 
-// One footfall on `surface` (SURFACES or a ladder's sound, LADDER_STYLES) at `gait` (walk, run, land). pan: -1..1
+// One footfall on `surface` (SURFACES or a ladder's sound, LADDER_STYLES) at `gait` (walk, run, land). pan: -1..1.
+// Which variant played (renderSteps' order), or -1
 export function footstep(surface, gait = 'walk', { volume = 1, pan = 0 } = {}) {
   const bank = banks[`${surface}/${gait}`];
-  if (!ctx || ctx.state !== 'running' || !bank) return;
+  if (!ctx || ctx.state !== 'running' || !bank) return -1;
   const key = `${surface}/${gait}`;
   let v = Math.floor(R() * bank.length);
   if (v === last[key]) v = (v + 1) % bank.length;   // never the same variant twice in a row
@@ -238,4 +240,5 @@ export function footstep(surface, gait = 'walk', { volume = 1, pan = 0 } = {}) {
   if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; node = node.connect(p); }
   node.connect(bus);
   src.start();
+  return v;
 }

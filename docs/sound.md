@@ -8,7 +8,7 @@ click. It runs at 44.1 kHz whatever the speakers run at (the browser resamples),
 
 | File | What |
 |---|---|
-| `src/audio/sfx.js` | one-shot effects: `sfx(name, { at, pitch, volume })`; `at` pans by screen position |
+| `src/audio/sfx.js` | one-shot effects: `sfx(name, { at, pan, pitch, volume })`; `at` pans by screen position (`setPanner`, which `main.js` gives the camera: sfx.js knows nothing of the renderer) |
 | `src/audio/splash.js` | the splash screen's (`game/splash.js`): the glass bird struck (a muffled knock, the glass ringing on while time crawls), its shatter, and a deep swell gliding into a low chord on D; music waits for it (`holdMusic`, `audio/music.js`) |
 | `src/audio/jingles.js` | the jingles: short scores (`music/jingles/`) for a boss beaten, a death, a quest, a level, a chest ..., played once by a synth of their own, one after another, the music turned down under them |
 | `src/audio/voices.js` | the enemies' voices, registered with sfx.js as `<species>_alert/_windup/_death` |
@@ -18,6 +18,26 @@ click. It runs at 44.1 kHz whatever the speakers run at (the browser resamples),
 | `src/game/footsteps.js` | steps on the walk / run cycle and the ladder rungs (each ladder style its own sound: `LADDER_STYLES[style].sound`, `themes/builds.js`), landings |
 | `src/game/sounds.js` | sounds from watching state: jumps, long falls, ragdoll thuds, getting up, enemy voices |
 | `src/game/ambience.js` | ambient levels from the surroundings, the charge and cast drones |
+
+## Listening
+
+`tools/player.html` (`npm run serve`, then `/tools/player.html`) plays every sound with the game's
+own code, into the same AudioContext and buses, under Sounds (`#sounds/effects` ...):
+
+- **Effects:** every one in `SOUND_NAMES` but the voices, grouped as `tools/player-sounds.js`
+  says (`tests/player.test.js` checks that each is in one group), with pitch, pan, level and a
+  repeat (a coin's combo climbs).
+- **Enemy voices:** per species its alert, windup and death.
+- **Footsteps:** every surface and ladder in walk, run and land; repeated at about the gait's pace.
+- **Ambience:** the beds and drones on sliders, drips and lava pops, steered every frame as
+  `game/ambience.js` does.
+- **Splash screen:** the hit, the shatter and the swell, alone or at their moments
+  (`SPLASH_CUES`, `audio/splash.js`, which `game/splash.js` times its picture by).
+
+A one-shot shows its wave, rendered again offline (`renderSfx`, `renderSteps`: the variant
+played, `renderSplashSound`), with its peak and how long it is heard above -60 dB, in decibels
+or linear; the ambience shows the sounds' bus live. Each recipe's comment in the code is its
+description there.
 
 ## Effects and where they come from
 

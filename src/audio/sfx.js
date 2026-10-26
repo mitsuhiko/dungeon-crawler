@@ -3,29 +3,42 @@
 // getting hurt, blocks, pickups, thrown fireballs / punches / ice balls and burning, lasers, storms, lightning and thunder, the player's body (jumps,
 // falls, knock-downs, fluid deaths), travel, items and the bag, and the enemies' voices
 // (voices.js). Footsteps are footsteps.js, the continuous sounds loops.js. The audio context
-// lives in context.js.
-import * as THREE from 'three';
-import { camera } from '../render/scene.js';
+// lives in context.js. Nothing here knows the camera: the game says how a place in the world
+// pans (setPanner, main.js), so tools/player.html plays these without the renderer.
 import { onAudioStart } from './context.js';
 import { voices } from './voices.js';
 
 const NOISE = 3;   // seconds of noise: a layer may last up to NOISE - 0.5 s
+const LEVEL = 0.45;   // all effects, before the limiter
 
 let ctx = null, master = null, noiseBuf = null;
+let panner = null;    // at {x,y,z} -> pan (-1..1), from the game
 const last = {};
 let combo = 0, comboAt = 0;
 
+// the effects' bus on context c, into output: their level and a gentle limiter, so many hits at
+// once do not clip
+function effectsBus(c, output) {
+  const g = c.createGain(); g.gain.value = LEVEL;
+  const comp = c.createDynamicsCompressor();
+  comp.threshold.value = -10; comp.ratio.value = 6;
+  g.connect(comp).connect(output);
+  return g;
+}
+function noiseOn(c) {
+  const b = c.createBuffer(1, NOISE * c.sampleRate, c.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return b;
+}
+
 onAudioStart((ac, output) => {
   ctx = ac;
-  master = ctx.createGain(); master.gain.value = 0.45;
-  // a gentle limiter, so many hits at once do not clip
-  const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -10; comp.ratio.value = 6;
-  master.connect(comp).connect(output);
-  noiseBuf = ctx.createBuffer(1, NOISE * ctx.sampleRate, ctx.sampleRate);
-  const d = noiseBuf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  master = effectsBus(ctx, output);
+  noiseBuf = noiseOn(ctx);
 });
+
+// how a place in the world pans: fn(at) -> -1 (left) .. 1 (right)
+export function setPanner(fn) { panner = fn; }
 
 // building blocks: a gain envelope, noise and pitch-swept oscillators
 // learn: sound.html#coin-code (see learn/README.md)
@@ -635,22 +648,33 @@ function sweep(t, dur, f0, f1, f2, q, level, out, attack = 0.02, type = 'bandpas
 Object.assign(SOUNDS, voices({ amp, noise, filter, tone, sweep }));
 export const SOUND_NAMES = Object.keys(SOUNDS);
 
-// checks: render a sound offline, returns its peak level (0 = silent)
-export async function renderSfx(name, pitch = 1) {
+// checks and tools/player.html: a sound rendered offline as it leaves the effects' limiter for
+// the sounds' bus (stereo, 4 s; its noise and random details drawn again): { peak, buffer }.
+// The limiter starts out turned down and needs a moment to settle (as it has in the game):
+// the sound starts after LEAD, which is cut off again.
+export async function renderSfx(name, { pitch = 1, volume = 1, pan = 0 } = {}) {
+  const LEAD = 0.5, SR = 44100, n = 4 * SR, skip = LEAD * SR;
   const live = ctx, liveNoise = noiseBuf;
-  const off = new OfflineAudioContext(1, 3 * 44100, 44100);
-  ctx = off;
-  noiseBuf = off.createBuffer(1, NOISE * 44100, 44100);
-  noiseBuf.getChannelData(0).forEach((_, i, d) => { d[i] = Math.random() * 2 - 1; });
-  try { SOUNDS[name](0.005, off.destination, pitch); } finally { ctx = live; noiseBuf = liveNoise; }
-  const data = (await off.startRendering()).getChannelData(0);
-  return data.reduce((m, x) => Math.max(m, Math.abs(x)), 0);
+  const off = new OfflineAudioContext(2, n + skip, SR);
+  const out = off.createGain(), p = off.createStereoPanner();
+  out.gain.value = volume; p.pan.value = pan;
+  out.connect(p).connect(effectsBus(off, off.destination));
+  ctx = off; noiseBuf = noiseOn(off);
+  try { SOUNDS[name](LEAD, out, pitch); } finally { ctx = live; noiseBuf = liveNoise; }
+  const all = await off.startRendering(), buffer = new AudioBuffer({ length: n, numberOfChannels: 2, sampleRate: SR });
+  let peak = 0;
+  for (let c = 0; c < 2; c++) {
+    const d = all.getChannelData(c).subarray(skip, skip + n);
+    buffer.copyToChannel(d, c);
+    for (const x of d) peak = Math.max(peak, Math.abs(x));
+  }
+  return { peak, buffer };
 }
 
-const ndc = new THREE.Vector3();
-// sfx(name, { at: {x,y,z} (pans by screen position), pitch, volume, delay (s, from now) })
+// sfx(name, { at: {x,y,z} (pans by screen position, setPanner) or pan (-1..1), pitch, volume,
+// delay (s, from now) })
 // learn: sound.html#coin-code #recipe (see learn/README.md)
-export function sfx(name, { at = null, pitch = 1, volume = 1, delay = 0 } = {}) {
+export function sfx(name, { at = null, pan = 0, pitch = 1, volume = 1, delay = 0 } = {}) {
   if (!ctx || ctx.state !== 'running') return;
   const now = ctx.currentTime;
   if (name === 'coin') {
@@ -660,11 +684,11 @@ export function sfx(name, { at = null, pitch = 1, volume = 1, delay = 0 } = {}) 
   last[name] = now;
   let out = ctx.createGain();
   out.gain.value = volume;
-  if (at && ctx.createStereoPanner) {
-    const pan = ctx.createStereoPanner();
-    ndc.set(at.x, at.y, at.z).project(camera);
-    pan.pan.value = Math.max(-1, Math.min(1, ndc.x * 0.6));
-    out.connect(pan).connect(master);
+  if (at && panner) pan = panner(at);
+  if (pan && ctx.createStereoPanner) {
+    const p = ctx.createStereoPanner();
+    p.pan.value = Math.max(-1, Math.min(1, pan));
+    out.connect(p).connect(master);
   } else out.connect(master);
   SOUNDS[name](now + 0.005 + Math.max(0, delay), out, pitch * (0.95 + Math.random() * 0.1));
 }

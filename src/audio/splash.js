@@ -10,6 +10,10 @@
 // Each returns how long it rings (s); nothing plays before the first click or key.
 import { onAudioStart } from './context.js';
 
+// when each is heard, s after the click: game/splash.js times its picture by them (the blow
+// lands at hit, time runs again at the shatter), tools/player.html plays them in this order
+export const SPLASH_CUES = Object.freeze({ hit: 0.05, shatter: 1.27, swell: 1.42 });
+
 let ctx = null, out = null, room = null, noiseBuf = null, offline = false;
 
 onAudioStart((ac, sounds) => {

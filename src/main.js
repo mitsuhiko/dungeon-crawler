@@ -99,6 +99,7 @@ import { updateFootsteps } from './game/footsteps.js';
 import { updateSounds } from './game/sounds.js';
 import { updateAmbience } from './game/ambience.js';
 import { musicInfo } from './audio/music.js';
+import { setPanner } from './audio/sfx.js';
 import { travelling, updateTravel, drawTravelEnemies } from './game/travel.js';
 import { updateOnline, hostGame, joinGame, leaveGame, sessionStatus } from './net/session.js';
 import { online } from './net/online.js';
@@ -114,6 +115,10 @@ import { N } from './core/constants.js';
 import { character, followHero } from './render/character.js';
 import { applyHeroPose } from './render/renewview.js';
 import { drawPortrait, portraitShown } from './render/portrait.js';
+
+// a sound at a place in the world pans by where it is on the screen
+const ndc = new THREE.Vector3();
+setPanner(at => ndc.set(at.x, at.y, at.z).project(camera).x * 0.6);
 
 // seconds since the last frame (THREE.Clock is deprecated; Timer measures the same)
 const timer = new THREE.Timer(), clock = { getDelta: () => timer.update().getDelta() };
