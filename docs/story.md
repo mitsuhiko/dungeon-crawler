@@ -142,9 +142,9 @@ From the discussion; none of these is settled.
 - Whether the thing it had the glassmaker build was ever finished, and what it is.
 - What happens to the bird's pieces.
 - Whether the recordings come in a fixed order or are numbered and collected.
-- The glassmaker's name; the robot's look, character and voice. The glassmaker's voice is
-  settled (`glassmaker`, [narration.md](narration.md)); the robot's is to be made from the `child`
-  clone, but how is still open (narration.md, "Made voices").
+- The glassmaker's name; the robot's look and character. Their voices are settled
+  ([narration.md](narration.md)): the glassmaker's is `glassmaker`, the robot's `robot` (the
+  `child` clone through the `stepped-vocoder` filter, "Made voices").
 - Playing together: a robot for each player, or one for the group.
 - How the three acts of light ([depths.md](depths.md)) fit the story: they were the old story's
   childhood, growing up and the sealed memories, and the themes and depths still go by them.

@@ -21,7 +21,7 @@ does not render anything again by itself: only `--stale` (or `--force`) does, an
 (it takes long). `node tools/narration.mjs --check` lists what is out of date. For now the clips and the
 manifest are not committed (`assets/narration/` is in `.gitignore`); the game only shows the
 subtitles without them. Every line is said in `glassmaker` (`tools/voices/`, committed, with
-`child`, which the robot's voice is to be made from: how is still open, `docs/narration.md`); the
+`child`, which the robot's voice `robot` is made from: `docs/narration.md`, "Made voices"); the
 ones tried out are `tools/voices/experiment_<voice>` (ignored). Do not commit the clips or an
 experiment unless asked.
 

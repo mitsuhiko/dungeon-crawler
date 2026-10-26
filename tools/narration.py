@@ -31,7 +31,7 @@ and put together with a pause after each (PAUSE, by how it ends). The sampling i
 own) is the sampling's, for the words and the sound. Then the clip is trimmed, goes through the
 `filter` if it has one (FILTERS: "old-radio", the voice through an old radio with static on top;
 "robot", the voice gone a little machine; "full", fuller and warmer; "metal-monotone", a machine's
-voice, mostly monotone and in a metal can; their noise seeded by the seed and the text, so it is
+voice, mostly monotone and in a metal can; "stepped-vocoder", the robot's voice; their noise seeded by the seed and the text, so it is
 the same every time), levelled and written as a mono MP3 to `out`. results.json gets
 [{"out", "dur"}, ...], the clips' lengths in seconds.
 
@@ -289,6 +289,27 @@ def metal_monotone(voice, rate, rng):
     delay, g = int(0.0016 * rate), 0.7
     return 0.5 * y + 0.5 * (1 - g) * signal.lfilter([1.0], np.r_[1.0, np.zeros(delay - 1), -g], y)
 
+def stepped_vocoder(voice, rate, rng):
+    """The robot's voice (FILTERS "stepped-vocoder"): clockwork, and easy to understand. Her
+    melody kept whole but snapped to semitones (retune, as if sung by a machine); a third of it
+    through `robot` (its vocoder, and its own copy two semitones down); then a small speaker
+    (200 Hz to 6 kHz, 2 dB of presence at 1.8 kHz) and a faint metal ring (a 1.6 ms feedback
+    comb, 30% mixed in). Nothing is added under it: the pauses stay silent."""
+    from scipy import signal
+
+    rms = lambda x: np.sqrt(np.mean(x**2))
+    y = retune(voice, rate, keep=1.0, step=1.0)
+    y = 0.67 * y + 0.33 * robot(y, rate, rng)
+    # the speaker
+    y = signal.sosfilt(signal.butter(2, [200, 6000], btype="bandpass", fs=rate, output="sos"), y)
+    b, a = biquad("bell", 1800, 2.0, 1.0, rate)
+    y = signal.lfilter(b, a, y)
+    # the ring
+    delay, g = int(0.0016 * rate), 0.6
+    ring = (1 - g) * signal.lfilter([1.0], np.r_[1.0, np.zeros(delay - 1), -g], y)
+    return 0.7 * y + 0.3 * ring * rms(y) / max(rms(ring), 1e-12)
+
+
 def biquad(kind, hz, gain_db, q, rate):
     """An EQ band (RBJ's cookbook): 'low' (a low shelf, `q` its slope) or 'bell'; (b, a)."""
     a_ = 10 ** (gain_db / 40)
@@ -378,6 +399,7 @@ FILTERS = {
     "robot": {"apply": robot, "pad": (0.05, 0.2)},
     "full": {"apply": full, "pad": (LEAD_IN, TAIL)},
     "metal-monotone": {"apply": metal_monotone, "pad": (LEAD_IN, TAIL)},
+    "stepped-vocoder": {"apply": stepped_vocoder, "pad": (0.05, 0.2)},
 }
 
 

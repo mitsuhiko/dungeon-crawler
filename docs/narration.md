@@ -103,6 +103,8 @@ A voice can go through a filter after it is said (`filter` in `VOICES`; `FILTERS
   left, snapped to semitones, by Praat's PSOLA), in a metal can (ring modulation at 50 Hz, 35%
   mixed in, and a ringing 1.6 ms comb, half mixed in). Nothing is added under it: the pauses
   stay silent.
+- `stepped-vocoder`: the robot's voice ("Made voices" below): clockwork, and easy to
+  understand.
 - `tone:<voice>`: the voice given another voice's tone: an EQ, third-octave band by band
   (63 Hz to 10 kHz, smoothed over three, at most 15 dB either way), that makes the clip's
   spectrum that of `<voice>`'s recording (its speech, the quiet left out). The clip's hash takes
@@ -120,12 +122,31 @@ recording can go through a `prepare` step (`PREPARE` in `tools/narration.py`) be
 taken from it, and the made voice brings its filter along (unless `VOICES` or `--filter` say
 another). There is one:
 
-- `robot`: `child` through `metal-monotone` (no `prepare`).
-  `node tools/narration.mjs --say "..." --voice robot`.
+- `robot`: the robot's voice ([story.md](story.md)), `child` through `stepped-vocoder` (no
+  `prepare`). `node tools/narration.mjs --say "..." --voice robot`; a line in it says
+  `voice: 'robot'`. No line does yet.
 
-**Still open: how the robot's voice is made from `child`.** The robot ([story.md](story.md)) is to
-speak in a voice of its own made from the `child` clone; `robot` above is a first try, not
-settled, and no line uses it yet. What was learned so far:
+**The robot's voice.** This is the configuration to produce the robot's lines with. The voice is
+`child`, cloned as every voice is (its speaker embedding, said by CustomVoice), its line said
+clean; only then the filter `stepped-vocoder` (`tools/narration.py`) makes it a machine, in this
+order:
+
+1. **Stepped**: its melody kept whole (none of its range taken away), but every pitch snapped
+   to the nearest semitone (`retune(keep=1.0, step=1.0)`, Praat's PSOLA), so it glides no more:
+   it sings its sentences as a machine would, still with their rise and fall.
+2. **Vocoder, a third**: two thirds of that voice, one third of it through the `robot` filter (a
+   vocoder saying its words on a buzz that follows its stepped melody, mixed half and half with
+   its own copy two semitones down; a faint 4 ms ring and a 55 Hz warble).
+3. **Speaker**: a band from 200 Hz to 6 kHz (2nd-order Butterworth) and 2 dB of presence at
+   1.8 kHz (a bell, Q 1).
+4. **Ring**: a 1.6 ms feedback comb (feedback 0.6) as loud as the voice, 30% mixed in.
+
+Then it is levelled like every clip; 0.05 s of quiet before it and 0.2 s after, and nothing
+added under it: the pauses stay silent. On a 16-second sample Whisper understood every word.
+It was picked by ear from 15 filters, from none to `metal-monotone` (the try before it, too
+robotic to understand easily).
+
+What was learned on the way:
 
 - The model takes a voice's traits from a recording (its pitch, its size), never its artefacts.
   Roughing up `child`'s recording first (a `prepare` of a 4.5 ms feedback comb, ring modulation
@@ -133,13 +154,8 @@ settled, and no line uses it yet. What was learned so far:
   speaker embedding stayed close to the plain one (0.98, cosine), its clones a little further
   from `child` (0.79 against 0.88), twice as much 0.73, half as much nothing measurable. So `PREPARE`
   is empty, and the machine has to be in the filter.
-- Filters keep the words: through `robot`, `defects` and `metal-monotone` Whisper understands
-  every word. How much of `child` should be left in it, and what a clockwork robot sounds like
-  (a buzz, a can, a monotone, defects), is not decided.
-- Ways not tried yet: a mix of `child` with another voice (`mix`), a pitch-shifted recording
-  (the clone follows a little more than half the shift, as with `glassmaker-low`), an
-  instruction for CustomVoice (`instruct`: "Speak flatly, like a machine"), and baking the
-  result into a voice of its own (`--bake`) so its clones need no filter.
+- Whisper understands every word through any of the filters tried (`robot`, `defects`,
+  `metal-monotone` and the milder ones), so it cannot say how hard a voice is to follow: listen.
 
 A voice can also be a **mix** of voices (`mix` in `MADE`, or `--voice experiment_glassmaker:0.7,experiment_lost-hearing:0.3`):
 the model takes their speaker embeddings, weighted and averaged, so it speaks as someone
@@ -193,7 +209,7 @@ they are until asked (`--stale`, "Running it"). To hear it
 first: `node tools/narration.mjs --say "..." --voice child --filter old-radio`.
 
 The voices kept are committed: `glassmaker`, which says every line (the narrator's and the
-films'), and `child`, which the robot's voice is to be made from. The ones tried out are named
+films'), and `child`, which the robot's voice is made from (`robot`). The ones tried out are named
 `experiment_<voice>` and stay out of Git (`tools/voices/experiment_*` is in `.gitignore`), among them
 the two `glassmaker` was baked from (`experiment_glassmaker`, `experiment_lost-hearing`). Without a
 voice's recording the tool cannot render or check its clips, and says so. Whose voice each is, and that we may use it, has to be

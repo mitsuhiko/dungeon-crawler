@@ -62,6 +62,8 @@ export const VOICE_DIR = resolve(ROOT, 'tools/voices');
 // the `filter` the voice goes through (tools/narration.py FILTERS: 'old-radio', as if heard
 // through an old radio, with static; 'robot', the voice gone a little machine; 'full', fuller
 // and warmer; 'metal-monotone', a machine's voice, mostly monotone, in a metal can;
+// 'stepped-vocoder', the robot's: its melody snapped to semitones, a third vocoder, a small
+// speaker and a faint ring;
 // 'tone:<voice>', the tone of another
 // voice's recording). A language
 // without one shows the narrator's words only.
@@ -82,9 +84,8 @@ export const VOICES = {
 export const MADE = {
   // the Glassmaker's recording halfway to the narrator's voice, in the narrator's tone
   'glassmaker-mix': { mix: { experiment_glassmaker: 0.5, 'experiment_lost-hearing': 0.5 }, filter: 'tone:experiment_lost-hearing' },
-  // a machine's voice, still hers: child, mostly monotone, in a metal can (a first try: how the
-  // robot's voice is made from child is still open, docs/narration.md "Made voices")
-  robot: { from: 'child', filter: 'metal-monotone' },
+  // the robot's voice: child, clockwork and easy to understand (docs/narration.md, "Made voices")
+  robot: { from: 'child', filter: 'stepped-vocoder' },
 };
 // a voice's settings, as VOICES gives them, with what a made voice brings
 const settingsOf = voice => {
