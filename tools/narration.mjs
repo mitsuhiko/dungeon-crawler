@@ -1,8 +1,10 @@
 // The narrator's voice: renders the lines of src/core/narration.js to assets/narration/
 // (docs/narration.md). Every line, in every language with a voice (VOICES), in each of its forms,
 // becomes assets/narration/<lang>/<clip>.mp3, where <clip> is the line's id, or `<id>.<form>`.
-// assets/narration/manifest.json says what each clip was made from (a hash of its text and its
-// TTS settings) and how long it is, so only new and changed lines are rendered again.
+// assets/narration/manifest.json says what each clip was made from (its text, its seed, a hash of
+// its TTS settings) and how long it is. A clip is rendered again only when its line's text (with
+// its tags) or its seed changed, or when asked (--force, --stale): changing a voice, a filter or
+// PIPELINE leaves the clips as they are (--check counts them).
 //
 // The speech is Qwen3-TTS (https://github.com/QwenLM/Qwen3-TTS), its 1.7B base model, in a voice
 // cloned from a reference recording (tools/voices/<voice>.flac, its words in <voice>.txt), run by
@@ -18,6 +20,8 @@
 //   node tools/narration.mjs --lang de       only German (a comma-separated list)
 //   node tools/narration.mjs --only boss.    only the lines whose id starts so (comma-separated)
 //   node tools/narration.mjs --force         render the chosen clips again, even if current
+//   node tools/narration.mjs --stale         also render the clips made with other settings (a
+//                                            voice, a filter, an instruction, PIPELINE) again
 //   node tools/narration.mjs --takes 4       audition: seeds 0-3 of the chosen clips into
 //                                            narration-takes/ in the system's temp directory
 //                                            (printed), assets untouched; then pin the best as
@@ -66,7 +70,7 @@ export const VOICE_DIR = resolve(ROOT, 'tools/voices');
 // instruction for every line that has none (none: as it comes).
 const MODEL = 'Qwen/Qwen3-TTS-12Hz-1.7B-Base';
 const SPEAKER = 'Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice';
-const NARRATOR = { model: MODEL, speaks: SPEAKER, voice: 'experiment_lost-hearing', clone: 'embedding', temperature: 0.7 };
+const NARRATOR = { model: MODEL, speaks: SPEAKER, voice: 'glassmaker', clone: 'embedding', temperature: 0.7 };
 export const VOICES = {
   en: { ...NARRATOR, language: 'English' },
   de: { ...NARRATOR, language: 'German' },
@@ -78,7 +82,8 @@ export const VOICES = {
 export const MADE = {
   // the Glassmaker's recording halfway to the narrator's voice, in the narrator's tone
   'glassmaker-mix': { mix: { experiment_glassmaker: 0.5, 'experiment_lost-hearing': 0.5 }, filter: 'tone:experiment_lost-hearing' },
-  // a machine's voice, still hers: child, mostly monotone, in a metal can
+  // a machine's voice, still hers: child, mostly monotone, in a metal can (a first try: how the
+  // robot's voice is made from child is still open, docs/narration.md "Made voices")
   robot: { from: 'child', filter: 'metal-monotone' },
 };
 // a voice's settings, as VOICES gives them, with what a made voice brings
@@ -149,8 +154,8 @@ export function sentencesOf(text, instruct = null) {
 // the tags in a text that are neither TAGS nor POINT
 const unknownTags = text => [...text.matchAll(/\[([a-z][a-z ]*)\]/g)].map(m => m[1]).filter(t => !TAGS[t] && !POINT[t]);
 
-// how tools/narration.py turns speech into a clip: raise it when that changes, and every clip is
-// rendered again
+// how tools/narration.py turns speech into a clip: raise it when that changes (the clips made
+// before stay until rendered again: --stale)
 export const PIPELINE = 4;
 
 const ID = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
@@ -245,7 +250,7 @@ export async function clipsOf(lines = ALL_LINES) {
           const tagged = tr(line.text, params), text = untagged(tagged);
           for (const t of lang === SOURCE ? [] : unknownTags(tagged)) problems.push(`${key}: no tag [${t}] in '${lang}' (tools/narration.mjs TAGS)`);
           const spec = specOf(voice, ref, seedOf(line, lang, form), text, sentencesOf(tagged, line.instruct ?? voice.instruct));
-          clips.push({ lang, key, id: line.id, form, text, spec, hash: hashOf(spec) });
+          clips.push({ lang, key, id: line.id, form, text, source: tagged, spec, hash: hashOf(spec) });
         }
       }
     } finally { await setLanguage(SOURCE); }
@@ -258,16 +263,23 @@ export function readManifest(assets = ASSETS) {
   return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { clips: {} };
 }
 
-// What is to do: the clips missing (no file, or not in the manifest), changed (made from another
-// text or settings) and gone (in the manifest or on disk, but no longer in the table).
-export async function plan(assets = ASSETS) {
-  const { clips, problems, unvoiced } = await clipsOf();
+// whether a clip as the manifest has it (`had`) says the clip's text, with its tags, in its take
+// (an entry from before `source` was kept: its text without them)
+const saysSo = (had, c) => (had.source != null ? had.source === c.source : had.text === c.text) && (had.seed ?? 0) === c.spec.seed;
+
+// What is to do: the clips missing (no file, or not in the manifest), changed (their text or seed
+// is another) and gone (in the manifest or on disk, but no longer in the table); and the ones
+// `stale`, made with other settings (a voice, a filter, an instruction, PIPELINE): those are only
+// rendered again when asked (--stale).
+export async function plan(assets = ASSETS, lines = ALL_LINES) {
+  const { clips, problems, unvoiced } = await clipsOf(lines);
   const manifest = readManifest(assets);
-  const missing = [], changed = [];
+  const missing = [], changed = [], stale = [];
   for (const c of clips) {
     const had = manifest.clips?.[c.lang]?.[c.key];
     if (!had || !existsSync(resolve(assets, 'narration', clipFile(c.lang, c.key)))) missing.push(c);
-    else if (had.hash !== c.hash) changed.push(c);
+    else if (!saysSo(had, c)) changed.push(c);
+    else if (had.hash !== c.hash) stale.push(c);
   }
   const wanted = new Set(clips.map(c => clipFile(c.lang, c.key)));
   const gone = new Set();
@@ -276,7 +288,7 @@ export async function plan(assets = ASSETS) {
   const dir = resolve(assets, 'narration');
   if (existsSync(dir)) for (const lang of readdirSync(dir, { withFileTypes: true }).filter(e => e.isDirectory()).map(e => e.name))
     for (const f of readdirSync(join(dir, lang)).filter(f => f.endsWith('.mp3'))) if (!wanted.has(`${lang}/${f}`)) gone.add(`${lang}/${f}`);
-  return { clips, problems, unvoiced, missing, changed, gone: [...gone].sort(), manifest };
+  return { clips, problems, unvoiced, missing, changed, stale, gone: [...gone].sort(), manifest };
 }
 
 // renders jobs ({ spec, out }) with tools/narration.py; returns { [out]: seconds }
@@ -299,12 +311,16 @@ function render(jobs) {
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 }
 
+// the manifest: a clip rendered now as it was made, every other one as it was (what it says, its
+// seed and settings: a clip not rendered again keeps them, so it stays changed or stale); a clip
+// never rendered (--lang or --only left it out) is not in it
 function writeManifest(clips, durations, old, assets) {
-  const out = { pipeline: PIPELINE, voices: VOICES, clips: {} };
+  const out = { clips: {} };
   for (const c of clips) {
-    const dur = durations[c.lang + '/' + c.key] ?? old.clips?.[c.lang]?.[c.key]?.dur;
-    if (dur == null) continue;   // (not rendered: --lang or --only left it out)
-    (out.clips[c.lang] ??= {})[c.key] = { text: c.text, seed: c.spec.seed, dur, hash: c.hash };
+    const dur = durations[c.lang + '/' + c.key], had = old.clips?.[c.lang]?.[c.key];
+    const entry = dur != null ? { text: c.text, source: c.source, seed: c.spec.seed, dur, hash: c.hash }
+      : had && had.source == null && saysSo(had, c) ? { ...had, source: c.source } : had;   // (an older entry learns its source)
+    if (entry) (out.clips[c.lang] ??= {})[c.key] = entry;
   }
   writeFileSync(resolve(assets, 'narration/manifest.json'), JSON.stringify(out, null, 2) + '\n');
 }
@@ -329,12 +345,13 @@ function preview(opt) {
 }
 
 async function main(argv) {
-  const opt = { langs: null, only: null, force: false, check: false, dry: false, takes: 0, firstSeed: 0, say: null, voice: null, filter: undefined, seed: 0, bake: null, instruct: null };
+  const opt = { langs: null, only: null, force: false, stale: false, check: false, dry: false, takes: 0, firstSeed: 0, say: null, voice: null, filter: undefined, seed: 0, bake: null, instruct: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--lang') opt.langs = argv[++i].split(',');
     else if (a === '--only') opt.only = argv[++i].split(',');
     else if (a === '--force') opt.force = true;
+    else if (a === '--stale') opt.stale = true;
     else if (a === '--check') opt.check = true;
     else if (a === '--dry-run') opt.dry = true;
     else if (a === '--takes') opt.takes = Number(argv[++i]);
@@ -369,6 +386,7 @@ async function main(argv) {
     for (const f of p.gone) console.log(`gone     ${f}`);
     const bad = p.problems.length + p.unvoiced.length + p.missing.length + p.changed.length + p.gone.length;
     console.log(bad ? 'Run node tools/narration.mjs to bring the narration up to date.' : `All ${p.clips.length} clips are up to date.`);
+    if (p.stale.length) console.log(`(${p.stale.length} made with other settings: a voice, a filter, an instruction or PIPELINE; rendered again only with --stale)`);
     process.exit(bad ? 1 : 0);
   }
   if (p.problems.length || p.unvoiced.length) process.exit(1);
@@ -387,12 +405,13 @@ async function main(argv) {
     return;
   }
 
-  const todo = [...p.missing, ...p.changed, ...(opt.force ? p.clips.filter(c => !p.missing.includes(c) && !p.changed.includes(c)) : [])].filter(chosen);
+  const todo = [...p.missing, ...p.changed, ...(opt.stale ? p.stale : []), ...(opt.force ? p.clips.filter(c => !p.missing.includes(c) && !p.changed.includes(c) && !(opt.stale && p.stale.includes(c))) : [])].filter(chosen);
   const dropping = opt.langs || opt.only ? [] : p.gone;
   if (opt.dry) {
     for (const c of todo) console.log(`render  ${c.lang}/${c.key}: ${c.text}`);
     for (const f of dropping) console.log(`drop    ${f}`);
     if (!todo.length && !dropping.length) console.log('Nothing to do.');
+    if (p.stale.length && !opt.stale) console.log(`(${p.stale.length} made with other settings left as they are: --stale renders them again)`);
     return;
   }
   const durations = {};
@@ -400,10 +419,7 @@ async function main(argv) {
   for (const c of todo) durations[c.lang + '/' + c.key] = results[resolve(assets, 'narration', clipFile(c.lang, c.key))];
   for (const f of dropping) rmSync(resolve(assets, 'narration', f), { force: true });
   mkdirSync(resolve(assets, 'narration'), { recursive: true });
-  // a clip changed but left out by --lang / --only keeps its old entry, so it stays changed
-  const old = p.manifest;
-  const keep = p.clips.map(c => (todo.includes(c) || !p.changed.includes(c) ? c : { ...c, hash: old.clips[c.lang][c.key].hash, text: old.clips[c.lang][c.key].text, spec: { ...c.spec, seed: old.clips[c.lang][c.key].seed } }));
-  writeManifest(keep, durations, old, assets);
+  writeManifest(p.clips, durations, p.manifest, assets);
   console.log(`Rendered ${todo.length} clip${todo.length === 1 ? '' : 's'}${dropping.length ? `, dropped ${dropping.length}` : ''} (${relative(ROOT, resolve(assets, 'narration'))}/).`);
 }
 

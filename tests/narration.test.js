@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { assets } from './paths.js';
 import { plan, clipsOf, clipFile, VOICES, TAGS, POINT, sentencesOf } from '../tools/narration.mjs';
 import { LINES, SIBLING, MOMENTS, linesFor, fits, untagged, tagsOf, lineText } from '../src/core/narration.js';
@@ -70,6 +71,38 @@ test('the narration is rendered and current (node tools/narration.mjs)', { skip:
     assert.ok(head.toString('latin1') === 'ID3' || (head[0] === 0xff && (head[1] & 0xe0) === 0xe0), `${c.key} is not an MP3`);
     assert.ok(p.manifest.clips[c.lang][c.key].dur > 0.5);
   }
+});
+
+test('a clip is rendered again when its text or seed changed, not when only its settings did', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'narration-test-'));
+  try {
+    const line = { id: 'x', note: 'n', text: '[sad]Hello there.', voice: 'glassmaker' };
+    const { clips } = await clipsOf([line]);
+    const stamp = entries => {
+      const m = { clips: {} };
+      for (const c of clips) {
+        mkdirSync(join(dir, 'narration', c.lang), { recursive: true });
+        writeFileSync(join(dir, 'narration', clipFile(c.lang, c.key)), 'ID3');
+        (m.clips[c.lang] ??= {})[c.key] = { dur: 1, ...entries(c) };
+      }
+      writeFileSync(join(dir, 'narration/manifest.json'), JSON.stringify(m));
+    };
+    const keys = xs => xs.map(c => clipFile(c.lang, c.key));
+    // another voice, filter or PIPELINE: stale, left as it is
+    stamp(c => ({ text: c.text, source: c.source, seed: 0, hash: 'other' }));
+    let p = await plan(dir, [line]);
+    assert.deepEqual([p.missing, p.changed], [[], []]);
+    assert.deepEqual(keys(p.stale), keys(clips));
+    // another text (a tag counts), or another seed: changed
+    p = await plan(dir, [{ ...line, text: 'Hello there.' }]);
+    assert.deepEqual(keys(p.changed), keys(clips));
+    p = await plan(dir, [{ ...line, seed: 2 }]);
+    assert.deepEqual(keys(p.changed), keys(clips));
+    // an entry from before `source`: its text without the tags
+    stamp(c => ({ text: c.text, seed: 0, hash: c.hash }));
+    p = await plan(dir, [line]);
+    assert.deepEqual([p.changed, p.stale], [[], []]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('every line is said at a moment, about what that moment tells', () => {

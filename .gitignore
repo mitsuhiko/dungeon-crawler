@@ -6,10 +6,10 @@ worktrees/
 *.blend1
 .pi/blender_mcp/
 blender/previews/
-# the narrator's clips (node tools/narration.mjs): kept out until the voice is settled, the game
-# shows subtitles without them (docs/narration.md)
+# the narrator's clips (node tools/narration.mjs): kept out for now, the game shows subtitles
+# without them (docs/narration.md)
 assets/narration/
 
-# the voices still tried out (tools/voices/experiment_<voice>.flac, its words in .txt), the
-# narrator's among them: kept out until they are settled (docs/narration.md)
+# the voices tried out (tools/voices/experiment_<voice>.flac, its words in .txt): kept out
+# (docs/narration.md)
 tools/voices/experiment_*

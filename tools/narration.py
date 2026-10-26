@@ -64,7 +64,8 @@ import lameenc
 import numpy as np
 import torch
 
-# keep in step with PIPELINE in tools/narration.mjs: a change here renders every clip again
+# keep in step with PIPELINE in tools/narration.mjs: after a change here, --stale renders the
+# clips made before again
 BITRATE = 48  # kbit/s, mono, at the model's 24 kHz
 LEAD_IN = 0.05  # seconds of quiet kept before the voice
 TAIL = 0.15  # and after it

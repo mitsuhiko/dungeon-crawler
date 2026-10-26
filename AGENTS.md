@@ -16,11 +16,13 @@ with Qwen3-TTS (1.7B CustomVoice, in the speaker embedding of a voice cloned fro
 recording, `tools/voices/`), into `assets/narration/` (`docs/narration.md`). When you add or change a
 line, its text or its German, also run `node tools/narration.mjs` (needs `uv` and the voice's
 recording; the first run downloads about 9 GB of models): `npm test` fails while a clip rendered
-here is missing or stale. `node tools/narration.mjs --check` lists what is out of date. For now the clips and the
-manifest are not committed (`assets/narration/` is in `.gitignore`) until we are happy with the
-voice; the game only shows the subtitles without them. The voices kept are committed
-(`tools/voices/glassmaker`, `child`); the ones tried out are `tools/voices/experiment_<voice>`
-(ignored), the narrator's (`experiment_lost-hearing`) among them. Do not commit the clips or an
+here is missing or its text changed. A change to a voice, a filter, an instruction or `PIPELINE`
+does not render anything again by itself: only `--stale` (or `--force`) does, and only when asked
+(it takes long). `node tools/narration.mjs --check` lists what is out of date. For now the clips and the
+manifest are not committed (`assets/narration/` is in `.gitignore`); the game only shows the
+subtitles without them. Every line is said in `glassmaker` (`tools/voices/`, committed, with
+`child`, which the robot's voice is to be made from: how is still open, `docs/narration.md`); the
+ones tried out are `tools/voices/experiment_<voice>` (ignored). Do not commit the clips or an
 experiment unless asked.
 
 - Check what you rendered. The `transcribe_file` tool only understands English; for German use the
