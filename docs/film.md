@@ -27,8 +27,9 @@ Keep to these rules, so that every film looks like the others:
   limbs with round stubs for hands, like the hero and the villagers (`blender/figure.py`); who
   they are shows in what they wear and hold (goggles, a top hat, a blowpipe).
 - **No text in the pictures.** The words are the narration and its subtitles, so a film needs no
-  pictures per language. The one exception is a film's title, the game's name, which stays in
-  English in every language and is drawn from the title's face, not painted (`text` below).
+  pictures per language. The one exception is a film's title, the game's name, which is drawn
+  from the title's face, not painted, so it is in the player's language like the main menu's
+  (`text` below).
 
 ## The pieces
 
@@ -57,7 +58,10 @@ A layer paints itself in along its **flow map** (`flowMap` in `src/core/film.js`
 pixel, when the ink gets there, from 0 to 1. The flow is the distance from where the brush starts
 (the layer's `from`) *through the ink*, so the paint runs along the strokes the way wet ink runs
 along wet paper. Through the black between two strokes it goes five times slower, so a speck near
-a stroke still fills soon after it. It is worked out when the film loads, on a small copy of the
+a stroke still fills soon after it. A text does not flow through its strokes: its flow
+(`sweepMap`) goes straight across from its side, by how far along each pixel is, so with a
+`linear` paint every letter comes at the same pace and the space between two words is a pause as
+long as it is wide. It is worked out when the film loads, on a small copy of the
 picture (192 pixels on its longer side). Nothing has to be painted by hand to animate it.
 
 `from` is where the brush starts, in the picture (x right, y down, 0 to 1): a list of points
@@ -143,8 +147,9 @@ export default {
 **The sheet** is 16 by 9 units: x from -8 (left) to 8, y from 0 (the floor) to 9. A layer stands
 `at` its middle, `h` units high (its width follows its picture). `tint`: `ink` (the default) or
 `amber`. `turn`: degrees, `flip`: mirrored. `text: 'The Glass Bird'` instead of a picture: the
-words in the main menu's title face (Cinzel, spaced capitals), painted in from the left; never
-translated. `screen: true`: not on the sheet but in front of the camera, so it stays where it is
+words in the main menu's title face (Cinzel, spaced capitals), in the player's language (a
+message like any other: German *Der Glasvogel*), swept in straight from the left (`sweepMap`
+below). `screen: true`: not on the sheet but in front of the camera, so it stays where it is
 in the picture whatever the camera does; `at` is then from the picture's middle, in sheet units of
 a picture the sheet's height (the title: `at: [0, 0]`, in the middle).
 

@@ -91,6 +91,24 @@ export function glowFlow(flow, ink, w, h, r = 6) {
   return out;
 }
 
+// A flow map that sweeps straight across the picture from a side ('left', 'right', 'top',
+// 'bottom'): 0 at the first ink, 1 at the last, by how far along it is and nothing else. Written
+// words are painted this way (a film's title): every letter comes at the same pace, the space
+// between two words a pause as long as it is wide, however a letter's strokes run.
+export function sweepMap(ink, w, h, from = 'left') {
+  const side = { top: [0, 1], bottom: [0, -1], left: [1, 0], right: [-1, 0] }[from];
+  if (!side) throw new TypeError(`Unknown side ${from}`);
+  const along = (x, y) => (side[0] > 0 ? x : side[0] < 0 ? w - 1 - x : side[1] > 0 ? y : h - 1 - y);
+  let first = Infinity, last = -Infinity;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (ink[y * w + x] > INK) { const a = along(x, y); first = Math.min(first, a); last = Math.max(last, a); }
+  }
+  const out = new Float32Array(w * h);
+  if (!(last > first)) return out;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = Math.min(1, Math.max(0, (along(x, y) - first) / (last - first)));
+  return out;
+}
+
 // a picture's brightness (RGBA bytes, w x h) at most FLOW_SIZE on its longer side: { ink, w, h }
 export function shrink(rgba, w, h, size = FLOW_SIZE) {
   const s = Math.min(1, size / Math.max(w, h)), W = Math.max(1, Math.round(w * s)), H = Math.max(1, Math.round(h * s));

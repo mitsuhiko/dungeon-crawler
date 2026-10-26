@@ -11,7 +11,7 @@
 // (cell CELLS): the ark's hull, falling while its wings break.
 import * as THREE from 'three';
 import { NOISE } from '../render/stage.js';
-import { flowMap, glowFlow, shrink } from '../core/film.js';
+import { flowMap, sweepMap, glowFlow, shrink } from '../core/film.js';
 
 // the inks' colours: the bluish white ink, and amber (the stone, the comets)
 export const TINTS = { ink: new THREE.Color('#bcd9ff'), amber: new THREE.Color('#f0a868') };
@@ -35,8 +35,8 @@ function pictureOf(name, source, w, h) {
 }
 
 // A text as a layer's picture: in the title's face (the main menu's, Cinzel), white on black,
-// spaced and a little soft at its edges, as if written with a brush. Not translated: a film's
-// title is the game's name, in English.
+// spaced and a little soft at its edges, as if written with a brush. `text` as it is said in the
+// player's language (a film's title: the game's name, as the main menu says it).
 export async function loadText(text, { px = 150, spacing = 0.32, font = 'Cinzel' } = {}) {
   const face = `600 ${px}px ${font}`;
   try { await document.fonts?.load(face, text); } catch { /* (the fallback face then) */ }
@@ -65,10 +65,10 @@ export function loadImage(name) {
   return images.get(name);
 }
 
-// the flow map of `image` from `from` (core/film.js flowMap) as a texture (red; green: the flow its
-// glow goes by, glowFlow), and the flow itself
-export function flowOf(image, from) {
-  const { ink, w, h } = image.small, flow = flowMap(ink, w, h, from), glow = glowFlow(flow, ink, w, h);
+// the flow map of `image` from `from` (core/film.js flowMap; sweep: straight across from that side,
+// sweepMap) as a texture (red; green: the flow its glow goes by, glowFlow), and the flow itself
+export function flowOf(image, from, { sweep = false } = {}) {
+  const { ink, w, h } = image.small, flow = sweep ? sweepMap(ink, w, h, from) : flowMap(ink, w, h, from), glow = glowFlow(flow, ink, w, h);
   const half = new Uint16Array(w * h * 2);
   for (let i = 0; i < w * h; i++) { half[i * 2] = THREE.DataUtils.toHalfFloat(flow[i]); half[i * 2 + 1] = THREE.DataUtils.toHalfFloat(glow[i]); }
   const texture = new THREE.DataTexture(half, w, h, THREE.RGFormat, THREE.HalfFloatType);

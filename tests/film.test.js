@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assets, repo } from './paths.js';
-import { flowMap, glowFlow, schedule, cueTime, readTime, filmLines, lineKey, scorePlan, FIT, CUES, ENDS } from '../src/core/film.js';
+import { flowMap, sweepMap, glowFlow, schedule, cueTime, readTime, filmLines, lineKey, scorePlan, FIT, CUES, ENDS } from '../src/core/film.js';
 import { loadScore, barsOf, filmEvents } from '../src/audio/score.js';
 import { readdirSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -35,6 +35,22 @@ test('ink spreads from where the brush starts, along its strokes, slower across 
   assert.equal(at(fromLeft, 2, 26), 0);
   assert.ok(at(fromLeft, 29, 26) > at(fromLeft, 10, 26));
   assert.throws(() => flowMap(ink, w, h, 'middle'));
+});
+
+test('a sweep goes straight across from its side, whatever the strokes', () => {
+  const { ink, w, h } = strokes();
+  const at = (f, x, y) => f[y * w + x];
+  const left = sweepMap(ink, w, h, 'left');
+  // 0 at the first ink, 1 at the last; the same anywhere up a column, ink or black
+  assert.equal(at(left, 2, 26), 0);
+  assert.equal(at(left, 36, 12), 1);
+  assert.equal(at(left, 20, 26), at(left, 20, 3));
+  // even: twice as far along, twice as late
+  assert.ok(Math.abs(at(left, 19, 26) / at(left, 10, 26) - 17 / 8) < 1e-6);
+  const right = sweepMap(ink, w, h, 'right');
+  assert.equal(at(right, 36, 12), 0);
+  assert.equal(at(right, 2, 26), 1);
+  assert.throws(() => sweepMap(ink, w, h, 'middle'));
 });
 
 test("a stroke's glow comes and goes with the stroke, not with the black it lies on", () => {

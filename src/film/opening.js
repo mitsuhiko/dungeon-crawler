@@ -15,7 +15,8 @@
 // 'NN%' of it. Glasses move in world units (a glass is 0.34 across). The lines are English
 // messages (src/i18n/sources.js), German in src/i18n/de/story.js, voiced like the narrator's
 // (tools/narration.mjs: the clip of a shot is film.opening.<its id>); `worn`: they sound like an
-// old recording. The title is the game's name, in English in every language.
+// old recording. The title is the game's name, as the main menu says it in the player's language
+// (German: Der Glasvogel).
 //
 // The score (music/films/opening.scrim) is the title song's (music/title.scrim), told along: its
 // `music` cues stand at the start of the shots without a line, which never change length, and
@@ -212,7 +213,7 @@ export default {
       cues: [
         [0, 'crackle', { to: 0, for: 2.5 }],
         [0.4, 'music', 'title'],
-        [0.4, 'paint', 'title', { for: 2.6, ease: 'inOut' }],
+        [0.4, 'paint', 'title', { for: 2.2, ease: 'linear' }],   // (its letters at one pace)
         [3.2, 'fade', 'title', { for: 1.4 }],
         [2.6, 'closer', 'town', { by: 0.95, for: 3.8 }],
         [4.6, 'vanish', 'town', { for: 2.0 }],

@@ -175,8 +175,9 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
   let score = null, notes = null;   // the film's score, and its notes for this plan
 
   const loadLayers = Promise.all(Object.entries(film.layers).map(async ([name, def], i) => {
-    const image = def.text ? await loadText(def.text) : await loadImage(def.image ?? name);
-    const flow = flowOf(image, def.from ?? (def.text ? 'left' : 'bottom'));
+    // (a text in the player's language, swept in straight from the left: its letters at one pace)
+    const image = def.text ? await loadText(tr(def.text)) : await loadImage(def.image ?? name);
+    const flow = flowOf(image, def.from ?? (def.text ? 'left' : 'bottom'), { sweep: !!def.text });
     const mat = inkMaterial(image, flow.texture, TINTS[def.tint ?? 'ink'], i * 1.37);
     const h = def.h * S, mesh = new THREE.Mesh(new THREE.PlaneGeometry(h * image.aspect, h), mat);
     // on the sheet, or (screen) in front of the camera: `at` and `h` in sheet units of a picture

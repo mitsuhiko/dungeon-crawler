@@ -64,5 +64,6 @@ export function sources() {
     'src/core/combat.js KINDS': Object.values(ATTACKS).map(k => k.verb),
     'src/core/narration.js': LINES.map(l => l.text),
     'src/film/ lines': Object.values(FILMS).flatMap(f => f.shots.map(s => s.line).filter(Boolean)),
+    'src/film/ titles': Object.values(FILMS).flatMap(f => Object.values(f.layers).map(l => l.text).filter(Boolean)),
   };
 }
