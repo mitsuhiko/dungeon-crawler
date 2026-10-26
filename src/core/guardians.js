@@ -2,6 +2,7 @@
 import { DIRS } from './constants.js';
 import { tr, noun } from '../i18n/i18n.js';
 import { enemyWords, enemyName } from './enemies.js';
+import { INTRO_LOCKED } from './intro.js';
 
 export const GUARDIAN_COLOR = '#ff3fa8';
 export const DESCENT_GUARDIAN_COLOR = '#ff9b35';
@@ -22,11 +23,13 @@ export const guardianLockMessage = (map, kind = null) => map.guardian?.role === 
   ? tr('Defeat {who:the} to unlock this descent', { who: guardianCalled(map, kind) })
   : tr('Defeat {who:the} to unlock this passage', { who: guardianCalled(map, kind) });
 export const guardianId = key => `${key}:guardian`;
-// what a locked portal (towards dir) says: a guardian's, or an annex's sealed one (world/layout.js);
-// kind: this arena's guardian's (a gate of another cube's guardian says only 'the guardian')
+// what a locked portal (towards dir) says: a guardian's, an annex's sealed one (world/layout.js), or
+// one of the beginning's (core/intro.js); kind: this arena's guardian's (a gate of another cube's
+// guardian says only 'the guardian')
 export function lockMessage(map, dir, kind = null) {
   const gate = map?.gateKeys?.[dir];
   if (gate?.startsWith('annex:')) return tr('Sealed. Somebody on this depth may know the way in.');
+  if (INTRO_LOCKED[gate]) return tr(INTRO_LOCKED[gate]);
   if (gate && gate !== map.key) return tr('Defeat the guardian to unlock this passage');
   return guardianLockMessage(map, kind);
 }

@@ -25,7 +25,7 @@ export const CROSSBOW_CLIP = { duration: 36 / 30, activeStart: 9 / 30, activeEnd
 export const CAST_CLIP = { duration: 28 / 30, activeStart: 12 / 30, activeEnd: 14 / 30 };
 // the flask leaves the hand at activeStart
 export const THROW_CLIP = { duration: 26 / 30, activeStart: 12 / 30, activeEnd: 14 / 30 };
-// game time (s) for the basic sword (the Old Sword's timing)
+// game time (s) for the basic sword (the glassmaker's old sword's timing)
 // learn: checks.html#try-test, combat.html#chain #damage (see learn/README.md)
 export const SWORD = {
   damage: 30, range: 0.85, arc: Math.PI * 0.42,
@@ -67,7 +67,7 @@ export const LUNGE_REACH = 0.6;
 export const swordState = () => ({ active: false, requested: false, buffer: 0, target: null,
   t: 0, cool: 0, serial: 0, yaw: 0, stats: null, hits: new Set(), fired: false, chained: false, ball: 0 });
 // the equipped weapon instance (a bag slot), and its base type; a player without an
-// inventory (tests) holds a plain Old Sword
+// inventory (tests) holds the glassmaker's plain old sword
 export const equippedInstance = p => p.inventory ? equippedItem(p.inventory) : { itemId: OLD_SWORD.id, count: 1 };
 export const equippedWeapon = p => ITEMS[equippedInstance(p)?.itemId] || null;
 // the kind of weapon p fights with (what loot leans towards, core/gear/bases.js), or null

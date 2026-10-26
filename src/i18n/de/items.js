@@ -2,7 +2,7 @@
 // rarities, affixes, enchantments, and what the traders say.
 export default {
   // weapons (core/items.js WEAPONS)
-  'Old Sword': { text: 'Altes Schwert', g: 'n' },
+  "Glassmaker's Old Sword": { text: 'Altes Schwert des Glasmachers', g: 'n', adj: 'Alt' },
   'Short Sword': { text: 'Kurzschwert', g: 'n' },
   'Medium Sword': { text: 'Mittleres Schwert', g: 'n' },
   'Long Sword': { text: 'Langschwert', g: 'n' },

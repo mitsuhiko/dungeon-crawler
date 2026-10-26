@@ -1,11 +1,13 @@
 # Narration
 
-Status: the pipeline and a first narrator are built. The Glassmaker's lines ([story.md](story.md))
-are rendered ahead into audio files with a text-to-speech model, in the `glassmaker` voice (the
-narrator's and the films' alike), and the game plays them as things
-happen, one after the other, with subtitles (`src/game/narrator.js`, "In the game" below). The
-lines so far tell the town and the first three depths through: the opening, the road out of town,
-the first act's themes and enemies, Gusto, Totnar and Squarlo, and a closing line at depth 3.
+Status: the pipeline and the narrator are built. The lines ([story.md](story.md)) are rendered
+ahead into audio files with a text-to-speech model, and the game plays them as things happen, one
+after the other, with subtitles (`src/game/narrator.js`, "In the game" below). The lines so far are
+the glassmaker's recordings of the beginning (`RECORDINGS`: the glass on the town plaza and the
+sword in the merchant camp, story.md "The beginning"), in the `glassmaker` voice, worn like an old
+recording; the inventory's Memories tab plays them again ("The memories" below). The old
+narrator's lines (a grandmother remembering, for the town and the first three depths) went with the
+old story; the moments they were said at stay, for the companion to come.
 
 **The clips are not committed yet.** `assets/narration/` is in `.gitignore`: render them locally
 (`node tools/narration.mjs`). Without them (no manifest, or a
@@ -288,14 +290,15 @@ and a line with tags makes the same clip as without.
 
 | | |
 |---|---|
-| `src/core/narration.js` | the lines: `{ id, on, when?, text, note, forms?, seed? }`, the moments they are said at (`MOMENTS`) and what picks them (`linesFor`); the English text is an i18n message; its tags (`TAG`, `untagged`, `lineText`) |
+| `src/core/narration.js` | the lines: `{ id, on, when?, text, note, voice?, worn?, forms?, seed? }`, the moments they are said at (`MOMENTS`) and what picks them (`linesFor`); the glassmaker's recordings (`RECORDINGS`); the English text is an i18n message; its tags (`TAG`, `untagged`, `lineText`) |
 | `src/i18n/de/story.js` | their German (`src/i18n/sources.js` lists the table, so `npm run i18n` wants it) |
 | `tools/narration.mjs` | says every line in every voiced language and form, decides what to render, writes the manifest |
 | `tools/narration.py` | renders: Qwen3-TTS cloning the voice, then trimmed, levelled, MP3 (uv script, its dependencies inline) |
 | `tools/voices/<voice>.flac`, `.txt` | the voices cloned: a recording and its words (`experiment_*` not committed) |
 | `assets/narration/<lang>/<clip>.mp3` | the clips: mono, 24 kHz, 48 kbit/s; `<clip>` is the id, or `<id>.<form>` |
 | `assets/narration/manifest.json` | per language and clip: its text (`text`, and with its tags `source`), seed, length in seconds and a hash of the settings that made it |
-| `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles |
+| `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles; plays a recording again for the memories (`hearAgain`) |
+| `src/game/memorypanel.js` | the inventory's Memories tab: the recordings heard, to hear again |
 | `tests/narration.test.js` | the table is well formed and translated, every line has a moment, every clip is there and current |
 | `src/film/*.js` | the films' lines ([film.md](film.md)): voiced by the same tool, `film.<film>.<shot>`, in the film's own voice |
 
@@ -303,13 +306,15 @@ and a line with tags makes the same clip as without.
 
 ```js
 {
-  id: 'opening.looked-like',
-  on: 'opening',            // the moment it is said at (MOMENTS)
-  when: { boss: 'gusto' },  // (optional; not on this line) what the moment must be about
-  text: "There you are! ...No. I'm sorry. For a moment you looked just like {sib, select, m {him} other {her}}.",
-  note: 'The first line of a new world ...',
-  forms: SIBLING,           // { m: { sib: 'm' }, f: { sib: 'f' } }: two clips, .m and .f
-  instruct: 'Speak softly.', // optional: how it is said ("Instructions"); its tags win
+  id: 'recording.glass.found',
+  on: 'recording',          // the moment it is said at (MOMENTS)
+  when: { part: 'glass' },  // (optional) what the moment must be about
+  text: 'So my glass found someone. Good.',
+  note: 'The first words of the bubble of star-glass ...',
+  voice: 'glassmaker',      // optional: whose voice (tools/voices/), not the language's narrator's
+  worn: true,               // optional: played like an old recording
+  forms: SIBLING,           // optional (not on this line): { m: { sib: 'm' }, f: { sib: 'f' } }: two clips, .m and .f
+  instruct: 'Speak low and calm.', // optional: how it is said ("Instructions"); its tags win
   seed: { de: 3 },          // optional: the take, by language or 'lang.form'; 0 when left out
 }
 ```
@@ -397,7 +402,7 @@ cannot need, and the tool says "ran to the limit: try another seed".
 
 | Moment | When | Data |
 |---|---|---|
-| `opening` | the town, the first time in a world: her first words, all of them | |
+| `recording` | one of the glassmaker's recordings found (game/intro.js): all its lines | `part`: the recording (`RECORDINGS`) |
 | `town` | close to one of the villagers (the town, the merchant camp) | `who`: the villager (`VILLAGERS` in `world/town.js`) |
 | `camp`, `road` | the merchant camp; the first place on the road with enemies | |
 | `wander` | a place not seen before, after a quiet while, no enemy about | `act`, `depth` |
@@ -418,32 +423,57 @@ villagers, the enemies, a boss's attacks read off his attack clock, health, stan
 narrator looks for itself every frame. `MOMENTS` in `core/narration.js` says how each is told:
 
 - **Once.** Every line is said once in a world. What was said is kept with the world
-  (`run.told`, saved with it: `core/save.js`), so she never repeats herself, and a world played
-  again later goes on where she left off. A moment's lines are said in the table's order: the
-  first one not told yet that fits (`when`), or for a scene (`all`: the opening, a depth, an
+  (`run.told`, saved with it: `core/save.js`), so nothing is said twice by itself, and a world
+  played again later goes on where it left off. A moment's lines are said in the table's order: the
+  first one not told yet that fits (`when`), or for a scene (`all`: a recording, a depth, an
   arena, a boss beaten) every one that fits.
 - **One at a time.** Lines wait their turn in a queue; between two lines a short pause. The most
   important goes first (`pri`: the story, then the bosses, then what happens, then chatter);
   what waited too long to still fit is left out (`ttl`: a boss's attack is old news in four
   seconds, a depth's lines wait as long as it takes). Chatter (`quiet`) only comes after a
   while of quiet, some (`calm`) only when no enemy is after the hero.
-- **Paused with the game**: the Esc menu, the inventory and "You died" stop her mid-word; she goes
-  on where she stopped (a death's line comes once the hero is back).
+- **Cut short.** Players do not stand about to listen, so a scene of a moment that `cuts` (a
+  recording) cuts short another of the same moment still going: its lines waiting are dropped,
+  the one being said fades out (0.35 s) with its subtitle, and after the usual pause the new
+  scene starts. Leaving a recording's place cuts it short too (`where` in `RECORDINGS`: the
+  glass's is the town, its houses too, the camp's the merchant camp; `arrived` in
+  `game/narrator.js`). `cut(which)` cuts short whatever lines `which` picks, for whatever else
+  should.
+- **Told whole.** A scene of a moment that is `whole` (a recording) counts as told as a whole the
+  moment it begins: all its lines go into `run.told` at once, even with the narrator off. Cut
+  short, or never listened to, it is still all in the Memories, and it never comes back.
+- **Paused with the game**: the Esc menu, the inventory and "You died" stop it mid-word; it goes
+  on where it stopped (a death's line comes once the hero is back).
 
 A line is looked up in the manifest of the language of the moment (`clips[lang][clip]`): no entry
 (a language without a voice), or no audio yet (before the first click or key), and it is only
 read, its subtitle up for as long as reading it takes. Its clip is fetched when it is queued and
 plays through the voice bus (`src/audio/context.js`), the music turned down under it
-(`duckMusic`). The subtitle (`#subtitle`, over the quick bar) shows the line in the language of
-the moment, and it goes into the chronicle (kind `narration`). Settings: the narrator's volume
-and the subtitles on or off (General, Sound).
+(`duckMusic`), through a thin band like an old recording if the line is `worn` (his recordings,
+like the film's worn lines). The subtitle (`#subtitle`, over the quick bar) shows the line in the
+language of the moment, and it goes into the chronicle (kind `narration`). Settings: the
+narrator's volume and the subtitles on or off (General, Sound).
 
 The sibling's gender (`SIBLING` forms) should be the hero's (story.md, "What the game needs"
 1); until heroes have one, the world's seed picks it. Playing together, every screen has its own
 narrator, telling what happens there.
 
-Not in the guide's game window; `?narration=0` turns her off. With `?dev=1`, `/narrate <id>` says
-a line now, `/narrate forget` makes her forget what she said in this world.
+Not in the guide's game window; `?narration=0` turns it off. With `?dev=1`, `/narrate <id>` says
+a line now, `/narrate forget` forgets what was said in this world.
+
+Playing together, a recording one player sets off (the glass found, the camp reached with it, the
+sword taken) plays for everyone at once, cutting short what was playing there (`story` messages,
+[online.md](online.md)).
+
+### The memories
+
+The inventory's **Memories** tab (`src/game/memorypanel.js`), next to the Quests, is there once the
+glassmaker's first glass is found (or a recording was heard). It lists his recordings begun in this
+world (`recordingsHeard`: a line of it in `run.told`; one begun is told whole, so all of it is
+there however little was heard), where each was found, and all its words; **Listen** plays it
+from the start (`hearAgain` in `src/game/narrator.js`), the line being
+said lit up. The world stays paused meanwhile (the inventory is open): the voice plays on its own,
+not through the queue, and stops when the panel closes or the tab changes.
 
 ## The films' lines
 
@@ -455,7 +485,10 @@ moment: the film plays it when its shot comes (`voiceClip` in `src/game/narrator
 
 ## Adding lines
 
-A new moment for a line: its `on` and `when`, and if the game does not tell her of it yet, a
-`narrate(...)` where it happens (a key in `MOMENTS`). Lines for more depths: `depth` (with its
-`depth`), `wander` (with its `act`), `theme`, `arena` / `boss` / `beaten` for its boss; the
-attack names are the boss's attacks' `name` (`core/enemies.js`).
+A new moment for a line: its `on` and `when`, and if the game does not tell the narrator of it
+yet, a `narrate(...)` where it happens (a key in `MOMENTS`). Another recording of the glassmaker's:
+an entry in `RECORDINGS` (its title and where it is found, translated) and its lines
+(`recording(part, ...)` in `core/narration.js`), and something in the game that sets it off
+(`narrate('recording', { part })`). The other moments wait for lines: `depth` (with its `depth`),
+`wander` (with its `act`), `theme`, `arena` / `boss` / `beaten` for its boss; the attack names are
+the boss's attacks' `name` (`core/enemies.js`).

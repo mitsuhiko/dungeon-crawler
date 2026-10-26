@@ -5,6 +5,7 @@ import { wornTotals } from './gear/stats.js';
 import { createPotionState } from './potions.js';
 import { createQuestLog } from './quests.js';
 import { noteKill } from './respawn.js';
+import { START_CLOCK } from './daycycle.js';
 
 // The player's numbers. docs/balance.md explains the targets; tools/balance.mjs plays them through.
 //   a level costs XP_BASE + XP_STEP (L - 1) + XP_CURVE (L - 1)² XP, so the first levels come in a
@@ -55,9 +56,11 @@ export function xpScale(playerLevel, enemyLevel) {
 export function xpProgress(p) {
   return { current: p.xp - xpForLevel(p.level), required: xpToNext(p.level) };
 }
-// a new run: the Old Sword in hand, the town portal scroll on quick bar slot 1, a few health
-// potions on slot 2 and the room portal scroll on the last slot; with the dev tools (dev: true)
-// also DEV_GOLD gold to try the shops with
+// a new run: the glassmaker's old sword in hand (armed), the town portal scroll on quick bar slot 1,
+// a few health potions on slot 2 and the room portal scroll on the last slot; with the dev tools
+// (dev: true) also DEV_GOLD gold to try the shops with. A new hero in the game starts empty-handed
+// (armed: false; core/save.js createHero, game/flow.js): the sword is found in the merchant camp
+// (core/intro.js). The tests' heroes and the dev tools' have it in hand.
 export const START_POTIONS = 3, DEV_GOLD = 5000;
 const BAR_SLOTS = { [TOWN_PORTAL.id]: 0, [ROOM_PORTAL.id]: 5 };
 // every hero carries the tools (core/items.js TOOLS): a hero saved before one existed gets it
@@ -70,10 +73,10 @@ export function carryTools(inventory) {
   }
   return inventory;
 }
-export function createPlayerStats(dev = false) {
+export function createPlayerStats(dev = false, { armed = true } = {}) {
   const inventory = createInventory();
   if (dev) addItem(inventory, 'item_coin_gold', DEV_GOLD);
-  equipItem(inventory, addInstance(inventory, fixedWeapon(OLD_SWORD.id)));
+  if (armed) equipItem(inventory, addInstance(inventory, fixedWeapon(OLD_SWORD.id)));
   carryTools(inventory);
   addItem(inventory, HEALTH_POTION.id, START_POTIONS);
   assignBar(inventory, 1, inventory.slots.find(s => s?.itemId === HEALTH_POTION.id).instanceId);
@@ -89,7 +92,7 @@ export function createPlayerStats(dev = false) {
 // (visit) and what of this visit's we bought (sold: indices)
 // learn: memory.html#notes (see learn/README.md)
 export const createRun = () => ({ defeated: new Set(), unlockedGates: new Set(), loot: new Map(), dropped: new Set(), chests: new Set(), townPortal: null, trials: new Map(),
-  quests: createQuestLog(), clock: 0, kills: new Map(), smith: { visit: 0, sold: [] },
+  quests: createQuestLog(), clock: START_CLOCK, kills: new Map(), smith: { visit: 0, sold: [] },
   told: new Set() });   // the narrator's lines said in this world (core/narration.js ids, game/narrator.js)
 // learn: stronger.html#xp-code (see learn/README.md)
 export function awardXP(p, amount) {

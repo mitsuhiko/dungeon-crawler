@@ -662,12 +662,12 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
     stage.dispose(scene);
     black.style.opacity = '1';
     const from = performance.now();
-    const reveal = () => {
+    const lift = () => {
       const k = (performance.now() - from) / 1000 / reveal;
       black.style.opacity = String(1 - EASE.inOut(clamp01(k)));
-      if (k < 1) requestAnimationFrame(reveal); else black.remove();
+      if (k < 1) requestAnimationFrame(lift); else black.remove();
     };
-    requestAnimationFrame(reveal);
+    requestAnimationFrame(lift);
     onEnd();
   }
   return true;

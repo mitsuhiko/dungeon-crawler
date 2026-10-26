@@ -54,15 +54,20 @@ export function flash() {
   requestAnimationFrame(() => { f.style.transition = 'opacity .5s'; f.style.opacity = 0; });
 }
 
-export const fadeOut = () => { $('fade').style.opacity = 1; };
+export const fadeOut = () => { $('fade').style.transitionDuration = ''; $('fade').style.opacity = 1; };
 // (the curtain lifts once the cube's lights are baked, render/bake.js: behind it they bake as
-// fast as the GPU goes, nothing else drawn meanwhile, main.js; no longer than FADE_WAIT)
-const FADE_WAIT = 2000;
+// fast as the GPU goes, nothing else drawn meanwhile, main.js; no longer than FADE_WAIT). Coming
+// into a world it lifts slowly (slowFade: SLOW_FADE s), else in a moment (style.css #fade).
+const FADE_WAIT = 2000, SLOW_FADE = 1.6;
+let slow = false;
+export const slowFade = () => { slow = true; };
 export function fadeIn() {
-  const start = performance.now();
+  const start = performance.now(), el = $('fade'), seconds = slow ? SLOW_FADE : null;
+  slow = false;
   requestAnimationFrame(function wait() {
     if (!baked(state.world) && performance.now() - start < FADE_WAIT) { requestAnimationFrame(wait); return; }
-    $('fade').style.opacity = 0;
+    el.style.transitionDuration = seconds ? `${seconds}s` : '';
+    el.style.opacity = 0;
   });
 }
 // whether the curtain is down (nothing of the world shows)

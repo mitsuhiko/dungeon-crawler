@@ -19,6 +19,7 @@ import { makeEnemy, coinRange } from '../core/enemies.js';
 import { bountyKind, bountyLevel } from '../core/bounties.js';
 import { residentsOf, spotOfGiver, keyOfSpot } from '../core/npcs.js';
 import { TOWN_KEY, isInterior } from '../world/town.js';
+import { isIntroGate } from '../core/intro.js';
 import { parse, step, faceKey } from '../world/coords.js';
 import { tr, noun, say } from '../i18n/i18n.js';
 
@@ -64,6 +65,12 @@ function overlay(map, log) {
   return { people, chests, placements, sig: [...people.map(p => p.id), ...chests.map(c => c.id)].join('|') };
 }
 
+// the sides of map whose portals are sealed: an annex's, the beginning's
+const sealedSides = map => [0, 1, 2, 3].filter(d => {
+  const g = map.gateKeys?.[d];
+  return (g?.startsWith('annex:') || isIntroGate(g)) && !state.run?.unlockedGates.has(g);
+});
+
 // Put the quests' part into map m (game/flow.js, before the cube is built): its people with the
 // residents (map.npcs), its chests with the reward sites. The signature of what was put there.
 export function questWorld(map) {
@@ -73,15 +80,16 @@ export function questWorld(map) {
   map.npcs = [...npcsIn(map), ...o.people];
   map.rewardSites = [...map.baseSites, ...o.chests];
   map.sitePlacements = [...map.basePlacements, ...o.placements];
-  // an annex's portal, sealed until a quest opens it (render/markers.js draws it grey)
-  map.sealed = [0, 1, 2, 3].filter(d => map.gateKeys?.[d]?.startsWith('annex:') && !state.run?.unlockedGates.has(map.gateKeys[d]));
+  // an annex's portal, sealed until a quest opens it, and the beginning's gates (core/intro.js)
+  // until their things are found (render/markers.js draws them grey)
+  map.sealed = sealedSides(map);
   map.questSig = o.sig + '|' + map.sealed.join(',');
   if (o.placements.length) loadPropSets(propSetsOf(map, themeOf(map))).catch(() => {});   // (the chest's set; game/flow.js builds again once in)
   return o.sig;
 }
 // has the quests' part of the cube we are in changed since it was built?
 export const questWorldChanged = () => !!state.map && overlay(state.map, state.run?.quests).sig + '|'
-  + [0, 1, 2, 3].filter(d => state.map.gateKeys?.[d]?.startsWith('annex:') && !state.run?.unlockedGates.has(state.map.gateKeys[d])).join(',')
+  + sealedSides(state.map).join(',')
   !== (state.map.questSig ?? '');
 
 // the things to find lying here, as pickups to draw (render/loot.js drawLoot)

@@ -5,6 +5,7 @@ import { key, faceKey, step } from '../src/world/coords.js';
 import { discoveredFaces } from '../src/core/boundaries.js';
 import { portalLocked } from '../src/core/guardians.js';
 import { createRun } from '../src/core/progression.js';
+import { INTRO_GATES, skipIntro } from '../src/core/intro.js';
 
 // Model all rooms as already discovered, including rooms reached accidentally by falls.
 // This exercises the extra full-face paths, not merely the authored portal graph.
@@ -49,6 +50,14 @@ test('all depths have routes within their band, the core all nine rooms; discove
       if (d < 20) assert.equal(goal, L.down);
       for (const k of L.guardians.keys()) run.unlockedGates.add(k);
       for (const t of L.trials) run.unlockedGates.add(t.gate);   // (trial rooms, world/trials.js: resolved)
+      // the beginning (core/intro.js): the town's gate is shut until its glass is found, the merchant
+      // camp's until the sword is taken
+      if (d === 0) {
+        assert.equal(distances(L, cubes, run, entry).size, 1, `seed ${seed}: the town's gate is shut`);
+        run.unlockedGates.add(INTRO_GATES.glass);
+        assert.equal(distances(L, cubes, run, entry).size, 2, `seed ${seed}: the camp's gate is shut`);
+        skipIntro(run);
+      }
       // an annex (a quest's room beside the way) is sealed until a quest opens it
       if (L.annex) {
         assert.equal(distances(L, cubes, run, entry).has(L.annex.key), false, `seed ${seed}, depth ${d}: the annex is sealed`);

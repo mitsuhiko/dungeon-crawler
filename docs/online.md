@@ -121,6 +121,13 @@ being helped up and getting back in. Up to four players, co-op.
   a portal turned into an open wall), the others can as well.
 - Joining (and getting back in) both send what they have: the host in `welcome`, a guest that
   keeps its world after a lost connection in `visited` and `faces`.
+- The beginning ([story.md](story.md#the-beginning)) is shared too (`story`): whoever finds the
+  glassmaker's glass on the plaza opens the town's gate for everyone, and his recording plays for
+  everyone at the same moment, wherever they are; the first to come into the merchant camp with
+  the glass found sets the camp's recording playing, for everyone; whoever takes his sword opens
+  the camp's gate, and his last word plays for everyone (each recording cutting short the one
+  before). Each player takes a sword of their own: it stays in the ground for a hero with no
+  weapon at all (one who joins empty-handed).
 
 ## Fighting together
 

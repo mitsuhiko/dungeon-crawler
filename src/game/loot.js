@@ -45,6 +45,7 @@ import { inFluid } from '../physics/fluid.js';
 import { restGround, scatterSpot, settle } from '../physics/rest.js';
 import { drawLoot, lootLanded } from '../render/loot.js';
 import { questItemsHere } from './questworld.js';
+import { introThingsHere } from './intro.js';
 import { floatText } from '../render/floattext.js';
 import { sfx } from '../audio/sfx.js';
 import { jingle } from '../audio/jingles.js';
@@ -260,7 +261,8 @@ export function updateLoot(dt, time) {
     if (p.claim === 'mine') receive(p);
   }
   announce(dt);
-  drawLoot([...list, ...questItemsHere()], state.world, time, dt);   // (and the quests' things to find: game/questworld.js)
+  // (and the quests' things to find, game/questworld.js, and the beginning's, game/intro.js)
+  drawLoot([...list, ...questItemsHere(), ...introThingsHere()], state.world, time, dt);
 }
 
 // a weapon hit the floor: the better it is, the more it announces itself

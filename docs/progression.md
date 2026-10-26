@@ -28,9 +28,12 @@
 
 ## Run state
 
-A new run starts with level 1, 0 XP, 100 HP, one owned/equipped Vanilla Old Sword, the
-Town Portal Scroll on quick bar slot 1, three health potions on slot 2 and the Room Portal
-Scroll on slot 6 (with `?dev=1`, also 5000 gold). Every hero carries both scrolls: a hero saved
+A new hero starts with level 1, 0 XP, 100 HP, empty-handed, the Town Portal Scroll on quick bar
+slot 1, three health potions on slot 2 and the Room Portal Scroll on slot 6. Its first weapon is the
+Vanilla **Glassmaker's Old Sword**, stuck in the ground in the merchant camp of every world
+([story.md](story.md#the-beginning), `core/intro.js`). With `?dev=1` the sword is in hand already,
+with 5000 gold (`createPlayerStats`, `core/progression.js`: its `armed` is the sword in hand, as the
+tests' heroes have it). Every hero carries both scrolls: a hero saved
 before one existed gets it when loaded (`carryTools`, `core/progression.js`).
 Progression, currency, inventory and equipment survive cube travel and death.
 Death (or `R`) restores the current maximum HP; there is no death penalty yet. Death also
@@ -163,7 +166,7 @@ all for loot.
 
 ## Weapons
 
-These are the base types (`core/items.js`), five of each kind besides the Old Sword. A weapon
+These are the base types (`core/items.js`), five of each kind besides the Glassmaker's Old Sword. A weapon
 instance scales the damage by its rarity and changes its stats with its affixes
 ([loot.md](loot.md)); combat reads only the instance's stats (`core/gear/stats.js`). How the
 ranged kinds attack: [combat.md](combat.md#bows-crossbows-and-staffs), the flails:
@@ -173,7 +176,7 @@ ranged kinds attack: [combat.md](combat.md#bows-crossbows-and-staffs), the flail
 
 | Sword | Damage | Interval, seconds | Damage per second | Reach, cells | Arc | Drops from item level |
 |---|---:|---:|---:|---:|---:|---:|
-| Old Sword | 30 | .42 | 71 | .85 | ×1 | never |
+| Glassmaker's Old Sword | 30 | .42 | 71 | .85 | ×1 | never |
 | Short | 23 | .32 | 72 | .72 | ×1 | 1 |
 | Medium | 34 | .42 | 81 | .85 | ×1 | 1 |
 | Long | 39 | .48 | 81 | 1.05 | ×1 | 2 |
@@ -243,7 +246,7 @@ carried in its own hold pose.
 and visual attachment together. Failed or stale asynchronous requests cannot
 replace the current weapon or cross a new-run reset. Weapons mount at unit local
 scale under the already-scaled fist their extras name (bows `hand.L`, the rest `hand.R`);
-swimming/climbing hides them. The Old Sword never
+swimming/climbing hides them. The Glassmaker's Old Sword never
 drops; the others drop as generated weapons ([loot.md](loot.md)). Dropping every weapon is
 allowed and leaves you unable to attack. The alchemist sells potions ([potions.md](potions.md));
 no other shops, durability or armor are implemented. With `?dev=1` a run starts with 5000 gold.

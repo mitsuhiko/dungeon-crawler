@@ -154,7 +154,7 @@
 <div id="look-hint" hidden data-t>Click to look around</div>
 <div id="inventory-overlay" hidden>
   <section id="inventory-panel" class="glass" role="dialog" aria-modal="true" aria-labelledby="inventory-title" tabindex="-1">
-    <header><div><h1 id="inventory-title">Inventory</h1><div id="inventory-progress"></div></div><div id="inventory-tabs" role="tablist" aria-label="Bag or quests" data-t="aria-label"><button role="tab" data-tab="bag" aria-selected="true" data-t>Bag</button><button role="tab" data-tab="quests" aria-selected="false" data-t>Quests</button></div><div id="inventory-currency" aria-label="Currency" data-t="aria-label"></div><button id="inventory-close" aria-label="Close inventory" data-t="aria-label">Close · Esc</button></header>
+    <header><div><h1 id="inventory-title">Inventory</h1><div id="inventory-progress"></div></div><div id="inventory-tabs" role="tablist" aria-label="Bag, quests or memories" data-t="aria-label"><button role="tab" data-tab="bag" aria-selected="true" data-t>Bag</button><button role="tab" data-tab="quests" aria-selected="false" data-t>Quests</button><button role="tab" data-tab="memories" aria-selected="false" hidden data-t>Memories</button></div><div id="inventory-currency" aria-label="Currency" data-t="aria-label"></div><button id="inventory-close" aria-label="Close inventory" data-t="aria-label">Close · Esc</button></header>
     <div class="inventory-body">
       <div id="inventory-hero-col"><h2 data-t>Hero</h2><canvas id="inventory-hero" data-live-hero aria-hidden="true"></canvas><div id="inventory-worn" role="group" aria-label="Armor worn" data-t="aria-label"></div><div id="inventory-equipped"></div></div>
       <div id="inventory-floor-col" hidden><h2 title="Within reach" data-t="text title">Floor</h2><div id="inventory-floor" class="inventory-scroll" role="listbox" aria-label="Items on the floor" data-t="aria-label"></div></div>
@@ -173,6 +173,10 @@
         <div id="quests-filter" role="group" aria-label="Which quests" data-t="aria-label"><button data-filter="active" aria-pressed="true">Going on</button><button data-filter="done" aria-pressed="false">Done</button><button data-filter="archived" aria-pressed="false">Archived</button></div>
         <div id="quests-list" role="listbox" aria-label="Quests" data-t="aria-label"></div></div>
       <aside id="quests-details"><div class="inventory-details-inner" id="quests-details-inner"></div></aside>
+    </div>
+    <div id="memories-body" class="away">
+      <div id="memories-list-col"><div id="memories-list" role="listbox" aria-label="Memories" data-t="aria-label"></div></div>
+      <aside id="memories-details"><div class="inventory-details-inner" id="memories-details-inner"></div></aside>
     </div>
     <p id="inventory-feedback" role="status"></p>
   </section>

@@ -5,7 +5,9 @@
 // sparks, a turning circle of runes and a real light, more of it the rarer the weapon.
 // The bottom four (Crap to Unremarkable) do not glow at all; OMG runs through the rainbow and
 // hops on the floor. A quest's thing to find glows gold (QUEST_GLOW), so it
-// stands out from the clutter it may look like (core/items.js: made from the world's props).
+// stands out from the clutter it may look like (core/items.js: made from the world's props); so do
+// the beginning's (core/intro.js): the glassmaker's glass floating over the plaza
+// (render/glassbubble.js) and his sword standing in the ground.
 // Views hang in the cube's group, so they slide along with it during travel and go away with
 // it; their geometry and materials are shared between all copies (per item / per rarity), so
 // disposing a cube leaves them alone.
@@ -18,15 +20,22 @@ import { player } from '../game/state.js';
 import { partnerAt } from './partner.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { emit, glow as glowLayer, rand } from './particles.js';
+import { glassBubble, GLASS_VIEW } from './glassbubble.js';
 
 const protos = new Map();   // itemId -> prototype (null while loading)
 const loads = new Map();    // itemId -> Promise (resolves once loaded or failed)
 const views = new Map();                               // pickup id -> { o, model, fx, light }
 let viewsWorld = null;
 const HOVER = 0.08, TOSS_HEIGHT = 0.75, SCALE = 1.35, WEAPON_SCALE = 0.72, ARMOR_SCALE = 0.5;
+// a sword stuck in the ground (core/intro.js): how much bigger than one lying about, the share of
+// its length in the ground, and how it stands: point down (the blade lies along -Z), leaning a little
+const STUCK_SCALE = 1.7, STUCK_SINK = 0.22, STUCK_TILT = -Math.PI / 2 + 0.2;
 // how a quest's thing glows: like a rarity, in gold
 const QUEST_GLOW = { id: 'quest', rank: 6, rgb: [1, 0.78, 0.32], glow: { ring: 0.9, halo: 0.9, beam: 1.6, sparks: 3, runes: false, light: 1.2 } };
-const glowOf = p => p.questItem ? QUEST_GLOW : p.gen ? rarityOf(p) : null;
+// the glassmaker's glass (core/intro.js): amber, with no beam (its own glow is the light: a beam
+// would wash it out)
+const GLASS_GLOW = { id: 'glass', rank: 6, rgb: [1, 0.7, 0.35], glow: { ring: 0.8, halo: 1, beam: 0, sparks: 2.5, runes: false, light: 1.4 } };
+const glowOf = p => p.lift ? GLASS_GLOW : p.questItem ? QUEST_GLOW : p.gen ? rarityOf(p) : null;
 // how far above Vanilla a rarity is (the first that glows is 2): what scales its pulse and burst
 const steps = r => Math.max(0, r.rank - 2);
 // a rainbow rarity's colour at hue h (0..1)
@@ -37,6 +46,10 @@ const sparkOf = (r, k) => r.glow?.rainbow ? rainbow(sparkColor, Math.random()) :
 
 function proto(itemId) {
   if (protos.has(itemId)) return protos.get(itemId);
+  if (itemId === GLASS_VIEW) {   // the glassmaker's glass (core/intro.js): made, not loaded
+    protos.set(itemId, glassBubble()); loads.set(itemId, Promise.resolve());
+    return protos.get(itemId);
+  }
   protos.set(itemId, null);
   const def = ITEMS[itemId], weapon = !!def.weapon, gear = weapon || !!def.armor;
   loads.set(itemId, loadGLB(def.model).then(g => {
@@ -82,7 +95,7 @@ export function lootWarmup(ids) {
   for (const id of ids) if (!warmedLoot.has(id) && protos.get(id)) { warmedLoot.add(id); out.push(protos.get(id)); }
   if (!warmedLoot.has('')) {
     warmedLoot.add('');
-    for (const r of [...RARITIES, QUEST_GLOW]) {
+    for (const r of [...RARITIES, QUEST_GLOW, GLASS_GLOW]) {
       const fx = makeFx(r);
       if (!fx) continue;
       if (fx.userData.light) untrackLight(fx.userData.light);
@@ -186,7 +199,7 @@ function makeFx(r) {
 // every rarity's shared materials pulse together; OMG runs through every hue
 const WHITE = new THREE.Color(1, 1, 1);
 function pulse(time) {
-  for (const r of [...RARITIES, QUEST_GLOW]) {
+  for (const r of [...RARITIES, QUEST_GLOW, GLASS_GLOW]) {
     const k = fxKit.get(r.id);
     if (!k) continue;
     const s = 0.78 + 0.22 * Math.sin(time * (2 + steps(r) * 0.25));
@@ -216,10 +229,11 @@ const v = new THREE.Vector3(), target = new THREE.Vector3();
 const TAU = Math.PI * 2;
 
 // where p is when nobody pulls it: on its arc out of the body (lift: its middle above `from`),
-// then resting (weapons lie on the floor, everything else hovers and bobs)
-function rest(p, half, time, out, lift = 0) {
-  const y = p.gen ? p.y + half + 0.01 + (rarityOf(p).glow?.rainbow ? hop(p, time).up * HOP_HEIGHT : 0)
-    : p.y + half + HOVER + Math.sin(time * 2.6 + p.phase) * 0.035;
+// then resting (weapons lie on the floor, everything else hovers and bobs; the glassmaker's glass
+// floats `p.lift` higher and bobs more, his sword stands in the ground: its middle `stand` over it)
+function rest(p, half, time, out, lift = 0, stand = null) {
+  const y = stand !== null ? p.y + stand : p.gen ? p.y + half + 0.01 + (rarityOf(p).glow?.rainbow ? hop(p, time).up * HOP_HEIGHT : 0)
+    : p.y + half + HOVER + (p.lift ?? 0) + Math.sin(time * (p.lift ? 1.4 : 2.6) + p.phase) * (p.lift ? 0.07 : 0.035);
   if (p.toss >= 1) return out.set(p.x, y, p.z);
   const u = Math.max(0, p.toss), e = ease(u), fy = p.from.y + lift;
   return out.set(p.from.x + (p.x - p.from.x) * u, fy + (y - fy) * e + TOSS_HEIGHT * 4 * u * (1 - u), p.from.z + (p.z - p.from.z) * u);
@@ -260,7 +274,16 @@ export function drawLoot(list, world, time, dt = 0) {
       view = { o, model, fx };
       views.set(p.id, view);
     }
-    const { o, model, fx } = view, half = model.userData.half, base = model.userData.scale;
+    const { o, model, fx } = view, half = model.userData.half;
+    let base = model.userData.scale;
+    // the glassmaker's sword (core/intro.js), standing in the ground point first, leaning a little:
+    // bigger than a weapon lying about, some of its blade sunk (stand: its middle over the floor)
+    let stand = null;
+    if (p.stuck) {
+      base *= STUCK_SCALE;
+      const length = model.userData.size.z / model.userData.scale * base;
+      stand = length / 2 - length * STUCK_SINK;
+    }
     // flying to another player (playing together), there if we see them; taken and waiting to be
     // ours (game/loot.js claim): out of sight
     const friend = p.fly?.to != null ? partnerAt(p.fly.to) : null;
@@ -268,8 +291,8 @@ export function drawLoot(list, world, time, dt = 0) {
     o.position.set(p.x, p.y, p.z);
     // waiting in a chest: still and shrunk; on the way out it grows, turns and gets up
     const inside = p.inside && p.toss < 1 ? stowed(p, model.userData) : null;
-    rest(p, half, time, v, inside?.lift);
-    let spin = p.gen ? 0 : 1.8, scale = base, yaw = p.phase, tilt = 0;
+    rest(p, half, time, v, inside?.lift, stand);
+    let spin = p.gen || p.stuck ? 0 : p.lift ? 0.5 : 1.8, scale = base, yaw = p.phase, tilt = p.stuck ? STUCK_TILT : 0;
     if (p.toss < 1) { spin = 9; if (p.gen) { spin = 0; yaw += (1 - p.toss) * 7; } }   // tumbling out, a weapon unwinding into place
     if (inside) {
       const u = Math.max(0, p.toss), e = ease(u);
@@ -321,6 +344,18 @@ export function lootLanded(p, world) {
     emit(glowLayer, p.x + off.x, p.y + off.y + 0.08, p.z + off.z,
       { v: [Math.cos(a) * s, rand(0.3, 1.2) + (r.glow.beam ? 1.5 : 0), Math.sin(a) * s], life: rand(0.4, 0.8),
         size: rand(0.06, 0.12), color: sparkOf(r, k), gravity: 2, drag: 2 });
+  }
+}
+
+// the glassmaker's glass breaking, his sword pulled out (game/intro.js): a burst of light in `rgb`
+// at (x, y, z) in the cube
+export function storyBurst(world, x, y, z, rgb, n) {
+  if (!world) return;
+  const off = world.group.position, color = new THREE.Color().setRGB(...rgb);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, up = rand(-0.6, 1), s = rand(0.8, 2.2);
+    emit(glowLayer, x + off.x, y + off.y, z + off.z, { v: [Math.cos(a) * s, up * s + 0.6, Math.sin(a) * s], life: rand(0.5, 1.1),
+      size: rand(0.06, 0.14), color, gravity: 1.5, drag: 1.8 });
   }
 }
 

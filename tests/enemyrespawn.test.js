@@ -10,6 +10,7 @@ import { restoreDefeated } from '../src/core/guardians.js';
 import { enemyDrops, weaponDrops } from '../src/core/gear/drops.js';
 import { enemySpots, hordeSpots, guardianSpots } from '../src/game/enemyspawn.js';
 import { createWorld, checkWorld } from '../src/core/save.js';
+import { START_CLOCK } from '../src/core/daycycle.js';
 
 const KEY = '3,-1,2';
 // an ordinary snake of cube KEY, killed (its health 0, dead)
@@ -24,10 +25,11 @@ test('a killed enemy comes back once it has been dead long enough and its cube i
   const run = createRun(), e = snake();
   assert.ok(kill(run, e));
   assert.ok(run.defeated.has(e.id));
-  assert.deepEqual(run.kills.get(e.id), { n: 0, at: 0, cube: KEY });
-  run.clock = RESPAWN - 1;
+  const at = run.clock;   // (a world's clock starts at noon: core/daycycle.js START_CLOCK)
+  assert.deepEqual(run.kills.get(e.id), { n: 0, at, cube: KEY });
+  run.clock = at + RESPAWN - 1;
   assert.equal(respawnCube(run, KEY), 0, 'not yet');
-  run.clock = RESPAWN;
+  run.clock = at + RESPAWN;
   assert.equal(respawnCube(run, 'other'), 0, 'only when its own cube is entered');
   assert.equal(respawnCube(run, KEY), 1);
   assert.ok(!run.defeated.has(e.id));
@@ -36,7 +38,7 @@ test('a killed enemy comes back once it has been dead long enough and its cube i
   // and it pays again, and is remembered again in that life
   const again = snake(lifeOf(run, e.id));
   assert.ok(kill(run, again));
-  assert.deepEqual(run.kills.get(e.id), { n: 1, at: RESPAWN, cube: KEY });
+  assert.deepEqual(run.kills.get(e.id), { n: 1, at: at + RESPAWN, cube: KEY });
 });
 
 test('guardians, defenders, bounties, raiders and summoned minions never come back', () => {
@@ -117,7 +119,7 @@ test('the kills and the play time are saved with the world', () => {
   run.clock = 123.45;
   noteKill(run, snake(3));
   const w = createWorld(5);
-  assert.equal(checkWorld(w).run.clock, 0);
+  assert.equal(checkWorld(w).run.clock, START_CLOCK, 'a new world starts at noon');
   assert.deepEqual(checkWorld(w).run.kills, []);
   w.run.clock = run.clock; w.run.kills = [...packKills(run.kills), ['bad'], [1, 2, 3, 4]];
   const back = checkWorld(JSON.parse(JSON.stringify(w)));

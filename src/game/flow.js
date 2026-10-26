@@ -14,7 +14,7 @@ import { respawnPoint } from '../physics/respawn.js';
 import { player, state, setStatus } from './state.js';
 import { sfx } from '../audio/sfx.js';
 import { jingle } from '../audio/jingles.js';
-import { showStats, flash, fadeOut, fadeIn, whenReady } from './hud.js';
+import { showStats, flash, fadeOut, fadeIn, slowFade, whenReady } from './hud.js';
 import { resetCut } from './cut.js';
 import { resetEnemies, mirroring, detachEnemies } from './enemies.js';
 import { removeEnemyViews } from '../render/enemies.js';
@@ -52,6 +52,7 @@ import { setFluidPalettes } from '../render/fluidpal.js';
 import { tr } from '../i18n/i18n.js';
 import { askRespawn, forgetDeath } from './deathask.js';
 import { narrate, arrived, stopNarrator } from './narrator.js';
+import { introArrived, settleIntro } from './intro.js';
 
 export function spawnAt(x, y, z) {
   cancelSword(true); cancelCast();
@@ -307,6 +308,7 @@ export function settleIn(neighbors = true) {
   const deeper = noteDepth(c.map, state.cubes.seed);
   if (deeper) actJingle(c.map.depth);
   arrived(c.map, state.cubeKey, c.visits, deeper);   // what the narrator has to say about it (game/narrator.js)
+  introArrived(c.map);   // the glassmaker's glass plays on in the merchant camp (game/intro.js)
   if (neighbors) showNeighbors(visitedNeighbors(state.cubeKey));
   if (gateLocked(state.map, state.run)) setStatus(guardianLockMessage(state.map, guardianKind(state.map)));
   prefetchAround(c);
@@ -398,9 +400,11 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
   clearInput();
   forgetDeath();   // ("You died" not answered: game/deathask.js)
   stopNarrator();
-  if (!keepPlayer) Object.assign(player, createPlayerStats(state.dev));
+  if (!keepPlayer) Object.assign(player, createPlayerStats(state.dev, { armed: state.dev }));   // (empty-handed: core/intro.js)
   state.run = createRun(); state.inventoryOpen = false;
   if (restore) restoreRun(restore);
+  // the beginning (game/intro.js): done already in a world saved before it, and with the dev tools
+  settleIntro(state.run, seed, restore?.visited, state.dev, params);
   log('world', restore?.name ? { seed, name: restore.name } : { seed });
   // a saved spot whose cube does not come (the generator changed): the town instead
   const cubes = state.cubes, spot = restore?.spot;
@@ -411,6 +415,7 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
     villagersReady.catch(() => null), warmScene()]))
     .then(([c]) => {
       if (state.cubes !== cubes) return;
+      slowFade();   // the world comes up slowly the first time (game/hud.js)
       if (spot && c.key === spot.cube) enterCube(c, null, null, spot.arrival); else enterCube(c);
       state.transitioning = false;
       if (restore) for (const k of restore.visited) shareVisit(k);   // the map comes back, nearest first

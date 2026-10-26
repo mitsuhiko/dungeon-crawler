@@ -81,6 +81,8 @@ import { speech } from '../game/console.js';
 import { detachWorld } from '../game/save.js';
 import { worldClock, heardClock } from '../game/worldclock.js';
 import { takeQuestLog, guestQuestAct, questRewarded, questLogPacked } from '../game/quests.js';
+import { heardStory } from '../game/intro.js';
+import { STORY_NEWS } from '../core/intro.js';
 import { TrialOwner, trialMessage, trialAct } from './trials.js';
 import { takeTrialWord, trialActFrom, shareTrialResolved, shareTrialStage, sealedIn } from '../game/trials.js';
 import { tr, msg, phrase, say as sayWords } from '../i18n/i18n.js';
@@ -292,7 +294,7 @@ function apart() {
   if (foes instanceof Viewer) foes.stop(foes.cube === state.cubeKey);   // the runner's enemies here are ours now
   foes = null;
   relay.hit = relay.afflict = relay.launch = relay.landed = relay.shoot = relay.toss = relay.defeated = relay.visited = null;
-  relay.drop = relay.take = relay.forget = relay.chat = relay.news = null;
+  relay.drop = relay.take = relay.forget = relay.chat = relay.news = relay.story = null;
   relay.trialAct = relay.trialDone = relay.trialStage = null;
   relay.quests = relay.questAct = relay.questReward = null;
   settleClaims();   // what we reached for is ours: nobody else is left to have it
@@ -479,6 +481,7 @@ function together() {
     ...e.respawn && { cube: e.respawn, n: e.wave ?? 0 } });
   // the chat box: what we say, and what happens to us (game/log.js)
   relay.chat = text => post({ t: 'chat', text });
+  relay.story = what => post({ t: 'story', what, seed: state.cubes?.seed });
   relay.news = (kind, data) => post({ t: 'news', kind, data });
   relay.visited = key => post({ t: 'visited', keys: [key] });
   // the world's quests: the host decides and tells, a guest asks (game/quests.js)
@@ -567,6 +570,8 @@ function shared(m, p) {
     const data = cleanNews(m.kind, m.data);
     if (data) log(m.kind, data, { who: { slot: p.slot, name: p.name } });
   }
+  // the beginning (game/intro.js): a gate opened, a recording set off, for everyone (in this world)
+  else if (m.t === 'story') { if (STORY_NEWS.includes(m.what) && m.seed === state.cubes?.seed) heardStory(m.what); }
   else if (m.t === 'visited' && Array.isArray(m.keys)) { for (const k of m.keys) if (typeof k === 'string') shareVisit(k); }
   // the quests: the host hears what a guest did, a guest what the host decided
   else if (m.t === 'quest') { if (online.role === 'host') guestQuestAct(m); }

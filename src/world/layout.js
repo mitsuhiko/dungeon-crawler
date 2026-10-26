@@ -15,6 +15,7 @@ import { planHeights, planSetPiece, planSlots, indexHeights, near } from './heig
 import { AREA_SIZE, templateCells, planArea, indexAreas } from './areas.js';
 import { planTrials, planPuzzles, indexTrials } from './trials.js';
 import { TRIALS } from '../core/trials.js';
+import { INTRO_GATES } from '../core/intro.js';
 
 // [first depth, fewest, most] rooms on the route. The core always walks all nine rooms of
 // its 3x3, so the route above it ends on a corner (an edge start cannot reach the centre
@@ -163,6 +164,12 @@ function build(seed, d, above, theme, opts = {}) {
       guardians.set(k, { role: 'side', exit: dir, bossPlaceholder: false });
       gateFaces.set(faceKey(k, dir), k);
     }
+  }
+  // the beginning (core/intro.js): the town's gate opens for the glassmaker's glass, the merchant
+  // camp's gate out to the road for his sword
+  if (d === 0) {
+    gateFaces.set(faceKey(K(spine[0]), exit.get(K(spine[0]))), INTRO_GATES.glass);
+    gateFaces.set(faceKey(K(spine[1]), exit.get(K(spine[1]))), INTRO_GATES.sword);
   }
   const hordes = planHordes(seed, d, spine.map(K), guardians, k => areaRooms.some(a => K(a) === k));
   // One-room branches only, never attached to arenas or the safe surface prefix.

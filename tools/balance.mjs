@@ -16,7 +16,7 @@
 //   node tools/balance.mjs farm [respawns, default 6] [seeds, default 200]
 // Farming the road out of town before Gusto: every ordinary enemy of depth 0 (not the side
 // guardian's arena) is killed once a life, as often as they come back (core/respawn.js: every
-// RESPAWN s), with the Old Sword in hand. Prints, after each round, how many runs have seen a
+// RESPAWN s), with the glassmaker's old sword in hand. Prints, after each round, how many runs have seen a
 // ranged weapon drop, and the level.
 globalThis.location = { search: '' };
 const { makeLayouts } = await import('../src/world/layout.js');

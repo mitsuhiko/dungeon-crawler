@@ -73,7 +73,12 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   a second time is its copy 2, "... II". The name is written along but never read back.
   It also keeps its play time (`run.clock`) and the ordinary kills, for them to come back
   (`run.kills`, [progression.md](progression.md#enemies-come-back)), and what the narrator
-  has said in it (`run.told`, [narration.md](narration.md#in-the-game): she says nothing twice).
+  has said in it (`run.told`, [narration.md](narration.md#in-the-game): nothing is said twice,
+  and the Memories tab lists the glassmaker's recordings heard from it). A new world's clock starts
+  at noon (`START_CLOCK`, `core/daycycle.js`); the beginning's two gates (`intro:glass`,
+  `intro:sword`, [story.md](story.md#the-beginning)) are kept with the guardians' in `gates`. A
+  world saved before the beginning existed, somebody already out past the merchant camp, gets both
+  opened when it is loaded. A hero's Old Sword saved before it was the glassmaker's is renamed so.
   `{ v, id, seed, copy, name, created, updated, deepest, run: { defeated, gates, chests, dropped,
   loot, townPortal, quests, clock, kills, told }, faces, visited, spots }`
 - Coming into a world a hero has its level and bag, full health, no potions at work

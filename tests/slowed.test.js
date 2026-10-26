@@ -10,13 +10,15 @@ import { slowFrom, slower, slowStep, moveFactor, weaponFactor } from '../src/cor
 import { chillFrom, THAW } from '../src/core/projectiles.js';
 import { startSwing, advanceSwing, cancelSwing } from '../src/core/combat.js';
 import { blowOf } from '../src/core/enemies.js';
+import { createPlayerStats } from '../src/core/progression.js';
 
 const DT = 1 / 60;
 function stand() {
   const m = flatMap();
   m.biome = 'meadow';
   Object.assign(player, { x: 2.5, z: 8.5, y: 0, vx: 0, vy: 0, vz: 0, grounded: true, swimming: false,
-    fluid: 0, support: m.floors[8 * N + 2], stun: 0, coyote: 0, jumpBuf: 0, chilled: null, slowed: null, mire: 1 });
+    fluid: 0, support: m.floors[8 * N + 2], stun: 0, coyote: 0, jumpBuf: 0, chilled: null, slowed: null, mire: 1,
+    inventory: createPlayerStats().inventory });   // (the sword in hand)
 }
 
 test('a slowing slows the body for its time, then thaws', () => {

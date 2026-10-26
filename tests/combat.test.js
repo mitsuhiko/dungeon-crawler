@@ -55,7 +55,7 @@ test('one enemy is hit at most once per swing', () => {
   assert.equal(e.mode, 'chase');
   assert.ok(e.stun > 0);
 });
-test('the Old Sword takes two slashes for a spider and five for a Stunder, which hits harder', () => {
+test("the glassmaker's old sword takes two slashes for a spider and five for a Stunder, which hits harder", () => {
   const p = hero(), spider = enemy(), stunder = enemy(STUNDER);
   assert.ok(STUNDER.damage > SPIDER.damage);
   swing(p); swordHit(p, spider, 1); swordHit(p, stunder, 1);

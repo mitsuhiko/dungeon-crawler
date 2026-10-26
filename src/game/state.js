@@ -16,7 +16,7 @@ const skipMenu = (dev || params.has('seed')) && params.get('menu') !== '1' && !p
 export const player = {
   x: 0, z: 0, y: 0, vx: 0, vy: 0, vz: 0, visY: 0,
   r: CHAR_R, h: CHAR_H, layer: 0, yaw: 0,
-  ...createPlayerStats(dev),   // ?dev=1: with gold to spend (core/progression.js DEV_GOLD)
+  ...createPlayerStats(dev, { armed: dev }),   // ?dev=1: armed, with gold to spend (core/progression.js DEV_GOLD)
   sword: swordState(),
   grounded: true, swimming: false, fluid: 0, fluidDeath: 0, support: null,
   airTime: 0, coyote: 0, jumpBuf: 0, stun: 0,

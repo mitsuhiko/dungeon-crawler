@@ -24,6 +24,7 @@ import { orderPickup, orderChest, orderTrade, orderWalk, orderPart, orderWay } f
 import { waysHere } from './ways.js';
 import { usableParts, partLabel } from './trials.js';
 import { questItemsHere } from './questworld.js';
+import { introThingsHere } from './intro.js';
 import { shopOf } from '../core/shops.js';
 import { GIVERS, giverOf, giverMark } from '../core/quests.js';
 import { talkative } from './action.js';
@@ -76,7 +77,7 @@ function label(p) {
   const el = document.createElement('button');
   el.className = 'loot-label'; el.tabIndex = -1;
   const part = isPart(p);
-  el.textContent = textOf(p) ?? (p.prestige ? tr('Treasure chest') : p.questItem ? tr('{thing} · quest', { thing: p.label ? capital(say(p.label)) : displayName(p) })
+  el.textContent = textOf(p) ?? (p.prestige ? tr('Treasure chest') : p.story ? tr(p.title) : p.questItem ? tr('{thing} · quest', { thing: p.label ? capital(say(p.label)) : displayName(p) })
     : displayName(p) + (p.count > 1 ? ` (${p.count})` : ''));
   el.style.color = isWay(p) ? WAY_COLOR : part ? PART_COLOR : isVillager(p) || p.questItem ? '#e6c35a' : p.prestige ? CHEST_COLOR[p.prestige] ?? CHEST_COLOR.basic : p.gen ? rarityOf(p).css : '#d8d2c4';
   if (p.gen) { el.dataset.rarity = rarityOf(p).id; el.classList.toggle('rainbow', !!rarityOf(p).glow?.rainbow); }
@@ -100,7 +101,7 @@ function screen(p, off) {
   else if (p.prestige) v.set(p.anchor.x + off.x, p.anchor.y + off.y + 0.75, p.anchor.z + off.z).project(camera);
   else if (isPart(p)) v.set(p.x + off.x, p.y + off.y + 0.9, p.z + off.z).project(camera);
   else if (isWay(p)) v.set(p.x + off.x, p.y + off.y, p.z + off.z).project(camera);
-  else v.set(p.x + off.x, p.y + off.y + (p.gen ? 0.12 : 0.35), p.z + off.z).project(camera);
+  else v.set(p.x + off.x, p.y + off.y + (p.labelY ?? (p.gen ? 0.12 : 0.35)), p.z + off.z).project(camera);
   if (v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) return null;
   return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
 }
@@ -110,7 +111,7 @@ export function updateLootLabels() {
   // nothing unseen is hovered or clicked meanwhile)
   const live = !state.inventoryOpen && !state.transitioning && !!state.world && !curtained();
   parts = new Set(live && state.mode === 'play' ? usableParts() : []);
-  const list = live ? [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView),
+  const list = live ? [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView), ...introThingsHere().filter(lootView),
     ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : [])] : [];
   const off = state.world?.group.position ?? v.set(0, 0, 0), spots = new Map();
   for (const p of list) { const s = screen(p, off); if (s) spots.set(p, s); }

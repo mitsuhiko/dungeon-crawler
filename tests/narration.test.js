@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { assets } from './paths.js';
 import { plan, clipsOf, clipFile, VOICES, TAGS, POINT, sentencesOf } from '../tools/narration.mjs';
-import { LINES, SIBLING, MOMENTS, linesFor, fits, untagged, tagsOf, lineText } from '../src/core/narration.js';
+import { LINES, SIBLING, MOMENTS, RECORDINGS, linesFor, fits, untagged, tagsOf, lineText, recordingLines, recordingsHeard } from '../src/core/narration.js';
 import { createWorld, checkWorld } from '../src/core/save.js';
 import { EVERY_CHANGE } from '../src/i18n/languages.js';
 
@@ -17,9 +17,9 @@ test('the narrator\'s lines are well formed and translated', async () => {
 test('a recorded line says no names: a parameter without forms is a problem', async () => {
   const { problems } = await clipsOf([{ id: 'x', note: 'n', text: 'Hello {owner}.' }]);
   assert.match(problems.join('\n'), /x: no value for \{owner\}/);
-  const ok = await clipsOf([{ id: 'opening.looked-like', note: 'n', text: LINES[0].text, forms: SIBLING }]);
-  assert.deepEqual(ok.problems, []);
-  assert.deepEqual(ok.clips.filter(c => c.lang === 'en').map(c => c.key), ['opening.looked-like.m', 'opening.looked-like.f']);
+  const ok = await clipsOf([{ id: 'x.sib', note: 'n', text: 'There {sib, select, m {he} other {she}} is.', forms: SIBLING }]);
+  assert.deepEqual(ok.problems.filter(p => !/not translated/.test(p)), []);
+  assert.deepEqual(ok.clips.filter(c => c.lang === 'en').map(c => c.key), ['x.sib.m', 'x.sib.f']);
 });
 
 test('performance tags are not shown, and voiced as instructions only by a voice that speaks so', async () => {
@@ -113,16 +113,22 @@ test('every line is said at a moment, about what that moment tells', () => {
 });
 
 test('a moment says its next line not told yet, a scene all of them, in the table\'s order', () => {
+  const table = [
+    { id: 'death.not-how', on: 'death' }, { id: 'death.wrong', on: 'death' },
+    { id: 'boss.gusto.after', on: 'beaten', when: { boss: 'gusto' } }, { id: 'beaten.gusto.well', on: 'beaten', when: { boss: 'gusto' } },
+    { id: 'boss.totnar.storm', on: 'boss', when: { boss: 'totnar', what: 'split', stage: 3 } },
+  ];
   const told = new Set();
-  const first = linesFor('death', {}, told);
-  assert.deepEqual(first.map(l => l.id), ['death.not-how']);
+  assert.deepEqual(linesFor('death', {}, told, table).map(l => l.id), ['death.not-how']);
   told.add('death.not-how');
-  assert.deepEqual(linesFor('death', {}, told).map(l => l.id), ['death.wrong']);
-  assert.deepEqual(linesFor('opening').map(l => l.id).slice(0, 2), ['opening.looked-like', 'opening.my-town']);
-  assert.equal(linesFor('opening').length, LINES.filter(l => l.on === 'opening').length);
-  assert.deepEqual(linesFor('beaten', { boss: 'gusto' }).map(l => l.id), ['boss.gusto.after', 'beaten.gusto.well']);
-  assert.deepEqual(linesFor('boss', { boss: 'totnar', what: 'split', stage: 3 }).map(l => l.id), ['boss.totnar.storm']);
-  assert.deepEqual(linesFor('boss', { boss: 'gusto', what: 'nothing' }), []);
+  assert.deepEqual(linesFor('death', {}, told, table).map(l => l.id), ['death.wrong']);
+  assert.deepEqual(linesFor('beaten', { boss: 'gusto' }, new Set(), table).map(l => l.id), ['boss.gusto.after', 'beaten.gusto.well']);
+  assert.deepEqual(linesFor('boss', { boss: 'totnar', what: 'split', stage: 3 }, new Set(), table).map(l => l.id), ['boss.totnar.storm']);
+  assert.deepEqual(linesFor('boss', { boss: 'gusto', what: 'nothing' }, new Set(), table), []);
+  // a recording is a scene: all of its lines, in order, the ones not heard yet
+  const glass = recordingLines('glass');
+  assert.deepEqual(linesFor('recording', { part: 'glass' }), glass);
+  assert.deepEqual(linesFor('recording', { part: 'glass' }, new Set([glass[0].id])), glass.slice(1));
 });
 
 test('when: a value, a list of values, or a range of numbers', () => {
@@ -133,15 +139,16 @@ test('when: a value, a list of values, or a range of numbers', () => {
   assert.ok(fits(undefined, { anything: 1 }));
 });
 
-test('the first three depths are told: their arrival, their boss, and every theme of the first act', async () => {
-  const { THEMES } = await import('../src/themes/index.js');
-  for (const depth of [1, 2, 3]) assert.ok(linesFor('depth', { depth }).length, `depth ${depth}`);
-  for (const boss of ['gusto', 'totnar', 'squarlo']) {
-    assert.ok(linesFor('arena', { boss }).length, `${boss}'s arena`);
-    assert.ok(linesFor('boss', { boss, what: 'start' }).length, `${boss}'s fight`);
-    assert.ok(linesFor('beaten', { boss }).length, `${boss} beaten`);
+test('the glassmaker\'s recordings: each has lines, in his voice, worn, and is heard once one of them is', () => {
+  for (const r of RECORDINGS) {
+    const lines = recordingLines(r.id);
+    assert.ok(lines.length >= 2, r.id);
+    for (const l of lines) { assert.equal(l.voice, 'glassmaker', l.id); assert.equal(l.worn, true, l.id); }
   }
-  for (const t of THEMES.filter(t => t.act === 1)) assert.ok(linesFor('theme', { theme: t.props }).length, t.props);
+  assert.deepEqual(recordingsHeard(new Set()), []);
+  assert.deepEqual(recordingsHeard(new Set([recordingLines('sword')[1].id])).map(r => r.id), ['sword']);
+  // every line is one of his recordings' (the old narrator's lines went with the old story)
+  assert.deepEqual(LINES.filter(l => l.on !== 'recording'), []);
 });
 
 test('what the narrator said is saved with the world', () => {

@@ -106,7 +106,7 @@ test('names: generated for every rarity, the base under it unless the name says 
 
 test('stats: item level grows base damage, rarity scales it, affixes add on top', () => {
   const old = fixedWeapon(OLD_SWORD.id);
-  assert.deepEqual(old.gen, { v: GEN_VERSION, rarity: 'vanilla', ilvl: 1, affixes: [], name: 'Old Sword' });
+  assert.deepEqual(old.gen, { v: GEN_VERSION, rarity: 'vanilla', ilvl: 1, affixes: [], name: "Glassmaker's Old Sword" });
   assert.deepEqual(itemStats(old), { kind: 'sword', ranged: false, damage: 30, interval: 0.42, range: 0.85, arc: ARC, crit: CRIT_CHANCE,
     critDamage: CRIT_DAMAGE, leech: 0, knockback: 1, pierce: 0, burst: 0 });
   assert.deepEqual(itemStats({ itemId: OLD_SWORD.id }), itemStats(old), 'a weapon without gen is vanilla');
@@ -252,7 +252,7 @@ test('drops: seeded per enemy and world, likelier from tougher kinds, guardians 
 
 test('instances: own slots, taken out whole, equipped ones unequip, and a full bag refuses', () => {
   const p = createPlayerStats(), inv = p.inventory, first = equippedItem(inv);
-  assert.equal(first.itemId, OLD_SWORD.id); assert.equal(first.gen.name, 'Old Sword'); assert.equal(first.gen.rarity, 'vanilla');
+  assert.equal(first.itemId, OLD_SWORD.id); assert.equal(first.gen.name, "Glassmaker's Old Sword"); assert.equal(first.gen.rarity, 'vanilla');
   const item = rollWeapon(mulberry32(1), 5, { rarity: 'remarkable' }), id = addInstance(inv, item);
   const slot = inv.slots.find(s => s?.instanceId === id);
   assert.deepEqual(slot.gen, item.gen); assert.equal(slot.count, 1);

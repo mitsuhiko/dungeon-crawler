@@ -116,7 +116,7 @@ their cube is entered, and every life rolls its drops anew
 wants a bow or more levels can clear the road again. The XP falloff keeps that from paying far
 below the player's level; the loot keeps its item level (the depth's), so farming shallow ground
 finds the kinds of weapon, not stronger ones. The main simulation does not farm;
-`node tools/balance.mjs farm [respawns] [seeds]` farms the road out of town with the Old Sword:
+`node tools/balance.mjs farm [respawns] [seeds]` farms the road out of town with the Glassmaker's Old Sword:
 clearing it once (41 enemies in seed 1), about half the runs have seen a bow, crossbow or staff
 drop, 80% after one respawn (5 minutes), 91% after two, 96% after three; the level stops at 3–4.
 Without farming, three quarters of the runs see one before Gusto (the side guardian's weapon

@@ -21,7 +21,7 @@ function equip(p, id) {
   equipItem(p.inventory, p.inventory.slots.find(s => s?.itemId === id).instanceId);
 }
 
-test('a new player has an equipped Old Sword, the scrolls and a few potions on the quick bar and empty currency slots', () => {
+test("a new player has the glassmaker's old sword equipped, the scrolls and a few potions on the quick bar and empty currency slots", () => {
   const p = createPlayerStats();
   assert.deepEqual([p.xp, p.level, p.hp, p.maxHp], [0, 1, 100, 100]);
   assert.equal(p.inventory.slots.length, 24);
@@ -37,6 +37,10 @@ test('a new player has an equipped Old Sword, the scrolls and a few potions on t
   assert.deepEqual(p.inventory.currency.map(s => s.count), [0, 0, 0]);
   // with the dev tools: gold to spend
   assert.equal(copperTotal(createPlayerStats(true).inventory), DEV_GOLD * 1000);
+  // a new hero in the game comes empty-handed: the sword is found in the merchant camp (core/intro.js)
+  const bare = createPlayerStats(false, { armed: false });
+  assert.equal(equippedItem(bare.inventory), null);
+  assert.deepEqual(bare.inventory.slots.filter(Boolean).map(s => s.itemId), [TOWN_PORTAL.id, ROOM_PORTAL.id, HEALTH_POTION.id]);
 });
 test('the portal scrolls are bound: they never leave the bag and never stack', () => {
   for (const [def, name] of [[TOWN_PORTAL, 'item_town_portal'], [ROOM_PORTAL, 'item_room_portal']]) {

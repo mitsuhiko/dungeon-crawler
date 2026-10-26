@@ -58,7 +58,7 @@ The controls are the same for all.
   you are nearly upright (the clip's `move_time`); walking or swinging then cuts the
   rest short. `GET_UP_SPEED` sets the pace.
 - Swimming, ladder climbing, stun, knockdown and travel cancel / block slashes.
-- The Old Sword deals 30 base damage. Level-1 spider has 32 HP / 15 damage (two slashes);
+- The Glassmaker's Old Sword deals 30 base damage. Level-1 spider has 32 HP / 15 damage (two slashes);
   Stunder has 140 HP / 30 damage (five slashes), a heavier collision body and an
   always-knockdown head-down ram. The enemy under the cursor is highlighted and shows its health. Player/enemy levels and alternative weapons scale these numbers;
   see [progression.md](progression.md). Inventory (`I`) pauses simulation and input.
@@ -515,7 +515,7 @@ point them at a different checkout).
 Use `--assets-root /path/to/repo` to override asset location. The player GLB
 is unarmed: just the skinned body, clips and empty `hand.L` / `hand.R` sockets.
 The game separately loads the equipped weapon's GLB and mounts it in the socket its extras
-name (the Old Sword, `assets/sword.glb`, on `hand.R`). Gameplay equipment uses `game/equipment.js`: it loads a weapon first,
+name (the Glassmaker's Old Sword, `assets/sword.glb`, on `hand.R`). Gameplay equipment uses `game/equipment.js`: it loads a weapon first,
 then atomically updates inventory equipment and the hand-held model. `?dev=1`
 adds a weapon roller (base, rarity, item level) to inventory. `render/character.js` also
 exposes low-level `loadSword(url)` / `equipSword(null)` for renderer tests only;

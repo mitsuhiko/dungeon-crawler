@@ -116,8 +116,8 @@ and grip hints; worn and held things `slot`, `socket`, the mount, `hold` and `fl
 `contents_gltf` and `contents_size_gltf`. These are metadata,
 not implemented inventory effects, collision or combat rules.
 
-All twenty weapons are base types for generated weapons, alongside the Old Sword the run
-starts with (`assets/sword.glb`). The game mounts them in their socket and switches combat
+All twenty weapons are base types for generated weapons, alongside the Glassmaker's Old Sword found in
+the merchant camp (`assets/sword.glb`). The game mounts them in their socket and switches combat
 stats with equipment; on the floor they lie flat, glowing by rarity (see `docs/loot.md`). The
 arrow and bolt are what bows and crossbows shoot (`render/shots.js`; a nocked arrow also lies on
 a drawn bow). With `?dev=1`, open inventory (`I`) to roll and equip any weapon. Coin types and

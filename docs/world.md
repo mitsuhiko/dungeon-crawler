@@ -243,6 +243,9 @@ Which faces carry portals is decided by the depth's layout (see below), not per 
 Which cubes exist and how they connect depends only on the world seed:
 
 - **Depth 0:** the town (0,0,0) and safe merchant camp start an 18–24-room route to the first well.
+  Their ways out are gates of the beginning (`gateFaces`, `intro:glass` and `intro:sword`,
+  `core/intro.js`, [story.md](story.md#the-beginning)): shut until the glassmaker's glass is found
+  in the town and his sword taken in the camp.
 - **Depths 1–19:** seeded routes through a two-cube-wide ring around the axis. Each route's
   length, counting the up ring and well, comes from its band in `ROUTE_ROOMS`: 18–24 rooms
   at depths 0–3, 16–22 at 4–7, 14–20 at 8–11, 12–18 at 12–15 and 9–16 at 16–19. The next

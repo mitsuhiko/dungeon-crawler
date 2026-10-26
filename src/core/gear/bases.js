@@ -2,7 +2,7 @@
 // core/items.js; `tags` decide which affixes may roll on it (core/gear/affixes.js): its kind
 // (sword, flail, bow, crossbow, staff) and how it fights (melee or ranged).
 // To add a dropping weapon: define the item (with its model), then list it here.
-// The Old Sword is never dropped: it is what a run starts with.
+// The glassmaker's old sword is never dropped: it waits in the merchant camp (core/intro.js).
 // Every kind but the flails has a light base from item level 1 and heavier ones further down;
 // the flails only from item level 7 (Renew's, the time boss, who always drops one: he is the
 // first to hand you one). A kind's weights add up to the same, so each kind is about as likely as

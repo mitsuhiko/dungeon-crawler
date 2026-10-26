@@ -65,9 +65,10 @@ export default {
   'Kinds of controls': 'Arten der Steuerung',
   'Choose Character': 'Figur wählen',
   'Click to look around': 'Klick, um dich umzuschauen',
-  'Bag or quests': 'Tasche oder Aufträge',
+  'Bag, quests or memories': 'Tasche, Aufträge oder Erinnerungen',
   Bag: 'Tasche',
   Quests: 'Aufträge',
+  Memories: 'Erinnerungen',
   Currency: 'Geld',
   'Close inventory': 'Inventar schließen',
   Hero: 'Held',
@@ -715,4 +716,19 @@ export default {
   'Off to {name}': 'Auf zu {name}',
 
   'The way across is blocked': 'Der Weg hinüber ist versperrt',
+
+  // the beginning (core/intro.js, game/intro.js): the glassmaker's glass and his sword
+  'The gate will not open yet. Something glints on the plaza.': 'Das Tor geht noch nicht auf. Auf dem Platz glitzert etwas.',
+  'The gate will not open yet. Take the sword from the ground first.': 'Das Tor geht noch nicht auf. Zieh zuerst das Schwert aus dem Boden.',
+  'Bubble of star-glass': 'Blase aus Sternglas',
+  'The glass broke, and a voice came out of it. The gate out of the town is open.':
+    'Das Glas ist zerbrochen, und eine Stimme kam heraus. Das Tor aus der Stadt ist offen.',
+  'You pulled {item:the} out of the ground': 'Du hast {item:den} aus dem Boden gezogen',
+  'The gate to the road is open.': 'Das Tor zur Straße ist offen.',
+  // the memories (game/memorypanel.js): the glassmaker's recordings heard
+  'Nothing heard yet. The glassmaker blows his words into glass: listen for them.':
+    'Noch nichts gehört. Der Glasmacher bläst seine Worte in Glas: Hör auf sie.',
+  'What the glassmaker said, to hear again.': 'Was der Glasmacher gesagt hat, zum Wiederhören.',
+  Stop: 'Stopp',
+  Listen: 'Anhören',
 };

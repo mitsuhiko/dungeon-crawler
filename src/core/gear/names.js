@@ -97,7 +97,7 @@ function compoundOf(s, armor) {
   return null;
 }
 // The words a generated name is made of, found again in it: { rarity, armor, parts: [[list,
-// index] ...] } (parts: [] for a base's own name, the Old Sword's), or null where they are not
+// index] ...] } (parts: [] for a base's own name, the glassmaker's old sword's), or null where they are not
 // (a name from an older list, a developer's).
 export function wordsOf(item) {
   const gen = item?.gen, def = ITEMS[item?.itemId];

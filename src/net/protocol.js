@@ -83,6 +83,12 @@
 //                                      unarchive, restart, handIn, meet), or event `ev` happened here
 //                                      (visit, horde, landmark, found, rescued)
 //   questReward { id, rewards, title }  host -> guests: quest `id` was handed in: take your reward
+// The beginning (core/intro.js, game/intro.js):
+//   story   { what, seed }             to all: in world `seed` I found the glassmaker's glass
+//                                      ('glass'), took his sword ('sword'): its gate opens and its
+//                                      recording plays for everyone at once; came into the
+//                                      merchant camp with the glass found ('camp'): its recording
+//                                      plays for everyone
 // and between a guest and the host only:
 //   ping    { clock? }                 both ways, every second, also from a background tab (the
 //                                      host's: its play time now, game/worldclock.js)
@@ -94,13 +100,13 @@ import { ITEMS } from '../core/items.js';
 import { RARITY } from '../core/gear/rarities.js';
 
 // raised whenever two versions of the game could no longer understand each other
-export const PROTOCOL = 15;
+export const PROTOCOL = 16;
 
 export const MAX_PLAYERS = 4;
 // what the host passes on from one guest to the others
 export const RELAYED = new Set(['me', 'visited', 'faces', 'defeated', 'roster', 'foes', 'want', 'handover',
   'hit', 'afflict', 'hurt', 'shot', 'landed', 'arrow', 'flask', 'drop', 'take', 'forget', 'chat', 'news', 'quest', 'skinWant', 'skin',
-  'trial', 'trialAct']);
+  'trial', 'trialAct', 'story']);
 // is a message addressed `to` (undefined: everyone) for player `slot`?
 export const isFor = (to, slot) => to === undefined || to === slot || Array.isArray(to) && to.includes(slot);
 // a valid `to` from a guest: a slot, a list of slots, or none (everyone)

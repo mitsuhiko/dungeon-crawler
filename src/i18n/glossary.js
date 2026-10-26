@@ -61,6 +61,11 @@ export const GLOSSARY = [
     { en: /\bhost(ing)?\b/i, de: /gastgeber|welt öffnen|welt schließen/i, id: /tuan rumah|buka dunia/i }),
   term('Enchanter', { word: { en: 'Enchanter', de: 'Verzauberin', id: 'Penyihir' }, g: 'f' }, 'she enchants weapons in the merchant camp', { en: /\bEnchanter\b/ }),
   term('Smith', { word: { en: 'Smith', de: 'Schmied', id: 'Pandai Besi' }, g: 'm' }, 'he sells armor and re-rolls affixes', { en: /\bSmith\b/ }),
+  // the story (docs/story.md)
+  term('glassmaker', { word: { en: 'glassmaker', de: 'Glasmacher' }, g: 'm' }, 'the man who made the glass round the pieces of the world; you hear his recordings, never see him',
+    { en: /\bglassmaker/i, de: /glasmacher/i }),
+  term('star-glass', { word: { en: 'star-glass', de: 'Sternglas' }, g: 'n' }, 'his glass: it keeps what it closes round, and rises', { en: /\bstar-glass/i }),
+  term('memories', { word: { en: 'memories', de: 'Erinnerungen' }, g: 'pl' }, 'the inventory\'s tab of his recordings heard, to hear again', { en: /\bmemories\b/i }),
   // playing
   term('level', { word: { en: 'level', de: 'Level', id: 'level' }, g: 'n' }, 'how strong the hero (or an enemy) is; "Level" in German and Indonesian too, and "Lv" for short; never "Stufe"',
     { en: /\b(level|lv)\b/i, de: /level|\bLv\b/i, id: /level|\bLv\b/i }),

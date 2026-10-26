@@ -16,7 +16,9 @@
 // sells (core/shops.js smithStock): Buy, Enter or a double-click buys it.
 // Armor is worn from the bag (Wear / Take off, Enter, a double-click); what is worn shows under
 // the hero, a slot each, with what it all adds up to (game/armor.js wornDefense).
-// Two tabs: the bag, and the quests (game/questpanel.js; U opens the panel there). Talking to a
+// Three tabs: the bag, the quests (game/questpanel.js; U opens the panel there) and, once the
+// glassmaker's first glass is found, the memories (game/memorypanel.js: his recordings heard, to
+// hear again; playing one stops when the panel closes or the tab changes). Talking to a
 // villager (talkTo) opens the quests when they have something new for you (an offer, a quest to
 // hand in) or nothing to sell, else the bag with their wares; the other tab is a click away.
 // The layout keeps its size whatever is selected: the hero with what it holds on the left
@@ -53,6 +55,7 @@ import { readiedFlask, equippedWeapon } from '../core/combat.js';
 import { GIVERS, giverQuests, giverOf } from '../core/quests.js';
 import { talkQuests, questLog, rescue, questTalk } from './quests.js';
 import { openQuests, closeQuests, drawQuests, onQuestChange } from './questpanel.js';
+import { drawMemories, memoriesOpen, stopMemories } from './memorypanel.js';
 import { tr, msg, num, say, noun, onLanguageChange } from '../i18n/i18n.js';
 
 const $ = id => document.getElementById(id);
@@ -61,8 +64,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // { from: 'shop', id: item id (an enchantment's at the Enchanter) } | null; trader: the villager
 // whose wares are shown (or null); work: the weapon (instanceId) the Enchanter or the Smith works on
 let selected = null, signature = '', shown = null, previousFocus = null, floorMode = false, trader = null, work = null;
-// tab: 'bag' or 'quests'
+// tab: 'bag', 'quests' or 'memories'
 let tab = 'bag';
+const title = () => tr({ bag: msg('Inventory'), quests: msg('Quests'), memories: msg('Memories') }[tab]);
 
 // the details' Quick bar row: one button per slot
 $('inventory-bar-keys').innerHTML = Array.from({ length: BAR_SIZE }, (_, i) => `<button data-bar-key="${i}" aria-pressed="false">${i + 1}</button>`).join('');
@@ -87,21 +91,23 @@ export function setInventoryOpen(open, villager = null, view = 'bag') {
       : player.inventory.equipped ? { from: 'bag', id: player.inventory.equipped } : null;
     openQuests(villager);
     showTab(view);
-  } else { trader = null; work = null; closeQuests(); previousFocus?.focus(); }
+  } else { trader = null; work = null; closeQuests(); stopMemories(); previousFocus?.focus(); }
 }
-// show tab `view` ('bag' or 'quests'), with the focus on its first thing
+// show tab `view` ('bag', 'quests' or 'memories'), with the focus on its first thing
 function showTab(view) {
-  tab = view === 'quests' ? 'quests' : 'bag';
+  tab = view === 'quests' || view === 'memories' && memoriesOpen() ? view : 'bag';
+  if (tab !== 'memories') stopMemories();
   for (const b of $('inventory-tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
-  $('inventory-title').textContent = tab === 'quests' ? tr('Quests') : tr('Inventory');
-  // both stay laid out, one over the other, so the panel keeps its size between the tabs (style.css)
+  $('inventory-title').textContent = title();
+  // all stay laid out, one over the other, so the panel keeps its size between the tabs (style.css)
   document.querySelector('#inventory-panel .inventory-body').classList.toggle('away', tab !== 'bag');
   $('quests-body').classList.toggle('away', tab !== 'quests');
+  $('memories-body').classList.toggle('away', tab !== 'memories');
   showKeys();
   signature = ''; updateInventory();
   const ware = trader && $('inventory-shop').querySelector('[data-ware]'), first = floorMode && $('inventory-floor').querySelector('[data-floor]');
-  (tab === 'quests' ? $('quests-body').querySelector('.quest-entry.selected') ?? $('inventory-tabs').querySelector('[data-tab="quests"]')
-    : ware || first || $('inventory-close')).focus();
+  const away = tab === 'bag' ? null : $(`${tab}-body`).querySelector('.quest-entry.selected') ?? $('inventory-tabs').querySelector(`[data-tab="${tab}"]`);
+  (away ?? (ware || first || $('inventory-close'))).focus();
 }
 // talk to villager v: their quests (when they have news for you: a quest to hand in, an offer not
 // seen yet; or nothing to sell), else their wares (core/shops.js, core/quests.js)
@@ -341,6 +347,8 @@ export function updateInventory() {
   $('inventory-overlay').hidden = !state.inventoryOpen;
   if (!state.inventoryOpen) return;
   if (tab === 'quests') drawQuests();
+  if (tab === 'memories') drawMemories();
+  $('inventory-tabs').querySelector('[data-tab="memories"]').hidden = !memoriesOpen();
   if (!floorMode && !trader && floorItems().length) floorMode = true;   // something was put down
   const inv = player.inventory, equipped = equippedItem(inv), allowed = equipmentAllowed(), floor = floorMode ? floorItems() : [];
   if (selected && !selectedItem()) selected = null;
@@ -597,13 +605,13 @@ $('inventory-tabs').addEventListener('click', e => { const b = e.target.closest(
 function showKeys() {
   $('inventory-close').textContent = tr('Close · Esc');
   for (const b of $('inventory-tabs').querySelectorAll('[data-tab]')) {
-    const key = keyLabel(b.dataset.tab === 'bag' ? 'inventory' : 'quests');
+    const action = { bag: 'inventory', quests: 'quests' }[b.dataset.tab], key = action && keyLabel(action);
     b.title = key ? `${b.textContent} · ${key}` : b.textContent;
   }
 }
 showKeys();
 onSettingsChange(showKeys);
-onLanguageChange(() => { showKeys(); $('inventory-title').textContent = tab === 'quests' ? tr('Quests') : tr('Inventory'); signature = ''; updateInventory(); });
+onLanguageChange(() => { showKeys(); $('inventory-title').textContent = title(); signature = ''; updateInventory(); });
 $('inventory-overlay').addEventListener('click', e => { if (e.target === $('inventory-overlay')) setInventoryOpen(false); });
 $('inventory-grid').addEventListener('click', e => {
   const button = e.target.closest('[data-slot]');

@@ -59,12 +59,18 @@ docs that explain how the game works, from the big ideas down to the real code:
   - Quests (`src/core/quests.js`, `src/game/quests.js`, the inventory's Quests tab in
     `src/game/questpanel.js`, U): the villagers give quests, shared by everyone in the world and
     saved with it (`docs/quests.md`).
-  - The narrator (`docs/story.md`, `docs/narration.md`): the Glassmaker's lines and when she says
-    them (`src/core/narration.js`), voiced ahead with Qwen3-TTS (1.7B CustomVoice, in a voice
-    cloned from a reference recording, following instructions and the lines' tags) into
-    `assets/narration/` by `node tools/narration.mjs`; `src/game/narrator.js` plays them as things happen, one after the other, with subtitles. So far the opening and the
-    first three depths. The clips are not committed yet (`assets/narration/` is ignored): without
-    them the game shows only the subtitles.
+  - The beginning (`src/core/intro.js`, `src/game/intro.js`, `docs/story.md` "The beginning"): a
+    new world comes up at noon; the hero, empty-handed, finds the glassmaker's glass floating over
+    the town's plaza (`src/render/glassbubble.js`), which plays his recording and opens the town's
+    gate, and his old sword stuck in the ground in the merchant camp, which opens the camp's gate to
+    the road.
+  - The narrator (`docs/story.md`, `docs/narration.md`): for now the glassmaker's recordings and
+    when they play (`src/core/narration.js`), voiced ahead with Qwen3-TTS (1.7B CustomVoice, in a
+    voice cloned from a reference recording, following instructions and the lines' tags) into
+    `assets/narration/` by `node tools/narration.mjs`; `src/game/narrator.js` plays them as things
+    happen, one after the other, with subtitles. The inventory's Memories tab
+    (`src/game/memorypanel.js`) plays the ones heard again. The clips are not committed yet
+    (`assets/narration/` is ignored): without them the game shows only the subtitles.
   - Skins (main menu: **Choose Skin**, like Choose World; the painter in `src/game/skineditor.js`):
     up to ten named skins in the browser's IndexedDB, each with a thumbnail of the hero wearing
     it; choose one (or none), paint on one, delete one, or paint a new one. The painter has a
@@ -79,7 +85,7 @@ docs that explain how the game works, from the big ideas down to the real code:
       at first the browser's), the UI scale, the minimap's size (or none), the item names on the
       floor when hovered or always (X switches it too), the damage numbers, fullscreen (also
       Cmd+Enter on a Mac, Alt+Enter elsewhere: `src/game/display.js`); music on /
-      off, the volume of everything, the music's, the sounds' and the narrator's, her subtitles, and
+      off, the volume of everything, the music's, the sounds' and the narrator's, its subtitles, and
       quiet in the background
       (another tab or window in front; on at first, but not in the guide's game window).
     - Graphics: the frame rate cap (30, 60 or unlimited, `src/main.js`; 30 at first on touch
@@ -154,7 +160,8 @@ npm run serve            # uv run --no-project tools/serve.py [port]
 # http://localhost:8000/            the main menu: your hero, its world, joining a friend
 # http://localhost:8000/?seed=123   straight into that world, nothing saved
 #   (?dev=1 for dev tools: ` opens their commands; it skips the menu too, ?menu=1 shows it;
-#    ?trial=flood puts a trial of that kind on every depth, docs/trials.md)
+#    ?trial=flood puts a trial of that kind on every depth, docs/trials.md; the dev tools skip
+#    the beginning, its glass and sword: &intro=1 plays it, docs/story.md)
 # ?touch=1 forces the touch controls (docs/touch.md); ?lang=de or ?lang=en picks the language
 # with RADIUS_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY set, the guide's tutor uses it through the server
 npm run i18n             # what is left to translate (docs/i18n.md)

@@ -11,12 +11,13 @@ import { worldName, seedFromName } from '../src/core/names.js';
 
 const roundTrip = x => JSON.parse(JSON.stringify(x));
 
-test('a new hero starts like a new game: the Old Sword in hand, the scroll and the potions on the bar', () => {
+test('a new hero starts empty-handed (the sword is found in the merchant camp), the scroll and the potions on the bar', () => {
   const h = createHero('  Mia   the  Bold ', { id: 'h-1', now: 5 });
   assert.equal(h.name, 'Mia the Bold');
   assert.equal(h.v, SAVE_VERSION);
   assert.equal(heroLevel(h), 1);
-  assert.equal(equippedItem(h.inventory).itemId, OLD_SWORD.id);
+  assert.equal(equippedItem(h.inventory), null);
+  assert.ok(!h.inventory.slots.some(s => s?.itemId === OLD_SWORD.id));
   assert.equal(countOf(h.inventory, HEALTH_POTION.id), START_POTIONS);
   assert.deepEqual(checkHero(roundTrip(h)), h, 'a hero comes back as it was saved');
   assert.equal(createHero('', { id: 'h-2' }).name, 'Hero');

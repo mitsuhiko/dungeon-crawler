@@ -21,13 +21,14 @@ import { checkSkin } from './skin.js';
 // the hero chosen in the menu. What is read is checked: a damaged or unknown entry is left out
 // (and left alone), an item the game no longer knows leaves the bag. `v` says which version
 // wrote it: migrate brings older ones up.
-import { ITEMS, COINS, ARMOR_SLOTS, isGear } from './items.js';
+import { ITEMS, COINS, ARMOR_SLOTS, OLD_SWORD, isGear } from './items.js';
 import { BAG_SIZE, BAR_SIZE, createInventory, whole } from './inventory.js';
 import { createPlayerStats, carryTools, levelFromXP, fullHealth } from './progression.js';
 import { validGen, validPickup } from './loot.js';
 import { worldName } from './names.js';
 import { createQuestLog, checkQuestLog } from './quests.js';
 import { packKills, unpackKills } from './respawn.js';
+import { START_CLOCK } from './daycycle.js';
 
 export const SAVE_VERSION = 1, MAX_HEROES = 3, MAX_WORLDS = 8, NAME_MAX = 16;
 // a hero's gender: the first is what a hero has that never said
@@ -60,7 +61,7 @@ export const savedWorldName = (seed, copy = 1) => worldName(seed) + (copy > 1 ? 
 
 export function createHero(name, { gender = GENDERS[0], id = newId('h'), now = Date.now() } = {}) {
   return { v: SAVE_VERSION, id, name: cleanName(name) || 'Hero', gender: cleanGender(gender), created: now, updated: now, playTime: 0,
-    xp: 0, inventory: createPlayerStats().inventory, world: null };
+    xp: 0, inventory: createPlayerStats(false, { armed: false }).inventory, world: null };
 }
 export const heroLevel = h => levelFromXP(h.xp);
 
@@ -86,6 +87,8 @@ export function checkInventory(saved) {
     seen.add(s.instanceId);
     top = Math.max(top, Number(/^item-(\d+)$/.exec(s.instanceId)?.[1] ?? 0));
     inv.slots[i] = { instanceId: s.instanceId, itemId: s.itemId, count: s.count, ...s.gen ? { gen: structuredClone(s.gen) } : {} };
+    // the Old Sword of a hero saved before it was the glassmaker's (core/items.js OLD_SWORD)
+    if (s.itemId === OLD_SWORD.id && inv.slots[i].gen?.name === 'Old Sword') inv.slots[i].gen.name = OLD_SWORD.name;
   });
   const counts = new Map((Array.isArray(saved.currency) ? saved.currency : []).filter(isObj).map(c => [c.itemId, c.count]));
   inv.currency = COINS.map(c => ({ itemId: c.id, count: Number.isSafeInteger(counts.get(c.id)) && counts.get(c.id) > 0 ? counts.get(c.id) : 0 }));
@@ -124,7 +127,7 @@ export function checkHero(h) {
 export function createWorld(seed, { copy = 1, id = newId('w'), now = Date.now() } = {}) {
   seed >>>= 0;
   return { v: SAVE_VERSION, id, seed, copy, name: savedWorldName(seed, copy), created: now, updated: now, deepest: 0,
-    run: { defeated: [], gates: [], chests: [], dropped: [], loot: [], townPortal: null, quests: createQuestLog(), clock: 0, kills: [], trials: [],
+    run: { defeated: [], gates: [], chests: [], dropped: [], loot: [], townPortal: null, quests: createQuestLog(), clock: START_CLOCK, kills: [], trials: [],
       smith: { visit: 0, sold: [] }, told: [] },
     faces: [], visited: [], spots: {} };
 }

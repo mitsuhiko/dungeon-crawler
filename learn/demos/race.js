@@ -14,7 +14,7 @@ const KINDS = [SPIDER, SNAKE, OCTONAUT, STUNDER];
 
 export default function mount(el) {
   const row = html(el, `<div class="row"><select class="kind">${KINDS.map((k, i) => `<option value="${i}">${gameName(k.label)}</option>`).join('')}</select>
-    <label><input type="checkbox" class="old"> ${tr('keep the Old Sword', 'beim Alten Schwert bleiben')}</label>
+    <label><input type="checkbox" class="old"> ${tr("keep the glassmaker's old sword", 'beim alten Schwert des Glasmachers bleiben')}</label>
     <label><input type="checkbox" class="nolv"> ${tr('never level up', 'nie aufsteigen')}</label></div>`);
   const W = 620, H = 230, { c, g, at } = canvas(el, W, H);
   html(el, `<div class="legend"><span><i style="background:#51a9ff"></i>${tr('your slashes to beat it', 'deine Hiebe, um es zu besiegen')}</span><span><i style="background:#ff6a5a"></i>${tr('its blows to beat you', 'seine Schläge, um dich zu besiegen')}</span></div>`);
@@ -26,7 +26,7 @@ export default function mount(el) {
   function fight(d) {
     const kind = KINDS[+$('.kind').value], mlv = depthLevel(d), m = enemyProfile(kind, mlv);
     const plv = $('.nolv').checked ? 1 : mlv + 2;
-    // an Unusual Medium Sword found at this depth, or the Old Sword you started with
+    // an Unusual Medium Sword found at this depth, or the glassmaker's old sword
     const sword = $('.old').checked ? { itemId: OLD_SWORD.id } : { itemId: 'weapon_sword_medium', gen: { ilvl: d, rarity: 'unusual', affixes: [] } };
     const hit = Math.round(itemStats(sword).damage * levelDamage(plv)), hp = maxHealth(plv);
     return { kind, mlv, plv, m, hit, hp, slashes: Math.ceil(m.hp / hit), blows: Math.ceil(hp / m.damage) };

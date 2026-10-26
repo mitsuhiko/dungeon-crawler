@@ -1,12 +1,12 @@
 // The world's days and nights: one cycle of DAY.length s on the world's play time
 // (state.run.clock, game/worldclock.js), the same in every cube of the world, going on while you
 // are elsewhere, and the same for friends playing together (together the clock is the host's).
-// It begins with the morning: DAY.day s of the sun going along its path, the dusk, the night, the
-// dawn. What a cube shows of it is its sky's (themes/index.js `sky`, game/daycycle.js): under an
-// open sky all of it, the sun moving (its shadows baked again as it goes, render/bake.js); under
-// the hazy skies of act II the light only (the sun stays where it is); in a theme that is always
-// night (the dark forest) a little lighter by day; nothing in the caves, indoors and in a boss's
-// arena. The slime meteorites fall at night (core/meteors.js).
+// Its cycle begins with the morning: DAY.day s of the sun going along its path, the dusk, the night,
+// the dawn; a world's clock starts at noon (START_CLOCK). What a cube shows of it is its sky's
+// (themes/index.js `sky`, game/daycycle.js): under an open sky all of it, the sun moving (its
+// shadows baked again as it goes, render/bake.js); under the hazy skies of act II the light only
+// (the sun stays where it is); in a theme that is always night (the dark forest) a little lighter
+// by day; nothing in the caves, indoors and in a boss's arena. The slime meteorites fall at night (core/meteors.js).
 //
 // The sun's path (sunPath): an arc over the sky through where the noon sun stands (NOON, the sun
 // of the cubes without days and nights too), never under `low` degrees while it casts shadows: the
@@ -57,6 +57,9 @@ export function glowAt(clock) {
 // The times of day the dev command goes to (game/devcommands.js /daytime): s into the cycle.
 export const DAYTIMES = { morning: 0, noon: DAY.day / 2, evening: DAY.day - GLOW, dusk: DAY.day,
   night: DAY.day + DAY.dusk, dawn: DAY.day + DAY.dusk + DAY.night };
+// A new world's clock starts at noon (core/progression.js createRun, core/save.js createWorld): the
+// hero comes into the town in the light of the day, the sun high.
+export const START_CLOCK = DAYTIMES.noon;
 // the next `clock` (s) from `clock` on at time of day `name` (DAYTIMES)
 export function nextDaytime(clock, name) {
   const at = clock - dayPhase(clock) + DAYTIMES[name];

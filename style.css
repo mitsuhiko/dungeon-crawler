@@ -336,8 +336,8 @@ body.orbiting, body.orbiting * { cursor: none !important; }
   display: grid; grid-template-columns: minmax(0, 1fr); }
 /* the bag and the quests in one place, the one not shown only unseen: the panel is as large as the larger, whichever is in front */
 #inventory-panel header { grid-area: 1 / 1; } #inventory-feedback { grid-area: 3 / 1; }
-#inventory-panel :is(.inventory-body, #quests-body) { grid-area: 2 / 1; }
-#inventory-panel :is(.inventory-body, #quests-body).away { visibility: hidden; }
+#inventory-panel :is(.inventory-body, #quests-body, #memories-body) { grid-area: 2 / 1; }
+#inventory-panel :is(.inventory-body, #quests-body, #memories-body).away { visibility: hidden; }
 #inventory-panel.with-floor { width: min(1200px, 100%); }
 #inventory-panel header { display: flex; align-items: center; gap: 18px; }
 #inventory-panel header > div:first-child { flex: none; }
@@ -462,11 +462,20 @@ body.look #loot-labels .loot-label { pointer-events: none; }
 .rainbow { animation: rainbow 2.5s linear infinite; }
 /* reducing motion (the settings: the system's choice at first, game/display.js): nothing blinks, flows or pops */
 body.calm :is(.rainbow, #rewind, #rewind *, #quickbar.assigning.ready, #effects .fx.ending, #touch-use) { animation: none !important; }
-/* the tabs: the bag or the quests (game/inventory.js, game/questpanel.js) */
+/* the tabs: the bag, the quests or the memories (game/inventory.js, game/questpanel.js, game/memorypanel.js) */
 #inventory-tabs { flex: none; display: flex; gap: 4px; }
+#inventory-tabs [hidden] { display: none; }
 #inventory-panel #inventory-tabs button { padding: 6px 16px; }
 /* the quests: the list (with what the villager talked to has, above it) | the selected quest */
-#quests-body { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+#quests-body, #memories-body { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+/* the memories: the recordings heard | the one selected, its words, the line being said lit up */
+#memories-list-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-top: 12px; overflow-y: auto; scrollbar-width: thin; }
+#memories-details { position: relative; min-height: 500px; }
+#memories-details-inner { padding: 6px 14px; }
+#inventory-panel #memories-details-inner h2 { font-size: 16px; color: var(--ember-text); white-space: normal; margin: 12px 0 4px; }
+.memory-words { display: flex; flex-direction: column; gap: 8px; }
+.memory-line { margin: 0; color: #9fb0ab; font-size: 16px; line-height: 1.45; font-style: italic; transition: color .3s; }
+.memory-line.now { color: var(--ember-text); }
 #quests-list-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 /* the villager's: a well lit amber */
 #quests-talk { --face: #1c130bcc; --edge-hi: #3a2818; --edge-lo: #8a5a30; --glow: #ffa04026; --glow-at: 50% 0%; margin-top: 12px; padding: 8px 10px; }
@@ -503,7 +512,7 @@ body.calm :is(.rainbow, #rewind, #rewind *, #quickbar.assigning.ready, #effects 
 body.ui-w1000 .inventory-body { grid-template-columns: 170px minmax(0, 1fr); grid-template-areas: "hero bag" "hero details"; }
 body.ui-w1000 #inventory-panel.with-floor .inventory-body { grid-template-columns: 170px 80px minmax(0, 1fr); grid-template-areas: "hero floor bag" "hero details details"; }
 body.ui-w1000 #inventory-details { height: 240px; min-height: 0; }
-body.ui-w1000 #quests-details { min-height: 380px; }
+body.ui-w1000 :is(#quests-details, #memories-details) { min-height: 380px; }
 /* the tabs need the room: the coins go to a row of their own */
 body.ui-w1000 #inventory-panel header { flex-wrap: wrap; gap: 8px 18px; }
 body.ui-w1000 #inventory-panel header > div:first-child { flex: 1; }
@@ -522,7 +531,8 @@ body.ui-w540 #inventory-panel .side-slot { width: 64px; }
 body.ui-w540 #inventory-panel h2 { margin: 8px 0 6px; }
 body.ui-w540 #inventory-act { flex-wrap: wrap; }
 body.ui-w540 #inventory-bar { margin-left: 0; }
-body.ui-w540 #quests-body { grid-template-columns: minmax(0, 1fr); }
+body.ui-w540 :is(#quests-body, #memories-body) { grid-template-columns: minmax(0, 1fr); }
+body.ui-w540 #memories-details { min-height: 0; }
 body.ui-w540 #quests-list { flex: none; max-height: 220px; }
 body.ui-w540 #quests-details { min-height: 0; }
 body.ui-w540 #quests-details-inner { position: static; }

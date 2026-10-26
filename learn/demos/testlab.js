@@ -1,4 +1,4 @@
-// Break a test: one of the game's real tests (tests/combat.test.js, "the Old Sword takes two
+// Break a test: one of the game's real tests (tests/combat.test.js, "the glassmaker's old sword takes two
 // slashes for a spider and five for a Stunder"), run here with the game's real combat code
 // (src/core/combat.js, src/core/enemies.js). Change the sword's damage and run it again; the strip
 // shows every damage the test would accept.
@@ -28,7 +28,7 @@ const CHECKS = [
 const LO = 5, HI = 60;
 
 export default function mount(el) {
-  const row = html(el, `<div class="row"><label>${tr('Old Sword damage', 'Schaden des Alten Schwerts')} <input type="range" class="dmg" min="${LO}" max="${HI}" value="${SWORD.damage}"> <b class="v"></b></label>
+  const row = html(el, `<div class="row"><label>${tr("The glassmaker's old sword's damage", 'Schaden des alten Schwerts des Glasmachers')} <input type="range" class="dmg" min="${LO}" max="${HI}" value="${SWORD.damage}"> <b class="v"></b></label>
     <button class="run">${tr('Run the test', 'Test laufen lassen')}</button><button class="reset">${tr('Back to the game\'s value', 'Zurück zum Wert des Spiels')}</button></div>`);
   const out = html(el, '<div class="out"></div>');
   const W = 560, H = 54, { g } = canvas(el, W, H);
@@ -53,7 +53,7 @@ export default function mount(el) {
       return `<span style="color:${ok ? '#8fe39a' : '#ff9a8a'}">${ok ? '\u2714' : '\u2716'}</span> ${tr(`${c.name()} needs ${c.want} slashes: it took <b>${n}</b>`, `${c.name()} braucht ${c.want} Hiebe: es waren <b>${n}</b>`)}`;
     });
     const ok = pass(d);
-    out.innerHTML = `<b>test</b> the Old Sword takes two slashes for a spider and five for a Stunder\n${lines.join('\n')}\n\n` + (ok
+    out.innerHTML = `<b>test</b> the glassmaker's old sword takes two slashes for a spider and five for a Stunder\n${lines.join('\n')}\n\n` + (ok
       ? tr('<span style="color:#8fe39a">PASS</span>: the sword still feels the way the game\'s makers wanted.', '<span style="color:#8fe39a">BESTANDEN</span>: Das Schwert fühlt sich noch so an, wie die Macher des Spiels es wollten.')
       : tr('<span style="color:#ff9a8a">FAIL</span>: did you mean to change this? If yes, the test needs to change too. If not, you just found a bug before any player did.',
         '<span style="color:#ff9a8a">FEHLGESCHLAGEN</span>: Wolltest du das ändern? Wenn ja, muss der Test auch geändert werden. Wenn nicht, hast du gerade einen Fehler gefunden, bevor ihn ein Spieler findet.'));

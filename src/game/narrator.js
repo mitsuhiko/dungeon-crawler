@@ -1,20 +1,24 @@
-// The narrator (docs/story.md, docs/narration.md): the Glassmaker's voice while the hero plays,
-// like Bastion's. The game tells her its moments (narrate: a depth reached, a boss beaten, a
-// death ...), and some she looks for herself every frame (updateNarrator: the villagers close by,
-// an enemy of a new kind coming after the hero, a boss's fight and its attacks, low health, a
-// long fight, standing about). What she says about a moment is core/narration.js's to pick
-// (linesFor); she says it here: one line after the other, never two at once, the more important
-// first (a boss before chatter), and what waited too long to still fit is left out. Each line is
-// voiced from its clip (assets/narration/<lang>/, in the language of the moment, if it has a
-// voice) through the voice bus (audio/context.js) with the music turned down under it, shown as
-// a subtitle (#subtitle, if the settings want them) and written into the chronicle. Without a
-// clip (a language without a voice, no audio yet) the subtitle stays up as long as it takes to
-// read it. A line is said once in a world: the world keeps what was said (state.run.told, saved
-// with it, game/save.js).
+// The narrator (docs/story.md, docs/narration.md): the voices that talk while the hero plays, like
+// Bastion's. For now the glassmaker's recordings: found (game/intro.js), they are played here. The
+// game tells the narrator its moments (narrate: a recording found, a depth reached, a boss beaten
+// ...), and some it looks for itself every frame (updateNarrator: the villagers close by, an enemy
+// of a new kind coming after the hero, a boss's fight and its attacks, low health, a long fight,
+// standing about: the companion to come will have lines for them, core/narration.js). What is
+// said about a moment is core/narration.js's to pick (linesFor); it is said here: one line after
+// the other, never two at once, the more important first (a recording before chatter), and what
+// waited too long to still fit is left out. Each line is voiced from its clip
+// (assets/narration/<lang>/, in the language of the moment, if it has a voice) through the voice
+// bus (audio/context.js), worn like an old recording if the line is (a recording's), with the
+// music turned down under it, shown as a subtitle (#subtitle, if the settings want them) and
+// written into the chronicle. Without a clip (a language without a voice, no audio yet) the
+// subtitle stays up as long as it takes to read it. A line is said once in a world: the world keeps
+// what was said (state.run.told, saved with it, game/save.js); the memories play a recording heard
+// again (hearAgain, game/memorypanel.js).
 //
-// While the game is paused (the Esc menu, the inventory: state.js worldPaused) she pauses too,
-// mid-word, and goes on where she stopped. Not in the guide's game window, nor with ?narration=0.
-import { MOMENTS, linesFor, clipKey, formOf, lineById, lineText } from '../core/narration.js';
+// While the game is paused (the Esc menu, the inventory: state.js worldPaused) the narrator pauses
+// too, mid-word, and goes on where it stopped. Not in the guide's game window, nor with
+// ?narration=0.
+import { MOMENTS, linesFor, clipKey, formOf, lineById, lineText, outOfPlace } from '../core/narration.js';
 import { attackOf } from '../core/enemies.js';
 import { gateLocked } from '../core/guardians.js';
 import { hash32 } from '../core/util.js';
@@ -30,6 +34,8 @@ import { log } from './log.js';
 const GAP = 0.9;          // s of quiet between two lines
 const FIRST = 1.2;        // s before the first line in a world (it fades in)
 const LOAD_WAIT = 3;      // s a line waits for its clip before it is only read
+const RESUME_WAIT = 400;  // ms a clip waits for the sound to start before it is only read
+const CUT_FADE = 0.35;    // s a line cut short takes to fade out
 const DUCK = 0.5;         // the music's level under her voice
 const READ = 14;          // characters a second: how long a line without a voice stays up (at least MIN_READ)
 const MIN_READ = 2.5;
@@ -73,11 +79,28 @@ function clipOf(lang, key) {
   return clips.get(k);
 }
 
+// a clip's source through the voice bus; worn: thin, as an old recording sounds (the film's lines,
+// the glassmaker's recordings). -> its gain (to fade it, and to disconnect when it is over)
+function voiceOut(src, worn) {
+  const gain = ctx.createGain();
+  gain.gain.value = worn ? 1.25 : 1;
+  let end = src;
+  if (worn) {
+    const low = ctx.createBiquadFilter(), high = ctx.createBiquadFilter();
+    low.type = 'highpass'; low.frequency.value = 320;
+    high.type = 'lowpass'; high.frequency.value = 3200;
+    end = src.connect(low).connect(high);
+  }
+  end.connect(gain).connect(bus);
+  return gain;
+}
+
 // A clip said by someone else than the narrator (a film's line: film/player.js), in the current
 // language: { buffer, play(offset, { worn }) -> stop() } through the voice bus (worn: thin, as an
 // old recording sounds), or null (no clip, no sound yet). It waits for the manifest.
 export async function voiceClip(key) {
-  if (ctx?.state === 'suspended') await ctx.resume().catch(() => {});   // (just started by a click)
+  // (just started by a click; without one the browser may never let it, so not for long)
+  if (ctx?.state === 'suspended') await Promise.race([ctx.resume().catch(() => {}), new Promise(r => setTimeout(r, RESUME_WAIT))]);
   if (!ctx || ctx.state !== 'running') return null;
   await fetchManifest();
   const lang = language();
@@ -89,15 +112,7 @@ export async function voiceClip(key) {
     play(offset = 0, { worn = false } = {}) {
       const src = ctx.createBufferSource();
       src.buffer = buffer;
-      let end = src;
-      if (worn) {
-        const low = ctx.createBiquadFilter(), high = ctx.createBiquadFilter(), gain = ctx.createGain();
-        low.type = 'highpass'; low.frequency.value = 320;
-        high.type = 'lowpass'; high.frequency.value = 3200;
-        gain.gain.value = 1.25;
-        end = src.connect(low).connect(high).connect(gain);
-      }
-      end.connect(bus);
+      const end = voiceOut(src, worn);
       src.start(0, Math.min(offset, buffer.duration));
       return () => { try { src.stop(); } catch { /* (over already) */ } end.disconnect(); };
     },
@@ -119,22 +134,47 @@ const toldOrWaiting = () => new Set([...state.run.told, ...queue.map(q => q.line
 const engaged = () => allEnemies().some(e => (e.mode === 'chase' || e.mode === 'attack') && e.hp > 0
   && Math.hypot(e.x - player.x, e.z - player.z) < FOE_NEAR);
 
-// Something happened: moment `on` (core/narration.js MOMENTS), about `data`. She queues what she
-// has to say about it (to say no sooner than `delay` s from now: after a jingle); true if she had
-// something.
+// Something happened: moment `on` (core/narration.js MOMENTS), about `data`. The narrator queues
+// what there is to say about it (to say no sooner than `delay` s from now: after a jingle); true if
+// there was something. A scene that `cuts` cuts short another of its moment still going; a `whole`
+// one is told whole at once (even with the narrator off: the Memories have it).
 export function narrate(on, data = {}, { delay = 0 } = {}) {
   const m = MOMENTS[on];
   if (!m) throw new TypeError(`Unknown narration moment: ${on}`);
-  if (!enabled || !state.run || state.mode !== 'play') return false;
+  if (!state.run || state.mode !== 'play') return false;
+  if (!enabled && !m.whole) return false;
   if (m.quiet && (current || queue.length || clock - lastEnd < m.quiet)) return false;
   if (m.calm && engaged()) return false;
   const lines = linesFor(on, data, toldOrWaiting());
+  if (m.whole) for (const line of lines) state.run.told.add(line.id);
+  if (!enabled || !lines.length) return lines.length > 0;
+  if (m.cuts) cut(l => l.on === on && !lines.includes(l));
   for (const line of lines) {
     const form = formOf(line, sibling()), key = clipKey(line, form);
     queue.push({ line, form, key, pri: m.pri, ttl: m.ttl ?? Infinity, at: clock + delay, n: n++ });
     if (ctx && clipEntry(language(), key)) clipOf(language(), key);   // (fetched while the others speak)
   }
   return lines.length > 0;
+}
+
+// Cut short the lines `which` picks (line -> true): those waiting are dropped, the one being said
+// fades out (its subtitle goes), and all of them count as told. The next waits the usual GAP.
+export function cut(which) {
+  for (const q of queue) if (which(q.line)) state.run?.told.add(q.line.id);
+  queue = queue.filter(q => !which(q.line));
+  if (!current || !which(current.item.line)) return;
+  const c = current;
+  if (c.src) {
+    const t = ctx.currentTime, src = c.src, out = c.out;
+    out.gain.setTargetAtTime(0, t, CUT_FADE / 4);
+    try { src.stop(t + CUT_FADE); } catch { /* (over already) */ }
+    setTimeout(() => out.disconnect(), CUT_FADE * 1000 + 100);
+    c.src = null;
+    duckMusic(t, 0, 1);   // (the music comes back up)
+  }
+  current = null;
+  lastEnd = clock;
+  showSubtitle('');
 }
 
 // the next line to say: the most important, the oldest of those; the ones waited too long go
@@ -179,7 +219,7 @@ function play(offset) {
   if (!c?.buffer || !bus || c.src) return;
   const src = ctx.createBufferSource();
   src.buffer = c.buffer;
-  src.connect(bus);
+  c.out = voiceOut(src, c.item.line.worn);
   src.start(0, Math.min(offset, c.buffer.duration));
   c.src = src;
   if (voiceVolume() > 0) duckMusic(ctx.currentTime, Math.max(0, c.buffer.duration - offset) + 0.3, DUCK);
@@ -188,7 +228,7 @@ function hush() {
   const c = current;
   if (!c?.src) return;
   try { c.src.stop(); } catch { /* (already stopped) */ }
-  c.src.disconnect();
+  c.out.disconnect();
   c.src = null;
   duckMusic(ctx.currentTime, 0, 1);   // (the music comes back up)
 }
@@ -241,6 +281,34 @@ export function devNarrate(id) {
   const form = formOf(line, sibling()), key = clipKey(line, form);
   queue.push({ line, form, key, pri: 9, ttl: Infinity, at: clock, n: -1 - n++ });
   return `Narrating ${key}`;
+}
+
+// The memories (game/memorypanel.js): a recording's `lines` played again from the start, while the
+// world is paused too (the inventory is open), not remembered as told: onLine(i) as line i starts
+// (its subtitle is the panel's), onLine(-1) once they are all said. -> stop()
+export function hearAgain(lines, onLine) {
+  let stopped = false, stopClip = null, timer = null;
+  const say = i => {
+    if (stopped) return;
+    if (i >= lines.length) { onLine(-1); return; }
+    onLine(i);
+    const line = lines[i], form = formOf(line, sibling());
+    const read = Math.max(MIN_READ, lineText(line, form).length / READ);
+    voiceClip(clipKey(line, form)).then(clip => {
+      if (stopped) return;
+      if (clip) {
+        stopClip = clip.play(0, { worn: !!line.worn });
+        if (voiceVolume() > 0) duckMusic(ctx.currentTime, clip.buffer.duration + 0.3, DUCK);
+      }
+      timer = setTimeout(() => { stopClip?.(); stopClip = null; say(i + 1); }, ((clip ? clip.buffer.duration + LINGER : read) + GAP) * 1000);
+    });
+  };
+  say(0);
+  return () => {
+    if (stopped) return;
+    stopped = true; clearTimeout(timer); stopClip?.();
+    if (ctx) duckMusic(ctx.currentTime, 0, 1);   // (the music comes back up)
+  };
 }
 
 // what she is saying and what waits (dev, tests/browser/): the clip, whether it is voiced, the rest's clips
@@ -303,9 +371,10 @@ export function arrived(map, key, visits, deeper) {
   if (!enabled || seen.arrived === key) return;
   const from = seen.from;
   seen.arrived = key; seen.from = map;
+  cut(line => outOfPlace(line, map));   // a recording of the place left is cut short (core/narration.js `where`)
   if (map.testRoom || map.interior) return;
   if (map.town) {
-    if (!narrate('opening') && from && !from.town && !from.interior && !from.merchantCamp) narrate('home');
+    if (from && !from.town && !from.interior && !from.merchantCamp) narrate('home');
     return;
   }
   if (map.merchantCamp) { narrate('camp'); return; }

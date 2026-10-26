@@ -70,7 +70,8 @@ Items keep what they rolled (not a seed), so retuning the tables does not change
 already found; `v` is the generator version. `enchant` (optional) is the Enchanter's: only which
 enchantment, its strength follows from the weapon (see below). `core/gear/stats.js` `itemStats` turns an item
 into the stats combat reads; nothing else looks at base weapon stats. A weapon without `gen`
-(dev grants, tests) counts as Vanilla. The run starts with one Vanilla **Old Sword**.
+(dev grants, tests) counts as Vanilla. The first weapon is a Vanilla **Glassmaker's Old Sword**,
+found in the merchant camp ([story.md](story.md#the-beginning)).
 
 ## Generation
 
@@ -107,7 +108,7 @@ bows: short and hunting 1, recurve 3, longbow 5, war bow 7; crossbows: hand 1, l
 4, repeating 6, arbalest 8; staffs: gnarled 1, oak 2, ember 4, crystal 6, arcane 8). The flails
 only from item level 7, Renew's (ball and chain and morning star 7, twin morning star 8,
 knight's flail 9, triple flail 10): he always drops one first, any of the five
-(`ownWeapon`), so he is the first to hand you one. The Old Sword never drops. Their stats are in [progression.md](progression.md#weapons). A base's damage
+(`ownWeapon`), so he is the first to hand you one. The Glassmaker's Old Sword never drops. Their stats are in [progression.md](progression.md#weapons). A base's damage
 grows **5% per item level** (`ILVL_DAMAGE`), so a weapon from ten depths further down hits half
 again as hard as the same one from the top.
 

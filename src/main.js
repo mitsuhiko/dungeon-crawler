@@ -110,6 +110,7 @@ import { updateSaves, store, play, saveAs, saveNow, savedHero, savedWorld } from
 import { openMainMenu, updateMenu, quitToMenu, heroBox } from './game/menu.js';
 import { updateShowcase } from './game/showcase.js';
 import { updateNarrator } from './game/narrator.js';
+import { updateIntro } from './game/intro.js';
 import { drawMinimap } from './game/minimap.js';
 import { N } from './core/constants.js';
 import { character, followHero } from './render/character.js';
@@ -225,6 +226,7 @@ function frame(now = performance.now()) {
   updateMusic(elapsed);
   updateNarrator(elapsed);   // the Glassmaker's voice and her subtitles (game/narrator.js)
   updateQuests(elapsed);   // the world's quests: goals done, offers made, told to the others (game/quests.js)
+  updateIntro();   // the beginning: the glassmaker's glass and sword taken (game/intro.js)
   updateDefense(dt, questEvent);   // a raid on an outpost's cart (game/defense.js), in game time
   updateSaves();   // the hero and world being played, as they change (game/save.js)
   tickSky(performance.now() / 1000);   // real time: the stars shimmer on while paused

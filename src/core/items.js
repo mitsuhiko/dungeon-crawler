@@ -40,7 +40,8 @@ const flail = (id, name, damage, interval, range, arc, balls = 1) =>
   weapon(id, name, 'flail', damage, interval, range, { arc, balls, knockback: 1.5 });
 // learn: combat.html#chain (see learn/README.md)
 export const WEAPONS = [
-  sword('weapon_sword_old', 'Old Sword', 30, .42, .85, 1, true),   //  71 damage per second
+  // the glassmaker's own (core/intro.js): found in the merchant camp, stuck in the ground
+  sword('weapon_sword_old', "Glassmaker's Old Sword", 30, .42, .85, 1, true),   //  71 damage per second
   sword('weapon_sword_short', 'Short Sword', 23, .32, .72),         //  72, the fastest
   sword('weapon_sword_medium', 'Medium Sword', 34, .42, .85),       //  81
   sword('weapon_sword_long', 'Long Sword', 39, .48, 1.05),          //  81, long reach
