@@ -58,14 +58,53 @@ scientists, no space and no rockets; there are star-readers, the sky and winged 
 - **The glassmaker**: a man, a craftsman, who went up with the pieces on the ark, fell with it to
   the core and is held there by the creature. He is
   never seen; you only hear his recordings. His name is still open.
-- **The robot**: a clockwork robot, built by the star-readers. It lies in a mud puddle in the first room after the
-  town, where you find it. From then on it goes with you, helps you and tells the story as you
-  play.
+- **The robot**: a clockwork robot of star-glass, built by the star-readers. It lies in a mud
+  puddle in the first room after the town, where you find it. From then on it goes with you, helps
+  you, brings you back when you die and tells the story as you play (below, "The robot").
 - **The creature**: the last boss, waiting at the core. Clever, speaks the people's language, and
   wanted to escape. It was brought on board as something to be used, which makes it a prisoner too.
 - **The hero**: a different person every game, from whichever part of the world the game is in.
 - **The other bosses**: just bosses that want to stop you. They have no story of their own, so
   the ones we have stay as they are.
+
+## The robot
+
+Decided:
+
+- **Its look**: star-glass, mostly, like the glass bird: a floating, faceted oval of clear, faintly
+  aqua glass with two eyes, that hovers (no legs) on little wings. Its gears show, and are glass
+  too. The model (`blender/robot.py`, `assets/robot.glb`; not in the game yet) adds a little brass:
+  about 0.4 cells tall, 0.33 wide (0.6 with its wings), its middle 0.9 above the floor (the hero's
+  shoulders). It has two round amber eyes in thin brass rims like portholes, a brass band round its
+  waist, and an amber core glowing inside like the bird's, with two meshed glass gears turning
+  behind it. Each wing is four glass feathers, swept back like the ark's, on a glass gear that
+  turns as its hub. On top is a small wind-up key of glass on a brass shaft.
+- **Its clips**: hovering (it looks about and blinks), flying after the hero, talking (its eyes and
+  core pulse with the words), lying in the mud, waking up (eyes open, lifts off, shakes off the mud),
+  bringing the hero back (rises, turns, spreads its wings, the core flares) and cheering (a hop and
+  a somersault).
+- **It brings you back** when you die, to the last safe place.
+- **Its memory**: it knows something about the glassmaker, but cannot get at all of what it
+  remembers at once.
+- **Playing together**: every player has a robot of their own. One of them, the host's, is the
+  one that tells the story.
+
+Still open:
+
+- Its name and its character (its voice is settled: `robot`, [narration.md](narration.md)).
+- What it knows about the glassmaker and why it cannot get at all of it (damaged, or parts locked
+  by the star-readers?). What brings a memory back (going deeper, a recording found, something it
+  sees?), and how it tells one when it comes back.
+- Whether the glassmaker made its glass, and whether it knew him.
+- How it helps besides bringing you back (lighting the way, pointing at recordings, warning?),
+  and whether it ever fights.
+- What bringing you back looks like, what "the last safe place" is, and what it costs.
+- How it is found: muddy (the model is clean), how the hero wakes it, and what it says first.
+- Playing together: what the other players' robots do and say, whether they look different (a
+  tint each?), and what happens to the story's robot when the host leaves.
+- How it follows: how far behind, how high, and what it does where the hero cannot be followed
+  (it flies, so gaps and ladders do not stop it).
+- Its sounds (ticking, the whir of its wings, a chime of glass).
 
 ## How the story is told
 
@@ -116,9 +155,9 @@ From the discussion; none of these is settled.
 - **The opening should not give too much away**: the stone, the glassmakers' glass round the
   pieces of the world, the winged ark, the wings breaking, the pieces scattering. The creature and the kidnapping are left for the
   recordings to tell.
-- **The robot knows less than it should**: its memory was damaged, or the star-readers locked parts
-  of it, which open further down. It tells the official story; the recordings tell how it really
-  was.
+- **Why the robot cannot remember it all** (that it cannot is decided: "The robot"): its memory
+  was damaged, or the star-readers locked parts of it, which open further down. It tells the
+  official story; the recordings tell how it really was.
 - **The recordings in order**: wherever they lie, the first one found is always the start of the
   story; or each is numbered, and the robot says which are missing (each game shows different
   pieces).
@@ -132,7 +171,6 @@ From the discussion; none of these is settled.
 - **Unreachable cubes in sight**: other cubes far off, with lights, smoke or windows, where people
   live whom you will never meet.
 - **The meteors** in the game (the marsh at night, Slomo's) as what is left of the comet shower.
-- **Dying**: the robot brings you back to the last safe place.
 
 ## Still open
 
@@ -142,10 +180,9 @@ From the discussion; none of these is settled.
 - Whether the thing it had the glassmaker build was ever finished, and what it is.
 - What happens to the bird's pieces.
 - Whether the recordings come in a fixed order or are numbered and collected.
-- The glassmaker's name; the robot's look and character. Their voices are settled
+- The glassmaker's name; the robot's name and character ("The robot"). Their voices are settled
   ([narration.md](narration.md)): the glassmaker's is `glassmaker`, the robot's `robot` (the
   `child` clone through the `stepped-vocoder` filter, "Made voices").
-- Playing together: a robot for each player, or one for the group.
 - How the three acts of light ([depths.md](depths.md)) fit the story: they were the old story's
   childhood, growing up and the sealed memories, and the themes and depths still go by them.
 - The music's arc (`music/README.md`, [music.md](music.md)): the bird whole in act I, broken at the

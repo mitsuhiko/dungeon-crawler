@@ -37,7 +37,7 @@ const BUDGETS = {
   gusto: { Gusto: 8000 }, totnar: { Totnar: 10000, TotnarSkull: 1500 }, snapskull: { SnapSkull: 3000 },
   squarlo: { Squarlo: 8000 }, squirtle: { Squirtle: 5000, SquirtleDrop: 800 }, flip: { Flip: 10000, FlipBall: 1200 },
   foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
-  slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 },
+  slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, robot: { Robot: 3000 },
 };
 test('characters and enemies keep to their triangle budgets', () => {
   for (const [file, budget] of Object.entries(BUDGETS)) {
