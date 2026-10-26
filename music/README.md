@@ -325,6 +325,23 @@ play intro
 loop A A2 B A2
 ```
 
+## A film's score
+
+A film's score (`music/films/<film>.scrim`, `docs/film.md`, `docs/music.md`) is played by the
+film's `music` cues, not by moods: one `# mood explore:` naming every voice, and a `loop` listing
+the patterns, are only there for `npm test` and the player. How long the film's shots take
+changes with the language, so write it in stretches:
+
+- **A fixed pattern** for each shot without a line (they never change length): the moments the
+  picture needs the music for. Count where the picture's cues fall in its bars (the opening's
+  comets break the ark at 1 s, the seventh step of a bar at 67 in 6/8).
+- **A bed** (`then`) under the words: bars that can follow each other over and over and be cut
+  after any of them, and a `last` pattern that leads from any of them into what comes next. Keep
+  out of the voice's way: no tune (a ghost of it at most, a note a bar), the pulse an octave above
+  the voice, the bass far below; the film plays it at a `level` (0.3 to 0.4) under the words.
+- The film makes its own sounds (a knock, breaking glass): leave them room rather than doubling
+  them.
+
 ## Checklist
 
 1. Write the score in `music/<name>.scrim` with `# mood` comments (at least `explore`).

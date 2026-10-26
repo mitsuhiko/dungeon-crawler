@@ -70,14 +70,16 @@ scientists, no space and no rockets; there are star-readers, the sky and winged 
 ## How the story is told
 
 - **The opening.** A new game starts with a short animation of what happened before, told by the
-  glassmaker. A first try is built (`src/film/opening.js`, [film.md](film.md)): about a minute, a
+  glassmaker. A first try is built (`src/film/opening.js`, [film.md](film.md)): a minute and a half, a
   recording of his from long after, down at the core. He never says his name ("Names do not keep
   in glass"), but the star-readers came to him, his hands made the glass, he gave the ark its
   wings. The stone; the glass closed round pieces of the world; the winged ark rising out of its
   steam; then, without a word, comets, the wings break, the hull falls, the pieces crack but hold
   and tumble apart. One comes to rest and time goes by in it; a bubble of star-glass (his words)
   rises into it from below; "Find me". The game's name, closer and closer into the piece, black,
-  and the game starts in the town. It plays before the hero comes into a new world.
+  and the game starts in the town. It plays before the hero comes into a new world, scored with
+  the title song (`music/films/opening.scrim`): the toy tune out of the dark, as the glass is
+  closed and with the title; under the words only a ghost of it.
 - **The robot** talks while you play, reacting to what happens (a robot can see what you do; a
   recording cannot). It replaces the earlier narrator's reactions.
 - **The glassmaker's recordings** lie at random places on the map and tell his story, what

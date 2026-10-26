@@ -11,6 +11,10 @@
 // while a song plays or rings out: the audio thread works on every node it can reach from the
 // speakers, heard or not, and with the music off that was most of the game's sound work.
 // The drums play from hits rendered once per song (drumkit.js), the rest from the synth.
+// A film plays a score of its own (playFilmScore): its notes laid out ahead for the film's time
+// (core/film.js scorePlan, score.js filmEvents), over the held songs, until it rings out or the
+// film is skipped; the next song waits for its last notes. It plays unless the music was turned
+// off (setMusicEnabled's films: the dev tools start with the songs off, not the films').
 // Notes are scheduled from the main thread a second ahead: a frame that stalls (compiling a
 // shader, building a cube) must not starve the audio. A note that comes late all the same
 // still plays if it is at most LATE behind, at once; one later than that is dropped.
@@ -32,11 +36,13 @@ const RING_OUT = 4;                         // s after a song stops before the s
 
 let ctx = null, syn = null, output = null, attached = false, idleAt = 0;
 const scores = new Map();                   // name -> score once loaded (null if it failed)
+const loading = new Map();                  // name -> a promise of it
 let want = null, mood = 'explore';
-let enabled = false;
+let enabled = false, filmsOn = true;
 let held = false;                           // the splash screen plays: no song yet (holdMusic)
 let cur = null;                             // the song playing
 let nextAt = 0;                             // the next song may start from here
+let reel = null;                            // a film's score playing: { score, sess, events, base, i, last }
 
 onAudioStart((ac, sounds, music) => {
   ctx = ac; output = music;
@@ -58,17 +64,21 @@ function detach() {
   attached = false;
 }
 
+// music/<name>.scrim, loaded and compiled once: a promise of the score (null if it failed)
 function fetchScore(name) {
-  if (scores.has(name)) return;
+  if (loading.has(name)) return loading.get(name);
   scores.set(name, undefined);
-  fetch(new URL(`../../music/${name}.scrim`, import.meta.url))
+  const p = fetch(new URL(`../../music/${name}.scrim`, import.meta.url))
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
     .then(text => {
       const score = loadScore(text);
       if (score.errors.length) console.warn(`music/${name}.scrim:\n${score.errors.join('\n')}`);
       scores.set(name, { ...score, name });
+      return scores.get(name);
     })
-    .catch(e => { console.warn(`music/${name}.scrim: ${e.message}`); scores.set(name, null); });
+    .catch(e => { console.warn(`music/${name}.scrim: ${e.message}`); scores.set(name, null); return null; });
+  loading.set(name, p);
+  return p;
 }
 
 // the song to play (null for silence); loads it on first use
@@ -112,7 +122,8 @@ function applyDuck() {
 }
 
 export const musicEnabled = () => enabled;
-export function setMusicEnabled(on) { enabled = !!on; }
+// the songs on or off; films: the films' scores (as the songs, unless said)
+export function setMusicEnabled(on, films = on) { enabled = !!on; filmsOn = !!films; }
 // while the splash screen plays (game/splash.js) no song starts; let go, the one wanted starts
 export function holdMusic(on) { held = !!on; }
 
@@ -120,6 +131,7 @@ export function holdMusic(on) { held = !!on; }
 export function musicInfo() {
   return {
     enabled, want, mood, playing: cur?.score.name ?? null, time: cur ? ctx.currentTime - cur.startAt : 0,
+    film: reel && { score: reel.score.name, time: ctx.currentTime - reel.base, notes: reel.events.length, played: reel.i },
     voices: cur ? cur.score.song.voices.filter((_, i) => cur.voices[i].on).map(v => v.name) : [],
   };
 }
@@ -130,9 +142,10 @@ function tick() {
   const name = enabled && !held ? want : null;
   if (cur && cur.score.name !== name) stopSong();
   const score = name && scores.get(name);
-  if (!cur && score && ctx.currentTime >= nextAt) startSong(score);
+  if (!cur && score && ctx.currentTime >= nextAt && !reel) startSong(score);
+  if (reel) scheduleFilm();
   if (cur) schedule();
-  else if (attached && ctx.currentTime >= idleAt) detach();
+  else if (attached && !reel && ctx.currentTime >= idleAt) detach();
 }
 
 function startSong(score) {
@@ -165,11 +178,11 @@ const audible = (vc, t) => (vc.on ? t >= vc.at : t < vc.at);
 // On a sample frame: Chrome renders the synth's short attacks (a ramp of a few ms, then a decay)
 // at about half their energy when they start between two frames, so the drums' and plucks'
 // loudness jumped by up to 3 dB with where the beat fell.
-function play(ev, t) {
+function play(ev, t, on = cur) {
   t = Math.round(t * ctx.sampleRate) / ctx.sampleRate;
-  const v = cur.score.song.voices[ev.v];
-  if (v.drum && playDrum(ctx, v.inst, ev.vel, cur.sess.ch[ev.v].input, t)) return;
-  cur.sess.play(ev, t);
+  const v = on.score.song.voices[ev.v];
+  if (v.drum && playDrum(ctx, v.inst, ev.vel, on.sess.ch[ev.v].input, t)) return;
+  on.sess.play(ev, t);
 }
 
 // the jukebox's scheduler: the intro once, then the loop forever
@@ -257,4 +270,48 @@ function retarget() {
 function playSting(tl) {
   const at = nextBoundary(ctx.currentTime + JOIN_MARGIN, 'step');
   for (const ev of tl.events) play(ev, at + ev.t);
+}
+
+// --- a film's score -------------------------------------------------------------------------------
+
+// music/<name>.scrim loaded (a film's score: films/<film>), for the film to wait for
+export const loadMusic = name => fetchScore(name);
+
+// play a film's notes (score.js filmEvents) with the film's time 0 at ctx time `base` (a film started further
+// in: the notes before now are left out), over the songs held for the film (holdMusic). It plays
+// to the end and rings out; the next song waits for its last notes.
+export function playFilmScore(score, events, base) {
+  if (!ctx || !score || !events.length) return;
+  stopFilmScore();
+  attach();
+  const sess = syn.session(score.song);
+  syn.warm(score.song);
+  prepareDrums(ctx, score.song);
+  const last = base + Math.max(...events.map(e => e.t + e.d));
+  reel = { score, sess, events, base, i: 0, last };
+}
+// the film's score fades out (skipped; fade: the time constant, s)
+export function stopFilmScore(fade = FADE) {
+  if (!reel) return;
+  reel.sess.stop(fade);
+  reel = null;
+  nextAt = Math.max(nextAt, ctx.currentTime + GAP);
+  idleAt = ctx.currentTime + RING_OUT;
+}
+function scheduleFilm() {
+  if (!filmsOn) { stopFilmScore(); return; }
+  const now = ctx.currentTime, horizon = now + (document.hidden ? HIDDEN_LOOKAHEAD : LOOKAHEAD);
+  while (reel.i < reel.events.length) {
+    const ev = reel.events[reel.i], t = reel.base + ev.t;
+    if (t > horizon) break;
+    if (t >= now - LATE) play(ev, Math.max(t, now + 0.005), reel);
+    reel.i++;
+  }
+  // all of it played: once its last notes are over, the next song may come; it rings out
+  if (reel.i >= reel.events.length && now >= reel.last) {
+    const { sess } = reel;
+    reel = null;
+    setTimeout(() => sess.stop(FADE), RING_OUT * 1000);
+    idleAt = now + RING_OUT + 1;
+  }
 }

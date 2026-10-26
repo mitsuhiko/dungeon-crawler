@@ -165,6 +165,8 @@ export const CUES = {
   light: [],                 // the light to a level ({ to: 0 to 1, for: s })
   crackle: [],               // the recording's crackle to a level ({ to: 0 to 1, for: s })
   knock: [],                 // a soft knock, as of something far off hitting glass
+  music: ['pattern'],        // the film's score plays this pattern from here ({ then: pattern, last: pattern }:
+                             // filling the time up to the next music cue, scorePlan; { level: 0 to 1 })
   black: [],                 // the picture fades to black ({ for: s }): the film is over, and the game
                              // comes up out of the black ({ reveal: s })
 };
@@ -212,4 +214,53 @@ export function schedule(film, lengthOf) {
   }
   cues.sort((a, b) => a.t - b.t);
   return { shots, cues, length: t };
+}
+
+// --- the score ------------------------------------------------------------------------------------
+
+// A film's music is a score of its own (music/films/<score>.scrim), in patterns; its `music` cues
+// say which plays when. A shot's length changes with the language and with its clip, so the music
+// cannot be one fixed piece: each cue starts a stretch that lasts up to the next one, and the
+// stretch fills it. It plays its pattern, then the bars of its `then` pattern over and over (cut
+// at any bar), then its `last` pattern (which leads into the next stretch), as many bars as come
+// nearest its time, at a tempo up to FIT faster or slower so that they fill it exactly. If even
+// FIT faster does not fill it (a short stretch, or one with no `then`), the notes sounding at its
+// end hold on until the next (a fermata). The last stretch plays its pattern and its `last` as
+// written. Put the cues at the start of the shots without a line: those never change length, so
+// what has to land on the picture (the break, the title) goes there. A stretch under the words
+// plays softer (`level`, 0 to 1: its notes' loudness), so that they are heard.
+export const FIT = 0.05;
+
+// The stretches of a film's score from its plan (schedule above): barsOf(pattern) gives the length
+// of each bar of a pattern (s). [{ at, end, scale, hold, level, bars: [{ pattern, bar, at, dur }] }]: each
+// bar starts at `at` (s into the film) and lasts `dur` (its written length times `scale`); the
+// stretch's last notes hold for `hold` s more, up to `end`.
+export function scorePlan(plan, barsOf) {
+  const cues = plan.cues.filter(c => c.do === 'music');
+  return cues.map((c, k) => {
+    const span = k + 1 < cues.length ? cues[k + 1].t - c.t : Infinity;
+    const bars = name => (name ? barsOf(name).map((dur, bar) => ({ pattern: name, bar, dur })) : []);
+    const head = bars(c.pattern), bed = bars(c.then), tail = bars(c.last);
+    // the first n bars a stretch can play: its pattern, its bed over and over, its last pattern
+    // (fewer than those two: the start of its pattern and all of its last, or the end of its last)
+    const most = bed.length ? Infinity : head.length + tail.length;
+    const take = n => {
+      if (n <= tail.length) return tail.slice(tail.length - n);
+      if (n <= head.length + tail.length || !bed.length) return [...head.slice(0, Math.min(head.length, n - tail.length)), ...tail];
+      return [...head, ...Array.from({ length: n - head.length - tail.length }, (_, i) => bed[i % bed.length]), ...tail];
+    };
+    const length = list => list.reduce((s, b) => s + b.dur, 0);
+    let n = most;
+    if (span < Infinity) {
+      // the number of bars nearest the time; fewer while even FIT faster is too long
+      n = 0;
+      while (n < most && Math.abs(length(take(n + 1)) - span) <= Math.abs(length(take(n)) - span)) n++;
+      while (n > 0 && length(take(n)) * (1 - FIT) > span) n--;
+    }
+    const list = take(n), written = length(list);
+    const scale = span < Infinity && written > 0 ? Math.min(1 + FIT, span / written) : 1;
+    let t = c.t;
+    const out = list.map(b => { const bar = { ...b, at: t, dur: b.dur * scale }; t += bar.dur; return bar; });
+    return { at: c.t, end: span < Infinity ? c.t + span : t, scale, hold: span < Infinity ? span - written * scale : 0, level: c.level ?? 1, bars: out };
+  });
 }

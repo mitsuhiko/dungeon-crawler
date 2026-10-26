@@ -83,3 +83,49 @@ export function loadScore(text) {
 
 // the voices that play in mood (one the score does not know: its base mood's)
 export const voicesIn = (score, mood) => score.moods[mood] ?? score.moods[score.base];
+
+// --- a film's score (core/film.js scorePlan) ------------------------------------------------------
+
+// the length of each bar of pattern `name` of a compiled song (s); [] if it has none
+export function barsOf(song, name) {
+  const s = song.pattern(name).sections[0];
+  return s ? Array(s.bars).fill(s.barDur) : [];
+}
+
+// A film's score as notes in the film's time: the bars of its stretches (core/film.js scorePlan),
+// each bar's notes from the compiled song, moved to where the bar falls and slowed or hurried with
+// it. A note held over the bars after its own stops where they do (the pattern is cut there); one
+// still sounding at a stretch's end holds on to it (the stretch's fermata). The last stretch's
+// notes ring as written. A stretch's level makes its notes softer. Sorted by time: [{ t, d, v, vel, m?, g? }].
+export function filmEvents(song, stretches) {
+  const timelines = new Map(), out = [];
+  const timeline = name => {
+    if (!timelines.has(name)) timelines.set(name, song.pattern(name));
+    return timelines.get(name);
+  };
+  stretches.forEach((st, k) => {
+    const last = k === stretches.length - 1;
+    // runs of bars one after the other of the same pattern: a note may last to the end of its run
+    let runEnd = 0;
+    st.bars.forEach((b, i) => {
+      if (i === 0 || !(st.bars[i - 1].pattern === b.pattern && st.bars[i - 1].bar === b.bar - 1)) {
+        let j = i;
+        while (j + 1 < st.bars.length && st.bars[j + 1].pattern === b.pattern && st.bars[j + 1].bar === st.bars[j].bar + 1) j++;
+        runEnd = st.bars[j].at + st.bars[j].dur;
+      }
+      const tl = timeline(b.pattern), s = tl.sections[0];
+      if (!s) return;
+      const from = b.bar * s.barDur, to = from + s.barDur, scale = b.dur / s.barDur;
+      for (const ev of tl.events) {
+        if (ev.t < from - 1e-9 || ev.t >= to - 1e-9) continue;
+        const t = b.at + (ev.t - from) * scale;
+        let d = ev.d * scale;
+        // sounding at the end of its run: it stops there, or, the run ending the stretch, holds on
+        // to the stretch's end
+        if (!last && t + d >= runEnd - 1e-3) d = (runEnd >= st.end - st.hold - 1e-6 ? st.end : runEnd) - t;
+        out.push({ ...ev, t, d, vel: ev.vel * (st.level ?? 1) });
+      }
+    });
+  });
+  return out.sort((a, b) => a.t - b.t || a.v - b.v);
+}

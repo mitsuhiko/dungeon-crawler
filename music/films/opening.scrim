@@ -1,0 +1,163 @@
+# Before writing or changing music, read music/README.md (style, moods, format).
+# The opening film's score (src/film/opening.js, docs/film.md): the title song (music/title.scrim)
+# told along the film. Its patterns are played by the film's `music` cues, each from the start of a
+# shot without a line, and fitted to the time up to the next (core/film.js scorePlan): a cue's
+# pattern, then its `then` pattern's bars over and over (cut at any bar: write them to follow on
+# from any of their bars), then its `last`, at a tempo up to 5% off. The lines' length changes with
+# the language, so whatever goes under the words is such a bed. The loop below only lists the
+# patterns, for npm test and tools/player.html (Films); the film never plays it.
+#
+# Under the voice, keep out of its way: no tune (only a ghost of it, a note a bar, on the glass
+# harmonica), the ostinato an octave up from the title's (A4, not A3), soft, the bass far below.
+# The tune itself plays where nobody speaks: out of the dark (prelude), as the glass is closed
+# (breath) and with the title. The film makes its own knock and breaking glass: the score leaves
+# them room (the ring before, the swell and the falling glass after).
+title    The Glass Bird (the opening)
+composer Claude
+about    The title song along the opening film. A music box out of the dark plays the toy tune's first phrase, falling (A B C E D). Under the glassmaker's words the crystal rocks on its root and the step above it, the bowl tolls, the tune is only a ghost, a note a bar, and Bb creeps in. As the glass is closed the second phrase climbs (A B C E G) into C major, and the ark rises on broken chords over a falling bass, the bird beating its wings. A knock, a thin ring, everything still; as the ark breaks the swell onto D and the glass falling and slowing. Over D the bird's calls narrowed to a half step, single notes of the tune (A, Bb, C, E) like shards, E leading back. With the title the first phrase whole again, and the bird's call wide over D minor, the town's key, into the game.
+tempo    67       # a dotted quarter
+beats    2
+steps    6        # 6/8 in sixteenths: 12 steps a bar
+reverb   0.45
+
+# the film plays every voice; explore lists them for npm test and the player
+# mood explore: lead ghost bird wing ost bowl tap ring swell fall shard bass
+
+voice lead    crystal    vol=0.7  pan=-0.1
+voice ghost   glassharp  vol=0.13 pan=0.2  att=0.5 rel=1.2
+voice bird    crystal    vol=0.4  pan=0.4  rev=0.7
+voice wing    crystal    vol=0.28 pan=0.35 rev=0.6
+voice ost     crystal    vol=0.26 pan=-0.3
+voice bowl    bowl       vol=0.22 pan=0.1  rev=0.6
+voice tap     glasstap   vol=0.15 pan=0.35
+voice ring    glassharp  vol=0.12 pan=0.3  rev=0.8 att=0.15 rel=1.2
+voice swell   glassharp  vol=0.24 pan=-0.1 att=1.0 rel=1.5
+voice fall    crystal    vol=0.38 pan=0.3
+voice shard   crystal    vol=0.28 pan=-0.35 rev=0.8
+voice bass    fretless   vol=0.45 glide=0.08
+
+# Out of the dark (a shot of its own): a music box through the crackle, the toy tune's first
+# phrase, falling. Its D rings into the first words.
+pattern prelude
+lead   | A4--- B4- C5----- | E5----- D5----- |
+bowl   | A3----------- | _ |
+
+# Under the words (the stone, the star-readers, the door, the glass): the ostinato comes in.
+# Am Am G E
+pattern making
+ost    | A4?- A4?- B4?- A4?- A4?- B4?- | A4- A4?- B4?- A4- A4?- B4?- | G4- G4?- A4?- G4- G4?- A4?- | E4- E4?- F4?- E4- E4?- F4?- |
+bowl   | A3----------- | _ | G3----------- | E3----------- |
+tap    | _ | x.o... ...... | _ | x.o... ...... |
+bass   | A1----------- | C2----------- | B1----------- | G#1----------- |
+bird   | _ | _ | _ | .----- A6 A5+B5---- |
+
+# The bed, as long as the words take: the tune a ghost, a note a bar (A B C E D, then the second
+# phrase's C E D C A), the bird calling now and then; Bb creeps in (Bb A G# on the glass).
+# Am Am F F | Am Am G E | F F Dm Dm | Bb Bb E E
+pattern bed
+ost    | A4- A4?- B4?- A4- A4?- B4?- | % | F4- F4?- G4?- F4- F4?- G4?- | % | A4- A4?- B4?- A4- A4?- B4?- | % | G4- G4?- A4?- G4- G4?- A4?- | E4- E4?- F4?- E4- E4?- F4?- |
+ost    | F4- F4?- G4?- F4- F4?- G4?- | % | D4- D4?- E4?- D4- D4?- E4?- | % | Bb3- Bb3?- C4?- Bb3- Bb3?- C4?- | % | E4- E4?- F4?- E4- E4?- F4?- | % |
+ghost  | A5----------- | B5----------- | C6----------- | E6----------- | D6----------- | _ | _ | _ |
+ghost  | .----- C6----- | E6----- D6----- | C6----------- | A5----------- | .----- D6--- C6- | Bb5----------- | A5----------- | G#5----------- |
+bowl   | A3----------- | _ | F3----------- | _ | A3----------- | _ | G3----------- | E3----------- |
+bowl   | F3----------- | _ | D3----------- | _ | Bb2----------- | _ | E3----------- | _ |
+tap    | x.o... ...... | _ | x.o... ...... | _ | x.o... ...... | _ | x.o... ...... | _ |
+tap    | x.o... ...... | _ | x.o... ...... | _ | x.o... ...... | _ | x.o... ...... | _ |
+bass   | A1----------- | C2----------- | F1----------- | A1----------- | A1----------- | C2----------- | B1----------- | G#1----------- |
+bass   | F1----------- | A1----------- | D2----------- | F1----------- | Bb1----------- | D2----------- | E1----------- | G#1----------- |
+bird   | _ | _ | _ | .----- A6 A5+B5---- | _ | _ | _ | A6 A5+B5---------- |
+bird   | _ | _ | _ | .----- E6 D5+E5---- | _ | _ | _ | .----- A6 A5+B5---- |
+
+# The bed's end, from any of its bars: F E, the ostinato thinning, into the tune.
+pattern arrive
+ost    | F4- F4?- G4?- F4- F4?- G4?- | E4- E4?- F4?- E4- .--- |
+bowl   | F3----------- | E3----------- |
+tap    | x.o... ...... | x..... ...... |
+bass   | F1----------- | E1----------- |
+
+# The glass is closed (a shot of its own): the toy tune's second phrase, climbing, the ostinato
+# down where the title has it. Am C
+pattern breath
+lead   | A4--- B4- C5----- | E5----- G5----- |
+ost    | A3- A3?- B3?- A3- A3?- B3?- | C4- C4?- D4?- C4- C4?- D4?- |
+bowl   | A3----------- | C3----------- |
+tap    | x.o... ...... | x.o... ...... |
+bass   | C2----- A1----- | C2----- E2----- |
+
+# The ark rises, under the words: broken chords in C major over a falling line (C B A, then G#),
+# the bird beating its wings, the tune a ghost falling with it. C G/B F/A, hovering on F/A as long as
+# the words take, then E/G# (land): its notes hold into the comets (everything still).
+pattern fly
+ost    | C4- G4?- E5?- G4?- E5?- G4?- | B3- G4?- D5?- G4?- D5?- G4?- | A3- F4?- C5?- F4?- C5?- F4?- |
+wing   | .----- A5 B5 A5 B5 E6- | .----- B5 C6 E6 G6-- | .----- C6 D6 C6 A6-- |
+ghost  | E6----------- | D6----------- | C6----------- |
+bowl   | C3----------- | G3----------- | F3----------- |
+tap    | x.o... ...... | _ | x.o... ...... |
+bass   | C2----------- | G1----------- | F1----------- |
+
+pattern hover
+ost    | A3- F4?- C5?- F4?- C5?- F4?- |
+wing   | .------- A6 G6 F6- |
+ghost  | A5----------- |
+bass   | A1----------- |
+
+pattern land
+ost    | G#3- E4?- B4?- E4?- B4?- E4?- |
+wing   | .----- G#5 B5 E6 G#6 B6- |
+ghost  | B5----------- |
+bowl   | E3----------- |
+bass   | E1----------- |
+
+# The comets (a shot of its own, 5.2 s: the film knocks at 0.3 s and the ark breaks at 1 s, on the
+# seventh step). The thin ring after the knock; from the break the swell onto D and two showers of
+# glass, falling and slowing (the film makes the breaking).
+pattern comets
+ring   | .- G6?----- .--- | _ | _ |
+fall   | .------ E7! B6? A6 F6? D6 | Bb5? G5 E5? C5 A4? F4 D4?- C6?- G5- | B5?--- F5?--- C5?--- |
+wing   | .-------- C7 G6 E6? | B5 A5? F5 D5? B4 G4? E4?----- | .--- E6?--- A5?--- |
+swell  | .------ D2+A2+D3+A3---- | = | = |
+bowl   | .------ D3---- | _ | _ |
+bass   | .------ D1!---- | = | = |
+
+# The fall, under the words: over D the bird's calls narrowed to a half step (it broke).
+pattern shards
+ost    | D3?----------- | = | = | = |
+swell  | D2+A2----------- | = | = | = |
+bowl   | D3----------- | _ | _ | _ |
+tap    | x.o... ...... | _ | ...... x..... | _ |
+bass   | D2----------- | = | F1----------- | = |
+bird   | _ | .----- A6 A5+Bb5---- | _ | .--- D7 G5+Ab5------ |
+
+# The worn recording, as long as it takes: over D, single notes of the tune like shards (A, Bb,
+# C, then E), never where the last one was; now and then the bird's call, wide again.
+pattern drift
+ost    | D3?----------- | = | = | = | D3?----------- | = | = | = |
+swell  | D2+A2----------- | = | = | = | = | = | = | = |
+bowl   | D3----------- | _ | _ | _ | D3----------- | _ | _ | _ |
+tap    | x.o... ...... | _ | _ | _ | x.o... ...... | _ | _ | _ |
+bass   | D2----------- | = | A1----------- | = | F1----------- | = | C2----------- | = |
+shard  | .--- A5?------- | _ | .------- Bb5?--- | _ | C6?----------- | _ | .----- E5?----- | _ |
+bird   | _ | .----- A6 A5+B5---- | _ | _ | _ | .--- E6 D5+E5------ | _ | A6 A5+B5---------- |
+
+# "Find me": E leads back, G# reaching for the A.
+pattern home
+ost    | E3?----------- | = |
+swell  | E2+B2----------- | = |
+bowl   | E3----------- | _ |
+bass   | E1----------- | = |
+shard  | _ | .----- G#5?----- |
+bird   | .----- A6 A5+Bb5---- | _ |
+
+# The title (from 0.4 s into its shot): the first phrase whole again, as in the main menu, then the
+# bird's call wide over D minor as the glass goes clear and everything goes black; it rings on
+# into the town (D minor).
+pattern title
+lead   | A4--- B4- C5----- | E5----- D5----- | _ | _ |
+ost    | A3!- A3- B3- A3!- A3- B3- | F3!- F3- G3- F3!- F3- G3- | D3!----------- | = |
+bowl   | A3----------- | F3----------- | D3----------- | _ |
+tap    | x.o... ...... | x.o... ...... | _ | _ |
+bass   | C2----- A1----- | A1----- F1----- | D1----------- | = |
+bird   | _ | _ | A6 A5+B5---------- | _ |
+swell  | _ | _ | D3+F3+A3----------- | = |
+
+loop prelude making bed arrive breath fly hover land comets shards drift home title

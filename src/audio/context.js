@@ -46,6 +46,8 @@ export function onAudioStart(fn) {
 
 // whether sound can play now (a key or click has started it)
 export const audioRunning = () => ctx?.state === 'running';
+// the sound's clock (s), which the music and the voices are timed by (a film follows it)
+export const audioTime = () => ctx?.currentTime ?? 0;
 
 // bus: 'sounds', 'music', 'voice' or 'master'; v: 0 (silent) to 1 (full)
 export function setVolume(bus, v) {

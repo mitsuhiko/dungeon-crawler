@@ -41,9 +41,10 @@ Keep to these rules, so that every film looks like the others:
 | `src/film/glass.js` | a glass box: growing, its ink inside, breaking into pieces |
 | `src/core/film.js` | the rules, pure: the flow map (how ink spreads), when everything happens (`schedule`), the lines for the narration |
 | `src/render/stage.js` | the dark stage, shared with the splash screen (`src/game/splash.js`) |
+| `music/films/<score>.scrim` | a film's score (`scorePlan` in `src/core/film.js` fits it to the shots) |
 | `assets/film/<picture>.png` | the paintings: grey, white ink on black |
 | `tools/inklayer.py` | makes a painting into such a picture |
-| `tests/film.test.js` | the flow, the schedule, every film whole (its pictures there, its cues naming its layers) |
+| `tests/film.test.js` | the flow, the schedule, the score's stretches, every film whole (its pictures there, its cues naming its layers, its score's patterns) |
 
 ## Layers: painting as it happens
 
@@ -113,6 +114,7 @@ be used by several layers (`image`: the three comets are one meteor).
 export default {
   name: 'opening',
   voice: 'glassmaker',   // who says its lines (tools/voices/)
+  score: 'opening',      // its music (music/films/opening.scrim)
   layers: {
     earth: { at: [-2.6, 5.0], h: 5.2, from: [[0.4, 0.9]] },
     stone: { at: [3.2, 7.0], h: 2.6, tint: 'amber', from: [[0.97, 0.03]] },
@@ -179,6 +181,7 @@ thin, like an old recording.
 | `light` | | the light (and the glass and the stage with it; the ink shines by itself) `to` a level |
 | `crackle` | | the recording's crackle and hiss `to` a level (`src/audio/film.js`) |
 | `knock` | | a soft knock, as of something far off hitting glass |
+| `music` | pattern | the score plays it from here, up to the next `music` cue (`then`, `last`, `level`: below) |
 | `black` | | to black: the film is over once it is, and the game comes up out of it in `reveal` s |
 
 ## The voice
@@ -194,11 +197,42 @@ The player loads the clips with the pictures (`voiceClip` in `src/game/narrator.
 schedule knows how long each line really is. Each line starts a quarter of a second into its shot,
 through the voice bus, with its subtitle.
 
+## The music
+
+A film's score (`score`) is a Scrimshaw score of its own, `music/films/<score>.scrim`
+(`music/README.md`, "A film's score"); the opening's is the title song told along the film. Its
+`music` cues say which of its patterns plays when, and since a shot is as long as its line is
+in a language, the score is laid out when the film starts, from its plan (`scorePlan` in
+`src/core/film.js`): each cue starts a stretch up to the next cue, and fills it.
+
+```js
+{ hold: 3.7, cues: [[0, 'music', 'breath']] },                                    // a fixed pattern
+{ id: 'mend', line: '...', cues: [[0, 'music', 'shards', { then: 'drift', last: 'home', level: 0.35 }]] },
+```
+
+A stretch plays its pattern, then the bars of its `then` pattern over and over, cut at any bar,
+then its `last`, as many bars as come nearest its time, up to 5% (`FIT`) faster or slower so they
+fill it exactly; when even that is too long (a short stretch, or no `then`), it plays fewer, and
+the notes sounding at its end hold on to the next (a fermata). The last stretch plays as written,
+and rings on into the game. `level` (0 to 1) plays a stretch softer: under the words, so that
+they are heard (the opening's beds are about 13 dB under the voice).
+
+Put the cues at the start of the shots **without a line**: those never change length, so the
+music the picture needs (the break on a beat, the tune with the title) lands on it in every
+language. Under the lines goes a bed, and the tune where nobody speaks: the opening gives it two
+shots of its own, out of the dark before the first words and as the glass is closed.
+
+The film's time is the sound's clock while sound plays (the score and the voices go by it): a
+frame that stalls (the world loads behind the film) does not leave the pictures behind them, they
+catch up. A skipped film's score fades out with the picture; at its end it rings on, and the game's
+music waits for its last notes. It plays unless the music was turned off in the settings (with
+the dev tools too, where the songs are off at first).
+
 ## In the game
 
 The opening plays when a hero goes into a world nobody has been in yet (`start` in
 `src/game/menu.js`). The world loads behind it and waits (`state.film`: nothing moves, the
-narrator waits too), the music waits, and nothing of the game is drawn. A click or a key asks
+narrator waits too), the game's music waits (the film's score plays), and nothing of the game is drawn. A click or a key asks
 "Click again to skip"; a second one skips; Esc skips at once. Afterwards the town comes out of the
 black. Not with the dev tools, not in the guide's game window, and never with `?film=0`.
 
@@ -206,13 +240,14 @@ To look at a film while making it (every film, by its name in `src/film/films.js
 
 - `?film=opening` plays it over the main menu, or over the world with `?dev=1`. Opened from the
   address bar the browser has no sound yet, so it waits for a click ("Click to begin"), and then
-  plays with its voice;
+  plays with its voice and its score;
 - `&at=12` starts 12 seconds in (everything before is done at once), and `&hold=1` stops there, to
   look at one moment (no click, no voice);
 - with `?dev=1`, `/film opening` in the chat box plays it now, `/film opening 40` from 40 seconds
   in (the film names complete);
 - `window.__game.film('opening', { at: 40 })` plays it from the console, and
-  `window.__game.filmNow()` says how far it is and which lines it has voices for.
+  `window.__game.filmNow()` says how far it is, which lines it has voices for and whether it is
+  scored (`window.__game.musicInfo().film`: how far its score is).
 
 ## A new film
 
@@ -222,4 +257,6 @@ To look at a film while making it (every film, by its name in `src/film/films.js
 3. Write the script, a file in `src/film/`, and name it in `src/film/films.js`.
 4. Look at it (`?film=<name>`, `&at=`), and move the layers until the picture sits.
 5. `node tools/narration.mjs --only film.<name>.`, and listen.
-6. `npm test`.
+6. Its score (`music/films/<name>.scrim`, listed in its `index.json`) and its `music` cues;
+   listen in `tools/player.html` (Films) and in the film, in each language.
+7. `npm test`.

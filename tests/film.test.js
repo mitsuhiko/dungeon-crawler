@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { assets } from './paths.js';
-import { flowMap, glowFlow, schedule, cueTime, readTime, filmLines, lineKey, CUES, ENDS } from '../src/core/film.js';
-import { readdirSync } from 'node:fs';
+import { assets, repo } from './paths.js';
+import { flowMap, glowFlow, schedule, cueTime, readTime, filmLines, lineKey, scorePlan, FIT, CUES, ENDS } from '../src/core/film.js';
+import { loadScore, barsOf, filmEvents } from '../src/audio/score.js';
+import { readdirSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { FILMS } from '../src/film/films.js';
 
@@ -93,9 +94,83 @@ test('every painting in assets/film/ is in a film', () => {
   for (const f of readdirSync(resolve(assets, 'film'))) assert.ok(used.has(f.replace(/\.png$/, '')), `${f} is in no film`);
 });
 
-test('the opening is about a minute long', () => {
+test('the opening is a minute and a half long', () => {
   const plan = schedule(FILMS.opening, shot => readTime(shot.line));
-  assert.ok(plan.length > 45 && plan.length < 80, `${plan.length.toFixed(1)} s`);
+  assert.ok(plan.length > 60 && plan.length < 100, `${plan.length.toFixed(1)} s`);
+});
+
+test("a film's score fills the time between its cues, whatever the lines take", () => {
+  const bar = 2;
+  const barsOf = name => ({ a: [bar, bar], bed: [bar], end: [bar], hit: [bar, bar, bar] })[name];
+  const film = lines => ({ name: 't', shots: [
+    { id: 'x', line: 'x', cues: [[0, 'music', 'a', { then: 'bed', last: 'end' }]] },
+    { hold: 5.9, cues: [[0, 'music', 'hit']] },
+    { hold: 3, cues: [[0, 'music', 'end']] },
+  ], lines });
+  for (const said of [3, 9.55, 16, 30]) {
+    const plan = schedule(film(), () => said);
+    const [first, hit, last] = scorePlan(plan, barsOf);
+    // the stretch ends where the next begins; its bars fill it, at most FIT off their tempo
+    assert.equal(first.end, hit.at);
+    assert.ok(Math.abs(first.scale - 1) <= FIT + 1e-9, `${said}: scale ${first.scale}`);
+    const filled = first.bars.at(-1).at + first.bars.at(-1).dur + first.hold;
+    assert.ok(Math.abs(filled - first.end) < 1e-9);
+    assert.ok(first.hold >= -1e-9 && first.hold < bar);
+    // its last pattern always closes it, its first starts it when there is room
+    assert.equal(first.bars.at(-1).pattern, 'end');
+    if (first.bars.length >= 3) assert.deepEqual(first.bars.slice(0, 2).map(b => b.pattern), ['a', 'a']);
+    // a pattern without a bed plays whole, a little faster to fit (5.9 s for 6)
+    assert.deepEqual(hit.bars.map(b => b.bar), [0, 1, 2]);
+    assert.ok(Math.abs(hit.scale - 5.9 / 6) < 1e-9);
+    // the last plays as written
+    assert.equal(last.scale, 1);
+    assert.equal(last.end, last.at + bar);
+  }
+  // the bed comes over and over, cut at a bar
+  const long = scorePlan(schedule(film(), () => 30), barsOf)[0];
+  assert.deepEqual(long.bars.map(b => b.pattern), ['a', 'a', ...Array(long.bars.length - 3).fill('bed'), 'end']);
+});
+
+test("a film's score keeps its notes in their stretches", () => {
+  const { song } = loadScore(`tempo 60
+beats 2
+steps 2
+voice v sine
+pattern a
+v | C4--- | D4--- |
+pattern bed
+v | E4- F4- |
+pattern hold
+v | G4--- | = |
+loop a bed hold`);
+  // bars of 2 s; 6.2 s to fill: a's two bars and the bed's one, a little slower
+  const plan = { cues: [{ t: 0, do: 'music', pattern: 'a', then: 'bed' }, { t: 6.2, do: 'music', pattern: 'hold' }] };
+  const stretches = scorePlan(plan, name => barsOf(song, name));
+  const notes = filmEvents(song, stretches);
+  assert.deepEqual(stretches[0].bars.map(b => b.pattern), ['a', 'a', 'bed']);
+  // in order, each bar where it falls, its notes slowed with it; the last one holding to the next stretch
+  assert.deepEqual(notes.map(n => n.m[0]), [60, 62, 64, 65, 67]);
+  const scale = stretches[0].scale;
+  assert.ok(Math.abs(notes[1].t - 2 * scale) < 1e-9);
+  assert.ok(Math.abs(notes[3].t + notes[3].d - 6.2) < 1e-6, 'the last note holds on to the next stretch');
+  // the last stretch rings as written: G held over both its bars
+  assert.ok(Math.abs(notes[4].d - 4) < 0.5);
+});
+
+test("every film's score is there, and its music cues name its patterns", () => {
+  for (const [name, film] of Object.entries(FILMS)) {
+    const music = schedule(film, shot => readTime(shot.line)).cues.filter(c => c.do === 'music');
+    if (!film.score) { assert.equal(music.length, 0, `${name}: music cues but no score`); continue; }
+    const { song, errors } = loadScore(readFileSync(resolve(repo, 'music', 'films', `${film.score}.scrim`), 'utf8'));
+    assert.deepEqual(errors, []);
+    for (const c of music) for (const p of [c.pattern, c.then, c.last].filter(Boolean)) assert.ok(barsOf(song, p).length, `${name}: no pattern ${p}`);
+    // the stretches never go more than FIT off their tempo, in a language whose lines are short or long
+    for (const k of [0.7, 1, 1.4]) {
+      const stretches = scorePlan(schedule(film, shot => k * readTime(shot.line)), p => barsOf(song, p));
+      for (const st of stretches) assert.ok(Math.abs(st.scale - 1) <= FIT + 1e-9 && st.bars.length, `${name} x${k}: ${st.bars[0]?.pattern}`);
+      assert.ok(filmEvents(song, stretches).length > 100);
+    }
+  }
 });
 
 // the player, the ink and the glass run only in the browser (three.js, the DOM): at least they parse

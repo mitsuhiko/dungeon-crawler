@@ -16,9 +16,20 @@
 // messages (src/i18n/sources.js), German in src/i18n/de/story.js, voiced like the narrator's
 // (tools/narration.mjs: the clip of a shot is film.opening.<its id>); `worn`: they sound like an
 // old recording. The title is the game's name, in English in every language.
+//
+// The score (music/films/opening.scrim) is the title song's (music/title.scrim), told along: its
+// `music` cues stand at the start of the shots without a line, which never change length, and
+// each stretch fills the time to the next (core/film.js scorePlan), however long the lines take
+// in a language. Out of the dark a music box plays the toy tune's first phrase, falling (A B C E
+// D); under the words it rocks on, the tune only a ghost of a note a bar; as the glass is closed
+// its second phrase climbs (A B C E G) into the flight, the ark rises in C major; a knock, a thin
+// ring, and as the ark breaks the swell onto D and glass falling; over D the bird's calls in pieces
+// and single notes of the tune; with the title the first phrase whole again, and the bird's call
+// wide over D minor, the town's key, into the game.
 export default {
   name: 'opening',
   voice: 'glassmaker',
+  score: 'opening',
   layers: {
     starreaders: { at: [4.3, 2.5], h: 3.6 },
     earth: { at: [-3.4, 5.4], h: 4.6, from: [[0.4, 0.9]] },
@@ -43,13 +54,21 @@ export default {
   },
   shots: [
     {
+      // out of the dark, a music box through the crackle: the toy tune's first phrase
+      hold: 4.2,
+      cues: [
+        [0, 'crackle', { to: 0.7, for: 0.4 }],
+        [0, 'music', 'prelude'],
+        [1.2, 'light', { to: 0.35, for: 4 }],
+      ],
+    },
+    {
       id: 'name',
       line: 'Nobody says my name any more. That is all right. Names do not keep in glass.',
       note: 'The first words of the game, out of the dark: the glassmaker, long after, recording where he is held. He does not say his name. Low, tired, calm, a little bitter.',
       instruct: 'Speak low and calm, tired, like an old man talking to himself in the dark.',
       cues: [
-        [0, 'crackle', { to: 0.7, for: 0.4 }],
-        [0.6, 'light', { to: 0.35, for: 4 }],
+        [0, 'music', 'making', { then: 'bed', last: 'arrive', level: 0.3 }],
         ['80%', 'crackle', { to: 0.25, for: 1.5 }],
       ],
     },
@@ -83,7 +102,6 @@ export default {
       line: 'I closed it round all I could. A town. A forest. A piece of the sea. My hands made every pane of the glass you live in.',
       note: 'The work of his life; the last sentence is to whoever hears this, and it lands hard.',
       instruct: 'Speak softly and fondly, then firm and quiet on the last sentence.',
-      hold: 0.8,
       cues: [
         [0, 'fade', 'glassmaker', { for: 1.2 }],
         [0.3, 'paint', 'town', { for: 1.4 }],
@@ -98,12 +116,18 @@ export default {
       ],
     },
     {
+      // the glasses stand and turn; the toy tune's second phrase climbs, into the flight
+      hold: 3.7,
+      cues: [[0, 'music', 'breath']],
+    },
+    {
       id: 'wings',
       line: 'I gave the ark its wings. When it rose, I went with it, to keep the glass whole.',
       note: 'The ark rising. The memory of the best day, told by a man who knows how it ended.',
       instruct: 'Speak low and slow, warm for a moment, then heavy.',
       seed: { de: 1 },   // (the others say "Arsch" for "Arche")
       cues: [
+        [0, 'music', 'fly', { then: 'hover', last: 'land', level: 0.4 }],
         [0, 'paint', 'steam', { for: 2.2 }],
         [0.2, 'paint', 'ark', { for: 1.8 }],
         ['38%', 'move', 'ark', { by: [0, 3.2], for: 3.8, ease: 'inOut' }],
@@ -118,6 +142,7 @@ export default {
       // (the town's) comes to rest in the light
       hold: 5.2,
       cues: [
+        [0, 'music', 'comets'],
         [0, 'crackle', { to: 0.1, for: 0.5 }],
         [0.3, 'paint', 'comet1', { for: 0.6, ease: 'in' }],
         [0.3, 'knock'],
@@ -141,7 +166,10 @@ export default {
       line: 'The wings were mine as well. They broke, and the ark fell, and I fell with it, below everything.',
       note: 'Guilt, and where he is now: the ark fell to the bottom of the world, with him in it. He has said this to himself many times.',
       instruct: 'Speak very low, full of regret, then flat and quiet.',
-      cues: [[0, 'crackle', { to: 0.3, for: 1.5 }]],
+      cues: [
+        [0, 'music', 'shards', { then: 'drift', last: 'home', level: 0.35 }],
+        [0, 'crackle', { to: 0.3, for: 1.5 }],
+      ],
     },
     {
       id: 'held',
@@ -183,6 +211,7 @@ export default {
       hold: 7.4,
       cues: [
         [0, 'crackle', { to: 0, for: 2.5 }],
+        [0.4, 'music', 'title'],
         [0.4, 'paint', 'title', { for: 2.6, ease: 'inOut' }],
         [3.2, 'fade', 'title', { for: 1.4 }],
         [2.6, 'closer', 'town', { by: 0.95, for: 3.8 }],

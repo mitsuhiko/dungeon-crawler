@@ -18,6 +18,9 @@
 // Kept in localStorage
 // (crawler.settings) as soon as they change, for every hero alike; the keys only as far as they
 // differ from the defaults. The music setting of before (crawler.music) is taken over once.
+// The music is on at first, but off with the dev tools (?dev=1), and kept only once chosen; the
+// films' scores play unless it was turned off (audio/music.js setMusicEnabled). Before version 3
+// off was the default, so an off kept then counts as not chosen.
 import { resolveBindings, overrides, assignKey, clearKey, actionsFor, defaultBindings, keyName, BAR_ACTIONS } from '../core/keybinds.js';
 import { setMusicEnabled } from '../audio/music.js';
 import { setVolume, setQuietBehind as quietAudio } from '../audio/context.js';
@@ -32,7 +35,8 @@ function read() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (s && typeof s === 'object') return s;
-    return { music: localStorage.getItem(OLD_MUSIC) === '1' };
+    const old = localStorage.getItem(OLD_MUSIC);
+    return old == null ? {} : { music: old === '1' };
   } catch { return {}; }
 }
 const volume = v => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1);
@@ -79,6 +83,9 @@ export const UI_SCALE_MIN = 0.9, UI_SCALE_MAX = 2;
 export const clampUiScale = s => (Number.isFinite(s) ? Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, s)) * 100) / 100 : 1);
 const oneOf = (list, v, fallback) => (list.includes(v) ? v : fallback);
 const stored = read();
+const dev = typeof location === 'object' && new URLSearchParams(location.search).get('dev') === '1';
+// the music: true or false once chosen, null before (on, but not with the dev tools)
+const storedMusic = typeof stored.music !== 'boolean' || (stored.v ?? 1) < 3 && !stored.music ? null : stored.music;
 // (settings kept before version 2 always had msaa: 2x was the default then, not a choice)
 const storedMsaa = (stored.v ?? 1) < 2 && stored.msaa === 2 ? 'auto' : stored.msaa;
 const settings = {
@@ -91,14 +98,14 @@ const settings = {
   motion: oneOf(MOTIONS, stored.motion, 'system'), brightness: clampBrightness(stored.brightness), fov: clampFov(stored.fov),
   minimap: stored.minimap in MINIMAPS ? stored.minimap : 'normal', itemNames: stored.itemNames === true, damageNumbers: stored.damageNumbers !== false,
   clickMove: stored.clickMove !== false, invertZoom: stored.invertZoom === true, startZoom: zoomStep(stored.startZoom),
-  music: stored.music === true, quietBehind: typeof stored.quietBehind === 'boolean' ? stored.quietBehind : !embedded,
+  music: storedMusic, quietBehind: typeof stored.quietBehind === 'boolean' ? stored.quietBehind : !embedded,
   masterVolume: volume(stored.masterVolume), musicVolume: volume(stored.musicVolume), soundVolume: volume(stored.soundVolume),
   voiceVolume: volume(stored.voiceVolume), subtitles: stored.subtitles !== false,
   keys: resolveBindings(stored.keys),
 };
 
 function sound() {
-  setMusicEnabled(settings.music);
+  setMusicEnabled(settings.music ?? !dev, settings.music !== false);
   setVolume('master', settings.masterVolume);
   quietAudio(settings.quietBehind);
   setVolume('music', settings.musicVolume);
@@ -109,7 +116,7 @@ function changed() {
   sound();
   try {
     const { language: lang, keys, ...rest } = settings;
-    localStorage.setItem(KEY, JSON.stringify({ v: 2, ...(lang && { language: lang }), ...rest, keys: overrides(keys) }));
+    localStorage.setItem(KEY, JSON.stringify({ v: 3, ...(lang && { language: lang }), ...rest, keys: overrides(keys) }));
   } catch { /* private mode: for this page only */ }
   for (const fn of listeners) fn();
 }
@@ -188,9 +195,9 @@ export function setStartZoomStep(i) { settings.startZoom = zoomStep(i); changed(
 
 // --- sound --------------------------------------------------------------------------------------
 
-export const musicOn = () => settings.music;
+export const musicOn = () => settings.music ?? !dev;
 export function setMusic(on) { settings.music = !!on; changed(); return settings.music; }
-export const toggleMusic = () => setMusic(!settings.music);
+export const toggleMusic = () => setMusic(!musicOn());
 export const masterVolume = () => settings.masterVolume;
 export function setMasterVolume(v) { settings.masterVolume = volume(v); changed(); }
 // quiet while the game is in the background (another tab or window in front)

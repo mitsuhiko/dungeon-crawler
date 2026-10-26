@@ -13,8 +13,9 @@ it (the jukebox only glided the first one of a pattern).
 **Writing a song?** Start with `music/README.md`: the game's musical style, how to build the
 layers, a format cheat sheet and a full example score.
 
-Music is off by default; the settings (in the Esc menu and the main menu) or M turn it on and
-off, and set its volume apart from the sound effects' (`src/game/settings.js`, kept in
+Music is on at first, but off with the dev tools (`?dev=1`); the settings (in the Esc menu and
+the main menu) or M turn it on and off, and the choice is kept once made. A film's score
+(below) plays unless the music was turned off, with the dev tools too. The settings set its volume apart from the sound effects' (`src/game/settings.js`, kept in
 `crawler.settings`; the music plays into its own bus of `src/audio/context.js`). Both buses go
 into a master with the volume of everything, which is quiet while the game is behind another tab
 or window (a setting: on at first, but not in the guide's game window). The synth is
@@ -109,6 +110,23 @@ stingers meant to play over the music: `levelup`, `chest` (a chest's glint), `le
 `memorized` (one soft ring for a cube got through), `questtaken`, `questfailed`, `trialsealed` (the
 knock and the ring), `trialfailed`, `revived` (by a friend), `horde` (it wakes), `dawn`, `dusk`,
 `enchant` and `portal` (a portal not gone through before).
+
+## A film's score
+
+A film (`docs/film.md`) has a score of its own, in `music/films/<film>.scrim` (the opening's is
+the title song told along the film), listed like the jingles in an `index.json`, for
+`tools/player.html` (Films). The film's `music` cues say which pattern plays when. A shot lasts
+as long as its line takes, which changes with the language and with the clip, so the score is
+laid out when the film starts, from its plan (`scorePlan` in `src/core/film.js`): each cue starts
+a stretch up to the next one, which plays its pattern, then a `then` pattern's bars over and over,
+then a `last` pattern, as many bars as come nearest its time, up to 5% faster or slower to fill it
+exactly (a short stretch holds its last notes). The cues stand at the shots without a line, which
+never change length, so what has to land on the picture lands; the beds go under the words, a
+`level` softer, so that the voice is heard. `filmEvents` (`src/audio/score.js`) turns that into
+notes in the film's time, and `playFilmScore` (`src/audio/music.js`) plays them on the sound's
+clock, which the film keeps to (its pictures follow that clock, not the frames). The songs wait
+for it: the next one starts once its last notes are over, or at once when the film is skipped
+(the score fades out with the picture). `music/README.md` says how to write one.
 
 ## Scheduling
 

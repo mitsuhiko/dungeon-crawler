@@ -13,7 +13,10 @@
 //
 // It has a renderer and canvas of its own, like the splash screen. While it plays the world
 // behind waits (state.film: game/state.js worldPaused), main.js draws nothing of it (filmCovers)
-// and the music waits (audio/music.js holdMusic). A click or key asks whether to skip, another
+// and the music waits (audio/music.js holdMusic); the film's own score (music/films/<score>.scrim)
+// plays instead, its stretches fitted to the shots (core/film.js scorePlan). The film's time is the
+// sound's clock while sound plays (else the page's), so the pictures keep with the score and the
+// voice when a frame stalls (the world loads behind). A click or key asks whether to skip, another
 // one skips; Esc skips at once. ?film=<name> plays one over the main menu (films.js), with
 // ?at=<s> from that far in, and ?hold=1 stopped there (to look at it); ?film=0 never plays the
 // opening. Reducing motion: the camera stays still and does not shake.
@@ -21,11 +24,12 @@ import * as THREE from 'three';
 import { stageUniforms, stageRenderer, floorMesh, beamMesh, mistMesh, pointCloud, glassMeshes, facets, glowTexture, NOISE } from '../render/stage.js';
 import { loadImage, loadText, flowOf, inkMaterial, inkPoints, TINTS, CELLS } from './ink.js';
 import { makeGlass } from './glass.js';
-import { schedule, readTime } from '../core/film.js';
+import { schedule, readTime, scorePlan } from '../core/film.js';
 import { splashHit, splashShatter } from '../audio/splash.js';
 import { filmCrackle } from '../audio/film.js';
-import { holdMusic } from '../audio/music.js';
-import { audioRunning } from '../audio/context.js';
+import { holdMusic, loadMusic, playFilmScore, stopFilmScore } from '../audio/music.js';
+import { barsOf, filmEvents } from '../audio/score.js';
+import { audioRunning, audioTime } from '../audio/context.js';
 import { reduceMotion } from '../game/settings.js';
 import { state } from '../game/state.js';
 import { tr } from '../i18n/i18n.js';
@@ -51,6 +55,7 @@ const VOICE_LEAD = 0.25;         // s into a shot its line starts
 const SKIP_ASK = 3.5;            // s the "again to skip" hint waits for the second press
 const REVEAL = 1.0;              // s the game comes out of the black after it
 const SKIP = 0.5;                // s to black when skipped
+const STEP = 1 / 20;             // s: the film's time moves on in steps of at most this
 
 const clamp01 = x => Math.min(1, Math.max(0, x));
 const EASE = {
@@ -154,7 +159,7 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
   onPress = e => {
     if (waiting) { waiting = false; hint.classList.remove('shown'); begin(); return; }
     if (skipAt < Infinity) return;
-    if (e.key === 'Escape' || t - askedAt < SKIP_ASK) { skipAt = t; hint.classList.remove('shown'); return; }
+    if (e.key === 'Escape' || t - askedAt < SKIP_ASK) { skipAt = t; hint.classList.remove('shown'); stopFilmScore(SKIP / 3); return; }
     askedAt = t;
     hint.textContent = coarse() ? tr('Tap again to skip') : tr('Click again to skip');
     hint.classList.add('shown');
@@ -167,6 +172,7 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
   const bubbles = [];  // the star-glass bubbles rising (bubble)
   const focus = { at: TARGET.clone(), near: 0 };   // what the camera goes closer to, how much
   let crackle = null;
+  let score = null, notes = null;   // the film's score, and its notes for this plan
 
   const loadLayers = Promise.all(Object.entries(film.layers).map(async ([name, def], i) => {
     const image = def.text ? await loadText(def.text) : await loadImage(def.image ?? name);
@@ -197,11 +203,17 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
     world.add(g.group);
     glasses.set(name, { name, def, g, ink: null, spin: deg(def.spin ?? 0), grown: false, y: 0, hover: 0, phase: Math.random() * 6 });
   }
+  // its score (none: the film is silent but for its voice and sounds)
+  const loadScore = () => (film.score ? loadMusic(`films/${film.score}`).then(s => { score = s; }) : Promise.resolve());
   function begin() {
-    Promise.all([loadLayers, loadVoices()]).then(() => {
+    Promise.all([loadLayers, loadVoices(), loadScore()]).then(() => {
       if (ended) return;
       crackle = filmCrackle();
       plan = schedule(film, shot => voices.get(shot.id)?.buffer.duration ?? readTime(tr(shot.line)));
+      if (score) {
+        try { notes = filmEvents(score.song, scorePlan(plan, name => barsOf(score.song, name))); }
+        catch (e) { console.warn('film score:', e); }
+      }
       ready = true; black.style.opacity = '0';
     }).catch(e => { console.warn('film:', e); end(); });
   }
@@ -495,6 +507,7 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
     black(c) { darkFrom = { t0: t, dur: c.for ?? 1.5 }; reveal = c.reveal ?? REVEAL; },
     // a soft knock, as of something far off hitting the glass (audio/splash.js)
     knock() { if (!seeking) splashHit(); },
+    music() {},   // (the score is laid out when the film starts: playFilmScore)
   };
   // the ink in a glass faces the camera, whichever way the glass is turned
   const faceCamera = gl => { if (gl.ink) gl.g.inside.rotation.y = -gl.g.group.rotation.y; };
@@ -585,17 +598,36 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
     return !((darkFrom && t >= darkFrom.t0 + darkFrom.dur + 0.1) || t >= plan.length + 0.5 || (skipAt < Infinity && t >= skipAt + SKIP + 0.05));
   }
 
-  peek = () => ({ film: film.name, t, length: plan?.length ?? null, voiced: [...voices.keys()], skipping: skipAt < Infinity });
+  peek = () => ({ film: film.name, t, length: plan?.length ?? null, voiced: [...voices.keys()], scored: !!notes, skipping: skipAt < Infinity });
   const startAt = Math.max(0, Number(at) || 0);
-  let last = performance.now() / 1000, started = false, seeking = false;
+  // the film's clock: the sound's while it plays (the score and the voices go by it), else the page's
+  let last = performance.now() / 1000, started = false, seeking = false, byAudio = false, origin = 0;
+  const clock = () => (byAudio ? audioTime() : performance.now() / 1000);
   function frame() {
     if (ended) return;
     const now = performance.now() / 1000, dt = Math.min(now - last, 1 / 20);
     last = now;
     if (ready) {
-      if (!started) { started = true; seeking = true; while (t < startAt) advance(Math.min(1 / 30, startAt - t), now); seeking = false; }
+      const still = hold && startAt;
+      if (!started) {
+        started = true; seeking = true;
+        while (t < startAt) advance(Math.min(1 / 30, startAt - t), now);
+        seeking = false;
+        byAudio = audioRunning() && !still;
+        origin = clock() - t;
+        if (byAudio && notes) playFilmScore(score, notes, origin);
+      }
       if (skipAt < Infinity) hush();
-      if (!(hold && startAt) && !advance(dt, now)) { end(); return; }
+      // on to where the clock says, in steps (after a long stall, or a while behind another tab,
+      // many: those go by silently, as a seek does, and the voice comes in where it is by then)
+      if (!still) {
+        const to = byAudio ? clock() - origin : t + dt, far = to - t > 0.5;
+        while (t < to - 1e-6) {
+          seeking = far && to - t > STEP;
+          if (!advance(Math.min(STEP, to - t), now)) { seeking = false; end(); return; }
+        }
+        seeking = false;
+      }
     }
     placeCamera(dt);
     for (const m of mists) m.quaternion.copy(camera.quaternion);
@@ -618,6 +650,7 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
     ended = true;
     peek = null;
     covering = false; state.film = false;
+    if (skipAt < Infinity) stopFilmScore(SKIP / 3);   // (else it rings on into the game, which waits for it)
     holdMusic(false);
     onPress = null;
     crackle?.stop(0.6);

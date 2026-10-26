@@ -49,7 +49,8 @@ docs that explain how the game works, from the big ideas down to the real code:
     On the splash screen's dark stage (`src/render/stage.js`), white ink paints itself in on dark
     paper (generated paintings, `assets/film/`, made by `tools/inklayer.py`, each spreading along
     its strokes), and glass grows, takes the ink in, rises and breaks. Narrated like the narrator,
-    in the glassmaker's voice. `?film=opening` plays it, `&at=12&hold=1` stops at a moment.
+    in the glassmaker's voice, and scored with the title song (`music/films/`), fitted to how long
+    the lines take in each language. `?film=opening` plays it, `&at=12&hold=1` stops at a moment.
   - The look of the menus (`docs/ui.md`): the bird's faceted teal glass with an amber core, on the
     menus, the inventory and the HUD (`style.css`, the panels' facets `assets/ui/facets.svg`).
   - Saves (`src/core/save.js`, `src/game/save.js`): up to three heroes and eight worlds,
