@@ -9,6 +9,6 @@ blender/previews/
 # shows subtitles without them (docs/narration.md)
 assets/narration/
 
-# the voice the narrator is cloned from (tools/voices/<voice>.flac, its words in .txt): kept out
-# with the clips until the voice is settled (docs/narration.md)
-tools/voices/
+# the voices still tried out (tools/voices/experiment_<voice>.flac, its words in .txt), the
+# narrator's among them: kept out until they are settled (docs/narration.md)
+tools/voices/experiment_*

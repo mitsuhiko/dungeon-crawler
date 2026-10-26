@@ -26,8 +26,8 @@ it. The cost: a recorded line cannot say a player's name (below).
 
 | Language | Model | Told it speaks | Voice | Cloned | Temperature |
 |---|---|---|---|---|---|
-| English | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | `English` | `lost-hearing` | `embedding` | 0.7 |
-| German | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | `German` | `lost-hearing` | `embedding` | 0.7 |
+| English | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | `English` | `experiment_lost-hearing` | `embedding` | 0.7 |
+| German | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | `German` | `experiment_lost-hearing` | `embedding` | 0.7 |
 
 `VOICES` in `tools/narration.mjs` says this. Every language kept with every change
 (`src/i18n/languages.js`: English and German) has a voice, which a test checks; the others
@@ -38,9 +38,9 @@ A voice is a recording and its words: `tools/voices/<voice>.flac` (mono, 24 kHz;
 seconds of one person talking, nothing else) and `tools/voices/<voice>.txt`, exactly what is
 said in it (transcribe it, then check it by ear). To make a voice deeper, change the recording,
 not the clips: the clone follows it, and says it without the artifacts a pitch shift leaves.
-`glassmaker-low` is `glassmaker` 12% down
+`experiment_glassmaker-low` is `experiment_glassmaker` 12% down
 (`ffmpeg -i in -af "aresample=24000,asetrate=21120,aresample=24000,atempo=1.136364" -ac 1 -ar 24000 -sample_fmt s16 out.flac`),
-and its clones come out 7 to 8% lower than `glassmaker`'s (the clone follows a little more than half
+and its clones come out 7 to 8% lower than `experiment_glassmaker`'s (the clone follows a little more than half
 the shift: 13% down made them 10% lower, 14% 11%). Bass added to the recording carries over only
 in part, and as boom: to make a voice fuller, use the `full` filter on the clips. The same voice speaks every language; in German
 it keeps a little of its English. The model clones a voice one of two ways (`clone`):
@@ -103,18 +103,18 @@ A voice can go through a filter after it is said (`filter` in `VOICES`; `FILTERS
   dropout, a stutter (a grain said twice) or a short burst of crushed digits (about one of them
   every two seconds of speech); under it all a faint buzz, hiss and a crackle now and then. On
   the intro, through the `robot` voice: Whisper understands every word, and the
-  speaker-verification model still finds `handelskai` in it (0.82; through `old-radio` 0.60).
+  speaker-verification model still finds `child` in it (0.82; through `old-radio` 0.60).
 
 A voice can also be **made** from another's recording (`MADE` in `tools/narration.mjs`): the
 recording goes through a `prepare` step (`PREPARE` in `tools/narration.py`) before the voice is
 taken from it, and the made voice brings its filter along (unless `VOICES` or `--filter` say
 another). There is one:
 
-- `robot`: `handelskai`, its recording roughed up first (`prepare: 'robot'`: a 4.5 ms feedback
+- `robot`: `child`, its recording roughed up first (`prepare: 'robot'`: a 4.5 ms feedback
   comb, ring modulation at 70 Hz and samples held at 8 kHz, each about a third), then through
   `defects`. The model takes a voice a little off from the roughed-up recording: its speaker
   embedding stays close to the plain one (0.98, cosine) and the clones say every word, but
-  they come out a little further from `handelskai` (0.79 against 0.88 by the
+  they come out a little further from `child` (0.79 against 0.88 by the
   speaker-verification model, before `defects`). Stronger roughing up moves it further (0.73 at
   twice as much) without the clones losing words; half as much (an embedding at 0.995) changes nothing measurable.
   `node tools/narration.mjs --say "..." --voice robot`.
@@ -124,57 +124,60 @@ another). There is one:
   spectrum that of `<voice>`'s recording (its speech, the quiet left out). The clip's hash takes
   the target recording's along.
 
-A voice can also be a **mix** of voices (`mix` in `MADE`, or `--voice glassmaker:0.7,lost-hearing:0.3`):
+A voice can also be a **mix** of voices (`mix` in `MADE`, or `--voice experiment_glassmaker:0.7,experiment_lost-hearing:0.3`):
 the model takes their speaker embeddings, weighted and averaged, so it speaks as someone
-between them (embedding cloning only). There is one, `glassmaker-mix`: `glassmaker` and
-`lost-hearing` half and half, through `tone:lost-hearing`.
+between them (embedding cloning only). There is one, `glassmaker-mix`: `experiment_glassmaker` and
+`experiment_lost-hearing` half and half, through `tone:experiment_lost-hearing`.
 
-Why `glassmaker` sounds so unlike the narrator (`lost-hearing`), measured on the intro: mostly
+Why `experiment_glassmaker` sounds so unlike the narrator (`experiment_lost-hearing`), measured on the intro: mostly
 the tone. The narrator's recording went through a radio: almost nothing under 250 Hz (40 dB under
 its loudest band), its weight at 300 to 600 Hz and a strong 1 to 5 kHz, so its clones are thin,
-forward and bright (a spectral centroid of 760 Hz). `glassmaker` is a phone held close: most of
+forward and bright (a spectral centroid of 760 Hz). `experiment_glassmaker` is a phone held close: most of
 its weight under 300 Hz, 10 to 20 dB less between 1 and 5 kHz, so its clones are full and dark
 (211 Hz). The speaker embedding carries that along, and so do the clones. The rest is the
 person. How far each step goes (the speaker-verification model's likeness to each voice's
 recording; Whisper understood every word of each):
 
-| | like the narrator | like `glassmaker` |
+| | like the narrator | like `experiment_glassmaker` |
 |---|---|---|
 | the narrator's own clone | 0.92 | 0.54 |
-| `glassmaker` | 0.54 | 0.97 |
-| `glassmaker`, `tone:lost-hearing` | 0.55 | 0.74 |
-| mixed 70 / 30, `tone:lost-hearing` | 0.58 | 0.71 |
-| mixed 50 / 50, `tone:lost-hearing` (`glassmaker-mix`) | 0.70 | 0.66 |
-| mixed 30 / 70, `tone:lost-hearing` | 0.81 | 0.59 |
+| `experiment_glassmaker` | 0.54 | 0.97 |
+| `experiment_glassmaker`, `tone:experiment_lost-hearing` | 0.55 | 0.74 |
+| mixed 70 / 30, `tone:experiment_lost-hearing` | 0.58 | 0.71 |
+| mixed 50 / 50, `tone:experiment_lost-hearing` (`glassmaker-mix`) | 0.70 | 0.66 |
+| mixed 30 / 70, `tone:experiment_lost-hearing` | 0.81 | 0.59 |
 
 A mix (or a voice through a filter) can be **baked** into a voice of its own: a recording of it
 saying something, made like any clip but lossless, which is then cloned like a recording of a
-person. `glassmaker-blend` is `glassmaker` and `lost-hearing` 30 / 70 through
-`tone:lost-hearing`, baked:
+person. `glassmaker` is `experiment_glassmaker` and `experiment_lost-hearing` 30 / 70 through
+`tone:experiment_lost-hearing`, baked:
 
 ```sh
-node tools/narration.mjs --bake glassmaker-blend --voice glassmaker:0.3,lost-hearing:0.7 --filter tone:lost-hearing
+node tools/narration.mjs --bake glassmaker --voice experiment_glassmaker:0.3,experiment_lost-hearing:0.7 --filter tone:experiment_lost-hearing
 ```
 
 It says the words of the first voice's recording (or `--say`), 29 s of them, into
-`tools/voices/glassmaker-blend.flac` and `.txt`. A voice taken from a recording of itself comes
+`tools/voices/glassmaker.flac` and `.txt`. A voice taken from a recording of itself comes
 back a little off (its speaker embedding at 0.986, cosine, to the mix's, whatever the take; a
 longer recording, or steering the mix against the drift, did not get closer than 0.99), but its
 clones need no mix and no filter: on the intro the speaker-verification model finds them 0.99
-like the mix's own (filtered) clones, 0.79 like the narrator and 0.58 like `glassmaker`, the tone
+like the mix's own (filtered) clones, 0.79 like the narrator and 0.58 like `experiment_glassmaker`, the tone
 within 2.5 dB band by band, and Whisper understands every word.
 
 The tone alone takes the low end away and brings the mids up (a centroid of 600 Hz; still about
 7 dB darker between 1 and 2.5 kHz, where the EQ's smoothing and its 15 dB limit hold it back)
-and still sounds quite clearly like `glassmaker`; the mix moves the person, and with it the
+and still sounds quite clearly like `experiment_glassmaker`; the mix moves the person, and with it the
 rest of the tone (from 50 / 50 on, every band within 2 dB of the narrator's).
 
 The noise is seeded by the line's seed and text, so a clip is the same every time. A voice without a filter makes the same clips as before filters
 were there; turning one on (or changing it: raise `PIPELINE`) renders its clips again. To hear it
-first: `node tools/narration.mjs --say "..." --voice handelskai --filter old-radio`. **The recording is not committed yet** (`tools/voices/`
-is in `.gitignore`, like the clips): without it the tool cannot render or check the clips, and
-says so. Whose voice it is, and that we may use it, has to be settled before it ships, and then
-credited where the game credits things.
+first: `node tools/narration.mjs --say "..." --voice child --filter old-radio`.
+
+The voices kept are committed (`glassmaker`, `child`); the ones still tried out are named
+`experiment_<voice>` and stay out of Git (`tools/voices/experiment_*` is in `.gitignore`), among them
+the narrator's for now (`experiment_lost-hearing`). Without a voice's recording the tool cannot
+render or check its clips, and says so. Whose voice each is, and that we may use it, has to be
+settled before it ships, and then credited where the game credits things.
 
 ### Instructions
 
@@ -189,7 +192,7 @@ speaks in the cloned voice and follows instructions. The trick is from
 (`docs/custom-voices.md`, `docs/emotion-instruct-control.md`); Qwen's own model for it
 (VoiceEditing) is announced, not out.
 
-Measured on `glassmaker-blend`, two sentences, two takes each (an emotion classifier, the
+Measured on `glassmaker`, two sentences, two takes each (an emotion classifier, the
 speaker-verification model's likeness to the voice's recording):
 
 | | like the voice | length | emotion heard |
@@ -253,7 +256,7 @@ and a line with tags makes the same clip as without.
 | `src/i18n/de/story.js` | their German (`src/i18n/sources.js` lists the table, so `npm run i18n` wants it) |
 | `tools/narration.mjs` | says every line in every voiced language and form, decides what to render, writes the manifest |
 | `tools/narration.py` | renders: Qwen3-TTS cloning the voice, then trimmed, levelled, MP3 (uv script, its dependencies inline) |
-| `tools/voices/<voice>.flac`, `.txt` | the voices cloned: a recording and its words (not committed yet) |
+| `tools/voices/<voice>.flac`, `.txt` | the voices cloned: a recording and its words (`experiment_*` not committed) |
 | `assets/narration/<lang>/<clip>.mp3` | the clips: mono, 24 kHz, 48 kbit/s; `<clip>` is the id, or `<id>.<form>` |
 | `assets/narration/manifest.json` | per language and clip: its text, seed, length in seconds and a hash of what made it |
 | `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles |
@@ -312,7 +315,7 @@ node tools/narration.mjs                    # render it, drop clips of lines tha
 node tools/narration.mjs --lang de --only boss.   # some languages / ids only (prefixes)
 node tools/narration.mjs --force --only boss.gusto  # again, even if current
 node tools/narration.mjs --takes 4 --only boss.gusto [--lang de] [--first-seed 10]
-node tools/narration.mjs --say "Any text." [--voice handelskai] [--lang de] [--seed 2]
+node tools/narration.mjs --say "Any text." [--voice child] [--lang de] [--seed 2]
 ```
 
 `--say` previews a voice: it says any text (sentence by sentence, as a line) in a voice of

@@ -23,14 +23,14 @@
 //                                            (printed), assets untouched; then pin the best as
 //                                            the line's `seed`
 //   node tools/narration.mjs --takes 3 --first-seed 10   seeds 10-12
-//   node tools/narration.mjs --say "Any text." [--voice handelskai|robot|glassmaker:0.5,lost-hearing:0.5]
-//                                [--filter old-radio|tone:lost-hearing|none]
+//   node tools/narration.mjs --say "Any text." [--voice child|robot|experiment_glassmaker:0.5,experiment_lost-hearing:0.5]
+//                                [--filter old-radio|tone:experiment_lost-hearing|none]
 //                                [--instruct "Speak slowly."] [--lang de] [--seed 2]
 //                                            preview: says the text in a voice (tools/voices/; the
 //                                            language's own voice and filter when left out) into
 //                                            narration-takes/say/ in the temp directory
-//   node tools/narration.mjs --bake glassmaker-blend --voice glassmaker:0.3,lost-hearing:0.7
-//                                [--filter tone:lost-hearing] [--say "..."] [--seed 0]
+//   node tools/narration.mjs --bake glassmaker --voice experiment_glassmaker:0.3,experiment_lost-hearing:0.7
+//                                [--filter tone:experiment_lost-hearing] [--say "..."] [--seed 0]
 //                                            bakes a voice (a mix, a filter) into a recording of
 //                                            its own, tools/voices/<name>.flac and .txt; it says
 //                                            --say, or the words of the (first) voice's recording
@@ -64,7 +64,7 @@ export const VOICE_DIR = resolve(ROOT, 'tools/voices');
 // instruction for every line that has none (none: as it comes).
 const MODEL = 'Qwen/Qwen3-TTS-12Hz-1.7B-Base';
 const SPEAKER = 'Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice';
-const NARRATOR = { model: MODEL, speaks: SPEAKER, voice: 'lost-hearing', clone: 'embedding', temperature: 0.7 };
+const NARRATOR = { model: MODEL, speaks: SPEAKER, voice: 'experiment_lost-hearing', clone: 'embedding', temperature: 0.7 };
 export const VOICES = {
   en: { ...NARRATOR, language: 'English' },
   de: { ...NARRATOR, language: 'German' },
@@ -75,9 +75,9 @@ export const VOICES = {
 // a voice between them (their speaker embeddings averaged; 'embedding' cloning only)
 export const MADE = {
   // the Glassmaker's recording halfway to the narrator's voice, in the narrator's tone
-  'glassmaker-mix': { mix: { glassmaker: 0.5, 'lost-hearing': 0.5 }, filter: 'tone:lost-hearing' },
-  // a machine's voice, still hers: handelskai, mostly monotone, in a metal can
-  robot: { from: 'handelskai', filter: 'metal-monotone' },
+  'glassmaker-mix': { mix: { experiment_glassmaker: 0.5, 'experiment_lost-hearing': 0.5 }, filter: 'tone:experiment_lost-hearing' },
+  // a machine's voice, still hers: child, mostly monotone, in a metal can
+  robot: { from: 'child', filter: 'metal-monotone' },
 };
 // a voice's settings, as VOICES gives them, with what a made voice brings
 const settingsOf = voice => {
@@ -174,7 +174,7 @@ const specOf = (voice, ref, seed, text, said) => ({
 });
 // the voice a filter is given (`tone:<voice>`), or null
 const targetOf = filter => (filter?.includes(':') ? filter.slice(filter.indexOf(':') + 1) : null);
-// a mix given as 'glassmaker:0.7,lost-hearing:0.3' ({ voice: weight }), or null
+// a mix given as 'experiment_glassmaker:0.7,experiment_lost-hearing:0.3' ({ voice: weight }), or null
 const mixOf = voice => MADE[voice]?.mix
   ?? (/[:,]/.test(voice) ? Object.fromEntries(voice.split(',').map(p => [p.split(':')[0], Number(p.split(':')[1] ?? 1)])) : null);
 
