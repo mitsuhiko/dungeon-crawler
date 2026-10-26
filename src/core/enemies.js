@@ -961,7 +961,107 @@ export const SLOMO_SLUG = {
     { ...SLOMO_METEOR, clip: 'meteorSlug', rain: { ...SLOMO_METEOR.rain, count: 5, muzzle: [0, 2.371, 1.167] } }],
   phase: 3, style: 'ranged', keep: [3, 7],
 };
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO];
+// Mansk, the seventh real boss (blender/mansk.py, after the kids' drawing), in place of the descent
+// guardian of depth 6 (core/bosses.js): a white mask floating with nobody behind it, a big round
+// mouth with darkness behind it, a blue diamond on his forehead and two long wavy beige horns. He
+// fights on the stage of a museum
+// (cubegen/arenashapes.js `stage`); game/mansk.js runs his fight, core/mansk.js holds its rules.
+// He floats (`hover`) and the fight lifts him higher (`lift`: flying, out of a blade's reach) and
+// lands him. Phase 1: he breathes in (a `pull`, Gusto's way: game/gusts.js) and what gets to his
+// mouth he chews (`spit`, a `grab` that holds it in his mouth, `gulp`: hidden, and bites it) and
+// spits out; out of his horns he calls balls of light that hang a moment, then shoot and burst,
+// hurting all round (`orbs`, a cast: game/mansk.js); and Tornados. Phase 2 (MANSK_SKY): up in the
+// air and down again, more balls and Tornados, and he slows time (`slow`, a cast every game reads
+// off his clock). Phase 3 (MANSK_RIBBONS): his horns are broken, red ribbons fly round him
+// (core/ribbon.js), the ties of a mask: they catch a player (a `grab`, `ribbons`), squeeze them and let them go; he
+// whirls round, the ribbons sweeping all round him.
+// Where things are on him (model space: x, up, forward), read off his clips (blender/mansk.py)
+const MANSK_AT = Object.freeze({
+  mouth: [0.021, 0.972, 0.479],
+  gulp: [[0.001, 0.983, 0.18], [0, 0.983, 0.18], [-0.002, 0.984, 0.179], [-0.003, 0.984, 0.176], [-0.003, 0.983, 0.173], [-0.004, 0.953, 0.164],
+    [-0.004, 0.906, 0.15], [-0.004, 0.955, 0.155], [-0.004, 0.987, 0.156], [-0.004, 0.991, 0.152], [-0.003, 0.99, 0.148], [-0.002, 0.96, 0.138],
+    [-0.001, 0.912, 0.125], [0, 0.962, 0.132], [0.001, 0.994, 0.134], [0.002, 0.996, 0.133], [0.003, 0.997, 0.132], [0.004, 0.972, 0.215],
+    [0.005, 0.945, 0.321]],
+  tips: [[0.351, 3.503, -0.88], [-0.411, 3.518, -0.831]],
+  diamond: [-0.023, 1.919, 0.119],
+  summon: [0.033, 0.497, 0.724],
+  lash: [[-0.059, 0.503, 2.144], [-0.068, 0.735, 2.105], [-0.058, 1.177, 1.996], [-0.009, 1.428, 2.021], [0.004, 1.418, 1.909], [0.037, 1.418, 1.908],
+    [0.062, 1.428, 2.02], [0.07, 1.418, 1.908], [0.06, 1.418, 1.908], [0.034, 1.428, 2.021], [-0.005, 1.418, 1.909], [-0.038, 1.418, 1.901],
+    [-0.062, 1.418, 1.9]],
+});
+// Breathing in: from the hit frame for `pull.time` whoever is in the cone before his mouth is
+// pulled in, right up to him; one whose middle gets within MANSK_FIGHT.gulp of his mouth goes in
+// (game/mansk.js): the spit. Standing still you are drawn in; running away keeps `hold` of your
+// steering, a little faster than he pulls (RUN_SPEED × hold > speed), and stepping out of the cone
+// to a side gets you out at once (he stops turning as he starts to suck). Only when due
+// (MANSK_FIGHT.inhale), not over and over.
+const MANSK_INHALE = {
+  name: 'inhale', clip: 'inhale', weight: 3, reach: 6, hitAt: 18 / 30, trackUntil: 18 / 30, attackTime: 96 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Mansk', recover: 0.8,
+  pull: { kind: 'inhale', time: 66 / 30, range: 6, width: 0.7, spread: 0.4, speed: 1.5, hold: 0.7, stop: 0.95, muzzle: MANSK_AT.mouth },
+};
+// ... and what went in: held in his mouth (`gulp`: not seen meanwhile), chewed twice (`bites`, each
+// the blow through the armor) and spat out at `throwAt`, knocked down: a lot of damage in all.
+// Only a gulp starts it (`weight` 0, no reach).
+const MANSK_SPIT = {
+  name: 'spit', clip: 'spit', weight: 0, reach: 0, hitAt: 0, trackUntil: 0, attackTime: 54 / 30, hitReach: 0,
+  arc: -1, power: 0.9, knock: 0, knockDown: true, hop: 3, reason: 'Chewed and spat out by Mansk!', recover: 0.8,
+  grab: { gulp: true, throwAt: 36 / 30, step: 2 / 30, hold: 0.8, throw: 8, bites: [12 / 30, 24 / 30], grip: MANSK_AT.gulp },
+};
+// balls of light out of his horns (a cast: game/mansk.js makes them at the hit frame): they hang at
+// the knobs (and over his diamond) for MANSK_FIGHT.orbs.hang s, then shoot at the player and burst
+// where they end, hurting everyone within `blast` (game/projectiles.js)
+const MANSK_ORBS = {
+  name: 'orbs', clip: 'orbs', weight: 3, reach: 12, hitAt: 24 / 30, trackUntil: 0.6, attackTime: 54 / 30, hitReach: 0,
+  arc: -1, power: 0.75, knock: 5, knockDown: false, hop: 3, reason: "Blasted by Mansk's ball of light!", cast: 'orbs',
+  orb: { kind: 'hornorb', speed: 8, radius: 0.26, range: 18, blast: 1.6, color: '#8fc8ff', tips: MANSK_AT.tips, diamond: MANSK_AT.diamond },
+};
+const MANSK_SUMMON = {
+  name: 'summon', clip: 'summon', weight: 2, reach: 12, hitAt: 30 / 30, trackUntil: 0.4, attackTime: 48 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Mansk',
+  summon: { kind: 'stagetornado', muzzle: MANSK_AT.summon },
+};
+// time goes slow (a cast): every game slows its own player, his game his Tornados (game/mansk.js)
+const MANSK_SLOW = {
+  name: 'slow', clip: 'slow', weight: 2, reach: 16, hitAt: 30 / 30, trackUntil: 0.5, attackTime: 54 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Mansk', cast: 'slow',
+};
+// his ribbons reach out and catch (within hitReach, inside the arc), hold the body up before him
+// along `grip` and squeeze it (`bites`), then let it go (`throwAt`)
+const MANSK_LASH = {
+  name: 'lash', clip: 'lash', weight: 3, reach: 4.2, hitAt: 24 / 30, trackUntil: 20 / 30, attackTime: 84 / 30, hitReach: 4.6,
+  arc: 0.3, power: 0.55, knock: 0, knockDown: false, hop: 2, reason: "Squeezed by Mansk's ribbons!",
+  grab: { ribbons: true, throwAt: 72 / 30, step: 4 / 30, hold: 0.7, throw: 6, bites: [36 / 30, 48 / 30, 60 / 30], grip: MANSK_AT.lash },
+};
+const MANSK_WHIRL = {
+  name: 'whirl', clip: 'whirl', weight: 2, reach: 3.4, hitAt: 36 / 30, trackUntil: 0.3, attackTime: 72 / 30, hitReach: 4,
+  arc: -1, power: 0.8, knock: 8, knockDown: true, hop: 4, reason: "Swept away by Mansk's ribbons!",
+};
+export const MANSK = {
+  type: 'mansk', species: 'mansk', label: 'Mansk', hp: 1000, damage: 24, knock: 3,
+  xp: 700, coins: [180, 320],
+  radius: 0.7, height: 3.6, bodyHeight: 2.1, mass: 7, hover: true,
+  aggro: 7, giveUp: 14, chase: 1.5, wander: 0.4, homeSpeed: 0.9,
+  ...MANSK_ORBS, cooldown: 1.2, ichor: ['#ffffff', '#9ac8ff'], pitch: 0.65,
+  attacks: [MANSK_INHALE, MANSK_SPIT, MANSK_ORBS, MANSK_SUMMON], phase: 1,
+  poise: 2, hitStun: 0.25, deathTime: 2.4, corpseTime: 5,
+  parts: { head: ['ManskHead'], horns: ['ManskHorns'], diamond: ['ManskDiamond_glow'] },
+  light: '#6fb4ff', sparks: ['#ffffff', '#bfe0ff', '#6fb4ff'],
+  style: 'ranged', keep: [3, 6.5], guardian: true, guardianRole: 'descent', boss: 'mansk',
+  seedSalt: 0x3a45c0, spacing: 6,
+};
+// ... flying (phase 2): up and down, time slowed now and then; three balls at once
+export const MANSK_SKY = {
+  ...MANSK, type: 'manskflying', chase: 1.8, cooldown: 1.1,
+  attacks: [MANSK_INHALE, MANSK_SPIT, MANSK_ORBS, MANSK_SUMMON, MANSK_SLOW], phase: 2,
+};
+// ... his horns broken, his ribbons out (phase 3)
+export const MANSK_RIBBONS = {
+  ...MANSK, type: 'manskribbons', chase: 1.9, cooldown: 1,
+  ...MANSK_LASH, attacks: [MANSK_INHALE, MANSK_SPIT, MANSK_LASH, MANSK_WHIRL, MANSK_SUMMON, MANSK_SLOW], phase: 3,
+  style: 'brute', ribbons: true,
+};
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp
@@ -1303,7 +1403,7 @@ export const SQUARLO_GIANT = enemyKind(SQUARLO, {
 // a boss's profile for each of its stages (game/squarlo.js; a friend's game swaps it by the stage
 // the runner sends, net/foes.js)
 export const STAGE_PROFILES = { squarlo: [SQUARLO, SQUARLO_GIANT], foggery: [FOGGERY, FOGGERY_BALL, FOGGERY_BALL],
-  renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_LEGS, SLOMO_SLUG] };
+  renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_LEGS, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS] };
 // One full attack and recovery, averaged over a species' attacks (s), and what it deals per
 // second at level 1 (a projectile's burn included): how dangerous it is to stand next to.
 export function attackCycle(profile) {
@@ -1476,11 +1576,17 @@ export const SLIME_SQUIRTLE = enemyKind(SQUIRTLE, {
   aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05), puff: SLIME_PUFF,
   mods: { hp: 1.1, damage: 0.8, size: 1.3, xp: 0.2 },
 });
+// Mansk's Tornados (game/mansk.js): plain ones, weaker, going for the player at once; they turn up
+// (and go) in a puff of wind
+export const STAGE_TORNADO = enemyKind(TORNADO, {
+  type: 'stagetornado', minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
+  puff: { colors: ['#ffffff', '#e6dcff', '#c8b8ff'], size: 0.6 }, mods: { hp: 0.6, damage: 0.55, xp: 0.15 },
+});
 export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.values(GUARDIAN_KINDS), ...Object.values(DESCENT_GUARDIAN_KINDS), SAND_VIPER, BLOOD_VIPER, FROST_ADDER, VENOM_ADDER, SHADOW_MAMBA, FROST_SPIDER, BOG_SPIDER,
   GLOOM_SPIDER, REDBACK, FROST_STUNDER, STONE_STUNDER, MAGMA_STUNDER, BOG_OCTONAUT, CORAL_OCTONAUT, EMERALD_TRIANGLE, CRIMSON_TRIANGLE, FIRE_SHRAPS,
   BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, CORAL_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
   NIGHTSHADE, DUST_WOLK, STORM_WOLK, MOSS_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
-  TIDE_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE].map(k => [k.type, k]));
+  TIDE_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
 // like the dead
@@ -1514,9 +1620,13 @@ export function hurtBy(e) {
 // is e up in the air now (Squarlo a giant, jumping: between the jump's take-off and the landing,
 // game/squarlo.js lifts him; a Tornado riding a twister, game/enemyai.js): nothing touches him
 export function airborne(e) {
+  if ((e.lift ?? 0) > 1) return true;   // (Mansk flying high, game/mansk.js)
   const a = e.mode === 'attack' ? attackOf(e) : null, j = a?.jump ?? a?.ride;
   return !!j && e.t >= j.from && e.t < a.hitAt;
 }
+// the bottom of e's body: its feet, or how high over its floor it flies (`lift`: Mansk, game/mansk.js;
+// `y` stays its floor's height, which it walks on)
+export const baseY = e => e.y + (e.lift ?? 0);
 // is e warded now (Squarlo casting the tide: an attack's `ward`): nothing hurts it
 export const wardedNow = e => e.mode === 'attack' && !!attackOf(e).ward;
 // is e in the `steady` part of an attack now (Totnar rolling): blows hurt it but do not stagger it

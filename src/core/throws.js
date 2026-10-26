@@ -8,7 +8,7 @@
 // thing it touches: an enemy's body, a wall, a prop or the floor (past the target it keeps
 // falling, so a throw off a ledge comes down below). The aiming arc is the very same flight.
 import { MUZZLES } from './shots.js';
-import { absent } from './enemies.js';
+import { absent, baseY } from './enemies.js';
 
 export const LOB_GRAVITY = 16;    // cells/s², heavier than the world's for a snappy arc
 export const FLASK_R = 0.09;      // the flask's radius, for touching bodies
@@ -66,7 +66,7 @@ export function arcOf(from, to, enemies, solid, step = 1 / 30) {
 export function burstVictims(at, radius, enemies) {
   const out = [];
   for (const e of enemies) {
-    if (absent(e) || e.y > at.y + 1.2 || e.y + e.profile.bodyHeight < at.y - 1) continue;
+    if (absent(e) || baseY(e) > at.y + 1.2 || baseY(e) + e.profile.bodyHeight < at.y - 1) continue;
     const d = Math.max(0, Math.hypot(e.x - at.x, e.z - at.z) - e.profile.radius);
     if (d <= radius) out.push({ e, share: 1 - 0.5 * d / radius });
   }

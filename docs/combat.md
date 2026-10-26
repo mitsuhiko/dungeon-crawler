@@ -212,6 +212,14 @@ The controls are the same for all.
   always a flail among it. In phases 2 and 3 he casts
   spiders, then Fire-faces, out of the sky, and the fight falls from dusk into night. See
   [bosses.md](bosses.md#renew).
+- Mansk (`blender/mansk.py`), the seventh real boss, in place of the descent guardian of depth 6,
+  on the stage of his museum: a white mask with a blue diamond and two long wavy beige horns,
+  floating. He breathes in, and what gets to his mouth he chews and spits out; he throws balls of
+  light from his horns that hang a moment and burst where they land; he calls Tornados. At two
+  thirds he flies (only shots reach him up there; he lands now and then) and slows time for you
+  and his Tornados, not for himself. At a third his horns break and long red ribbons come out,
+  simulated as ropes (`core/ribbon.js`): they swirl round him, catch you, squeeze you and let you
+  go. See [bosses.md](bosses.md#mansk).
 - Squirtle (`blender/squirtle.py`): a little blue water serpent with a beak that runs about under
   the floor (nothing touches it there) and pokes out of it to spit balls of water with a tiny
   push; it lives in the lagoons, the sunken grotto and the cenote, and Squarlo summons them.

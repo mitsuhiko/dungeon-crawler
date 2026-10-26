@@ -40,6 +40,9 @@ const LOOKS = {
   // a spell of Renew's staff, or an echo's shot (game/rewind.js): no model, a glowing orb in its
   // `color` (the spec's), like the player's spells (render/shots.js)
   orb: { orb: true, light: [0xbdf3ff, 2.2, 3], trail: ['#ffffff'], rate: 60 },
+  // one of Mansk's balls of light (game/mansk.js): an orb as big as its spec says, hanging at his
+  // horns before it shoots; where it will burst is marked on the floor (`mark`)
+  hornorb: { orb: true, light: [0x8fc8ff, 2.8, 3.5], trail: ['#ffffff', '#bfe0ff'], rate: 45 },
   // an arrow of Renew's bow: the game's arrow (the player's, render/shots.js), head first, a faint trail
   arrow: { arrow: true, light: [0xfff0d0, 0.4, 1.5], trail: ['#f2ead8'], rate: 12 },
 };
@@ -90,11 +93,15 @@ export function drawProjectiles(list, dt, off = { x: 0, y: 0, z: 0 }) {
   for (const pr of list) {
     const v = pr.view || (pr.view = makeView(pr)), g = v.group;
     g.position.set(pr.x + off.x, pr.y + off.y, pr.z + off.z);
-    g.lookAt(ahead.set(pr.vx, pr.vy, pr.vz).add(g.position));   // +Z along the flight
+    if (pr.vx || pr.vy || pr.vz) g.lookAt(ahead.set(pr.vx, pr.vy, pr.vz).add(g.position));   // +Z along the flight
     if (pr.spec.spin) g.rotateZ(pr.t * pr.spec.spin);
     if (pr.spec.tumble) g.rotateX(pr.t * pr.spec.tumble);
     if (pr.kind === 'fireball') g.scale.setScalar(1 + 0.08 * Math.sin(pr.t * 40));
     if (pr.kind === 'orb') g.scale.setScalar(1 + 0.12 * Math.sin(pr.t * 37));
+    if (pr.kind === 'hornorb') {
+      g.scale.setScalar(pr.spec.radius / 0.13 * Math.min(1, 0.3 + pr.t * 1.4) * (1 + 0.1 * Math.sin(pr.t * 23)));
+      markBurst(v, pr, off);
+    }
     if (pr.kind === 'slugarm') g.scale.set(1 + 0.12 * Math.sin(pr.t * 23), 1, 1 - 0.1 * Math.sin(pr.t * 23));
     if (pr.kind === 'water') g.scale.set(1 + 0.12 * Math.sin(pr.t * 31), 1 - 0.1 * Math.sin(pr.t * 31), 1 + 0.15 * Math.sin(pr.t * 17));
     v.light.intensity = v.base * (0.8 + 0.2 * Math.sin(pr.t * 31) * Math.sin(pr.t * 13));
@@ -107,8 +114,25 @@ export function drawProjectiles(list, dt, off = { x: 0, y: 0, z: 0 }) {
     }
   }
 }
+// where a ball will burst: a ring on the floor as wide as its burst, closing in as it comes
+const ringGeometry = new THREE.RingGeometry(0.86, 1, 40).rotateX(-Math.PI / 2);
+function markBurst(v, pr, off) {
+  if (!pr.mark) return;
+  if (!v.mark) {
+    v.mark = new THREE.Mesh(ringGeometry, new THREE.MeshBasicMaterial({ color: pr.spec.color ?? '#8fc8ff', transparent: true, opacity: 0.7,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    v.mark.renderOrder = 2;
+    scene.add(v.mark);
+    v.owned.push(v.mark.material);
+  }
+  const k = 0.5 + 0.5 * Math.sin(pr.t * 18);
+  v.mark.position.set(pr.mark.x + off.x, pr.mark.y + 0.04 + off.y, pr.mark.z + off.z);
+  v.mark.scale.setScalar(pr.spec.blast * (0.9 + 0.1 * k));
+  v.mark.material.opacity = 0.45 + 0.35 * k;
+}
 export function removeProjectileViews(list) {
   for (const pr of list) if (pr.view) {
+    if (pr.view.mark) scene.remove(pr.view.mark);
     scene.remove(pr.view.group); untrackLight(pr.view.light);
     pr.view.owned.forEach(m => m.dispose()); pr.view = null;
   }

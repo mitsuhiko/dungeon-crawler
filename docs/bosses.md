@@ -5,10 +5,10 @@ boss placeholders ([guardians.md](guardians.md)): the game calls them **Temp Bos
 (`♛ Temp Boss Spider`), as they hold the place of bosses to come. `BOSSES` in `src/core/bosses.js` says which
 depth has which: so far the first descent, on the road out of town (depth 0), has **Gusto**, the
 second (depth 1) **Totnar**, the third (depth 2) **Squarlo**, the fourth (depth 3) **Flip**, the
-fifth (depth 4) **Foggery** and the sixth (depth 5) **Renew**; at the bottom of act II (depth 13)
-**Slomo**. A boss may bring an arena of its own (`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box,
-Foggery's caldera, Slomo's slime bowl), or only braziers lit round the one his depth has (Totnar,
-Renew).
+fifth (depth 4) **Foggery**, the sixth (depth 5) **Renew** and the seventh (depth 6, the last of
+act I) **Mansk**; at the bottom of act II (depth 13) **Slomo**. A boss may bring an arena of its own
+(`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's caldera, Mansk's museum, Slomo's slime
+bowl), or only braziers lit round the one his depth has (Totnar, Renew).
 
 The layout marks that arena's guardian with `boss` (`world/layout.js`, `cubegen/guardian.js`;
 `bossPlaceholder` is false there). The boss stands on the guardian's spot **alone**: no
@@ -25,8 +25,8 @@ Like every guardian's arena, leaving it while the boss lives asks first, and bei
 the entrance never takes you out ([guardians.md](guardians.md#encounter-and-persistence)).
 
 Each boss runs its own fight (`game/gusto.js`, `game/totnar.js`, `game/squarlo.js`, `game/flip.js`,
-`game/foggery.js`, `game/renew.js`, `game/slomo.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
-`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/slomo.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
+`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/slomo.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
+`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/slomo.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
 body into it, the floors a body fits on, putting minions down round their boss and letting
 bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they pay a little XP
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
@@ -35,7 +35,8 @@ dies.
 ## An arena of its own
 
 A boss's arena is drawn from a shape like any guardian's (`cubegen/arenashapes.js`: Squarlo's
-tidal hills are `BOSS_SHAPES.tidal`) or built by a generator of its own (`OWN_ARENAS` in
+tidal hills are `BOSS_SHAPES.tidal`; a shape may name what its floors are built of, `surface`:
+Mansk's museum, `BOSS_SHAPES.stage`) or built by a generator of its own (`OWN_ARENAS` in
 `cubegen/guardian.js`: Foggery's caldera, `cubegen/towerarena.js`; Flip's box,
 `cubegen/fliparena.js`). Either way it looks like the theme of its depth:
 
@@ -940,6 +941,124 @@ then the light comes back, slowly.
 (they look like and are called what they are), minions in no roster, going for the player at once;
 a little XP once, now and then a minor health potion.
 
+## Mansk
+
+![Mansk's clips](img/model-mansk.jpg)
+
+From the kids' drawing (`blender/mansk.py`, `assets/mansk.glb`): a **mask** floating with nobody
+behind it. A thin white shell bent like a face (its sides and its top and bottom curving back), flat
+on top with a little point in the middle and rounding off below like a shield, hollow at the back;
+two dots for eyes, a big round open mouth with darkness behind it, a **blue diamond** on his
+forehead and two long wavy **beige horns** springing from the corners of the mask, round knobs on
+their ends. About 3.7 cells tall with his horns, the mask 1.6. He floats; the fight lifts him higher
+and lands him.
+
+Profiles: `MANSK`, `MANSK_SKY` and `MANSK_RIBBONS` (`STAGE_PROFILES.mansk`, one a phase) in
+`src/core/enemies.js`; the fight's rules in `src/core/mansk.js` (`MANSK_FIGHT`), his ribbons'
+physics in `src/core/ribbon.js`; the fight in `src/game/mansk.js`, what the game does to his model
+(flying, the horns breaking, the ribbons) in `src/render/manskview.js`.
+
+| | Level 8 |
+|---|---|
+| Health | 2190 (grown seven levels), a third a phase |
+| Damage | 41 (in his mouth: two bites and the spit, ×0.9 each, 111 in all; a ball of light ×0.75 to everyone within 1.6 cells of where it bursts; a squeeze of his ribbons ×0.55, three of them; the whirl ×0.8, knocking down) |
+| XP | 700 grown; coins 180–320 at level 1; two weapons and two potions like a descent guardian |
+| Poise | 2 s |
+
+**Flying** (`lift`: how high over his floor he is; `core/enemies.js baseY` is the bottom of his body,
+what a blade, a shot, a flask and the cursor go by, and what comes out of him comes from there,
+`core/beams.js muzzleAt`). Floating low (0.35 cells) or landed, a blade reaches him; up in the air
+(2.1 cells) only shots do, and nothing bumps into him (`airborne`). He rises at 1.6 cells/s and
+drops at 3; landing he thumps and blows a ring of dust out. For what needs him low (breathing in,
+the spit, his ribbons) he comes down and stays down till it is over; up in the air those are barred
+(`core/mansk.js barred`).
+
+### His arena: the museum
+
+His descent arena is always a museum (`BOSS_ARENAS.mansk.type`, `cubegen/arenashapes.js` `stage`,
+`STAGE`): a hall paved in a checker (`paving`) a level under the doorways, walled all round five
+levels high (`masonry`), a landing at the entrance with steps down its middle, and at its far end a
+**stage** at the doorways' level round him and the well, from wall to wall (`masonry`, its edge
+`trim`), its front dropping a level into the hall with steps up in its middle and at both ends. The
+colours are the theme's (`themes/surfaces.js`); the checker is the paving's two tiles
+(`render/floors.js`). It is dressed with the museum's things (`props: ['museum']`, made by
+`blender/themes_museum.py`, [assets/themes.md](assets/themes.md); `cubegen/arenaprops.js` `stage`):
+a red **curtain** all along the walls round the stage, **footlights** along its front edge and a
+**spotlight** at each front corner turned on it; round the hall's walls things on show (vases and
+busts on pedestals, glass cases with a crown or a little horned mask, statues), velvet ropes and
+little signs before some of them, and **paintings** on the walls. The hall's middle stays open.
+
+### Phase 1: the horns (full health to two thirds)
+
+- **Breathing in** (`inhale`, a `pull` like Gusto's, `game/gusts.js`): he lands, rears back with
+  his mouth opening wide (the tell), then sucks in for 2.2 s whoever is in the cone before his mouth
+  (6 cells), pulling them in at 1.5 cells/s. Standing still you are drawn in; running away keeps
+  0.7 of your steering, a little faster than he pulls, and stepping out of the cone to a side gets
+  you out at once (he turns after you through the tell, but no more once he sucks). He breathes in only now and then (`MANSK_FIGHT.inhale`: 4–5 s into a phase, then
+  every 10–14 s, 16 s after a gulp), so there is time to fight him between breaths. One whose middle gets within `gulp` (0.75 cells) of his mouth goes in (`game/mansk.js gulp`):
+  the attack turns into his **spit** (a grab with `gulp`, `game/grab.js`: held in his mouth, our
+  hero not seen meanwhile, `player.gulped`), he chews twice (each bite the blow through the armor)
+  and spits them out in front of him, knocked down.
+- **Balls of light** (`orbs`, a cast): he rears up, his horns rising, and balls of light gather at
+  their knobs (two; three in phase 2, the third over his diamond, `orbSpot`). They hang there a
+  second (one after the other, a quarter of a second apart: `holdProjectile`,
+  `game/projectiles.js`), then shoot at the nearest player's feet (where they will burst is marked
+  on the floor, a ring) and burst where they end: everyone within `blast` is hurt and pushed away
+  (`core/projectiles.js inBlast`). At most every 5–8 s.
+- **Tornados** (`summon`): he spins round and plain Tornados whirl up round him (`STAGE_TORNADO`,
+  up to two), every 12 s.
+
+### Rising
+
+At two thirds he stops, roars with his mouth wide (ManskRise) and rises into the air; nothing hurts
+him meanwhile (2.2 s).
+
+### Phase 2: flying (two thirds to a third)
+
+He flies up out of a blade's reach for 6–8 s, then lands for 5–6.5 s (`flight`), and so on; up there
+he throws balls (three) and calls Tornados (up to five), down he breathes in. And now and then (every
+16–20 s, the first after 5 s) he **slows time** (`slow`, a cast: he bows, his diamond to the front,
+and lifts his head slowly): for 4 s the players move, swing and shoot at half speed (a slowing with
+`weapons`, `source: 'time'`: sparkles of light circle them like a clock's hands, `render/statuses.js`)
+and his Tornados live at 0.4 of theirs (`warp`, `core/status.js enemySlow`); he does not. His
+diamond glows brighter meanwhile.
+
+### The horns break
+
+At a third he shakes harder and harder, his horns straining (ManskBreak), and they **break**: the
+pieces fly off and bounce on the floor (`render/manskview.js`), and his horns are gone but for their
+stumps (the bones from the second on scaled away). Out of the stumps come his **ribbons**, the ties
+of a mask, growing out over 1.4 s. Nothing hurts him meanwhile (2.8 s).
+
+### Phase 3: the ribbons (a third to death)
+
+Four long red ribbons, two out of each stump (4.8 and 3.8 cells), each a **rope** (`core/ribbon.js`):
+25 points tied to the stump and kept going out of it the way it points, moved by their own inertia
+(Verlet), pulled by gravity, a little air drag, the air he swings them through (a swirl round him,
+hard while he whirls) and a flutter; each step the chain is pulled back together a few times (each
+link to its length, each point no closer than `bend` to the one two on, so it bends but does not
+fold), kept out of his mask and over the floor, where it slides. Run at a fixed 1/120 s step, at
+most eight a frame. So they trail behind as he flies and turns, swing out as he spins like a
+dancer's ribbons, and fall slack when he dies.
+
+- **The lash** (`lash`, a grab with `ribbons`): he leans back and lunges; the ribbons' ends reach for
+  the player, and one within 4.6 cells in front of him is caught: held up before him, the ends of his
+  two long ribbons wound round them, **squeezed** three times (each the blow through the armor), then
+  let go, shoved away on their feet.
+- **The whirl** (`whirl`): he winds up and whirls round twice, the ribbons sweeping all round him:
+  whoever is within 4 cells is knocked down.
+- He still breathes in (and spits), calls Tornados (up to four) and slows time (5 s, every 12–16 s,
+  the first after 4 s). The balls are gone with his horns.
+
+His death takes his Tornados along; he tips over backwards and falls flat on the floor, face up,
+like a mask dropped (ManskDeath; a slap and a puff of dust), his ribbons falling slack round him.
+
+## Mansk's minions
+
+| | Kind of | Size | Notes |
+|---|---|---|---|
+| Tornado (`STAGE_TORNADO`) | Tornado | 1× | plain, ×0.6 health, ×0.55 damage; in slowed time slower still |
+
 ## Slomo
 
 ![Slomo's clips](img/model-slomo.jpg)
@@ -1101,7 +1220,11 @@ the lava is at its highest, follows his platforms' clock (`game/movers.js follow
 its own player out of the lava. Slomo's stage swaps his profile like Squarlo's, his tide is his
 flood's height, and his row carries four more slots (the first three unused): his slug arms and his
 flood's side and front; every game floods its own bowl after them and lets its own meteorites
-come down. Renew's stage swaps his profile like Foggery's, and his row carries
+come down. Mansk's stage swaps his profile likewise, and his row carries five more slots (the first
+four unused): how high he flies, his horns, how far his ribbons are out and how long time stays slow;
+every game simulates his ribbons itself (`render/manskview.js`) and slows its own player when it sees
+him slow time (`game/mansk.js manskSeen`). A grab of his (in his mouth, in his ribbons) is a blow
+like Gusto's; his balls of light are only sent to the others once he lets them go. Renew's stage swaps his profile like Foggery's, and his row carries
 three more slots (the first two unused): the room's clock, whether time runs back and whether the
 fight is on, and a fourth: how far he has risen away at the end (2: gone). Every game records its own hero and rewinds them after his clock, and has its own
 echoes and ghosts (from what it was shown), the echoes hurting only it (`game/rewind.js`); the fight's bodies are rewound by the runner and shown
@@ -1121,6 +1244,8 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 (`addRenews`: his whole fight, rewinds and echoes, anywhere), `/spawn renspider`, `/spawn renface`;
 `/boss renew`. `/spawn slomo` (`addSlomos`; out of his bowl there is no flood), `/spawn armslug`,
 `/spawn oozeslug`, `/spawn oozebolime`, `/spawn slimesquirtle`; `/arena bowl`, `/boss slomo`.
+`/spawn mansk` (`addMansks`: his whole fight anywhere), `/spawn stagetornado`; `/arena stage`,
+`/boss mansk`.
 
 `/boss gusto` goes into the real arena (one beaten is up again). `/testroom boss gusto` (or
 `/testroom boss 0`: a boss, or the depth whose boss it is) goes into his **test room**
@@ -1140,7 +1265,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/slomo.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/slomo.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1149,6 +1274,7 @@ await (await import('./tests/browser/totnar.js')).runTotnarChecks() // Totnar's,
 await (await import('./tests/browser/squarlo.js')).runSquarloChecks() // Squarlo's, in his tidal hills
 await (await import('./tests/browser/foggery.js')).runFoggeryChecks()  // Foggery's, in his caldera: the lava, the climb, his cats, the platforms
 await (await import('./tests/browser/renew.js')).runRenewChecks()      // Renew's, in his arena: the rewinds, the echoes and ghosts, his minions, the bow and keeping away, the morning stars, the end and his flail, the dusk
+await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk's, in his museum: breathing in and the spit, the balls of light, flying and landing, slowed time, the horns breaking, the ribbons catching and squeezing
 await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the flood from a side, the jump and jumping over its shockwaves, his slimes
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
 ```
@@ -1180,3 +1306,8 @@ cats points it prints must match `FOGGERY` and `FOGGERY_BALL` (`tests/assets.tes
 Slomo: `Blender -b --python blender/slomo.py -- assets/slomo.glb blender/slomo.blend
 blender/previews/slomo-preview.png`, then `npm run compress-assets`. The arm, meteorite, spit and
 summon points it prints must match `SLOMO`, `SLOMO_LEGS` and `SLOMO_SLUG` (`tests/assets.test.js`).
+
+Mansk: `Blender -b --python blender/mansk.py -- assets/mansk.glb blender/mansk.blend
+blender/previews/mansk-preview.png`, then `npm run compress-assets`. The mouth, gulp, horn tip,
+diamond, summon and lash points it prints must match `MANSK_AT` (`tests/assets.test.js`). His museum's
+things: `Blender -b --python blender/themes.py` (`blender/themes_museum.py`).

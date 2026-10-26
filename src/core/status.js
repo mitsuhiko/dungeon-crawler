@@ -32,7 +32,9 @@ export const ACID_TOXIN = { time: 4, ticks: 4, share: 0.12 };
 // (s left) holds it still: it is stunned (`stun`) that long. Guardians and bosses take half of a
 // slow; bosses are not stunned, nor is anything that cannot be staggered.
 export const bigFoe = e => !!(e.guardian || e.boss);
-export const enemySlow = e => e.chilled?.time ? chillFactor(e.chilled) : 1;
+// Time slowed round it (`warp`, 0 .. 1: Mansk slowing time for his Tornados, game/mansk.js) slows
+// all of it the same way, on top.
+export const enemySlow = e => (e.chilled?.time ? chillFactor(e.chilled) : 1) * (e.warp ?? 1);
 export const zappable = e => !e.boss && !e.profile?.steadfast;
 
 // Slowed: the general slowing, on the player and on enemies (a Slug's slime ball, a slime

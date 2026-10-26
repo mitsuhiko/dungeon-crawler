@@ -14,7 +14,7 @@ import { equippedItem, readiedItem } from './inventory.js';
 import { levelDamage } from './progression.js';
 import { itemStats } from './gear/stats.js';
 import { effectMod, flaskStats } from './potions.js';
-import { absent, exposedBy, hurtBy, steadyNow, wardedNow, evades } from './enemies.js';
+import { absent, baseY, exposedBy, hurtBy, steadyNow, wardedNow, evades } from './enemies.js';
 
 // the clips' own timing (s): character.glb extras (blender/character.py)
 export const SLASH_CLIP = { duration: 32 / 30, activeStart: 15 / 30, activeEnd: 21 / 30 };
@@ -161,14 +161,15 @@ export function inSwordArc(p, enemy) {
   if (distance > stats.range + enemy.profile.radius) return false;
   if (distance > 0.01 && Math.cos(Math.atan2(dx, dz) - s.yaw) < Math.cos(stats.arc)) return false;
   // A blade sweeps around knee-to-chest height, not through a floor below us.
-  const bottom = p.y + 0.08, top = p.y + 0.85;
-  return enemy.y + enemy.profile.bodyHeight > bottom && enemy.y < top;
+  const bottom = p.y + 0.08, top = p.y + 0.85, y = baseY(enemy);
+  return y + enemy.profile.bodyHeight > bottom && y < top;
 }
 // can the weapon of `stats` reach enemy e's height? A blade sweeps the band inSwordArc checks;
 // shots fly up or down to the ranged kinds' AIM_BAND
 export function inReachBand(p, e, stats) {
-  if (stats?.ranged) return e.y + e.profile.bodyHeight > p.y - AIM_BAND.below && e.y < p.y + AIM_BAND.above;
-  return e.y + e.profile.bodyHeight > p.y + 0.08 && e.y < p.y + 0.85;
+  const y = baseY(e);
+  if (stats?.ranged) return y + e.profile.bodyHeight > p.y - AIM_BAND.below && y < p.y + AIM_BAND.above;
+  return y + e.profile.bodyHeight > p.y + 0.08 && y < p.y + 0.85;
 }
 // Keyboard soft-targeting, like Diablo's controller scheme: the closest living enemy within
 // the weapon's reach plus `extra`, preferring those ahead along `yaw`.

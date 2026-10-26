@@ -40,6 +40,7 @@ function buildFloors(ctx, base, shape, level) {
     const top = !cell ? base[c] : prot0[c] ? level : clamp(level + shape.rel[c], shape.min ?? 2, MAX_L);
     const f = ctx.mk(c, top, 0, 0);
     f.id = c; f.prot = prot0[c]; f.arenaCell = cell; f.encounter = cell && !!shape.zone[c];
+    if (cell && shape.surface?.[c]) f.surface = shape.surface[c];   // (built: Mansk's museum, themes/surfaces.js)
     floors.push(f);
   }
   const at = (x, z) => x >= 0 && z >= 0 && x < N && z < N ? floors[idx(x, z)] : null;

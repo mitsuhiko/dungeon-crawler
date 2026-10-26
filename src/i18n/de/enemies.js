@@ -81,6 +81,7 @@ export default {
   Foggery: { text: 'Foggery', g: 'm' },
   Renew: { text: 'Renew', g: 'm' },
   Slomo: { text: 'Slomo', g: 'm' },
+  Mansk: { text: 'Mansk', g: 'm' },
   'Guardian {kind}': 'Wächter-{kind}',
   'Temp Boss {kind}': 'Temp-Boss-{kind}',
 
@@ -213,6 +214,10 @@ export default {
   'Swallowed by an Ooze bolime!': 'Von einem Schleimbolime verschluckt!',
   'Digested by an Ooze bolime!': 'Von einem Schleimbolime verdaut!',
   'Slimed by a Slime squirtle!': 'Von einem Schleimsquirtle eingeschleimt!',
+  'Chewed and spat out by Mansk!': 'Von Mansk zerkaut und ausgespuckt!',
+  "Blasted by Mansk's ball of light!": 'Von Mansks Lichtkugel weggesprengt!',
+  "Squeezed by Mansk's ribbons!": 'Von Mansks Bändern zerquetscht!',
+  "Swept away by Mansk's ribbons!": 'Von Mansks Bändern weggefegt!',
 
   // other ways to get hurt
   'Bitten!': 'Gebissen!',
@@ -293,6 +298,9 @@ export default {
   '{name} grows legs!': '{name} bekommt Beine!',
   '{name} bursts out of his slime!': '{name} platzt aus seinem Schleim!',
   '{name} floods the bowl with slime!': '{name} flutet die Mulde mit Schleim!',
+  '{name} rises into the air!': '{name} steigt in die Luft!',
+  "{name}'s horns break!": 'Die Hörner von {name} brechen ab!',
+  '{name} slows time!': '{name} verlangsamt die Zeit!',
 
   // guardians (core/guardians.js)
   'Temp Boss': { text: 'Temp-Boss', g: 'm' },

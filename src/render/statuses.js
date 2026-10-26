@@ -1,7 +1,9 @@
 // Statuses that show (core/status.js): enemies on fire lick with flames, poisoned ones (and the
 // poisoned player) seep green bubbles and a sickly mist, chilled ones glitter with frost and
 // zapped ones crackle with sparks (enchanted weapons, game/enchants.js); slowed ones (and the
-// slowed player: slime, core/status.js) drip with green goo. The player's own burning is
+// slowed player: slime, core/status.js) drip with green goo; what Mansk's slowed time holds (his
+// Tornados, the player: game/mansk.js) has slow sparkles of light circling round it, like the
+// hands of a clock. The player's own burning is
 // render/burning.js, its chill render/chilled.js, its shock render/shocked.js.
 import { glow, soft, emit, rand, ring } from './particles.js';
 import { player } from '../game/state.js';
@@ -9,7 +11,7 @@ import { FIRE_COLORS } from './flames.js';
 import { chillFactor } from '../core/projectiles.js';
 
 const FLAMES = FIRE_COLORS, GREENS = ['#c8ff7a', '#8fdc3c', '#5f9f2a'], FROST = ['#ffffff', '#d8f4ff', '#9fdcff'],
-  SPARKS = ['#ffffff', '#fff3a0', '#9fd0ff'], GOO = ['#8ae048', '#6cc23a', '#b8ff5a'];
+  SPARKS = ['#ffffff', '#fff3a0', '#9fd0ff'], GOO = ['#8ae048', '#6cc23a', '#b8ff5a'], TIME = ['#ffffff', '#bfe0ff', '#ffe9a8'];
 
 function flames(x, y, z, r, h, dt) {
   for (let i = Math.floor(70 * dt + Math.random()); i > 0; i--) {
@@ -55,9 +57,21 @@ function goo(x, y, z, r, h, dt, k = 1) {
   }
 }
 
+// time slowed round it: sparkles going slowly round it at two heights, trailing
+let clockT = 0;
+function clockwork(x, y, z, r, h, dt, k = 1) {
+  for (let i = Math.floor(30 * k * dt + Math.random() * k); i > 0; i--) {
+    const a = clockT * 1.6 * (i % 2 ? 1 : -1) + Math.random() * 0.6 + (i % 3) * 2.1, rr = r + 0.25;
+    emit(glow, x + Math.cos(a) * rr, y + (i % 2 ? 0.35 : 0.85) * h, z + Math.sin(a) * rr, { v: [-Math.sin(a) * 0.3, 0.05, Math.cos(a) * 0.3],
+      life: rand(0.5, 0.9), size: rand(0.04, 0.08), color: TIME[i % 3], alpha: 0.9, drag: 1 });
+  }
+}
+
 export function tickStatuses(enemies, dt) {
   if (dt <= 0) return;
+  clockT += dt;
   for (const e of enemies) {
+    if (e.mode !== 'dead' && e.warp < 1) clockwork(e.x, e.y, e.z, e.profile.radius * 0.8, e.profile.bodyHeight, dt);
     if (e.mode === 'dead' || (!e.burning && !e.toxic && !e.chilled && !e.slowed && !(e.zapped > 0))) continue;
     const r = e.profile.radius * 0.8, h = e.profile.bodyHeight;
     if (e.burning) flames(e.x, e.y, e.z, r, h, dt);
@@ -68,5 +82,5 @@ export function tickStatuses(enemies, dt) {
   }
   if (player.toxic && !player.ragdoll) poison(player.x, player.visY, player.z, 0.25, 1, dt);
   const s = player.slowed;
-  if (s && !player.ragdoll) goo(player.x, player.visY, player.z, 0.25, 1.1, dt, (1 - chillFactor(s)) / (1 - s.slow || 1));
+  if (s && !player.ragdoll) (s.source === 'time' ? clockwork : goo)(player.x, player.visY, player.z, 0.25, 1.1, dt, (1 - chillFactor(s)) / (1 - s.slow || 1));
 }

@@ -28,7 +28,8 @@ library adds:
     fluid "honey"     a new fluid for the honey hive.
 
 Builders live in themes_highlands.py, themes_surface.py, themes_caves.py, themes_canyon.py,
-themes_darkforest.py and themes_slime.py; the classic
+themes_darkforest.py, themes_slime.py and themes_museum.py (Mansk's museum: no theme, what his
+arena is dressed with); the classic
 themes' landmarks (the sets of props.py and clutter.py) in themes_classic.py.
 
 Landmarks also get a role (how a reward site is built around them) and two lists of boxes
@@ -68,6 +69,7 @@ import themes_classic  # noqa: E402
 import themes_canyon  # noqa: E402
 import themes_darkforest  # noqa: E402
 import themes_slime  # noqa: E402
+import themes_museum  # noqa: E402
 
 SEED = 9137
 COLLECTION = "CubeCrawlerThemes"
@@ -81,7 +83,7 @@ LINE_TRIANGLES = 400
 EXTRA_KEYS = clutter.EXTRA_KEYS + ("drop", "landmark", "role", "footprint", "height", "anchors", "colliders",
                                    "occluders", "vignette", "flicker")
 FLICKERS = ("flame", "pulse")
-BUILDERS = (themes_highlands, themes_surface, themes_caves, themes_classic, themes_canyon, themes_darkforest, themes_slime)
+BUILDERS = (themes_highlands, themes_surface, themes_caves, themes_classic, themes_canyon, themes_darkforest, themes_slime, themes_museum)
 
 
 def spec(theme, prop, priority=1, variants=2, attach="ground", **hints):
@@ -345,6 +347,17 @@ SPECS = [
     vignette("slime", "fresh_meteor", light="#b8ff5a", intensity=1.2, flicker="pulse"),
     landmark("slime", "meteor_crater", "shrine", light="#b8ff5a", intensity=1.6, flicker="pulse"),
     landmark("slime", "giant_slime_tree", "monument", light="#b8ff5a", intensity=1.4, flicker="pulse"),
+    # --- Museum: Mansk's hall and stage (no theme: cubegen/arenaprops.js `stage` dresses his arena) ---
+    spec("museum", "pedestal_vase", priority=2, blocking=True),
+    spec("museum", "pedestal_bust", priority=2, blocking=True),
+    spec("museum", "display_case", priority=2, blocking=True, light="#cfe4ff", intensity=0.7, flicker="pulse"),
+    spec("museum", "statue", priority=2, blocking=True, per_variant={1: {"light": "#8fc8ff", "intensity": 0.3, "flicker": "pulse"}}),
+    spec("museum", "rope_posts"),
+    spec("museum", "plaque"),
+    spec("museum", "footlights", light="#ffd890", intensity=0.8, flicker="flame"),     # (gaslights)
+    spec("museum", "spotlight", blocking=True, light="#fff0c8", intensity=1.5, flicker="pulse"),
+    spec("museum", "painting", attach="wall"),
+    spec("museum", "curtain", attach="wall"),
     # --- the classic themes' landmarks (themes_classic.py) ---
     landmark("meadow", "windmill", "monument"),
     landmark("meadow", "wishing_well", "shrine"),

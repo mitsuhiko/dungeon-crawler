@@ -20,7 +20,7 @@ import { twirlPlayer } from './twirl.js';
 import { guardBlow, wornDefense } from './armor.js';
 import { tr, msg } from '../i18n/i18n.js';
 
-export const resetEnemyCombat = () => { player.burning = null; player.chilled = null; player.slowed = null; player.toxic = null; player.gust = null; player.pull = null; player.shocked = 0; player.dazed = 0; player.flat = 0; player.held = null; player.engulfed = null; };
+export const resetEnemyCombat = () => { player.burning = null; player.chilled = null; player.slowed = null; player.toxic = null; player.gust = null; player.pull = null; player.shocked = 0; player.dazed = 0; player.flat = 0; player.held = null; player.engulfed = null; player.gulped = false; };
 // who struck a blow, for the chronicle when it kills us (game/log.js logDeath); it goes along
 // with the blow (core/enemies.js blowOf), over the network too
 export const attacker = e => ({ words: enemyWords(e.profile), level: e.level, guardian: !!e.guardian });

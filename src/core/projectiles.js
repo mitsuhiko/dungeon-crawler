@@ -33,6 +33,11 @@ export function touches(pr, p) {
   return Math.hypot(pr.x - p.x, pr.z - p.z, dy) < pr.spec.radius + p.r;
 }
 
+// does the burst of projectile pr (its spec's `blast`: cells round where it ended; Mansk's balls of
+// light) reach body p (x, y, z, r, h)?
+export const inBlast = (pr, p) => Math.hypot(p.x - pr.x, p.z - pr.z) < pr.spec.blast + (p.r ?? 0.3)
+  && pr.y > p.y - pr.spec.blast && pr.y < p.y + (p.h ?? 1.6) + pr.spec.blast;
+
 // Advance by dt in small steps. Returns 'hit' (touched the player p, or one of a list of
 // players: pr.victim says which; pass null for none), 'blocked' (solid(x, y, z) says it ran
 // into the level), 'spent' (out of range) or null.

@@ -12,7 +12,7 @@
 // BURST_SHARE of its damage. Walls, props and the weapon's range stop them all (a spell bursts
 // there too).
 import { KINDS } from './combat.js';
-import { absent } from './enemies.js';
+import { absent, baseY } from './enemies.js';
 
 // speed (cells/s), radius (cells, for hitting), and how long the drawn shot takes to catch up
 // from the weapon to its true line
@@ -33,7 +33,7 @@ export const BURST_SHARE = 0.5;
 const MAX_SLOPE = 1.6;   // shots may aim up or down this steeply (rise per cell)
 
 // the point a shot at enemy e aims for: the middle of its body
-export const aimPoint = e => ({ x: e.x, y: e.y + e.profile.bodyHeight * 0.5, z: e.z });
+export const aimPoint = e => ({ x: e.x, y: baseY(e) + e.profile.bodyHeight * 0.5, z: e.z });
 
 // a shot of the attack stats `stats` from player p, turned to `yaw`, at `target` (an enemy, a
 // point {x, z} or null)
@@ -63,7 +63,7 @@ export function launchShot(p, stats, target, yaw = p.yaw) {
 export function touchesEnemy(shot, e) {
   const r = shot.spec.radius;
   return Math.hypot(shot.x - e.x, shot.z - e.z) < e.profile.radius + r
-    && shot.y > e.y - r && shot.y < e.y + e.profile.bodyHeight + r;
+    && shot.y > baseY(e) - r && shot.y < baseY(e) + e.profile.bodyHeight + r;
 }
 
 // Advance by dt in small steps. Returns { hits: enemies hit in this step, misses: those it went
@@ -98,7 +98,7 @@ export function burstTargets(shot, enemies) {
   if (!b) return [];
   return enemies.filter(e => !absent(e) && !shot.hits.has(e)
     && Math.hypot(shot.x - e.x, shot.z - e.z) < b + e.profile.radius
-    && shot.y > e.y - b && shot.y < e.y + e.profile.bodyHeight + b);
+    && shot.y > baseY(e) - b && shot.y < baseY(e) + e.profile.bodyHeight + b);
 }
 
 // where the drawn shot is: its true position plus what is left of the start at the weapon

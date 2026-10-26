@@ -274,7 +274,7 @@ export function rosterOf(list, cube, seed) {
 // one more: [orient, turns, holes] (how his world is turned and how often he turned it, his black
 // holes: [n, x, y, z, t, life] each, game/flip.js), and for Foggery two more: 0 and foggeryRow, and
 // for Renew three more: 0, 0 and renewRow, and for Slomo four more: 0, 0, 0 and slomoRow (his flood
-// is his tide)
+// is his tide), and for Mansk five more: 0, 0, 0, 0 and manskRow
 const beamRow = b => [r2(b.t), r2(b.ex), r2(b.ey), r2(b.ez)];
 const flipRow = e => [e.orient ?? 0, e.turns ?? 0, (e.holes ?? []).map(h => [h.n, r2(h.x), r2(h.y), r2(h.z), r2(h.t), h.life])];
 // Foggery's: [eyes ([left, right]: 0 thrown .. 1 grown back), guard (1 while his shield holds), the
@@ -288,12 +288,16 @@ const renewRow = e => [Math.round((e.clock ?? 0) * 1000) / 1000, e.rewinding ? 1
 // front (how far across it has come, 0..1)] (game/slomo.js; every game floods its own bowl after it,
 // game/tide.js)
 const slomoRow = e => [(e.arms ?? [1, 1]).map(r2), e.floodSide ?? 0, r2(e.front ?? 0)];
+// Mansk's: [lift (how high he flies over his floor), horns (1 whole, 0 broken), grow (how far his
+// ribbons are out, 0..1), slowing (s left of the time he slowed)] (game/mansk.js)
+const manskRow = e => [r2(e.lift ?? 0), e.horns ?? 1, r2(e.grow ?? 0), r2(e.slowing ?? 0)];
 export function rowOf(e, i, runner = 0) {
   const b = e.beam;
   return [i, r2(e.x), r2(e.y), r2(e.z), r2(e.yaw), Math.max(0, MODES.indexOf(e.mode)), r2(e.mode === 'dead' ? e.deadT : e.t),
     e.attacks, e.attack, r2(e.speed), e.hp, (e.burning ? BURNING : 0) | (e.toxic ? TOXIC : 0) | (e.chilled ? CHILLED : 0) | (e.zapped > 0 ? ZAPPED : 0),
     b ? beamRow(b) : 0, e.lastHit ?? runner, e.stage ?? 0, e.dark ? 1 : 0, e.bolts?.length ? e.bolts.map(beamRow) : 0,
     e.tide ? r2(e.tide) : 0, e.under ? 1 : 0, ...e.turns !== undefined ? [flipRow(e)] : e.eyes !== undefined ? [0, foggeryRow(e)]
-      : e.boss === 'renew' && e.clock !== undefined ? [0, 0, renewRow(e)] : e.boss === 'slomo' && e.arms !== undefined ? [0, 0, 0, slomoRow(e)] : []];
+      : e.boss === 'renew' && e.clock !== undefined ? [0, 0, renewRow(e)] : e.boss === 'slomo' && e.arms !== undefined ? [0, 0, 0, slomoRow(e)]
+      : e.boss === 'mansk' && e.lift !== undefined ? [0, 0, 0, 0, manskRow(e)] : []];
 }
 

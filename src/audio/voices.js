@@ -254,6 +254,18 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         noise(t + 1.2, 0.8, filter('lowpass', 500 * p, 1, amp(t + 1.2, 0.05, 0.35, 0.7, out)));
       },
     },
+    mansk: {   // the mask: a hollow, breathy moan through his mouth, a long breath drawn in, a cracking sigh dying away
+      alert: (t, out, p) => {
+        bend(t, 0.9, 140 * p, 190 * p, 120 * p, 600 * p, 0.35, out);
+        noise(t, 0.8, filter('bandpass', 700 * p, 3, amp(t, 0.1, 0.25, 0.65, out)));
+      },
+      windup: (t, out, p) => { sweep(t, 0.5, 400 * p, 1200 * p, 900 * p, 3, 0.28, out, 0.2); bend(t + 0.1, 0.4, 160 * p, 220 * p, 200 * p, 700 * p, 0.2, out); },
+      death: (t, out, p) => {
+        bend(t, 1.6, 200 * p, 130 * p, 50 * p, 600 * p, 0.45, out);
+        noise(t + 0.2, 1.4, filter('bandpass', 500 * p, 2, amp(t + 0.2, 0.2, 0.3, 1.1, out)));
+        noise(t + 1.4, 0.3, filter('highpass', 2500 * p, 1, amp(t + 1.4, 0.005, 0.3, 0.25, out)));
+      },
+    },
     slug: {   // a Slug: a low wet gurgle, a slurp drawing breath, a long deflating sigh
       alert: (t, out, p) => { bend(t, 0.4, 110 * p, 150 * p, 95 * p, 500 * p, 0.4, out); gloops(t + 0.2, 4, 150 * p, 300 * p, 0.07, 0.18, out, false); },
       windup: (t, out, p) => {

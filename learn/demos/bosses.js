@@ -4,13 +4,14 @@
 // tentacles, Totnar's rolling ball and the skulls and sticks he loses). The numbers (health,
 // level, size) come from the game's profiles (src/core/enemies.js). Drag to turn him.
 import * as THREE from 'three';
-import { GUSTO, TOTNAR, SQUARLO, SQUARLO_GIANT, FLIP, FOGGERY, enemyProfile, guardianLevel } from '../../src/core/enemies.js';
+import { GUSTO, TOTNAR, SQUARLO, SQUARLO_GIANT, FLIP, FOGGERY, MANSK, enemyProfile, guardianLevel } from '../../src/core/enemies.js';
 import { BOSSES } from '../../src/core/bosses.js';
 import { gustoModel } from '../../src/render/gustomodel.js';
 import { totnarModel } from '../../src/render/totnarmodel.js';
 import { squarloModel } from '../../src/render/squarlomodel.js';
 import { flipModel } from '../../src/render/flipmodel.js';
 import { foggeryModel } from '../../src/render/foggerymodel.js';
+import { manskModel } from '../../src/render/manskmodel.js';
 import { dressEnemy } from '../../src/render/enemymodel.js';
 import { findTentacles, shakeTentacles, findShed, hideShed, findBall, turnBall } from '../../src/render/bossbones.js';
 import { html, loop, t as tr, lang } from '../deck.js';
@@ -66,6 +67,21 @@ const BOSS = {
     cats: ['He spins round and calls two new Fire-cats. While one of them lives, nothing hurts him.', 'Er dreht sich und ruft zwei neue Feuerkatzen. Solange eine davon lebt, kann ihm nichts etwas anhaben.'],
     death: ['Beaten! The lava drains away, and his well opens on the floor of the caldera.', 'Besiegt! Die Lava fließt ab, und sein Brunnen öffnet sich unten im Krater.'],
   } },
+  // (his ribbons are no part of the model: the game runs them as ropes, so here his horns are only broken off)
+  mansk: { kind: MANSK, model: manskModel, broken: new Set(['lash', 'whirl']), names: { spit: ['spit out', 'ausspucken'], orbs: ['balls of light', 'Lichtkugeln'],
+    slow: ['slow time', 'Zeitlupe'], lash: ['ribbons', 'Bänder'], whirl: ['whirl', 'wirbeln'], rise: ['fly up', 'aufsteigen'], break: ['horns break', 'Hörner brechen'] }, clips: {
+    walk: ['A mask, floating with nobody behind it, on the stage of a museum. His horns wave like weed.', 'Eine Maske, die schwebt, ohne dass jemand dahinter ist, auf der Bühne eines Museums. Seine Hörner wehen wie Seegras.'],
+    inhale: ['Breathing in: he lands, rears back with his mouth open wide (the warning), then sucks you towards his mouth. Run away, or step sideways out of his breath!', 'Einatmen: Er landet, lehnt sich mit weit offenem Mund zurück (die Warnung) und saugt dich dann zu seinem Mund. Lauf weg oder geh seitwärts aus seinem Atem!'],
+    spit: ['Got you: in his mouth he chews you twice and spits you out. That hurts a lot!', 'Erwischt: In seinem Mund kaut er dich zweimal und spuckt dich aus. Das tut sehr weh!'],
+    orbs: ['Balls of light gather at his horns, hang there a moment, then shoot at you and burst. A ring on the floor shows where: get out of it!', 'An seinen Hörnern sammeln sich Lichtkugeln, schweben einen Moment, schießen dann auf dich und platzen. Ein Ring auf dem Boden zeigt, wo: Raus da!'],
+    summon: ['He spins round, and Tornados whirl up round him.', 'Er dreht sich, und um ihn herum wirbeln Tornados hoch.'],
+    rise: ['At two thirds of his health he roars and flies up, out of your sword\'s reach. Shoot him, or wait until he lands.', 'Bei zwei Dritteln seiner Gesundheit brüllt er und fliegt hoch, außer Reichweite deines Schwerts. Schieß auf ihn oder warte, bis er landet.'],
+    slow: ['Slow time: his diamond glows, and you and his Tornados go slower. He does not!', 'Zeitlupe: Sein Diamant leuchtet, und du und seine Tornados werden langsamer. Er nicht!'],
+    break: ['At a third of his health his horns break, and long red ribbons come out, like the ties of a mask.', 'Bei einem Drittel seiner Gesundheit brechen seine Hörner ab, und lange rote Bänder kommen heraus, wie die Bänder einer Maske.'],
+    lash: ['Ribbons: they reach for you, wrap round you and squeeze, then let you go. Keep out of their reach in front of him!', 'Bänder: Sie greifen nach dir, wickeln sich um dich und quetschen dich, dann lassen sie dich los. Bleib vorne aus ihrer Reichweite!'],
+    whirl: ['Whirl: he spins round twice, his ribbons sweeping all round him. Get away from him!', 'Wirbeln: Er dreht sich zweimal, und seine Bänder fegen rund um ihn herum. Weg von ihm!'],
+    death: ['Beaten! He sinks to the floor, his ribbons falling slack.', 'Besiegt! Er sinkt zu Boden, und seine Bänder fallen schlaff herab.'],
+  } },
 };
 const NAMES = { walk: ['move', 'laufen'], death: ['death', 'Tod'], grab: ['grab', 'Griff'], stuck: ['fallen', 'hingefallen'], inhale: ['breathe in', 'einatmen'],
   summon: ['summon', 'rufen'], blow: ['blow', 'blasen'], throw: ['throw', 'werfen'], gloom: ['dark', 'dunkel'], roll: ['roll', 'rollen'],
@@ -107,7 +123,8 @@ export default function mount(el) {
       const a = actions[name] = mixer.clipAction(c);
       if (!LOOPS.has(name)) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
     }
-    view = { model, mixer, actions, kind, size, tentacles: kind.flail ? findTentacles(model) : [],
+    const horns = ['hornL1', 'hornR1'].map(n => model.getObjectByName(n)).filter(Boolean);
+    view = { model, mixer, actions, kind, size, horns, tentacles: kind.flail ? findTentacles(model) : [],
       shed: findShed(model, kind.shed), ball: findBall(model, kind.tumble) };
     // the floor: one cell a square, as far as he is big
     floor.remove(...floor.children.filter(o => o !== model));
@@ -135,7 +152,7 @@ export default function mount(el) {
     boss = b; stage = 1; giant = false;
     bossRow.querySelectorAll('button[data-b]').forEach(x => x.classList.toggle('on', x.dataset.b === b));
     const prefab = BOSS[b].model, names = ['walk', ...Object.keys(prefab.gaits ?? {}), ...Object.keys(prefab.attacks), 'death'];
-    clipRow.innerHTML = names.map(n => `<button data-c="${n}">${tr(...(NAMES[n] ?? [n, n]))}</button>`).join('');
+    clipRow.innerHTML = names.map(n => `<button data-c="${n}">${tr(...(BOSS[b].names?.[n] ?? NAMES[n] ?? [n, n]))}</button>`).join('');
     clipRow.querySelectorAll('button').forEach(x => x.onclick = () => {
       if (x.dataset.c === 'stomp' || x.dataset.c === 'stride') { if (!giant) { giant = true; build(); syncExtra(); } }
       else if (giant && x.dataset.c !== 'death' && x.dataset.c !== 'summon' && x.dataset.c !== 'cast' && x.dataset.c !== 'rest') { giant = false; build(); syncExtra(); }
@@ -185,6 +202,7 @@ export default function mount(el) {
       turnBall(view.ball, turned);
     }
     hideShed(view.shed, stage);
+    if (BOSS[boss].broken?.has(clip)) for (const h of view.horns) h.scale.setScalar(0.001);   // (Mansk's horns broken off)
     renderer.render(scene, camera);
   });
   return () => { renderer.dispose(); renderer.forceContextLoss(); };

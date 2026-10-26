@@ -17,7 +17,7 @@ import { idx } from '../../src/core/util.js';
 
 const check = (value, message) => { if (!value) throw Error(message); };
 const run = (seconds, dt = 1 / 30, also = () => {}) => { for (let t = 0; t < seconds; t += dt) { updatePlayer(dt); updateEnemies(dt); also(); } };
-const MINIONS = { gusto: ['custotriangle'], totnar: ['snapskull', 'totspider', 'totstunder'], squarlo: ['squirtle'], flip: ['wolla'], foggery: ['fireface', 'firecat'], renew: ['spider', 'fireface'] };
+const MINIONS = { gusto: ['custotriangle'], totnar: ['snapskull', 'totspider', 'totstunder'], squarlo: ['squirtle'], flip: ['wolla'], foggery: ['fireface', 'firecat'], renew: ['spider', 'fireface'], mansk: ['tornado'], slomo: ['slug', 'bolime', 'squirtle'] };
 
 export async function runBossRoomChecks(only = null) {   // only: the bosses to check (names), else all
   return paused(async () => {

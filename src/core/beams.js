@@ -18,7 +18,7 @@ export const originOf = (e, spec, aim) => spec.sky ? { x: aim.x, y: aim.y + spec
 // where the muzzle of enemy e is in the world
 export function muzzleAt(e, muzzle) {
   const [mx, my, mz] = muzzle, s = Math.sin(e.yaw), c = Math.cos(e.yaw);
-  return { x: e.x + mx * c + mz * s, y: e.y + my, z: e.z - mx * s + mz * c };
+  return { x: e.x + mx * c + mz * s, y: e.y + (e.lift ?? 0) + my, z: e.z - mx * s + mz * c };   // (lift: Mansk flying, game/mansk.js)
 }
 // a beam from enemy e, aimed at target ({ x, y, z }); its end is where it would run out
 export function startBeam(e, spec, target) {

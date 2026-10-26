@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { player, state, view } from './state.js';
 import { allEnemies } from './enemies.js';
-import { absent } from '../core/enemies.js';
+import { absent, baseY } from '../core/enemies.js';
 import { clearLine } from '../physics/enemynav.js';
 import { camera } from '../render/scene.js';
 import { pickLock, nextLock, lockYaw, wrapAngle, LOCK_RANGE, LOCK_DROP, LOCK_BLIND, LOCK_TURN, FLICK_PX } from '../core/lockon.js';
@@ -19,7 +19,7 @@ import { mouseLook } from './mouselook.js';
 const marker = document.getElementById('lock-marker');
 let target = null, blind = 0, flick = 0;
 
-const chest = e => e.y + e.profile.bodyHeight * 0.5;
+const chest = e => baseY(e) + e.profile.bodyHeight * 0.5;
 const sees = e => clearLine(player.x, player.y + 0.6, player.z, e.x, chest(e), e.z);
 const inRange = e => Math.hypot(e.x - player.x, e.z - player.z) <= LOCK_RANGE;
 const candidates = () => allEnemies().filter(e => !absent(e) && inRange(e) && sees(e));

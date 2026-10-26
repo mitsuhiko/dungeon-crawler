@@ -8,7 +8,7 @@ import { idx, inb } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { propMetadata, CLUTTER } from '../core/propcatalog.js';
 import { PROP_METADATA } from '../core/propmetadata.js';
-import { segDist } from './arenashapes.js';
+import { segDist, STAGE } from './arenashapes.js';
 
 const L = (set, names) => names.split(' ').map(b => set + '_' + b);
 const RUBBLE = [...L('ruins', 'rubble'), ...L('any', 'stone_chips gravel_patch')];
@@ -382,6 +382,45 @@ export function dressArena(arena) {
       scatter(open, loose(10), [...loose2(slime.small), ...smallProps(arena.props ?? [], 0.6)]);
       for (const m of (shape.marks.peaks || []).slice(0, 4)) put(floors[m], loose2([slime.ritual, ...slime.small]), { center: true });
       faces(.25, .35, [...slime.wall, ...pal.wall], [...slime.lip, ...pal.lip]);
+      break;
+    }
+    case 'stage': {
+      // Mansk's museum: nothing on the stage but footlights along its edge and a spotlight at
+      // each front corner turned on it; things on show round the hall's walls on pedestals and in
+      // glass cases, velvet ropes before some, little signs; paintings on the hall's walls, the
+      // curtain on the stage's. The hall's middle stays open.
+      const M = n => L('museum', n), onStage = f => shape.surface?.[f.c] === 'masonry' || shape.surface?.[f.c] === 'trim';
+      const [ax, az] = shape.marks.axis, [ux, uz] = shape.marks.U;
+      const along = f => (f.x - ux) * ax + (f.z - uz) * az, side = f => (f.x - ux) * az - (f.z - uz) * ax;
+      const front = open.filter(f => onStage(f) && along(f) === STAGE.depth && !shape.ramp[f.c]);
+      for (const f of front) if (Math.abs(side(f)) % 2 === 0) put(f, M('footlights'), { yaw: Math.atan2(ax, az), center: true, scale: 1 });
+      const toStage = f => Math.atan2(ux - f.x, uz - f.z);
+      for (const sgn of [-1, 1]) {
+        const corner = closest(open.filter(f => onStage(f) && !shape.ramp[f.c] && !taken.has(f.c) && along(f) === STAGE.depth - 1),
+          [ux + az * sgn * (STAGE.half - 2) + ax * (STAGE.depth - 1), uz - ax * sgn * (STAGE.half - 2) + az * (STAGE.depth - 1)])[0];
+        if (corner) put(corner, M('spotlight'), { yaw: toStage(corner), gap: 1, scale: 1 });
+      }
+      const hallEdge = edgeZone.filter(f => !onStage(f) && !keep(f));
+      const shows = M('pedestal_vase pedestal_bust display_case statue');
+      const placed = shuffle(hallEdge).filter(f => put(f, shows, { gap: 2, yaw: toStage(f) }));
+      for (const f of placed) {   // a velvet rope or a sign before some of them
+        const g = closest(open.filter(o => !onStage(o) && !taken.has(o.c) && Math.hypot(o.x - f.x, o.z - f.z) <= 1.01), [ux, uz])[0];
+        if (g && R() < 0.6) put(g, R() < 0.6 ? M('rope_posts') : M('plaque'), { yaw: toStage(f) + Math.PI / 2 * (R() < 0.5 ? 0 : 1), center: true });
+      }
+      // on the walls: the curtain behind and beside the stage, paintings round the hall
+      for (const f of floors) {
+        if (!f.arenaCell || f.encounter) continue;
+        for (let d = 0; d < 4; d++) {
+          const g = nb(f, d);
+          if (!g || f.link[d] || !g.encounter) continue;
+          const [a, b] = EDGE_CORNERS[d], [na, nb2] = EDGE_CORNERS[OPP[d]];
+          const top = Math.min(f.cs[a], f.cs[b]), low = Math.max(g.cs[na], g.cs[nb2]), drop = top - low;
+          const stageWall = onStage(g), name = pick(stageWall ? M('curtain') : M('painting')), p = name && propMetadata.get(name);
+          if (!p || p.attach !== 'wall' || (!stageWall && R() > 0.55)) continue;
+          const [ex, ez] = [[1, 0.5], [0, 0.5], [0.5, 1], [0.5, 0]][d], y = low + (stageWall ? drop * 0.5 : Math.min(drop * 0.55, 1.15));
+          if (y + p.minY >= low && y + p.maxY + 0.1 <= top) add(name, f.x + ex, y, f.z + ez, 1, Math.atan2(-DIRS[d][0], -DIRS[d][1]));
+        }
+      }
       break;
     }
     case 'courtyard': {

@@ -133,7 +133,7 @@ fight for that depth).
 nightmares as a little girl, to make them less scary. That is why the first bosses look the way
 they do, and why their words can be sad while they look funny.
 
-- **Act I (0 to 6), childhood dreams**: the six bosses of the first act, where they are, read as:
+- **Act I (0 to 6), childhood dreams**: the seven bosses of the first act, where they are, read as:
   - **Gusto**: the grin in the dark under the bed, the first fear. "I was so sure he was real.
     I suppose he was."
   - **Totnar**: a dry summer, a fire, a burning heart inside dead sticks: anger that kept
@@ -144,6 +144,10 @@ they do, and why their words can be sad while they look funny.
   - **Foggery**: fog and thrown eyes: what she did not want to see.
   - **Renew**: someone like you who turns time back: the first time she wished she could undo
     something. The step from child to grown-up, where the sky ends.
+  - **Mansk** (6): a mask on the stage of a museum, nobody behind it, breathing everything in; its
+    horns break and only ribbons are left to hold it on: the brave face she put on so nobody would
+    see she was scared. "I wore it so long I forgot it wasn't me."
+
 - **Act II (7 to 13), growing up**: half finished, glassy, familiar things out of shape. A quarrel,
   a broken promise, a door that would not open. The first of them stands at the bottom of the act:
   - **Slomo** (13): a see-through slime that throws bits of itself at you, floods everything and,

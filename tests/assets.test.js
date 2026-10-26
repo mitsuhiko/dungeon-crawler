@@ -8,7 +8,8 @@ import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THROW_CLIP, KINDS } f
 import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
-  SQUARLO, SQUARLO_GIANT, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_LEGS, SLOMO_SLUG, fireAt } from '../src/core/enemies.js';
+  SQUARLO, SQUARLO_GIANT, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_LEGS, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, fireAt } from '../src/core/enemies.js';
+import { MANSK_FIGHT } from '../src/core/mansk.js';
 import { CHAR_SCALE } from '../src/core/constants.js';
 
 await decoderReady;
@@ -36,7 +37,7 @@ const BUDGETS = {
   gusto: { Gusto: 8000 }, totnar: { Totnar: 10000, TotnarSkull: 1500 }, snapskull: { SnapSkull: 3000 },
   squarlo: { Squarlo: 8000 }, squirtle: { Squirtle: 5000, SquirtleDrop: 800 }, flip: { Flip: 10000, FlipBall: 1200 },
   foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
-  slomo: { Slomo: 12000, SlomoArmSlug: 1500 },
+  slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 },
 };
 test('characters and enemies keep to their triangle budgets', () => {
   for (const [file, budget] of Object.entries(BUDGETS)) {
@@ -602,6 +603,38 @@ test('Slomo: three shapes in one model, his clips match his attacks, his slugs t
   // his shapes and his arms' slugs are bones the game scales and blends (render/slomoview.js), and the slug he throws
   for (const n of ['blob', 'body', 'top', 'core', 'slug', 'slug.head', 'hand.L', 'hand.R', 'arm.L.1', 'leg.1L', 'leg.3R', 'antenna.L', 'SlomoArmSlug'])
     assert.ok(j.nodes.some(o => o.name === n), n);
+});
+test('Mansk: a mask with horns, his clips match his attacks, his mouth, horns and ribbons\' stumps where the game takes them', () => {
+  const { json: j, duration } = glb('mansk'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
+  assert.deepEqual(Object.keys(a).sort(), ['ManskBreak', 'ManskDeath', 'ManskHover', 'ManskInhale', 'ManskLash', 'ManskOrbs', 'ManskRise',
+    'ManskSlow', 'ManskSpit', 'ManskSummon', 'ManskWhirl']);
+  assert.equal(a.ManskHover.extras.loop, true);
+  assert.ok(Math.abs(duration(a.ManskDeath) - MANSK.deathTime) < 1e-5); assert.equal(a.ManskDeath.extras.hold_last_frame, true);
+  const clip = { inhale: 'ManskInhale', spit: 'ManskSpit', orbs: 'ManskOrbs', summon: 'ManskSummon', slow: 'ManskSlow', lash: 'ManskLash', whirl: 'ManskWhirl' };
+  for (const at of new Set([...MANSK.attacks, ...MANSK_SKY.attacks, ...MANSK_RIBBONS.attacks])) {
+    const c = a[clip[at.clip]];
+    assert.ok(c, at.clip);
+    if (c.extras.hit_frame !== undefined) assert.equal(c.extras.hit_frame / 30, at.hitAt, at.clip);
+    assert.ok(Math.abs(duration(c) - at.attackTime) < 1e-5, at.clip);
+    if (at.pull) { assert.deepEqual(c.extras.muzzle, at.pull.muzzle); assert.ok(Math.abs(c.extras.pull_end / 30 - at.hitAt - at.pull.time) < 1e-9); }
+    if (at.summon) assert.deepEqual(c.extras.muzzle, at.summon.muzzle);
+    if (at.orb) { assert.deepEqual(c.extras.tips, at.orb.tips); assert.deepEqual(c.extras.diamond, at.orb.diamond); }
+    if (at.grab) {
+      assert.deepEqual(c.extras.grip, at.grab.grip, at.clip);
+      assert.equal(c.extras.throw_frame / 30, at.grab.throwAt, at.clip);
+      assert.deepEqual(c.extras.bites, at.grab.bites, at.clip);
+    }
+  }
+  assert.equal(a.ManskBreak.extras.break_time, MANSK_FIGHT.breakAt);
+  assert.equal(a.ManskDeath.extras.flat_frame, 34, 'he lies flat where render/manskview.js slaps him down (FLAT)');
+  const names = new Set(j.materials.map(m => m.name));
+  for (const m of [...Object.values(MANSK.parts).flat(), 'ManskEyes', 'ManskMouth']) assert.ok(names.has(m), m);
+  const color = n => j.materials.find(m => m.name === n).pbrMetallicRoughness.baseColorFactor;
+  const [hr, hg, hb] = color('ManskHead'), [br, bg, bb] = color('ManskHorns'), [dr, , db] = color('ManskDiamond_glow');
+  assert.ok(hr > 0.8 && hg > 0.8 && hb > 0.8, 'a white mask');
+  assert.ok(br > bb * 1.3 && br > 0.5, 'beige horns'); assert.ok(db > dr * 3, 'a blue diamond');
+  // the bones the game scales (the horns broken), reads (the stumps the ribbons come out of) and opens (his mouth)
+  for (const n of ['body', 'mouth', 'horn.L.0', 'horn.L.1', 'horn.R.3', 'stump.L', 'stump.R', 'tip.L', 'tip.R']) assert.ok(j.nodes.some(o => o.name === n), n);
 });
 test('the snapping skull hops, bites at its hit frame and crumbles', () => {
   const { json: j, duration } = glb('snapskull'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));

@@ -185,6 +185,14 @@ export class Viewer {
         e.floodSide = Number.isInteger(side) && side >= 0 && side < 4 ? side : 0;
         e.front = Number.isFinite(front) ? Math.max(0, Math.min(1, front)) : 1;
       }
+      // Mansk's lift, his horns, his ribbons and his slowed time (game/mansk.js)
+      if (Array.isArray(b[23])) {
+        const [lift, horns, grow, slowing] = b[23], before = Array.isArray(a[23]) ? a[23][0] : lift;
+        if (Number.isFinite(lift) && Number.isFinite(before)) e.lift = Math.max(0, Math.min(4, before + (lift - before) * k));
+        e.horns = horns === 0 ? 0 : 1;
+        e.grow = Number.isFinite(grow) ? Math.max(0, Math.min(1, grow)) : 0;
+        e.slowing = Number.isFinite(slowing) ? Math.max(0, Math.min(10, slowing)) : 0;
+      }
       if (e.mode === 'dead') { e.hp = 0; e.deadT = b[6]; e.dark = 0; (e.beam || e.bolts) && mirrorBeam(e, null); return; }
       mirrorBeam(e, Array.isArray(b[12]) ? b[12] : null, Array.isArray(b[16]) ? b[16] : null);
     });

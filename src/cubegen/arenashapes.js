@@ -446,4 +446,40 @@ function bowl(fr) {
   s.min = 0;   // (the basin may sink lower than other arenas' floors)
   return s;
 }
-export const BOSS_SHAPES = { tidal, bowl };
+// 11. Museum stage (Mansk's): a hall paved in a checker `hall` levels under the doorways, walled
+// all round `wall` levels high (masonry: the paintings and the curtain hang on it), a landing at
+// the entrance with steps down its middle, and at the far end a stage at the doorways' level round
+// him and the well: `depth` cells deep in front of him (and to the wall behind), `half` cells to
+// each side, its edge trim. Its front drops a level into the hall, with steps up in its middle
+// and at both ends. The hall stays open: room for a big body to fly over and land on.
+export const STAGE = { hall: -1, wall: 5, depth: 2, half: 6 };
+function stage(fr) {
+  const s = blank(), [ux, uz] = fr.U, [ex, ez] = fr.E;
+  s.surface = new Array(N * N).fill(null);
+  // the way from him to the entrance, along a side of the cube
+  const vx = ex - ux, vz = ez - uz, [dx, dz] = Math.abs(vx) >= Math.abs(vz) ? [Math.sign(vx), 0] : [0, Math.sign(vz)];
+  const bank = (x, z) => x === 1 || z === 1 || x === N - 2 || z === N - 2;
+  each((x, z, c) => {
+    if (bank(x, z) && !fr.flat[c]) { s.rel[c] = STAGE.wall; s.crisp[c] = 1; s.surface[c] = 'masonry'; return; }
+    const along = (x - ux) * dx + (z - uz) * dz, side = Math.abs((x - ux) * dz - (z - uz) * dx);
+    s.zone[c] = 1; s.crisp[c] = 1;
+    const landing = Math.max(Math.abs(x - ex), Math.abs(z - ez)) <= 1;
+    if (along <= STAGE.depth && side <= STAGE.half) {
+      s.rel[c] = 0;
+      s.surface[c] = along === STAGE.depth || side === STAGE.half ? 'trim' : 'masonry';
+      // steps up its front: in the middle and at both ends
+      if (along === STAGE.depth && (side <= 1 || side >= STAGE.half - 1)) s.ramp[c] = 1;
+    } else if (landing) {
+      s.rel[c] = 0; s.surface[c] = 'masonry';
+    } else {
+      s.rel[c] = STAGE.hall; s.surface[c] = 'paving';
+      if (along === STAGE.depth + 1 && (side <= 1 || side >= STAGE.half - 1)) s.ramp[c] = 1;
+      if (Math.max(Math.abs(x - ex), Math.abs(z - ez)) === 2 && segDist(x, z, fr.E, fr.U) <= 1.05) s.ramp[c] = 1;
+    }
+  });
+  finish(s, fr, STAGE.hall, STAGE.wall);
+  each((x, z, c) => { if (s.zone[c] && s.rel[c] === 0 && s.surface[c] === 'paving') s.surface[c] = 'masonry'; });   // (the doorways' pads: the landing)
+  s.marks = { axis: [dx, dz], U: fr.U, E: fr.E, center: lerp(fr.E, fr.U, 0.5) };
+  return settle(s, fr);
+}
+export const BOSS_SHAPES = { tidal, bowl, stage };

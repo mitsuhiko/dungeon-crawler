@@ -62,6 +62,8 @@ import { foggeryModel } from './foggerymodel.js';
 import { makeFoggeryLook, foggeryLook, disposeFoggeryLook } from './foggeryview.js';
 import { slomoModel } from './slomomodel.js';
 import { makeSlomoLook, slomoLook } from './slomoview.js';
+import { manskModel } from './manskmodel.js';
+import { makeManskLook, manskLook, disposeManskLook } from './manskview.js';
 import { isFigure, animateFigures, removeFigureViews } from './renewview.js';
 import { isFlimmer, animateFlimmers, removeFlimmerViews, flimmerWarmup } from './flimmerview.js';
 import { STAGE_PROFILES, enemyName } from '../core/enemies.js';
@@ -90,7 +92,7 @@ import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
 const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
-  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel };
+  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
 export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.load()));
 // light: [color, intensity, distance, height]; pulse: emissive / light swing with the
@@ -113,6 +115,8 @@ const GLOW = {
   glowbolime: { light: [0x7affd0, 1.5, 3.2, 0.6], pulse: 0.35 },
   // Slomo's stuff glows inside him, his eyes flare up to a throw
   slomo: { light: [0x9aff5a, 2.2, 4.5, 1.3], flare: 0.6 },
+  // Mansk's diamond glows blue (render/manskview.js: brighter while he slows time)
+  mansk: { light: [0x6fb4ff, 1.6, 4.5, 1.95], flare: 0.6 },
 };
 const EMBERS = ['#ffd25a', '#ff8a2a', '#ff5a14'];
 const GHOST = 0xff6a5a, GHOST_OPACITY = 0.4;
@@ -650,7 +654,8 @@ function makeView(e, prefab) {
     gloomColor: gloom ? new THREE.Color(...toLinear(gloom.color)) : null, gloom: 0, glimmer: 0,
     shed: findShed(model, e.profile.shed), stage: e.stage ?? 1, dark: e.dark ?? 0, ball: findBall(model, e.profile.tumble), tumble: 0, turned: 0, flash2: 0,
     sink: e.under ? 1 : 0, underWas: e.under ? 1 : 0, height: e.profile.height / size, morphing: false, swim: false,
-    fog: e.profile.species === 'foggery' ? makeFoggeryLook(model, group) : null, slomo: e.profile.species === 'slomo' ? makeSlomoLook(model) : null };
+    fog: e.profile.species === 'foggery' ? makeFoggeryLook(model, group) : null, slomo: e.profile.species === 'slomo' ? makeSlomoLook(model) : null,
+    mansk: e.profile.species === 'mansk' ? makeManskLook(model) : null };
 }
 // the hover clip's beat (matches blender/triangle.py): sharp, twice per loop
 const beat = phase => (0.5 + 0.5 * Math.cos(2 * Math.PI * 2 * phase)) ** 6;
@@ -716,6 +721,7 @@ function dying(v, e, dt, off) {
   if (v.fog) foggeryLook(v, e, dt);
   flail(v, e, Math.max(0, 1 - e.deadT / (e.profile.deathTime * 0.5)));
   glowFx(v, e, 0, Math.max(0, 1 - e.deadT / e.profile.deathTime) * fade);   // the glow dies with it
+  if (v.mansk) manskLook(v, e, dt, off);
 }
 // Enemy views are made a few a frame: a cube's whole lineup at once (a horde's two dozen) held
 // its first frame up. An enemy without one yet is not drawn; entering, they are all made while
@@ -806,6 +812,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     if (v.fog) foggeryLook(v, e, dt);
     if (v.slomo) slomoLook(v, e, dt);
     glowFx(v, e, dt, 1); glints(v, e, dt);
+    if (v.mansk) manskLook(v, e, dt, off);   // (after the glow: it brightens his diamond)
     if (e.ghost) ghostLook(v, e);
   }
 }
@@ -842,6 +849,7 @@ export function removeEnemyViews(list) {
     if (v.flash) untrackLight(v.flash);
     removeTrail(v); forgetWalker(e);
     if (v.fog) disposeFoggeryLook(v.fog);
+    if (v.mansk) disposeManskLook(v.mansk);
     v.mixer.stopAllAction(); v.mixer.uncacheRoot(v.model);
     v.material.dispose(); v.shell?.material.dispose();
     v.ghost.dispose();

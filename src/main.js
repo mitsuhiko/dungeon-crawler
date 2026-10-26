@@ -142,7 +142,7 @@ function frame(now = performance.now()) {
   updateLeave();   // "Leave the fight?" goes away once it cannot be answered (game/leavefight.js)
   updateMouseLook();   // the close view captures the mouse, what needs the cursor gives it back (game/mouselook.js)
   if (state.mode === 'menu') { menuFrame(elapsed, start); return; }
-  if (character.ready) character.group.visible = !player.vanished;   // (inside one of Flip's black holes: game/flipworld.js)
+  if (character.ready) character.group.visible = !player.vanished && !player.gulped;   // (inside one of Flip's black holes: game/flipworld.js; in Mansk's mouth: game/mansk.js)
   const dt = worldPaused() ? 0 : gameTime(elapsed) * timeScale(elapsed);
   updatePointer();   // the enemy under the cursor (with last frame's camera)
   state.time += dt;

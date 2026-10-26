@@ -11,7 +11,7 @@ import { solidTop } from '../physics/collide.js';
 import { mapInfo } from './cutinfo.js';
 import { player, state, view } from './state.js';
 import { allEnemies } from './enemies.js';
-import { absent } from '../core/enemies.js';
+import { absent, baseY } from '../core/enemies.js';
 import { mouseLook } from './mouselook.js';
 import { lockTarget } from './lockon.js';
 
@@ -73,10 +73,10 @@ function pickEnemy() {
   for (const e of allEnemies()) {
     if (absent(e)) continue;
     const h = e.profile.bodyHeight;
-    v.set(e.x, e.y + h / 2, e.z).applyMatrix4(camera.matrixWorldInverse);
+    v.set(e.x, baseY(e) + h / 2, e.z).applyMatrix4(camera.matrixWorldInverse);
     const depth = -v.z;
     if (depth <= 0) continue;
-    v.set(e.x, e.y + h / 2, e.z).project(camera);
+    v.set(e.x, baseY(e) + h / 2, e.z).project(camera);
     const sx = (v.x + 1) / 2 * innerWidth, sy = (1 - v.y) / 2 * innerHeight, ppu = unit / depth;
     const rx = Math.max(16, (e.profile.radius + 0.2) * ppu), ry = Math.max(16, (h / 2 + 0.2) * ppu);
     const dn = Math.hypot((px - sx) / rx, (py - sy) / ry);

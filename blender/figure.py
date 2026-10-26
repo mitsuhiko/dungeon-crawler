@@ -163,6 +163,7 @@ TRIANGLE_BUDGET = {
     "Flip": 10000,                                                       # (41 little loops)
     "Foggery": 12000,                                                    # (a frog and his ball, both on fire)
     "Slomo": 12000,                                                      # (a blob with slug arms and a slug on legs)
+    "Mansk": 9000,                                                       # (a head, two long wavy horns, a mouth to suck you in)
     "FireFaceBall": 1500, "ShrapsIceBall": 1500, "TrianglePunch": 1500, "TotnarSkull": 1500, "SquirtleDrop": 800, "FlipBall": 1200, "FoggeryEye": 1500, "SlomoArmSlug": 1500,   # projectiles
     "TornadoTwister": 1500,                                              # (its twisters)
 }

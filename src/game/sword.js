@@ -12,7 +12,7 @@ import { fireShot } from './shots.js';
 import { throwFlask } from './throws.js';
 import { cooldownLeft } from '../core/potions.js';
 import { relay } from '../net/online.js';
-import { absent, enemyName } from '../core/enemies.js';
+import { absent, enemyName, baseY } from '../core/enemies.js';
 import { enchantHit } from './enchants.js';
 import { tr } from '../i18n/i18n.js';
 import { weaponFactor } from '../core/status.js';
@@ -83,7 +83,7 @@ export function hitWithSword(list) {
   if (state.inventoryOpen || state.transitioning || p.ragdoll || p.held || p.stun > 0 || p.hp <= 0) return;
   for (const e of list) {
     if (!inSwordArc(p, e)) continue;
-    const y = Math.max(e.y + 0.1, Math.min(p.y + 0.4, e.y + e.profile.bodyHeight - 0.05));
+    const y = Math.max(baseY(e) + 0.1, Math.min(p.y + 0.4, baseY(e) + e.profile.bodyHeight - 0.05));
     if (!clearLine(p.x, p.y + 0.4, p.z, e.x, y, e.z)) continue;
     const before = e.hp, hit = swordHit(p, e, rolls.crit(), rolls.evade());
     if (!hit) continue;

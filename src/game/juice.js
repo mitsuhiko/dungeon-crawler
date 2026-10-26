@@ -138,6 +138,7 @@ export function projectileFx(pr, what) {
   if (pr.kind === 'slugarm') { slugArmFx(pr, what); return; }
   if (pr.kind === 'eye') { eyeFx(pr, what); return; }
   if (pr.kind === 'orb') { orbFx(pr, what); return; }
+  if (pr.kind === 'hornorb') { hornOrbFx(pr, what); return; }
   if (pr.kind === 'arrow') { arrowFx(pr, what); return; }
   const ball = pr.kind === 'ball';   // Flip's ball of light
   if (what === 'launch') { sfx(fire ? 'fireball' : ice || ball ? 'frost' : 'zap', { at: pr, pitch: ball ? 1.3 : 1 }); return; }
@@ -166,6 +167,26 @@ function orbFx(pr, what) {
     emit(glow, x, y, z, { v: [rand(-s, s), rand(0.3, s), rand(-s, s)], life: rand(0.25, 0.5), size: rand(0.05, 0.1),
       color: i % 2 ? '#ffffff' : c, gravity: 4, drag: 2 });
   if (what !== 'spent') sfx('burst', { at: pr, volume: 0.8 });
+}
+
+// Mansk's ball of light: it gathers at a horn with a rising hum, shoots off, and where it ends it
+// bursts: a flash and a ring of sparks as wide as its burst, a boom
+function hornOrbFx(pr, what) {
+  if (what === 'gather') { sfx('charge', { at: pr, pitch: 1.5, volume: 0.6 }); return; }
+  if (what === 'launch') { sfx('spell', { at: pr, pitch: 0.7 }); return; }
+  const { x, y, z } = pr, c = pr.spec.color ?? '#8fc8ff', r = pr.spec.blast ?? 1;
+  if (Math.hypot(x - player.x, z - player.z) > 30) return;
+  emit(glow, x, y, z, { life: 0.3, size: r * 1.6, grow: 1, color: '#ffffff', alpha: 0.8 });
+  emit(glow, x, y, z, { life: 0.45, size: r * 2.2, grow: 1.2, color: c, alpha: 0.6 });
+  for (let i = 0; i < 36; i++) {
+    const a = i / 36 * Math.PI * 2, s = r * rand(3.5, 5);
+    emit(glow, x, y + 0.1, z, { v: [Math.cos(a) * s, rand(0.2, 1.4), Math.sin(a) * s], life: rand(0.25, 0.45), size: rand(0.07, 0.14),
+      color: i % 3 ? c : '#ffffff', drag: 4 });
+  }
+  for (let i = 0; i < 6; i++)
+    emit(soft, x + rand(-0.4, 0.4), y + 0.1, z + rand(-0.4, 0.4), { v: [rand(-0.5, 0.5), rand(0.3, 0.9), rand(-0.5, 0.5)], life: rand(0.6, 1),
+      size: rand(0.3, 0.5), grow: 1.2, color: '#dceeff', alpha: 0.35, drag: 1 });
+  sfx('boom', { at: pr, volume: 0.9, pitch: 1.3 });
 }
 
 // Renew's arrow: the twang as it leaves, and a knock where it strikes (a few splinters)
@@ -675,7 +696,8 @@ const SUMMONS = { triangles: { sound: 'summon', flash: '#9fdcff', colors: ['#e0f
   rings: { sound: 'summon', flash: '#bfe8ff', colors: ['#f0faff', '#8fd8ff'], streak: 10 },
   embers: { sound: 'fireball', flash: '#ffb050', colors: ['#ffd25a', '#ff8a2a', '#ff4a17'], streak: 10 },
   time: { sound: 'summon', flash: '#e8fbff', colors: ['#ffffff', '#bdf3ff', '#ffe9a8'], streak: 12 },
-  slime: { sound: 'splorch', flash: '#c8ff7a', colors: ['#d8ff9a', '#9ae048', '#5a9a2a'], streak: 9 } };
+  slime: { sound: 'splorch', flash: '#c8ff7a', colors: ['#d8ff9a', '#9ae048', '#5a9a2a'], streak: 9 },
+  wind: { sound: 'whirl', flash: '#f0ecff', colors: ['#ffffff', '#e6dcff', '#c8b8ff'], streak: 10 } };
 export function summonFx(mouth, list, look = 'triangles') {
   const s = SUMMONS[look];
   sfx(s.sound, { at: mouth });

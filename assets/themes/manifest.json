@@ -243,6 +243,18 @@
       "spore_pods",
       "swallowed_hut"
     ],
+    "museum": [
+      "curtain",
+      "display_case",
+      "footlights",
+      "painting",
+      "pedestal_bust",
+      "pedestal_vase",
+      "plaque",
+      "rope_posts",
+      "spotlight",
+      "statue"
+    ],
     "meadow": [
       "windmill",
       "wishing_well"
@@ -288,7 +300,7 @@
       "void_throne"
     ]
   },
-  "triangles": 122573,
+  "triangles": 126943,
   "props": [
     {
       "name": "highlands_tussock_grass_a",
@@ -24152,6 +24164,587 @@
         ]
       ],
       "flicker": "pulse"
+    },
+    {
+      "name": "museum_pedestal_vase_a",
+      "set": "museum",
+      "prop": "pedestal_vase",
+      "variant": "a",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.3112,
+      "triangles": 212,
+      "size": [
+        0.44,
+        0.44,
+        1.18
+      ],
+      "bounds_blender": [
+        [
+          -0.22,
+          -0.22,
+          0.0
+        ],
+        [
+          0.22,
+          0.22,
+          1.18
+        ]
+      ]
+    },
+    {
+      "name": "museum_pedestal_vase_b",
+      "set": "museum",
+      "prop": "pedestal_vase",
+      "variant": "b",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.3112,
+      "triangles": 152,
+      "size": [
+        0.44,
+        0.44,
+        1.22
+      ],
+      "bounds_blender": [
+        [
+          -0.22,
+          -0.22,
+          0.0
+        ],
+        [
+          0.22,
+          0.22,
+          1.22
+        ]
+      ]
+    },
+    {
+      "name": "museum_pedestal_bust_a",
+      "set": "museum",
+      "prop": "pedestal_bust",
+      "variant": "a",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.3112,
+      "triangles": 214,
+      "size": [
+        0.44,
+        0.44,
+        1.11
+      ],
+      "bounds_blender": [
+        [
+          -0.22,
+          -0.22,
+          0.0
+        ],
+        [
+          0.22,
+          0.22,
+          1.11
+        ]
+      ]
+    },
+    {
+      "name": "museum_pedestal_bust_b",
+      "set": "museum",
+      "prop": "pedestal_bust",
+      "variant": "b",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.3112,
+      "triangles": 242,
+      "size": [
+        0.44,
+        0.44,
+        1.17
+      ],
+      "bounds_blender": [
+        [
+          -0.22,
+          -0.22,
+          0.0
+        ],
+        [
+          0.22,
+          0.22,
+          1.17
+        ]
+      ]
+    },
+    {
+      "name": "museum_display_case_a",
+      "set": "museum",
+      "prop": "display_case",
+      "variant": "a",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.4202,
+      "triangles": 360,
+      "size": [
+        0.66,
+        0.52,
+        1.03
+      ],
+      "bounds_blender": [
+        [
+          -0.33,
+          -0.26,
+          0.0
+        ],
+        [
+          0.33,
+          0.26,
+          1.0304
+        ]
+      ],
+      "light": "#cfe4ff",
+      "intensity": 0.7,
+      "flicker": "pulse"
+    },
+    {
+      "name": "museum_display_case_b",
+      "set": "museum",
+      "prop": "display_case",
+      "variant": "b",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.4202,
+      "triangles": 350,
+      "size": [
+        0.66,
+        0.52,
+        1.187
+      ],
+      "bounds_blender": [
+        [
+          -0.33,
+          -0.26,
+          0.0
+        ],
+        [
+          0.33,
+          0.26,
+          1.1872
+        ]
+      ],
+      "light": "#cfe4ff",
+      "intensity": 0.7,
+      "flicker": "pulse"
+    },
+    {
+      "name": "museum_statue_a",
+      "set": "museum",
+      "prop": "statue",
+      "variant": "a",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.45,
+      "triangles": 292,
+      "size": [
+        0.897,
+        0.304,
+        1.142
+      ],
+      "bounds_blender": [
+        [
+          -0.4486,
+          -0.1519,
+          0.0
+        ],
+        [
+          0.4486,
+          0.1519,
+          1.1417
+        ]
+      ]
+    },
+    {
+      "name": "museum_statue_b",
+      "set": "museum",
+      "prop": "statue",
+      "variant": "b",
+      "priority": 2,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.3395,
+      "triangles": 382,
+      "size": [
+        0.48,
+        0.48,
+        1.303
+      ],
+      "bounds_blender": [
+        [
+          -0.24,
+          -0.24,
+          0.0
+        ],
+        [
+          0.24,
+          0.24,
+          1.3025
+        ]
+      ],
+      "light": "#8fc8ff",
+      "intensity": 0.3,
+      "flicker": "pulse"
+    },
+    {
+      "name": "museum_rope_posts_a",
+      "set": "museum",
+      "prop": "rope_posts",
+      "variant": "a",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": false,
+      "radius": 0.45,
+      "triangles": 236,
+      "size": [
+        0.899,
+        0.168,
+        0.69
+      ],
+      "bounds_blender": [
+        [
+          -0.4492,
+          -0.0838,
+          0.0
+        ],
+        [
+          0.45,
+          0.0839,
+          0.69
+        ]
+      ]
+    },
+    {
+      "name": "museum_rope_posts_b",
+      "set": "museum",
+      "prop": "rope_posts",
+      "variant": "b",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": false,
+      "radius": 0.45,
+      "triangles": 236,
+      "size": [
+        0.9,
+        0.166,
+        0.69
+      ],
+      "bounds_blender": [
+        [
+          -0.45,
+          -0.0843,
+          0.0
+        ],
+        [
+          0.4497,
+          0.0821,
+          0.69
+        ]
+      ]
+    },
+    {
+      "name": "museum_plaque_a",
+      "set": "museum",
+      "prop": "plaque",
+      "variant": "a",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": false,
+      "radius": 0.1295,
+      "triangles": 98,
+      "size": [
+        0.24,
+        0.156,
+        0.494
+      ],
+      "bounds_blender": [
+        [
+          -0.12,
+          -0.078,
+          0.0
+        ],
+        [
+          0.12,
+          0.078,
+          0.4943
+        ]
+      ]
+    },
+    {
+      "name": "museum_plaque_b",
+      "set": "museum",
+      "prop": "plaque",
+      "variant": "b",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": false,
+      "radius": 0.1295,
+      "triangles": 98,
+      "size": [
+        0.24,
+        0.156,
+        0.494
+      ],
+      "bounds_blender": [
+        [
+          -0.12,
+          -0.078,
+          0.0
+        ],
+        [
+          0.12,
+          0.078,
+          0.4943
+        ]
+      ]
+    },
+    {
+      "name": "museum_footlights_a",
+      "set": "museum",
+      "prop": "footlights",
+      "variant": "a",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": false,
+      "radius": 0.4178,
+      "triangles": 114,
+      "size": [
+        0.82,
+        0.16,
+        0.155
+      ],
+      "bounds_blender": [
+        [
+          -0.41,
+          -0.08,
+          0.0
+        ],
+        [
+          0.41,
+          0.08,
+          0.155
+        ]
+      ],
+      "light": "#ffd890",
+      "intensity": 0.8,
+      "flicker": "flame"
+    },
+    {
+      "name": "museum_footlights_b",
+      "set": "museum",
+      "prop": "footlights",
+      "variant": "b",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": false,
+      "radius": 0.4178,
+      "triangles": 114,
+      "size": [
+        0.82,
+        0.16,
+        0.155
+      ],
+      "bounds_blender": [
+        [
+          -0.41,
+          -0.08,
+          0.0
+        ],
+        [
+          0.41,
+          0.08,
+          0.155
+        ]
+      ],
+      "light": "#ffd890",
+      "intensity": 0.8,
+      "flicker": "flame"
+    },
+    {
+      "name": "museum_spotlight_a",
+      "set": "museum",
+      "prop": "spotlight",
+      "variant": "a",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.2551,
+      "triangles": 132,
+      "size": [
+        0.436,
+        0.428,
+        1.195
+      ],
+      "bounds_blender": [
+        [
+          -0.1917,
+          -0.2495,
+          0.0
+        ],
+        [
+          0.2447,
+          0.1788,
+          1.1951
+        ]
+      ],
+      "light": "#fff0c8",
+      "intensity": 1.5,
+      "flicker": "pulse"
+    },
+    {
+      "name": "museum_spotlight_b",
+      "set": "museum",
+      "prop": "spotlight",
+      "variant": "b",
+      "priority": 1,
+      "attach": "ground",
+      "blocking": true,
+      "radius": 0.2551,
+      "triangles": 132,
+      "size": [
+        0.436,
+        0.428,
+        1.195
+      ],
+      "bounds_blender": [
+        [
+          -0.1917,
+          -0.2495,
+          0.0
+        ],
+        [
+          0.2447,
+          0.1788,
+          1.1951
+        ]
+      ],
+      "light": "#fff0c8",
+      "intensity": 1.5,
+      "flicker": "pulse"
+    },
+    {
+      "name": "museum_painting_a",
+      "set": "museum",
+      "prop": "painting",
+      "variant": "a",
+      "priority": 1,
+      "attach": "wall",
+      "blocking": false,
+      "radius": 0.5264,
+      "triangles": 216,
+      "size": [
+        0.867,
+        0.06,
+        0.673
+      ],
+      "bounds_blender": [
+        [
+          -0.41,
+          0.0,
+          -0.343
+        ],
+        [
+          0.457,
+          0.06,
+          0.33
+        ]
+      ]
+    },
+    {
+      "name": "museum_painting_b",
+      "set": "museum",
+      "prop": "painting",
+      "variant": "b",
+      "priority": 1,
+      "attach": "wall",
+      "blocking": false,
+      "radius": 0.5264,
+      "triangles": 186,
+      "size": [
+        0.82,
+        0.06,
+        0.69
+      ],
+      "bounds_blender": [
+        [
+          -0.41,
+          0.0,
+          -0.36
+        ],
+        [
+          0.41,
+          0.06,
+          0.33
+        ]
+      ]
+    },
+    {
+      "name": "museum_curtain_a",
+      "set": "museum",
+      "prop": "curtain",
+      "variant": "a",
+      "priority": 1,
+      "attach": "wall",
+      "blocking": false,
+      "radius": 1.0736,
+      "triangles": 328,
+      "size": [
+        1.11,
+        0.148,
+        1.833
+      ],
+      "bounds_blender": [
+        [
+          -0.555,
+          0.0,
+          -0.8826
+        ],
+        [
+          0.555,
+          0.148,
+          0.95
+        ]
+      ]
+    },
+    {
+      "name": "museum_curtain_b",
+      "set": "museum",
+      "prop": "curtain",
+      "variant": "b",
+      "priority": 1,
+      "attach": "wall",
+      "blocking": false,
+      "radius": 1.0736,
+      "triangles": 276,
+      "size": [
+        1.11,
+        0.145,
+        1.83
+      ],
+      "bounds_blender": [
+        [
+          -0.555,
+          0.0,
+          -0.88
+        ],
+        [
+          0.555,
+          0.145,
+          0.95
+        ]
+      ]
     },
     {
       "name": "meadow_windmill_a",

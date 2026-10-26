@@ -188,8 +188,8 @@
         <li lang="de"><code>Math.hypot</code>: der Abstand, mit Pythagoras.</li>
         <li lang="en"><code>atan2</code> gives the direction to the monster. Subtract the way we face (<code>yaw</code>): if the cosine of that angle is smaller than the cosine of the arc, it's outside.</li>
         <li lang="de"><code>atan2</code> gibt die Richtung zum Monster. Zieh die Blickrichtung (<code>yaw</code>) ab: Ist der Kosinus dieses Winkels kleiner als der Kosinus des Bogens, ist es draußen.</li>
-        <li lang="en">Do the heights overlap? The monster's body goes from its feet (<code>enemy.y</code>) up by <code>bodyHeight</code>.</li>
-        <li lang="de">Überlappen sich die Höhen? Der Körper des Monsters geht von seinen Füßen (<code>enemy.y</code>) um <code>bodyHeight</code> nach oben.</li>
+        <li lang="en">Do the heights overlap? The monster's body goes from its feet (<code>baseY</code>: its floor's <code>y</code>, plus how high it flies, for Mansk) up by <code>bodyHeight</code>.</li>
+        <li lang="de">Überlappen sich die Höhen? Der Körper des Monsters geht von seinen Füßen (<code>baseY</code>: das <code>y</code> seines Bodens, plus wie hoch es fliegt, bei Mansk) um <code>bodyHeight</code> nach oben.</li>
       </ol>
       <p class="small" lang="en">The demo two slides back calls exactly this function.</p>
       <p class="small" lang="de">Die Demo zwei Folien vorher ruft genau diese Funktion auf.</p>

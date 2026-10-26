@@ -26,7 +26,8 @@ theme's landmarks (see "Integration"); flag lines and the honey fluid are not bu
 - `blender/themes_geo.py`: shared helpers (cloth sheets, ribbons, lettering, lofts,
   wobble/streaks for rock) and the palette (`LUNGTA`, `WHITEWASH`, `MAROON`, `GOLD`, ...).
 - `blender/themes_highlands.py`, `blender/themes_surface.py`, `blender/themes_caves.py`,
-  `blender/themes_canyon.py`, `blender/themes_darkforest.py`, `blender/themes_slime.py`: the builders; `blender/themes_classic.py`: the classic themes' landmarks.
+  `blender/themes_canyon.py`, `blender/themes_darkforest.py`, `blender/themes_slime.py`: the builders; `blender/themes_classic.py`: the classic themes' landmarks;
+  `blender/themes_museum.py`: Mansk's museum (no theme: what his arena is dressed with).
 - `assets/themes/<set>.glb`: the library, one file per set, every prop a named root at the origin
   (the game loads a set when a cube shows it).
 - `assets/themes/manifest.json`: per-prop set, attach, flags, triangles, sizes, bounds,
@@ -53,6 +54,7 @@ theme's landmarks (see "Integration"); flag lines and the honey fluid are not bu
 | canyon | Deep canyon (I) | Sandstone strata, cottonwoods by the river, hoodoos, petroglyphs, cliff dwellings |
 | darkforest | Dark forest (I) | Wooded hills at night: tall firs, lanterns, glowing mushrooms, old stones, abandoned sheds |
 | slime | Slime marsh (II, open) | Moss and pools of toxic slime: drooping slime trees, goo mounds with bones in them, bubbling vents, meteorite craters |
+| museum | none: Mansk's arena (I, depth 6) | A museum hall with a stage: things on show on pedestals and in glass cases, gold-framed paintings, a red stage curtain, velvet ropes, footlights and spotlights ([bosses.md](../bosses.md#mansk)) |
 | hive | Honey hive (II) | Honey hive: wax, comb, honey fluid (slows rather than hurts) |
 | cenote | Jungle cenote (II, open) | Sunlit jungle temple: jade, glyphs, vines, a step shrine |
 | grotto | Sunken grotto (II) | Sunken grotto: kelp, clams, glowing jellies, a sunken bell |
@@ -91,6 +93,7 @@ theme's landmarks (see "Integration"); flag lines and the honey fluid are not bu
 | slime | `slime_moss` (ground; cover), `goo_puddle` (ground; cover; light #b8ff5a; pulse), `slime_tree` (ground; blocking; sway 0.05; light #b8ff5a; pulse; anchor on the trunk), `slime_mushrooms` (ground; light #b8ff5a; pulse), `goo_mound` (ground; blocking; light #b8ff5a; pulse), `slimed_rock` (ground; blocking; light #b8ff5a; pulse), `bubble_vent` (ground; light #d8ff9a; pulse), `slime_reeds` (ground; sway 0.3), `bulb_tree` (ground; blocking; sway 0.06; light #b8ff5a; pulse; anchors at its bulbs), `dead_slimed_tree` (ground; blocking; sway 0.04; light #b8ff5a; pulse), `spore_pods` (ground; light #b8ff5a; pulse; sway 0.15), `glow_stalk` (ground; blocking; light #b8ff5a; pulse; sway 0.08: the lamp by the way), `slime_seep` (wall; light #b8ff5a; pulse), `slime_drip` (lip; light #b8ff5a; pulse), `goo_pads` (water; acid; light #b8ff5a; pulse) |
 | slime vignettes | `slimed_cart` (light #b8ff5a; pulse), `swallowed_hut` (light #ffd070; flame), `fresh_meteor` (light #b8ff5a; pulse) |
 | slime landmarks | `meteor_crater` (light #b8ff5a; pulse), `giant_slime_tree` (light #b8ff5a; pulse) |
+| museum | `pedestal_vase` (ground; blocking: an amphora, a porcelain vase), `pedestal_bust` (ground; blocking: a marble bust, one in a gold helmet), `display_case` (ground; blocking; light #cfe4ff; pulse: a crown, or a little horned mask like his), `statue` (ground; blocking: a dancer with ribbons; a figure holding up a horned mask, light #8fc8ff; pulse), `rope_posts` (ground), `plaque` (ground), `footlights` (ground; light #ffd890; flame: gaslights), `spotlight` (ground; blocking; light #fff0c8; pulse), `painting` (wall: hills under a sun, a lady in black), `curtain` (wall: red, a gold fringe, tied back or hanging straight) |
 
 ### Landmarks
 

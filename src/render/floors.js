@@ -12,10 +12,11 @@ const ICE_TOP = C('#cfe8f4');
 const shade = (x, z) => ((x + z) & 1 ? 1.0 : 0.95) * (0.97 + (hash32(x * 31 + z * 977) % 100) / 1600);
 
 // A built floor (its `surface`: a role, themes/surfaces.js; Foggery's tower and the floor of his
-// caldera, cubegen/towerarena.js) is the theme's colour for that role, not the terrain's by height
+// caldera, cubegen/towerarena.js; Mansk's museum, cubegen/arenashapes.js `stage`) is the theme's
+// colour for that role, not the terrain's by height; paving in a checker of its two tiles
 function topColor(m, f) {
   const cs = f.cs;
-  if (f.surface) return SURFACE[f.surface].top.clone().multiplyScalar(shade(f.x, f.z) * (0.92 + (hash32(f.c * 7 + Math.round(cs[0] * 4)) % 100) / 600));
+  if (f.surface) return SURFACE[f.surface][f.surface === 'paving' && (f.x + f.z) & 1 ? 'alt' : 'top'].clone().multiplyScalar(shade(f.x, f.z) * (0.92 + (hash32(f.c * 7 + Math.round(cs[0] * 4)) % 100) / 600));
   if (f.fluid) return fluidBed(f.fluid);
   if (f.soft) return SOFT.clone().multiplyScalar(shade(f.x, f.z));   // a plunge's landing
   if (f.ice) return ICE_TOP.clone().multiplyScalar(shade(f.x, f.z));   // a slide puzzle's ice (cubegen/trials/slide.js)
