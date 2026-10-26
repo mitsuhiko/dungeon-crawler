@@ -59,7 +59,7 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
 ## Heroes and worlds, apart
 
 - A **hero** (up to 3) is the character: a name, a gender (`'m'` or `'f'`: it only changes words,
-  [story.md](story.md#what-the-game-needs); heroes saved before it are `'m'`), the XP (the level follows from it), the bag
+  [story.md](story.md#still-open); heroes saved before it are `'m'`), the XP (the level follows from it), the bag
   with everything in it (`core/inventory.js`: slots, coins, quick bar, the weapon in hand) and
   its world, the one Continue goes back to (`null`: none yet, or it was deleted). A hero goes
   into any world, a friend's too, and takes home what it found there; a friend's world never
