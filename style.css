@@ -798,3 +798,18 @@ body.touch #quest-track { top: calc(2px + 148px * var(--map, 1) + env(safe-area-
 body.calm #splash-hint.shown { animation: none; }
 @keyframes splash-breathe { 50% { opacity: .22; } }
 #splash-black { position: fixed; inset: 0; z-index: 101; background: #000; pointer-events: none; }
+
+/* a film (film/player.js): over everything like the splash, its line as a subtitle in the
+   narrator's storybook italics, the skip hint like the splash's */
+#film { position: fixed; inset: 0; z-index: 100; background: #000; touch-action: none; user-select: none; -webkit-user-select: none; }
+#film canvas { display: block; width: 100%; height: 100%; }
+#film-subtitle { position: absolute; left: 50%; bottom: calc(8% + var(--safe-b)); transform: translateX(-50%); width: max-content;
+  max-width: min(40em, 86vw); pointer-events: none; zoom: var(--ui); opacity: 0; transition: opacity .6s; }
+#film-subtitle.on { opacity: 1; }
+#film-subtitle p { margin: 0; font: italic 22px/1.4 var(--font-body); color: #e6eef4; text-align: center; text-wrap: balance;
+  text-shadow: 0 1px 2px #000, 0 0 8px #000; }
+#film-hint { position: absolute; right: calc(4% + var(--safe-r, 0px)); top: calc(5% + var(--safe-t)); pointer-events: none;
+  font: 400 12px var(--font-display); letter-spacing: .3em; text-transform: uppercase; color: #cfe6e2; opacity: 0; transition: opacity .6s ease; }
+#film-hint.shown { opacity: .5; }
+body.calm #film-subtitle, body.calm #film-hint { transition: none; }
+#film-black { position: fixed; inset: 0; z-index: 101; background: #000; pointer-events: none; }

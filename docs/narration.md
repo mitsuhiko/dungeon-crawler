@@ -261,6 +261,7 @@ and a line with tags makes the same clip as without.
 | `assets/narration/manifest.json` | per language and clip: its text, seed, length in seconds and a hash of what made it |
 | `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles |
 | `tests/narration.test.js` | the table is well formed and translated, every line has a moment, every clip is there and current |
+| `src/film/*.js` | the films' lines ([film.md](film.md)): voiced by the same tool, `film.<film>.<shot>`, in the film's own voice |
 
 ## A line
 
@@ -401,6 +402,14 @@ narrator, telling what happens there.
 
 Not in the guide's game window; `?narration=0` turns her off. With `?dev=1`, `/narrate <id>` says
 a line now, `/narrate forget` makes her forget what she said in this world.
+
+## The films' lines
+
+The films ([film.md](film.md)) are narrated too: `tools/narration.mjs` takes their lines with the
+narrator's (`filmLines` in `src/core/film.js`). Each is a line like hers (an id, its text, a note,
+an instruct, a seed), but said in the film's `voice` (the opening: `glassmaker`) and not at a
+moment: the film plays it when its shot comes (`voiceClip` in `src/game/narrator.js`).
+`--only film.` renders just them.
 
 ## Adding lines
 

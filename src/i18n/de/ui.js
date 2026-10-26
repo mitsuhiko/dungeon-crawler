@@ -192,6 +192,8 @@ export default {
   // the splash screen before it (game/splash.js)
   'Click to begin': 'Klick, um zu beginnen',
   'Tap to begin': 'Tipp, um zu beginnen',
+  'Click again to skip': 'Noch einmal klicken, um zu überspringen',
+  'Tap again to skip': 'Noch einmal tippen, um zu überspringen',
   // the main menu (game/menu.js)
   'just now': 'gerade eben',
   '{n} min ago': 'vor {n} Min.',

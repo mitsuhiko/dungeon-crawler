@@ -45,6 +45,7 @@ export const state = {
   menuOpen: false,   // the Esc menu (game/escmenu.js)
   leaveAsk: null,   // "Leave the fight?" asked: { key, dir } (game/leavefight.js)
   deathAsk: null,   // "You died" asks what next: { back } (game/deathask.js)
+  film: false,      // a film plays over everything (film/player.js): the world waits
   run: createRun(),
   statusMsg: '', statusUntil: 0,
   // the world of cubes and where we are in it; lookDepth: the depth the lighting shows
@@ -79,7 +80,7 @@ export const view = { yaw: -Math.PI / 4, yawTarget: -Math.PI / 4, zoom: DEFAULT_
 
 // The inventory, the Esc menu, "Leave the fight?" and "You died" stop the world, except when playing
 // together: the friend plays on, and so do the enemies (only your own input stops)
-export const worldPaused = () => (state.inventoryOpen || state.menuOpen || !!state.leaveAsk || !!state.deathAsk) && !together();
+export const worldPaused = () => (state.inventoryOpen || state.menuOpen || !!state.leaveAsk || !!state.deathAsk || state.film) && !together();
 
 // what the game just said: a short line in the chat box (game/console.js), not kept (the
 // chronicle, game/log.js, keeps what matters)

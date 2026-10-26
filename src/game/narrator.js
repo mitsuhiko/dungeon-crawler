@@ -50,13 +50,12 @@ onAudioStart((ac, sounds, music, voice) => { ctx = ac; bus = voice; });
 // the clips there are (assets/narration/manifest.json: per language and clip, its length); null
 // until fetched, {} if there is none. The clips are not in the repository yet (docs/narration.md):
 // without them, or without one of them, she is only read.
-let manifest = null, asked = false;
+let manifest = null, asked = null;
 function fetchManifest() {
-  if (asked) return;
-  asked = true;
-  fetch(new URL('../../assets/narration/manifest.json', import.meta.url))
+  asked ??= fetch(new URL('../../assets/narration/manifest.json', import.meta.url))
     .then(r => { if (r.status === 404) return {}; if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(m => { manifest = m; }, e => { console.warn(`narration manifest: ${e.message}`); manifest = {}; });
+  return asked;
 }
 const clipEntry = (lang, key) => manifest?.clips?.[lang]?.[key] ?? null;
 
@@ -72,6 +71,37 @@ function clipOf(lang, key) {
       .catch(e => { console.warn(`narration ${k}: ${e.message}`); clips.delete(k); return null; }));
   }
   return clips.get(k);
+}
+
+// A clip said by someone else than the narrator (a film's line: film/player.js), in the current
+// language: { buffer, play(offset, { worn }) -> stop() } through the voice bus (worn: thin, as an
+// old recording sounds), or null (no clip, no sound yet). It waits for the manifest.
+export async function voiceClip(key) {
+  if (ctx?.state === 'suspended') await ctx.resume().catch(() => {});   // (just started by a click)
+  if (!ctx || ctx.state !== 'running') return null;
+  await fetchManifest();
+  const lang = language();
+  if (!clipEntry(lang, key)) return null;
+  const buffer = await clipOf(lang, key);
+  if (!buffer) return null;
+  return {
+    buffer,
+    play(offset = 0, { worn = false } = {}) {
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      let end = src;
+      if (worn) {
+        const low = ctx.createBiquadFilter(), high = ctx.createBiquadFilter(), gain = ctx.createGain();
+        low.type = 'highpass'; low.frequency.value = 320;
+        high.type = 'lowpass'; high.frequency.value = 3200;
+        gain.gain.value = 1.25;
+        end = src.connect(low).connect(high).connect(gain);
+      }
+      end.connect(bus);
+      src.start(0, Math.min(offset, buffer.duration));
+      return () => { try { src.stop(); } catch { /* (over already) */ } end.disconnect(); };
+    },
+  };
 }
 
 // --- what she has to say --------------------------------------------------------------------------

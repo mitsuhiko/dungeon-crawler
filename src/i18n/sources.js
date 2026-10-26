@@ -16,6 +16,7 @@ import { PROP_METADATA } from '../core/propmetadata.js';
 import { THEMES } from '../themes/index.js';
 import { KINDS as ATTACKS } from '../core/combat.js';
 import { LINES } from '../core/narration.js';
+import { FILMS } from '../film/films.js';
 
 // the people's roles and relations, and a woman's of each that has one ('she|hermit': src/i18n/i18n.js
 // nounOf; core/questplan.js RELATIONS)
@@ -62,5 +63,6 @@ export function sources() {
     'src/themes/index.js': Object.values(THEMES).map(t => t.name),
     'src/core/combat.js KINDS': Object.values(ATTACKS).map(k => k.verb),
     'src/core/narration.js': LINES.map(l => l.text),
+    'src/film/ lines': Object.values(FILMS).flatMap(f => f.shots.map(s => s.line).filter(Boolean)),
   };
 }

@@ -44,6 +44,9 @@ export function onAudioStart(fn) {
   if (ctx) fn(ctx, sounds, music, voice);
 }
 
+// whether sound can play now (a key or click has started it)
+export const audioRunning = () => ctx?.state === 'running';
+
 // bus: 'sounds', 'music', 'voice' or 'master'; v: 0 (silent) to 1 (full)
 export function setVolume(bus, v) {
   level[bus] = v;

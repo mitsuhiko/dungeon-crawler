@@ -45,6 +45,11 @@ docs that explain how the game works, from the big ideas down to the real code:
     menu the glass bird (`blender/glassbird.py`) waits in the dark for the first click or key, is
     struck and breaks in slow motion, and everything fades to black into the menu. Not with
     `?dev=1`, `?seed=` or in the guide; `?splash=1` shows it anyway, `?splash=0` never.
+  - The films (`src/film/`, `docs/film.md`): the opening, played when a hero goes into a new world.
+    On the splash screen's dark stage (`src/render/stage.js`), white ink paints itself in on dark
+    paper (generated paintings, `assets/film/`, made by `tools/inklayer.py`, each spreading along
+    its strokes), and glass grows, takes the ink in, rises and breaks. Narrated like the narrator,
+    in the glassmaker's voice. `?film=opening` plays it, `&at=12&hold=1` stops at a moment.
   - The look of the menus (`docs/ui.md`): the bird's faceted teal glass with an amber core, on the
     menus, the inventory and the HUD (`style.css`, the panels' facets `assets/ui/facets.svg`).
   - Saves (`src/core/save.js`, `src/game/save.js`): up to three heroes and eight worlds,

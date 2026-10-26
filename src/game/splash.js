@@ -14,6 +14,7 @@
 // Reducing motion: no camera kick, a softer flash, the hint does not breathe.
 import * as THREE from 'three';
 import { loadGLB } from '../render/gltf.js';
+import { stageUniforms, facets, glassMeshes, glowTexture, floorMesh, beamMesh, mistMesh, pointCloud, finishMesh } from '../render/stage.js';
 import { splashHit, splashShatter, splashSwell } from '../audio/splash.js';
 import { holdMusic } from '../audio/music.js';
 import { reduceMotion } from './settings.js';
@@ -59,88 +60,9 @@ function rate(s) {
   return lerp(SLOW * (1 + 0.5 * (s - SLOW_AT)), FAST, smooth(FAST_FROM, FAST_AT, s));
 }
 
-const NOISE = /* glsl */`
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  float noise(vec2 p) {
-    vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
-  }
-  float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; } return s; }`;
-
-// the uniforms every glass surface shares: the light (how bright: it flashes with the blow and
-// dims at the end), the core's glow on the glass around it
-const shared = {
-  uLight: { value: LIGHT }, uLevel: { value: 1 }, uFlash: { value: 0 },
-  uCore: { value: CORE }, uCoreGlow: { value: 1 }, uAmber: { value: AMBER },
-};
-
-// Glass, premultiplied: it darkens what is behind it a little (`opacity`, more at grazing
-// angles) and adds what it reflects and lets through. Each flat facet mirrors a made-up room:
-// the light's bright disc straight above, a faint band of lit mist at the horizon, the dark
-// everywhere else; so facets turned up flash bright and the others stay dark, as cut glass
-// does. On top: a hard glint where a facet turns the light into your eye, thin edges along the
-// facets, and the amber core shining through.
-function glassMaterial(color, { opacity = 0.2, edge = 1, side = THREE.FrontSide, spec = 1, reflect = 1 } = {}) {
-  return new THREE.ShaderMaterial({
-    uniforms: { ...shared, uTint: { value: color }, uOpacity: { value: opacity }, uEdge: { value: edge }, uSpec: { value: spec },
-      uReflect: { value: reflect } },
-    vertexShader: /* glsl */`
-      attribute vec3 bary;
-      varying vec3 vWorld, vNormal, vBary;
-      void main() {
-        vec4 w = modelMatrix * vec4(position, 1.0);
-        vWorld = w.xyz; vNormal = normalize(mat3(modelMatrix) * normal); vBary = bary;
-        gl_Position = projectionMatrix * viewMatrix * w;
-      }`,
-    fragmentShader: /* glsl */`
-      uniform vec3 uLight, uTint, uCore, uAmber;
-      uniform float uLevel, uFlash, uCoreGlow, uOpacity, uEdge, uSpec, uReflect;
-      varying vec3 vWorld, vNormal, vBary;
-      void main() {
-        vec3 N = normalize(vNormal), V = normalize(cameraPosition - vWorld);
-        if (!gl_FrontFacing) N = -N;
-        float ndv = abs(dot(N, V)), fres = 0.04 + 0.96 * pow(1.0 - ndv, 5.0);
-        vec3 toL = uLight - vWorld, L = normalize(toL), H = normalize(L + V);
-        // the light is a narrow cone straight down: how much of it reaches here
-        float cone = smoothstep(0.86, 0.97, dot(-L, vec3(0.0, -1.0, 0.0))) / (1.0 + 0.05 * dot(toL, toL));
-        float lit = uLevel * (cone + 0.04) * (1.0 + uFlash) * (0.6 + 0.4 * smoothstep(-0.05, 0.4, vWorld.y));
-        vec3 R = reflect(-V, N);
-        float room = 1.7 * smoothstep(0.6, 0.93, R.y) + 0.3 * exp(-(R.y - 0.06) * (R.y - 0.06) / 0.01) + 0.05;
-        float glint = pow(max(dot(N, H), 0.0), 140.0) * 2.2 * uSpec;
-        float b = min(min(vBary.x, vBary.y), vBary.z);
-        float edge = (1.0 - smoothstep(0.0, fwidth(b) * 1.2, b)) * uEdge;
-        float a = clamp(uOpacity + 0.35 * fres, 0.0, 1.0);
-        vec3 through = uTint * (0.16 + 0.55 * max(dot(N, L), 0.0)) * a;
-        vec3 col = (through + mix(vec3(1.0), uTint, 0.45) * room * (0.2 + 0.8 * fres) * uReflect) * lit;
-        col += vec3(1.0, 0.98, 0.94) * glint * lit;
-        col += mix(uTint, vec3(1.0), 0.6) * edge * (0.05 + 0.35 * room * (0.3 + fres)) * lit;
-        float d = distance(vWorld, uCore);
-        col += uAmber * uCoreGlow * exp(-d * d / 0.007) * (0.15 + 0.45 * ndv) * uLevel;
-        gl_FragColor = vec4(col, a);
-      }`,
-    side, transparent: true, premultipliedAlpha: true, depthWrite: false,
-  });
-}
-
-// flat facets, and each corner's barycentric coordinate for the edges
-function facets(geometry) {
-  const g = geometry.index ? geometry.toNonIndexed() : geometry.clone();
-  for (const k of Object.keys(g.attributes)) if (k !== 'position') g.deleteAttribute(k);
-  g.computeVertexNormals();
-  const n = g.attributes.position.count, bary = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) bary[i * 3 + (i % 3)] = 1;
-  g.setAttribute('bary', new THREE.BufferAttribute(bary, 3));
-  return g;
-}
-
-// the glass of one piece: its back faces first (dimmer), then its front ones
-function glassMeshes(geometry, color, opts, order) {
-  const back = new THREE.Mesh(geometry, glassMaterial(color, { ...opts, side: THREE.BackSide, opacity: (opts.opacity ?? 0.2) * 0.6,
-    spec: 0.4, reflect: 0.45, edge: (opts.edge ?? 1) * 0.4 }));
-  const front = new THREE.Mesh(geometry, glassMaterial(color, opts));
-  back.renderOrder = order; front.renderOrder = order + 1;
-  return [back, front];
-}
+// the uniforms every glass surface shares (render/stage.js): the light (how bright: it flashes
+// with the blow and dims at the end), the core's glow on the glass around it
+const shared = stageUniforms({ light: LIGHT, core: CORE, amber: AMBER });
 
 // the GLB's meshes in the bird's frame, as [geometry, material name], by the node they are
 // under: the whole bird, the core (only its place is used: the glow is drawn), each shard
@@ -170,141 +92,9 @@ function pieceGroup(list, order) {
   const group = new THREE.Group();
   for (const [g, mat] of list) {
     const [color, opts] = KINDS[mat] ?? KINDS.GlassBirdGlass;
-    for (const m of glassMeshes(facets(g), color, opts, order + (mat === 'GlassBirdEye' ? 4 : 0))) group.add(m);
+    for (const m of glassMeshes(shared, facets(g), color, opts, order + (mat === 'GlassBirdEye' ? 4 : 0))) group.add(m);
   }
   return group;
-}
-
-// a soft round glow (the core's)
-function glowTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const g = c.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.25, 'rgba(255,255,255,0.45)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
-  const t = new THREE.CanvasTexture(c);
-  return t;
-}
-
-// the black floor: it lets a little of the mirrored bird through, most near the light's pool
-function floorMesh() {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShaderMaterial({
-    uniforms: { uLevel: shared.uLevel, uFlash: shared.uFlash },
-    vertexShader: /* glsl */`varying vec3 vWorld; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: /* glsl */`
-      uniform float uLevel, uFlash; varying vec3 vWorld;
-      ${NOISE}
-      void main() {
-        float r = length(vWorld.xz - vec2(0.05, 0.04));
-        float pool = exp(-r * r / 0.18) * 0.11 * uLevel * (1.0 + uFlash);
-        float grain = fbm(vWorld.xz * 9.0) * 0.5 + 0.5;
-        float a = mix(0.7, 1.0, smoothstep(0.2, 2.2, r));
-        gl_FragColor = vec4(vec3(0.62, 0.7, 0.72) * pool * grain / a, a);
-      }`,
-    transparent: true, depthWrite: false,
-  }));
-  m.rotation.x = -Math.PI / 2;
-  m.renderOrder = 5;
-  return m;
-}
-
-// the light's beam, a faint cone of lit mist from above
-function beamMesh() {
-  const h = 3.1;
-  const g = new THREE.ConeGeometry(0.62, h, 48, 1, true);
-  g.translate(0, h / 2, 0);
-  const m = new THREE.Mesh(g, new THREE.ShaderMaterial({
-    uniforms: { uLevel: shared.uLevel, uFlash: shared.uFlash, uTime: { value: 0 } },
-    vertexShader: /* glsl */`varying vec3 vWorld, vNormal; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; vNormal = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: /* glsl */`
-      uniform float uLevel, uFlash, uTime; varying vec3 vWorld, vNormal;
-      ${NOISE}
-      void main() {
-        float ndv = abs(dot(normalize(vNormal), normalize(cameraPosition - vWorld)));
-        float n = fbm(vec2(vWorld.x * 2.2 + uTime * 0.05, vWorld.y * 1.3 - uTime * 0.08));
-        float along = smoothstep(3.1, 1.6, vWorld.y) * smoothstep(-0.1, 0.5, vWorld.y);
-        float a = pow(ndv, 2.0) * along * (0.35 + 0.9 * n) * 0.06 * uLevel * (1.0 + 0.6 * uFlash);
-        gl_FragColor = vec4(vec3(0.78, 0.88, 0.92) * a, 1.0);
-      }`,
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-  }));
-  m.position.copy(LIGHT).setY(0);
-  m.renderOrder = 30;
-  return m;
-}
-
-// a sheet of drifting mist, facing the camera
-function mistMesh(w, h, strength, speed, seed) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.ShaderMaterial({
-    uniforms: { uLevel: shared.uLevel, uTime: { value: 0 }, uStrength: { value: strength }, uSpeed: { value: speed }, uSeed: { value: seed } },
-    vertexShader: /* glsl */`varying vec2 vUv; varying vec3 vWorld; void main() { vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    fragmentShader: /* glsl */`
-      uniform float uLevel, uTime, uStrength, uSpeed, uSeed; varying vec2 vUv; varying vec3 vWorld;
-      ${NOISE}
-      void main() {
-        vec2 p = vUv * vec2(3.0, 1.6) + vec2(uSeed, uSeed * 0.7);
-        float n = fbm(p + vec2(uTime * uSpeed, uTime * uSpeed * 0.3) + fbm(p * 1.7 - uTime * 0.03));
-        float edge = smoothstep(0.0, 0.25, vUv.x) * smoothstep(1.0, 0.75, vUv.x) * smoothstep(0.0, 0.3, vUv.y) * smoothstep(1.0, 0.6, vUv.y);
-        float d = length(vWorld.xz - vec2(0.1, 0.0));
-        float lit = 0.25 + exp(-d * d / 0.6);
-        float a = smoothstep(0.35, 0.9, n) * edge * lit * uStrength * uLevel;
-        gl_FragColor = vec4(vec3(0.6, 0.68, 0.72) * a, 1.0);
-      }`,
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-  }));
-  return m;
-}
-
-// sparks of the core and glass dust: points with a colour, a size and a life of their own
-function pointCloud(n) {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
-  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
-  g.setAttribute('alpha', new THREE.BufferAttribute(new Float32Array(n), 1));
-  g.setAttribute('size', new THREE.BufferAttribute(new Float32Array(n), 1));
-  const m = new THREE.ShaderMaterial({
-    uniforms: { uScale: { value: 400 } },
-    vertexShader: /* glsl */`
-      attribute vec3 color; attribute float alpha, size; uniform float uScale; varying vec3 vColor; varying float vAlpha;
-      void main() {
-        vColor = color; vAlpha = alpha;
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = max(1.0, size * uScale / -mv.z);
-        gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: /* glsl */`
-      varying vec3 vColor; varying float vAlpha;
-      void main() { vec2 q = gl_PointCoord - 0.5; float a = smoothstep(0.5, 0.0, length(q)) * vAlpha; gl_FragColor = vec4(vColor * a, 1.0); }`,
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-  });
-  const p = new THREE.Points(g, m);
-  p.frustumCulled = false;
-  p.renderOrder = 25;
-  return p;
-}
-
-// onto the screen: the picture darkened towards its edges (a vignette) and by `uDark` (the fades
-// to black), with a little noise of about one step of 8 bits (a triangular distribution, moving
-// each frame) so the dark gradients do not band
-function finishMesh(texture) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
-    uniforms: { tScene: { value: texture }, uDark: { value: 1 }, uSeed: { value: 0 } },
-    vertexShader: /* glsl */`varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
-    fragmentShader: /* glsl */`
-      uniform sampler2D tScene; uniform float uDark, uSeed; varying vec2 vUv;
-      float rand(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-      void main() {
-        vec3 c = texture2D(tScene, vUv).rgb;
-        float d = length((vUv - vec2(0.5, 0.45)) / vec2(0.5, 0.55)) * 0.7071;
-        c *= mix(1.0, 0.35, smoothstep(0.45, 1.0, d)) * (1.0 - uDark);
-        vec2 p = gl_FragCoord.xy + uSeed * 97.0;
-        c += (rand(p) + rand(p + vec2(17.3, 5.1)) - 1.0) / 255.0;
-        gl_FragColor = vec4(max(c, 0.0), 1.0);
-      }`,
-    depthTest: false, depthWrite: false,
-  }));
-  m.frustumCulled = false;
-  return m;
 }
 
 // --- running it ---------------------------------------------------------------------------------
@@ -365,10 +155,10 @@ export function playSplash() {
   // the stage
   const real = new THREE.Group(), mirror = new THREE.Group();
   mirror.scale.y = -1;
-  scene.add(real, mirror, floorMesh());
-  const beam = beamMesh();
+  scene.add(real, mirror, floorMesh(shared));
+  const beam = beamMesh(shared);
   scene.add(beam);
-  const mists = [mistMesh(5, 2.2, 0.16, 0.03, 0.0), mistMesh(4, 1.2, 0.12, -0.05, 3.1), mistMesh(3.5, 1.0, 0.09, 0.07, 7.3)];
+  const mists = [mistMesh(shared, 5, 2.2, 0.16, 0.03, 0.0), mistMesh(shared, 4, 1.2, 0.12, -0.05, 3.1), mistMesh(shared, 3.5, 1.0, 0.09, 0.07, 7.3)];
   mists[0].position.set(-0.4, 0.9, -1.4); mists[1].position.set(0.2, 0.35, -0.5); mists[2].position.set(0.3, 0.15, 0.7);
   for (const [i, m] of mists.entries()) { m.renderOrder = i === 2 ? 32 : 6; scene.add(m); }
 

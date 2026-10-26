@@ -42,6 +42,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { LINES, untagged } from '../src/core/narration.js';
+import { filmLines } from '../src/core/film.js';
+import { FILMS } from '../src/film/films.js';
 import { setLanguage, tr, paramsOf, loadLocale, SOURCE } from '../src/i18n/i18n.js';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -205,10 +207,15 @@ export function referenceOf(voice) {
 }
 export const clipFile = (lang, key) => `${lang}/${key}.mp3`;
 
+// the lines to voice: the narrator's, and the films' (core/film.js filmLines: in a film's own
+// voice, `voice`)
+export const ALL_LINES = [...LINES, ...Object.values(FILMS).flatMap(filmLines)];
+
 // Every clip the table asks for, said in its language: { lang, key, id, form, text, spec, hash },
 // the table's problems (a bad id, a parameter no form gives, a line not translated), and the
 // voices' (`unvoiced`: a reference recording missing; its clips cannot be rendered or checked).
-export async function clipsOf(lines = LINES) {
+// A line with a `voice` is said in that voice (tools/voices/), not the language's.
+export async function clipsOf(lines = ALL_LINES) {
   const clips = [], problems = [], unvoiced = [], keys = new Set();
   for (const line of lines) {
     if (!ID.test(line.id ?? '')) problems.push(`${line.id}: an id is lowercase words joined by '-' or '.'`);
@@ -224,12 +231,12 @@ export async function clipsOf(lines = LINES) {
     }
   }
   for (const [lang, settings] of Object.entries(VOICES)) {
-    const voice = settingsOf(settings), ref = referenceOf(voice.voice);
-    if (ref.problem && !unvoiced.includes(ref.problem)) unvoiced.push(ref.problem);
     const messages = lang === SOURCE ? null : (await loadLocale(lang))?.messages;
     await setLanguage(lang);
     try {
       for (const line of lines) {
+        const voice = settingsOf(line.voice ? { ...settings, voice: line.voice } : settings), ref = referenceOf(voice.voice);
+        if (ref.problem && !unvoiced.includes(ref.problem)) unvoiced.push(ref.problem);
         if (messages && messages[line.text] == null) { problems.push(`${line.id}: not translated into '${lang}'`); continue; }
         for (const [form, params] of line.forms ? Object.entries(line.forms) : [[null, undefined]]) {
           const key = form ? `${line.id}.${form}` : line.id;

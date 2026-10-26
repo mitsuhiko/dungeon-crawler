@@ -37,6 +37,8 @@ import { skinNameKey, MAX_SKINS } from '../core/skin.js';
 import { isInterior } from '../world/town.js';
 import { startZoom } from './settings.js';
 import { store, play, playAsGuest, stopSaving, newHero, newSavedWorld, forget } from './save.js';
+import { playFilm, filmsWanted } from '../film/player.js';
+import { FILMS } from '../film/films.js';
 import { cleanName, cleanGender, heroLevel, heroStats, savedWorldName, GENDERS, MAX_HEROES, MAX_WORLDS } from '../core/save.js';
 import { readSeed } from '../core/names.js';
 import { ITEMS } from '../core/items.js';
@@ -296,7 +298,11 @@ function updatePreview() {
 // --- doing --------------------------------------------------------------------------------------
 
 function start(heroId, worldId) {
+  // a world nobody has been in yet starts with the opening (film/opening.js), the world loading
+  // behind it
+  const fresh = !store.world(worldId)?.visited.length;
   closeMainMenu();
+  if (fresh && filmsWanted()) playFilm(FILMS.opening);
   play(heroId, worldId).catch(e => {   // (the game files did not come: the server or the connection)
     console.error('could not start', e);
     stopSaving(); endWorld(); openMainMenu();   // (another showcase)

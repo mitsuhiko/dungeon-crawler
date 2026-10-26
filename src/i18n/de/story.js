@@ -155,4 +155,24 @@ export default {
   // depth 3
   'Further down, the glass gets cloudy. Let me think.': 'Weiter unten wird das Glas trüb. Lass mich nachdenken.',
   'The rest will come back to me as we go. It always does. Eventually.': 'Der Rest fällt mir unterwegs wieder ein. Das tut er immer. Irgendwann.',
+
+  // the opening film (film/opening.js): the glassmaker, a man, long after, recording in the dark
+  'Nobody says my name any more. That is all right. Names do not keep in glass.':
+    'Niemand sagt mehr meinen Namen. Das ist schon recht. Namen halten sich nicht in Glas.',
+  'The star-readers saw the stone first. They read the sky for a hundred nights, and it never changed its mind.':
+    'Die Sternleser sahen den Stein zuerst. Hundert Nächte lang lasen sie den Himmel, und er blieb dabei.',
+  'Then they came to my door. Not to the guild. To me. I knew the old way of star-glass: glass that keeps what it holds, and rises.':
+    'Dann kamen sie zu mir. Nicht zur Zunft. Zu mir. Ich kannte die alte Kunst des Sternglases: Glas, das bewahrt, was es umschließt, und steigt.',
+  'I closed it round all I could. A town. A forest. A piece of the sea. My hands made every pane of the glass you live in.':
+    'Ich schloss es um alles, was ich konnte. Eine Stadt. Einen Wald. Ein Stück vom Meer. Meine Hände haben jede Scheibe des Glases gemacht, das dich umschließt.',
+  'I gave the ark its wings. When it rose, I went with it, to keep the glass whole.':
+    'Ich gab der Arche ihre Flügel. Als sie aufstieg, ging ich mit, um das Glas heil zu halten.',
+  'The wings were mine as well. They broke, and the ark fell, and I fell with it, below everything.':
+    'Auch die Flügel stammten von mir. Sie brachen, die Arche fiel, und ich fiel mit ihr, tiefer als alles andere.',
+  'Most of the pieces held. But the world is broken apart now, scattered through the dark.':
+    'Die meisten Stücke haben gehalten. Aber die Welt ist jetzt zerbrochen, verstreut im Dunkel.',
+  'So I blow my words into glass, and let them rise. I do not know where they come to rest.':
+    'Also blase ich meine Worte in Glas und lasse sie steigen. Ich weiß nicht, wo sie zur Ruhe kommen.',
+  'If this reaches you: I am down below, where no light reaches. Find me.':
+    'Wenn dich das erreicht: Ich bin tief unten, wo kein Licht hinkommt. Finde mich.',
 };

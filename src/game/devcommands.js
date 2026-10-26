@@ -30,6 +30,8 @@ import { BOSS_SHAPES } from '../cubegen/arenashapes.js';
 import { devSwapWeapon, devDropWeapon, devWear, devWearArmor, devDropArmor } from './equipment.js';
 import { forceMood } from './music.js';
 import { devNarrate } from './narrator.js';
+import { playFilm } from '../film/player.js';
+import { FILMS } from '../film/films.js';
 import { LINES } from '../core/narration.js';
 import { nextCube, newWorld } from './flow.js';
 import { pickFloor, pointer } from './pointer.js';
@@ -393,6 +395,13 @@ addType(commands, { name: 'line', values: () => [...LINES.map(l => ({ value: l.i
 dev({
   name: 'narrate', help: 'the narrator says a line now (forget: she says everything again in this world)', args: [{ name: 'line', type: 'line' }],
   run: ({ line }) => devNarrate(line),
+});
+
+addType(commands, { name: 'film', values: () => Object.values(FILMS).map(f => ({ value: f.name, label: f.name, hint: f.shots.find(s => s.line)?.line ?? '' })) });
+dev({
+  name: 'film', help: 'play a film now (film/films.js), from `at` seconds in; also ?film=<name>&at=<s>',
+  args: [{ name: 'film', type: 'film' }, { name: 'at', type: 'int', min: 0, max: 600, optional: true }],
+  run: ({ film, at }) => (playFilm(FILMS[film], { at: at ?? 0 }) ? `Playing ${film}${at ? ` from ${at} s` : ''}` : 'A film is playing already'),
 });
 
 dev({

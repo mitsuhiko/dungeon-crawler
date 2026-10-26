@@ -1,6 +1,8 @@
 // Entry point: load the first cube and run the frame loop.
 import './render/lighthook.js';   // (first: every lit material takes the fixed lights, render/lighthook.js)
 import { playSplash, splashCovers } from './game/splash.js';   // (early: its input comes before the game's)
+import { playFilm, filmCovers, filmNow } from './film/player.js';   // (early too: the same)
+import { FILMS } from './film/films.js';
 import * as THREE from 'three';
 import { renderer, scene, camera, fitView } from './render/scene.js';
 import { tickBakes, updateBakes, setCurrentBake, baked } from './render/bake.js';
@@ -269,7 +271,7 @@ function menuFrame(dt, start) {
   tickQuality(dt);
   tickBakes(state.world, curtained()); updateBakes(); setCurrentBake(state.world?.bake);
   fitView();
-  const draw = !splashCovers();   // (behind the splash screen nothing shows: game/splash.js)
+  const draw = !splashCovers() && !filmCovers();   // (behind the splash screen or a film nothing shows: game/splash.js, film/player.js)
   if (draw) {
     beginFrame();
     renderer.render(scene, camera);
@@ -288,16 +290,21 @@ graphicsSettings();
 onSettingsChange(graphicsSettings);
 
 // the dev tools and ?seed= start in a world, everyone else in the main menu (game/state.js mode)
+// ?film=<name>: that film over either (film/films.js), in place of the glass bird breaking; &at=<s>
+// from that far in, &hold=1 stopped there (docs/film.md)
+const urlParams = new URLSearchParams(location.search), film = FILMS[urlParams.get('film')];
 if (state.mode === 'play') {
   loadCube();
   setStatus(tr('Welcome to town. Follow the path through the grove to leave.'));
 } else {
   openMainMenu();
-  playSplash();   // the glass bird breaking, over the menu (game/splash.js)
+  if (!film) playSplash();   // the glass bird breaking, over the menu (game/splash.js)
 }
+if (film) playFilm(film, { at: urlParams.get('at'), hold: urlParams.get('hold') === '1', click: urlParams.get('hold') !== '1' });
 // debug / test hooks
 window.__game = {
   get map() { return state.map; }, player, generate, loadCube, updatePlayer, groundAt,
+  film: (name = 'opening', opts) => playFilm(FILMS[name], opts), filmNow,   // a film now, and how far it is (film/player.js)
   get transitioning() { return state.transitioning; }, get spiders() { return spiders; }, updateSpiders, state,
   get stunders() { return stunders; }, get snakes() { return snakes; }, get octonauts() { return octonauts; },
   get fireFaces() { return fireFaces; }, get triangles() { return triangles; }, get fireCats() { return fireCats; }, get shraps() { return shraps; }, get spicies() { return spicies; }, get wollas() { return wollas; }, get wolks() { return wolks; }, get meckeds() { return meckeds; }, get tornados() { return tornados; }, get slugs() { return slugs; }, get bolimes() { return bolimes; }, get flimmers() { return flimmers; }, get twisters() { return twisters; },
