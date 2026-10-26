@@ -215,6 +215,7 @@ export default {
   'The guide': 'Der Rundgang',
   'not been there yet': 'noch nicht dort gewesen',
   Continue: 'Weiterspielen',
+  Start: 'Losspielen',
   'Choose World': 'Welt wählen',
   '{name} has no world yet': '{name} hat noch keine Welt',
   'Join Game': 'Mitspielen',

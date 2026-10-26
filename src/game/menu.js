@@ -1,6 +1,6 @@
 // The main menu: before the game starts, and after "Save and quit" in the Esc menu
 // (game/escmenu.js). The dev tools and ?seed= skip it (state.js mode; ?menu=1 shows it after all).
-//   title       Continue (the chosen hero in its world), Choose World, Join Game, Choose
+//   title       Continue (the chosen hero in its world; Start if nobody has been in it yet), Choose World, Join Game, Choose
 //               Character, the settings (game/settingsmenu.js), the guide. No hero yet: it
 //               says so, and OK goes to make one.
 //   worlds      the chosen hero's world: one of the saved ones, a new random one, or a known one
@@ -161,7 +161,7 @@ const screens = {
     const world = store.heroWorld(hero.id), name = esc(hero.name);
     const where = world && `${esc(world.name)} · ${world.heroes.includes(hero.id) ? depthText(world) : tr('not been there yet')}`;
     return `<div class="title-list">
-      ${world ? `<button class="menu-big" data-act="continue">${tr('Continue')}<small>${name} · ${tr('level {level}', { level: heroLevel(hero) })}</small><small>${where}</small></button>` : ''}
+      ${world ? `<button class="menu-big" data-act="continue">${fresh(world.id) ? tr('Start') : tr('Continue')}<small>${name} · ${tr('level {level}', { level: heroLevel(hero) })}</small><small>${where}</small></button>` : ''}
       <button class="${world ? 'title-item' : 'menu-big'}" data-act="choose-world">${tr('Choose World')}${world ? '' : `<small>${tr('{name} has no world yet', { name })}</small>`}</button>
       <button class="title-item" data-act="join-game">${tr('Join Game')}</button>
       <button class="title-item" data-act="characters">${tr('Choose Character')}</button>
@@ -297,12 +297,15 @@ function updatePreview() {
 
 // --- doing --------------------------------------------------------------------------------------
 
+// a world nobody has been in yet: it starts with the opening (film/opening.js), and the title
+// says Start for it, not Continue
+const fresh = worldId => !store.world(worldId)?.visited.length;
+
 function start(heroId, worldId) {
-  // a world nobody has been in yet starts with the opening (film/opening.js), the world loading
-  // behind it
-  const fresh = !store.world(worldId)?.visited.length;
+  // (the world loading behind the opening)
+  const opening = fresh(worldId);
   closeMainMenu();
-  if (fresh && filmsWanted()) playFilm(FILMS.opening);
+  if (opening && filmsWanted()) playFilm(FILMS.opening);
   play(heroId, worldId).catch(e => {   // (the game files did not come: the server or the connection)
     console.error('could not start', e);
     stopSaving(); endWorld(); openMainMenu();   // (another showcase)
