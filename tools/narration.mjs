@@ -149,7 +149,7 @@ const unknownTags = text => [...text.matchAll(/\[([a-z][a-z ]*)\]/g)].map(m => m
 
 // how tools/narration.py turns speech into a clip: raise it when that changes, and every clip is
 // rendered again
-export const PIPELINE = 3;
+export const PIPELINE = 4;
 
 const ID = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const FORM = /^[a-z0-9]+$/;

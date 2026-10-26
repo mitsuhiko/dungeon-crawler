@@ -119,6 +119,14 @@ def trim(audio, rate):
     return audio[loud[0] * win : (loud[-1] + 1) * win]
 
 
+def level(audio, rate):
+    """A sentence at the loudness every sentence is said at (its speech at TARGET_RMS_DB): an
+    instruction (a whisper, a shout, a sad tone) changes how loud the model speaks, and a line's
+    sentences, said with different ones, would jump in loudness."""
+    loud, frames, _ = spoken(audio, rate)
+    return audio * db(TARGET_RMS_DB) / np.sqrt((frames[loud] ** 2).mean())
+
+
 def finish(audio, rate, filter=None, noise=0, target=None):
     """Levels the clip: the spoken part at TARGET_RMS_DB, peaks at most PEAK_DB; a little quiet
     before and after. With a `filter` (FILTERS) the voice goes through it first, and the quiet
@@ -530,7 +538,7 @@ def say(model, prompt, job):
                 text=text, language=job["language"], voice_clone_prompt=prompt, max_new_tokens=limit, **kwargs,
             )
         ran_away |= len(wavs[0]) / rate >= max_seconds(text) - 0.5
-        parts.append(trim(np.asarray(wavs[0]), rate))
+        parts.append(level(trim(np.asarray(wavs[0]), rate), rate))
         if n < len(said) - 1:
             parts.append(np.zeros(int(pause_after(text) * rate)))
     return np.concatenate(parts), rate, ran_away

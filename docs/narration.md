@@ -61,8 +61,10 @@ Whisper understood them better (22 clips, English and German: a word error rate 
 
 Sentence by sentence (`tools/narration.py`): the line is split after every `.`, `!`, `?` and
 `…` (a closing quote may follow), each sentence is rendered on its own, so it ends like a sentence
-that ends and not like one the next follows on from, its quiet trimmed, and they are put together
-with a set pause after each: 0.55 s after `.`, 0.5 s after `!`, 0.6 s after `?` and 0.8 s after
+that ends and not like one the next follows on from, its quiet trimmed, levelled (every sentence's
+speech at the same loudness: an instruction, a whisper or a shout, changes how loud the model
+speaks, and a line's sentences jumped by up to 10 dB; levelled, they stay within 0.5 dB), and they
+are put together with a set pause after each: 0.55 s after `.`, 0.5 s after `!`, 0.6 s after `?` and 0.8 s after
 `...` (`PAUSE`). Said in one go the model barely stops between sentences. Within a sentence the
 model's own pauses stand: a comma, a colon. To make it stop longer somewhere, end the sentence
 there (or trail off: `we... Never mind.`). The temperature (0.7, the model's own 0.9) makes the
@@ -212,6 +214,10 @@ Where a line's instructions come from, for each of its sentences:
 2. else the line's `instruct` (`src/core/narration.js`): `instruct: 'Speak slowly and softly.'`,
    for the whole line, in every language;
 3. else the voice's `instruct` (`VOICES`), for every line (none for now: as it comes).
+
+Every line has its `instruct`, written from its `note` (how it should feel), gently worded:
+"Speak fondly, smiling.", "Speak in a hushed, spooky voice, like telling a ghost story."
+The stronger the instruction, the further the voice drifts from the recording.
 
 The speaker embedding is taken once per voice, with the base model, and kept in
 `~/.cache/narration-voices/` (by the voice's recording and words, its weights in a mix, its
