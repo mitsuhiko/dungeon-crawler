@@ -32,6 +32,7 @@ import { closedChests } from './chests.js';
 import { RARITY } from '../core/gear/rarities.js';
 import { tr, say, onLanguageChange } from '../i18n/i18n.js';
 import { itemNames, setItemNames } from './settings.js';
+import { curtained } from './hud.js';
 
 const layer = document.getElementById('loot-labels'), canvas = renderer.domElement;
 const labels = new Map();   // pickup id (or 'chest:' + site id) -> { el, p, w, h }
@@ -105,7 +106,9 @@ function screen(p, off) {
 }
 
 export function updateLootLabels() {
-  const live = !state.inventoryOpen && !state.transitioning && !!state.world;
+  // (not behind the curtain: they come up with the world as it lifts, under it, style.css #fade;
+  // nothing unseen is hovered or clicked meanwhile)
+  const live = !state.inventoryOpen && !state.transitioning && !!state.world && !curtained();
   parts = new Set(live && state.mode === 'play' ? usableParts() : []);
   const list = live ? [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView),
     ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : [])] : [];

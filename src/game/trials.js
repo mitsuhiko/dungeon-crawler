@@ -113,7 +113,7 @@ function frost(k) {
   if (!frostEl && k <= 0) return;
   if (!frostEl) {
     frostEl = document.createElement('div');
-    Object.assign(frostEl.style, { position: 'fixed', inset: '0', pointerEvents: 'none', zIndex: 5,
+    Object.assign(frostEl.style, { position: 'fixed', inset: '0', pointerEvents: 'none', zIndex: 3,   // (under the curtain: style.css #fade)
       background: 'radial-gradient(ellipse at center, rgba(200,240,255,0) 30%, rgba(200,235,255,0.5) 60%, rgba(225,245,255,0.85) 80%, rgba(245,252,255,1) 100%)' });
     document.body.appendChild(frostEl);
   }
