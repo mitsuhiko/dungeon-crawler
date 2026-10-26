@@ -562,13 +562,12 @@ body.touch #teleport-menu kbd { display: none; }
 
 /* potions at work and poison (game/effects.js): little icons with the time left, over the quick bar */
 /* the narrator's subtitle (game/narrator.js): one line at a time over the potions at work, read
-   like a storybook: the body face in italics, light on a soft dark band, fading in and out */
+   like a storybook: the body face in italics, light with a dark shadow like the film's, fading in and out */
 #subtitle { position: fixed; left: 50%; bottom: 122px; transform: translateX(-50%); z-index: 18; width: max-content;
   max-width: min(46em, 86vw); pointer-events: none; zoom: var(--ui); opacity: 0; transition: opacity .45s; }
 #subtitle.on { opacity: 1; }
-#subtitle p { margin: 0; padding: 5px 18px 6px; font: italic 21px/1.35 var(--font-body); color: #f4ede2; text-align: center;
-  text-wrap: balance; text-shadow: 0 1px 2px #000, 0 0 6px #000;
-  background: radial-gradient(ellipse at center, #050807b8 0%, #05080780 55%, transparent 80%); }
+#subtitle p { margin: 0; font: italic 21px/1.35 var(--font-body); color: #f4ede2; text-align: center;
+  text-wrap: balance; text-shadow: 0 1px 2px #000, 0 0 8px #000; }
 body.calm #subtitle { transition: none; }
 #effects { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); z-index: 19; display: flex; gap: 5px; pointer-events: none; }
 #effects .fx { position: relative; width: 30px; height: 30px; padding: 2px; overflow: hidden; --c1: 4px; --c2: 1px; --c3: 4px; --c4: 1px; --face: #0e1312d9; --edge-hi: #5e7f78; --edge-lo: #26302e; }
