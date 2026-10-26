@@ -222,10 +222,11 @@ once, with both forms:
 
 Before the story can go in. Roughly in the order to build it.
 
-1. **The hero's gender.** Choose Character asks for it with the name (two choices), it is saved
-   with the hero (`core/save.js`) and can be changed like the name. Heroes saved before are asked
-   once. It goes to friends with the hero's name (`net/protocol.js`, a new `PROTOCOL`), so the
-   chronicle and the story can say a friend's words right. It changes only words, not the figure.
+1. **The hero's gender.** Built: Choose Character asks for it with the name (two choices, Male
+   picked at first), it is saved with the hero (`core/save.js`, `gender`) and can be changed with
+   the name (Edit). Heroes saved before are male. Still to do: it goes to friends with the hero's
+   name (`net/protocol.js`, a new `PROTOCOL`), so the chronicle and the story can say a friend's
+   words right. It changes only words, not the figure.
 2. **The world's owner.** A new world remembers the hero who made it: its id, and a copy of its
    name and gender (for when the hero is renamed: the name follows the hero; for when it is
    deleted, and for guests: the copy). Worlds saved before take the hero whose world they are, else

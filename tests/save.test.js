@@ -22,6 +22,17 @@ test('a new hero starts like a new game: the Old Sword in hand, the scroll and t
   assert.equal(createHero('', { id: 'h-2' }).name, 'Hero');
 });
 
+test('a hero has a gender, male unless it says otherwise; heroes saved before are male', () => {
+  assert.equal(createHero('Mia', { id: 'h-1' }).gender, 'm');
+  const f = createHero('Mia', { id: 'h-1', gender: 'f' });
+  assert.equal(f.gender, 'f');
+  assert.equal(checkHero(roundTrip(f)).gender, 'f', 'kept');
+  assert.equal(createHero('Ben', { id: 'h-2', gender: 'x' }).gender, 'm');
+  const { gender, ...old } = createHero('Ben', { id: 'h-2', gender: 'f' });
+  assert.equal(checkHero(roundTrip(old)).gender, 'm');
+  assert.equal(checkHero({ ...roundTrip(old), gender: 7 }).gender, 'm');
+});
+
 test('a hero comes into a world at its level with full health and no potions at work', () => {
   const h = { ...createHero('Ben', { id: 'h-1' }), xp: xpForLevel(5) + 10 };
   const s = heroStats(h);

@@ -17,8 +17,9 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
     world deleted (the button asks again). Worlds have no other names.
   - **Join Game**: the hero that goes (it becomes the chosen one) and the friend's room code. The
     friend's world never becomes the hero's world.
-  - **Choose Character**: three places, a new hero needs only a name; choose one (back to the
-    title), rename, delete (the button asks again; the chosen one gone, the next is chosen).
+  - **Choose Character**: three places, a new hero needs a name and a gender (Male or Female,
+    Male picked at first); choose one (back to the title), edit (the name and the gender), delete
+    (the button asks again; the chosen one gone, the next is chosen).
   - With no hero yet the title says so, and OK goes to Choose Character. Esc goes back a screen.
 - **`?join=CODE`** opens Join Game with the code filled in (even with `?dev=1` or `?seed=`).
   A failed join comes back there and says why. Joining is only done in the main menu.
@@ -57,12 +58,13 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
 
 ## Heroes and worlds, apart
 
-- A **hero** (up to 3) is the character: a name, the XP (the level follows from it), the bag
+- A **hero** (up to 3) is the character: a name, a gender (`'m'` or `'f'`: it only changes words,
+  [story.md](story.md#what-the-game-needs); heroes saved before it are `'m'`), the XP (the level follows from it), the bag
   with everything in it (`core/inventory.js`: slots, coins, quick bar, the weapon in hand) and
   its world, the one Continue goes back to (`null`: none yet, or it was deleted). A hero goes
   into any world, a friend's too, and takes home what it found there; a friend's world never
   becomes its world (it is not saved here). Playing a saved world makes it the hero's world.
-  `{ v, id, name, created, updated, playTime, xp, inventory, world }`
+  `{ v, id, name, gender, created, updated, playTime, xp, inventory, world }`
 - A **world** (up to 8) is a seed and what was done in it: what was defeated, the gates and
   chests opened, the drops that came (`run.dropped`), the loot lying on the floors, the open town
   portal, the quests ([quests.md](quests.md): they are the world's, not a hero's), the open side

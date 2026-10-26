@@ -91,9 +91,9 @@ function restoreOf(world, heroId) {
 }
 
 // A new hero in the store (null: there are MAX_HEROES already, or the storage refused)
-export function newHero(name) {
+export function newHero(name, gender) {
   if (store.heroes().length >= MAX_HEROES) return null;
-  const h = createHero(name);
+  const h = createHero(name, { gender });
   return store.putHero(h) ? h : null;
 }
 // A new world in the store (seed: random if not given; a seed saved already makes a copy, "... II")

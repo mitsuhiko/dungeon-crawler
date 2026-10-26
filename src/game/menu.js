@@ -9,7 +9,8 @@
 //   join        a hero (it becomes the chosen one) and a friend's room code
 //   joining     waiting for the friend's game; the hero comes along, the world is theirs (it
 //               does not become the hero's world)
-//   characters  up to three heroes (core/save.js MAX_HEROES): choose, rename, delete, make one
+//   characters  up to three heroes (core/save.js MAX_HEROES): choose, edit (the name and the
+//               gender), delete, make one (a name and a gender)
 //   skins       the chosen hero's skin: one of the saved ones (up to core/skin.js MAX_SKINS, in
 //               IndexedDB: game/skinfiles.js), or none; each painted on (game/skineditor.js) or
 //               deleted here, and a new one painted
@@ -36,7 +37,7 @@ import { skinNameKey, MAX_SKINS } from '../core/skin.js';
 import { isInterior } from '../world/town.js';
 import { startZoom } from './settings.js';
 import { store, play, playAsGuest, stopSaving, newHero, newSavedWorld, forget } from './save.js';
-import { cleanName, heroLevel, heroStats, savedWorldName, MAX_HEROES, MAX_WORLDS } from '../core/save.js';
+import { cleanName, cleanGender, heroLevel, heroStats, savedWorldName, GENDERS, MAX_HEROES, MAX_WORLDS } from '../core/save.js';
 import { readSeed } from '../core/names.js';
 import { ITEMS } from '../core/items.js';
 import { pictureImg } from '../render/itemviews.js';
@@ -44,7 +45,7 @@ import { playSong, setMood } from '../audio/music.js';
 import { readCode } from '../net/protocol.js';
 import { online } from '../net/online.js';
 import { joinGame, leaveGame, sessionStatus, onSessionChange } from '../net/session.js';
-import { tr, onLanguageChange, language } from '../i18n/i18n.js';
+import { tr, msg, onLanguageChange, language } from '../i18n/i18n.js';
 import { GUIDE_LANGUAGES } from '../i18n/languages.js';
 
 const FADE_MS = 380, CONFIRM_MS = 4000, COPIED_MS = 1500;
@@ -53,11 +54,12 @@ const overlay = $('title-overlay'), panel = $('title-panel');
 const params = new URLSearchParams(location.search), local = params.get('net') === 'local';
 
 // screen: which one shows; from: where Choose Character goes back to ('title' or 'join');
-// form: what is being typed ('hero': a new hero, 'known': a known world, { rename: id });
+// form: what is being typed ('hero': a new hero, 'known': a known world, { rename: id }: a hero's
+// name and gender); gender: the one picked in the hero's form;
 // asked: the delete button that asks again (id, until when); note: what went wrong; copied: the
 // world whose name was just copied; invite: ?join=CODE, until joined or given up; code: the
 // room code typed so far; joining: the code of the game we wait for
-let screen = 'title', from = 'title', form = null, asked = { id: null, until: 0 }, note = '', copied = null;
+let screen = 'title', from = 'title', form = null, gender = GENDERS[0], asked = { id: null, until: 0 }, note = '', copied = null;
 let invite = state.mode === 'menu' ? readCode(params.get('join')) : null, code = invite ?? '', joining = null;
 let shownHero = '';   // the hero over the menu, as it was saved (id, when): its bag is the player's
 // Choose Skin: the library (null: still coming from IndexedDB), its thumbnails (object URLs, by
@@ -130,6 +132,11 @@ function listScreen({ title, about = '', cards, empty = '', below = '' }) {
 // the most there can be: why there is no "new" button
 const tooMany = text => `<p>${text}</p>`;
 
+// the hero's gender, two buttons (picked: aria-pressed): only words change with it, not the figure
+const GENDER_LABELS = { m: msg('Male'), f: msg('Female') };
+const genderPicker = () => `<div class="title-gender" role="group" aria-label="${esc(tr('Gender'))}">${GENDERS.map(g =>
+  `<button data-act="gender" data-id="${g}" aria-pressed="${g === gender}">${tr(GENDER_LABELS[g])}</button>`).join('')}</div>`;
+
 const noHero = () => `<p class="title-none">${tr("You don't have a character yet.")}</p><button class="menu-big" data-act="first-hero">${tr('OK')}</button>`;
 // a hero to pick (with its weapon's picture); `chosen`: the one picked now
 function heroPick(h, chosen = false) {
@@ -195,13 +202,13 @@ const screens = {
     const cards = Array.from({ length: MAX_HEROES }, (_, i) => {
       const h = heroes[i];
       if (h) return card(form?.rename === h.id
-        ? `<span class="title-rename"><input id="title-rename" maxlength="16" value="${esc(h.name)}" data-enter="save-name" aria-label="${esc(tr('New name'))}"><button data-act="save-name" data-id="${h.id}">${tr('Save')}</button></span>`
+        ? `<div class="title-rename"><div class="title-name"><input id="title-rename" maxlength="16" value="${esc(h.name)}" data-enter="save-name" aria-label="${esc(tr('New name'))}"><button data-act="save-name" data-id="${h.id}">${tr('Save')}</button></div>${genderPicker()}</div>`
         : heroPick(h, h.id === hero?.id),
-        `<button data-act="rename" data-id="${h.id}">${tr('Rename')}</button>${deleteButton(h.id)}`);
+        `<button data-act="rename" data-id="${h.id}">${tr('Edit')}</button>${deleteButton(h.id)}`);
       if (form === 'hero' && !formShown) {
         formShown = true;
-        return card(`<input id="title-name" maxlength="16" placeholder="${esc(tr('Name your hero'))}" data-enter="create-hero" aria-label="${esc(tr('Hero name'))}">
-          <button data-act="create-hero">${tr('Create')}</button>${heroes.length ? `<button data-act="cancel">${tr('Cancel')}</button>` : ''}`, '', 'title-form');
+        return card(`<div class="title-name"><input id="title-name" maxlength="16" placeholder="${esc(tr('Name your hero'))}" data-enter="create-hero" aria-label="${esc(tr('Hero name'))}">
+          <button data-act="create-hero">${tr('Create')}</button>${heroes.length ? `<button data-act="cancel">${tr('Cancel')}</button>` : ''}</div>${genderPicker()}`, '', 'title-form');
       }
       return card(`<button data-act="new-hero">${tr('+ New hero')}</button>`, '', 'title-empty');
     });
@@ -414,8 +421,8 @@ const actions = {
   continue() { const id = store.selected(), w = id && store.heroWorld(id); if (w) start(id, w.id); },
   'choose-world'() { screen = 'worlds'; form = null; },
   'join-game'() { screen = 'join'; },
-  characters() { from = 'title'; screen = 'characters'; form = store.heroes().length ? null : 'hero'; },
-  'first-hero'() { from = screen; screen = 'characters'; form = 'hero'; },
+  characters() { from = 'title'; screen = 'characters'; form = store.heroes().length ? null : 'hero'; gender = GENDERS[0]; },
+  'first-hero'() { from = screen; screen = 'characters'; form = 'hero'; gender = GENDERS[0]; },
   skins() { screen = 'skins'; loadSkins(); },
   skin(key) { chooseSkin(key); },
   'paint-skin'(key) { paintSkin(skins?.find(s => s.key === key)?.name); },
@@ -428,11 +435,11 @@ const actions = {
     screen = screen === 'characters' ? from : 'title';
   },
   cancel() { form = null; },
-  'new-hero'() { form = 'hero'; },
+  'new-hero'() { form = 'hero'; gender = GENDERS[0]; },
   'create-hero'() {
     const name = cleanName($('title-name').value);
     if (!name) { note = tr('Your hero needs a name'); return; }
-    const h = newHero(name);
+    const h = newHero(name, gender);
     if (!h) { note = tr('Could not make the hero (is the storage full?)'); return; }
     store.select(h.id);
     form = null; screen = from;
@@ -455,11 +462,11 @@ const actions = {
     if (!w) { note = tr('Could not make the world (is the storage full?)'); return; }
     chooseWorld(w.id);
   },
-  rename(id) { form = { rename: id }; },
+  rename(id) { form = { rename: id }; gender = cleanGender(store.hero(id)?.gender); },
   'save-name'(id) {
     const name = cleanName($('title-rename').value), h = store.hero(id);
     if (!name) { note = tr('A name, please'); return; }
-    if (h) store.putHero({ ...h, name });
+    if (h) store.putHero({ ...h, name, gender });
     form = null;
   },
   delete(id) {
@@ -502,7 +509,15 @@ function act(name, id) {
 }
 panel.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
-  if (b) { e.preventDefault(); act(b.dataset.act, b.dataset.id); }
+  if (!b) return;
+  e.preventDefault();
+  // a gender picked in the hero's form: only the buttons change (drawn again, the name typed would go)
+  if (b.dataset.act === 'gender') {
+    gender = cleanGender(b.dataset.id);
+    for (const o of b.parentElement.children) o.setAttribute('aria-pressed', String(o === b));
+    return;
+  }
+  act(b.dataset.act, b.dataset.id);
 });
 panel.addEventListener('keydown', e => {
   const t = e.target.dataset?.enter;

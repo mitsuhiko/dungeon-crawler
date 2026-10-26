@@ -712,8 +712,14 @@ body.in-menu :is(#quickbar, #teleport-menu, #chat, #minimap, #effects, #touch, #
 #title-panel :is(.title-empty, .title-new) button:not(:hover) { --face: #0e131266; --edge-hi: #3a504b; --edge-lo: #1c2624; color: var(--ink-dim); }
 .title-form { display: flex; gap: 6px; }
 .title-form input { flex: 1; min-width: 0; }
-.title-rename { flex: 1; display: flex; gap: 6px; }
-.title-rename input { flex: 1; min-width: 0; }
+li.title-form, .title-rename { flex-direction: column; }
+.title-rename { flex: 1; min-width: 0; display: flex; gap: 6px; }
+.title-name { display: flex; gap: 6px; }
+.title-name input { flex: 1; min-width: 0; }
+/* the hero's gender: two buttons, the one picked lit (aria-pressed), the other hollow */
+.title-gender { display: flex; gap: 6px; }
+#title-panel .title-gender button { flex: 1; padding: 4px 10px; font-size: 12px; }
+#title-panel .title-gender button[aria-pressed=false]:not(:hover) { --face: #0e131266; --edge-hi: #3a504b; --edge-lo: #1c2624; color: var(--ink-dim); }
 .title-new-world { flex-direction: column; margin-top: 8px; }
 #title-panel .title-new { margin-top: 8px; }
 #title-code { text-transform: uppercase; letter-spacing: 4px; }

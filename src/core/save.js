@@ -2,10 +2,11 @@ import { checkSkin } from './skin.js';
 
 // Saved games: heroes and worlds, apart. Pure: no DOM, no game state (game/save.js runs it).
 //
-// A hero (up to MAX_HEROES) is the character: name, XP and the bag, and its world (the one
+// A hero (up to MAX_HEROES) is the character: name, gender, XP and the bag, and its world (the one
 // Continue goes back to; null: none yet). It goes into any world, a friend's too, and takes home
-// what it found there; a friend's world does not become its world.
-//   { v, id, name, created, updated, playTime, xp, inventory, world }
+// what it found there; a friend's world does not become its world. The gender ('m' or 'f', see
+// GENDERS) only changes words (docs/story.md), not the figure; heroes saved before it are 'm'.
+//   { v, id, name, gender, created, updated, playTime, xp, inventory, world }
 // A world (up to MAX_WORLDS) is a seed and what was done in it: what was defeated and opened,
 // the loot on the floor, the cubes discovered, and where each hero left it (spots). Its name
 // comes from the seed (core/names.js); the same seed saved again is the second copy, "... II".
@@ -29,6 +30,9 @@ import { createQuestLog, checkQuestLog } from './quests.js';
 import { packKills, unpackKills } from './respawn.js';
 
 export const SAVE_VERSION = 1, MAX_HEROES = 3, MAX_WORLDS = 8, NAME_MAX = 16;
+// a hero's gender: the first is what a hero has that never said
+export const GENDERS = ['m', 'f'];
+export const cleanGender = g => GENDERS.includes(g) ? g : GENDERS[0];
 export const KEYS = {
   heroes: 'cube-crawler.heroes', worlds: 'cube-crawler.worlds', selected: 'cube-crawler.last',
   world: id => `cube-crawler.world.${id}`,
@@ -54,8 +58,8 @@ export const savedWorldName = (seed, copy = 1) => worldName(seed) + (copy > 1 ? 
 
 // --- heroes -------------------------------------------------------------------------------------
 
-export function createHero(name, { id = newId('h'), now = Date.now() } = {}) {
-  return { v: SAVE_VERSION, id, name: cleanName(name) || 'Hero', created: now, updated: now, playTime: 0,
+export function createHero(name, { gender = GENDERS[0], id = newId('h'), now = Date.now() } = {}) {
+  return { v: SAVE_VERSION, id, name: cleanName(name) || 'Hero', gender: cleanGender(gender), created: now, updated: now, playTime: 0,
     xp: 0, inventory: createPlayerStats().inventory, world: null };
 }
 export const heroLevel = h => levelFromXP(h.xp);
@@ -110,7 +114,7 @@ export function checkHero(h) {
   let xp = 0;
   try { xp = whole(h.xp); } catch { return null; }
   const skin = checkSkin(h.skin);
-  return { v: SAVE_VERSION, id: h.id, name: cleanName(h.name) || 'Hero', created: time(h.created), updated: time(h.updated),
+  return { v: SAVE_VERSION, id: h.id, name: cleanName(h.name) || 'Hero', gender: cleanGender(h.gender), created: time(h.created), updated: time(h.updated),
     playTime: time(h.playTime), xp, inventory: checkInventory(h.inventory), world: isId(h.world) ? h.world : null,
     ...(skin ? { skin } : {}) };
 }
