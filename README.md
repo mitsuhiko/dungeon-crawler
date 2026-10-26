@@ -54,9 +54,9 @@ docs that explain how the game works, from the big ideas down to the real code:
     `src/game/questpanel.js`, U): the villagers give quests, shared by everyone in the world and
     saved with it (`docs/quests.md`).
   - The narrator (`docs/story.md`, `docs/narration.md`): the Glassmaker's lines and when she says
-    them (`src/core/narration.js`), voiced ahead with Kyutai's Pocket TTS (voice Azelma; German with
-    the 24-layer model) into `assets/narration/` by `node tools/narration.mjs`; `src/game/narrator.js`
-    plays them as things happen, one after the other, with subtitles. So far the opening and the
+    them (`src/core/narration.js`), voiced ahead with Qwen3-TTS (1.7B CustomVoice, in a voice
+    cloned from a reference recording, following instructions and the lines' tags) into
+    `assets/narration/` by `node tools/narration.mjs`; `src/game/narrator.js` plays them as things happen, one after the other, with subtitles. So far the opening and the
     first three depths. The clips are not committed yet (`assets/narration/` is ignored): without
     them the game shows only the subtitles.
   - Skins (main menu: **Choose Skin**, like Choose World; the painter in `src/game/skineditor.js`):

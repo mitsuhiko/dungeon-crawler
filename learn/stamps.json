@@ -8,7 +8,7 @@
     "src/audio/sfx.js#sfx": "5d11e8be",
     "src/core/chests.js#CHESTS": "7ac57266",
     "src/core/chronicle.js#addEntry": "e0148cc6",
-    "src/core/chronicle.js#describe": "34e64ca2",
+    "src/core/chronicle.js#describe": "23ad587c",
     "src/core/chronicle.js#KINDS": "4623f06e",
     "src/core/chronicle.js#LOG_LIMIT": "1059be55",
     "src/core/chronicle.js#NEWS": "2307abf3",

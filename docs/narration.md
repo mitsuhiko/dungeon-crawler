@@ -21,30 +21,233 @@ it. The cost: a recorded line cannot say a player's name (below).
 
 ## The voice
 
-[Pocket TTS](https://github.com/kyutai-labs/pocket-tts) by Kyutai, on the CPU, in its predefined
-voice **Azelma**:
+[Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS), its 1.7B base model
+(`Qwen/Qwen3-TTS-12Hz-1.7B-Base`, Apache 2.0), in a voice **cloned** from a reference recording:
 
-| Language | Model | Voice |
-|---|---|---|
-| English | `english` | `azelma` |
-| German | `german_24l` (the 24-layer German model: slower, better) | `azelma` |
+| Language | Model | Told it speaks | Voice | Cloned | Temperature |
+|---|---|---|---|---|---|
+| English | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | `English` | `lost-hearing` | `embedding` | 0.7 |
+| German | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | `German` | `lost-hearing` | `embedding` | 0.7 |
 
 `VOICES` in `tools/narration.mjs` says this. Every language kept with every change
 (`src/i18n/languages.js`: English and German) has a voice, which a test checks; the others
-(Indonesian) show the narrator's words only, until Pocket TTS speaks them.
+(Indonesian) show the narrator's words only. Qwen3-TTS also speaks French, Spanish, Italian,
+Portuguese, Russian, Chinese, Japanese and Korean, not Indonesian.
 
-The model and the voice (VCTK speaker p303, from Kyutai's `tts-voices`) are CC BY 4.0: credit
-"Voice: Pocket TTS by Kyutai (CC BY 4.0), voice Azelma from the VCTK corpus (CC BY 4.0)" where
-the game credits things.
+A voice is a recording and its words: `tools/voices/<voice>.flac` (mono, 24 kHz; 10 to 30
+seconds of one person talking, nothing else) and `tools/voices/<voice>.txt`, exactly what is
+said in it (transcribe it, then check it by ear). To make a voice deeper, change the recording,
+not the clips: the clone follows it, and says it without the artifacts a pitch shift leaves.
+`glassmaker-low` is `glassmaker` 12% down
+(`ffmpeg -i in -af "aresample=24000,asetrate=21120,aresample=24000,atempo=1.136364" -ac 1 -ar 24000 -sample_fmt s16 out.flac`),
+and its clones come out 7 to 8% lower than `glassmaker`'s (the clone follows a little more than half
+the shift: 13% down made them 10% lower, 14% 11%). Bass added to the recording carries over only
+in part, and as boom: to make a voice fuller, use the `full` filter on the clips. The same voice speaks every language; in German
+it keeps a little of its English. The model clones a voice one of two ways (`clone`):
+
+- `embedding` (what we use): from the voice's speaker embedding alone. The voice, read in the
+  model's own manner, like a reader.
+- `context`: the model hears the recording and its words, then goes on in that voice with the
+  line, so it takes the recording's manner too: its pace, its pauses, its tunes, the room. With
+  a YouTube talk as the recording that means a talker's run-on sentences: pauses too short, and
+  sentences that end going up, as if more were coming. It also said the German worse.
+
+Compared on the same lines, the embedding's clips came out closer to the recording's voice by a
+speaker-verification model (eight English lines, two takes each: 0.91 against 0.83, cosine), and
+Whisper understood them better (22 clips, English and German: a word error rate of 2% against
+10%, most of it the German).
+
+### How a line is said
+
+Sentence by sentence (`tools/narration.py`): the line is split after every `.`, `!`, `?` and
+`…` (a closing quote may follow), each sentence is rendered on its own, so it ends like a sentence
+that ends and not like one the next follows on from, its quiet trimmed, and they are put together
+with a set pause after each: 0.55 s after `.`, 0.5 s after `!`, 0.6 s after `?` and 0.8 s after
+`...` (`PAUSE`). Said in one go the model barely stops between sentences. Within a sentence the
+model's own pauses stand: a comma, a colon. To make it stop longer somewhere, end the sentence
+there (or trail off: `we... Never mind.`). The temperature (0.7, the model's own 0.9) makes the
+takes a little steadier.
+
+### Filters
+
+A voice can go through a filter after it is said (`filter` in `VOICES`; `FILTERS` in
+`tools/narration.py`):
+
+- `old-radio`: the voice as if heard through an old valve radio, with static on top. A narrow
+  band (380 Hz to 3 kHz) with a hump at 1.3 kHz, soft clipping, a signal that drifts a little;
+  hiss about 24 dB under the voice, crackle (clicks and pops, nine a second on average) and a
+  trace of 50 Hz hum, all the way through the clip, its pauses and a moment before and after
+  (0.3 s, faded in and out).
+- `robot`: the voice gone a little machine, and still recognisably itself. Half of it is the
+  voice, two semitones down; the other half a vocoder that says its words on a buzz following
+  the voice's own melody, but stepped from semitone to semitone, as a machine would sing it (on
+  hiss where it hisses: s, f, t); then a faint metal ring (a 4 ms comb) and a slight warble (ring
+  modulation at 55 Hz, a tenth). On the intro: the speaker-verification model still finds the
+  voice in it (0.76, the clean voice 0.92), its melody is kept (a pitch spread of 2.2 semitones,
+  the clean voice 2.0), and Whisper understands it. Tried and dropped: bit crushing, held
+  samples and strong ring modulation (too harsh, no longer understood), and a vocoder alone on a
+  fixed low hum (a monotone in which the voice was gone: 0.53, a spread of 0.2).
+
+- `full`: the voice fuller, not boomier. Warmth and body in the low mids rather than bass (a
+  gentle shelf under 200 Hz, +2 dB; a broad lift around 300 Hz, +2.5 dB; 1.5 dB less of the boxy
+  700 Hz), the faint low harmonics of a warm amplifier (soft saturation, 15% mixed in) and gentle
+  compression (2.5:1 from 10 dB under the loud parts) so it sounds close and dense. On the intro:
+  1.8 dB more under 250 Hz, 2.4 dB more between 150 and 500 Hz, and peaks 2 dB closer to the
+  voice's level; Whisper understands every word.
+- `defects`: a machine's voice with defects, not too much of either (a robot in Fallout or
+  Borderlands, turned well down). A speaker grille (220 Hz to 5 kHz, a little presence at
+  1.8 kHz), a tin can (a 3.2 ms comb, a third mixed in), a faint ring at 80 Hz, a digital edge (a
+  fifth of the samples held at 12 kHz) and soft clipping; where it speaks, now and then a
+  dropout, a stutter (a grain said twice) or a short burst of crushed digits (about one of them
+  every two seconds of speech); under it all a faint buzz, hiss and a crackle now and then. On
+  the intro, through the `robot` voice: Whisper understands every word, and the
+  speaker-verification model still finds `handelskai` in it (0.82; through `old-radio` 0.60).
+
+A voice can also be **made** from another's recording (`MADE` in `tools/narration.mjs`): the
+recording goes through a `prepare` step (`PREPARE` in `tools/narration.py`) before the voice is
+taken from it, and the made voice brings its filter along (unless `VOICES` or `--filter` say
+another). There is one:
+
+- `robot`: `handelskai`, its recording roughed up first (`prepare: 'robot'`: a 4.5 ms feedback
+  comb, ring modulation at 70 Hz and samples held at 8 kHz, each about a third), then through
+  `defects`. The model takes a voice a little off from the roughed-up recording: its speaker
+  embedding stays close to the plain one (0.98, cosine) and the clones say every word, but
+  they come out a little further from `handelskai` (0.79 against 0.88 by the
+  speaker-verification model, before `defects`). Stronger roughing up moves it further (0.73 at
+  twice as much) without the clones losing words; half as much (an embedding at 0.995) changes nothing measurable.
+  `node tools/narration.mjs --say "..." --voice robot`.
+
+- `tone:<voice>`: the voice given another voice's tone: an EQ, third-octave band by band
+  (63 Hz to 10 kHz, smoothed over three, at most 15 dB either way), that makes the clip's
+  spectrum that of `<voice>`'s recording (its speech, the quiet left out). The clip's hash takes
+  the target recording's along.
+
+A voice can also be a **mix** of voices (`mix` in `MADE`, or `--voice glassmaker:0.7,lost-hearing:0.3`):
+the model takes their speaker embeddings, weighted and averaged, so it speaks as someone
+between them (embedding cloning only). There is one, `glassmaker-mix`: `glassmaker` and
+`lost-hearing` half and half, through `tone:lost-hearing`.
+
+Why `glassmaker` sounds so unlike the narrator (`lost-hearing`), measured on the intro: mostly
+the tone. The narrator's recording went through a radio: almost nothing under 250 Hz (40 dB under
+its loudest band), its weight at 300 to 600 Hz and a strong 1 to 5 kHz, so its clones are thin,
+forward and bright (a spectral centroid of 760 Hz). `glassmaker` is a phone held close: most of
+its weight under 300 Hz, 10 to 20 dB less between 1 and 5 kHz, so its clones are full and dark
+(211 Hz). The speaker embedding carries that along, and so do the clones. The rest is the
+person. How far each step goes (the speaker-verification model's likeness to each voice's
+recording; Whisper understood every word of each):
+
+| | like the narrator | like `glassmaker` |
+|---|---|---|
+| the narrator's own clone | 0.92 | 0.54 |
+| `glassmaker` | 0.54 | 0.97 |
+| `glassmaker`, `tone:lost-hearing` | 0.55 | 0.74 |
+| mixed 70 / 30, `tone:lost-hearing` | 0.58 | 0.71 |
+| mixed 50 / 50, `tone:lost-hearing` (`glassmaker-mix`) | 0.70 | 0.66 |
+| mixed 30 / 70, `tone:lost-hearing` | 0.81 | 0.59 |
+
+A mix (or a voice through a filter) can be **baked** into a voice of its own: a recording of it
+saying something, made like any clip but lossless, which is then cloned like a recording of a
+person. `glassmaker-blend` is `glassmaker` and `lost-hearing` 30 / 70 through
+`tone:lost-hearing`, baked:
+
+```sh
+node tools/narration.mjs --bake glassmaker-blend --voice glassmaker:0.3,lost-hearing:0.7 --filter tone:lost-hearing
+```
+
+It says the words of the first voice's recording (or `--say`), 29 s of them, into
+`tools/voices/glassmaker-blend.flac` and `.txt`. A voice taken from a recording of itself comes
+back a little off (its speaker embedding at 0.986, cosine, to the mix's, whatever the take; a
+longer recording, or steering the mix against the drift, did not get closer than 0.99), but its
+clones need no mix and no filter: on the intro the speaker-verification model finds them 0.99
+like the mix's own (filtered) clones, 0.79 like the narrator and 0.58 like `glassmaker`, the tone
+within 2.5 dB band by band, and Whisper understands every word.
+
+The tone alone takes the low end away and brings the mids up (a centroid of 600 Hz; still about
+7 dB darker between 1 and 2.5 kHz, where the EQ's smoothing and its 15 dB limit hold it back)
+and still sounds quite clearly like `glassmaker`; the mix moves the person, and with it the
+rest of the tone (from 50 / 50 on, every band within 2 dB of the narrator's).
+
+The noise is seeded by the line's seed and text, so a clip is the same every time. A voice without a filter makes the same clips as before filters
+were there; turning one on (or changing it: raise `PIPELINE`) renders its clips again. To hear it
+first: `node tools/narration.mjs --say "..." --voice handelskai --filter old-radio`. **The recording is not committed yet** (`tools/voices/`
+is in `.gitignore`, like the clips): without it the tool cannot render or check the clips, and
+says so. Whose voice it is, and that we may use it, has to be settled before it ships, and then
+credited where the game credits things.
+
+### Instructions
+
+The lines are said by **CustomVoice** (`Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`), in the cloned
+voice, and follow instructions (`speaks` in `VOICES`). Of Qwen3-TTS's 1.7B models only the base
+model clones a voice, and it takes no instructions; CustomVoice takes them, but speaks only its
+nine speakers. Its speaker goes into the model as an embedding, though, in the very place the base
+model puts a cloned voice's, and the two models share almost all their weights: given the
+voice's speaker embedding (taken with the base model) instead of a speaker of its own, CustomVoice
+speaks in the cloned voice and follows instructions. The trick is from
+[gabriele-mastrapasqua/qwen3-tts](https://github.com/gabriele-mastrapasqua/qwen3-tts)
+(`docs/custom-voices.md`, `docs/emotion-instruct-control.md`); Qwen's own model for it
+(VoiceEditing) is announced, not out.
+
+Measured on `glassmaker-blend`, two sentences, two takes each (an emotion classifier, the
+speaker-verification model's likeness to the voice's recording):
+
+| | like the voice | length | emotion heard |
+|---|---|---|---|
+| base model (no instructions) | 0.95 | 6.3 s | sad 0.15, angry 0.15 |
+| base model, told "sad" | 0.95 | 6.6 s | sad 0.26 |
+| CustomVoice, no instruction | 0.91 | 5.8 s | neutral 0.64 |
+| CustomVoice, "sad" | 0.83 | 7.9 s | **sad 0.64** |
+| CustomVoice, "angry" | 0.90 | 6.1 s | **angry 0.36** |
+| CustomVoice, "slow, like a grandmother" | 0.85 | 7.5 s | (28% slower) |
+| CustomVoice, "whisper" | 0.72 | 7.3 s | (the voice drifts most) |
+
+The cost: the voice a little less exactly (0.91 for 0.95), and further off the stronger the
+instruction. Whisper understood every word of each. Vivid plain English works best ("Speak in a
+sad, sorrowful tone, voice low and heavy, on the verge of tears"); settings do not ("Tempo: +20%"
+does nothing, or the opposite). Every line goes through CustomVoice, with an instruction or not,
+so the voice sounds the same in all of them.
+
+Where a line's instructions come from, for each of its sentences:
+
+1. its **performance tags** (below): from a tag on, until the next;
+2. else the line's `instruct` (`src/core/narration.js`): `instruct: 'Speak slowly and softly.'`,
+   for the whole line, in every language;
+3. else the voice's `instruct` (`VOICES`), for every line (none for now: as it comes).
+
+The speaker embedding is taken once per voice, with the base model, and kept in
+`~/.cache/narration-voices/` (by the voice's recording and words, its weights in a mix, its
+`prepare`); after that the base model is not loaded. To hear an instruction:
+`node tools/narration.mjs --say "..." --instruct "Speak slowly and warmly."`.
+
+### Performance tags
+
+A line's text may carry tags (`TAGS` and `POINT` in `tools/narration.mjs`): `[sad]`, `[whispers]`,
+`[very slowly]` ... before the words they colour, and `[sighing]`, `[laughing]`, `[gasp]` ... for
+the one sentence after them:
+
+```js
+text: "[sad]Not all of them. I couldn't catch them all. [sighing]Some have gone cloudy.",
+```
+
+Each is an instruction (`[sad]`: "Speak in a sad, sorrowful tone, voice low and heavy, on the
+verge of tears."); an event tag goes before the mood of the moment ("Begin with a weary sigh, then
+speak softly. Speak in a sad ..."). A tag the table does not know is a problem (`npm test` fails).
+They are never shown (`lineText` in `core/narration.js`, for the subtitle and the chronicle).
+The German keeps the tags of the English (translate the words, not the tags). A tag in the middle
+of a sentence cuts it there, with a short breath (0.2 s). CustomVoice reads a mood well; the events
+(a sigh, a laugh, a gasp) it does now and then, not every time: listen.
+
+A voice without `speaks` (said by the base model) does not voice them: the tool takes them out,
+and a line with tags makes the same clip as without.
 
 ## The pieces
 
 | | |
 |---|---|
-| `src/core/narration.js` | the lines: `{ id, on, when?, text, note, forms?, seed? }`, the moments they are said at (`MOMENTS`) and what picks them (`linesFor`); the English text is an i18n message |
+| `src/core/narration.js` | the lines: `{ id, on, when?, text, note, forms?, seed? }`, the moments they are said at (`MOMENTS`) and what picks them (`linesFor`); the English text is an i18n message; its tags (`TAG`, `untagged`, `lineText`) |
 | `src/i18n/de/story.js` | their German (`src/i18n/sources.js` lists the table, so `npm run i18n` wants it) |
 | `tools/narration.mjs` | says every line in every voiced language and form, decides what to render, writes the manifest |
-| `tools/narration.py` | renders: Pocket TTS, then trimmed, levelled, MP3 (uv script, its dependencies inline) |
+| `tools/narration.py` | renders: Qwen3-TTS cloning the voice, then trimmed, levelled, MP3 (uv script, its dependencies inline) |
+| `tools/voices/<voice>.flac`, `.txt` | the voices cloned: a recording and its words (not committed yet) |
 | `assets/narration/<lang>/<clip>.mp3` | the clips: mono, 24 kHz, 48 kbit/s; `<clip>` is the id, or `<id>.<form>` |
 | `assets/narration/manifest.json` | per language and clip: its text, seed, length in seconds and a hash of what made it |
 | `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles |
@@ -60,6 +263,7 @@ the game credits things.
   text: "There you are! ...No. I'm sorry. For a moment you looked just like {sib, select, m {him} other {her}}.",
   note: 'The first line of a new world ...',
   forms: SIBLING,           // { m: { sib: 'm' }, f: { sib: 'f' } }: two clips, .m and .f
+  instruct: 'Speak softly.', // optional: how it is said ("Instructions"); its tags win
   seed: { de: 3 },          // optional: the take, by language or 'lang.form'; 0 when left out
 }
 ```
@@ -72,13 +276,28 @@ the game credits things.
   every one of them; that is how the tool knows a line says no name. The names are the players'
   own, so a line that has to say one (the core's "Her name was ...") is not recorded: the subtitle
   says it.
-- `seed`: the TTS noise. The same text, model, voice and seed always give the same audio.
+- `instruct`: how the line is said, an instruction for the voice in plain vivid English, in
+  every language ("Instructions" above); a tag in the text wins over it.
+- `seed`: the TTS sampling. The same text, model, voice and seed give the same audio on the same
+  machine (another kind of GPU, or the CPU, may make another take of it).
 
 ## Running it
 
-Needs Node and [uv](https://docs.astral.sh/uv/). The first run downloads the models (about
-1 GB into the Hugging Face cache; no account needed); after that a line takes well under a
-second in English, one to two in German.
+Needs Node, [uv](https://docs.astral.sh/uv/) and the voice's recording (above). The first run
+downloads the model (about 4.5 GB into the Hugging Face cache; no account needed). The model's
+revision is pinned (`REVISIONS` in `tools/narration.py`), so after that it is loaded from the
+cache without asking the hub, and an update upstream does not change the takes. A run starts in
+about 8 seconds (imports and loading the model); after that a line takes about as long as it is
+spoken on an Apple Silicon GPU (MPS) or with CUDA. On the CPU it works, slowly.
+`NARRATION_DEVICE=cpu` (or `mps`, `cuda:0`) overrides the pick.
+
+Three processes render at once (`--workers n` or `NARRATION_WORKERS`; one on the CPU, and not
+more than half as many as there are clips). One process keeps the GPU less than half busy, as
+most of its time goes to launching the model's many small steps; three render about two and a
+half times as many lines a minute on an M5 Max, more do not help. Each holds its own copy of
+the model (about 4.5 GB). Every clip is seeded on its own, so it comes out the same whichever
+process says it. Batching the lines through one model would be faster still, but its sampling
+would no longer be the clip's own: a take would depend on the lines said with it.
 
 ```sh
 node tools/narration.mjs --check            # what is missing, changed or gone (exit 1 if any)
@@ -87,16 +306,26 @@ node tools/narration.mjs                    # render it, drop clips of lines tha
 node tools/narration.mjs --lang de --only boss.   # some languages / ids only (prefixes)
 node tools/narration.mjs --force --only boss.gusto  # again, even if current
 node tools/narration.mjs --takes 4 --only boss.gusto [--lang de] [--first-seed 10]
+node tools/narration.mjs --say "Any text." [--voice handelskai] [--lang de] [--seed 2]
 ```
+
+`--say` previews a voice: it says any text (sentence by sentence, as a line) in a voice of
+`tools/voices/` (the language's own when left out) into `narration-takes/say/` in the temp
+directory, and prints the path. To try a new voice, put its recording and words there and
+`--say` something with it; to make it the narrator's, set it in `VOICES`.
 
 `--takes` renders seeds 0 to 3 (or from `--first-seed`) of the chosen clips into the temp
 directory, without touching `assets/`, and prints their paths. Listen, put the best one in the
 line's `seed`, and run the tool again.
 
-What decides a re-render is the clip's hash: its text in its language, model, voice, temperature,
-seed and `PIPELINE` (`tools/narration.mjs`). Changing the English or the German of a line, a seed,
-a voice, or how `tools/narration.py` makes the files (raise `PIPELINE` then) renders the affected
-clips again; nothing else does.
+What decides a re-render is the clip's hash: its text in its language (without its tags), model,
+language, voice and its recording and words, temperature, seed and `PIPELINE`
+(`tools/narration.mjs`). Changing the English or the German of a line, a seed, a voice or its
+recording, or how `tools/narration.py` makes the files (raise `PIPELINE` then) renders the
+affected clips again; nothing else does.
+
+A take can run away (the model does not stop, or babbles): a clip is cut at a length its text
+cannot need, and the tool says "ran to the limit: try another seed".
 
 ## Changing lines
 

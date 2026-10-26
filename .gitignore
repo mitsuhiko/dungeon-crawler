@@ -8,3 +8,7 @@ blender/previews/
 # the narrator's clips (node tools/narration.mjs): kept out until the voice is settled, the game
 # shows subtitles without them (docs/narration.md)
 assets/narration/
+
+# the voice the narrator is cloned from (tools/voices/<voice>.flac, its words in .txt): kept out
+# with the clips until the voice is settled (docs/narration.md)
+tools/voices/

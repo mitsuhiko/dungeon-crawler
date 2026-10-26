@@ -17,7 +17,7 @@ import { ENCHANT } from './gear/enchants.js';
 import { AFFIX } from './gear/affixes.js';
 import { formatCoins } from './inventory.js';
 import './gear/stats.js';   // (an item's words say themselves: sayAs('item'))
-import { lineById } from './narration.js';
+import { lineById, lineText } from './narration.js';
 import { tr, msg, say, language, cleanWords } from '../i18n/i18n.js';
 
 // learn: memory.html#diary (see learn/README.md)
@@ -172,7 +172,7 @@ export function describe({ kind, data: d = {}, who }) {
     }
     case 'narration': {
       const line = lineById(d.line);
-      return line ? tr(line.text, line.forms?.[d.form]) : '';
+      return line ? lineText(line, d.form) : '';
     }
     case 'world': return d.name ? tr('{name} · seed {seed}', { name: d.name, seed: String(d.seed) }) : tr('A new world · seed {seed}', { seed: String(d.seed) });
     default: return w(d.text ?? '');

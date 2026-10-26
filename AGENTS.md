@@ -12,12 +12,14 @@ left for their own changes: do not translate into them unless asked.
 ## Narration
 
 The narrator's lines (`src/core/narration.js`, German in `src/i18n/de/story.js`) are pre-rendered
-with Pocket TTS into `assets/narration/` (`docs/narration.md`). When you add or change a line, its
-text or its German, also run `node tools/narration.mjs` (needs `uv`; the first run downloads about
-1 GB of models): `npm test` fails while a clip rendered here is missing or stale.
-`node tools/narration.mjs --check` lists what is out of date. For now the clips and the manifest are
-not committed (`assets/narration/` is in `.gitignore`) until we are happy with the voice; the game
-only shows the subtitles without them. Do not commit them unless asked.
+with Qwen3-TTS (1.7B CustomVoice, in the speaker embedding of a voice cloned from a reference
+recording, `tools/voices/`), into `assets/narration/` (`docs/narration.md`). When you add or change a
+line, its text or its German, also run `node tools/narration.mjs` (needs `uv` and the voice's
+recording; the first run downloads about 9 GB of models): `npm test` fails while a clip rendered
+here is missing or stale. `node tools/narration.mjs --check` lists what is out of date. For now the clips, the
+manifest and the voice's recording are not committed (`assets/narration/` and `tools/voices/` are in
+`.gitignore`) until we are happy with the voice; the game only shows the subtitles without them. Do
+not commit them unless asked.
 
 - Check what you rendered. The `transcribe_file` tool only understands English; for German use the
   `audio-transcription` skill with `--language de`. If a clip says the text wrong, try other takes
@@ -25,8 +27,12 @@ only shows the subtitles without them. Do not commit them unless asked.
   pin the good one as the line's `seed`; or reword the line.
 - A recorded line never says a player's name: give a line with parameters `forms` (e.g.
   `SIBLING`), never a name.
-- Only the languages in `VOICES` (`tools/narration.mjs`: English, German with `german_24l`) are
-  voiced; do not add Indonesian.
+- Only the languages in `VOICES` (`tools/narration.mjs`: English, German) are voiced; do not add
+  Indonesian (Qwen3-TTS does not speak it).
+- How a line is said: performance tags in its text (`[sad]`, `[whispers]`, `[sighing]` ...: the
+  table `TAGS` / `POINT` in `tools/narration.mjs`) or its `instruct` (plain vivid English). Both
+  are instructions to CustomVoice, never shown (`docs/narration.md`, "Instructions"). Keep the
+  English's tags in the German. Strong instructions pull the voice off: listen.
 
 ## Blender previews
 

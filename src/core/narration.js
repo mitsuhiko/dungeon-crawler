@@ -10,11 +10,16 @@
 //   when    (optional) what the moment must be about: { key: value } of its data, each a value,
 //           a list of values, or [lo, hi] for a number (a depth)
 //   text    the English message (src/i18n: translated like every other, German in
-//           src/i18n/de/story.js); at most two short sentences
+//           src/i18n/de/story.js); at most two short sentences. It may carry performance tags
+//           for the voice, `[sad]`, `[whispers]`, `[sighing]` ... (TAG): never shown, said as
+//           instructions (tools/narration.mjs TAGS; docs/narration.md, "Performance tags")
 //   note    when it comes, how it should feel, who she is thinking of: for the translators and the
 //           voice
 //   forms   (optional) the parameters it is said with, one recording each, by form name: the
 //           clip is `<id>.<form>`. Without forms the line has no parameters and one clip, `<id>`.
+//   instruct (optional) how the line is said, for the voice: plain vivid English ('Speak slowly
+//           and softly, as if half asleep.'); tags in the text win (docs/narration.md,
+//           "Instructions")
 //   seed    (optional) the take: the TTS noise seed, a number, or by language (`{ de: 3 }`) or
 //           language and form (`{ 'de.f': 3 }`); 0 when left out. Pick one with
 //           `node tools/narration.mjs --takes 4 --only <id>`.
@@ -26,6 +31,17 @@
 // A recorded line never says a name: the names are the players' own and cannot be recorded
 // ahead. Say people by their words ({sib, select, m {him} other {her}}), not by name. She never
 // says cube: a place, the glass.
+
+import { tr } from '../i18n/i18n.js';
+
+// a performance tag in a line's text: a lowercase word or a few in brackets, `[very slowly]`
+export const TAG = /\s*\[[a-z][a-z ]*\]\s*/g;
+// a line's text without its tags: what is shown, and what the voice says
+export const untagged = text => text.replace(TAG, ' ').trim();
+// the tags a line's text carries, in order ('very slowly', 'sad' ...)
+export const tagsOf = text => [...text.matchAll(TAG)].map(m => m[0].trim().slice(1, -1));
+// a line said in the current language, in its form `form`, without its tags
+export const lineText = (line, form) => untagged(tr(line.text, line.forms?.[form]));
 
 // the sibling's two forms: the owner's gender (docs/story.md, "The people")
 export const SIBLING = { m: { sib: 'm' }, f: { sib: 'f' } };

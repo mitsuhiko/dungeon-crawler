@@ -14,12 +14,12 @@
 //
 // While the game is paused (the Esc menu, the inventory: state.js worldPaused) she pauses too,
 // mid-word, and goes on where she stopped. Not in the guide's game window, nor with ?narration=0.
-import { MOMENTS, linesFor, clipKey, formOf, lineById } from '../core/narration.js';
+import { MOMENTS, linesFor, clipKey, formOf, lineById, lineText } from '../core/narration.js';
 import { attackOf } from '../core/enemies.js';
 import { gateLocked } from '../core/guardians.js';
 import { hash32 } from '../core/util.js';
 import { actAt, themeOf } from '../themes/depth.js';
-import { tr, language } from '../i18n/i18n.js';
+import { language } from '../i18n/i18n.js';
 import { onAudioStart } from '../audio/context.js';
 import { duckMusic } from '../audio/music.js';
 import { player, state, worldPaused } from './state.js';
@@ -136,7 +136,7 @@ function begin(item) {
 }
 
 function say(buffer) {
-  const { item } = current, text = tr(item.line.text, item.line.forms?.[item.form]);
+  const { item } = current, text = lineText(item.line, item.form);
   Object.assign(current, { phase: 'say', t: 0, buffer, dur: buffer ? buffer.duration : Math.max(MIN_READ, text.length / READ) });
   showSubtitle(text);
   log('narration', { line: item.line.id, form: item.form });

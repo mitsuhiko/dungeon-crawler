@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assets } from './paths.js';
-import { plan, clipsOf, clipFile, VOICES } from '../tools/narration.mjs';
-import { LINES, SIBLING, MOMENTS, linesFor, fits } from '../src/core/narration.js';
+import { plan, clipsOf, clipFile, VOICES, TAGS, POINT, sentencesOf } from '../tools/narration.mjs';
+import { LINES, SIBLING, MOMENTS, linesFor, fits, untagged, tagsOf, lineText } from '../src/core/narration.js';
 import { createWorld, checkWorld } from '../src/core/save.js';
 import { EVERY_CHANGE } from '../src/i18n/languages.js';
 
@@ -21,6 +21,36 @@ test('a recorded line says no names: a parameter without forms is a problem', as
   assert.deepEqual(ok.clips.filter(c => c.lang === 'en').map(c => c.key), ['opening.looked-like.m', 'opening.looked-like.f']);
 });
 
+test('performance tags are not shown, and voiced as instructions only by a voice that speaks so', async () => {
+  const text = '[sad]Not all of them. [sighing] I couldn\'t catch them all. [very slowly]There.';
+  assert.equal(untagged(text), "Not all of them. I couldn't catch them all. There.");
+  assert.deepEqual(tagsOf(text), ['sad', 'sighing', 'very slowly']);
+  assert.equal(untagged('Not a tag: [1], [Glass], {sib}.'), 'Not a tag: [1], [Glass], {sib}.');
+  assert.equal(lineText({ text: '[whispers]That is the Hidden.' }), 'That is the Hidden.');
+  const tagged = await clipsOf([{ id: 'x', note: 'n', text: '[sad]' + LINES[1].text }]);
+  const plain = await clipsOf([LINES[1]]);
+  assert.equal(tagged.clips[0].text, plain.clips[0].text);
+  // (the same clip without instructions; another with them: the tag is said)
+  if (VOICES.en.speaks) assert.notEqual(tagged.clips[0].hash, plain.clips[0].hash);
+  else assert.equal(tagged.clips[0].hash, plain.clips[0].hash);
+});
+
+test('a line in sentences, each with its instruction: tags set the mood, event tags one sentence', () => {
+  const said = sentencesOf('[sad]Not all of them. I tried. [sighing]Some are cloudy. [calm]There.', 'Base.');
+  assert.deepEqual(said.map(([, s]) => s), ['Not all of them.', 'I tried.', 'Some are cloudy.', 'There.']);
+  assert.equal(said[0][0], TAGS.sad);
+  assert.equal(said[1][0], TAGS.sad);
+  assert.equal(said[2][0], `${POINT.sighing} ${TAGS.sad}`);
+  assert.equal(said[3][0], TAGS.calm);
+  assert.deepEqual(sentencesOf('Plain. Text!', 'Base.'), [['Base.', 'Plain.'], ['Base.', 'Text!']]);
+  assert.deepEqual(sentencesOf('Plain.'), [[null, 'Plain.']]);
+});
+
+test('a tag the voice does not know is a problem', async () => {
+  const { problems } = await clipsOf([{ id: 'x', note: 'n', text: '[grumpy]Hello.' }]);
+  assert.match(problems.join('\n'), /x: no tag \[grumpy\]/);
+});
+
 test('every language kept with every change has a voice', () => {
   for (const lang of EVERY_CHANGE) assert.ok(VOICES[lang], `no voice for ${lang} (tools/narration.mjs VOICES)`);
 });
@@ -31,6 +61,7 @@ const rendered = existsSync(resolve(assets, 'narration/manifest.json'));
 test('the narration is rendered and current (node tools/narration.mjs)', { skip: !rendered && 'no clips rendered here' }, async () => {
   const p = await plan(assets);
   const list = xs => xs.map(c => (typeof c === 'string' ? c : clipFile(c.lang, c.key)));
+  assert.deepEqual(p.unvoiced, [], 'the voice cloned is missing (docs/narration.md, "The voice")');
   assert.deepEqual(list(p.missing), [], 'missing clips: run node tools/narration.mjs');
   assert.deepEqual(list(p.changed), [], 'changed lines: run node tools/narration.mjs');
   assert.deepEqual(p.gone, [], 'clips of lines that are gone: run node tools/narration.mjs');
