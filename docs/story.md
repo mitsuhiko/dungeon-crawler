@@ -90,7 +90,12 @@ Decided:
   high over the trees, and once it is close it cheers and says hello (`robot`,
   `core/narration.js`, in its voice): it heard the glass break and flew as fast as its wings would
   go; the star-readers made it, of glass and clockwork; it had a name once but cannot find it any
-  more; it will come along and light the way, further down it gets dark. (A first try at its
+  more; it will come along and light the way, further down it gets dark. It does not talk over
+  the story: while a recording is still being told (the sword's, as the hero steps out onto the
+  road) or waits its turn, it does not come yet; once it has been quiet a moment it comes,
+  wherever the hero is then, as long as they are out of the town. So the glassmaker's last words
+  ("listen for more of my glass") hand over to the robot's first. The rule both ways: the story
+  already being told finishes first (a recording found while the robot says hello waits too). (A first try at its
   character: cheerful and eager, a little forgetful. Its name stays open: it cannot find it.) The
   world keeps that it came (its hello, told: `run.told`), so from then on it is with the hero as
   they come into the world, in the town too. A world played before the robot existed has it come

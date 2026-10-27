@@ -130,8 +130,8 @@ being helped up and getting back in. Up to four players, co-op.
   weapon at all (one who joins empty-handed).
 - The robot ([story.md](story.md#the-robot)) is not shared: every player has their own, which
   comes to them the first time they are out of the town (a guest's too, in a world where the
-  host's came long ago: what the narrator said is not sent), says hello only to them and follows
-  only them.
+  host's came long ago: what the narrator said is not sent; like everyone's, once the recording
+  playing is over), says hello only to them and follows only them.
 
 ## Fighting together
 

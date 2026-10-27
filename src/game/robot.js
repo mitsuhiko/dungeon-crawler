@@ -2,7 +2,10 @@
 // render/robot.js). The first time the hero is out of the town it comes flying up from further in
 // the cube, high over everything, and once it is close says hello (core/narration.js `robot`) with a
 // cheer; from then on, and whenever the world is played again, it is with them: it comes in at
-// their side as they enter it (game/flow.js settleIn).
+// their side as they enter it (game/flow.js settleIn). It does not talk over the story: while one
+// is being told or waits its turn (the glassmaker's recording of the sword, still going as the
+// hero steps out onto the road: game/narrator.js storyQuiet) it does not come yet, but once it has
+// been quiet a moment (QUIET), wherever the hero is then, as long as it is out of the town.
 //
 // Every frame the hero's way gets its crumbs (where they really are: game/travel.js truePosition,
 // through a slide across a side too; not down a well, through a fall or the town portal: those
@@ -20,7 +23,7 @@ import { cellAt, insideSolid } from '../physics/collide.js';
 import { player, state } from './state.js';
 import { truePosition, travelling, tripKind, leftCube } from './travel.js';
 import { showsNeighbor } from '../render/neighbors.js';
-import { narrate, speaking } from './narrator.js';
+import { narrate, speaking, storyQuiet } from './narrator.js';
 import { drawRobot, hideRobot, robotCheer } from '../render/robot.js';
 import { camera } from '../render/scene.js';
 import { closeView } from './camera.js';
@@ -35,13 +38,17 @@ const SHORTCUT = 2.5;    // cells: the hero this close, but further along the wa
 const FLY = 1.1;         // cells/s: faster than this it flies (its clip), slower it hovers
 const DRIFT = 0.25;      // cells it drifts about while it waits
 const DRIFT_AFTER = 1.5; // s of waiting before it drifts
+const QUIET = 1.5;       // s the story must have been quiet before it comes the first time
 
 // { way (core/robot.js), at: where it is drawn, in cube at.k; yaw, said (its hello), wait (s still), side (+1 / -1) }
 let robot = null;
+// it is to come the first time (the hero was out of the town), once the story is quiet: for how
+// long it has been (s); null: not yet due
+let due = null;
 
 export const robotHere = () => robot;
 // game/flow.js: no robot (another world, back to the menu)
-export function forgetRobot() { robot = null; hideRobot(); }
+export function forgetRobot() { robot = null; due = null; hideRobot(); }
 
 // where it comes flying up from the first time: further into the cube from where the hero is,
 // up high
@@ -52,12 +59,17 @@ function comeFrom(p) {
   return { x: clamp(p.x + dx / d * COME_FROM), y: p.y + COME_UP, z: clamp(p.z + dz / d * COME_FROM) };
 }
 
-// game/flow.js settleIn: the hero is in this map now. The robot comes: the first time out of the
-// town flying up; met before (this world remembers its hello), at the hero's side at once.
+// game/flow.js settleIn: the hero is in this map now. The robot comes: met before (this world
+// remembers its hello), at the hero's side at once; the first time out of the town, it is due
+// (comes flying up once the story is quiet: updateRobot).
 export function robotArrived(map) {
   if (robot || !state.run || state.mode !== 'play') return;
-  const met = robotMet(state.run), k = state.cubeKey, p = player;
-  if (!met && !robotComes(map)) return;
+  if (robotMet(state.run)) come(true);
+  else if (robotComes(map)) due ??= 0;
+}
+// it comes: at the hero's side, fading in (met), or flying up from afar (the first time)
+function come(met) {
+  const k = state.cubeKey, p = player;
   let way;
   if (met) {
     way = newWay(k, p.x, p.y, p.z);
@@ -115,6 +127,11 @@ function drawnAt(k) {
 const scene = new THREE.Vector3();
 // main.js, every frame of play (dt: game time, 0 while paused)
 export function updateRobot(dt) {
+  if (!robot && due !== null && state.mode === 'play' && state.map) {
+    // due: once the story has been quiet a moment, and the hero is out of the town, in a cube
+    due = storyQuiet() ? due + dt : 0;
+    if (due >= QUIET && !state.transitioning && robotComes(state.map)) { due = null; come(false); }
+  }
   if (!robot || state.mode !== 'play' || !state.map) { hideRobot(); return; }
   const w = robot.way;
   robot.t += dt;

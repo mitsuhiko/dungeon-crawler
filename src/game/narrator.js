@@ -311,6 +311,12 @@ export function hearAgain(lines, onLine) {
   };
 }
 
+// Is no story being told, nor waiting its turn (a moment of the story's priority: a recording, the
+// robot's hello, a boss beaten ...: core/narration.js MOMENTS pri 3)? The story already being told
+// finishes first: the robot comes only once it is quiet (game/robot.js).
+const STORY = 3;
+export const storyQuiet = () => !(current && current.item.pri >= STORY) && !queue.some(q => q.pri >= STORY);
+
 // whose voice is saying a line now ('robot', 'glassmaker'; null: nobody): game/robot.js talks while it is its
 export const speaking = () => current?.phase === 'say' ? current.item.line.voice ?? null : null;
 
