@@ -41,6 +41,7 @@ import { spiderModel } from './spidermodel.js';
 import { stunderModel } from './stundermodel.js';
 import { snakeModel } from './snakemodel.js';
 import { octonautModel } from './octonautmodel.js';
+import { amphibianModel } from './amphibianmodel.js';
 import { fireFaceModel } from './firefacemodel.js';
 import { triangleModel } from './trianglemodel.js';
 import { fireCatModel } from './firecatmodel.js';
@@ -90,7 +91,7 @@ import { uiScale } from '../game/uiscale.js';
 import { cameraKick, footfallFx } from '../game/juice.js';
 import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
-const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
+const prefabs = { amphibian: amphibianModel, spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
   totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
@@ -99,6 +100,7 @@ export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.l
 // clip's beat (twice per hover loop); embers: per second, rising from `from` (a bone, or
 // a height above the body); flicker: extra flame motion
 const GLOW = {
+  amphibian: { light: [0x73ffe0, 4, 5.5, 2.1], flare: .6 },
   fireface: { light: [0xff6a20, 4, 4.5, 0.75], flicker: 1, embers: { rate: 7, from: 0.95, spread: 0.25 } },
   triangle: { light: [0xa45cff, 2.6, 3.5, 0.85], pulse: 0.7 },
   firecat: { light: [0xff7a2a, 1.6, 2.6, 0.75], flicker: 1, embers: { rate: 5, from: 'flame_tail', spread: 0.06 } },

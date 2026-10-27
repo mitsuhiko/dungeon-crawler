@@ -344,6 +344,22 @@ if (state.dev && new URLSearchParams(location.search).get('at') === 'trial') {
   setTimeout(wait, 200);
 }
 
+// Direct local Qualmos playtest: the real final arena on depth 20, never a saved hero.
+if (state.dev && new URLSearchParams(location.search).get('at') === 'qualmos') {
+  const wait = async () => {
+    if (!state.map || state.transitioning) { setTimeout(wait, 200); return; }
+    try {
+      const { xpForLevel, fullHealth } = await import('../core/progression.js');
+      const { devSwapWeapon } = await import('./equipment.js');
+      player.level = 22; player.xp = xpForLevel(22);
+      player.maxHp = fullHealth(22, player.inventory); player.hp = player.maxHp;
+      await devSwapWeapon('weapon_sword_long', 'unusual', 22);
+      await goBoss('amphibian');
+    } catch (error) { console.error('Qualmos test could not start', error); }
+  };
+  setTimeout(wait, 200);
+}
+
 // The cube faces sit on the screen diagonals, so the screen direction is turned an eighth
 // clockwise first: W is the upper-right face, D the lower-right, S the lower-left, A the upper-left.
 const SCREEN = { KeyW: [0, 1], ArrowUp: [0, 1], KeyS: [0, -1], ArrowDown: [0, -1], KeyD: [1, 0], ArrowRight: [1, 0], KeyA: [-1, 0], ArrowLeft: [-1, 0] };

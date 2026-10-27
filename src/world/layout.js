@@ -165,6 +165,8 @@ function build(seed, d, above, theme, opts = {}) {
       gateFaces.set(faceKey(k, dir), k);
     }
   }
+  // The core ends here: a final arena, with no descent beyond the world.
+  if (d === MAX_DEPTH) guardians.set(K(end), { role: 'descent', exit: 4, bossPlaceholder: false, boss: 'amphibian', final: true });
   // the beginning (core/intro.js): the town's gate opens for the glassmaker's glass, the merchant
   // camp's gate out to the road for his sword
   if (d === 0) {

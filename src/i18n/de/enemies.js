@@ -1,6 +1,9 @@
 // Enemies: their kinds (nouns, with gender: messages say them in sentences), what their blows
 // are called when they hurt you, the bounties' names, and what the bosses do.
 export default {
+  'Qualmos': { text: 'Qualmos', g: 'm' },
+  'Hit by the amphibian!': 'Von Qualmos getroffen!',
+  'Qualmos enters phase {phase}!': 'Qualmos beginnt Phase {phase}!',
   // the kinds (core/enemies.js): the guide calls them the same (src/i18n/glossary.js)
   "Spider": { text: 'Spinne', g: 'f', pl: 'Spinnen' },
   "Stunder": { text: 'Stunder', g: 'm', pl: 'Stunder' },

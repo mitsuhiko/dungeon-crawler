@@ -12,6 +12,7 @@ import { removeEnemyViews } from '../render/enemies.js';
 import { player, state } from './state.js';
 import { addEnemies, allEnemies, detachEnemies } from './enemies.js';
 import { addGustos } from './gusto.js';
+import { addAmphibians } from './amphibian.js';
 import { addTotnars } from './totnar.js';
 import { addSquarlos } from './squarlo.js';
 import { addFlips } from './flip.js';
@@ -69,7 +70,7 @@ function spawned(kind, f, x, y, z, yaw, level, i) {
 // a boss fights its own fight (game/gusto.js, game/totnar.js, game/squarlo.js, game/flip.js, game/foggery.js,
 // game/renew.js, game/slomo.js, game/mansk.js)
 function enlist(kind, list) {
-  if (kind.boss) ({ gusto: addGustos, totnar: addTotnars, squarlo: addSquarlos, flip: addFlips, foggery: addFoggerys, renew: addRenews, slomo: addSlomos, mansk: addMansks })[kind.boss](list);
+  if (kind.boss) ({ amphibian: addAmphibians, gusto: addGustos, totnar: addTotnars, squarlo: addSquarlos, flip: addFlips, foggery: addFoggerys, renew: addRenews, slomo: addSlomos, mansk: addMansks })[kind.boss](list);
   else addEnemies(list);
 }
 

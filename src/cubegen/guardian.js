@@ -92,6 +92,14 @@ function roomFor(floors, blocked, entrance, gate, need) {
 }
 
 export function generateGuardian(spec) {
+  // Reuse the arena builder's internal well anchor, but never expose a descent below the core.
+  if (spec.guardian.final) {
+    const map = generateGuardian({ ...spec, guardian: { ...spec.guardian, final: false },
+      portals: [...spec.portals, { dir: 4, x: 8, z: 8, layer: 0, level: 4 }] });
+    map.portals = map.portals.filter(p => p.dir !== 4);
+    map.exit = null; map.guardian.exit = null; map.guardian.portalId = null; map.guardian.final = true;
+    return map;
+  }
   const exit = spec.guardian.exit ?? spec.exit, role = spec.guardian.role ?? 'descent';
   const entry = spec.portals.find(p => p.dir < 4 && p.dir !== exit);
   const onward = spec.portals.find(p => p.dir === exit);

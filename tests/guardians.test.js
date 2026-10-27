@@ -52,7 +52,10 @@ test('every descent is guarded, with one or two mandatory seeded side guardians'
       }
     }
     for (let d = 0; d < 20; d++) assert.equal(get(d).guardian, true);
-    assert.equal(get(20).guardians.size, 0);
+    assert.equal(get(20).guardians.size, 1);
+    assert.equal(get(20).guardians.get('0,-20,0').boss, 'amphibian');
+    assert.equal(get(20).guardians.get('0,-20,0').final, true);
+    assert.equal(get(20).down, null);
   }
 });
 

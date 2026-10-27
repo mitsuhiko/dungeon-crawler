@@ -5,7 +5,7 @@
 // marsh comes in the worlds that show it (it is the act's last theme), else whatever theme is there.
 // The layout marks that arena's guardian with `boss` (world/layout.js, cubegen/guardian.js); its
 // spawn is the boss alone (game/enemyspawn.js guardianSpots), with no defenders. docs/bosses.md.
-export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 13: 'slomo' });
+export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 13: 'slomo', 20: 'amphibian' });
 export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[depth] ?? null : null;
 // How a boss's arena differs from its planned one (cubegen/guardian.js, cubegen/arenaprops.js):
 // `braziers` lit round the fight zone, for a boss who makes it dark (Totnar; Renew, whose fight
@@ -24,6 +24,6 @@ export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[d
 // `days`: his arena has the world's days and nights under its theme's sky like any cube (Gusto's);
 // the others stay at noon, the light being their fight's (Totnar's darkness, Squarlo's mist,
 // Flip's void, Renew's dusk).
-export const BOSS_ARENAS = Object.freeze({ gusto: { days: true }, totnar: { braziers: 5 }, squarlo: { type: 'tidal' }, flip: { type: 'flip' },
+export const BOSS_ARENAS = Object.freeze({ amphibian: { braziers: 6 }, gusto: { days: true }, totnar: { braziers: 5 }, squarlo: { type: 'tidal' }, flip: { type: 'flip' },
   foggery: { type: 'tower', door: 8, centre: 7, props: ['volcanic'] }, renew: { braziers: 4 },
   slomo: { type: 'bowl', props: ['slime'], night: true }, mansk: { type: 'stage', props: ['museum'] } });
