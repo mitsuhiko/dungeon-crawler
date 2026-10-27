@@ -204,7 +204,8 @@ export async function goFeature(kind) {
   } finally { if (state.cubes === cubes) state.transitioning = false; }
 }
 
-// Stand at the next spot (world/spots.js: a hiding place, a seat, a camp; of a kind, or any) from
+// Stand at the next spot (world/spots.js: a hiding place, a seat, a camp ...; of a kind, or any; in
+// the cube of a glass of his, at its way in) from
 // this depth on down (or from `from`), the easy ones of a depth first: where the quests will put
 // their people and things.
 const lastSpot = {};
@@ -222,7 +223,8 @@ export async function goSpot(kind, from) {
     if (c.key !== state.cubeKey) enterCube(c, c.map.portals.find(p => p.kind === 'side')?.dir ?? c.map.portals[0].dir);
     const spot = (c.map.spots ?? []).find(s => s.id === plan.id);
     if (!spot) { setStatus(`${plan.kind} · tier ${plan.tier} · depth ${plan.depth}: not placed in ${plan.key}`); return; }
-    spawnAt(spot.approach.x, spot.approach.y, spot.approach.z);
+    // (a glass of his: at the way in, not on it, which would break it)
+    if (spot.kind !== 'glass') spawnAt(spot.approach.x, spot.approach.y, spot.approach.z);
     setStatus(`${plan.kind} · tier ${plan.tier} · depth ${plan.depth} · ${plan.key}${spot.places.length ? ` · ${spot.places.length} places` : ''}`);
   } finally { if (state.cubes === cubes) state.transitioning = false; }
 }

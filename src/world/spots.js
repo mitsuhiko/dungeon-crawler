@@ -8,6 +8,10 @@
 //         room for three people around it
 //   outpost  on six depths, one in each stretch of them (OUTPOST_BANDS), in a room on the way:
 //         somebody's supply cart with level ground round it, to defend (docs/quests.md, Defense)
+//   glass on the depths with the glassmaker's glass (core/glass.js), two: where a bubble of his
+//         star-glass came to rest (game/intro.js), one on the way (`way`), one hidden off it;
+//         `glass` its number (0, 1), which says its recording (core/glass.js glassAt). Never a
+//         quest's: nobody stands there and nothing else lies there.
 // A spot names its cube; where in the cube it lies is up to the cube's generator
 // (cubegen/spots.js), which keeps it clear and reachable both ways like a reward site.
 //
@@ -18,8 +22,9 @@
 import { hash32, mulberry32 } from '../core/util.js';
 import { isClearing } from './town.js';
 import { key, hashKey } from './coords.js';
+import { glassAt } from '../core/glass.js';
 
-export const SPOT_KINDS = ['hide', 'seat', 'camp', 'outpost'];
+export const SPOT_KINDS = ['hide', 'seat', 'camp', 'outpost', 'glass'];
 export const OUTPOST_BANDS = [[1, 3], [4, 6], [7, 9], [10, 12], [13, 15], [16, 19]];
 // the depth of a stretch that has its outpost, from the seed
 export const outpostDepth = (seed, band) => { const [a, b] = OUTPOST_BANDS[band]; return a + hash32(seed ^ Math.imul(band + 1, 0x0f7905)) % (b - a + 1); };
@@ -94,6 +99,25 @@ export function planSpots(seed, layout) {
     const room = { key: layout.annex.key, at: layout.routeIndex.get(layout.annex.key) ?? 0, branch: true, tier: 2, spots: [] };
     Object.assign(add(room, 'outpost'), { annex: layout.annex.gate });
     info.push(room);
+  }
+  // the glassmaker's glass (on a stream of its own, after the rest: they stay where they were)
+  const glass = glassAt(seed, d);
+  if (glass.length) {
+    const R3 = mulberry32(hash32(seed ^ Math.imul(d + 1, 0x61a55) ^ 0x61a));
+    const plain = info.filter(r => r.key !== layout.annex?.key), last = Math.max(1, route.length - 1);
+    const hi = Math.max(...plain.map(r => r.tier));
+    const used = new Set();
+    glass.forEach((part, i) => {
+      // on the way: a room of the route about halfway along, as easy as there is; hidden: the
+      // hardest to get to, a branch rather than the way
+      const fit = i === 0 ? r => (r.branch ? 20 : 0) + r.tier * 3 + Math.abs(r.at / last - 0.45) * 6
+        : r => (hi - r.tier) * 3 + (r.branch ? 0 : 2);
+      const room = plain.filter(r => !used.has(r.key)).map(r => ({ r, s: fit(r) + r.spots.length * 0.5 + R3() }))
+        .sort((a, b) => a.s - b.s)[0]?.r;
+      if (!room) return;
+      used.add(room.key);
+      Object.assign(add(room, 'glass'), { glass: i, way: i === 0 });
+    });
   }
   for (const r of info) if (r.spots.length) plans.set(r.key, r.spots);
   return { spots: plans, list: info.flatMap(r => r.spots) };

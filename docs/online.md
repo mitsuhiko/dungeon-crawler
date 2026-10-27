@@ -127,10 +127,9 @@ being helped up and getting back in. Up to four players, co-op.
   sets its recording playing, for everyone (and it is gone for everyone); whoever takes his sword
   opens the camp's gate for everyone (each recording cutting short the one before). Each player takes a sword of their own: it stays in the ground for a hero with no
   weapon at all (one who joins empty-handed).
-- The robot ([story.md](story.md#the-robot)): every player has their own, which comes to them
-  the first time they are out of the town (a guest's too, in a world where the host's came long
-  ago: what the narrator said is not sent; like everyone's, once the recording playing is over),
-  says hello only to them and follows only them. Everyone sees everyone's: each game flies its own
+- The robot ([story.md](story.md#the-robot)): every player has their own, which lies asleep in
+  the merchant camp until they wake it (a guest's too, in a world where the host's woke long ago:
+  what the narrator said is not sent), says hello only to them and follows only them. Everyone sees everyone's: each game flies its own
   and sends where it is in its `me` (`robot`: cube, place, yaw, fade, clip, `protocol.js
   robotOf`, `game/robot.js robotWord`); the others draw it there, ~110 ms in the past like the
   figures, also left behind in a cube beside theirs (`game/robot.js showOtherRobot`, a copy of the

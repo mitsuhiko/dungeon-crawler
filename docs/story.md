@@ -4,8 +4,9 @@ Status: a sketch, being worked out; of it a first try at the opening ([film.md](
 beginning in the town and the robot coming and following (below) are built. This page replaces the
 earlier story (an old Glassmaker woman whose memories were the cubes). The narrator's lines of that
 story are gone: what it says now (`src/core/narration.js`, `src/game/narrator.js`,
-[narration.md](narration.md)) are the glassmaker's recordings of the beginning and the robot's
-hello. Complements [world.md](world.md),
+[narration.md](narration.md)) are the glassmaker's recordings (the beginning's, and his glass in
+the depths that have a boss: "His glass in the depths" below) and the robot (its hello, and from
+then on what it sees: "What the robot says" below). Complements [world.md](world.md),
 [bosses.md](bosses.md), [quests.md](quests.md), [saves.md](saves.md), [online.md](online.md) and
 [i18n.md](i18n.md).
 
@@ -59,8 +60,8 @@ scientists, no space and no rockets; there are star-readers, the sky and winged 
 - **The glassmaker**: a man, a craftsman, who went up with the pieces on the ark, fell with it to
   the core and is held there by the creature. He is
   never seen; you only hear his recordings. His name is still open.
-- **The robot**: a clockwork robot of star-glass, built by the star-readers. It comes flying up
-  the first time you are out of the town. From then on it goes with you, lights the way, and will
+- **The robot**: a clockwork robot of star-glass, built by the star-readers. It lies asleep in the
+  merchant camp until you wake it. From then on it goes with you, lights the way, and will
   help you, bring you back when you die and tell the story as you play (below, "The robot").
 - **The creature**: the last boss, waiting at the core. Clever, speaks the people's language, and
   wanted to escape. It was brought on board as something to be used, which makes it a prisoner too.
@@ -84,22 +85,21 @@ Decided:
   core pulse with the words), lying in the mud, waking up (eyes open, lifts off, shakes off the mud),
   bringing the hero back (rises, turns, spreads its wings, the core flares) and cheering (a hop and
   a somersault).
-- **How it comes** (built: `src/core/robot.js`, `src/game/robot.js`, `src/render/robot.js`): the
-  first time the hero is out of the town (past the merchant camp's gate, the first piece of the
-  world that is neither the town, a house in it nor the camp), it comes flying up from further in,
-  high over the trees, and once it is close it cheers and says hello (`robot`,
-  `core/narration.js`, in its voice): it heard the glass break and flew as fast as its wings would
-  go; the star-readers made it, of glass and clockwork; it had a name once but cannot find it any
-  more; it will come along and light the way, further down it gets dark. It does not talk over
-  the story: while a recording is still being told or waits its turn, it does not come yet; once it has been quiet a moment it comes,
-  wherever the hero is then, as long as they are out of the town. So the glassmaker's words never
-  have the robot's over them. The rule both ways: the story
-  already being told finishes first (a recording found while the robot says hello waits too). (A first try at its
-  character: cheerful and eager, a little forgetful. Its name stays open: it cannot find it.) The
-  world keeps that it came (its hello, told: `run.told`), so from then on it is with the hero as
-  they come into the world, in the town too. A world played before the robot existed has it come
-  the next time the hero is out of the town; the dev tools (`?dev=1`) skip its coming with the
-  beginning (`&intro=1`: it comes).
+- **How it wakes** (built: `src/core/robot.js`, `src/game/robot.js`, `src/render/robot.js`): it
+  lies on its back in the merchant camp, across the road from the camp's glass as the hero comes
+  in (`CAMP_ROBOT`, `world/town.js`), asleep (its clip `RobotDormant`), its core only glimmering,
+  labelled "Robot of star-glass". It does nothing until the hero wakes it: a click on it walks them
+  up to it (or the action key beside it, "Wake the robot"). Then whatever is being said is cut
+  short (the camp's recording too), and it wakes (`RobotWake`, 3.6 s: its eyes flicker open, it
+  lifts off and shakes itself) and says hello as it does (`robot`, `core/narration.js`, in its
+  voice): oh, the hero woke it, it has been lying here a long, long time; the star-readers made it,
+  of glass and clockwork; it had a name once but cannot find it any more; it will come along and
+  light the way, further down it gets dark. Once it is up it follows. It says nothing else before
+  its hello is over. (A first try at its character: cheerful and eager, a little forgetful. Its
+  name stays open: it cannot find it.) The world keeps that it woke (its hello, told: `run.told`),
+  so from then on it is with the hero as they come into the world, in the town too. A world played
+  before it lay in the camp has it lying there until it is woken; the dev tools (`?dev=1`) skip
+  its waking with the beginning (`&intro=1`: it lies there).
 - **How it follows**: along the hero's way, not straight at them: where they went, a trail of
   crumbs, and it flies along it 1.6 cells behind them, a little to the side, never right on them,
   hovering at their shoulders. It flies a little slower than the hero runs, and faster the further
@@ -117,7 +117,10 @@ Decided:
 - **It brings you back** when you die, to the last safe place (not built yet).
 - **Its memory**: it knows something about the glassmaker, but cannot get at all of what it
   remembers at once. What it says is not one of the memories (the inventory's Memories tab: the
-  glassmaker's glass), unless a line of it is marked to be.
+  glassmaker's glass), unless a line of it is marked to be. A first try: a scrap comes back to it
+  as each boss is beaten (a tower with no roof, water in glass seen from high above, flying between
+  things hung on lines of light, a small furnace, a cloth over something that watched), never more
+  than his recordings tell, and it does not know what it means.
 - **Playing together**: every player has a robot of their own, and everyone sees everyone's
   ([online.md](online.md)). One of them, the host's, is the one that tells the story.
 
@@ -163,6 +166,67 @@ Still open:
   it rise; he never says what lies round the hero (a town, a gate, "the next gate"), only what is
   true wherever it came to rest.
 - **The ending** (below) is the same in every world.
+
+## His glass in the depths
+
+Built for the depths that have a boss (`core/glass.js`, `world/spots.js`, `game/intro.js`): the
+road out of town (0), the sky (1 to 6) and the bottom of act II (13). Each such depth has a
+**chapter** of the before time, three recordings of about four lines, and a world places two of
+the three (from its seed): one **on the way**, in a room of the route about halfway along, and one
+**hidden**, in the hardest room of the depth to get to (a branch, high up, behind a guardian). So
+one world tells part of every chapter, another more of it, and a hero who goes looking hears more
+than one who runs for the well. Each recording stands on its own and says what matters most first.
+
+They are his glass like the town's: a bubble of star-glass floating over the floor (a spot of
+kind `glass` the cube keeps clear, `cubegen/spots.js`), labelled and clicked like the
+beginning's; walking into it breaks it and his recording plays (the memories keep it, "found at
+depth N"). Leaving the depth cuts it short. Playing together, one found plays for everyone, its
+glass gone for everyone.
+
+They tell the before time, never what is where the glass lies: he cannot know where it comes to
+rest. Now and then one touches on its depth sideways (a glassmaker's breath where Gusto breathes
+in, star-readers who never light a fire where Totnar brings the dark, a tide trapped in glass where
+Squarlo calls his, the ark turning where Flip turns his box, glass that minds heat over Foggery's
+lava, a day he would keep where Renew turns time back, a face behind a cloth where Mansk is a mask,
+comets still falling at night where Slomo's meteorites do).
+
+The chapters, in the order of the depths (the depths between, 7 to 12, are left for the voyage
+with the creature aboard; act III for the core):
+
+| Depth | Chapter | The three recordings |
+|---|---|---|
+| 0 | his craft, before everything | `breath` (glass begins as a breath; he is old now, so his words are small), `star-sand` (what is left where a star came down; it wants to go back up; nobody bought star-glass any more), `birds` (his workshop; children at the window; the little glass birds he blew for them) |
+| 1 | the star-readers and the stone | `readers` (the tower with no roof; they never lit a fire), `red-light` (the stone a small red light that grew; he kept his furnace burning so as not to look up), `lanterns` (they came at night; the oldest asked if he could make a great deal of star-sand rise; he said yes too quickly) |
+| 2 | closing the glass round the pieces | `sea` (the sea the hardest; its tide still comes in inside the glass), `lines` (the star-readers drew lines on maps; he never asked about the places between), `bread` (nobody had to do anything; a baker went on baking; he had no piece of his own) |
+| 3 | the ark's wings, and rising | `feathers` (a thousand glass feathers, each wanting the sky a little), `rising` (the ground turned away like a page; up and down stopped meaning much; the pieces came after like lanterns on a string), `steam` (the ark breathed steam; the pieces hung under her on lines of light; they learned to turn slowly) |
+| 4 | tending the glass aboard | `furnace` (a small furnace in the hold; star-glass minds heat), `rigging` (every morning up the rigging; a cracked pane sounds high and thin), `cracks` (a crack is not a break; do not be afraid of them) |
+| 5 | days on the ark | `one-day` (the day he would keep if he could; glass only keeps), `clockworks` (the star-readers' winged clockworks, four glass feathers a side, good at finding people: the robot is never named), `evenings` (the sun going down below them; nobody spoke of the stone) |
+| 6 | the creature brought on board | `cloth` (one more thing under a cloth, put next to his furnace), `face` (the cloth slipped: a face that looked at him the way people look; he said he was sorry), `jar` (every evening a jar filled in the hold, humming; the pieces shone brighter; he did not ask) |
+| 13 | the comet shower and the fall | `shower` (small comets at night, beautiful, then the wing; some still fall), `wings-broke` (the whole sky sounded like a cracked pane; the pieces drifted off like lanterns let go), `bottom` (they fell below everything into something soft; the cage was empty; something in the dark said his name, learned from him) |
+
+## What the robot says
+
+Built: from its hello on (`robotMet`, `core/robot.js`) it talks about what it sees, in its own
+voice (`core/narration.js`, the robot's lines; never before its hello is over). Cheerful, a child's
+voice through clockwork, it knows the enemies and the bosses and gives tips; of the story it knows
+only scraps. It is a companion, not a commentator: it keeps quiet a good while between lines
+(`ROBOT_REST`: over a minute before chatter, 40 s before what happens, 12 s before a call in a
+boss's fight or after a death; only the story's scenes, a depth, an arena, a boss beaten, never
+wait), and what comes while it keeps quiet is not said (it may come another time). Every line once in a world; what happens again and again (a death, a chest, standing about)
+is said in another order in every world (`shuffle`), so playing again brings other lines.
+
+- **A depth reached** (the boss depths), **a theme's first place** (the first act's and the slime
+  marsh), **wandering** about a place not seen before (the sky, and depth 13).
+- **An enemy of a new kind** coming after the hero: what it is and how to beat it.
+- **A boss's arena**: what it sees and the one thing to remember (Gusto's wide arms, the hills
+  that stay dry of Squarlo's tide, climbing ahead of Foggery's lava ...); **in the fight** a short
+  call as his attacks start and as he changes (step out of the breath, up a hill, beat the cats
+  first, jump over both waves ...); **beaten**, a cheer and a scrap of memory.
+- **A death**: it brought the hero back to where they came in; dying to a boss, a tip for him.
+- **Trial rooms**: what to do as an event seals the room, how a puzzle works as the hero comes to
+  it (`trial` `puzzle`), done and failed.
+- Low health, a long fight, enemies beaten, a level, a chest, a rare find, a quest taken, a horde
+  waking, a fall, coming home, standing about.
 
 ## The beginning
 

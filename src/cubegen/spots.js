@@ -9,6 +9,8 @@
 //         the fourth side the approach (with the corners between them that are level too)
 //   outpost  three by three level cells, a supply cart in the middle (`anchor`, it blocks), its
 //         keeper on one side (`places`), the approach on another, and room to fight round it
+//   glass one cell, like a hiding place: where a bubble of the glassmaker's glass floats
+//         (game/intro.js); the one on the way (`way`) close by it, the other hidden like a hide
 // A spot's floors are flat, dry, under open sky or enough headroom, off portal pads, reward
 // sites and the horde's patch, and nothing is built on them (they claim their space against
 // structures, smoothing keeps them flat, props and enemies keep off them). One that does not
@@ -19,7 +21,7 @@ import { floorY } from '../core/surfaces.js';
 import { search, take } from './route.js';
 import { reachTo, reachFrom, isCramped } from './reach.js';
 
-const ORDER = { outpost: 0, camp: 1, seat: 2, hide: 3 };
+const ORDER = { outpost: 0, camp: 1, seat: 2, hide: 3, glass: 4 };   // (the glass last: the others lie where they did before it)
 const ROOM = 10;   // level floors (a level up or down) within 4 cells an outpost needs to fight on (more is better)
 const TRIES = 10;   // footprints tried (both ways searched) per spot
 const AXES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -54,7 +56,7 @@ export function placeSpots(ctx) {
       if (!stand(f)) continue;
       // the footprint: its floors, where you come to it from, and (a camp) the places around it
       let cells, access, places = [];
-      if (plan.kind === 'hide') { cells = [f]; access = f; }
+      if (plan.kind === 'hide' || plan.kind === 'glass') { cells = [f]; access = f; }
       else if (plan.kind === 'seat') {
         const d = Math.floor(R() * 4), [dx, dz] = AXES[d], g = beside(f, dx, dz);
         if (!g) continue;
@@ -82,7 +84,8 @@ export function placeSpots(ctx) {
       // hidden ones away from the way and the portals (the hardest ones up high), seats and
       // camps close to the way, a camp near where you come in
       const portal = Math.min(...portalCells.map(c => Math.hypot(c % N - f.x, ((c / N) | 0) - f.z)));
-      const score = plan.kind === 'hide' ? (onRoute.has(f.id) ? -4 : 0) + Math.min(portal, 8) * 0.5 + (plan.tier >= 3 ? f.top * 0.6 : 0)
+      const score = plan.kind === 'glass' && plan.way ? -Math.abs(portal - 5) + (byRoute(cells) ? 3 : 0) + (onRoute.has(f.id) ? -2 : 0)
+        : plan.kind === 'hide' || plan.kind === 'glass' ? (onRoute.has(f.id) ? -4 : 0) + Math.min(portal, 8) * 0.5 + (plan.tier >= 3 ? f.top * 0.6 : 0)
         : plan.kind === 'seat' ? -Math.abs(portal - 5) + (cells.some(g => onRoute.has(g.id)) ? -1 : 0) + (byRoute(cells) ? 2 : 0)
         : plan.kind === 'outpost' ? -Math.abs(portal - 5) + (byRoute(cells) ? 2 : 0) + Math.min(cells.room, 30) * 0.25
         : -Math.abs(Math.hypot(entry.x - f.x, entry.z - f.z) - 4);
@@ -137,7 +140,7 @@ export function finishSpots(ctx) {
     const stood = plan.kind === 'camp' ? places : plan.kind === 'outpost' ? [f, ...places] : [f], was = stood.map(g => g.siteBlocked);
     for (const g of stood) g.siteBlocked = true;
     const safe = reachTo(ctx, s.exit, true), around = ctx.portalFloors.every(p => safe?.has(p.id))
-      && (plan.kind === 'hide' || safe?.has(access.id) && reachTo(ctx, access, true)?.has(s.entry.id));
+      && (plan.kind === 'hide' || plan.kind === 'glass' || safe?.has(access.id) && reachTo(ctx, access, true)?.has(s.entry.id));
     stood.forEach((g, i) => { g.siteBlocked = was[i]; });
     // (an outpost's cart stands on its cell: not on one the route's ways go over either)
     const onRoute = plan.kind === 'outpost' && (ctx.segments || []).some(sg => sg.some(m => m.from === f || m.to === f || m.cells.includes(f.c)));
@@ -146,6 +149,7 @@ export function finishSpots(ctx) {
     const face = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
     const anchor = at(f, plan.kind === 'seat' ? face(f, access) : 0), approach = at(access, face(access, f));
     spots.push({ id: plan.id, kind: plan.kind, tier: plan.tier, depth: plan.depth, seed: plan.seed, layer: f.layer,
+      ...plan.kind === 'glass' ? { glass: plan.glass, way: plan.way } : {},
       cells: cells.map(g => g.c), floor: f.id, accessFloor: access.id, anchor, approach,
       places: places.map(g => at(g, face(g, f))) });
     if (plan.kind === 'outpost') {

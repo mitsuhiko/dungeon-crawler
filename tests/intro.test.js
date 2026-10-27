@@ -8,8 +8,10 @@ import { containsXZ } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { step, faceKey } from '../src/world/coords.js';
-import { TOWN_KEY, TOWN_LEVEL, TOWN_RELIC, CAMP_GLASS, CAMP_RELIC, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
-import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, campGlassThere, swordThere, skipIntro, pastIntro } from '../src/core/intro.js';
+import { TOWN_KEY, TOWN_LEVEL, TOWN_RELIC, CAMP_GLASS, CAMP_RELIC, CAMP_ROBOT, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
+import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, campGlassThere, swordThere, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../src/core/intro.js';
+import { GLASS, PER_DEPTH, glassAt } from '../src/core/glass.js';
+import { recordingLines } from '../src/core/narration.js';
 import { portalLocked, lockMessage } from '../src/core/guardians.js';
 import { createRun, createPlayerStats } from '../src/core/progression.js';
 import { createWorld, checkWorld, createHero, checkHero } from '../src/core/save.js';
@@ -44,9 +46,9 @@ test('the glass floats over the plaza near the spawn, the camp\'s near its way i
     const w = new World(seed), town = w.cube(w.start).map, camp = w.cube(step(w.start, town.exit)).map;
     exits.add(town.exit);
     assert.deepEqual(Object.keys(town.relics), ['glass']);
-    assert.deepEqual(Object.keys(camp.relics), ['glass', 'sword']);
+    assert.deepEqual(Object.keys(camp.relics), ['glass', 'sword', 'robot']);
     for (const [r, spot, m, plan] of [[town.relics.glass, TOWN_RELIC, town, town.town], [camp.relics.glass, CAMP_GLASS, camp, camp.merchantCamp],
-      [camp.relics.sword, CAMP_RELIC, camp, camp.merchantCamp]]) {
+      [camp.relics.sword, CAMP_RELIC, camp, camp.merchantCamp], [camp.relics.robot, CAMP_ROBOT, camp, camp.merchantCamp]]) {
       const cell = Math.floor(r.z) * N + Math.floor(r.x);
       assert.equal(r.y, TOWN_LEVEL * LH);
       assert.deepEqual([r.x, r.z].map(v => +v.toFixed(6)), rotateTownPoint(...spot, plan.yaw).map(v => +v.toFixed(6)));
@@ -112,16 +114,40 @@ test('a new hero comes empty-handed; the sword it finds is the glassmaker\'s, an
 });
 
 test('a recording is told whole once it begins, and is cut short by the next or by leaving its place', async () => {
-  const { RECORDINGS, recordingLines, recordingsHeard, outOfPlace, placeOf, MOMENTS } = await import('../src/core/narration.js');
+  const { RECORDINGS, recordingsHeard, outOfPlace, placeOf, MOMENTS } = await import('../src/core/narration.js');
   // (game/narrator.js does it, which the tests cannot load: it draws)
   assert.ok(MOMENTS.recording.cuts && MOMENTS.recording.whole);
-  assert.deepEqual(RECORDINGS.map(r => r.id), ['glass', 'camp'], 'his words are in his glass: the sword says nothing');
+  assert.deepEqual(RECORDINGS.slice(0, 2).map(r => r.id), ['glass', 'camp'], 'his words are in his glass: the sword says nothing');
+  assert.deepEqual(RECORDINGS.slice(2).map(r => r.id), Object.values(GLASS).flat(), 'the rest lie in the depths, in the order of the story');
   assert.deepEqual(recordingsHeard(new Set([recordingLines('glass')[0].id])).map(r => r.id), ['glass']);
   const town = { town: {} }, house = { interior: true }, camp = { merchantCamp: {} }, road = {};
   assert.deepEqual([town, house, camp, road].map(placeOf), ['town', 'town', 'camp', null]);
   const [glass] = recordingLines('glass'), [inCamp] = recordingLines('camp');
   assert.ok(!outOfPlace(glass, town) && !outOfPlace(glass, house) && outOfPlace(glass, camp), 'leaving the town cuts the glass\'s');
   assert.ok(outOfPlace(inCamp, road) && !outOfPlace(inCamp, camp));
+  // his glass in the depths: leaving the depth cuts it short (for the town too, at depth 0)
+  const [deep] = recordingLines('red-light'), [onRoad] = recordingLines('breath');
+  assert.ok(!outOfPlace(deep, { depth: 1 }) && outOfPlace(deep, { depth: 2 }) && outOfPlace(deep, town));
+  assert.ok(!outOfPlace(onRoad, road) && outOfPlace(onRoad, { ...town, depth: 0 }) && outOfPlace(onRoad, camp));
+});
+
+test('his glass in the depths: two of each depth\'s three, one on the way, one hidden, gone once heard', () => {
+  for (const seed of [1, 2, 3, 77]) for (const [d, pool] of Object.entries(GLASS)) {
+    const at = glassAt(seed, Number(d));
+    assert.equal(at.length, PER_DEPTH);
+    assert.equal(new Set(at).size, at.length);
+    assert.ok(at.every(p => pool.includes(p)));
+    assert.deepEqual(glassAt(seed, Number(d)), at, 'from the seed alone');
+  }
+  assert.deepEqual(glassAt(1, 7), [], 'none where there is no chapter yet');
+  const seen = new Set(Array.from({ length: 40 }, (_, s) => glassAt(s, 0).join()));
+  assert.ok(seen.size > 2, 'worlds place different ones');
+  const map = { spots: [{ kind: 'hide', depth: 1 }, { kind: 'glass', depth: 1, glass: 0, anchor: {} }, { kind: 'glass', depth: 1, glass: 1, anchor: {} }] };
+  const run = { told: new Set() };
+  assert.deepEqual(depthGlassIn(map, run, 5).map(g => g.part), glassAt(5, 1));
+  run.told.add(recordingLines(glassAt(5, 1)[0])[2].id);
+  assert.deepEqual(depthGlassIn(map, run, 5).map(g => g.part), glassAt(5, 1).slice(1), 'heard: its glass is gone');
+  assert.ok(isStoryNews('glass') && isStoryNews('red-light') && !isStoryNews('nonsense'));
 });
 
 test('playing together the beginning is told to everyone, through the host', () => {

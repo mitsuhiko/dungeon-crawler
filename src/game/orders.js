@@ -2,7 +2,8 @@
 // town portal, a house's door: game/ways.js) to walk up to it and through, click an enemy to go and hit
 // it (with a bow, crossbow or staff: until it is in range and in sight, then shoot), click an item on the floor (or its label) to go and pick it up, click a treasure chest to
 // go and open it, click a villager to walk up and talk (their quests or wares: game/inventory.js talkTo), click a trial's
-// part (a lever, a runestone, a tablet ...) to walk up and use it, as the action key does (game/trials.js usePart). Holding the button
+// part (a lever, a runestone, a tablet ...) to walk up and use it, as the action key does (game/trials.js usePart), the robot
+// asleep in the merchant camp to walk up to it and wake it (game/robot.js wakeRobot). Holding the button
 // keeps walking towards the cursor / keeps attacking. WASD cancels.
 // Orders steer only; the speed (run, or walk with Ctrl) is up to update.js, but for jumps (always
 // at a run, as they were found).
@@ -22,9 +23,11 @@ import { TRADE_REACH } from '../core/shops.js';
 import { talkTo } from './inventory.js';
 import { absent } from '../core/enemies.js';
 import { usePart, canReachPart, partUsable } from './trials.js';
+import { sleepingRobot, canWakeRobot, wakeRobot } from './robot.js';
 
 // kind: 'move' (to x, z) | 'attack' (enemy) | 'pickup' (a pickup) | 'chest' (a reward site) |
-// 'trade' (a villager) | 'part' (a trial's part) | 'way' (a way out, game/ways.js); walk: the way there (physics/playernav.js),
+// 'trade' (a villager) | 'part' (a trial's part) | 'way' (a way out, game/ways.js) | 'robot' (the robot
+// asleep: game/robot.js); walk: the way there (physics/playernav.js),
 // kept from order to order while the hero gets there (a jump or climb under way finishes first)
 export const order = { kind: null, x: 0, z: 0, floor: null, enemy: null, pickup: null, chest: null, villager: null, part: null, way: null, into: false, walk: null, repath: 0, stuck: 0, lx: 0, lz: 0, hold: 0 };
 
@@ -104,6 +107,13 @@ export function orderWay(w) {
   Object.assign(order, { x: at.x, z: at.z, floor: floorOf(groundAt(at.x, at.z, at.y + 0.3, 0).s), enemy: null, pickup: null, chest: null, villager: null, part: null, way: w, repath: 1e9 });
   plan(order.floor, at.y);
 }
+// r: the robot asleep (game/robot.js sleepingRobot); walk up to it and wake it
+export function orderRobot(r) {
+  begin('robot');
+  Object.assign(order, { x: r.x, z: r.z, floor: floorOf(groundAt(r.x, r.z, r.y + 0.3, 0).s), enemy: null, pickup: null, chest: null, villager: null, part: null, way: null, repath: 1e9 });
+  plan(order.floor, r.y);
+  if (canWakeRobot(r)) { clearOrder(); wakeRobot(r); }
+}
 // (close enough to its spot to go on into a gate or door)
 const INTO = 0.15;
 
@@ -151,6 +161,11 @@ export function followOrder(dt) {
     const p = order.part;
     if (!partUsable(p)) { clearOrder(); return null; }   // solved meanwhile, or the trial is over
     if (canReachPart(p)) { clearOrder(); usePart(p); return { dx: 0, dz: 0 }; }
+  }
+  if (order.kind === 'robot') {
+    const r = sleepingRobot();
+    if (!r) { clearOrder(); return null; }   // (woken meanwhile)
+    if (canWakeRobot(r)) { clearOrder(); wakeRobot(r); return { dx: 0, dz: 0 }; }
   }
   if (order.kind === 'trade' && canTrade(order.villager)) { const v = order.villager; clearOrder(); talkTo(v); return { dx: 0, dz: 0 }; }
   // along the way (physics/playernav.js), the target at its end ...

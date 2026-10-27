@@ -10,10 +10,10 @@ import { say } from '../src/i18n/i18n.js';
 const L = makeLayouts(123);
 const ctx = { seed: 123, layout: L, gates: new Set(), now: 1 };
 
-test('somebody lives at every seat and camp, nobody at a hiding place, the same for everyone', () => {
+test('somebody lives at every seat and camp, nobody at a hiding place or his glass, the same for everyone', () => {
   for (let d = 0; d <= 20; d++) for (const s of L(d).spotList) {
     const npc = residentOf(s);
-    if (s.kind === 'hide') { assert.equal(npc, null); continue; }
+    if (s.kind === 'hide' || s.kind === 'glass') { assert.equal(npc, null); continue; }
     assert.deepEqual(residentOf(structuredClone(s)), npc, 'from the spot alone');
     assert.ok(ROLES[npc.role] && NAMES.includes(npc.name) && say(npc.title).startsWith(npc.name));
     assert.ok(d >= ROLES[npc.role].depths[0] && d <= ROLES[npc.role].depths[1], `a ${npc.role} at depth ${d}`);

@@ -721,6 +721,9 @@ export default {
   'The gate will not open yet. Something glints on the plaza.': 'Das Tor geht noch nicht auf. Auf dem Platz glitzert etwas.',
   'The gate will not open yet. Take the sword from the ground first.': 'Das Tor geht noch nicht auf. Zieh zuerst das Schwert aus dem Boden.',
   'Bubble of star-glass': 'Blase aus Sternglas',
+  // the robot asleep in the merchant camp (game/robot.js): its label, and the action key's
+  'Robot of star-glass': 'Roboter aus Sternglas',
+  'Wake the robot': 'Weck den Roboter',
   'The glass broke, and a voice came out of it. The gate out of the town is open.':
     'Das Glas ist zerbrochen, und eine Stimme kam heraus. Das Tor aus der Stadt ist offen.',
   'The glass broke, and a voice came out of it.': 'Das Glas ist zerbrochen, und eine Stimme kam heraus.',

@@ -4,12 +4,15 @@
 // `node tools/narration.mjs` says every line in every voiced language, in each of its forms, and
 // renders it to assets/narration/<lang>/<clip>.mp3.
 //
-// For now the lines are his recordings (RECORDINGS) and the robot's hello (`robot`): the old
-// narrator's (a grandmother whose memories were the cubes) went with the old story. The other
-// moments are kept for the robot, who sees what the hero does and will talk about it (docs/story.md,
-// "The robot"); a moment without lines says nothing. The memories (the inventory's Memories tab)
-// are his recordings only: the robot's lines are not in them, unless one is marked to be (a
-// recording of its own in RECORDINGS; none is yet).
+// Two voices say them. The glassmaker's recordings (RECORDINGS): the beginning's two in the town,
+// and his glass in the depths (core/glass.js), a chapter of the before time a depth. And the robot
+// (docs/story.md, "The robot"), who lies asleep in the merchant camp until the hero wakes it, and
+// from then on talks about what it sees: the places, the enemies met, the bosses and how to beat
+// them, the puzzles, a death. Its lines are said only once it has woken and said its hello
+// (robotMet, core/robot.js; its hello itself, the moment `robot`, is how it wakes), and paced
+// (ROBOT_REST): it does not talk all the time. A moment without lines says nothing. The memories
+// (the inventory's Memories tab) are his recordings only: the robot's lines are not in them,
+// unless one is marked to be (a recording of its own in RECORDINGS; none is yet).
 //
 // A line:
 //   id      what it is kept, sent and recorded under: lowercase words joined by '-' or '.'
@@ -34,13 +37,17 @@
 //
 // Every line is said once in a world (the world keeps what was told, game/narrator.js). The
 // lines of a moment are said in the order of this table: the first one not told yet that fits,
-// or, for a moment that tells `all`, every one of them that fits, one after the other.
+// or, for a moment that tells `all`, every one of them that fits, one after the other. A moment
+// that `shuffle`s (a death, a chest ...: what happens again and again) says the line that fits
+// best (the one whose `when` says most), and of those one picked by the world's seed (a line
+// marked `lead` first), so every world hears them in another order.
 //
 // A recorded line never says a name: the names are the players' own and cannot be recorded
 // ahead. Say people by their words ({sib, select, m {him} other {her}}), not by name. Nobody says
 // cube: a piece of the world, the glass.
 
 import { tr, msg } from '../i18n/i18n.js';
+import { depthOfGlass } from './glass.js';
 
 // a performance tag in a line's text: a lowercase word or a few in brackets, `[very slowly]`
 export const TAG = /\s*\[[a-z][a-z ]*\]\s*/g;
@@ -64,34 +71,45 @@ export const SIBLING = { m: { sib: 'm' }, f: { sib: 'f' } };
 //          was left of that one is dropped (the line being said fades out), and counts as told
 //   whole  a scene counts as told as a whole the moment it begins: all its lines go into what was
 //          told at once (the Memories show it whole; leaving it early loses nothing there)
+//   shuffle the line that fits best, of those one picked by the world's seed (linesFor)
 export const MOMENTS = {
   recording: { pri: 3, all: true, cuts: true, whole: true },   // one of the glassmaker's recordings found ({ part }: RECORDINGS)
-  robot: { pri: 3, all: true, whole: true },  // the robot ({ what }): 'hello', it came flying up (core/robot.js; told: it came)
+  robot: { pri: 3, all: true, whole: true },  // the robot ({ what }): 'hello', the hero woke it (core/robot.js; told: it woke)
   town: { pri: 1, ttl: 6, quiet: 4 },         // close to one of the villagers ({ who }: world/town.js VILLAGERS)
   camp: { pri: 2, ttl: 25 },                  // in the merchant camp, the first time
   road: { pri: 2, ttl: 25 },                  // out on the road, where the enemies start
-  wander: { pri: 0, ttl: 8, quiet: 35, calm: true },   // a place not seen before ({ act, depth })
+  wander: { pri: 0, ttl: 8, quiet: 35, calm: true, shuffle: true },   // a place not seen before ({ act, depth })
   theme: { pri: 2, ttl: 20 },                 // a theme's first place ({ theme }: its id)
   depth: { pri: 3, all: true },               // a depth reached for the first time ({ depth })
   foe: { pri: 1, ttl: 6 },                    // a species after the hero for the first time ({ species })
-  fight: { pri: 0, ttl: 4, quiet: 40 },       // in a fight, now and then
-  kill: { pri: 1, ttl: 5 },                   // enemies defeated ({ many }: three or more at once)
-  hurt: { pri: 1, ttl: 4, quiet: 20 },        // the hero's health low
-  death: { pri: 2, ttl: 15 },                 // the hero died
-  level: { pri: 1, ttl: 8 },                  // a level gained
-  chest: { pri: 1, ttl: 8 },                  // a chest opened
-  loot: { pri: 1, ttl: 8 },                   // a rare weapon or piece of armor picked up
-  quest: { pri: 1, ttl: 10 },                 // a quest taken
-  horde: { pri: 2, ttl: 5 },                  // a horde woke up
-  fall: { pri: 1, ttl: 6 },                   // fell through a gap into the place below
-  idle: { pri: 0, ttl: 3, quiet: 30, calm: true },     // standing about for a while
-  home: { pri: 1, ttl: 10, quiet: 10 },       // back in town from out there
-  guardian: { pri: 2, ttl: 15 },              // a side guardian ({ what: 'near' | 'beaten' })
+  fight: { pri: 0, ttl: 4, quiet: 40, shuffle: true },   // in a fight, now and then
+  kill: { pri: 1, ttl: 5, quiet: 12, shuffle: true },    // enemies defeated ({ many }: three or more at once)
+  hurt: { pri: 1, ttl: 4, quiet: 20, shuffle: true },    // the hero's health low
+  death: { pri: 2, ttl: 15, shuffle: true },  // the hero died ({ depth, boss }: the boss whose arena it was, if he is still there)
+  level: { pri: 1, ttl: 8, shuffle: true },   // a level gained
+  chest: { pri: 1, ttl: 8, shuffle: true },   // a chest opened
+  loot: { pri: 1, ttl: 8, shuffle: true },    // a rare weapon or piece of armor picked up
+  quest: { pri: 1, ttl: 10, shuffle: true },  // a quest taken
+  horde: { pri: 2, ttl: 5, shuffle: true },   // a horde woke up
+  fall: { pri: 1, ttl: 6, shuffle: true },    // fell through a gap into the place below
+  idle: { pri: 0, ttl: 3, quiet: 30, calm: true, shuffle: true },     // standing about for a while
+  home: { pri: 1, ttl: 10, quiet: 10, shuffle: true },   // back in town from out there
+  guardian: { pri: 2, ttl: 15, shuffle: true },          // a side guardian, or a boss's stand-in ({ what: 'near' | 'beaten' })
   arena: { pri: 3, ttl: 30, all: true },      // a boss's arena entered, the boss still there ({ boss })
   boss: { pri: 2, ttl: 4 },                   // in a boss's fight ({ boss, what }: 'start', an attack's name, 'split' { stage })
   beaten: { pri: 3, all: true },              // a boss beaten ({ boss })
-  trial: { pri: 2, ttl: 8 },                  // a trial room ({ what: 'sealed' | 'resolved' | 'failed' })
+  trial: { pri: 2, ttl: 8, shuffle: true },   // a trial room ({ what: 'sealed' | 'resolved' | 'failed' | 'puzzle': come into one not solved yet, kind })
 };
+
+// How often the robot talks (game/narrator.js). It is a companion, not a commentator: after a line
+// of its own it keeps quiet a while before the next, the longer the less the moment matters (its
+// `pri`): chatter (0) waits ROBOT_REST[0] s, what happens (1) [1], a boss's calls and a death (2)
+// [2]; the story's scenes (3: its hello, a depth, an arena, a boss beaten) wait for nothing. Nor
+// does it say anything while another line of its own is being said or waits (but such a scene).
+// What comes while it must keep quiet is not said, and not told: it may come another time.
+export const ROBOT_REST = [75, 40, 12, 0];
+// may it say a line of a moment of priority `pri`, having kept quiet `quiet` s?
+export const robotMayTalk = (pri, quiet) => quiet >= (ROBOT_REST[pri] ?? 0);
 
 // The glassmaker's recordings (docs/story.md): bubbles of star-glass he blew his words into, down in
 // the dark, and let rise. Each is a scene of lines (`on: 'recording'`, `when: { part }`), said when
@@ -106,9 +124,45 @@ export const MOMENTS = {
 // moment it begins (MOMENTS `whole`: the Memories have all of it), the next one cuts it short
 // (`cuts`), and so does leaving its place (`where`: game/narrator.js arrived; placeOf). Write a
 // recording so its first line says what matters most.
+//
+// His glass in the depths (core/glass.js GLASS): a chapter of the before time a depth, three
+// recordings each, of which a world places two (one on the way, one hidden). In the order of the
+// depths: his craft (the road out of town), the star-readers and the stone (1), closing the glass
+// round the pieces (2), the ark's wings and rising (3), tending the glass aboard (4), days on the
+// ark (5), the creature brought on board (6), the comet shower and the fall (13). They tell the
+// before time, never what is where the glass lies; now and then one touches on the depth it rests
+// at, sideways (breath where Gusto breathes, the dark where Totnar makes it, a tide where Squarlo
+// calls his ...). `depth`: where it lies; `where` { depth }: leaving the depth (for the town, the
+// camp or another depth) cuts it short.
+const FOUND_ROAD = msg('Found on the road out of town'), FOUND_DEEP = msg('Found at depth {depth}');
+const deep = (id, title) => { const depth = depthOfGlass(id); return { id, title, found: depth ? FOUND_DEEP : FOUND_ROAD, depth, where: { depth } }; };
 export const RECORDINGS = [
   { id: 'glass', title: msg('A voice in the glass'), found: msg('Found on the town plaza'), where: 'town' },
   { id: 'camp', title: msg('Where the sword fell'), found: msg('Found in the merchant camp'), where: 'camp' },
+  deep('breath', msg('Every glass begins with a breath')),
+  deep('star-sand', msg('Star-sand')),
+  deep('birds', msg('Little birds of glass')),
+  deep('readers', msg('The tower with no roof')),
+  deep('red-light', msg('A red light')),
+  deep('lanterns', msg('Lanterns at the door')),
+  deep('sea', msg('A piece of the sea')),
+  deep('lines', msg('Lines on a map')),
+  deep('bread', msg('The smell of bread')),
+  deep('feathers', msg('A thousand feathers')),
+  deep('rising', msg('The ground turned away')),
+  deep('steam', msg('Brass and steam')),
+  deep('furnace', msg('A small furnace')),
+  deep('rigging', msg('Up the rigging')),
+  deep('cracks', msg('Cracks that hold')),
+  deep('one-day', msg('If I could keep one day')),
+  deep('clockworks', msg('Little clockworks')),
+  deep('evenings', msg('Evenings on deck')),
+  deep('cloth', msg('Under a cloth')),
+  deep('face', msg('A face that watched')),
+  deep('jar', msg('What it made')),
+  deep('shower', msg('The comet shower')),
+  deep('wings-broke', msg('The wings')),
+  deep('bottom', msg('Something soft and dark')),
 ];
 // a recording's lines, in order
 export const recordingLines = id => LINES.filter(l => l.on === 'recording' && l.when?.part === id);
@@ -118,8 +172,16 @@ export const recordingsHeard = told => RECORDINGS.filter(r => recordingLines(r.i
 export const recordingOf = line => line.on === 'recording' ? RECORDINGS.find(r => r.id === line.when?.part) : undefined;
 // the place a map is, for a recording's `where`: 'town' (its houses too), 'camp', or null (out there)
 export const placeOf = map => map?.town || map?.interior ? 'town' : map?.merchantCamp ? 'camp' : null;
-// is line out of its place where the hero is now (map)? (game/narrator.js cuts it)
-export const outOfPlace = (line, map) => { const w = recordingOf(line)?.where; return !!w && placeOf(map) !== w; };
+// is line out of its place where the hero is now (map)? (game/narrator.js cuts it) A place is
+// 'town' or 'camp' (placeOf), or { depth }: out there at that depth
+export function outOfPlace(line, map) {
+  const w = recordingOf(line)?.where;
+  if (!w) return false;
+  if (typeof w === 'string') return placeOf(map) !== w;
+  return placeOf(map) !== null || (map?.depth ?? 0) !== w.depth;
+}
+// what the Memories tab says of where a recording was found
+export const foundText = r => tr(r.found, { depth: r.depth ?? 0 });
 
 // His recordings are his voice (tools/voices/glassmaker), worn like an old recording when played
 // (the film's `worn`, game/narrator.js): low, tired and calm, a man talking to whoever finds the
@@ -133,6 +195,29 @@ const recording = (part, id, text, note, instruct, more = {}) => ({ id: `recordi
 // Cheerful and eager, a child's voice through clockwork; it cannot get at all it remembers.
 const robot = (what, id, text, note, instruct, more = {}) => ({ id: `robot.${what}.${id}`, on: 'robot', when: { what },
   voice: 'robot', text, note, instruct, ...more });
+// The robot at any other moment (MOMENTS): `robot.<id>`, what it sees and says about it. It knows
+// the enemies and how the bosses fight, and gives tips; about the story it knows only scraps, which
+// come back to it now and then (a boss beaten): never more than the glassmaker's recordings tell.
+const says = (on, when, id, text, note, instruct, more = {}) => ({ id: `robot.${id}`, on, ...when ? { when } : {},
+  voice: 'robot', text, note, instruct, ...more });
+
+// how the robot says things (plain, gentle instructions: strong ones pull its voice off)
+const BRIGHT = 'Speak brightly and quickly, like an eager child.';
+const WARN = 'Speak quickly and urgently but clearly, like a child calling out a warning.';
+const WONDER = 'Speak with curious wonder, like a child seeing something new.';
+const SOFT = 'Speak softly and a little wistfully, like a child remembering something half forgotten.';
+const CHEER = 'Speak with bright, bouncy joy, like a child cheering.';
+const KIND = 'Speak warmly and kindly, like a child comforting a friend.';
+const CHATTY = 'Speak lightly and playfully, chatting to pass the time.';
+const UNEASY = 'Speak a little nervously, like a child trying to sound brave.';
+const TIP = 'Speak brightly and clearly, like a child sharing a clever tip.';
+// how he says his: low, old and tired, worn
+const G_CALM = 'Speak low and calm, like an old man remembering, unhurried.';
+const G_FOND = 'Speak low and fond, with a faint smile, remembering.';
+const G_WRY = 'Speak low and dry, with a little wry humour.';
+const G_SAD = 'Speak low and quiet, sad and tired, but steady.';
+const G_HUSH = 'Speak low and hushed, slowly, as if afraid to wake something.';
+const G_PROUD = 'Speak low and steady, with a craftsman\'s quiet pride.';
 
 export const LINES = [
   // --- the glass on the town plaza: the first thing a hero finds (core/intro.js) -------------------
@@ -163,16 +248,736 @@ export const LINES = [
     'The end of this recording: more of his bubbles lie somewhere, he does not know where. Tired, but he will not stop.',
     'Speak low and tired, slowing down at the end, a little hopeful.', { seed: 3 }),   // (the others pause long: "Und hör auf.")
 
-  // --- the robot comes flying up, the first time the hero is out of the town (core/robot.js) ------
-  robot('hello', 'there', 'There you are! I heard the glass break, and I flew as fast as my wings would go.',
-    'The robot\'s first words. The hero just left the town and the merchant camp for the road, and the little robot of star-glass came flying up to them. It heard the glassmaker\'s glass break and came looking. Glad, a little out of breath.',
-    'Speak brightly and a little out of breath, glad, like an eager child.'),
+  // --- the robot wakes: the hero found it asleep in the merchant camp and woke it (core/robot.js) ---
+  robot('hello', 'there', 'Oh! You woke me up! I have been lying here for a long, long time.',
+    'The robot\'s first words. It lay asleep on its back in the merchant camp, and the hero just woke it: it opens its eyes, lifts off and shakes itself as it says this. Surprised and delighted.',
+    'Speak brightly and quickly, surprised and glad, like an eager child just woken.'),
   robot('hello', 'who', 'The star-readers made me, of glass and clockwork. I had a name once, but I cannot find it any more.',
     'Who it is: the star-readers built it. It cannot get at all of what it remembers, its own name too. Cheerful about the first sentence, puzzled and a little wistful about the second, not sad.',
     'Speak cheerfully, then a little puzzled and wistful.'),
   robot('hello', 'come', 'So I will come with you, and light the way. Further down, it gets dark.',
     'From now on it follows the hero and glows; the way down through the depths gets darker. A small, warm promise.',
     'Speak warmly and brightly, like a small promise.'),
+
+  // === the glassmaker's glass in the depths (core/glass.js): a chapter of the before time a depth ===
+  // Recorded long after, down at the core, in the dark. He tells what was, not what is round the
+  // hero: he cannot know where the glass comes to rest. Each recording stands on its own (a world
+  // places two of a depth's three, in either order).
+
+  // --- the road out of town (depth 0, Gusto's): his craft, before everything ---------------------
+  recording('breath', 'begins', 'Every glass begins as a breath. Mine have, for forty years.',
+    'A bubble of his glass found on the road out of town, before anything of the story. He talks about his craft: glassblowing is breathing. (Gusto, who breathes in and blows, waits at the end of this depth: the hero may notice; he does not mean it.)',
+    G_FOND),
+  recording('breath', 'slowly', 'You breathe out slowly, and the glass grows round your breath. Too fast, and it bursts in your face.',
+    'How glass is blown, said plainly by somebody who has done it all his life.', G_CALM),
+  recording('breath', 'master', 'My master said a glassmaker\'s lungs are his best tools. Then he coughed for an hour.',
+    'A small joke about the old master who taught him. Fond.', G_WRY),
+  recording('breath', 'small', 'I am old now, and short of breath. So I make my words small, and blow them carefully.',
+    'Why his recordings are short: he is old, down in the dark, and blows each one into a little bubble of glass. Tired, gentle.', G_SAD),
+
+  recording('star-sand', 'left', 'Star-sand is what is left where a star came down. It is pale, and warm even in winter.',
+    'What star-sand is (the glass of his kind is made of it). Found on the road out of town. Wonder in it, though he has known it all his life.', G_CALM),
+  recording('star-sand', 'wants', 'It wants to go back up. A glass made of it rises, unless somebody holds on to it.',
+    'The second thing star-glass does (the first, that it keeps what it holds, the hero knows from the town). Plain.', G_CALM),
+  recording('star-sand', 'boy', 'When I was a boy, I let one go by mistake. I watched it until it was a star again.',
+    'A memory of his childhood: a small glass of star-sand that got away and rose until it looked like a star. Fond, a little wondering.', G_FOND),
+  recording('star-sand', 'old-craft', 'Nobody bought star-glass any more, by then. It was an old craft, for old men like my master.',
+    'Star-glass was nearly forgotten before the stone: why the star-readers later came to him and not the guild.', G_CALM),
+
+  recording('birds', 'workshop', 'My workshop stood at the edge of town, by the well. I made windows, mostly, and bottles.',
+    'His workshop, long ago and far away (not the town the hero is from: he does not know where his glass lands). Plain and warm.', G_FOND),
+  recording('birds', 'children', 'Children stood at my window and watched the glass glow. Some of them stood there all day.',
+    'The children who watched him work. Smiling.', G_FOND),
+  recording('birds', 'blew', 'For the ones who stayed longest, I blew little birds. Wings out, as if they were just landing.',
+    'He made little glass birds for them (the glass bird of the game\'s title and splash screen is never named; this is only a hint).', G_FOND),
+  recording('birds', 'windowsill', 'I wonder where those birds are now. I hope somebody still keeps one on a windowsill.',
+    'Wistful: the world broke since, and he does not know what became of anything.', G_SAD),
+
+  // --- depth 1 (Totnar's, who makes it dark): the star-readers, and the stone ----------------------
+  recording('readers', 'tower', 'The star-readers lived on the hill, in a tower with no roof. They slept by day and read the sky by night.',
+    'Who the star-readers were, to the people of his town: odd folk on a hill. Found at depth 1.', G_CALM),
+  recording('readers', 'pebbles', 'We thought them odd. Children threw pebbles at their door, and ran away laughing.',
+    'A little ashamed and amused.', G_WRY, { seed: { de: 3 } }),
+  recording('readers', 'once', 'I did too, once. I was not always old.',
+    'He owns up to having been one of those children. Dry, smiling.', G_WRY),
+  recording('readers', 'fire', 'They never lit a fire up there, not even in winter. A fire, they said, makes you blind to the sky.',
+    'The star-readers kept to the dark to see the stars. (Totnar, who brings the dark, lives at this depth; he does not know.)', G_CALM),
+
+  recording('red-light', 'listened', 'When the star-readers spoke of the stone, nobody listened. Then we saw it ourselves.',
+    'The stone the star-readers warned of: at first nobody believed them. Found at depth 1. Grave.', G_CALM),
+  recording('red-light', 'small', 'A small red light, low in the sky, that did not move with the others.',
+    'What the stone looked like at first. Quiet, a little uneasy still.', G_HUSH),
+  recording('red-light', 'bigger', 'Every night it was a little bigger. People stopped going out after dark.',
+    'The fear growing in his town.', G_SAD),
+  recording('red-light', 'furnace', 'I kept my furnace burning all night, so I would not have to look up.',
+    'How he coped: he worked through the nights with his fire lit, so he did not have to see it. Sad, a little ashamed.', G_SAD),
+
+  recording('lanterns', 'night', 'They came at night, three of them, each with a lantern turned down low.',
+    'The night the star-readers came to his door (the opening film says they came; this is how). Found at depth 1. Hushed.', G_HUSH),
+  recording('lanterns', 'handful', 'The oldest held out a handful of star-sand. She asked whether I could make a great deal of it rise.',
+    'The oldest star-reader, a woman, asks him for star-glass enough to lift pieces of the world (she does not say so yet).', G_CALM),
+  recording('lanterns', 'yes', 'I said yes before I understood what she meant. I have always been too quick to say yes.',
+    'He agreed at once. Wry, and a little rueful.', G_WRY),
+  recording('lanterns', 'looked-up', 'That night, for the first time, I looked up at the red light for a long while.',
+    'After they left, he finally looked at the stone. Quiet, slow.', G_HUSH),
+
+  // --- depth 2 (Squarlo's, whose tide floods his hills): closing the glass round the pieces --------
+  recording('sea', 'hardest', 'The hardest piece to close was the sea. Water will not hold still to be measured.',
+    'Closing his glass round a piece of the sea (the opening film names it). Found at depth 2. A craftsman\'s memory of a hard job.', G_PROUD),
+  recording('sea', 'low-tide', 'I closed the glass at low tide, round the beach, the shallows and a few small hills.',
+    'How he did it. Plain.', G_CALM),
+  recording('sea', 'tide-came', 'The tide came in anyway, inside the glass. It still does, twice a day, with nowhere to go.',
+    'Glass keeps what it holds, its tide too: the water rises and falls inside the piece for ever. (Squarlo calls a tide at this depth; he does not know.)', G_CALM),
+  recording('sea', 'hills', 'Whoever lives there learned to love the hills. I am sorry about that.',
+    'A dry joke with an apology in it.', G_WRY),
+
+  recording('lines', 'chose', 'I did not choose the pieces. The star-readers drew lines on their maps, and I closed my glass along the lines.',
+    'Who decided which pieces of the world were kept: the star-readers, not he. Found at depth 2. Whether all the world was cut up or only some saved stays unclear on purpose.', G_CALM),
+  recording('lines', 'here-there', 'A town here. A forest there. Half a mountain, because the line ran through it.',
+    'Lists what went into the glass, plainly, the last with a little wonder at how odd it was.', G_WRY, { seed: { de: 1 } }),
+  recording('lines', 'between', 'I never asked about the places between the lines. What would become of them.',
+    'He does not say what happened to them: he does not know, or will not say. Slow.', G_SAD),
+  recording('lines', 'every-night', '[sad]I should have asked. I ask it every night now, down here.',
+    'Regret. Down here: at the core, where he is held.', G_SAD),
+
+  recording('bread', 'kindness', 'People did not have to do anything. That is the kindness of star-glass: it closes round you, and you hardly notice.',
+    'Being closed in the glass did not hurt anyone. Found at depth 2. Gentle.', G_CALM),
+  recording('bread', 'baker', 'In one piece a baker went on baking. I could smell the bread through the glass.',
+    'A small warm memory. Smiling.', G_FOND),
+  recording('bread', 'keeps', 'Glass keeps what it holds. Even the smell of bread, even the morning it was baked.',
+    'What star-glass keeps, said tenderly.', G_FOND),
+  recording('bread', 'hungry', 'I was hungry the whole time. I did not have a piece of my own.',
+    'He closed the glass round others\' homes and had none himself. Dry, then a little sad.', G_WRY),
+
+  // --- depth 3 (Flip's, who turns his box over): the ark's wings, and rising -----------------------
+  recording('feathers', 'idea', 'The ark was the star-readers\' idea, and its brass was the smiths\' work. The wings were mine.',
+    'The winged ark that carried the pieces up. Found at depth 3. The last sentence with quiet pride.', G_PROUD),
+  recording('feathers', 'thousand', 'A thousand feathers of glass, each blown to want the sky a little.',
+    'How he made the wings: star-glass rises, so each feather pulled up a little. Wonder.', G_PROUD),
+  recording('feathers', 'too-much', 'Too much, and the ark would never have come down. Too little, and it would never have gone up.',
+    'The balance he had to find. Thoughtful.', G_CALM),
+  recording('feathers', 'proud', 'I got it just right. I was proud of that, for a while.',
+    '\'For a while\': the wings broke later (he does not say so here). Pride with a shadow over it.', G_SAD),
+
+  recording('rising', 'page', 'When we rose, the ground turned away below us, slowly, like the page of a book.',
+    'The ark rising, the world falling away under it. Found at depth 3. Wonder.', G_CALM),
+  recording('rising', 'up-down', 'After a while, up and down did not mean much. There was only towards the stars, and away from them.',
+    'Up in the sky. (Flip turns his box any side up at this depth; he does not know.)', G_CALM),
+  recording('rising', 'smiths', 'The smiths were sick for days. I was not. Glassmakers are used to turning things.',
+    'A dry joke: a glassblower turns his pipe all day long.', G_WRY),
+  recording('rising', 'lanterns', 'The pieces came up after us, through the clouds, like lanterns on a string.',
+    'The pieces of the world rising after the ark. Tender, a beautiful memory.', G_FOND),
+
+  recording('steam', 'huff', 'The ark breathed steam to steer. You could hear it all over the deck, a slow huff, like a sleeping horse.',
+    'What the ark sounded like. Found at depth 3. Fond.', G_FOND),
+  recording('steam', 'kept', 'The smiths kept her boilers. The star-readers kept her charts. I kept the glass.',
+    'Who did what aboard. A steady rhythm.', G_PROUD),
+  recording('steam', 'lines', 'Every piece of the world hung under her on lines of light, and turned when she turned.',
+    'The pieces were held together under the ark (the comet shower later lets them go).', G_CALM),
+  recording('steam', 'slowly', 'When she turned too fast, everything we carried swung round with her. We learned to turn slowly.',
+    'Turning the ark: careful. (Flip turns things too fast at this depth; he does not know.)', G_CALM),
+
+  // --- depth 4 (Foggery's, a tower in rising lava): tending the glass aboard ----------------------
+  recording('furnace', 'hold', 'I had a small furnace in the hold of the ark. Glass mends, if it is hot enough and you are quick.',
+    'His work aboard: mending the glass. Found at depth 4. Matter-of-fact.', G_PROUD),
+  recording('furnace', 'quick', 'I was very quick, in those days.',
+    'Wry about his age.', G_WRY),
+  recording('furnace', 'heat', 'Star-glass does not mind the cold, but it minds heat. Too hot, and it forgets what it holds.',
+    'A rule of his glass: heat is its danger. (A lava-filled place lies at this depth; he does not know.) Grave.', G_CALM),
+  recording('furnace', 'quarrel', 'So I kept the fire small, and the pieces far from it. Fire and glass are old friends, but they quarrel.',
+    'A craftsman\'s saying, with a little smile.', G_FOND),
+
+  recording('rigging', 'morning', 'Every morning I climbed the rigging to look at the pieces. The higher you climb, the more of them you see.',
+    'His mornings aboard. Found at depth 4. (Foggery\'s fight is a climb; he does not know.)', G_FOND),
+  recording('rigging', 'sound', 'A cracked pane has a sound of its own, high and thin. You learn to hear it over the wind.',
+    'How he found cracks: by ear. Quiet, precise.', G_HUSH),
+  recording('rigging', 'glowing', 'When I heard one, I went down to the furnace, and up again with the glass still glowing.',
+    'Running down to his furnace and back up. A little proud.', G_PROUD, { seed: { de: 1 } }),
+  recording('rigging', 'knees', 'Down and up, all day. My knees remember it better than I do.',
+    'Dry joke about being old.', G_WRY),
+
+  recording('cracks', 'watch', 'Not every crack can be mended. Some you can only watch.',
+    'About cracks in his glass. Found at depth 4. Quiet.', G_CALM),
+  recording('cracks', 'hold', 'But a crack is not a break. Star-glass can crack a hundred times and still hold.',
+    'Reassuring: the pieces of the world have cracks, and they hold (docs/story.md).', G_PROUD),
+  recording('cracks', 'afraid', 'If you see cracks in the sky where you are, do not be afraid of them. I made that glass to hold.',
+    'Said to whoever finds this, without knowing where they are: if. Warm, steady, a promise.', G_CALM),
+  recording('cracks', 'heat', 'It is the heat I worry about. Never the cracks.',
+    'A small shadow at the end.', G_SAD),
+
+  // --- depth 5 (Renew's, who turns time back): days on the ark -----------------------------------
+  recording('one-day', 'keeps', 'Glass keeps things as they are. That is why people trusted it, and why it frightened me a little.',
+    'What his glass does, and his unease about it. Found at depth 5. Thoughtful.', G_CALM),
+  recording('one-day', 'which', 'If I could keep one day the way my glass keeps things, I know which one I would keep.',
+    'A wish. (Renew turns time back at this depth; he does not know.) Slow.', G_CALM),
+  recording('one-day', 'morning', 'The morning before the star-readers came. Bread, a cold window, and nothing to be afraid of.',
+    'The day he would keep. Tender.', G_FOND),
+  recording('one-day', 'gives', '[sighing]But glass only keeps. It never gives anything back.',
+    'He knows a wish is only a wish.', G_SAD),
+
+  recording('clockworks', 'aboard', 'The star-readers brought little clockworks on board, with wings, to fly between the pieces and carry word.',
+    'Little winged clockworks of the star-readers aboard the ark (the robot is one, never said: it cannot remember). Found at depth 5.', G_FOND),
+  recording('clockworks', 'feathers', 'I made their glass, and their wings. Four feathers on each side, like a sparrow\'s.',
+    'He made them (the robot has four glass feathers on each wing: a hint, never said outright).', G_FOND, { seed: 3 }),
+  recording('clockworks', 'names', 'They ticked faster when they were happy. Some of them had names; I never learned them.',
+    'Fond, and a little sorry (the robot has lost its name).', G_FOND),
+  recording('clockworks', 'finding', 'I hope some of them still fly. They were very good at finding people.',
+    'Hopeful (the robot found the hero).', G_CALM),
+
+  recording('evenings', 'best', 'On the ark, the evenings were the best part. The sun went down below us, not in front of us.',
+    'Evenings in the sky. Found at depth 5 (where Renew\'s fight falls from dusk into night; he does not know). Warm.', G_FOND),
+  recording('evenings', 'gold', 'We sat on the deck, the smiths, the star-readers and I, and watched the pieces turn gold, one after the other.',
+    'A peaceful memory.', G_FOND),
+  recording('evenings', 'stone', 'Nobody spoke of the stone. We had left it behind, or so we told each other.',
+    'A shadow under the peace.', G_CALM),
+  recording('evenings', 'stars', 'Then the night came, and with it the stars, more of them than I had ever seen.',
+    'Wonder, quiet. (Comets come later: he does not say so.)', G_HUSH),
+
+  // --- depth 6 (Mansk's, a mask in a museum): the creature brought on board ------------------------
+  recording('cloth', 'last-day', 'On the last day before we rose, the star-readers brought one more thing on board, under a cloth.',
+    'The creature, first seen (never named: \'a thing\', \'it\'). Found at depth 6, the last of the sky. Hushed, uneasy.', G_HUSH),
+  recording('cloth', 'carried', 'Four of them carried it, slowly, as if it might break. Or bite.',
+    'The last two words after a pause, dry.', G_WRY),
+  recording('cloth', 'needed', 'They said it was needed for the glass. They did not say for what.',
+    'What the creature makes stays open. Grave.', G_CALM),
+  recording('cloth', 'sleep', 'They put it in the hold, next to my furnace. I did not sleep well, after that.',
+    'Uneasy.', G_HUSH),
+
+  recording('face', 'slipped', 'Once, the cloth slipped. Behind the bars there was a face, and it was looking at me.',
+    'He saw the creature. Found at depth 6 (Mansk, a mask, lives here: he does not know). Hushed.', G_HUSH),
+  recording('face', 'people', 'Not the way an animal looks. The way people look, when they want to know what you are thinking.',
+    'The creature is clever. Slow, a little shiver in it.', G_HUSH),
+  recording('face', 'on-show', 'The star-readers kept it like a thing on show, and talked about it in front of it, as if it were not there.',
+    'He did not like how it was kept (the creature is a prisoner too: docs/story.md). Disapproving, quietly.', G_CALM),
+  recording('face', 'sorry', 'I did not like that. I put the cloth back, gently, and said I was sorry.',
+    'He spoke to it: the creature learned the people\'s language (he does not know it yet, here). Gentle.', G_SAD),
+
+  recording('jar', 'evening', 'Every evening a star-reader went down into the hold with an empty jar, and came back up with a full one.',
+    'The creature makes something the star-readers need for the pieces. Found at depth 6. Plain, curious.', G_CALM),
+  recording('jar', 'hummed', 'I never saw what was in it. It hummed, and the pieces shone brighter afterwards.',
+    'What it is stays open: maybe what keeps the glass aloft, or its light. Wondering.', G_HUSH),
+  recording('jar', 'ask', 'I did not ask. In those days I thought it was not my place to ask.',
+    'Rueful.', G_SAD),
+  recording('jar', 'questions', 'Down here, I have had a long time to think of all the questions I did not ask.',
+    'Down here: at the core, held by the creature. Tired.', G_SAD),
+
+  // --- depth 13 (Slomo's, the bottom of act II, under falling slime): the comet shower, the fall ---
+  recording('shower', 'night', 'The comets came at night, a whole shower of small ones. The star-readers had only ever looked for the one stone.',
+    'The comet shower that broke the ark (the opening film shows it without a word). Found at depth 13, the bottom of the second act. Grave.', G_CALM),
+  recording('shower', 'beautiful', 'At first they were beautiful. Green and white, falling slowly, like sparks from a furnace.',
+    'Wonder, before the harm.', G_HUSH),
+  recording('shower', 'wing', 'Then the first one struck the wing, and they were not beautiful any more.',
+    'Flat, heavy.', G_SAD),
+  recording('shower', 'still', 'Some of them still fall, I think, even now. Small ones, at night.',
+    'The meteors that still fall at night in the slime marsh (and Slomo\'s) are what is left of the shower: a hint. Quiet.', G_HUSH),
+
+  recording('wings-broke', 'sound', 'A cracked pane sounds high and thin. That night, the whole sky made that sound.',
+    'The night the ark\'s wings broke. Found at depth 13. Slow, heavy.', G_SAD),
+  recording('wings-broke', 'feather', 'My wings broke one feather at a time. I counted, and then I stopped counting.',
+    'His wings. Steady, barely.', G_SAD),
+  recording('wings-broke', 'drifted', 'The lines of light went slack. The pieces drifted off, each its own way, like lanterns let go.',
+    'The pieces scattered into the dark (the world the hero lives in).', G_SAD),
+  recording('wings-broke', 'fell', '[sad]I watched them go until I could not see them any more. Then we fell.',
+    'The end of it.', G_SAD),
+
+  recording('bottom', 'long', 'We fell for a long time. Past everything, below everything, into the dark.',
+    'The ark\'s hull falling to the core, with him and the creature in it. Found at depth 13. Slow.', G_HUSH),
+  recording('bottom', 'soft', 'We came down in something soft and cold, that held on to us the way mud holds a boot.',
+    'Where they came down (slime holds the hero at this depth; he does not know). Uneasy.', G_CALM),
+  recording('bottom', 'empty', 'When I woke, the hold was open, and the cage was empty.',
+    'The creature got out. Hushed.', G_HUSH),
+  recording('bottom', 'name', '[whispers]Then something in the dark said my name. It had learned it from me.',
+    'The creature speaks his language now (docs/story.md, "The kidnapping"): the end of act II. He never says the name.', G_HUSH),
+
+  // === the robot (docs/story.md, "The robot"): what it sees, and says, from its hello on ============
+
+  // --- a depth reached for the first time (the boss depths) ---------------------------------------
+  says('depth', { depth: 1 }, 'depth.1.sky', 'Down a well, and the sky is still up there! The pieces must hang one under the other.',
+    'The robot, the first time the hero comes out at depth 1 (down the first well, after Gusto). Still sky islands.', WONDER),
+  says('depth', { depth: 2 }, 'depth.2.voice', 'Every piece has a well, and every well goes down. I think that is where the voice in the glass comes from.',
+    'Depth 2. The robot guesses the glassmaker\'s glass comes up from below.', BRIGHT),
+  says('depth', { depth: 3 }, 'depth.3.counted', 'Three wells down! I counted. I am good at counting, when I remember to.',
+    'Depth 3. Proud and a little forgetful.', CHATTY, { seed: { de: 7 } }),
+  says('depth', { depth: 4 }, 'depth.4.warmer', 'It is warmer down here, or is that my core? Hard to tell.',
+    'Depth 4. Puzzled about itself.', CHATTY),
+  says('depth', { depth: 5 }, 'depth.5.further', 'The sky looks further away from here. Still blue, though.',
+    'Depth 5. Looking up.', WONDER),
+  says('depth', { depth: 6 }, 'depth.6.last', 'This is the last piece under the open sky, I think. After this, the light only comes through cracks.',
+    'Depth 6, the last of the first act. Below it the second act\'s caves and hollows, where the light falls in through cracks.', SOFT),
+  says('depth', { depth: 13 }, 'depth.13.dim', 'It is so dim down here. Good thing you brought me.',
+    'Depth 13, the bottom of the second act. Half proud of its light, half nervous.', UNEASY),
+  says('depth', { depth: 13 }, 'depth.13.wet', 'Something lives at the bottom of this piece. It sounds wet.',
+    'Right after: it hears Slomo (a slime boss) somewhere ahead without knowing him.', UNEASY),
+
+  // --- the first place of a theme (the first act's, and the slime marsh) -------------------------
+  says('theme', { theme: 'meadow' }, 'theme.meadow', 'Grass and flowers, all the way down! These pieces kept their summer.',
+    'The meadow islands, below the town. Delighted.', WONDER),
+  says('theme', { theme: 'clouds' }, 'theme.clouds', 'We are walking on clouds! Do not tell them, they might stop holding us.',
+    'The cloud kingdom. Playful, whispering the second sentence a little.', CHATTY),
+  says('theme', { theme: 'lagoon' }, 'theme.lagoon', 'Islands and blue water. Something small in there is watching us.',
+    'The lagoon isles, where Squirtles live in the water.', WONDER),
+  says('theme', { theme: 'karst' }, 'theme.karst', 'These rocks look like somebody poured them out and forgot to stop.',
+    'The karst terraces: rock terraces like poured stone.', CHATTY),
+  says('theme', { theme: 'peaks' }, 'theme.peaks', 'Snow! I cannot feel the cold, but my gears tick slower.',
+    'The snowy peaks.', WONDER, { seed: { en: 2 } }),
+  says('theme', { theme: 'highlands' }, 'theme.highlands', 'Prayer flags. Somebody up here hoped very hard for something.',
+    'The prayer highlands, with flags and shrines. Soft.', SOFT),
+  says('theme', { theme: 'badlands' }, 'theme.badlands', 'Everything here is the colour of rust. I hope it is not catching.',
+    'The badlands, red and ochre rock. A joke about itself (it is glass and clockwork).', CHATTY),
+  says('theme', { theme: 'saltflats' }, 'theme.saltflats', 'Salt, as far as I can see. I think this was a sea once, and the glass kept the salt.',
+    'The salt flats.', WONDER),
+  says('theme', { theme: 'canyon' }, 'theme.canyon', 'Red walls on both sides, and the sky is only a stripe up there.',
+    'The deep canyon, walled in by sandstone: the last of the open sky.', WONDER),
+  says('theme', { theme: 'darkforest' }, 'theme.darkforest', 'It is always night in this forest. Good thing I glow, so stay close.',
+    'The dark forest, always at night. Brave, a little nervous.', UNEASY),
+  says('theme', { theme: 'slime' }, 'theme.slime', 'Ugh, everything sticks. Do not step in the green, it does not let go.',
+    'The slime marsh, the last theme of the second act. Disgusted, a little funny.', CHATTY),
+
+  // --- an enemy of a kind not met before comes after the hero: what it is, and a tip --------------
+  says('foe', { species: 'snake' }, 'foe.snake', 'Snakes! They lunge when they bite, so step back when they rear up.',
+    'The first snake that comes after the hero.', TIP),
+  says('foe', { species: 'spider' }, 'foe.spider', 'Spiders, a whole bunch. Do not let them get round you.',
+    'The first spiders (they come in packs and pounce).', WARN),
+  says('foe', { species: 'stunder' }, 'foe.stunder', 'That big one hits hard. Wait for its swing, then hit back.',
+    'The first Stunder, a heavy hitter.', TIP),
+  says('foe', { species: 'wolk' }, 'foe.wolk', 'A little cloud with lightning! When the ground under you crackles, step off it.',
+    'The first Wolk: its lightning strikes a crackling spot under its target and stuns.', TIP, { seed: { de: 1 } }),
+  says('foe', { species: 'squirtle' }, 'foe.squirtle', 'Squirtles! They hide under the floor and pop up to spit water.',
+    'The first Squirtle.', TIP),
+  says('foe', { species: 'tornado' }, 'foe.tornado', 'A walking tornado! Its twisters throw you down, so step out of their way.',
+    'The first Tornado: it sends twisters that lift and throw you.', TIP),
+  says('foe', { species: 'flimmer' }, 'foe.flimmer', 'Those three flicker, and some blows go right through them. Hit them when they stop to punch.',
+    'The first Flimmers, blurry, in threes: a blow may go through one while it shimmers; it comes into focus to punch.', TIP),
+  says('foe', { species: 'shraps' }, 'foe.shraps', 'That one throws ice. If it hits you, you go cold and slow.',
+    'The first Shraps: its ice ball chills.', TIP),
+  says('foe', { species: 'triangle' }, 'foe.triangle', 'A triangle with a temper! Its punches knock you over.',
+    'The first Triangle, a strong one.', UNEASY),
+  says('foe', { species: 'wolla' }, 'foe.wolla', 'A Wolla! Its storm blows you back, so step out of it sideways.',
+    'The first Wolla: a gust from its mouth, dodged by stepping out of the cone.', TIP),
+  says('foe', { species: 'octonaut' }, 'foe.octonaut', 'Arms everywhere! When it spins, back off.',
+    'The first Octonaut: its spin kicks you over.', WARN),
+  says('foe', { species: 'mecked' }, 'foe.mecked', 'Big ears, big teeth. Do not let it grab you.',
+    'The first Mecked: it grabs and bites.', WARN),
+  says('foe', { species: 'fireface' }, 'foe.fireface', 'A face made of fire! Its fireballs keep burning for a while.',
+    'The first Fire-face (in the dark forest a Lantern-face): its fireball sets you on fire.', WARN),
+  says('foe', { species: 'slug' }, 'foe.slug', 'A slug that spits! The slime slows you down.',
+    'The first Slug, in the slime marsh.', TIP),
+  says('foe', { species: 'bolime' }, 'foe.bolime', 'Careful, that blob swallows things! If it gets you, walk and jump until you are out.',
+    'The first Bolime: it leaps on you and swallows you; walking and jumping breaks out.', WARN),
+  says('foe', { species: 'spicy' }, 'foe.spicy', 'A pepper with a laser! Step aside when it aims.',
+    'The first Spicy: a laser that follows you, dodged by sidestepping.', TIP),
+
+  // --- a boss's arena, the boss still there: what it sees, and the one thing to remember ----------
+  says('arena', { boss: 'gusto' }, 'arena.gusto.teeth', 'Oh. Oh no. That one has a lot of teeth.',
+    'Gusto\'s arena, the first boss: a big floating head with jagged teeth, long clawed arms and tentacles.', UNEASY),
+  says('arena', { boss: 'gusto' }, 'arena.gusto.arms', 'When it throws its arms wide, step back. If it grabs nothing, it falls flat on its face!',
+    'Gusto\'s tell: arms flung wide before a grab; a grab that misses lays him on his face (hit him then).', TIP),
+  says('arena', { boss: 'totnar' }, 'arena.totnar.sticks', 'A big ball of sticks, with skulls on top. And somebody lit fires all round the edge.',
+    'Totnar\'s arena: a tumbleweed with three skulls; braziers burn round its edge.', WONDER),
+  says('arena', { boss: 'totnar' }, 'arena.totnar.dark', 'I think he likes the dark. If it goes dark, I will glow as bright as I can.',
+    'Totnar makes it night again and again in his fight.', UNEASY),
+  says('arena', { boss: 'squarlo' }, 'arena.squarlo.small', 'That little fellow? He is smaller than you!',
+    'Squarlo\'s arena: he is tiny (until he grows into a giant).', CHATTY),
+  says('arena', { boss: 'squarlo' }, 'arena.squarlo.hills', 'Shells on the ground, and hills everywhere: this place floods. Remember the hills.',
+    'His tidal hills: when he calls the tide the flats drown and the hilltops stay dry.', TIP),
+  says('arena', { boss: 'flip' }, 'arena.flip.box', 'It is a box. We are in a box!',
+    'Flip\'s arena: a great box he turns any side down.', WONDER),
+  says('arena', { boss: 'flip' }, 'arena.flip.rings', 'Rings of light. I think he turns things upside down, so mind the floor, wherever it ends up.',
+    'Flip, three rings of rings: after he turns the box, holes in the new floor break open.', TIP),
+  says('arena', { boss: 'foggery' }, 'arena.foggery.hot', 'Lava all round, and a tower in the middle. Whoever lives here likes it hot.',
+    'Foggery\'s caldera: lava round a tower, a bridge to it.', WONDER),
+  says('arena', { boss: 'foggery' }, 'arena.foggery.climb', 'If the lava rises, climb. Do not stop to look at the view!',
+    'The lava rises once the fight starts: up the tower\'s ramp.', TIP),
+  says('arena', { boss: 'renew' }, 'arena.renew.hood', 'That one looks a bit like you. In a hood.',
+    'Renew\'s arena: a hero like the player, tinted blue grey, in a hood.', UNEASY, { seed: { en: 2 } }),
+  says('arena', { boss: 'renew' }, 'arena.renew.ticking', 'Something here ticks louder than I do. Be careful with time in this place.',
+    'Renew turns time back at the end of each of his bars.', SOFT),
+  says('arena', { boss: 'mansk' }, 'arena.mansk.museum', 'A museum! Paintings, a stage, and a mask that is looking at us.',
+    'Mansk\'s arena, a museum hall with a stage; he is a floating mask.', WONDER),
+  says('arena', { boss: 'mansk' }, 'arena.mansk.hollow', 'There is nobody behind it. It is hollow, so do not let it breathe you in.',
+    'Mansk breathes players in and chews them.', TIP),
+  says('arena', { boss: 'slomo' }, 'arena.slomo.night', 'It is night here, and everything is slime. Everything!',
+    'Slomo\'s slime bowl, always at night.', CHATTY),
+  says('arena', { boss: 'slomo' }, 'arena.slomo.mounds', 'Slime is slow to wade through. Keep to the mounds when you can.',
+    'His flood of slime slows; the mounds stay dry.', TIP),
+
+  // --- in a boss's fight: its start, an attack as it starts, a stage changing (short: it is quick) -
+  says('boss', { boss: 'gusto', what: 'summon' }, 'boss.gusto.summon', 'Little triangles! Mind your back.',
+    'Gusto spits Custo triangles out of his mouth.', WARN),
+  says('boss', { boss: 'gusto', what: 'inhale' }, 'boss.gusto.inhale', 'It is breathing in! Step sideways, out of its breath!',
+    'Gusto sucks in a player who keeps away: stepping out sideways escapes.', WARN),
+  says('boss', { boss: 'gusto', what: 'stuck' }, 'boss.gusto.stuck', 'Ha, flat on its face! Now, quick!',
+    'A grab that missed: Gusto face-plants and takes double damage for a moment.', CHEER),
+  says('boss', { boss: 'gusto', what: 'split' }, 'boss.gusto.split', 'There are three of it now! Only one is real, the others pop at a touch.',
+    'At half health Gusto splits into three; two are fakes that burst at any hit.', WARN),
+  says('boss', { boss: 'gusto', what: 'vortex' }, 'boss.gusto.vortex', 'Wind! Get out of its way!',
+    'Gusto blows a vortex through his hands.', WARN, { seed: { de: 1 } }),
+
+  says('boss', { boss: 'totnar', what: 'throw' }, 'boss.totnar.throw', 'Skulls! And they bite when they land!',
+    'Totnar throws a skull; where it lands it comes alive as a snapping skull.', WARN),
+  says('boss', { boss: 'totnar', what: 'gloom' }, 'boss.totnar.gloom', 'It is getting dark. Stay close to me.',
+    'Totnar makes it night.', UNEASY),
+  says('boss', { boss: 'totnar', what: 'split', stage: 2 }, 'boss.totnar.skull', 'A skull came off! Look, you can see his heart.',
+    'Totnar loses his first skull and a shell of sticks: his burning heart shows. Next he rolls.', BRIGHT),
+  says('boss', { boss: 'totnar', what: 'roll' }, 'boss.totnar.roll', 'He is rolling! Get out of the way, then hit him while he is dizzy.',
+    'Totnar rolls at the player; at the end he sits dizzy.', TIP),
+  says('boss', { boss: 'totnar', what: 'spiders' }, 'boss.totnar.spiders', 'Twig spiders! So many legs.',
+    'Totnar tears himself open and twig spiders pour out.', UNEASY),
+  says('boss', { boss: 'totnar', what: 'split', stage: 3 }, 'boss.totnar.last', 'Only one skull left, and he is angry. Watch the ground for rings.',
+    'Totnar\'s last stage: lightning strikes where rings show on the floor.', WARN),
+  says('boss', { boss: 'totnar', what: 'storm' }, 'boss.totnar.storm', 'Clouds over you! Step out of the rings!',
+    'Totnar\'s storm.', WARN),
+
+  says('boss', { boss: 'squarlo', what: 'blow' }, 'boss.squarlo.blow', 'A jet of water! Step out of the way.',
+    'Squarlo\'s jet.', WARN),
+  says('boss', { boss: 'squarlo', what: 'summon' }, 'boss.squarlo.summon', 'Squirtles, out of the floor!',
+    'Squarlo slaps the floor and Squirtles pop out.', WARN),
+  says('boss', { boss: 'squarlo', what: 'tide' }, 'boss.squarlo.tide', 'He is calling the tide! Up a hill, quick!',
+    'Squarlo wiggles and the water rises: the hilltops stay dry.', WARN),
+  says('boss', { boss: 'squarlo', what: 'rest' }, 'boss.squarlo.rest', 'He is out of breath! Now is your chance!',
+    'Squarlo sits down to catch his breath: blows do more.', CHEER),
+  says('boss', { boss: 'squarlo', what: 'split' }, 'boss.squarlo.grow', 'He is growing. He is growing a lot!',
+    'At half health Squarlo grows into a giant six cells tall.', UNEASY),
+  says('boss', { boss: 'squarlo', what: 'stomp' }, 'boss.squarlo.stomp', 'Watch the shadow of his foot! When it gets stuck, hit it.',
+    'The giant stomps where his foot\'s shadow lies; then it sticks and blows do more.', TIP),
+  says('boss', { boss: 'squarlo', what: 'jump' }, 'boss.squarlo.jump', 'He is jumping! Keep running, his shadow is slower than you.',
+    'The giant jumps onto his shadow, which follows the player slower than they run.', TIP, { seed: { de: 2 } }),
+  says('boss', { boss: 'squarlo', what: 'cannon' }, 'boss.squarlo.cannon', 'Water cannon! Right up close, it cannot reach you.',
+    'The giant\'s water cannon blasts the floor from a little ahead of him outwards.', TIP),
+
+  says('boss', { boss: 'flip', what: 'throw' }, 'boss.flip.throw', 'A ball of light! Dodge it!',
+    'Flip throws a ball of light.', WARN),
+  says('boss', { boss: 'flip', what: 'summon' }, 'boss.flip.summon', 'Wollas, out of his rings!',
+    'Flip calls Sky wollas.', WARN),
+  says('boss', { boss: 'flip', what: 'flip' }, 'boss.flip.turn', 'Hold on! The whole world is turning!',
+    'Flip turns his box: another side comes down.', WARN),
+  says('boss', { boss: 'flip', what: 'flip' }, 'boss.flip.holes', 'After a turn, the holes in the floor crack open. Step off them, quick!',
+    'The second turn: the holes of the side that comes down burst open soon after; who stands on one falls out.', TIP),
+  says('boss', { boss: 'flip', what: 'split' }, 'boss.flip.spin', 'His rings are spinning so fast! Something is about to change.',
+    'At half health Flip spins up; then black holes.', UNEASY),
+  says('boss', { boss: 'flip', what: 'hole' }, 'boss.flip.hole', 'A black hole! Run away from it, it pulls!',
+    'Flip opens black holes that pull the player in.', WARN),
+  says('boss', { boss: 'flip', what: 'volley' }, 'boss.flip.volley', 'Three balls at once now!',
+    'Flip\'s volley in his second phase.', WARN),
+
+  says('boss', { boss: 'foggery', what: 'start' }, 'boss.foggery.rising', 'The lava is rising! Up the tower, go, go!',
+    'Foggery wakes and the lava starts rising: up the ramp round the tower.', WARN),
+  says('boss', { boss: 'foggery', what: ['eyeL', 'eyeR'] }, 'boss.foggery.eye', 'Did he just throw his eye at us?',
+    'Foggery plucks out one of his eyes and throws it (it grows back).', WONDER),
+  says('boss', { boss: 'foggery', what: 'summon' }, 'boss.foggery.faces', 'Fire-faces, out of his mouth. Of course.',
+    'Foggery croaks and Fire-faces come out of his mouth. A little sarcastic.', CHATTY, { seed: { de: 2 } }),
+  says('boss', { boss: 'foggery', what: 'split', stage: 1 }, 'boss.foggery.curl', 'He is curling up into a ball...',
+    'At a third of his health on top of the tower, the frog turns into a burning ball.', UNEASY),
+  says('boss', { boss: 'foggery', what: 'cats' }, 'boss.foggery.cats', 'Cats! His shield holds while they live, so beat the cats first.',
+    'Foggery\'s fire-cats: his shield holds while one lives.', TIP),
+  says('boss', { boss: 'foggery', what: 'geyser' }, 'boss.foggery.geyser', 'Cracks under you! Move before they burst!',
+    'Rings of glowing cracks open under the player: fire bursts out.', WARN),
+  says('boss', { boss: 'foggery', what: 'split', stage: 2 }, 'boss.foggery.platforms', 'The lava is over the tower! Jump onto the platforms!',
+    'The lava floods the top of the tower: the sliding platforms are the only ground.', WARN),
+
+  says('boss', { boss: 'renew', what: 'start' }, 'boss.renew.like-you', 'He fights like you do! He even rolls away like you.',
+    'Renew fights like a player: chained blows, a lunge, a roll out of the way.', WONDER),
+  says('boss', { boss: 'renew', what: 'split', stage: 1 }, 'boss.renew.backwards', 'Wait, wait! Time is running backwards!',
+    'Renew\'s first bar is gone: he turns back time to the start of the phase.', WARN),
+  says('boss', { boss: 'renew', what: 'shoot' }, 'boss.renew.bow', 'He has a bow now. Step aside while he draws!',
+    'Renew\'s second phase: the bow.', TIP),
+  says('boss', { boss: 'renew', what: 'summon' }, 'boss.renew.spiders', 'Spiders, falling out of the sky!',
+    'Renew casts spiders out of the sky.', WARN),
+  says('boss', { boss: 'renew', what: 'split', stage: 2 }, 'boss.renew.echo', 'Again! And the pale one is you. Do not stand where you stood before!',
+    'The second rewind: the hero\'s past self (an echo) does again what it did, and its blows hurt.', TIP),
+  says('boss', { boss: 'renew', what: 'split', stage: 3 }, 'boss.renew.echoes', 'Your echoes are piling up. Keep moving!',
+    'The third rewind: more echoes.', WARN),
+  says('boss', { boss: 'renew', what: 'split', stage: 4 }, 'boss.renew.out', 'He is out of time! I think.',
+    'Renew\'s last bar gone: "One more time..." is all he had.', BRIGHT),
+
+  says('boss', { boss: 'mansk', what: 'inhale' }, 'boss.mansk.inhale', 'He is breathing in! Step to the side, out of his mouth\'s way!',
+    'Mansk breathes in: stepping out of the cone to a side escapes at once.', WARN),
+  says('boss', { boss: 'mansk', what: 'spit' }, 'boss.mansk.spit', 'Ew. He spat you out. Are you sticky?',
+    'Mansk swallowed the hero, chewed and spat them out. Disgusted and sympathetic.', CHATTY, { seed: { de: 1 } }),
+  says('boss', { boss: 'mansk', what: 'orbs' }, 'boss.mansk.orbs', 'Balls of light! They burst where the rings are, so get out of the rings.',
+    'Mansk\'s balls of light burst where rings show on the floor.', TIP),
+  says('boss', { boss: 'mansk', what: 'summon' }, 'boss.mansk.tornados', 'Tornados, dancing round him.',
+    'Mansk calls Tornados.', WONDER, { seed: { de: 3 } }),
+  says('boss', { boss: 'mansk', what: 'split', stage: 1 }, 'boss.mansk.flying', 'He is flying! Up there, only a bow or a staff can reach him.',
+    'Mansk rises into the air: a blade does not reach him up there.', TIP),
+  says('boss', { boss: 'mansk', what: 'slow' }, 'boss.mansk.slow', 'Everything is slow... even my gears...',
+    'Mansk slows time for the players. Said a little slowly.', 'Speak slowly and dreamily, like a child getting sleepy.'),
+  says('boss', { boss: 'mansk', what: 'split', stage: 2 }, 'boss.mansk.horns', 'His horns broke! Ribbons... careful, they grab.',
+    'Mansk\'s horns break and red ribbons grow out of the stumps.', WARN),
+  says('boss', { boss: 'mansk', what: 'lash' }, 'boss.mansk.lash', 'Do not get tangled in his ribbons!',
+    'Mansk lashes his ribbons at the player.', WARN),
+  says('boss', { boss: 'mansk', what: 'whirl' }, 'boss.mansk.whirl', 'He is spinning! Get away from him!',
+    'Mansk whirls round, his ribbons knocking down who is close.', WARN),
+
+  says('boss', { boss: 'slomo', what: ['armL', 'armR'] }, 'boss.slomo.arm', 'He threw a slug! It wants to sit on your head!',
+    'Slomo throws the slug on the end of his arm; it crawls after the hero and latches on to their head.', WARN),
+  says('boss', { boss: 'slomo', what: 'meteor' }, 'boss.slomo.meteor', 'Do not look up, look down: watch for the shadows!',
+    'Slomo spits gloop into the sky; slime meteorites come down where shadows grow.', TIP),
+  says('boss', { boss: 'slomo', what: 'split', stage: 1 }, 'boss.slomo.legs', 'He is growing legs. Why would he need legs?',
+    'Slomo grows a slug body on six legs behind his blob.', UNEASY),
+  says('boss', { boss: 'slomo', what: 'jump' }, 'boss.slomo.jump', 'He is jumping! When he lands, jump over both waves.',
+    'Slomo jumps; his landing sends two shockwaves a second apart: jump over each.', WARN),
+  says('boss', { boss: 'slomo', what: 'flood' }, 'boss.slomo.flood', 'Slime coming in! Up on a mound!',
+    'Slomo floods the bowl with slime from one side.', WARN),
+  says('boss', { boss: 'slomo', what: 'split', stage: 2 }, 'boss.slomo.burst', 'The blob burst! It was a slug the whole time.',
+    'The blob bursts and the slug turns round.', WONDER),
+  says('boss', { boss: 'slomo', what: 'spit' }, 'boss.slomo.spit', 'Slime balls! They slow you down.',
+    'Slomo spits three balls of slime.', WARN, { seed: { en: 3 } }),
+  says('boss', { boss: 'slomo', what: 'summon' }, 'boss.slomo.slimes', 'More slime. He is making friends.',
+    'Slime slugs and bolimes plop out of his back. Dry.', CHATTY),
+
+  // --- a boss beaten: a cheer, and a scrap of what it remembers coming back --------------------
+  says('beaten', { boss: 'gusto' }, 'beaten.gusto.open', 'We did it! The well is open!',
+    'Gusto beaten, the first boss. Cheering.', CHEER),
+  says('beaten', { boss: 'gusto' }, 'beaten.gusto.before', 'I think I have followed somebody down a well before. I cannot remember who.',
+    'A scrap of memory: the robot\'s past is lost to it. Puzzled, wistful.', SOFT),
+  says('beaten', { boss: 'totnar' }, 'beaten.totnar.light', 'The light is back! I did not like that one.',
+    'Totnar beaten: the light comes back for good.', CHEER),
+  says('beaten', { boss: 'totnar' }, 'beaten.totnar.tower', 'A tower with no roof... I remember a tower with no roof. Then it is gone again.',
+    'A scrap of memory: the star-readers\' tower (one of the glassmaker\'s recordings tells of it).', SOFT),
+  says('beaten', { boss: 'squarlo' }, 'beaten.squarlo.drain', 'The water is draining away. You can stop holding your breath.',
+    'Squarlo beaten: his water drains.', CHEER),
+  says('beaten', { boss: 'squarlo' }, 'beaten.squarlo.tide', 'Water inside glass, with a tide... I have seen that before. From high above.',
+    'A scrap of memory: the piece of the sea, seen from the ark.', SOFT),
+  says('beaten', { boss: 'flip' }, 'beaten.flip.right-way', 'The world is the right way up again! I think. Is it?',
+    'Flip beaten: his box turns the right way up.', CHEER),
+  says('beaten', { boss: 'flip' }, 'beaten.flip.lines', 'I used to fly between things that hung in the sky. Lots of them, on lines of light.',
+    'A scrap of memory: the pieces under the ark (the robot was one of the star-readers\' clockworks: never said).', SOFT),
+  says('beaten', { boss: 'foggery' }, 'beaten.foggery.drain', 'The lava is draining away. My glass was getting nervous.',
+    'Foggery beaten. Star-glass minds heat.', CHEER),
+  says('beaten', { boss: 'foggery' }, 'beaten.foggery.furnace', 'There was a furnace once, a small one, and someone very quick with hot glass. Was that my glass?',
+    'A scrap of memory: the glassmaker at his furnace on the ark, mending glass. Puzzled.', SOFT),
+  says('beaten', { boss: 'renew' }, 'beaten.renew.sky', 'He went up into the sky. I hope he finds more time up there.',
+    'Renew beaten: he rose away into the sky, out of time. Kind.', KIND),
+  says('beaten', { boss: 'renew' }, 'beaten.renew.name', 'If I could turn time back, only a little, I would go and find my name.',
+    'Wistful: it lost its name.', SOFT),
+  says('beaten', { boss: 'mansk' }, 'beaten.mansk.nobody', 'The mask fell over. There really was nobody inside.',
+    'Mansk beaten: he falls flat like a mask dropped.', CHATTY),
+  says('beaten', { boss: 'mansk' }, 'beaten.mansk.cloth', 'There was a cloth over something once, something that watched. I was told not to look.',
+    'A scrap of memory: the creature under its cloth on the ark (the glassmaker\'s recordings tell of it). Uneasy.', SOFT),
+  says('beaten', { boss: 'slomo' }, 'beaten.slomo.sticky', 'Is it over? It is over! I am all sticky.',
+    'Slomo beaten, the bottom of the second act.', CHEER),
+  says('beaten', { boss: 'slomo' }, 'beaten.slomo.dark', 'That was the bottom of something, I can feel it in my gears. From here on, it gets dark for real.',
+    'Below lies the third act: the deep, only its own fires and crystals for light.', SOFT),
+
+  // --- the hero died (said once they are back where they came into the cube) -------------------
+  // the boss whose arena it was first (a tip), then the depth's, then any; a world picks its order
+  says('death', { boss: 'gusto' }, 'death.gusto.arms', 'Its arms! Wide arms mean it is about to grab. Step back then.',
+    'The hero died fighting Gusto. A tip.', KIND),
+  says('death', { boss: 'gusto' }, 'death.gusto.fakes', 'Only one of it is real. The fakes pop at the smallest touch.',
+    'Died to Gusto again: find the real one among the three.', TIP),
+  says('death', { boss: 'totnar' }, 'death.totnar.roll', 'When he rolls, get out of the way, and hit him while he is dizzy.',
+    'Died fighting Totnar.', KIND),
+  says('death', { boss: 'totnar' }, 'death.totnar.fires', 'In the dark, stay near the fires. They show you the way.',
+    'Died to Totnar again: braziers burn round his arena.', TIP),
+  says('death', { boss: 'squarlo' }, 'death.squarlo.hill', 'When he calls the tide, run for a hill before the water comes.',
+    'Died fighting Squarlo.', KIND),
+  says('death', { boss: 'squarlo' }, 'death.squarlo.rest', 'When he sits down out of breath, that is your moment.',
+    'Died to Squarlo again.', TIP),
+  says('death', { boss: 'flip' }, 'death.flip.holes', 'After the world turns, step off the holes in the floor, quick.',
+    'Died fighting Flip.', KIND),
+  says('death', { boss: 'flip' }, 'death.flip.early', 'Run from a black hole early, before it pulls too hard.',
+    'Died to Flip again.', TIP),
+  says('death', { boss: 'foggery' }, 'death.foggery.climb', 'Keep climbing while the lava rises. Do not stop for the fire-faces.',
+    'Died fighting Foggery.', KIND),
+  says('death', { boss: 'foggery' }, 'death.foggery.cats', 'His shield only breaks once both cats are beaten. Cats first!',
+    'Died to Foggery again.', TIP),
+  says('death', { boss: 'renew' }, 'death.renew.echo', 'That was your own echo. Remember where you stood, and stand somewhere else.',
+    'Died fighting Renew, whose rewinds make the hero\'s past self strike again.', KIND),
+  says('death', { boss: 'renew' }, 'death.renew.arrows', 'When he draws his bow, step aside. His arrows are slower than yours.',
+    'Died to Renew again.', TIP),
+  says('death', { boss: 'mansk' }, 'death.mansk.side', 'When he breathes in, step to the side, not back. Sideways gets you out at once.',
+    'Died fighting Mansk.', KIND),
+  says('death', { boss: 'mansk' }, 'death.mansk.whirl', 'When he whirls his ribbons, get far away from him.',
+    'Died to Mansk again.', TIP),
+  says('death', { boss: 'slomo' }, 'death.slomo.waves', 'His waves come one after the other. Jump over the first, then again a second later.',
+    'Died fighting Slomo.', KIND),
+  says('death', { boss: 'slomo' }, 'death.slomo.mound', 'When the slime floods in, get onto a mound. Wading is too slow.',
+    'Died to Slomo again.', TIP),
+  says('death', { depth: 13 }, 'death.13.together', 'It is dark and sticky down here. Let us be careful together.',
+    'Died at depth 13. Gentle.', KIND),
+  says('death', null, 'death.carried', 'Up you get! I carried you back to where we came in, and you are heavier than you look.',
+    'The first time the hero dies with the robot about: it brings them back to where they came into the cube (docs/story.md, "The robot").', KIND, { lead: true }),
+  says('death', null, 'death.hurt', 'That looked like it hurt. Shall we try again, a bit more carefully?',
+    'The hero died.', KIND),
+  says('death', null, 'death.find', 'I found you. I will always find you, that is what I am for, I think.',
+    'The hero died. A small promise.', KIND),
+  says('death', null, 'death.back', 'Everything we beat in there is back, I am sorry. It is like the glass remembers.',
+    'Dying puts the cube back as it was when the hero came in.', SOFT),
+  says('death', null, 'death.cold', 'My core went all cold. Please do not do that too often.',
+    'The hero died. A little shaken.', UNEASY),
+  says('death', null, 'death.potion', 'You could drink a potion before it gets that bad. Just an idea.',
+    'A tip: health potions.', TIP),
+  says('death', null, 'death.again', 'Again! But this time, maybe not all of them at once?',
+    'Cheerful about it.', BRIGHT),
+  says('death', null, 'death.polished', 'I polished you up a little: good as new, almost.',
+    'Joking.', CHATTY),
+  says('death', null, 'death.glassmaker', 'You fall down, and you get up. The glassmaker would like you, I think.',
+    'Kind.', KIND),
+  says('death', null, 'death.crack', 'Do not be sad. Even star-glass cracks, and it still holds.',
+    'Comforting (the glassmaker says the same of his glass).', KIND, { seed: { de: 1 } }),
+
+  // --- low health, a long fight, enemies beaten ---------------------------------------------------
+  says('hurt', null, 'hurt.drink', 'You are hurt! Drink something, quick!',
+    'The hero\'s health is low.', WARN),
+  says('hurt', null, 'hurt.back-off', 'Careful! Back off a moment and catch your breath.',
+    'The hero\'s health is low.', WARN),
+  says('hurt', null, 'hurt.terrible', 'You look terrible! I mean, still brave, but terrible.',
+    'The hero\'s health is low. Worried, then a little funny.', UNEASY),
+  says('hurt', null, 'hurt.light', 'You are nearly out of health! I would help, but all I have is light.',
+    'The hero\'s health is low. Sorry it cannot fight.', UNEASY),
+  says('hurt', null, 'hurt.reach', 'Not so close! Fight from where they cannot all reach you.',
+    'A tip when health is low.', TIP),
+  says('fight', null, 'fight.left', 'Left! No, your other left!',
+    'Now and then in a fight. Playful.', BRIGHT),
+  says('fight', null, 'fight.shining', 'I am helping! I am shining at them!',
+    'In a fight: it lights the way, and that is all it can do.', CHEER),
+  says('fight', null, 'fight.moving', 'Keep moving, they cannot hit what is not there.',
+    'A tip in a long fight.', TIP),
+  says('fight', null, 'fight.well', 'You are doing well! I think. It is hard to see from back here.',
+    'In a fight, from behind the hero.', CHATTY),
+  says('kill', { many: true }, 'kill.three', 'Three at once! Did you see that? I saw that!',
+    'Three or more enemies beaten at once.', CHEER, { seed: { en: 3 } }),
+  says('kill', { many: true }, 'kill.storm', 'All of them at once! That was like a storm.',
+    'Three or more enemies beaten at once.', CHEER),
+  says('kill', { many: true }, 'kill.clap', 'Whoosh! I would clap, if I had hands.',
+    'Three or more enemies beaten at once.', CHEER),
+  says('kill', null, 'kill.one-less', 'Got it! One less.',
+    'An enemy beaten.', BRIGHT),
+  says('kill', null, 'kill.name', 'Did that one have a name? Never mind.',
+    'An enemy beaten. Musing (it has lost its own name).', CHATTY, { seed: { de: 2 } }),
+
+  // --- getting stronger, finding things -------------------------------------------------------
+  says('level', null, 'level.grew', 'You look stronger! Did you grow? You grew.',
+    'A level gained.', CHEER),
+  says('level', null, 'level.gears', 'Another level! My gears are proud of you.',
+    'A level gained.', CHEER),
+  says('level', null, 'level.carry', 'Stronger again. Soon you will carry me.',
+    'A level gained. Joking.', CHATTY),
+  says('level', null, 'level.click', 'I felt that from here! Something in you just went click.',
+    'A level gained.', WONDER),
+  says('chest', null, 'chest.inside', 'A chest! What is inside? What is inside?',
+    'A chest opened. Eager.', BRIGHT),
+  says('chest', null, 'chest.shiny', 'Shiny things! Somebody hid these a long time ago.',
+    'A chest opened.', WONDER),
+  says('chest', null, 'chest.glass', 'I love chests. They are like glass, but you can open them.',
+    'A chest opened. Musing.', CHATTY),
+  says('loot', null, 'loot.glows', 'Ooh, that one glows. Keep that one.',
+    'A rare weapon or piece of armor picked up.', WONDER),
+  says('loot', null, 'loot.sparkle', 'That is a good one! I can tell by the sparkle.',
+    'A rare weapon or piece of armor picked up.', BRIGHT),
+  says('loot', null, 'loot.skilled', 'Somebody very skilled made that. Not as skilled as the glassmaker, though.',
+    'A rare weapon or piece of armor picked up. Loyal to the glassmaker.', CHATTY),
+  says('quest', null, 'quest.job', 'A job! I like jobs. They make the day go round.',
+    'A quest taken.', BRIGHT),
+  says('quest', null, 'quest.yes', 'You said yes. You always say yes, right?',
+    'A quest taken. Teasing (the glassmaker was always too quick to say yes).', CHATTY),
+
+  // --- hordes, falls, home, standing about ----------------------------------------------------
+  says('horde', null, 'horde.too-many', 'That is a lot of them. That is too many of them!',
+    'A horde woke up.', WARN),
+  says('horde', null, 'horde.narrow', 'They are all waking up at once! Find a narrow spot!',
+    'A horde woke up: a tip.', WARN),
+  says('horde', null, 'horde.surround', 'Here they come! Do not let them surround you.',
+    'A horde woke up.', WARN),
+  says('fall', null, 'fall.whee', 'Yippee! I mean: are you all right?',
+    'The hero fell through a gap into the piece below.', CHEER, { seed: { en: 1, de: 2 } }),
+  says('fall', null, 'fall.wait', 'You fell through to the piece below! Wait for me!',
+    'The hero fell through a gap.', BRIGHT),
+  says('fall', null, 'fall.one-way', 'Down we go! That is one way to get somewhere.',
+    'The hero fell through a gap.', CHATTY),
+  says('home', null, 'home.have-you', 'Home! Well, your home. I do not have one, I have you.',
+    'Back in town from out there.', KIND),
+  says('home', null, 'home.bread', 'The town smells of bread. Is it the same bread, do you think?',
+    'Back in town (a recording of the glassmaker tells of bread kept in the glass).', WONDER),
+  says('home', null, 'home.rest', 'Rest a bit. The well will wait for us.',
+    'Back in town.', KIND),
+  says('idle', null, 'idle.waiting', 'Are we waiting for something? I am good at waiting, I waited a very long time once.',
+    'The hero has stood about for a while.', CHATTY),
+  says('idle', null, 'idle.hum', 'Hum hum hum. Sorry, I hum when it is quiet.',
+    'Standing about. It hums to itself.', CHATTY),
+  says('idle', null, 'idle.gears', 'I am counting my gears: all there, good.',
+    'Standing about.', CHATTY),
+  says('idle', null, 'idle.tick', 'Tick, tock. That is me, not a clock.',
+    'Standing about.', CHATTY),
+  says('idle', null, 'idle.glass', 'If we wait here long enough, will his glass come to us? Probably not.',
+    'Standing about. His glass: the glassmaker\'s.', CHATTY),
+  says('idle', null, 'idle.name', 'I nearly remembered my name just now. Gone again.',
+    'Standing about. Wistful.', SOFT),
+
+  // --- wandering about: what it sees, the first act and the bottom of the second --------------
+  says('wander', { depth: [0, 6] }, 'wander.crack', 'If you look hard at the edge of the sky, you can see a crack. It holds; most of them hold.',
+    'A place not seen before, under the sky. The pieces are in cracked glass that holds.', WONDER),
+  says('wander', { depth: [0, 6] }, 'wander.light', 'There is a light far off, in another piece. Somebody is home.',
+    'Under the sky: other pieces of the world far off, where people live whom the hero will never meet.', SOFT),
+  says('wander', { depth: [0, 6] }, 'wander.others', 'Do you think the people in the other pieces know we are here?',
+    'Under the sky, musing.', WONDER),
+  says('wander', { depth: [0, 6] }, 'wander.forever', 'The star-readers said the pieces would float for ever. I do not know how I know that.',
+    'A scrap of memory, puzzled.', SOFT, { seed: { en: 3 } }),
+  says('wander', { depth: [0, 6] }, 'wander.clouds', 'I counted the clouds, then I lost count, then I counted again. Forty-one.',
+    'Chatter.', CHATTY),
+  says('wander', { depth: [0, 6] }, 'wander.made-me', 'I wonder if the glassmaker made my glass. It would explain why I like his voice so much.',
+    'Musing (whether he made it stays open).', SOFT),
+  says('wander', { depth: [0, 6] }, 'wander.feathers', 'My wings are glass too: four feathers on each side. Somebody counted them very carefully.',
+    'Chatter about itself (the glassmaker made the clockworks\' wings so: never said outright).', CHATTY),
+  says('wander', { depth: [0, 6] }, 'wander.in-front', 'I like flying behind you. It means somebody is in front.',
+    'Warm.', KIND),
+  says('wander', { depth: [0, 6] }, 'wander.ticking', 'Sometimes I hear ticking that is not mine. Then I remember it is mine.',
+    'Chatter, a little funny.', CHATTY),
+  says('wander', { depth: [13, 13] }, 'wander.13.sky', 'The sky is so far up now. I can barely see it through the cracks.',
+    'Depth 13, the bottom of the second act.', SOFT),
+  says('wander', { depth: [13, 13] }, 'wander.13.light', 'My light matters now. I will try not to blink.',
+    'Depth 13, dim.', UNEASY),
+  says('wander', { depth: [13, 13] }, 'wander.13.drip', 'Drip, drip. Everything down here drips.',
+    'Depth 13: slime and water.', CHATTY),
+
+  // --- guardians (a side guardian, or a boss's stand-in) ---------------------------------------
+  says('guardian', { what: 'near' }, 'guardian.big', 'Something big is guarding this place. Watch its friends too.',
+    'A guardian\'s arena entered: it has defenders.', UNEASY),
+  says('guardian', { what: 'near' }, 'guardian.another', 'Another guardian. They really do not want us to go down.',
+    'A guardian\'s arena entered.', CHATTY),
+  says('guardian', { what: 'beaten' }, 'guardian.clear', 'The guardian is down! The way is clear.',
+    'A side guardian beaten.', CHEER, { seed: { en: 2 } }),
+  says('guardian', { what: 'beaten' }, 'guardian.bigger', 'That one was big. You were bigger.',
+    'A side guardian beaten.', CHEER),
+
+  // --- trial rooms: an event sealing the room, a puzzle come to, done, failed -------------------
+  says('trial', { what: 'sealed', kind: 'flood' }, 'trial.flood', 'The water is rising! Up, up to the button!',
+    'A rising water event sealed the room: press the button on the summit.', WARN),
+  says('trial', { what: 'sealed', kind: 'collapse' }, 'trial.collapse', 'The floor is falling away! Run, and do not look back!',
+    'A crumbling floor event: run for the far side.', WARN),
+  says('trial', { what: 'sealed', kind: 'cold' }, 'trial.cold', 'So cold! Light the braziers on the way, they keep you warm.',
+    'A cold snap: light the braziers on the way to the great fire.', WARN),
+  says('trial', { what: 'sealed', kind: 'storm' }, 'trial.storm', 'Wind! Hide behind the rocks when it gusts, and climb when it calms.',
+    'A storm: climb in the lulls to the lightning rod on top.', TIP),
+  says('trial', { what: 'sealed', kind: 'siege' }, 'trial.siege', 'Keep them away from the beacon! Only for a little while.',
+    'Hold the beacon: defend it long enough.', WARN),
+  says('trial', { what: 'sealed', kind: 'chase' }, 'trial.chase', 'Take the relic and run! Drop the gate behind us!',
+    'The relic: take it, run, drop the portcullis on its warden.', WARN),
+  says('trial', { what: 'sealed', kind: 'miasma' }, 'trial.miasma', 'Fog from above! Down, down to the valve!',
+    'Sinking fog: get down to the vent valve.', WARN, { seed: { en: 3 } }),
+  says('trial', { what: 'puzzle', kind: 'slide' }, 'trial.slide', 'Ice! You slide until a rock stops you, so think where each slide ends.',
+    'An ice slide puzzle, not solved yet.', TIP),
+  says('trial', { what: 'puzzle', kind: 'mirror' }, 'trial.mirror', 'Mirrors! The beam has to shine through every crystal, not just reach the end.',
+    'A mirror beam puzzle: through every lens into the receiver.', TIP),
+  says('trial', { what: 'puzzle', kind: 'braziers' }, 'trial.braziers', 'See the lines on the floor? Each brazier flips the ones it is joined to, and we want them all burning.',
+    'Lights out: lighting one toggles the ones linked to it.', TIP),
+  says('trial', { what: 'puzzle', kind: 'crates' }, 'trial.crates', 'Crates and plates. You can only push, so do not push one into a corner; the lever puts them back.',
+    'Crates on plates: push only, the reset lever at the entrance.', TIP),
+  says('trial', { what: 'puzzle', kind: 'timedgate' }, 'trial.timedgate', 'The lever only opens the gate for a little while. Walk the path first, then pull and run!',
+    'A timed gate: learn the causeway, then run it.', TIP),
+  says('trial', { what: 'puzzle', kind: 'runes' }, 'trial.runes', 'Runestones! The order is carved on a tablet, somewhere else in this piece.',
+    'Rune order: the clue is a tablet in another room of the depth.', TIP),
+  says('trial', { what: 'puzzle', kind: 'sunken' }, 'trial.sunken', 'This room is under water. Every puzzle we solve drains it a bit.',
+    'The sunken room: each puzzle solved drains a stage.', TIP),
+  says('trial', { what: 'resolved' }, 'trial.done', 'We did it! I mean, you did it. I glowed.',
+    'A trial room done.', CHEER),
+  says('trial', { what: 'resolved' }, 'trial.knew', 'Solved! I knew you could.',
+    'A trial room done.', CHEER, { seed: { de: 3 } }),
+  says('trial', { what: 'failed' }, 'trial.again', 'Not quite. We can try again!',
+    'A trial failed: back in the room before.', KIND),
+  says('trial', { what: 'failed' }, 'trial.start', 'Back to the start. At least I know the way now.',
+    'A trial failed.', KIND),
 ];
 
 // the line with this id (undefined: none)
@@ -192,12 +997,24 @@ export function fits(when, data = {}) {
   return true;
 }
 
-// What she says at moment `on` about `data`: the lines not told yet (`told`: a Set of ids, also
+// What is said at moment `on` about `data`: the lines not told yet (`told`: a Set of ids, also
 // those waiting their turn) that fit, in the table's order: all of them for a moment that tells
-// `all`, else the first. [] if she has nothing (more) to say.
-export function linesFor(on, data = {}, told = new Set(), lines = LINES) {
+// `all`, else the first; for a moment that `shuffle`s, of those whose `when` says most, the one
+// marked `lead`, else one picked by the world's `seed`. [] if there is nothing (more) to say.
+export function linesFor(on, data = {}, told = new Set(), lines = LINES, seed = 0) {
   const fit = lines.filter(l => l.on === on && !told.has(l.id) && fits(l.when, data));
-  return MOMENTS[on]?.all ? fit : fit.slice(0, 1);
+  if (MOMENTS[on]?.all) return fit;
+  if (!MOMENTS[on]?.shuffle || fit.length < 2) return fit.slice(0, 1);
+  const says = l => Object.keys(l.when ?? {}).length, most = Math.max(...fit.map(says));
+  const best = fit.filter(l => says(l) === most);
+  return [best.find(l => l.lead) ?? best.reduce((a, b) => (drawOf(seed, b.id) < drawOf(seed, a.id) ? b : a))];
+}
+// a line's place in world `seed`'s order of a shuffled moment (FNV-1a of its id, mixed with the seed)
+function drawOf(seed, id) {
+  let h = 0x811c9dc5 ^ (seed | 0);
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x01000193);
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12;
+  return h >>> 0;
 }
 
 // a line's clip (core/narration.js forms): its id, or `<id>.<form>`

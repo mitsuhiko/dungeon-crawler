@@ -42,7 +42,7 @@ export function questPlan(seed, layout) {
   for (let d = 0; d <= MAX_DEPTH; d++) {
     const R = mulberry32(hash32(seed ^ Math.imul(d + 1, 0x3c6ef372) ^ 0x9a17));
     // the people of this depth and the one above who could ask (their seats and camps)
-    const near = [d, d - 1].filter(x => x >= 0).flatMap(x => layout(x).spotList).filter(s => s.kind !== 'hide');
+    const near = [d, d - 1].filter(x => x >= 0).flatMap(x => layout(x).spotList).filter(s => s.kind !== 'hide' && s.kind !== 'glass');
     const camps = [d, d - 1, d - 2].filter(x => x >= 0).flatMap(x => layout(x).spotList).filter(s => s.kind === 'camp');
     for (let i = 0; i < perDepth(d); i++) {
       let kind = weighted(R, Object.entries(MIX));

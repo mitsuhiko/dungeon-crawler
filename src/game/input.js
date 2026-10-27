@@ -25,8 +25,9 @@ import { knockDown } from './ragdoll.js';
 import { toggleInventory, toggleQuests, setInventoryOpen, talkTo } from './inventory.js';
 import { controls, clearInput } from './inputstate.js';
 import { pointer, pickFloor, aimPoint, hoveredEnemy, pointAt, updatePointer } from './pointer.js';
-import { orderMove, orderAttack, orderPickup, orderChest, clearOrder, orderTrade, orderWalk, orderPart, orderWay, canTrade } from './orders.js';
-import { hoveredPickup, hoveredChest, hoveredVillager, hoveredPart, hoveredWay, toggleLabels, updateLootLabels } from './lootlabels.js';
+import { orderMove, orderAttack, orderPickup, orderChest, clearOrder, orderTrade, orderWalk, orderPart, orderWay, orderRobot, canTrade } from './orders.js';
+import { hoveredPickup, hoveredChest, hoveredVillager, hoveredPart, hoveredWay, hoveredRobot, toggleLabels, updateLootLabels } from './lootlabels.js';
+import { canWakeRobot, wakeRobot } from './robot.js';
 import { queueAttack } from './sword.js';
 import { softTarget, combatStats, readiedFlask, LUNGE_REACH } from '../core/combat.js';
 import { throwTarget } from './throws.js';
@@ -221,6 +222,8 @@ function click(walk) {
   if (part) { pointer.mode = null; orderPart(part); return; }
   const way = hoveredWay();
   if (way) { pointer.mode = null; orderWay(way); return; }
+  const robot = hoveredRobot();
+  if (robot) { pointer.mode = null; orderRobot(robot); return; }
   if (!walk) { pointer.mode = null; return; }
   pointer.mode = 'move';
   const hit = pickFloor();
@@ -251,6 +254,8 @@ function useHovered() {
   if (chest && canReachChest(chest)) { openChest(chest); return true; }
   const part = hoveredPart();
   if (part && canReachPart(part)) { usePart(part); return true; }
+  const robot = hoveredRobot();
+  if (robot && canWakeRobot(robot)) return wakeRobot(robot);
   return false;
 }
 // the enemies within `cone` rad of `yaw`, seen from the player

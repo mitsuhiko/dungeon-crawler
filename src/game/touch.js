@@ -270,7 +270,7 @@ function updateUse() {
   if (!a) return;
   useImg.hidden = !a.picture;
   if (a.picture) showPicture(useImg, a.picture);
-  useSpeak.toggleAttribute('hidden', a.kind !== 'talk');   // (an svg has no .hidden)
+  useSpeak.toggleAttribute('hidden', a.kind !== 'talk' && a.kind !== 'robot');   // (an svg has no .hidden)
   useCount.hidden = !(a.count > 1);
   useCount.textContent = a.count > 1 ? `${a.count}` : '';
   use.setAttribute('aria-label', a.label);

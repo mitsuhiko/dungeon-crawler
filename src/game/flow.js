@@ -118,7 +118,9 @@ export function die() {
   if (!jingle('death')) sfx('death');
   raidDied();   // a raid going on is lost (game/defense.js)
   logDeath();
-  narrate('death');   // (she says it once the hero is back: game/narrator.js pauses with "You died")
+  // (said once the hero is back: game/narrator.js pauses with "You died"); boss: the arena's, still there
+  const map = state.map, boss = map?.guardian?.boss && gateLocked(map, state.run) ? map.guardian.boss : null;
+  narrate('death', { depth: map?.depth ?? 0, boss });
   askRespawn(cause, backAfterDeath);
 }
 function backAfterDeath() {
@@ -309,7 +311,7 @@ export function settleIn(neighbors = true) {
   const deeper = noteDepth(c.map, state.cubes.seed);
   if (deeper) actJingle(c.map.depth);
   arrived(c.map, state.cubeKey, c.visits, deeper);   // what the narrator has to say about it (game/narrator.js)
-  robotArrived(c.map);   // the robot comes, the first time out of the town; after that it is with us (game/robot.js)
+  robotArrived();   // woken before, the robot comes in with us; else it may lie asleep in the camp (game/robot.js)
   if (neighbors) showNeighbors(visitedNeighbors(state.cubeKey));
   if (gateLocked(state.map, state.run)) setStatus(guardianLockMessage(state.map, guardianKind(state.map)));
   prefetchAround(c);

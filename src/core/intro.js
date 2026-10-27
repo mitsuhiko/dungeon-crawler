@@ -26,6 +26,7 @@
 import { msg } from '../i18n/i18n.js';
 import { isClearing, isInterior } from '../world/town.js';
 import { recordingLines } from './narration.js';
+import { glassAt, depthOfGlass } from './glass.js';
 
 export const INTRO_GATES = { glass: 'intro:glass', sword: 'intro:sword' };
 export const isIntroGate = g => typeof g === 'string' && g.startsWith('intro:');
@@ -51,5 +52,19 @@ export const swordThere = (run, weapons) => !run.unlockedGates.has(INTRO_GATES.s
 
 // what playing together tells the others (net/session.js `story`): the town's glass found (its gate
 // open, its recording heard by everyone), the sword taken (its gate open), the camp's glass found
-// (its recording heard by everyone)
+// (its recording heard by everyone), and a glass of his in the depths found (its recording, by id)
 export const STORY_NEWS = ['glass', 'sword', 'camp'];
+export const isStoryNews = what => STORY_NEWS.includes(what) || depthOfGlass(what) !== undefined;
+
+// His glass in the depths (core/glass.js): the glass spots of a cube (map.spots, kind `glass`),
+// each with its recording (`part`), those whose recording is not heard yet (run.told). seed: the
+// world's.
+export function depthGlassIn(map, run, seed) {
+  const out = [];
+  for (const s of map?.spots ?? []) {
+    if (s.kind !== 'glass') continue;
+    const part = glassAt(seed, s.depth)[s.glass];
+    if (part && !recordingLines(part).some(l => run.told.has(l.id))) out.push({ spot: s, part });
+  }
+  return out;
+}

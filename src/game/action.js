@@ -3,7 +3,8 @@
 //   1. open the closed treasure chest beside them (game/chests.js)
 //   2. talk to the villager beside them: their quests, or their shop (game/inventory.js talkTo)
 //   3. use the trial's part beside them: a button, a lever ... (game/trials.js)
-//   4. collect the coins and items around them (game/loot.js; four cells across)
+//   4. wake the robot asleep beside them (game/robot.js)
+//   5. collect the coins and items around them (game/loot.js; four cells across)
 // pendingAction says which (for the use button's picture), useAction does it and says whether it
 // did anything. With nothing to do the key does nothing.
 import { player, state } from './state.js';
@@ -16,6 +17,7 @@ import { GIVERS, giverOf } from '../core/quests.js';
 import { peopleHere } from './npcs.js';
 import { ITEMS } from '../core/items.js';
 import { partInReach, usePart } from './trials.js';
+import { sleepingRobot, canWakeRobot, wakeRobot } from './robot.js';
 import { tr, noun } from '../i18n/i18n.js';
 
 // a villager with something to say: quests to give, or wares
@@ -41,7 +43,7 @@ function showcase(list) {
     : price(a) !== price(b) ? (price(a) > price(b) ? a : b) : d(a) <= d(b) ? a : b));
 }
 
-// what the action key would do here: null, or { kind: 'chest' | 'talk' | 'part' | 'collect', target,
+// what the action key would do here: null, or { kind: 'chest' | 'talk' | 'part' | 'robot' | 'collect', target,
 // label, picture (what it is about, as an item id for render/itemviews.js; not for talk),
 // count (collect: how many pickups) }
 export function pendingAction() {
@@ -53,6 +55,8 @@ export function pendingAction() {
   if (villager) return { kind: 'talk', target: villager, label: tr('Talk to {who:the}', { who: titleOf(villager) }) };
   const part = partInReach();
   if (part) return { kind: 'part', target: part, label: part.label };   // (said in the language of the moment: game/trials.js partLabel)
+  const robot = sleepingRobot();
+  if (canWakeRobot(robot)) return { kind: 'robot', target: robot, label: tr('Wake the robot') };
   const loot = collectable();
   if (loot.length) {
     const best = showcase(loot);
@@ -66,6 +70,7 @@ export function useAction() {
   if (a?.kind === 'chest') return openChest(a.target);
   if (a?.kind === 'talk') { talkTo(a.target); return true; }
   if (a?.kind === 'part') return usePart(a.target);
+  if (a?.kind === 'robot') return wakeRobot(a.target);
   if (a?.kind === 'collect') { requestCollect(); return true; }
   return false;
 }

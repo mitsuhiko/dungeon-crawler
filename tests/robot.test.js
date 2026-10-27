@@ -5,7 +5,7 @@ import { assets } from './paths.js';
 import { readGlb, decoderReady } from '../tools/glb.mjs';
 import { N } from '../src/core/constants.js';
 import { createRun } from '../src/core/progression.js';
-import { HELLO, FOLLOW, MAX_LAG, robotMet, meetRobot, robotComes, beside, newWay, noteWay, stepWay, wayPoint, wayEnd, shortcut } from '../src/core/robot.js';
+import { HELLO, FOLLOW, MAX_LAG, WAKE, HELLO_AFTER, robotMet, meetRobot, robotLies, beside, newWay, noteWay, stepWay, wayPoint, wayEnd, shortcut } from '../src/core/robot.js';
 
 await decoderReady;
 
@@ -50,14 +50,16 @@ function run(w, start, legs, after = 0) {
 // the hero walks across the east side into the next cube: the same point, in its coordinates
 const east = (k, x, y, z) => { const [X, Y, Z] = k.split(',').map(Number); return { k: `${X + 1},${Y},${Z}`, x: x - N, y, z }; };
 
-test('the robot comes the first time the hero is out of the town, and the world keeps its hello', () => {
+test('the robot lies asleep in the merchant camp until it is woken, and the world keeps its hello', () => {
   assert.ok(HELLO.length > 0 && HELLO.every(l => l.voice === 'robot'));
-  for (const map of [{ town: true }, { interior: 'town_inn_a' }, { merchantCamp: true }, { testRoom: {} }, null]) assert.ok(!robotComes(map), JSON.stringify(map));
-  assert.ok(robotComes({ depth: 0 }) && robotComes({ depth: 4 }));
-  const run = createRun();
+  assert.ok(HELLO_AFTER > 0 && HELLO_AFTER < WAKE, 'it says hello as it wakes');
+  const run = createRun(), camp = { merchantCamp: {}, relics: { robot: { x: 7, y: 0, z: 12 } } };
+  for (const map of [{ town: true, relics: {} }, { interior: 'town_inn_a' }, { merchantCamp: {}, relics: {} }, { depth: 3 }, null]) assert.ok(!robotLies(map, run), JSON.stringify(map));
+  assert.ok(robotLies(camp, run));
   assert.ok(!robotMet(run));
   meetRobot(run);
   assert.ok(robotMet(run));
+  assert.ok(!robotLies(camp, run), 'woken: it lies there no more');
 });
 
 test('cubes beside each other: points carried across a side, none to a cube above or a house', () => {

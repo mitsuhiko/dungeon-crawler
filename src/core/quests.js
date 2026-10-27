@@ -443,7 +443,7 @@ KINDS.gather = {
 // camps (but whoever asks), else somebody waiting on a hiding place
 function recipients(ctx, log, depths, giver) {
   return depths.flatMap(depth => {
-    const living = ctx.layout(depth).spotList.filter(s => s.kind !== 'hide' && !s.annex).map(residentOf)   // (not behind a sealed portal)
+    const living = ctx.layout(depth).spotList.filter(s => s.kind !== 'hide' && s.kind !== 'glass' && !s.annex).map(residentOf)   // (not behind a sealed portal)
       .filter(n => n && n.giver !== giver)
       .map(n => ({ id: `to:${n.giver}`, depth, key: keyOfSpot(n.spot),
         to: { resident: n.giver, name: personWords(n.name), title: n.title, where: whereAt(n.camp, depth) } }));

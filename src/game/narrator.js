@@ -1,9 +1,9 @@
 // The narrator (docs/story.md, docs/narration.md): the voices that talk while the hero plays, like
-// Bastion's. For now the glassmaker's recordings: found (game/intro.js), they are played here. The
-// game tells the narrator its moments (narrate: a recording found, a depth reached, a boss beaten
-// ...), and some it looks for itself every frame (updateNarrator: the villagers close by, an enemy
-// of a new kind coming after the hero, a boss's fight and its attacks, low health, a long fight,
-// standing about: the companion to come will have lines for them, core/narration.js). What is
+// Bastion's: the glassmaker's recordings, found in his glass (game/intro.js), and the robot, from its
+// hello on, about what it sees (core/narration.js). The game tells the narrator its moments
+// (narrate: a recording found, a depth reached, a boss beaten, a death ...), and some it looks for
+// itself every frame (updateNarrator: the villagers close by, an enemy of a new kind coming after
+// the hero, a boss's fight and its attacks, low health, a long fight, standing about). What is
 // said about a moment is core/narration.js's to pick (linesFor); it is said here: one line after
 // the other, never two at once, the more important first (a recording before chatter), and what
 // waited too long to still fit is left out. Each line is voiced from its clip
@@ -18,7 +18,9 @@
 // While the game is paused (the Esc menu, the inventory: state.js worldPaused) the narrator pauses
 // too, mid-word, and goes on where it stopped. Not in the guide's game window, nor with
 // ?narration=0.
-import { MOMENTS, linesFor, clipKey, formOf, lineById, lineText, outOfPlace } from '../core/narration.js';
+import { MOMENTS, LINES, linesFor, clipKey, formOf, lineById, lineText, outOfPlace, robotMayTalk } from '../core/narration.js';
+import { robotMet } from '../core/robot.js';
+import { TRIALS } from '../core/trials.js';
 import { attackOf } from '../core/enemies.js';
 import { gateLocked } from '../core/guardians.js';
 import { hash32 } from '../core/util.js';
@@ -124,12 +126,26 @@ export async function voiceClip(key) {
 // waiting their turn: { line, form, key, pri, ttl, at, n }; at: from when it may be said
 let queue = [], current = null, n = 0;
 let clock = 0, lastEnd = -Infinity;   // s of narrator time (it stops while paused); when the last line ended
+let robotEnd = -Infinity;             // ... and when the robot's last line ended (or was cut short)
 
 // the sibling's form (core/narration.js SIBLING): the hero's gender is not asked yet (docs/story.md,
 // "What the game needs" 1), so the world's seed picks one
 const sibling = () => (hash32((state.cubes?.seed ?? 0) ^ 0x51b1) & 1 ? 'f' : 'm');
 
 const toldOrWaiting = () => new Set([...state.run.told, ...queue.map(q => q.line.id), ...current ? [current.item.line.id] : []]);
+// The lines that may be said now: the robot's only once it has woken and said its hello (its hello
+// is how it wakes: not while that is still being said or waits its turn)
+const ROBOT_LATER = LINES.filter(l => l.voice === 'robot' && l.on !== 'robot');
+const BEFORE_ROBOT = LINES.filter(l => !ROBOT_LATER.includes(l));
+const saying = () => [...current ? [current.item] : [], ...queue];
+const helloPending = () => saying().some(q => q.line.on === 'robot');
+const sayable = () => (robotMet(state.run) && !helloPending() ? LINES : BEFORE_ROBOT);
+// The robot is paced (core/narration.js ROBOT_REST): a line of it is not said while another of its
+// is said or waits (but a story scene's), nor before it kept quiet long enough for its moment
+const robotBusy = () => saying().some(q => q.line.voice === 'robot');
+const robotPaced = (m, lines) => !lines.some(l => l.voice === 'robot') || m.pri >= 3
+  || !robotBusy() && robotMayTalk(m.pri, clock - robotEnd);
+
 // an enemy after the hero, close by
 const engaged = () => allEnemies().some(e => (e.mode === 'chase' || e.mode === 'attack') && e.hp > 0
   && Math.hypot(e.x - player.x, e.z - player.z) < FOE_NEAR);
@@ -145,7 +161,8 @@ export function narrate(on, data = {}, { delay = 0 } = {}) {
   if (!enabled && !m.whole) return false;
   if (m.quiet && (current || queue.length || clock - lastEnd < m.quiet)) return false;
   if (m.calm && engaged()) return false;
-  const lines = linesFor(on, data, toldOrWaiting());
+  const lines = linesFor(on, data, toldOrWaiting(), sayable(), state.cubes?.seed ?? 0);
+  if (enabled && !robotPaced(m, lines)) return false;   // (not now: it may come another time)
   if (m.whole) for (const line of lines) state.run.told.add(line.id);
   if (!enabled || !lines.length) return lines.length > 0;
   if (m.cuts) cut(l => l.on === on && !lines.includes(l));
@@ -172,9 +189,14 @@ export function cut(which) {
     c.src = null;
     duckMusic(t, 0, 1);   // (the music comes back up)
   }
+  ended(c);
+  showSubtitle('');
+}
+// the line being said is over (said, or cut short)
+function ended(c) {
+  if (c?.item.line.voice === 'robot') robotEnd = clock;
   current = null;
   lastEnd = clock;
-  showSubtitle('');
 }
 
 // the next line to say: the most important, the oldest of those; the ones waited too long go
@@ -235,8 +257,7 @@ function hush() {
 
 function finish() {
   hush();
-  current = null;
-  lastEnd = clock;
+  ended(current);
   showSubtitle('');
 }
 
@@ -268,6 +289,7 @@ export function stopNarrator() {
   if (current) finish();
   queue = [];
   lastEnd = clock + FIRST - GAP;
+  robotEnd = -Infinity;
   Object.assign(seen, { foes: new Set(), boss: new Map(), villagers: new Set(), fight: 0, low: false, still: 0, at: null, from: null, arrived: '' });
 }
 
@@ -311,12 +333,6 @@ export function hearAgain(lines, onLine) {
   };
 }
 
-// Is no story being told, nor waiting its turn (a moment of the story's priority: a recording, the
-// robot's hello, a boss beaten ...: core/narration.js MOMENTS pri 3)? The story already being told
-// finishes first: the robot comes only once it is quiet (game/robot.js).
-const STORY = 3;
-export const storyQuiet = () => !(current && current.item.pri >= STORY) && !queue.some(q => q.pri >= STORY);
-
 // whose voice is saying a line now ('robot', 'glassmaker'; null: nobody): game/robot.js talks while it is its
 export const speaking = () => current?.phase === 'say' ? current.item.line.voice ?? null : null;
 
@@ -344,7 +360,7 @@ function notice(dt) {
     if (!after || !near) continue;
     fighting = true;
     const species = e.profile.species;
-    if (!e.summoned && !e.guardian && species && !seen.foes.has(species)) { seen.foes.add(species); narrate('foe', { species }); }
+    if (!e.summoned && !e.guardian && species && !seen.foes.has(species) && robotMet(state.run)) { seen.foes.add(species); narrate('foe', { species }); }
   }
   if (boss) bossFight(boss);
   // a long fight (not a boss's: he has lines of his own)
@@ -389,6 +405,8 @@ export function arrived(map, key, visits, deeper) {
   if (map.merchantCamp) { narrate('camp'); return; }
   const depth = map.depth ?? 0;
   if (deeper) narrate('depth', { depth });
+  // a trial room's puzzle not solved yet (an event says its piece when it seals the room)
+  if (map.trial && !TRIALS[map.trial.kind]?.sealed && !state.run.unlockedGates.has(map.trial.gate)) narrate('trial', { what: 'puzzle', kind: map.trial.kind });
   // a guardian's arena: the guardian is all she talks about
   if (map.guardian && gateLocked(map, state.run)) {
     if (map.guardian.boss) narrate('arena', { boss: map.guardian.boss });

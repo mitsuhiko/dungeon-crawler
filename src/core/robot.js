@@ -1,10 +1,12 @@
 // The robot (docs/story.md, "The robot"): the hero's companion, a clockwork of star-glass. Pure:
 // when it comes, and how it follows; game/robot.js puts it in the world, render/robot.js draws it.
 //
-// It comes the first time the hero is out of the town (not in the town, its houses or the merchant
-// camp: robotComes), flies up to them and says hello (core/narration.js, the moment `robot`). From
-// then on it goes wherever they go. The world keeps that it came: its hello told (run.told, saved
-// with the world), so it is there with the hero from then on, in the town too.
+// It lies on its back in the merchant camp, asleep (map.relics.robot, world/town.js CAMP_ROBOT:
+// robotLies), until the hero clicks it (or uses it with the action key) and comes up to it (WAKE_REACH).
+// Then it wakes (its clip RobotWake, WAKE s), cutting short whatever is being said, and says hello
+// (core/narration.js, the moment `robot`, HELLO_AFTER s in). From then on it goes wherever they go.
+// The world keeps that it woke: its hello told (run.told, saved with the world), so it is there
+// with the hero from then on, in the town too.
 //
 // It follows the hero's way, not the hero: the way is a trail of crumbs where the hero went (a
 // crumb every SPACING cells, each in its cube's coordinates), and the robot flies along it,
@@ -34,16 +36,18 @@ export const TOP_AWAY = 10;      // ... and in another cube
 export const BRAKE = 3;          // 1/s: it slows down as it comes to its place (speed: the way left times this)
 export const ACCEL = 4;          // 1/s: how quickly its speed follows
 export const MAX_LAG = 60;       // cells along the way: further behind, it jumps ahead
-export const HELLO_NEAR = 2.4;   // cells: this close to the hero it says hello (the first time)
+export const WAKE_REACH = 1.2;   // cells: this close, the hero wakes it (the click walks them there)
+export const WAKE = 3.6;         // s it takes to wake (its clip RobotWake: blender/robot.py), before it follows
+export const HELLO_AFTER = 1.3;  // s into waking it says hello (its eyes are open: RobotWake's wake_frame)
 
 // what it says when it comes (core/narration.js): the world keeps that it came by keeping these told
 export const HELLO = LINES.filter(l => l.on === 'robot' && l.when?.what === 'hello');
 export const robotMet = run => HELLO.length > 0 && HELLO.every(l => run.told.has(l.id));
 // it came already (the dev tools skip the beginning, and with it its coming: game/intro.js)
 export function meetRobot(run) { for (const l of HELLO) run.told.add(l.id); }
-// does it come here, the first time? Out of the town: not in it, its houses or the merchant camp
-// (nor a dev test room)
-export const robotComes = map => !!map && !map.town && !map.interior && !map.merchantCamp && !map.testRoom;
+// does it lie asleep in this map (the merchant camp, where it lies: map.relics.robot), for a world
+// where it has not woken yet (run)?
+export const robotLies = (map, run) => !!map?.merchantCamp && !!map.relics?.robot && !!run && !robotMet(run);
 
 // From cube `from` to cube `to` beside it on the same depth (a side's neighbour): what to add to a
 // point in `from`'s coordinates to have it in `to`'s ([dx, dy, dz]); null for any other two (a house,

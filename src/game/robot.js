@@ -1,11 +1,12 @@
 // The robot in the world (docs/story.md "The robot"; what it does: core/robot.js, how it looks:
-// render/robot.js). The first time the hero is out of the town it comes flying up from further in
-// the cube, high over everything, and once it is close says hello (core/narration.js `robot`) with a
-// cheer; from then on, and whenever the world is played again, it is with them: it comes in at
-// their side as they enter it (game/flow.js settleIn). It does not talk over the story: while one
-// is being told or waits its turn (a recording of the glassmaker's found just before:
-// game/narrator.js storyQuiet) it does not come yet, but once it has
-// been quiet a moment (QUIET), wherever the hero is then, as long as it is out of the town.
+// render/robot.js). It lies asleep on its back in the merchant camp (robotLies), its core only
+// glimmering, until the hero clicks it (hovered and labelled like everything clicked:
+// game/lootlabels.js; the click walks them up to it, game/orders.js) or uses it with the action key
+// beside it (game/action.js). Then it wakes (wakeRobot): whatever is being said is cut short
+// (game/narrator.js cut), it opens its eyes, lifts off and shakes itself (WAKE s), and says hello
+// (core/narration.js `robot`) as it does; only then it follows. From then on, and whenever the
+// world is played again, it is with them: it comes in at their side as they enter it (game/flow.js
+// settleIn).
 //
 // Every frame the hero's way gets its crumbs (where they really are: game/travel.js truePosition,
 // through a slide across a side too; not down a well, through a fall or the town portal: those
@@ -22,14 +23,15 @@
 // Playing together everyone sees everyone's robot: ours goes along in our `me` (robotWord), and
 // the others' are drawn here as their games fly them (showOtherRobot, render/robot.js).
 import * as THREE from 'three';
-import { robotMet, robotComes, newWay, noteWay, stepWay, wayPoint, wayEnd, shortcut, beside, HELLO_NEAR, JUMP } from '../core/robot.js';
-import { N, CHAR_R, CHAR_H } from '../core/constants.js';
+import { robotMet, robotLies, newWay, noteWay, stepWay, wayPoint, wayEnd, shortcut, beside, JUMP, WAKE, WAKE_REACH, HELLO_AFTER } from '../core/robot.js';
+import { CHAR_R, CHAR_H } from '../core/constants.js';
 import { cellAt, insideSolid } from '../physics/collide.js';
 import { player, state } from './state.js';
 import { truePosition, travelling, tripKind, leftCube } from './travel.js';
 import { showsNeighbor } from '../render/neighbors.js';
-import { narrate, speaking, storyQuiet } from './narrator.js';
-import { drawRobot, hideRobot, robotCheer, robotClip, drawOtherRobot } from '../render/robot.js';
+import { narrate, speaking, cut } from './narrator.js';
+import { drawRobot, hideRobot, robotClip, robotWake, drawOtherRobot } from '../render/robot.js';
+import { msg } from '../i18n/i18n.js';
 import { partnerAt } from '../render/partner.js';
 import { allEnemies } from './enemies.js';
 import { online } from '../net/online.js';
@@ -38,8 +40,6 @@ import { ROBOT_CLIPS } from '../net/protocol.js';
 import { camera } from '../render/scene.js';
 import { closeView } from './camera.js';
 
-const COME_FROM = 7;     // cells away it comes flying from, the first time
-const COME_UP = 2.5;     // ... and that much higher (over the trees)
 const SIDE = 0.5;        // cells to the side of the way it keeps
 const NEAR = 1.1;        // cells: never closer to the hero than this
 const EASE = 5;          // 1/s: how closely it keeps to its place
@@ -48,52 +48,51 @@ const SHORTCUT = 2.5;    // cells: the hero this close, but further along the wa
 const FLY = 1.1;         // cells/s: faster than this it flies (its clip), slower it hovers
 const DRIFT = 0.25;      // cells it drifts about while it waits
 const DRIFT_AFTER = 1.5; // s of waiting before it drifts
-const QUIET = 1.5;       // s the story must have been quiet before it comes the first time
 const CLEAR = 0.45;      // cells it keeps from anyone's body (its half width with the wings, and a little)
 const LOW = 0.65, HIGH = 1.15;   // how high its body is over its feet (blender/robot.py: its middle 0.9)
 const SNAP = 2;          // cells: another's robot further than this between two words is not blended
 
-// { way (core/robot.js), at: where it is drawn, in cube at.k; yaw, said (its hello), wait (s still), side (+1 / -1) }
+// { way (core/robot.js), at: where it is drawn, in cube at.k; yaw, wait (s still), side (+1 / -1),
+// waking (s of waking left: it stays where it lay) }
 let robot = null;
-// it is to come the first time (the hero was out of the town), once the story is quiet: for how
-// long it has been (s); null: not yet due
-let due = null;
 
 export const robotHere = () => robot;
 // game/flow.js: no robot (another world, back to the menu)
-export function forgetRobot() { robot = null; due = null; hideRobot(); }
+export function forgetRobot() { robot = null; hideRobot(); }
 
-// where it comes flying up from the first time: further into the cube from where the hero is,
-// up high
-function comeFrom(p) {
-  let dx = N / 2 - p.x, dz = N / 2 - p.z, d = Math.hypot(dx, dz);
-  if (d < 2) { dx = Math.sin(p.yaw); dz = Math.cos(p.yaw); d = 1; }
-  const clamp = v => Math.max(1, Math.min(N - 1, v));
-  return { x: clamp(p.x + dx / d * COME_FROM), y: p.y + COME_UP, z: clamp(p.z + dz / d * COME_FROM) };
-}
-
-// game/flow.js settleIn: the hero is in this map now. The robot comes: met before (this world
-// remembers its hello), at the hero's side at once; the first time out of the town, it is due
-// (comes flying up once the story is quiet: updateRobot).
-export function robotArrived(map) {
+// game/flow.js settleIn: the hero is in this map now. Woken before (this world remembers its
+// hello), it comes in at their side; else it may lie asleep here (sleepingRobot)
+export function robotArrived() {
   if (robot || !state.run || state.mode !== 'play') return;
-  if (robotMet(state.run)) come(true);
-  else if (robotComes(map)) due ??= 0;
+  if (robotMet(state.run)) come();
 }
-// it comes: at the hero's side, fading in (met), or flying up from afar (the first time)
-function come(met) {
-  const k = state.cubeKey, p = player;
-  let way;
-  if (met) {
-    way = newWay(k, p.x, p.y, p.z);
-    way.fade = 0; way.hop = { to: 0, out: false };   // (fading in)
-  } else {
-    const from = comeFrom(p);
-    way = newWay(k, from.x, from.y, from.z);
-    noteWay(way, k, p.x, p.y, p.z, Infinity);
-  }
-  const at = wayPoint(way);
-  robot = { way, at: { k: at.k, x: at.x, y: at.y, z: at.z }, yaw: Math.atan2(p.x - at.x, p.z - at.z), said: met, wait: 0, side: 1, t: 0 };
+// it comes, at the hero's side, fading in
+function come() {
+  const k = state.cubeKey, p = player, way = newWay(k, p.x, p.y, p.z);
+  way.fade = 0; way.hop = { to: 0, out: false };   // (fading in)
+  robot = { way, at: { k, x: p.x, y: p.y, z: p.z }, yaw: p.yaw, wait: 0, side: 1, t: 0, waking: 0 };
+}
+
+// It asleep where it lies in this cube, as a thing to click (game/lootlabels.js: its body, its
+// label; game/orders.js, game/action.js wake it): { id, robot, x, y, z, yaw, title, labelY }, or null
+const SLEEPER_YAW = 2.2;   // (how it lies: turned towards the road from the town's side, the camp turned with it)
+export function sleepingRobot() {
+  if (robot || state.mode !== 'play' || !robotLies(state.map, state.run)) return null;
+  const { x, y, z } = state.map.relics.robot;
+  return { id: 'robot', robot: true, x, y, z, yaw: SLEEPER_YAW + (state.map.merchantCamp.yaw ?? 0), title: msg('Robot of star-glass'), labelY: 0.75 };
+}
+// can the hero wake it from where they stand?
+export const canWakeRobot = r => !!r && Math.hypot(r.x - player.x, r.z - player.z) <= WAKE_REACH && Math.abs(r.y - player.y) < 1;
+// The hero wakes it: what is being said is cut short, it wakes where it lay and says hello as it
+// does (the world keeps that it woke: its hello told). true if it woke.
+export function wakeRobot(r = sleepingRobot()) {
+  if (!r || robot) return false;
+  cut(() => true);
+  const k = state.cubeKey, way = newWay(k, r.x, r.y, r.z);
+  robot = { way, at: { k, x: r.x, y: r.y, z: r.z }, yaw: r.yaw, wait: 0, side: 1, t: 0, waking: WAKE };
+  robotWake();
+  narrate('robot', { what: 'hello' }, { delay: HELLO_AFTER });
+  return true;
 }
 
 const look = new THREE.Vector3();
@@ -173,17 +172,23 @@ function avoid(p, k, list) {
   return p;
 }
 
-const scene = new THREE.Vector3();
+const scene = new THREE.Vector3(), ZERO = new THREE.Vector3();
 // main.js, every frame of play (dt: game time, 0 while paused)
 export function updateRobot(dt) {
-  if (!robot && due !== null && state.mode === 'play' && state.map) {
-    // due: once the story has been quiet a moment, and the hero is out of the town, in a cube
-    due = storyQuiet() ? due + dt : 0;
-    if (due >= QUIET && !state.transitioning && robotComes(state.map)) { due = null; come(false); }
-  }
+  const asleep = sleepingRobot();
+  if (asleep) { drawRobot(scene.set(asleep.x, asleep.y, asleep.z).add(drawnAt(state.cubeKey)?.at ?? ZERO), asleep.yaw, 1, 'dormant', dt); return; }
   if (!robot || state.mode !== 'play' || !state.map) { hideRobot(); return; }
   const w = robot.way;
   robot.t += dt;
+  if (robot.waking > 0) {   // waking where it lay: it follows once it is up (the hero's way waits for it)
+    robot.waking = Math.max(0, robot.waking - dt);
+    if (dt > 0 && !state.transitioning && !player.vanished) { const p = truePosition(); noteWay(w, state.cubeKey, p.x, p.y, p.z); }
+    const where = drawnAt(robot.at.k);
+    if (robot.waking === 0 && robot.at.k === state.cubeKey) robot.yaw = Math.atan2(player.x - robot.at.x, player.z - robot.at.z);
+    robot.clip = 'wake';
+    drawRobot(where && scene.set(robot.at.x, robot.at.y, robot.at.z).add(where.at), robot.yaw, where ? where.fade : 0, 'wake', dt);
+    return;
+  }
   if (dt > 0) {
     // the hero's way: where they are, unless they are on their way somewhere else than across a side
     if ((!state.transitioning || tripKind() === 'side') && !player.vanished) {
@@ -215,12 +220,6 @@ export function updateRobot(dt) {
   if (speed > FLY && !talking) face = Math.atan2(at.x - was.x, at.z - was.z);
   else if (at.k === state.cubeKey) face = Math.atan2(h.x - at.x, h.z - at.z);
   robot.yaw += Math.atan2(Math.sin(face - robot.yaw), Math.cos(face - robot.yaw)) * Math.min(1, dt * TURN);
-  // its hello, once it is close (the first time: the world keeps it, core/robot.js robotMet)
-  if (!robot.said && at.k === state.cubeKey && !state.transitioning && Math.hypot(h.x - at.x, h.z - at.z) < HELLO_NEAR) {
-    robot.said = true;
-    robotCheer();
-    narrate('robot', { what: 'hello' }, { delay: 0.6 });
-  }
   const where = drawnAt(at.k);
   robot.clip = talking ? 'talk' : speed > FLY ? 'fly' : 'hover';
   drawRobot(where && scene.set(at.x, at.y, at.z).add(where.at), robot.yaw, where ? w.fade * where.fade : 0, robot.clip, dt);

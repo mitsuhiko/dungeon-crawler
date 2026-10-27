@@ -273,6 +273,11 @@ nothing else in the world changes:
   not a high place), on a random stream of its own. In the cube: three by three level cells with
   the supply cart in the middle (it blocks), the keeper on one side, the approach on another, and
   as much level ground round it as there is (at least 10 floors within 4 cells).
+- on the depths with the glassmaker's glass (`core/glass.js`: the road out of town, 1 to 6 and
+  13), two **glass** spots, after the rest on a random stream of their own: one in a room of the
+  way about halfway along (`way`), one in the hardest room to get to, a branch rather than the way.
+  No quest uses them: a bubble of his star-glass floats there until its recording is heard
+  ([story.md](story.md#how-the-story-is-told)).
 - each has a `tier`, how hard it is to get to, 0 to 4: one for every side guardian or the horde
   the way to it leads past, one for a branch room, one for a room with a reward site, two for the
   high places (a tableland, a pinnacle, a lone peak, a great lake, a large area's foot or summit, a
@@ -281,7 +286,7 @@ nothing else in the world changes:
 `cubegen/spots.js` finds each its place in its cube once the route, the reward sites' ways and the
 horde's are in, before the structures:
 
-- **hide** one cell, **seat** two (where the NPC stands, and in front where you stand to talk),
+- **hide** one cell (and **glass**: the one on the way close beside it), **seat** two (where the NPC stands, and in front where you stand to talk),
   **camp** a fire and the four cells beside it (three places for people, the fourth side the
   approach; the corners level with it too). The camp gets its fire and a pack (site placements).
 - the floors: level, dry, enough headroom, off portal pads (and the cells round them), reward

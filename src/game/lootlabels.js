@@ -8,7 +8,8 @@
 // A trial's parts the action key uses (levers, runestones, braziers, a rune room's tablet ...;
 // game/trials.js usableParts) are hovered too, labelled with what using them does, and clicked to
 // go and use them. The ways out of the cube (portals, the town portal, house doors: game/ways.js)
-// too, labelled with where they go, and clicked to walk up to them and through.
+// too, labelled with where they go, and clicked to walk up to them and through. The robot asleep in
+// the merchant camp (game/robot.js sleepingRobot) too, clicked to walk up to it and wake it.
 // Labels that would overlap are pushed upwards into a stack. Runs after the camera moved.
 //
 // Everything clicked in the world (but the enemies: game/pointer.js) is hovered here, and the cursor
@@ -27,11 +28,12 @@ const capital = s => s.charAt(0).toUpperCase() + s.slice(1);
 import { state } from './state.js';
 import { lootHere } from './loot.js';
 import { pointer, hoveredEnemy } from './pointer.js';
-import { orderPickup, orderChest, orderTrade, orderWalk, orderPart, orderWay } from './orders.js';
+import { orderPickup, orderChest, orderTrade, orderWalk, orderPart, orderWay, orderRobot } from './orders.js';
 import { waysHere } from './ways.js';
 import { usableParts, partLabel } from './trials.js';
 import { questItemsHere } from './questworld.js';
 import { introThingsHere } from './intro.js';
+import { sleepingRobot } from './robot.js';
 import { shopOf } from '../core/shops.js';
 import { GIVERS, giverOf, giverMark } from '../core/quests.js';
 import { talkative } from './action.js';
@@ -57,9 +59,10 @@ let hovered = null, overLabel = null, cursor = '';   // overLabel: the key of th
 // villagers (state.map.villagers) have an outfit, chests (reward sites) a prestige; the trial's
 // usable parts are this frame's usableParts()
 let parts = new Set();
-const isVillager = p => !!p?.outfit, isPart = p => parts.has(p), isWay = p => !!p?.way;
-// the pickup under the cursor, the closed chest (a reward site), the trading villager, the trial's part and the way out
-export const hoveredPickup = () => hovered && !hovered.prestige && !isVillager(hovered) && !isPart(hovered) && !isWay(hovered) ? hovered : null;
+const isVillager = p => !!p?.outfit, isPart = p => parts.has(p), isWay = p => !!p?.way, isRobot = p => !!p?.robot;
+// the pickup under the cursor, the closed chest (a reward site), the trading villager, the trial's part, the way out and the robot asleep
+export const hoveredPickup = () => hovered && !hovered.prestige && !isVillager(hovered) && !isPart(hovered) && !isWay(hovered) && !isRobot(hovered) ? hovered : null;
+export const hoveredRobot = () => isRobot(hovered) ? hovered : null;
 export const hoveredChest = () => hovered?.prestige ? hovered : null;
 export const hoveredVillager = () => isVillager(hovered) ? hovered : null;
 export const hoveredPart = () => isPart(hovered) ? hovered : null;
@@ -82,14 +85,14 @@ function label(p) {
   const el = document.createElement('button');
   el.className = 'loot-label'; el.tabIndex = -1;
   const part = isPart(p);
-  el.textContent = textOf(p) ?? (p.prestige ? tr('Treasure chest') : p.story ? tr(p.title) : p.questItem ? tr('{thing} · quest', { thing: p.label ? capital(say(p.label)) : displayName(p) })
+  el.textContent = textOf(p) ?? (p.prestige ? tr('Treasure chest') : p.story || isRobot(p) ? tr(p.title) : p.questItem ? tr('{thing} · quest', { thing: p.label ? capital(say(p.label)) : displayName(p) })
     : displayName(p) + (p.count > 1 ? ` (${p.count})` : ''));
-  el.style.color = isWay(p) ? WAY_COLOR : part ? PART_COLOR : isVillager(p) || p.questItem ? '#e6c35a' : p.prestige ? CHEST_COLOR[p.prestige] ?? CHEST_COLOR.basic : p.gen ? rarityOf(p).css : '#d8d2c4';
+  el.style.color = isWay(p) ? WAY_COLOR : part ? PART_COLOR : isVillager(p) || p.questItem || isRobot(p) ? '#e6c35a' : p.prestige ? CHEST_COLOR[p.prestige] ?? CHEST_COLOR.basic : p.gen ? rarityOf(p).css : '#d8d2c4';
   if (p.gen) { el.dataset.rarity = rarityOf(p).id; el.classList.toggle('rainbow', !!rarityOf(p).glow?.rainbow); }
   el.addEventListener('pointerdown', e => {
     if (e.button !== 0 || state.inventoryOpen || state.transitioning) return;
     e.preventDefault(); e.stopPropagation();
-    if (isWay(p)) orderWay(p); else if (part) orderPart(p); else if (isVillager(p)) orderTrade(p); else if (p.prestige) orderChest(p); else if (p.questItem) orderWalk(p.x, p.y, p.z); else orderPickup(p);
+    if (isWay(p)) orderWay(p); else if (isRobot(p)) orderRobot(p); else if (part) orderPart(p); else if (isVillager(p)) orderTrade(p); else if (p.prestige) orderChest(p); else if (p.questItem) orderWalk(p.x, p.y, p.z); else orderPickup(p);
   });
   // (by key: some lists make their things anew every frame, game/intro.js, game/questworld.js)
   const key = keyOf(p);
@@ -115,7 +118,7 @@ function screen(p, off) {
 
 // everything here to hover and click (parts: this frame's usableParts)
 const thingsHere = () => [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView),
-  ...introThingsHere().filter(lootView), ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : [])];
+  ...introThingsHere().filter(lootView), ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : []), ...[sleepingRobot()].filter(Boolean)];
 const ZERO = new THREE.Vector3(), cubeOffset = () => state.world?.group.position ?? ZERO;
 // (tests/browser/hover.js) everything hovered here, each with its body; and the key of what is hovered
 export const hoverables = () => thingsHere().map(p => ({ key: keyOf(p), body: bodyOf(p, cubeOffset()) }));
@@ -141,6 +144,7 @@ export function bodyOf(p, off) {
   if (p.prestige) return body(p.anchor.x, p.anchor.y, p.anchor.z, 0.8, 0.5, off);
   if (isPart(p)) return body(p.x, p.y, p.z, 0.9, 0.4, off);
   if (isWay(p)) return wayBody(p, off);
+  if (isRobot(p)) return body(p.x, p.y, p.z, 0.5, 0.45, off);   // (lying on its back: render/robot.js RobotDormant)
   const view = lootView(p);
   if (view) {
     box.setFromObject(view);
@@ -188,7 +192,7 @@ export function updateLootLabels() {
       if (d < best) { best = d; hovered = p; }
     }
   }
-  const show = [...spots.keys()].filter(p => itemNames() || p === hovered || p.questItem || isVillager(p) && villagerText(p).match(/^[!?] /));
+  const show = [...spots.keys()].filter(p => itemNames() || p === hovered || p.questItem || isRobot(p) || isVillager(p) && villagerText(p).match(/^[!?] /));
   // nearest to the camera first; each label goes up past any it would cover
   show.sort((a, b) => spots.get(b).y - spots.get(a).y);
   const placed = [], keep = new Set();

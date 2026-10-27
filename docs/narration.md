@@ -3,9 +3,11 @@
 Status: the pipeline and the narrator are built. The lines ([story.md](story.md)) are rendered
 ahead into audio files with a text-to-speech model, and the game plays them as things happen, one
 after the other, with subtitles (`src/game/narrator.js`, "In the game" below). The lines so far are
-the glassmaker's recordings of the beginning (`RECORDINGS`: the glass on the town plaza and the
-glass in the merchant camp, story.md "The beginning"), in the `glassmaker` voice, worn like an old
-recording; the inventory's Memories tab plays them again ("The memories" below). His recordings
+the glassmaker's recordings (`RECORDINGS`: the beginning's, the glass on the town plaza and the
+glass in the merchant camp, story.md "The beginning"; and his glass in the depths that have a
+boss, a chapter a depth, story.md "His glass in the depths"), in the `glassmaker` voice, worn like
+an old recording, which the inventory's Memories tab plays again ("The memories" below); and the
+robot's, in its own voice, from its hello on (story.md "What the robot says"). His recordings
 only ever come out of his glass: one plays when its bubble is found, never for coming somewhere or
 doing something. He does not know where his glass comes to rest, so he never says what is there
 (a town, a gate, the next one), only what is true wherever it came down. The old
@@ -150,6 +152,29 @@ Then it is levelled like every clip; 0.05 s of quiet before it and 0.2 s after, 
 added under it: the pauses stay silent. On a 16-second sample Whisper understood every word.
 It was picked by ear from 15 filters, from none to `metal-monotone` (the try before it, too
 robotic to understand easily).
+
+**The child's voice.** `child` is baked (below) from two voices, 70 / 30:
+
+- `experiment_child-recording`: a child reading a short story three times (a voice memo); the
+  most fluid of the three, 29.7 s of it. The first stumbled three times ("made made", "a ship,
+  a big ship", "the its"), the third misread twice and hesitated 1.5 s; the second only said
+  "high up high", and its pauses were the most even (none over 0.55 s). Its words are what it
+  says, slips and all.
+- `experiment_child-design`: a voice Qwen3-TTS made up (its VoiceDesign model,
+  `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign`, from "A young boy, about nine years old, reading a
+  story aloud. A light, clear child's voice, gentle and earnest, unhurried."), saying the same
+  story. Of six made up (a girl, a boy, a child; two takes each) the one whose speaker
+  embedding was closest to the recording's (0.95, cosine) and whose pitch was nearest (278 Hz,
+  the recording 208 Hz).
+
+```sh
+node tools/narration.mjs --bake child --voice experiment_child-recording:0.7,experiment_child-design:0.3 --say "..." --seed 1
+```
+
+It says the story as written, 31 s, at 220 Hz; of three takes the one closest to the recording
+(0.978, cosine; the made-up voice 0.979) with the steadiest melody, every word right. Mixed
+40 / 60 the made-up voice took over (0.96 like the recording, 0.99 like it) and too little of
+the child was left.
 
 What was learned on the way:
 
@@ -413,12 +438,13 @@ cannot need, and the tool says "ran to the limit: try another seed".
 | `depth` | a depth reached for the first time | `depth` |
 | `foe` | an enemy of a species not met before comes after the hero | `species` |
 | `fight`, `hurt`, `idle` | a long fight; health under 30%; standing about | |
-| `kill`, `level`, `chest`, `loot`, `quest`, `horde`, `fall`, `death`, `home` | what they say | `kill`: `many` |
+| `kill`, `level`, `chest`, `loot`, `quest`, `horde`, `fall`, `home` | what they say | `kill`: `many` |
+| `death` | the hero died (said once they are back) | `depth`; `boss`: the arena's, if he is still there |
 | `guardian` | a side guardian's arena entered, or the guardian beaten | `what`: `near`, `beaten` |
 | `arena` | a boss's arena entered while he still holds the well | `boss` |
 | `boss` | his fight: it starts, an attack starts, a stage changes | `boss`, `what`: `start`, the attack's name, `split` (`stage`) |
 | `beaten` | the boss beaten (after his jingle) | `boss` |
-| `trial` | a trial room sealed, mastered, failed | `what` |
+| `trial` | a trial room sealed, mastered, failed; come into one whose puzzle is not solved yet | `what` (`sealed`, `resolved`, `failed`, `puzzle`), `kind` |
 
 Most come from where the game does that thing anyway (`game/flow.js` `settleIn` and `die`,
 `game/enemies.js`, `game/trials.js` ...); the ones about what goes on around the hero (the
@@ -429,7 +455,20 @@ narrator looks for itself every frame. `MOMENTS` in `core/narration.js` says how
   (`run.told`, saved with it: `core/save.js`), so nothing is said twice by itself, and a world
   played again later goes on where it left off. A moment's lines are said in the table's order: the
   first one not told yet that fits (`when`), or for a scene (`all`: a recording, a depth, an
-  arena, a boss beaten) every one that fits.
+  arena, a boss beaten) every one that fits. What happens again and again (a death, a kill, a
+  chest, standing about ...: `shuffle`) says the line that fits best (the one whose `when` says
+  most: dying to a boss, his tip first), and of those the one marked `lead`, else one picked by
+  the world's seed: every world hears them in another order.
+- **The robot's only once it woke.** Its lines (`voice: 'robot'`, but its hello, which is how it
+  wakes) are not said before its hello was, nor while its hello is still being said or waits
+  (`robotMet`, `core/robot.js`), and an enemy met before that is not counted as met. Waking it cuts
+  short whatever is being said (`game/robot.js` `wakeRobot`).
+- **The robot paced.** It does not talk all the time (`ROBOT_REST`, `robotMayTalk` in
+  `core/narration.js`): after one of its lines it keeps quiet a while before the next, by the
+  moment's `pri`: 75 s before chatter (0), 40 s before what happens (1), 12 s before a boss's calls
+  or a death (2); the story's scenes (3: its hello, a depth, an arena, a boss beaten) never wait.
+  Nor is a line of its queued while another of its is being said or waits (but such a scene). A
+  moment that comes while it must keep quiet says nothing and is not told: it may come later.
 - **One at a time.** Lines wait their turn in a queue; between two lines a short pause. The most
   important goes first (`pri`: the story, then the bosses, then what happens, then chatter);
   what waited too long to still fit is left out (`ttl`: a boss's attack is old news in four
@@ -439,8 +478,8 @@ narrator looks for itself every frame. `MOMENTS` in `core/narration.js` says how
   recording) cuts short another of the same moment still going: its lines waiting are dropped,
   the one being said fades out (0.35 s) with its subtitle, and after the usual pause the new
   scene starts. Leaving a recording's place cuts it short too (`where` in `RECORDINGS`: the
-  glass's is the town, its houses too, the camp's the merchant camp; `arrived` in
-  `game/narrator.js`). `cut(which)` cuts short whatever lines `which` picks, for whatever else
+  glass's is the town, its houses too, the camp's the merchant camp, his glass in the depths its
+  depth; `arrived` in `game/narrator.js`). `cut(which)` cuts short whatever lines `which` picks, for whatever else
   should.
 - **Told whole.** A scene of a moment that is `whole` (a recording) counts as told as a whole the
   moment it begins: all its lines go into `run.told` at once, even with the narrator off. Cut
@@ -464,8 +503,8 @@ narrator, telling what happens there.
 Not in the guide's game window; `?narration=0` turns it off. With `?dev=1`, `/narrate <id>` says
 a line now, `/narrate forget` forgets what was said in this world.
 
-Playing together, a recording one player sets off (a glass of his found: the town's, the camp's)
-plays for everyone at once, cutting short what was playing there (`story` messages,
+Playing together, a recording one player sets off (a glass of his found: the town's, the camp's,
+one in the depths) plays for everyone at once, cutting short what was playing there (`story` messages,
 [online.md](online.md)).
 
 ### The memories
@@ -473,7 +512,8 @@ plays for everyone at once, cutting short what was playing there (`story` messag
 The inventory's **Memories** tab (`src/game/memorypanel.js`), next to the Quests, is there once the
 glassmaker's first glass is found (or a recording was heard). It lists his recordings begun in this
 world (`recordingsHeard`: a line of it in `run.told`; one begun is told whole, so all of it is
-there however little was heard), where each was found, and all its words; **Listen** plays it
+there however little was heard; in the story's order), where each was found (the town, the camp,
+the road out of town, depth N: `foundText`), and all its words; **Listen** plays it
 from the start (`hearAgain` in `src/game/narrator.js`), the line being
 said lit up. The world stays paused meanwhile (the inventory is open): the voice plays on its own,
 not through the queue, and stops when the panel closes or the tab changes.
@@ -492,9 +532,13 @@ moment: the film plays it when its shot comes (`voiceClip` in `src/game/narrator
 ## Adding lines
 
 A new moment for a line: its `on` and `when`, and if the game does not tell the narrator of it
-yet, a `narrate(...)` where it happens (a key in `MOMENTS`). Another recording of the glassmaker's:
-an entry in `RECORDINGS` (its title and where it is found, translated) and its lines
-(`recording(part, ...)` in `core/narration.js`), and a bubble of his glass in the game that sets
-it off when it is found (`narrate('recording', { part })`, as `src/game/intro.js` does). The other moments wait for lines: `depth` (with its `depth`),
-`wander` (with its `act`), `theme`, `arena` / `boss` / `beaten` for its boss; the attack names are
-the boss's attacks' `name` (`core/enemies.js`).
+yet, a `narrate(...)` where it happens (a key in `MOMENTS`). Another recording of the glassmaker's
+in the depths: its id in its depth's chapter (`GLASS` in `core/glass.js`: a depth with a chapter
+gets its glass spots by itself), an entry in `RECORDINGS` (`deep(id, title)`: where it is found
+follows) and its lines (`recording(part, ...)`); one somewhere else, an entry with its own `found`
+and `where` and a bubble of his glass in the game that sets it off when it is found
+(`narrate('recording', { part })`, as `src/game/intro.js` does). The robot's lines are `says(on,
+when, id, ...)`: `depth` (with its `depth`), `wander` (`depth`: a range), `theme`, `foe`
+(`species`), `arena` / `boss` / `beaten` for its boss (the attack names are the boss's attacks'
+`name`, `core/enemies.js`; a change of stage `split` with the `stage` it has then: Totnar's
+counts up before, the others' after), `death` (`boss`, `depth`), `trial` (`what`, `kind`).

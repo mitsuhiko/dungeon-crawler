@@ -304,8 +304,9 @@ export const TOWN_PORTAL_SPOT = [12, 8.5];
 // town's plaza, on the street to the gate, a few steps from where a new hero stands; in the
 // merchant camp another glass of his, a few steps in from the town's side, beside the road, and his
 // sword in the camp's middle, beside the road on the other side (walking along it takes neither).
-// Nothing is put on them (plan.relics: { glass, sword }).
-export const TOWN_RELIC = [8.5, 6.6], CAMP_GLASS = [9.5, 12.0], CAMP_RELIC = [7.3, 7.6];
+// The robot lies asleep in the camp too (core/robot.js), across the road from the glass.
+// Nothing is put on them (plan.relics: { glass, sword, robot }).
+export const TOWN_RELIC = [8.5, 6.6], CAMP_GLASS = [9.5, 12.0], CAMP_RELIC = [7.3, 7.6], CAMP_ROBOT = [7.2, 12.6];
 
 export function townPlan(exit, seed) {
   const { plan, path, tree, put, group, scatter, shore, R } = clearingPlan(exit, seed, BUILDINGS, [[8.5, .9]], { glass: TOWN_RELIC });
@@ -370,7 +371,7 @@ export function townPlan(exit, seed) {
 }
 
 export function merchantCampPlan(exit, seed) {
-  const { plan, path, tree, put, group, scatter, R } = clearingPlan(exit, seed, MERCHANTS, [[8.5, .9], [8.5, 15.1]], { glass: CAMP_GLASS, sword: CAMP_RELIC });
+  const { plan, path, tree, put, group, scatter, R } = clearingPlan(exit, seed, MERCHANTS, [[8.5, .9], [8.5, 15.1]], { glass: CAMP_GLASS, sword: CAMP_RELIC, robot: CAMP_ROBOT });
   // Open at both ends of the road; tents flank it instead of forming another row.
   [[1.0, 1.4], [14.7, 2.2], [1.0, 7.0], [14.9, 11.6], [2.0, 14.9], [12.9, 14.9]]
     .forEach(([x, z], i) => tree(i, x, z));

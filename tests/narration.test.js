@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { assets } from './paths.js';
 import { plan, clipsOf, clipFile, VOICES, TAGS, POINT, sentencesOf } from '../tools/narration.mjs';
-import { LINES, SIBLING, MOMENTS, RECORDINGS, linesFor, fits, untagged, tagsOf, lineText, recordingLines, recordingsHeard } from '../src/core/narration.js';
+import { LINES, SIBLING, MOMENTS, RECORDINGS, ROBOT_REST, robotMayTalk, linesFor, fits, untagged, tagsOf, lineText, recordingLines, recordingsHeard } from '../src/core/narration.js';
 import { createWorld, checkWorld } from '../src/core/save.js';
 import { EVERY_CHANGE } from '../src/i18n/languages.js';
 
@@ -114,14 +114,14 @@ test('every line is said at a moment, about what that moment tells', () => {
 
 test('a moment says its next line not told yet, a scene all of them, in the table\'s order', () => {
   const table = [
-    { id: 'death.not-how', on: 'death' }, { id: 'death.wrong', on: 'death' },
+    { id: 'foe.not-how', on: 'foe' }, { id: 'foe.wrong', on: 'foe' },
     { id: 'boss.gusto.after', on: 'beaten', when: { boss: 'gusto' } }, { id: 'beaten.gusto.well', on: 'beaten', when: { boss: 'gusto' } },
     { id: 'boss.totnar.storm', on: 'boss', when: { boss: 'totnar', what: 'split', stage: 3 } },
   ];
   const told = new Set();
-  assert.deepEqual(linesFor('death', {}, told, table).map(l => l.id), ['death.not-how']);
-  told.add('death.not-how');
-  assert.deepEqual(linesFor('death', {}, told, table).map(l => l.id), ['death.wrong']);
+  assert.deepEqual(linesFor('foe', {}, told, table).map(l => l.id), ['foe.not-how']);
+  told.add('foe.not-how');
+  assert.deepEqual(linesFor('foe', {}, told, table).map(l => l.id), ['foe.wrong']);
   assert.deepEqual(linesFor('beaten', { boss: 'gusto' }, new Set(), table).map(l => l.id), ['boss.gusto.after', 'beaten.gusto.well']);
   assert.deepEqual(linesFor('boss', { boss: 'totnar', what: 'split', stage: 3 }, new Set(), table).map(l => l.id), ['boss.totnar.storm']);
   assert.deepEqual(linesFor('boss', { boss: 'gusto', what: 'nothing' }, new Set(), table), []);
@@ -131,12 +131,40 @@ test('a moment says its next line not told yet, a scene all of them, in the tabl
   assert.deepEqual(linesFor('recording', { part: 'glass' }, new Set([glass[0].id])), glass.slice(1));
 });
 
+test('a moment that shuffles says the line that fits best, the lead first, else one picked by the world', () => {
+  const table = [
+    ...Array.from({ length: 8 }, (_, i) => ({ id: `death.any-${i}`, on: 'death' })),
+    { id: 'death.first', on: 'death', lead: true },
+    { id: 'death.gusto', on: 'death', when: { boss: 'gusto' } },
+  ];
+  assert.ok(MOMENTS.death.shuffle);
+  assert.deepEqual(linesFor('death', { boss: 'gusto' }, new Set(), table, 1).map(l => l.id), ['death.gusto'], 'the boss\'s first');
+  assert.deepEqual(linesFor('death', {}, new Set(), table, 1).map(l => l.id), ['death.first'], 'then the lead');
+  const told = new Set(['death.first', 'death.gusto']);
+  const order = seed => { const t = new Set(told), out = []; for (let l; (l = linesFor('death', {}, t, table, seed)[0]); t.add(l.id)) out.push(l.id); return out; };
+  assert.equal(order(1).length, 8, 'all of them, one by one');
+  assert.deepEqual(order(1), order(1), 'the same in the same world');
+  assert.ok([2, 3, 4, 5].some(seed => order(seed).join() !== order(1).join()), 'another order in another world');
+});
+
 test('when: a value, a list of values, or a range of numbers', () => {
   assert.ok(fits({ boss: 'gusto' }, { boss: 'gusto', what: 'start' }));
   assert.ok(!fits({ boss: 'gusto' }, { boss: 'totnar' }));
   assert.ok(fits({ theme: ['clouds', 'lagoon'] }, { theme: 'lagoon' }));
   assert.ok(fits({ depth: [1, 6] }, { depth: 3 }) && !fits({ depth: [1, 6] }, { depth: 7 }));
   assert.ok(fits(undefined, { anything: 1 }));
+});
+
+test('the robot is paced: the less a moment matters, the longer it keeps quiet first; the story never waits', () => {
+  assert.equal(ROBOT_REST.length, 4);
+  for (let p = 1; p < 3; p++) assert.ok(ROBOT_REST[p] < ROBOT_REST[p - 1], `pri ${p}`);
+  assert.equal(ROBOT_REST[3], 0);
+  assert.ok(ROBOT_REST[0] >= 60 && ROBOT_REST[1] >= 30, 'chatter and what happens leave long pauses');
+  assert.ok(!robotMayTalk(0, 30) && robotMayTalk(0, ROBOT_REST[0]));
+  assert.ok(!robotMayTalk(2, 1) && robotMayTalk(2, ROBOT_REST[2]));
+  assert.ok(robotMayTalk(3, 0), 'its hello, a depth, an arena, a boss beaten');
+  // every robot line's moment has a priority the pacing knows
+  for (const l of LINES.filter(l => l.voice === 'robot')) assert.ok(MOMENTS[l.on].pri in ROBOT_REST, l.id);
 });
 
 test('the glassmaker\'s recordings: each has lines, in his voice, worn, and is heard once one of them is', () => {
@@ -148,7 +176,7 @@ test('the glassmaker\'s recordings: each has lines, in his voice, worn, and is h
   assert.deepEqual(recordingsHeard(new Set()), []);
   assert.deepEqual(recordingsHeard(new Set([recordingLines('camp')[1].id])).map(r => r.id), ['camp']);
   // every line is one of his recordings' or the robot's (the old narrator's lines went with the old story)
-  assert.deepEqual(LINES.filter(l => l.on !== 'recording' && l.on !== 'robot'), []);
+  assert.deepEqual(LINES.filter(l => l.on === 'recording' ? l.voice !== 'glassmaker' : l.voice !== 'robot').map(l => l.id), []);
   // the memories are his: the robot's lines are in none of them
   const robot = LINES.filter(l => l.on === 'robot');
   assert.ok(robot.length > 0);

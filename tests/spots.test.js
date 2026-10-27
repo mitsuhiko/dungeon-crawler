@@ -4,6 +4,7 @@ import { World } from '../src/world/world.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { planSpots, SPOT_KINDS, MAX_TIER, SEATS, HIDES, campDepth, OUTPOST_BANDS } from '../src/world/spots.js';
 import { isClearing } from '../src/world/town.js';
+import { glassAt } from '../src/core/glass.js';
 import { N } from '../src/core/constants.js';
 import { placeProps } from '../src/render/propplace.js';
 import { themeOf } from '../src/themes/depth.js';
@@ -19,6 +20,13 @@ test('every depth plans its spots from the seed: hiding places, two seats, a cam
       assert.ok(count('hide') >= HIDES[0] && count('hide') <= HIDES[1], `depth ${d}: ${count('hide')} hiding places`);
       assert.equal(count('seat'), SEATS);
       assert.equal(count('camp'), d > 0 && campDepth(d) ? 1 : 0, `depth ${d}'s camp`);
+      // the glassmaker's glass: one on the way, one hidden off it, in rooms of their own
+      const glass = list.filter(s => s.kind === 'glass');
+      assert.deepEqual(glass.map(s => s.glass), glassAt(seed, d).map((_, i) => i), `depth ${d}'s glass`);
+      if (glass.length) {
+        assert.ok(l.route.includes(glass[0].key) && glass[0].way, `depth ${d}: a glass on the way`);
+        assert.ok(glass[1].tier >= glass[0].tier && glass[1].key !== glass[0].key, `depth ${d}: one hidden`);
+      }
       assert.equal(new Set(list.map(s => s.id)).size, list.length);
       for (const s of list) {
         assert.ok(SPOT_KINDS.includes(s.kind) && s.tier >= 0 && s.tier <= MAX_TIER && s.depth === d);
@@ -80,6 +88,7 @@ function checkSpots(world, map, plans) {
       assert.ok(props.out.some(q => q.spot === s.id && q.name.includes('campfire')), 'the camp has its fire');
     }
     if (s.kind === 'seat') assert.ok(Math.hypot(s.anchor.x - s.approach.x, s.anchor.z - s.approach.z) === 1);
+    if (s.kind === 'glass') assert.ok(s.cells.length === 1 && [0, 1].includes(s.glass), 'a glass floats over one cell');
     if (s.kind === 'outpost') {
       assert.equal(s.cells.length, 9);
       assert.equal(s.places.length, 1, 'its keeper');

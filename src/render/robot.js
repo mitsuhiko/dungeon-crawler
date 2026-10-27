@@ -1,8 +1,9 @@
 // The robot's view (docs/story.md "The robot", blender/robot.py, assets/robot.glb): a hovering egg
 // of star-glass with amber eyes, little glass wings and glass gears, and an amber core that glows
 // and lights what is round it. game/robot.js says where it is and what it does; here it is drawn
-// there, its clips blended (hovering, flying, talking, a cheer), faded in and out as it comes and
-// goes (with the cube it is in, while a slide carries that away).
+// there, its clips blended (lying asleep, waking, hovering, flying, talking, a cheer), faded in and
+// out as it comes and goes (with the cube it is in, while a slide carries that away). Asleep its
+// core only glimmers (DORMANT_GLOW).
 //
 // Its glass is drawn like the glassmaker's (render/glassbubble.js): see-through teal, catching the
 // light on its facets, not the GLB's transmission (a second pass over the whole scene). Its light
@@ -17,10 +18,12 @@ import { trackLight, untrackLight } from './lightpool.js';
 import { warm } from './warmup.js';
 
 const URL = 'assets/robot.glb';
-const CLIPS = { hover: 'RobotHover', fly: 'RobotFly', talk: 'RobotTalk', cheer: 'RobotCheer' };
+const CLIPS = { hover: 'RobotHover', fly: 'RobotFly', talk: 'RobotTalk', cheer: 'RobotCheer', dormant: 'RobotDormant', wake: 'RobotWake' };
+const ONCE = new Set(['cheer', 'wake']);   // (played once from the start, then held: cheer, robotWake)
 const BLEND = 5;                 // 1/s: how quickly one clip takes over from another
 const LIGHT = 0xffc27a;          // its light: the amber of its core, a little paler
 const GLOW = 1.1, REACH = 4.2;   // the light's intensity and how far it reaches (cells)
+const DORMANT_GLOW = 0.2;        // its share of that while it lies asleep
 
 // its materials, by the GLB's names: the glass and the gears see-through, the rest solid (but all
 // of it fades); order: drawn after one another (the gears inside the glass)
@@ -59,7 +62,7 @@ function makeView() {
     const clip = template.animations.find(c => c.name === name);
     if (!clip) throw new Error(`robot: no clip ${name}`);
     const a = mixer.clipAction(clip);
-    if (k === 'cheer') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
+    if (ONCE.has(k)) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
     a.play(); a.setEffectiveWeight(k === 'hover' ? 1 : 0);
     actions[k] = a; weights[k] = k === 'hover' ? 1 : 0;
   }
@@ -89,8 +92,12 @@ function cheer(v) {
   v.cheer = a.getClip().duration;
 }
 
+// it wakes (RobotWake, from the start: game/robot.js plays it while it lasts)
+export function robotWake() { if (robotView.ready) robotView.actions.wake.reset().play(); }
+
 // Draw it at `at` (the scene's coordinates: its feet, the floor under it), turned to `yaw`, `fade`
-// of it showing (0: hidden); `clip`: what it does ('hover', 'fly', 'talk'), blended into
+// of it showing (0: hidden); `clip`: what it does ('dormant', 'wake', 'hover', 'fly', 'talk'),
+// blended into
 export function drawRobot(at, yaw, fade, clip, dt) { if (robotView.ready) drawView(robotView, at, yaw, fade, clip, dt); }
 // what ours shows now ('cheer' while it cheers), for the others (game/robot.js robotWord)
 export const robotClip = clip => robotView.cheer > 0 ? 'cheer' : clip;
@@ -101,6 +108,7 @@ function drawView(v, at, yaw, fade, clip, dt) {
   v.group.position.copy(at);
   v.group.rotation.y = yaw;
   v.group.userData.fade = fade;   // (its light fades with it: render/lightpool.js)
+  v.light.intensity += ((clip === 'dormant' ? GLOW * DORMANT_GLOW : GLOW) - v.light.intensity) * Math.min(1, dt * 2);
   for (const p of v.parts) p.material.opacity = p.opacity * fade;
   v.cheer = Math.max(0, v.cheer - dt);
   const want = v.cheer > 0 ? 'cheer' : clip;

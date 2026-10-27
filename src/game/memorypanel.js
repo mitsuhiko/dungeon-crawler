@@ -6,7 +6,7 @@
 // right the one selected: where it was found, all its words, and Listen / Stop. Played here the world stays paused (the inventory is open):
 // his voice plays on its own (game/narrator.js hearAgain), the line being said lit up in its words.
 // Closing the panel or going to another tab stops it.
-import { RECORDINGS, recordingLines, recordingsHeard, lineText } from '../core/narration.js';
+import { RECORDINGS, recordingLines, recordingsHeard, lineText, foundText } from '../core/narration.js';
 import { glassThere } from '../core/intro.js';
 import { hearAgain } from './narrator.js';
 import { state } from './state.js';
@@ -54,14 +54,14 @@ export function drawMemories() {
   $('memories-list').innerHTML = heard.length ? heard.map(r => {
     const on = r.id === selected;
     return `<button class="quest-entry memory-entry${on ? ' selected' : ''}" role="option" aria-selected="${on}" data-memory="${r.id}">`
-      + `<span class="mark">${playing?.id === r.id ? '♪' : '◇'}</span><span><b>${esc(tr(r.title))}</b><small>${esc(tr(r.found))}</small></span></button>`;
+      + `<span class="mark">${playing?.id === r.id ? '♪' : '◇'}</span><span><b>${esc(tr(r.title))}</b><small>${esc(foundText(r))}</small></span></button>`;
   }).join('') : `<div class="quest-empty">${esc(tr('Nothing heard yet. The glassmaker blows his words into glass: listen for them.'))}</div>`;
   const r = RECORDINGS.find(x => x.id === selected);
   if (!r) $('memories-details-inner').innerHTML = `<h2>${esc(tr('Memories'))}</h2><p class="quest-text">${esc(tr('What the glassmaker said, to hear again.'))}</p>`;
   else {
     const on = playing?.id === r.id;
     const words = heardLines(r.id).map((l, i) => `<p class="memory-line${on && playing.at === i ? ' now' : ''}">${esc(lineText(l))}</p>`).join('');
-    $('memories-details-inner').innerHTML = `<h2>${esc(tr(r.title))}</h2><div class="quest-meta">${esc(tr(r.found))}</div>`
+    $('memories-details-inner').innerHTML = `<h2>${esc(tr(r.title))}</h2><div class="quest-meta">${esc(foundText(r))}</div>`
       + `<div class="quest-actions"><button class="main" data-play="${r.id}">${esc(on ? tr('Stop') : tr('Listen'))}</button></div>`
       + `<div class="memory-words">${words}</div>`;
   }
