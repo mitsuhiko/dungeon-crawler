@@ -193,7 +193,7 @@ def old_radio(voice, rate, rng):
     return (x + static) * ramp
 
 
-def robot(voice, rate, rng):
+def robot(voice, rate, rng, fmax=500):
     """The voice gone a little machine, and still hers: half of it is the voice itself, two
     semitones down; the other half a vocoder that says her words (the shape of her spectrum,
     frame by frame) on a buzz that follows her own melody, but in steps, from semitone to
@@ -216,7 +216,7 @@ def robot(voice, rate, rng):
     rms = lambda x: np.sqrt(np.mean(x**2))
     dry = librosa.effects.pitch_shift(voice, sr=rate, n_steps=semitones)
     # her melody, down two semitones, stepped to whole semitones (held through the unvoiced)
-    f0 = librosa.pyin(voice, fmin=70, fmax=500, sr=rate, frame_length=2048, hop_length=hop)[0]
+    f0 = librosa.pyin(voice, fmin=70, fmax=fmax, sr=rate, frame_length=2048, hop_length=hop)[0]
     heard = ~np.isnan(f0)
     f0 = np.interp(np.arange(len(f0)), np.nonzero(heard)[0], f0[heard]) if heard.any() else np.full(len(f0), 180.0)
     f0 = 440 * 2 ** (np.round(12 * np.log2(f0 * 2 ** (semitones / 12) / 440)) / 12)
@@ -253,9 +253,10 @@ def robot(voice, rate, rng):
 PREPARE = {}
 
 
-def retune(voice, rate, keep, step=1.0):
-    """The voice's melody squeezed towards its middle, `keep` of its range left, and pulled to
-    whole semitones by `step` (1: snapped), its timing and its sound kept (Praat's PSOLA)."""
+def retune(voice, rate, keep, step=1.0, shift=0):
+    """The voice's melody squeezed towards its middle, `keep` of its range left, pulled to
+    whole semitones by `step` (1: snapped) and moved `shift` semitones, its timing and its sound
+    kept (Praat's PSOLA)."""
     import parselmouth
     from parselmouth.praat import call
 
@@ -267,7 +268,7 @@ def retune(voice, rate, keep, step=1.0):
         return voice
     st = np.array([12 * np.log2(f / 440) for _, f in points])
     st = np.median(st) + keep * (st - np.median(st))
-    st += step * (np.round(st) - st)
+    st += step * (np.round(st) - st) + shift
     new = call("Create PitchTier", "retuned", sound.xmin, sound.xmax)
     for (t, _), s in zip(points, st):
         call(new, "Add point", t, 440 * 2 ** (s / 12))
@@ -289,24 +290,25 @@ def metal_monotone(voice, rate, rng):
     return 0.5 * y + 0.5 * (1 - g) * signal.lfilter([1.0], np.r_[1.0, np.zeros(delay - 1), -g], y)
 
 def stepped_vocoder(voice, rate, rng):
-    """The robot's voice (FILTERS "stepped-vocoder"): clockwork, and easy to understand. Her
-    melody kept whole but snapped to semitones (retune, as if sung by a machine); a third of it
-    through `robot` (its vocoder, and its own copy two semitones down); then a small speaker
-    (200 Hz to 6 kHz, 2 dB of presence at 1.8 kHz) and a faint metal ring (a 1.6 ms feedback
-    comb, 30% mixed in). Nothing is added under it: the pauses stay silent."""
+    """The robot's voice (FILTERS "stepped-vocoder"): a clockwork toy, and easy to understand.
+    Its melody kept whole but snapped to semitones and a semitone up (retune, as if sung by a
+    machine); a quarter of it through `robot` (its vocoder, and its own copy two semitones
+    down); then a small toy speaker (350 Hz to 5 kHz, 3 dB of presence at 1.8 kHz) and a short
+    metal ring (a 1 ms feedback comb, 35% mixed in). Nothing is added under it: the pauses
+    stay silent."""
     from scipy import signal
 
     rms = lambda x: np.sqrt(np.mean(x**2))
-    y = retune(voice, rate, keep=1.0, step=1.0)
-    y = 0.67 * y + 0.33 * robot(y, rate, rng)
+    y = retune(voice, rate, keep=1.0, step=1.0, shift=1)
+    y = 0.75 * y + 0.25 * robot(y, rate, rng, fmax=600)
     # the speaker
-    y = signal.sosfilt(signal.butter(2, [200, 6000], btype="bandpass", fs=rate, output="sos"), y)
-    b, a = biquad("bell", 1800, 2.0, 1.0, rate)
+    y = signal.sosfilt(signal.butter(2, [350, 5000], btype="bandpass", fs=rate, output="sos"), y)
+    b, a = biquad("bell", 1800, 3.0, 1.0, rate)
     y = signal.lfilter(b, a, y)
     # the ring
-    delay, g = int(0.0016 * rate), 0.6
+    delay, g = int(0.001 * rate), 0.5
     ring = (1 - g) * signal.lfilter([1.0], np.r_[1.0, np.zeros(delay - 1), -g], y)
-    return 0.7 * y + 0.3 * ring * rms(y) / max(rms(ring), 1e-12)
+    return 0.65 * y + 0.35 * ring * rms(y) / max(rms(ring), 1e-12)
 
 
 def biquad(kind, hz, gain_db, q, rate):

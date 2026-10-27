@@ -110,7 +110,7 @@ A voice can go through a filter after it is said (`filter` in `VOICES`; `FILTERS
   left, snapped to semitones, by Praat's PSOLA), in a metal can (ring modulation at 50 Hz, 35%
   mixed in, and a ringing 1.6 ms comb, half mixed in). Nothing is added under it: the pauses
   stay silent.
-- `stepped-vocoder`: the robot's voice ("Made voices" below): clockwork, and easy to
+- `stepped-vocoder`: the robot's voice ("Made voices" below): a clockwork toy, and easy to
   understand.
 - `tone:<voice>`: the voice given another voice's tone: an EQ, third-octave band by band
   (63 Hz to 10 kHz, smoothed over three, at most 15 dB either way), that makes the clip's
@@ -139,19 +139,25 @@ clean; only then the filter `stepped-vocoder` (`tools/narration.py`) makes it a 
 order:
 
 1. **Stepped**: its melody kept whole (none of its range taken away), but every pitch snapped
-   to the nearest semitone (`retune(keep=1.0, step=1.0)`, Praat's PSOLA), so it glides no more:
-   it sings its sentences as a machine would, still with their rise and fall.
-2. **Vocoder, a third**: two thirds of that voice, one third of it through the `robot` filter (a
-   vocoder saying its words on a buzz that follows its stepped melody, mixed half and half with
-   its own copy two semitones down; a faint 4 ms ring and a 55 Hz warble).
-3. **Speaker**: a band from 200 Hz to 6 kHz (2nd-order Butterworth) and 2 dB of presence at
-   1.8 kHz (a bell, Q 1).
-4. **Ring**: a 1.6 ms feedback comb (feedback 0.6) as loud as the voice, 30% mixed in.
+   to the nearest semitone and moved a semitone up (`retune(keep=1.0, step=1.0, shift=1)`,
+   Praat's PSOLA), so it glides no more: it sings its sentences as a machine would, still with
+   their rise and fall.
+2. **Vocoder, a quarter**: three quarters of that voice, a quarter of it through the `robot`
+   filter (a vocoder saying its words on a buzz that follows its stepped melody, heard up to
+   600 Hz, mixed half and half with its own copy two semitones down; a faint 4 ms ring and a
+   55 Hz warble).
+3. **Speaker**: a small toy's, a band from 350 Hz to 5 kHz (2nd-order Butterworth) and 3 dB of
+   presence at 1.8 kHz (a bell, Q 1).
+4. **Ring**: a short 1 ms feedback comb (feedback 0.5) as loud as the voice, 35% mixed in.
 
 Then it is levelled like every clip; 0.05 s of quiet before it and 0.2 s after, and nothing
 added under it: the pauses stay silent. On a 16-second sample Whisper understood every word.
 It was picked by ear from 15 filters, from none to `metal-monotone` (the try before it, too
-robotic to understand easily).
+robotic to understand easily); with the new `child` it was tuned again by ear, from 20 versions
+of it (more or less vocoder, melody flattened or not, up or down, speakers and rings of other
+sizes, a wobble, digital grit): the "toy robot" (the steps above) won over the one before it (a
+third vocoder, the voice where it was, 200 Hz to 6 kHz, 2 dB of presence, a 1.6 ms ring at
+0.6, 30%).
 
 **The child's voice.** `child` is baked (below) from two voices, 70 / 30:
 

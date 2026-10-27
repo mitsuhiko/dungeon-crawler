@@ -63,8 +63,8 @@ export const VOICE_DIR = resolve(ROOT, 'tools/voices');
 // the `filter` the voice goes through (tools/narration.py FILTERS: 'old-radio', as if heard
 // through an old radio, with static; 'robot', the voice gone a little machine; 'full', fuller
 // and warmer; 'metal-monotone', a machine's voice, mostly monotone, in a metal can;
-// 'stepped-vocoder', the robot's: its melody snapped to semitones, a third vocoder, a small
-// speaker and a faint ring;
+// 'stepped-vocoder', the robot's: its melody snapped to semitones and a semitone up, a quarter
+// vocoder, a small toy speaker and a short ring;
 // 'tone:<voice>', the tone of another
 // voice's recording). A language
 // without one shows the narrator's words only.
