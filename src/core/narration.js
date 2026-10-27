@@ -2,7 +2,7 @@
 // when they are said. game/narrator.js tells the moments as they happen (a recording found ...)
 // and plays what there is to say about them, one line after the other, with subtitles;
 // `node tools/narration.mjs` says every line in every voiced language, in each of its forms, and
-// renders it to assets/narration/<lang>/<clip>.mp3.
+// renders it to assets/narration/<lang>/<clip>.opus.
 //
 // Two voices say them. The glassmaker's recordings (RECORDINGS): the beginning's two in the town,
 // and his glass in the depths (core/glass.js), a chapter of the before time a depth. And the robot

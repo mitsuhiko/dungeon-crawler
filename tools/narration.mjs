@@ -1,6 +1,7 @@
 // The narrator's voice: renders the lines of src/core/narration.js to assets/narration/
 // (docs/narration.md). Every line, in every language with a voice (VOICES), in each of its forms,
-// becomes assets/narration/<lang>/<clip>.mp3, where <clip> is the line's id, or `<id>.<form>`.
+// becomes assets/narration/<lang>/<clip>.opus (Ogg Opus, mono, 16 kbit/s), where <clip> is the
+// line's id, or `<id>.<form>`.
 // assets/narration/manifest.json says what each clip was made from (its text, its seed, a hash of
 // its TTS settings) and how long it is. A clip is rendered again only when its line's text (with
 // its tags) or its seed changed, or when asked (--force, --stale): changing a voice, a filter or
@@ -211,7 +212,7 @@ export function referenceOf(voice) {
   }
   return refs.get(voice);
 }
-export const clipFile = (lang, key) => `${lang}/${key}.mp3`;
+export const clipFile = (lang, key) => `${lang}/${key}.opus`;
 
 // the lines to voice: the narrator's, and the films' (core/film.js filmLines: in a film's own
 // voice, `voice`)
@@ -288,13 +289,20 @@ export async function plan(assets = ASSETS, lines = ALL_LINES) {
     for (const key of Object.keys(entries)) if (!wanted.has(clipFile(lang, key))) gone.add(clipFile(lang, key));
   const dir = resolve(assets, 'narration');
   if (existsSync(dir)) for (const lang of readdirSync(dir, { withFileTypes: true }).filter(e => e.isDirectory()).map(e => e.name))
-    for (const f of readdirSync(join(dir, lang)).filter(f => f.endsWith('.mp3'))) if (!wanted.has(`${lang}/${f}`)) gone.add(`${lang}/${f}`);
+    for (const f of readdirSync(join(dir, lang)).filter(f => /\.(opus|mp3)$/.test(f))) if (!wanted.has(`${lang}/${f}`)) gone.add(`${lang}/${f}`);
   return { clips, problems, unvoiced, missing, changed, stale, gone: [...gone].sort(), manifest };
 }
+
+// whether ffmpeg is here and encodes Opus (tools/narration.py does it with ffmpeg)
+const hasOpus = () => {
+  try { return /\blibopus\b/.test(execFileSync('ffmpeg', ['-hide_banner', '-encoders'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); }
+  catch { return false; }
+};
 
 // renders jobs ({ spec, out }) with tools/narration.py; returns { [out]: seconds }
 function render(jobs) {
   if (!jobs.length) return {};
+  if (!hasOpus()) { console.error('problem: the clips are encoded by ffmpeg with libopus, and there is none here'); process.exit(1); }
   const tmp = mkdtempSync(join(tmpdir(), 'narration-'));
   try {
     const input = join(tmp, 'jobs.json'), output = join(tmp, 'results.json');
@@ -339,7 +347,7 @@ function preview(opt) {
   const said = opt.instruct ? `.${opt.instruct.toLowerCase().match(/[a-z]+/g).slice(0, 4).join('-')}` : '';
   const name = `${voice}${filter ? `.${filter}` : ''}${said}`.replace(/[:,]/g, '-');
   if (targetOf(filter) && referenceOf(targetOf(filter)).problem) { console.error(`problem: ${referenceOf(targetOf(filter)).problem}`); process.exit(1); }
-  const out = opt.bake ? join(VOICE_DIR, `${opt.bake}.flac`) : join(TAKES, 'say', `${name}.${lang}.seed${opt.seed}.mp3`);
+  const out = opt.bake ? join(VOICE_DIR, `${opt.bake}.flac`) : join(TAKES, 'say', `${name}.${lang}.seed${opt.seed}.opus`);
   render([{ spec, out }]);
   if (opt.bake) writeFileSync(join(VOICE_DIR, `${opt.bake}.txt`), untagged(opt.say) + '\n');
   console.log(out);
@@ -397,7 +405,7 @@ async function main(argv) {
     if (!opt.only) { console.error('--takes wants --only <id>: it renders every take of every chosen clip'); process.exit(2); }
     const jobs = pick.flatMap(c => Array.from({ length: opt.takes }, (_, n) => {
       const seed = opt.firstSeed + n;
-      return { spec: { ...c.spec, seed }, out: join(TAKES, c.lang, `${c.key}.seed${seed}.mp3`) };
+      return { spec: { ...c.spec, seed }, out: join(TAKES, c.lang, `${c.key}.seed${seed}.opus`) };
     }));
     if (opt.dry) { for (const j of jobs) console.log(j.out); return; }
     render(jobs);

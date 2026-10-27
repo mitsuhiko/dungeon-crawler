@@ -73,7 +73,7 @@ function clipOf(lang, key) {
   const k = `${lang}/${key}`;
   if (!clips.has(k)) {
     if (!ctx) return Promise.resolve(null);
-    clips.set(k, fetch(new URL(`../../assets/narration/${lang}/${key}.mp3`, import.meta.url))
+    clips.set(k, fetch(new URL(`../../assets/narration/${lang}/${key}.opus`, import.meta.url))
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
       .then(b => ctx.decodeAudioData(b))
       .catch(e => { console.warn(`narration ${k}: ${e.message}`); clips.delete(k); return null; }));

@@ -321,9 +321,9 @@ and a line with tags makes the same clip as without.
 | `src/core/narration.js` | the lines: `{ id, on, when?, text, note, voice?, worn?, forms?, seed? }`, the moments they are said at (`MOMENTS`) and what picks them (`linesFor`); the glassmaker's recordings (`RECORDINGS`); the English text is an i18n message; its tags (`TAG`, `untagged`, `lineText`) |
 | `src/i18n/de/story.js` | their German (`src/i18n/sources.js` lists the table, so `npm run i18n` wants it) |
 | `tools/narration.mjs` | says every line in every voiced language and form, decides what to render, writes the manifest |
-| `tools/narration.py` | renders: Qwen3-TTS cloning the voice, then trimmed, levelled, MP3 (uv script, its dependencies inline) |
+| `tools/narration.py` | renders: Qwen3-TTS cloning the voice, then trimmed, levelled, Opus by ffmpeg (uv script, its dependencies inline) |
 | `tools/voices/<voice>.flac`, `.txt` | the voices cloned: a recording and its words (`experiment_*` not committed) |
-| `assets/narration/<lang>/<clip>.mp3` | the clips: mono, 24 kHz, 48 kbit/s; `<clip>` is the id, or `<id>.<form>` |
+| `assets/narration/<lang>/<clip>.opus` | the clips: Ogg Opus, mono, 16 kbit/s (from the model's 24 kHz); `<clip>` is the id, or `<id>.<form>` |
 | `assets/narration/manifest.json` | per language and clip: its text (`text`, and with its tags `source`), seed, length in seconds and a hash of the settings that made it |
 | `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles; plays a recording again for the memories (`hearAgain`) |
 | `src/game/memorypanel.js` | the inventory's Memories tab: the recordings heard, to hear again |
@@ -362,7 +362,8 @@ and a line with tags makes the same clip as without.
 
 ## Running it
 
-Needs Node, [uv](https://docs.astral.sh/uv/) and the voice's recording (above). The first run
+Needs Node, [uv](https://docs.astral.sh/uv/), [ffmpeg](https://ffmpeg.org/) with libopus (it
+encodes the clips) and the voice's recording (above). The first run
 downloads the model (about 4.5 GB into the Hugging Face cache; no account needed). The model's
 revision is pinned (`REVISIONS` in `tools/narration.py`), so after that it is loaded from the
 cache without asking the hub, and an update upstream does not change the takes. A run starts in

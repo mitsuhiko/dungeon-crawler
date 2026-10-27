@@ -2,7 +2,6 @@
 # requires-python = ">=3.12,<3.14"
 # dependencies = [
 #     "qwen-tts==0.1.1",
-#     "lameenc>=1.7",
 #     "scipy>=1.11",
 #     "librosa>=0.10",
 #     "praat-parselmouth>=0.4",
@@ -32,7 +31,7 @@ own) is the sampling's, for the words and the sound. Then the clip is trimmed, g
 `filter` if it has one (FILTERS: "old-radio", the voice through an old radio with static on top;
 "robot", the voice gone a little machine; "full", fuller and warmer; "metal-monotone", a machine's
 voice, mostly monotone and in a metal can; "stepped-vocoder", the robot's voice; their noise seeded by the seed and the text, so it is
-the same every time), levelled and written as a mono MP3 to `out`. results.json gets
+the same every time), levelled and written as mono Ogg Opus to `out` (by ffmpeg's libopus). results.json gets
 [{"out", "dur"}, ...], the clips' lengths in seconds.
 
 A job with `speaks` (a CustomVoice model) is said by that model instead, in the voice's speaker
@@ -56,17 +55,17 @@ import logging
 import zlib
 import os
 import re
+import subprocess
 import sys
 import time
 import warnings
 
-import lameenc
 import numpy as np
 import torch
 
 # keep in step with PIPELINE in tools/narration.mjs: after a change here, --stale renders the
 # clips made before again
-BITRATE = 48  # kbit/s, mono, at the model's 24 kHz
+BITRATE = 16  # kbit/s, mono Opus, from the model's 24 kHz
 LEAD_IN = 0.05  # seconds of quiet kept before the voice
 TAIL = 0.15  # and after it
 TARGET_RMS_DB = -20.0  # loudness of the spoken part
@@ -403,14 +402,18 @@ FILTERS = {
 }
 
 
-def mp3(audio, rate):
-    enc = lameenc.Encoder()
-    enc.set_bit_rate(BITRATE)
-    enc.set_in_sample_rate(rate)
-    enc.set_channels(1)
-    enc.set_quality(2)
+# how ffmpeg encodes a clip
+OPUS = ["-c:a", "libopus", "-b:a", f"{BITRATE}k", "-vbr", "on", "-application", "audio", "-f", "ogg"]
+
+
+def opus(audio, rate):
+    """The clip as mono Ogg Opus, by ffmpeg's libopus."""
     pcm = (np.clip(audio, -1, 1) * 32767).astype("<i2").tobytes()
-    return bytes(enc.encode(pcm) + enc.flush())
+    cmd = ["ffmpeg", "-v", "error", "-f", "s16le", "-ar", str(rate), "-ac", "1", "-i", "pipe:0", *OPUS, "pipe:1"]
+    done = subprocess.run(cmd, input=pcm, capture_output=True)
+    if done.returncode:
+        raise RuntimeError(f"ffmpeg: {done.stderr.decode(errors='replace').strip()}")
+    return done.stdout
 
 
 def device():
@@ -632,7 +635,7 @@ def render(job):
         soundfile.write(job["out"], audio, rate, subtype="PCM_16")
     else:
         with open(job["out"], "wb") as f:
-            f.write(mp3(audio, rate))
+            f.write(opus(audio, rate))
     dur = round(len(audio) / rate, 2)
     warn = "  (ran to the limit: try another seed)" if ran_away else ""
     return {"out": job["out"], "dur": dur}, f"{dur:5.2f}s {job['text']}{warn}"

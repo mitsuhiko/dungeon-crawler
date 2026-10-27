@@ -67,8 +67,8 @@ test('the narration is rendered and current (node tools/narration.mjs)', { skip:
   assert.deepEqual(list(p.changed), [], 'changed lines: run node tools/narration.mjs');
   assert.deepEqual(p.gone, [], 'clips of lines that are gone: run node tools/narration.mjs');
   for (const c of p.clips) {
-    const head = readFileSync(resolve(assets, 'narration', clipFile(c.lang, c.key))).subarray(0, 3);
-    assert.ok(head.toString('latin1') === 'ID3' || (head[0] === 0xff && (head[1] & 0xe0) === 0xe0), `${c.key} is not an MP3`);
+    const head = readFileSync(resolve(assets, 'narration', clipFile(c.lang, c.key))).subarray(0, 36).toString('latin1');
+    assert.ok(head.startsWith('OggS') && head.slice(28, 36) === 'OpusHead', `${c.key} is not Ogg Opus`);
     assert.ok(p.manifest.clips[c.lang][c.key].dur > 0.5);
   }
 });
