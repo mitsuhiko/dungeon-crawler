@@ -1,10 +1,11 @@
 # Story: the broken world
 
-Status: a sketch, being worked out; of it a first try at the opening ([film.md](film.md)) and the
-beginning in the town (below) are built. This page replaces the earlier story (an old Glassmaker
-woman whose memories were the cubes). The narrator's lines of that story are gone: what it says now
-(`src/core/narration.js`, `src/game/narrator.js`, [narration.md](narration.md)) are the
-glassmaker's recordings of the beginning. Complements [world.md](world.md),
+Status: a sketch, being worked out; of it a first try at the opening ([film.md](film.md)), the
+beginning in the town and the robot coming and following (below) are built. This page replaces the
+earlier story (an old Glassmaker woman whose memories were the cubes). The narrator's lines of that
+story are gone: what it says now (`src/core/narration.js`, `src/game/narrator.js`,
+[narration.md](narration.md)) are the glassmaker's recordings of the beginning and the robot's
+hello. Complements [world.md](world.md),
 [bosses.md](bosses.md), [quests.md](quests.md), [saves.md](saves.md), [online.md](online.md) and
 [i18n.md](i18n.md).
 
@@ -58,9 +59,9 @@ scientists, no space and no rockets; there are star-readers, the sky and winged 
 - **The glassmaker**: a man, a craftsman, who went up with the pieces on the ark, fell with it to
   the core and is held there by the creature. He is
   never seen; you only hear his recordings. His name is still open.
-- **The robot**: a clockwork robot of star-glass, built by the star-readers. It lies in a mud
-  puddle in the first room after the town, where you find it. From then on it goes with you, helps
-  you, brings you back when you die and tells the story as you play (below, "The robot").
+- **The robot**: a clockwork robot of star-glass, built by the star-readers. It comes flying up
+  the first time you are out of the town. From then on it goes with you, lights the way, and will
+  help you, bring you back when you die and tell the story as you play (below, "The robot").
 - **The creature**: the last boss, waiting at the core. Clever, speaks the people's language, and
   wanted to escape. It was brought on board as something to be used, which makes it a prisoner too.
 - **The hero**: a different person every game, from whichever part of the world the game is in.
@@ -73,7 +74,7 @@ Decided:
 
 - **Its look**: star-glass, mostly, like the glass bird: a floating, faceted oval of clear, faintly
   aqua glass with two eyes, that hovers (no legs) on little wings. Its gears show, and are glass
-  too. The model (`blender/robot.py`, `assets/robot.glb`; not in the game yet) adds a little brass:
+  too. The model (`blender/robot.py`, `assets/robot.glb`) adds a little brass:
   about 0.4 cells tall, 0.33 wide (0.6 with its wings), its middle 0.9 above the floor (the hero's
   shoulders). It has two round amber eyes in thin brass rims like portholes, a brass band round its
   waist, and an amber core glowing inside like the bird's, with two meshed glass gears turning
@@ -83,27 +84,52 @@ Decided:
   core pulse with the words), lying in the mud, waking up (eyes open, lifts off, shakes off the mud),
   bringing the hero back (rises, turns, spreads its wings, the core flares) and cheering (a hop and
   a somersault).
-- **It brings you back** when you die, to the last safe place.
+- **How it comes** (built: `src/core/robot.js`, `src/game/robot.js`, `src/render/robot.js`): the
+  first time the hero is out of the town (past the merchant camp's gate, the first piece of the
+  world that is neither the town, a house in it nor the camp), it comes flying up from further in,
+  high over the trees, and once it is close it cheers and says hello (`robot`,
+  `core/narration.js`, in its voice): it heard the glass break and flew as fast as its wings would
+  go; the star-readers made it, of glass and clockwork; it had a name once but cannot find it any
+  more; it will come along and light the way, further down it gets dark. (A first try at its
+  character: cheerful and eager, a little forgetful. Its name stays open: it cannot find it.) The
+  world keeps that it came (its hello, told: `run.told`), so from then on it is with the hero as
+  they come into the world, in the town too. A world played before the robot existed has it come
+  the next time the hero is out of the town; the dev tools (`?dev=1`) skip its coming with the
+  beginning (`&intro=1`: it comes).
+- **How it follows**: along the hero's way, not straight at them: where they went, a trail of
+  crumbs, and it flies along it 1.6 cells behind them, a little to the side, never right on them,
+  hovering at their shoulders. It flies a little slower than the hero runs, and faster the further
+  behind it is: running, it falls back two or three cells; once they stop it catches up, from
+  anywhere, within a few seconds (never more than 20, nor 60 cells behind: then it jumps ahead).
+  It goes through the gates and across the sides they went through, so it can be left in the cube
+  behind for a moment (drawn there while that cube shows). Where the way does not go on (a door
+  into a house, a well, the town portal, a fall, coming back after a death) it fades out and in
+  again where the hero came out. Coming back towards it the short way, it takes the short way too.
+  While it waits it drifts about a little and looks at the hero; while it talks it faces them.
+- **It is in no fight**: invincible, nobody's target, nothing hits it, it is never in the way
+  (it has no body) and cannot be clicked.
+- **Its light**: its amber core lights what is round it (a moving light, about four cells).
+- **It brings you back** when you die, to the last safe place (not built yet).
 - **Its memory**: it knows something about the glassmaker, but cannot get at all of what it
   remembers at once.
 - **Playing together**: every player has a robot of their own. One of them, the host's, is the
-  one that tells the story.
+  one that tells the story. For now each player sees only their own ([online.md](online.md)).
 
 Still open:
 
-- Its name and its character (its voice is settled: `robot`, [narration.md](narration.md)).
+- Its name and its character (its voice is settled: `robot`, [narration.md](narration.md); its
+  hello is a first try).
 - What it knows about the glassmaker and why it cannot get at all of it (damaged, or parts locked
   by the star-readers?). What brings a memory back (going deeper, a recording found, something it
   sees?), and how it tells one when it comes back.
 - Whether the glassmaker made its glass, and whether it knew him.
-- How it helps besides bringing you back (lighting the way, pointing at recordings, warning?),
+- How it helps besides lighting the way and bringing you back (pointing at recordings, warning?),
   and whether it ever fights.
 - What bringing you back looks like, what "the last safe place" is, and what it costs.
-- How it is found: muddy (the model is clean), how the hero wakes it, and what it says first.
 - Playing together: what the other players' robots do and say, whether they look different (a
   tint each?), and what happens to the story's robot when the host leaves.
-- How it follows: how far behind, how high, and what it does where the hero cannot be followed
-  (it flies, so gaps and ladders do not stop it).
+- Whether it should fly straight over gaps and up cliffs where the hero takes the long way (now
+  it keeps to their way), and whether it ever goes ahead (to a recording, to warn).
 - Its sounds (ticking, the whir of its wings, a chime of glass).
 
 ## How the story is told

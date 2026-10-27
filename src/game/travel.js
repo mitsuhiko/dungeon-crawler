@@ -46,6 +46,10 @@ export const travelling = () => !!trip;
 // What the minimap shows and the others are told (net/session.js), so neither jumps a cube
 // ahead and back as the slide starts.
 export const truePosition = () => trip ? (trip.last ?? trip.S) : player;
+// what kind of trip goes on ('side', 'down', 'up', 'fall'; null: none), and the cube it left:
+// { key, group } where that is drawn while the slide carries it away (game/robot.js)
+export const tripKind = () => trip?.kind ?? null;
+export const leftCube = () => trip ? { key: trip.oldKey, group: trip.old.world.group } : null;
 
 // the cube behind the portal may still be generating: wait for it (frozen in the portal).
 // A side portal into a cube not drawn yet gets a cloud to walk onto (render/portalcloud.js).

@@ -1,7 +1,8 @@
 // The glassmaker's words (core/narration.js, film/opening.js, docs/story.md): his recordings and the
-// opening film. Each line's note there says when it comes and how it should feel. He is a man, a
-// craftsman, old and tired, talking to whoever finds his glass; he never says Würfel: ein Stück der
-// Welt, das Glas. The German is recorded too (docs/narration.md): write it to be spoken.
+// opening film; and the robot's. Each line's note there says when it comes and how it should feel.
+// He is a man, a craftsman, old and tired, talking to whoever finds his glass; the robot a little
+// clockwork, cheerful, with a child's voice. Neither says Würfel: ein Stück der Welt, das Glas. The
+// German is recorded too (docs/narration.md): write it to be spoken.
 export default {
   // his recordings (core/narration.js RECORDINGS)
   'A voice in the glass': 'Eine Stimme im Glas',
@@ -30,6 +31,14 @@ export default {
     'Das nächste Tor öffnet sich für mein Schwert. Dahinter wird die Welt wild, also behalt es in der Hand.',
   'And listen for more of my glass. I will keep talking, for as long as I can.':
     'Und hör auf mehr von meinem Glas. Ich rede weiter, solange ich kann.',
+
+  // the robot (core/narration.js `robot`): a little clockwork of star-glass, a child's voice, cheerful
+  'There you are! I heard the glass break, and I flew as fast as my wings would go.':
+    'Da bist du ja! Ich habe das Glas zerspringen hören und bin geflogen, so schnell meine Flügel konnten.',
+  'The star-readers made me, of glass and clockwork. I had a name once, but I cannot find it any more.':
+    'Die Sternleser haben mich gebaut, aus Glas und Uhrwerk. Ich hatte einmal einen Namen, aber ich finde ihn nicht mehr.',
+  'So I will come with you, and light the way. Further down, it gets dark.':
+    'Also komme ich mit dir und leuchte dir den Weg. Weiter unten wird es dunkel.',
 
   // the opening film (film/opening.js): the glassmaker, a man, long after, recording in the dark
   'Nobody says my name any more. That is all right. Names do not keep in glass.':

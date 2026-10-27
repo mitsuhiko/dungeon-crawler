@@ -64,8 +64,13 @@ docs that explain how the game works, from the big ideas down to the real code:
     the town's plaza (`src/render/glassbubble.js`), which plays his recording and opens the town's
     gate, and his old sword stuck in the ground in the merchant camp, which opens the camp's gate to
     the road.
+  - The robot (`src/core/robot.js`, `src/game/robot.js`, its view `src/render/robot.js`, its model
+    `blender/robot.py`; `docs/story.md` "The robot"): the first time the hero is out of the town a
+    little clockwork of star-glass comes flying up and says hello; from then on it follows them
+    along their way, a little behind, through gates and doors and into other cubes, catching up
+    once they stop, and lights the way. It is in no fight and nobody's target.
   - The narrator (`docs/story.md`, `docs/narration.md`): for now the glassmaker's recordings and
-    when they play (`src/core/narration.js`), voiced ahead with Qwen3-TTS (1.7B CustomVoice, in a
+    the robot's hello, and when they play (`src/core/narration.js`), voiced ahead with Qwen3-TTS (1.7B CustomVoice, in a
     voice cloned from a reference recording, following instructions and the lines' tags) into
     `assets/narration/` by `node tools/narration.mjs`; `src/game/narrator.js` plays them as things
     happen, one after the other, with subtitles. The inventory's Memories tab

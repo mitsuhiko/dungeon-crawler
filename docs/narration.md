@@ -126,7 +126,7 @@ another). There is one:
 
 - `robot`: the robot's voice ([story.md](story.md)), `child` through `stepped-vocoder` (no
   `prepare`). `node tools/narration.mjs --say "..." --voice robot`; a line in it says
-  `voice: 'robot'`. No line does yet.
+  `voice: 'robot'`: its hello does (`core/narration.js`, the moment `robot`).
 
 **The robot's voice.** This is the configuration to produce the robot's lines with. The voice is
 `child`, cloned as every voice is (its speaker embedding, said by CustomVoice), its line said

@@ -111,6 +111,7 @@ import { openMainMenu, updateMenu, quitToMenu, heroBox } from './game/menu.js';
 import { updateShowcase } from './game/showcase.js';
 import { updateNarrator } from './game/narrator.js';
 import { updateIntro } from './game/intro.js';
+import { updateRobot } from './game/robot.js';
 import { drawMinimap } from './game/minimap.js';
 import { N } from './core/constants.js';
 import { character, followHero } from './render/character.js';
@@ -176,6 +177,7 @@ function frame(now = performance.now()) {
   tickBurning(dt); tickChill(dt); tickShock(dt); tickDaze(dt); tickStatuses(allEnemies(), dt);
   drawTravelEnemies(dt);
   updateLoot(dt, state.time);
+  updateRobot(dt);   // the robot follows the hero (game/robot.js; before the lights: it has one)
   tickFloatText(dt);
   tickParticles(dt);
   tickPortalCloud(dt);

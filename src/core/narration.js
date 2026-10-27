@@ -4,10 +4,10 @@
 // `node tools/narration.mjs` says every line in every voiced language, in each of its forms, and
 // renders it to assets/narration/<lang>/<clip>.mp3.
 //
-// For now the only lines are his recordings (RECORDINGS): the old narrator's (a grandmother whose
-// memories were the cubes) went with the old story. The other moments are kept for the companion
-// to come, who sees what the hero does and talks about it (docs/story.md, "The robot"); a moment
-// without lines says nothing.
+// For now the lines are his recordings (RECORDINGS) and the robot's hello (`robot`): the old
+// narrator's (a grandmother whose memories were the cubes) went with the old story. The other
+// moments are kept for the robot, who sees what the hero does and will talk about it (docs/story.md,
+// "The robot"); a moment without lines says nothing.
 //
 // A line:
 //   id      what it is kept, sent and recorded under: lowercase words joined by '-' or '.'
@@ -64,6 +64,7 @@ export const SIBLING = { m: { sib: 'm' }, f: { sib: 'f' } };
 //          told at once (the Memories show it whole; leaving it early loses nothing there)
 export const MOMENTS = {
   recording: { pri: 3, all: true, cuts: true, whole: true },   // one of the glassmaker's recordings found ({ part }: RECORDINGS)
+  robot: { pri: 3, all: true, whole: true },  // the robot ({ what }): 'hello', it came flying up (core/robot.js; told: it came)
   town: { pri: 1, ttl: 6, quiet: 4 },         // close to one of the villagers ({ who }: world/town.js VILLAGERS)
   camp: { pri: 2, ttl: 25 },                  // in the merchant camp, the first time
   road: { pri: 2, ttl: 25 },                  // out on the road, where the enemies start
@@ -122,6 +123,12 @@ export const outOfPlace = (line, map) => { const w = recordingOf(line)?.where; r
 const recording = (part, id, text, note, instruct, more = {}) => ({ id: `recording.${part}.${id}`, on: 'recording', when: { part },
   voice: 'glassmaker', worn: true, text, note, instruct, ...more });
 
+// The robot (docs/story.md, "The robot"; core/robot.js, game/robot.js): a clockwork of star-glass,
+// in its own voice (tools/voices: `robot`, docs/narration.md "Made voices"), said live, not worn.
+// Cheerful and eager, a child's voice through clockwork; it cannot get at all it remembers.
+const robot = (what, id, text, note, instruct, more = {}) => ({ id: `robot.${what}.${id}`, on: 'robot', when: { what },
+  voice: 'robot', text, note, instruct, ...more });
+
 export const LINES = [
   // --- the glass on the town plaza: the first thing a hero finds (core/intro.js) -------------------
   recording('glass', 'found', 'So my glass found someone. Good.',
@@ -155,6 +162,17 @@ export const LINES = [
   recording('sword', 'listen', 'And listen for more of my glass. I will keep talking, for as long as I can.',
     'The end of this recording: more of his bubbles lie further on. Tired, but he will not stop.',
     'Speak low and tired, slowing down at the end, a little hopeful.', { seed: 3 }),   // (the others pause long: "Und hör auf.")
+
+  // --- the robot comes flying up, the first time the hero is out of the town (core/robot.js) ------
+  robot('hello', 'there', 'There you are! I heard the glass break, and I flew as fast as my wings would go.',
+    'The robot\'s first words. The hero just left the town and the merchant camp for the road, and the little robot of star-glass came flying up to them. It heard the glassmaker\'s glass break on the town plaza and came looking. Glad, a little out of breath.',
+    'Speak brightly and a little out of breath, glad, like an eager child.'),
+  robot('hello', 'who', 'The star-readers made me, of glass and clockwork. I had a name once, but I cannot find it any more.',
+    'Who it is: the star-readers built it. It cannot get at all of what it remembers, its own name too. Cheerful about the first sentence, puzzled and a little wistful about the second, not sad.',
+    'Speak cheerfully, then a little puzzled and wistful.'),
+  robot('hello', 'come', 'So I will come with you, and light the way. Further down, it gets dark.',
+    'From now on it follows the hero and glows; the way down through the depths gets darker. A small, warm promise.',
+    'Speak warmly and brightly, like a small promise.'),
 ];
 
 // the line with this id (undefined: none)

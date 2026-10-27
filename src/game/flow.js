@@ -53,6 +53,7 @@ import { tr } from '../i18n/i18n.js';
 import { askRespawn, forgetDeath } from './deathask.js';
 import { narrate, arrived, stopNarrator } from './narrator.js';
 import { introArrived, settleIntro } from './intro.js';
+import { robotArrived, forgetRobot } from './robot.js';
 
 export function spawnAt(x, y, z) {
   cancelSword(true); cancelCast();
@@ -309,6 +310,7 @@ export function settleIn(neighbors = true) {
   if (deeper) actJingle(c.map.depth);
   arrived(c.map, state.cubeKey, c.visits, deeper);   // what the narrator has to say about it (game/narrator.js)
   introArrived(c.map);   // the glassmaker's glass plays on in the merchant camp (game/intro.js)
+  robotArrived(c.map);   // the robot comes, the first time out of the town; after that it is with us (game/robot.js)
   if (neighbors) showNeighbors(visitedNeighbors(state.cubeKey));
   if (gateLocked(state.map, state.run)) setStatus(guardianLockMessage(state.map, guardianKind(state.map)));
   prefetchAround(c);
@@ -399,7 +401,7 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
   cancelSword(true);
   clearInput();
   forgetDeath();   // ("You died" not answered: game/deathask.js)
-  stopNarrator();
+  stopNarrator(); forgetRobot();
   if (!keepPlayer) Object.assign(player, createPlayerStats(state.dev, { armed: state.dev }));   // (empty-handed: core/intro.js)
   state.run = createRun(); state.inventoryOpen = false;
   if (restore) restoreRun(restore);
@@ -442,7 +444,7 @@ function restoreRun({ run, faces, visited, deepest = 0 }) {
 
 // Back to the main menu (game/menu.js): the world goes, and nothing of it stays in the scene
 export function endWorld() {
-  cancelSword(true); cancelCast(); clearInput(); forgetDeath(); stopNarrator();
+  cancelSword(true); cancelCast(); clearInput(); forgetDeath(); stopNarrator(); forgetRobot();
   removeEnemyViews(detachEnemies());
   clearNeighbors(); clearNeighborCache();
   disposeWorld(state.world); state.world = null;

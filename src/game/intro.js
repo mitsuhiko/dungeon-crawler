@@ -14,6 +14,7 @@
 // for everyone, and a recording one of us sets off plays for everyone at once (heardStory).
 import { player, state, setStatus, worldPaused } from './state.js';
 import { INTRO_GATES, glassThere, swordThere, skipIntro, pastIntro } from '../core/intro.js';
+import { meetRobot } from '../core/robot.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
 import { fixedWeapon } from '../core/gear/generate.js';
 import { addInstance, equipItem, fits } from '../core/inventory.js';
@@ -116,7 +117,11 @@ export function heardStory(what) {
 }
 
 // game/flow.js newWorld: the beginning done already in a world saved before it existed (somebody
-// has been out past the camp), and with the dev tools (?intro=1: played anyway)
+// has been out past the camp), and with the dev tools (?intro=1: played anyway). The dev tools skip
+// the robot's coming too: it is with the hero from the start (core/robot.js). A world saved before
+// there was a robot has it come the next time the hero is out of the town.
 export function settleIntro(run, seed, visited = [], dev = false, params = new URLSearchParams()) {
-  if (dev && params.get('intro') !== '1' || pastIntro(visited, seed)) skipIntro(run);
+  const skip = dev && params.get('intro') !== '1';
+  if (skip || pastIntro(visited, seed)) skipIntro(run);
+  if (skip) meetRobot(run);
 }

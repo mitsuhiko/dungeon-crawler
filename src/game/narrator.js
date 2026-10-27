@@ -311,6 +311,9 @@ export function hearAgain(lines, onLine) {
   };
 }
 
+// whose voice is saying a line now ('robot', 'glassmaker'; null: nobody): game/robot.js talks while it is its
+export const speaking = () => current?.phase === 'say' ? current.item.line.voice ?? null : null;
+
 // what she is saying and what waits (dev, tests/browser/): the clip, whether it is voiced, the rest's clips
 export const narratorNow = () => ({ enabled, audio: ctx?.state ?? null, manifest: !!manifest,
   saying: current && { key: current.item.key, phase: current.phase, voiced: !!current.buffer, t: current.t, dur: current.dur },

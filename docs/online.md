@@ -128,6 +128,10 @@ being helped up and getting back in. Up to four players, co-op.
   the camp's gate, and his last word plays for everyone (each recording cutting short the one
   before). Each player takes a sword of their own: it stays in the ground for a hero with no
   weapon at all (one who joins empty-handed).
+- The robot ([story.md](story.md#the-robot)) is not shared: every player has their own, which
+  comes to them the first time they are out of the town (a guest's too, in a world where the
+  host's came long ago: what the narrator said is not sent), says hello only to them and follows
+  only them.
 
 ## Fighting together
 
@@ -230,6 +234,8 @@ pays itself and sends `questReward`, each guest pays itself once (`game/quests.j
   (`core/chronicle.js NEWS`, checked by `cleanNews`). Joining and leaving are in it too.
 
 ## Not done
+
+- The others' robots are not shown: each player sees only their own.
 
 - Dev-spawned enemies stay with the game that spawned them: they are not handed over.
 - The host cannot pass the game on: when it leaves, the others play on alone.
