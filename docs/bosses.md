@@ -1178,9 +1178,10 @@ his charge needs room.
   pillar) having run nobody over, he **crashes** (`crash`): into his `stuck` (clip
   `MonteurStuck`, 2.2 s), his head on the ground, dazed, shaking it; until 1.7 s every blow hurts
   him **double** (`exposed`, a thud and dust: "Monteur crashed! Hit him while he is dazed").
-- **Spiders** (within 12 cells, clip `MonteurSummon`, 1.5 s): he rears up on his hind legs and
-  stomps down at 1 s, and plain Spiders crawl out of the floor round him (`MONT_SPIDER`, in a puff
-  of dust): as many as fill up to **three**, every 10 s at most (the first 4 s into the fight).
+- **Moose** (within 12 cells, clip `MonteurSummon`, 1.5 s): he rears up on his hind legs and
+  stomps down at 1 s, and plain Moose come up out of the floor round him (`MONT_MOOSE`, in a puff
+  of dust; they toss, charge and club with their tails like any Moose, [combat.md](combat.md)): as
+  many as fill up to **two**, every 10 s at most (the first 4 s into the fight).
 - No blow takes him below half his health (`hpFloor`).
 
 ### Crumbling
@@ -1211,17 +1212,17 @@ him, his stones flying over to it. He fights on as `MONTEUR_SUN`, his stones all
   looks (`game/roll.js`) till it rests there; gravity stays with the floor, so you run up the
   wall or along the ceiling. What the keys do meanwhile: [camera.md](camera.md), "The world's
   roll" (still to settle).
-- **Spiders**, up to **two**, every 12 s (clip `MonteurSunSummon`: a hop and a stomp).
+- **Moose**, up to **two**, every 12 s (clip `MonteurSunSummon`: a hop and a stomp).
 
 His death (clip `MonteurDeath`: the sun shudders, sinks on its folding legs, its rays drooping,
 and topples over on its back, the stones dropping to the floor round it) turns the world back the
-right way up and takes his Spiders along.
+right way up and takes his Moose along.
 
 ## Monteur's minions
 
 | | Kind of | Size | Notes |
 |---|---|---|---|
-| Spider (`MONT_SPIDER`) | Spider | 1× | plain, ×0.8 health, ×0.6 damage, for now |
+| Moose (`MONT_MOOSE`) | Moose | 1× | plain, ×0.6 health, ×0.55 damage |
 
 ## Slomo
 
@@ -1441,7 +1442,7 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 `/boss renew`. `/spawn slomo` (`addSlomos`; out of his bowl there is no flood), `/spawn armslug`,
 `/spawn oozeslug`, `/spawn oozebolime`, `/spawn slimesquirtle`; `/arena bowl`, `/boss slomo`.
 `/spawn mansk` (`addMansks`: his whole fight anywhere), `/spawn stagetornado`; `/arena stage`,
-`/boss mansk`. `/spawn monteur` (`addMonteurs`: his whole fight anywhere), `/spawn montspider`;
+`/boss mansk`. `/spawn monteur` (`addMonteurs`: his whole fight anywhere), `/spawn montmoose`;
 `/boss monteur`; `/roll` and `/rollkeys` turn the world without him ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`), `/boss qualmos`.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero

@@ -558,6 +558,8 @@ export const LINES = [
     'The first Octonaut: its spin kicks you over.', WARN),
   says('foe', { species: 'mecked' }, 'foe.mecked', 'Big ears, big teeth. Do not let it grab you.',
     'The first Mecked: it grabs and bites.', WARN),
+  says('foe', { species: 'moose' }, 'foe.moose', 'A whole herd of Moose! When one lowers its head, jump aside. And watch out for that tail!',
+    'The first Moose, in a herd: it charges with its head lowered (sidestep it), and clubs whoever stands behind it with its tail.', WARN),
   says('foe', { species: 'fireface' }, 'foe.fireface', 'A face made of fire! Its fireballs keep burning for a while.',
     'The first Fire-face (in the dark forest a Lantern-face): its fireball sets you on fire.', WARN),
   says('foe', { species: 'slug' }, 'foe.slug', 'A slug that spits! The slime slows you down.',

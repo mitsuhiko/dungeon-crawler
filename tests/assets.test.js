@@ -8,7 +8,7 @@ import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THROW_CLIP, KINDS } f
 import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
-  SQUARLO, SQUARLO_GIANT, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, MONTEUR, MONTEUR_SUN, QUALMOS,
+  SQUARLO, SQUARLO_GIANT, MECKED, MOOSE, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, MONTEUR, MONTEUR_SUN, QUALMOS,
   SQUIRTLE, fireAt } from '../src/core/enemies.js';
 import { MANSK_FIGHT } from '../src/core/mansk.js';
 import { MONTEUR_FIGHT } from '../src/core/monteur.js';
@@ -38,7 +38,7 @@ const BUDGETS = {
   firecat: { FireCat: 8000 }, shraps: { Shraps: 8000, ShrapsIceBall: 1500 }, spicy: { Spicy: 6000 }, wolla: { Wolla: 8000 }, wolk: { Wolk: 6000 },
   gusto: { Gusto: 8000 }, totnar: { Totnar: 10000, TotnarSkull: 1500 }, snapskull: { SnapSkull: 3000 },
   squarlo: { Squarlo: 8000 }, squirtle: { Squirtle: 6000 }, flip: { Flip: 10000, FlipBall: 1200 },
-  foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
+  foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, moose: { Moose: 8000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
   slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, monteur: { Monteur: 12000, MonteurStone: 600 }, qualmos: { Qualmos: 12000 }, robot: { Robot: 3000 },
 };
 test('characters and enemies keep to their triangle budgets', () => {
@@ -518,6 +518,24 @@ test('the Mecked waddles, bites and grabs on its attacks\' timings, and holds wh
   const names = new Set(j.materials.map(m => m.name));
   for (const m of Object.values(MECKED.parts).flat()) assert.ok(names.has(m), m);
   for (const bone of ['jaw', 'ear.L', 'ear_tip.R', 'hand.L', 'tail_1', 'tail_8']) assert.ok(j.nodes.some(n => n.name === bone), bone);
+});
+test('the Moose walks and gallops, tosses, charges, sees stars and swings its tail on its attacks\' timings', () => {
+  const { json: j, duration } = glb('moose'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
+  const clip = name => 'Moose' + name[0].toUpperCase() + name.slice(1);
+  assert.deepEqual(Object.keys(a).sort(), ['MooseDeath', 'MooseRun', 'MooseWalk', ...MOOSE.attacks.map(at => clip(at.clip))].sort());
+  assert.equal(a.MooseWalk.extras.loop, true); assert.equal(a.MooseWalk.extras.speed, MOOSE.wander);
+  assert.equal(a.MooseRun.extras.loop, true); assert.ok(a.MooseRun.extras.speed > MOOSE.chase, 'it gallops faster than it hunts');
+  for (const at of MOOSE.attacks) {
+    const c = a[clip(at.clip)];
+    if (c.extras.hit_frame !== undefined) assert.equal(c.extras.hit_frame / 30, at.hitAt, at.clip);
+    assert.ok(Math.abs(duration(c) - at.attackTime) < 1e-5, at.clip);
+    if (at.roll) { assert.equal(c.extras.charge_end / 30, at.roll.to, at.clip); assert.equal(c.extras.hit_frame / 30, at.roll.from, at.clip); }
+  }
+  assert.ok(Math.abs(duration(a.MooseDeath) - MOOSE.deathTime) < 1e-5); assert.equal(a.MooseDeath.extras.hold_last_frame, true);
+  const names = new Set(j.materials.map(m => m.name));
+  for (const m of [...Object.values(MOOSE.parts).flat(), 'MooseTeeth', 'MooseMouth', 'MooseHooves', 'MooseStars_glow']) assert.ok(names.has(m), m);
+  // its tail's bones and ball, the stars over its head (scaled away but when it is dazed), four legs
+  for (const n of ['body', 'neck', 'head', 'eye.L', 'tail_1', 'tail_4', 'ball', 'stars', 'upper.fore.L', 'lower.hind.R']) assert.ok(j.nodes.some(o => o.name === n), n);
 });
 test('the Tornado shuffles, spins up its twisters over its hands, rides them and topples over', () => {
   const { json: j, duration } = glb('tornado'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));

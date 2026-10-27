@@ -48,6 +48,7 @@ description there.
 | `laser`, `zapburst`, `fizzle` | the Spicy's laser shining, bursting, put out (`game/juice.js`) |
 | `thunder`, `gust` | the Wolla's storm cloud flashing, its blow (`game/juice.js`) |
 | `grab`, `chomp` | caught in a grab, and a Mecked biting down on you while it holds you (`game/grab.js`) |
+| `hooves` | a Moose charging: its hooves drumming, a beat a stride (`render/mooseview.js`) |
 | `blur` | a blow, a shot or a flask's burst going right through a shimmering Flimmer (`game/juice.js evadedFx`) |
 | `whirl`, `twirl` | a Tornado's twister spinning up (over its hands, under its feet), and catching you and spinning you round (`game/juice.js`) |
 | `charge`, `lightning`, `rumble` | the Wolk's lightning gathering, striking, and its thunder rolling in later, the later the further away (`sfx`'s `delay`, `game/juice.js`) |

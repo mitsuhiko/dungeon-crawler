@@ -195,6 +195,9 @@ again. The lineup is planned with the room (`cubegen/testrooms.js` `lineUp`), so
 | Frost flimmer | Flimmer | `frost.pale` | ×1.3 | ×1.1 | ×0.95 | 1 | ×1.2 | 3 |
 | Haze flimmer | Flimmer | `ochre.light` | ×1.25 | ×1.2 | ×1.05 | ×1.05 | ×1.22 | 4–6 (not the Dark forest) |
 | Shadow flimmer | Flimmer | `ink.dark` | ×1.15 | ×1.15 | ×1.1 | ×1.1 | ×1.15 | 4–6 (Dark forest) |
+| Moose | (base) | `ember.deep@+6`, `stone.pale` antlers | | | | | | 2–6 (Dark forest, Prayer highlands; herds) |
+| Frost moose | Moose | `frost.pale@+4`, `frost.light@-6` antlers | ×1.3 | ×1.1 | ×0.9 | 1 | ×1.2 | 2–6 (Snowy peaks), 7–13 (Frozen caves) |
+| Bog moose | Moose | `moss.deep@-6`, `ochre.pale` antlers | ×1.25 | ×1.25 | ×1.05 | 1 | ×1.25 | 7–13 (Fungal swamp, now and then the Slime marsh; its slime does not hold it) |
 
 The base kinds are painted from the palette too (their `colors`); the other columns are theirs.
 Depths are those whose rosters draw the kind (`src/core/spawns.js`, [depths.md](depths.md)).
@@ -209,7 +212,7 @@ the fluid they are in, so of their `colors` only the eyes show). Squarlo's Squir
 ×0.6 damage) are `plain` Squirtle minions, and Flip's Sky wolla (`frost.light`, ×0.6 health and
 damage) a Wolla minion. Renew's spiders (×0.8 health, ×0.6 damage) and Fire-faces (×0.55) are `plain` minions too.
 Mansk's Tornados (`STAGE_TORNADO`, ×0.6 health, ×0.55 damage) are `plain` minions too.
-Monteur's Spiders (`MONT_SPIDER`, ×0.8 health, ×0.6 damage) are `plain` minions too, for now.
+Monteur's Moose (`MONT_MOOSE`, ×0.6 health, ×0.55 damage) are `plain` minions too.
 Foggery's Fire-faces and Fire-cats are
 `plain` minions: they look like and are called what they are (×0.6 health and damage, the cats ×0.8
 health); both are `lavaproof`: they walk on his lava.
@@ -253,6 +256,11 @@ prop) take each kind's colours, a paler shade of its body; a fiery kind's (`spar
 The Wollas are strength tiers too: blue, then green in the swamp, purple in the cenote, the nests,
 the mines and the ruins, orange in the volcanic depths and the abyss. Their eyes take a contrasting
 colour, and each kind leaves a trail of its own colour (`trail`).
+
+The Moose come in herds: the brown Moose of the dark forest and the highlands, the pale blue Frost
+moose of the snowy peaks and the frozen caves, and the dark green Bog moose of the fungal swamp,
+which wades into the slime marsh too (`slimeborn`: the marsh's slime does not hold it). Each kind's
+antlers (`antlers` role) and the ball on its tail (`ball`) take colours of their own.
 
 ## Guardians
 

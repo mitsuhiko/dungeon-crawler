@@ -9,13 +9,13 @@
 //                  (`stones`: he has at most `most`, each grows back in `grow` s), and charges
 //                  you with his head (`charge`, now and then: a run straight at you; one that
 //                  misses and runs into something leaves him dazed, `stuck`, and every blow
-//                  hurts him double); Spiders crawl out round him (`minions`)
+//                  hurts him double); Moose come up out of the floor round him (`minions`)
 //   2 (the sun)    the same as a sun: the stones, rolling at you instead of charging; and he
 //                  makes stones rain out of the sky round you (`rain`), and turns the world
 //                  (`spin`): the view turns slowly a quarter or half round and stays there
 //                  (gravity stays with the floor, core/roll.js), till he turns it again
 // The mountains he pulls out of the floor in phase 2 are still to come. His death turns the world
-// back the right way up and takes his Spiders along.
+// back the right way up and takes his Moose along.
 export const MONTEUR_FIGHT = Object.freeze({
   splits: [1 / 2],           // the share of his health phase 2 starts at
   morphTime: 3,              // s he changes into the sun (the clip MonteurChange), nothing hurting him
@@ -26,7 +26,7 @@ export const MONTEUR_FIGHT = Object.freeze({
   charge: { first: [3, 4], every: [6, 9] },
   rain: { first: 3, every: [9, 12] },
   spin: { first: 5, every: [13, 18] },
-  minions: [3, 2],           // the most Spiders at once, phase by phase
+  minions: [2, 2],           // the most Moose at once, phase by phase
   summonCool: [10, 12],      // s from one summon to the next
   firstSummon: [4, 7],       // s into a phase before its first summon
   leave: 0.5,                // s a minion he takes along lingers, gone, before it is let go
@@ -39,7 +39,7 @@ export const STONES_OF = Object.freeze({ throw: 1, volley: 3 });
 
 // the health below which no blow takes him in phase `phase` (0 in the last)
 export const phaseFloor = (maxHp, phase) => phase <= MONTEUR_FIGHT.splits.length ? Math.ceil(maxHp * MONTEUR_FIGHT.splits[phase - 1]) : 0;
-// how many Spiders a summon brings in phase `phase` with `alive` of them about
+// how many Moose a summon brings in phase `phase` with `alive` of them about
 export const summonCount = (phase, alive) => Math.max(0, (MONTEUR_FIGHT.minions[phase - 1] ?? 0) - alive);
 // The attacks he may not start now (names): those of the other phases; the crash (only a charge
 // that runs into something starts it, game/enemyai.js); a throw without the stones for it; the

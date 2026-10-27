@@ -330,6 +330,9 @@ export default {
     'Überall Arme! Wenn er sich dreht, geh zurück.',
   'Big ears, big teeth. Do not let it grab you.':
     'Große Ohren, große Zähne. Lass dich nicht packen.',
+  // (the German leaves out its name: said in German it would not sound like the kids say it)
+  'A whole herd of Moose! When one lowers its head, jump aside. And watch out for that tail!':
+    'Eine ganze Herde! Wenn einer den Kopf senkt, spring zur Seite. Und pass auf seinen Schwanz auf!',
   'A face made of fire! Its fireballs keep burning for a while.':
     'Ein Gesicht aus Feuer! Seine Feuerbälle brennen noch eine Weile nach.',
   'A slug that spits! The slime slows you down.':

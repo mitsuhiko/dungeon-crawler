@@ -491,6 +491,13 @@ const SOUNDS = {
     sweep(t, 2, 300 * p, 900 * p, 400 * p, 0.6, 0.35, out, 0.7, 'lowpass');
     for (let i = 0; i < 3; i++) sweep(t + 0.5 + i * 0.5, 0.6, 500 * p, 1500 * p, 600 * p, 0.6, 0.18, out, 0.15);
   },
+  hooves(t, out, p) {    // a Moose charging: a drumming of hooves on the ground, four beats a stride
+    for (let i = 0; i < 4; i++) {
+      const at = t + i * 0.055 + (i > 1 ? 0.03 : 0);
+      tone('sine', 120 * p, 60 * p, at, 0.07, amp(at, 0.002, 0.5, 0.07, out));
+      noise(at, 0.04, filter('bandpass', 900 * p, 1.5, amp(at, 0.001, 0.3, 0.04, out)));
+    }
+  },
   stomp(t, out, p) {     // a giant's foot coming down: a boom you feel, and the ground rattling
     tone('sine', 70 * p, 28 * p, t, 0.7, amp(t, 0.004, 1.1, 0.7, out));
     tone('triangle', 120 * p, 45 * p, t, 0.35, filter('lowpass', 400, 1, amp(t, 0.003, 0.6, 0.35, out)));

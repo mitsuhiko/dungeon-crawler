@@ -18,7 +18,9 @@
 //       the Coral ones to the lava of the volcanic caves and the abyss; the Slugs and the Bolimes to
 //       the slime marsh; the Gloom spiders and the Lantern-faces to the dark forest), at every depth
 //       of its theme's act (themes/index.js ACTS: a theme may appear anywhere in its act); '!theme':
-//       everywhere but there (the dark forest has spiders of its own). A fluid dweller (the
+//       everywhere but there (the dark forest has spiders of its own). An entry that does not live
+//       in a cube's theme takes no draw from its stream: a species added to some themes (the Moose)
+//       leaves the other themes' cubes as they were. A fluid dweller (the
 //       Squirtles) is only put down in its fluid (game/enemyspawn.js): a cube without any has none.
 //   mix: the most species one cube holds. If more roll present, the extra ones are dropped:
 //     always-present species are kept first, the others in a random order weighted by chance.
@@ -39,63 +41,75 @@ export const DEPTH_SPAWNS = [
     ['spider', .7, 2, 4, 2, { gloomspider: 1 }, ['darkforest']], ['fireface', .3, 1, 1, 1, { lanternface: 1 }, ['darkforest']]),
   /*  2 act I */ D(3, ['snake', 1, 2, 5, 1, { snake: 3, sandviper: 1 }], ['spider', .6, 2, 4, 2, { spider: 1 }, ['!darkforest']],
     ['stunder', .25, 1, 1], ['wolk', .35, 1, 2], ['tornado', .3, 1, 1], ['squirtle', .6, 1, 3, 1, { squirtle: 1 }, ['lagoon']], ['flimmer', .35, 3, 3, 3],
-    ['spider', .8, 3, 5, 2, { gloomspider: 3, spider: 1 }, ['darkforest']], ['fireface', .4, 1, 2, 1, { lanternface: 1 }, ['darkforest']]),
+    ['spider', .8, 3, 5, 2, { gloomspider: 3, spider: 1 }, ['darkforest']], ['fireface', .4, 1, 2, 1, { lanternface: 1 }, ['darkforest']],
+    ['moose', .4, 2, 2, 2, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .4, 2, 2, 2, { frostmoose: 1 }, ['peaks']]),
   /*  3 act I */ D(3, ['spider', 1, 8, 14, 3, { frostspider: 1 }, ['!darkforest']], ['stunder', .7, 1, 2, 1, { froststunder: 1 }],
     ['shraps', .3, 1, 1], ['wolk', .5, 1, 2, 1, { stormwolk: 2, wolk: 1 }], ['snake', .7, 2, 4, 2, { frostadder: 1 }], ['triangle', .2, 1, 1],
     ['tornado', .35, 1, 2, 1, { frosttornado: 2, tornado: 1 }], ['squirtle', .6, 1, 3, 1, { squirtle: 1 }, ['lagoon']],
     ['flimmer', .45, 3, 3, 3, { frostflimmer: 1 }],
-    ['spider', .8, 4, 6, 2, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .4, 1, 2, 1, { lanternface: 1 }, ['darkforest']]),
+    ['spider', .8, 4, 6, 2, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .4, 1, 2, 1, { lanternface: 1 }, ['darkforest']],
+    ['moose', .45, 2, 3, 3, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .5, 2, 3, 3, { frostmoose: 1 }, ['peaks']]),
   /*  4 act I */ D(3, ['snake', 1, 3, 6, 2, { sandviper: 1 }], ['spider', .8, 4, 8, 3, { spider: 2, redback: .5 }, ['!darkforest']],
     ['stunder', .6, 1, 2, 1, { stonestunder: 1, stunder: 1 }], ['wolk', .5, 1, 2, 1, { dustwolk: 1 }],
     ['tornado', .4, 1, 2, 1, { dusttornado: 2, tornado: 1 }], ['squirtle', .6, 2, 3, 2, { squirtle: 1 }, ['lagoon']],
     ['flimmer', .45, 3, 6, 3, { hazeflimmer: 2, flimmer: 1 }, ['!darkforest']], ['flimmer', .35, 3, 3, 3, { shadowflimmer: 1 }, ['darkforest']],
-    ['spider', .8, 4, 7, 3, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .45, 1, 2, 1, { lanternface: 1 }, ['darkforest']]),
+    ['spider', .8, 4, 7, 3, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .45, 1, 2, 1, { lanternface: 1 }, ['darkforest']],
+    ['moose', .5, 2, 3, 3, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .5, 2, 3, 3, { frostmoose: 1 }, ['peaks']]),
   /*  5 act I */ D(3, ['snake', 1, 4, 7, 2, { sandviper: 1 }], ['spider', .8, 5, 9, 3, { spider: 2, redback: .5 }, ['!darkforest']],
     ['stunder', .6, 1, 2, 1, { stonestunder: 1, stunder: 1 }], ['wolk', .4, 1, 2, 1, { dustwolk: 1, stormwolk: 1 }], ['wolla', .3, 1, 2],
     ['tornado', .35, 1, 2, 1, { dusttornado: 1, tornado: 1 }], ['squirtle', .6, 2, 3, 2, { squirtle: 1 }, ['lagoon']],
     ['flimmer', .45, 3, 6, 3, { hazeflimmer: 2, flimmer: 1 }, ['!darkforest']], ['flimmer', .35, 3, 3, 3, { shadowflimmer: 1 }, ['darkforest']],
-    ['spider', .8, 5, 8, 3, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .5, 1, 2, 1, { lanternface: 1 }, ['darkforest']]),
+    ['spider', .8, 5, 8, 3, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .5, 1, 2, 1, { lanternface: 1 }, ['darkforest']],
+    ['moose', .5, 2, 4, 3, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .5, 2, 4, 3, { frostmoose: 1 }, ['peaks']]),
   /*  6 act I */ D(3, ['snake', 1, 5, 8, 2, { sandviper: 1, bloodviper: 1 }], ['spider', .8, 6, 10, 3, { spider: 2, redback: 1 }, ['!darkforest']],
     ['stunder', .6, 1, 3, 1, { stonestunder: 1, stunder: 1 }], ['wolk', .4, 1, 2, 1, { dustwolk: 1, stormwolk: 1 }], ['wolla', .35, 1, 2],
     ['octonaut', .15, 1, 1], ['mecked', .15, 1, 1], ['tornado', .3, 1, 2, 1, { dusttornado: 1 }], ['squirtle', .6, 2, 4, 2, { squirtle: 1 }, ['lagoon']],
     ['flimmer', .4, 3, 6, 3, { hazeflimmer: 1 }, ['!darkforest']], ['flimmer', .35, 3, 3, 3, { shadowflimmer: 1 }, ['darkforest']],
-    ['spider', .8, 5, 9, 3, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .5, 1, 2, 1, { lanternface: 1 }, ['darkforest']]),
+    ['spider', .8, 5, 9, 3, { gloomspider: 2, spider: 1 }, ['darkforest']], ['fireface', .5, 1, 2, 1, { lanternface: 1 }, ['darkforest']],
+    ['moose', .55, 2, 4, 3, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .55, 2, 4, 3, { frostmoose: 1 }, ['peaks']]),
   /*  7 act II */ D(3, ['spider', 1, 7, 12, 3, { spider: 2, bogspider: 1 }], ['snake', .8, 4, 7, 2, { snake: 1, bloodviper: 1 }],
     ['stunder', .6, 1, 2, 1, { stunder: 1 }], ['mecked', .5, 1, 2], ['wolla', .4, 1, 2], ['octonaut', .2, 1, 1],
     ['squirtle', .7, 2, 3, 2, { squirtle: 1 }, ['grotto', 'cenote']], ['slug', .9, 1, 3, 1, { spottedslug: 2, blackslug: 2, slug: 1 }, ['slime']],
-    ['bolime', .95, 2, 3, 2, { toxicbolime: 2, glowbolime: 2, bolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']]),
+    ['bolime', .95, 2, 3, 2, { toxicbolime: 2, glowbolime: 2, bolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']],
+    ['moose', .45, 2, 3, 3, { frostmoose: 1 }, ['frozen']], ['moose', .45, 2, 3, 3, { bogmoose: 1 }, ['swamp']], ['moose', .2, 2, 2, 2, { bogmoose: 1 }, ['slime']]),
   /*  8 act II */ D(3, ['spider', 1, 8, 13, 3, { spider: 2, bogspider: 1, redback: .5 }], ['snake', .8, 4, 8, 2, { bloodviper: 1 }],
     ['stunder', .6, 1, 3, 1, { stunder: 1, stonestunder: 1 }], ['mecked', .6, 1, 3, 2], ['wolla', .45, 1, 2], ['octonaut', .25, 1, 2],
     ['squirtle', .7, 2, 3, 2, { squirtle: 1 }, ['grotto', 'cenote']], ['slug', .9, 1, 3, 1, { spottedslug: 2, blackslug: 2, slug: 1 }, ['slime']],
-    ['bolime', .95, 2, 3, 2, { toxicbolime: 2, glowbolime: 2, bolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']]),
+    ['bolime', .95, 2, 3, 2, { toxicbolime: 2, glowbolime: 2, bolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']],
+    ['moose', .5, 2, 3, 3, { frostmoose: 1 }, ['frozen']], ['moose', .5, 2, 3, 3, { bogmoose: 1 }, ['swamp']], ['moose', .2, 2, 2, 2, { bogmoose: 1 }, ['slime']]),
   /*  9 act II */ D(3, ['octonaut', 1, 3, 4], ['shraps', .8, 1, 3], ['spider', .8, 6, 10, 3, { frostspider: 1 }],
     ['stunder', .7, 1, 2, 1, { froststunder: 1 }], ['snake', .8, 3, 5, 2, { frostadder: 1 }], ['mecked', .6, 1, 2, 1, { frostmecked: 1 }],
     ['tornado', .25, 1, 1, 1, { frosttornado: 1 }], ['squirtle', .8, 2, 4, 2, { squirtle: 1 }, ['grotto', 'cenote']],
     ['slug', .9, 1, 3, 1, { spottedslug: 2, blackslug: 2, slug: 1 }, ['slime']],
-    ['bolime', .95, 2, 3, 2, { toxicbolime: 2, glowbolime: 2, bolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']]),
+    ['bolime', .95, 2, 3, 2, { toxicbolime: 2, glowbolime: 2, bolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']],
+    ['moose', .5, 2, 3, 3, { frostmoose: 1 }, ['frozen']], ['moose', .5, 2, 3, 3, { bogmoose: 1 }, ['swamp']], ['moose', .2, 2, 2, 2, { bogmoose: 1 }, ['slime']]),
   /* 10 act II */ D(3, ['octonaut', 1, 3, 5, 2, { octonaut: 3, coraloctonaut: 1 }], ['shraps', .9, 2, 3],
     ['spider', .8, 7, 12, 4, { frostspider: 1 }], ['stunder', .7, 1, 2, 1, { froststunder: 1 }],
     ['snake', .7, 3, 5, 2, { frostadder: 1 }], ['triangle', .15, 1, 1], ['mecked', .65, 1, 2, 1, { frostmecked: 1 }],
     ['tornado', .3, 1, 2, 1, { frosttornado: 1 }],
     ['squirtle', .8, 2, 4, 2, { squirtle: 1 }, ['grotto', 'cenote']], ['slug', .9, 2, 3, 1, { blackslug: 2, spottedslug: 1 }, ['slime']],
-    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']]),
+    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']],
+    ['moose', .55, 2, 4, 3, { frostmoose: 1 }, ['frozen']], ['moose', .55, 2, 4, 3, { bogmoose: 1 }, ['swamp']], ['moose', .2, 2, 2, 2, { bogmoose: 1 }, ['slime']]),
   /* 11 act II */ D(3, ['snake', 1, 6, 10, 3, { venomadder: 1 }], ['octonaut', .8, 2, 4, 2, { bogoctonaut: 3, octonaut: 1 }],
     ['spicy', .6, 1, 2, 1, { spicy: 1, habanero: 1 }], ['wolla', .4, 1, 2, 1, { bogwolla: 1 }],
     ['spider', .6, 6, 10, 4, { bogspider: 1 }], ['mecked', .5, 1, 2, 1, { bogmecked: 1 }], ['stunder', .25, 1, 2],
     ['fireface', .3, 1, 1, 1, { blazeface: 1 }], ['squirtle', .8, 2, 4, 2, { squirtle: 1 }, ['grotto', 'cenote']],
     ['slug', .9, 2, 3, 1, { blackslug: 2, spottedslug: 1 }, ['slime']],
-    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']]),
+    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']],
+    ['moose', .55, 2, 4, 3, { frostmoose: 1 }, ['frozen']], ['moose', .55, 2, 4, 3, { bogmoose: 1 }, ['swamp']], ['moose', .2, 2, 2, 2, { bogmoose: 1 }, ['slime']]),
   /* 12 act II */ D(3, ['snake', 1, 7, 12, 3, { venomadder: 2, bloodviper: 1 }], ['octonaut', .8, 3, 5, 2, { bogoctonaut: 3, octonaut: 1 }],
     ['spicy', .8, 1, 3, 1, { spicy: 1, habanero: 1 }], ['wolla', .5, 1, 2, 1, { bogwolla: 1 }],
     ['spider', .6, 8, 12, 4, { bogspider: 1 }], ['mecked', .55, 1, 3, 2, { bogmecked: 1 }], ['fireface', .3, 1, 1, 1, { blazeface: 1 }],
     ['squirtle', .8, 2, 4, 2, { squirtle: 1 }, ['grotto', 'cenote']], ['slug', .9, 2, 3, 1, { blackslug: 2, spottedslug: 1 }, ['slime']],
-    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']]),
+    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']],
+    ['moose', .55, 2, 4, 3, { frostmoose: 1 }, ['frozen']], ['moose', .55, 2, 4, 3, { bogmoose: 1 }, ['swamp']], ['moose', .2, 2, 2, 2, { bogmoose: 1 }, ['slime']]),
   /* 13 act II */ D(3, ['snake', 1, 8, 12, 3, { venomadder: 1, bloodviper: 1 }], ['octonaut', .8, 3, 5, 2, { coraloctonaut: 2, bogoctonaut: 1 }],
     ['spicy', .6, 1, 2, 1, { habanero: 1, spicy: 1 }], ['triangle', .4, 1, 2, 1, { emeraldtriangle: 1 }],
     ['wolla', .3, 1, 2, 1, { bogwolla: 1, stormwolla: 1 }], ['spider', .3, 10, 14, 4, { bogspider: 1, redback: 1 }],
     ['mecked', .5, 1, 2, 1, { bogmecked: 1 }], ['squirtle', .8, 2, 4, 2, { squirtle: 1 }, ['grotto', 'cenote']],
     ['slug', .9, 2, 3, 1, { blackslug: 2, spottedslug: 1 }, ['slime']],
-    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']]),
+    ['bolime', .95, 2, 4, 2, { glowbolime: 2, toxicbolime: 1 }, ['slime']], ['squirtle', .5, 1, 3, 2, { toxicsquirtle: 1 }, ['slime']],
+    ['moose', .55, 2, 4, 3, { frostmoose: 1 }, ['frozen']], ['moose', .55, 2, 4, 3, { bogmoose: 1 }, ['swamp']], ['moose', .2, 2, 2, 2, { bogmoose: 1 }, ['slime']]),
   /* 14 act III */ D(3, ['spider', 1, 18, 26, 6, { redback: 1, bogspider: 1 }], ['stunder', .5, 1, 2, 1, { stonestunder: 1 }],
     ['octonaut', .3, 1, 2, 1, { octonaut: 1, coraloctonaut: 1 }], ['snake', .4, 4, 6, 3, { venomadder: 1, shadowmamba: 1 }],
     ['spicy', .5, 1, 2, 1, { nightshade: 1 }], ['mecked', .45, 1, 2, 1, { bonemecked: 1 }], ['wolla', .3, 1, 2, 1, { stormwolla: 1 }],
@@ -154,7 +168,7 @@ export function population(map) {
   if (map.populationScale === 0) return new Map();   // (nobody: the hunter's room, docs/trials.md `chase`)
   const R = mulberry32(hash32(map.seed ^ SALT)), row = map.spawns ?? spawnsAt(map.depth || 0);
   const rolled = [];
-  for (const e of row.roster) if (R() < e.chance && livesIn(e, map.biome)) rolled.push({ e, key: e.chance >= 1 ? 1 + R() : R() ** (1 / e.chance) });
+  for (const e of row.roster) if (livesIn(e, map.biome) && R() < e.chance) rolled.push({ e, key: e.chance >= 1 ? 1 + R() : R() ** (1 / e.chance) });
   let present = rolled.sort((a, b) => b.key - a.key).slice(0, row.mix).map(r => r.e);
   // (none rolled: the first that lives here)
   if (!present.length) present = [row.roster.find(e => livesIn(e, map.biome)) ?? row.roster[0]];

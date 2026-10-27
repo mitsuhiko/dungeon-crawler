@@ -256,6 +256,24 @@ The controls are the same for all.
   mecked's bites poison), then shoved away on your feet at 1.9 s, stunned for 0.3 s. A stagger
   (a friend's blow, a heavy one) or its death makes it let go early: you drop. It dies reeling
   back and toppling over onto its side.
+- Moose (`blender/moose.py`, after the kids' drawing; in herds of two to four): a grumpy moose
+  with a big round head, angry brows, a wide grin full of jagged teeth and branching antlers, on a
+  long thin neck, a long oval body on four stubby legs, and a long tail curving up to a hard,
+  smooth ball. Its antlers guard its front and its tail its back; it turns slowly (`turnSpeed`
+  2.2 rad/s), so its sides are the place to stand (`style: 'brute'`, a `charge` of 1.3×):
+  - Toss (up to 1.45 cells, in front): it lowers its antlers and flings them up at frame 14.
+  - Charge (from 2.5 to 7 cells): it lowers its head, scrapes a hoof and snorts (dust and puffs of
+    breath, `render/mooseview.js`), then from 0.7 s gallops along its heading at 6.5 cells/s for
+    a second, steering only 0.35 rad/s (Monteur's charge: a `roll`), and tramples whoever it runs
+    into (1.3× its damage, knocked down). It cannot be staggered while it runs (`steady`). One that
+    runs into something with nobody run over `crash`es into its daze: stars circle over its head,
+    and for 1.5 s every blow hurts it 1.5× (`exposed`). One that runs out in the open skids to a
+    stop. Jump aside!
+  - Tail (up to 1.9 cells, behind it): an attack that is `back` is started only with the player
+    behind it (`behind` in `core/enemies.js`: off its heading by more than about 107°), without
+    turning round to them; while it winds up it turns its back to them, and its blow lands behind
+    it (the arc about its back). It cocks its tail and sweeps the ball round behind it at frame 16.
+  It dies staggering and falling onto its side.
 - Slug (`blender/slug.py`, after the kids' sketch; the Slime marsh only): a big dark green slug, a
   long, low body striped across its back on four short curly legs, two eye stalks with a round
   eye on each tip. It crawls very slowly (0.7 cells/s at most), rippling, and leaves a trail of
@@ -390,8 +408,8 @@ times a second (0.2 s, jittered so a pack does not decide in lockstep) and acts 
     when blocked and now and then, and darts in once the cooldown is over.
   - `ranged` (Fire-face, Triangle, Spicy, Wolla, Wolk, Tornado, Slug): backs away while closer than `keep[0]`, sidesteps while the
     throw recovers, and moves for a clear shot when it has none.
-  - `brute` (Stunder, Octonaut, Shraps, Mecked, Bolime): holds its ground. The Stunder `charge`s: it runs the
-    last 1.5–5 cells at 1.8× its chase speed when it can strike again (the Mecked at 1.4×).
+  - `brute` (Stunder, Octonaut, Shraps, Mecked, Bolime, Moose): holds its ground. The Stunder `charge`s: it runs the
+    last 1.5–5 cells at 1.8× its chase speed when it can strike again (the Mecked at 1.4×, the Moose at 1.3×).
   Cooldowns vary by ±20% per blow. Throws are aimed ahead of a running player by half the way
   they would run before the throw arrives; changing direction dodges them.
 - Blows start within 0.75 height (a stair step or a ramp) and land within 0.85.
@@ -529,7 +547,7 @@ these do not change inventory or combat stats. Swimming / climbing hides the pro
 vertical speed advances its phase, descent reverses it, and stopping holds
 the grip. Regenerate via the Blender commands in
 `character.py`, `spider.py`, `stunder.py`, `snake.py`, `octonaut.py`, `fireface.py`,
-`triangle.py`, `firecat.py`, `shraps.py`, `spicy.py`, `wolla.py`, `wolk.py`, `mecked.py`, `tornado.py` and `sword.py` (the SDF creatures share `blender/creature.py`
+`triangle.py`, `firecat.py`, `shraps.py`, `spicy.py`, `wolla.py`, `wolk.py`, `mecked.py`, `moose.py`, `tornado.py` and `sword.py` (the SDF creatures share `blender/creature.py`
 and can also be rebuilt from a Blender MCP session; previews land in `blender/previews/`, not committed; the pictures here are copies in `docs/img/`, `node tools/preview-images.mjs`). Tests check balance, hit timing,
 direction / reach / height, cancellations, deterministic spawns, clearance,
 navigation and the exported asset/clip contract.
@@ -549,6 +567,7 @@ await checks.runGetUpChecks(); // knockdown -> ragdoll -> GetUpFront / GetUpBack
 await checks.runRangedChecks(); // bow / crossbow / staff: sockets, hold pose, drawn string and arrow, range and walking up, pierce, reload, burst
 await checks.runTravelCheck(); // real portal; leaves the player in the next cube
 await (await import('./tests/browser/mecked.js')).runMeckedChecks(); // Mecked bite, grab: held, two bites (poison), shoved off, dropped when it lets go
+await (await import('./tests/browser/moose.js')).runMooseChecks(); // Moose: tail behind it without turning, nothing at its side, toss, charge tramples, crash dazes
 await (await import('./tests/browser/tornado.js')).runTornadoChecks(); // Tornado twisters: spun up, let go, caught, lifted and flung (or sidestepped); hop, slam, burning twisters
 const water = await import('./tests/browser/water.js');
 await water.runWaterChecks(); // all fluids: edge guard, jumps/high falls, ragdolls, effects, dry respawn

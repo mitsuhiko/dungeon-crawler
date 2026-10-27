@@ -21,6 +21,7 @@ export const NOUNS = {
   'Never-melting ice': { pl: 'bundles of never-melting ice' }, Obsidian: { pl: 'pieces of obsidian' },
   "Bird's nest": { pl: "birds' nests" }, "Statue's head": { pl: 'stone heads' }, 'Jar of thunder': { pl: 'jars of thunder' },
   'Heart of ice': { pl: 'hearts of ice' }, Compass: { pl: 'compasses' },
+  Moose: { pl: 'Moose' }, 'Frost moose': { pl: 'Frost moose' }, 'Bog moose': { pl: 'Bog moose' },   // (a Moose, two Moose)
 };
 
 // a common noun is lower case in a sentence; a name (proper) or a kind of enemy (caps: 'a Redback')

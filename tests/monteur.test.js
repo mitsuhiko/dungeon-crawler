@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { BOSSES, bossAt } from '../src/core/bosses.js';
-import { MONTEUR, MONTEUR_SUN, MONT_SPIDER, SPIDER, SLOMO, ENEMY_KINDS, STAGE_PROFILES, makeEnemy, enemyProfile, guardianLevel,
+import { MONTEUR, MONTEUR_SUN, MONT_MOOSE, MOOSE, SLOMO, ENEMY_KINDS, STAGE_PROFILES, makeEnemy, enemyProfile, guardianLevel,
   exposedBy, hurtBy, attacksInReach } from '../src/core/enemies.js';
 import { MONTEUR_FIGHT, STONES_OF, phaseFloor, summonCount, barred, takeStones, growStones, nextQuarter } from '../src/core/monteur.js';
 import { damageEnemy } from '../src/core/combat.js';
@@ -21,9 +21,9 @@ test('Monteur takes the place of the descent guardian of depth 7, the first of a
   assert.equal(BOSSES[7], 'monteur'); assert.equal(bossAt(7), 'monteur'); assert.equal(bossAt(7, 'side'), null);
   const w = new World(3), map = state.map = w.cube(w.layout(7).down).map;
   assert.equal(map.guardian.boss, 'monteur'); assert.equal(guardianLockMessage(map), 'Defeat Monteur to unlock this descent');
-  for (const k of ['monteur', 'montspider']) assert.ok(kindsIn(map).includes(k), k);
-  assert.deepEqual(speciesIn(map).sort(), ['monteur', 'spider']);
-  assert.ok(MONT_SPIDER.minion && MONT_SPIDER.plain && MONT_SPIDER.species === SPIDER.species && ENEMY_KINDS.montspider === MONT_SPIDER);
+  for (const k of ['monteur', 'montmoose']) assert.ok(kindsIn(map).includes(k), k);
+  assert.deepEqual(speciesIn(map).sort(), ['monteur', 'moose']);
+  assert.ok(MONT_MOOSE.minion && MONT_MOOSE.plain && MONT_MOOSE.species === MOOSE.species && ENEMY_KINDS.montmoose === MONT_MOOSE);
 });
 
 test('twice the health of a boss of his level, half a phase: the moose, then the sun', () => {
@@ -50,7 +50,7 @@ test('what he may do when: a throw with the stones for it, the charge, the summo
   assert.deepEqual(allowed({ phase: 2, rainDue: true }), ['throw', 'volley', 'rain']);
   assert.deepEqual(allowed({ phase: 2, chargeDue: true, rainDue: true, spinDue: true }), ['spin'], 'the world turns first');
   assert.ok(!allowed({ phase: 2, chargeDue: true }).includes('stuck'), 'only a charge that crashes starts it');
-  assert.equal(summonCount(1, 0), 3); assert.equal(summonCount(2, 1), 1); assert.equal(summonCount(2, 5), 0);
+  assert.equal(summonCount(1, 0), 2); assert.equal(summonCount(2, 1), 1); assert.equal(summonCount(2, 5), 0);
 });
 
 test('his stones: thrown one or three at a time, growing back one by one', () => {

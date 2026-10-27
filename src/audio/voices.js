@@ -266,6 +266,17 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         noise(t + 1.4, 0.3, filter('highpass', 2500 * p, 1, amp(t + 1.4, 0.005, 0.3, 0.25, out)));
       },
     },
+    moose: {     // a grumpy Moose: a nasal, wavering bellow, two hard snorts through its nose, a long groan sinking away
+      alert: (t, out, p) => {
+        bend(t, 0.75, 150 * p, 230 * p, 130 * p, 900 * p, 0.5, out);
+        noise(t + 0.05, 0.6, filter('bandpass', 700 * p, 4, amp(t + 0.05, 0.1, 0.18, 0.45, out)));
+      },
+      windup: (t, out, p) => {
+        for (const at of [0, 0.22]) noise(t + at, 0.14, filter('bandpass', 1200 * p, 1.5, amp(t + at, 0.008, 0.5, 0.12, out)));
+        bend(t + 0.05, 0.3, 120 * p, 150 * p, 110 * p, 600 * p, 0.25, out);
+      },
+      death: (t, out, p) => { bend(t, 1.3, 180 * p, 130 * p, 55 * p, 700 * p, 0.5, out); noise(t + 0.9, 0.5, filter('lowpass', 500 * p, 1, amp(t + 0.9, 0.05, 0.2, 0.4, out))); },
+    },
     monteur: {   // the stone moose: a long, low bellow rising and falling, stone grinding under it, a crumbling groan
       alert: (t, out, p) => {
         bend(t, 1.1, 70 * p, 140 * p, 85 * p, 420 * p, 0.5, out);

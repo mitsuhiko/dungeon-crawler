@@ -33,6 +33,7 @@ export const IMAGES = {
   'tornado-preview.png': ['learn/img/model-tornado.jpg'],
   'slug-preview.png': ['learn/img/model-slug.jpg'],
   'bolime-preview.png': ['learn/img/model-bolime.jpg'],
+  'moose-preview.png': ['learn/img/model-moose.jpg'],
   // only the docs (they take the guide's for the rest)
   'gusto-preview.png': ['docs/img/model-gusto.jpg'],
   'totnar-preview.png': ['docs/img/model-totnar.jpg'],

@@ -41,7 +41,7 @@ import { stepEnemy, findPath, pathToward, around, clearLine, walkable, nearest, 
 import { walkerOf, walker, wetAt } from '../physics/dwell.js';
 import { postPath, coverPath, covered, shorePath } from './tactics.js';
 import { combatStats } from '../core/combat.js';
-import { attackOf, pickAttack, attacksInReach, lungeDistance, lungeAt, retreatAt, fireAt, shotOf, blowOf } from '../core/enemies.js';
+import { attackOf, pickAttack, attacksInReach, lungeDistance, lungeAt, retreatAt, fireAt, shotOf, blowOf, behind } from '../core/enemies.js';
 import { launchProjectile } from './projectiles.js';
 import { fireBeam } from './beams.js';
 import { tryHordeAttack } from './hordes.js';
@@ -308,16 +308,18 @@ function decide(e) {
 const clearShot = (e, a, p = foe(e)) => shotOf(a).clear === false || clearLine(e.x, e.y + shotOf(a).muzzle[1], e.z, p.x, p.y + p.h * 0.55, p.z);
 // the attacks e could start now (indices into profile.attacks; [0] for a single attack); `barred`
 // (attack names) are not to be started now: a boss's summon while its minions are about
-// (game/gusto.js)
+// (game/gusto.js); one struck behind it (`back`: the Moose's tail) only with the player there
 function ready(e, d) {
   const p = foe(e), list = e.profile.attacks ?? [e.profile];
   if (p.ragdoll || p.held || p.flipping || e.under) return [];   // (flipping: turned with Flip's world, or in a black hole)
   return attacksInReach(e.profile, d, Math.abs(p.y - e.y))
-    .filter(i => !e.barred?.has(list[i].name) && (!shotOf(list[i]) || clearShot(e, list[i])));
+    .filter(i => !e.barred?.has(list[i].name) && (!shotOf(list[i]) || clearShot(e, list[i])) && (!list[i].back || behind(e, p.x, p.z)));
 }
-// where a wind-up turns to: the player, or for a throw a little ahead of where they run
+// where a wind-up turns to: the player, or for a throw a little ahead of where they run (one
+// struck behind it turns its back to them)
 function aim(e, a) {
   const p = foe(e);
+  if (a.back) return toPlayer(e) + Math.PI;
   if (!a.projectile) return toPlayer(e);
   const t = Math.max(0, a.hitAt - e.t) + Math.hypot(p.x - e.x, p.z - e.z) / a.projectile.speed;
   return Math.atan2(p.x + (p.vx || 0) * t * LEAD - e.x, p.z + (p.vz || 0) * t * LEAD - e.z);
@@ -464,14 +466,18 @@ function manoeuvre(e, dt, d, strike) {
 function fight(e, dt) {
   const p = foe(e), cfg = e.profile, dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz);
   if (!e.path && !e.anchored) { e.speed = 0; turn(e, toPlayer(e), dt, 3); return; }
-  const facing = Math.cos(Math.atan2(dx, dz) - e.yaw) > 0.7, can = ready(e, d), list = cfg.attacks ?? [cfg];
+  const facing = Math.cos(Math.atan2(dx, dz) - e.yaw) > 0.7, list = cfg.attacks ?? [cfg];
+  let can = ready(e, d);
   // only throws in reach while they recover: one that also bites keeps coming (a hop away is no bite)
   const closing = e.cool > 0 && can.every(i => shotOf(list[i])) && list.some(a => !shotOf(a) && !a.ride);
   const strike = can.length > 0 && !closing;
   e.held = false;
   if (strike && e.cool <= 0 && state.enemyGrace <= 0) {
-    e.speed = 0; turn(e, Math.atan2(dx, dz), dt);
-    if (!facing) return;
+    e.speed = 0;
+    // a player behind it, in reach of a blow struck behind it (the Moose's tail): that, as it stands
+    const rear = can.filter(i => list[i].back);
+    if (rear.length) can = rear;
+    else { turn(e, Math.atan2(dx, dz), dt); if (!facing) return; }
     if (tryHordeAttack(e)) {
       e.mode = 'attack'; e.t = 0; e.bit = false; e.attacks++; e.attack = pickAttack(cfg, Math.random(), can); e.leap = 0;
       return;

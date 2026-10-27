@@ -482,7 +482,49 @@ export const FLIMMER = {
   style: 'skirmish', circle: 1.5, strafe: true,
   seedSalt: 0xf1133e, spacing: 3,
 };
-export const ENEMY_PROFILES = [SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, SPICY, WOLLA, WOLK, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER];
+// The Moose (blender/moose.py, after the kids' drawing): a grumpy, big-headed moose on four stubby
+// legs, with branching antlers, a wide grin full of teeth and a long tail that ends in a hard ball.
+// Moose come in herds (core/spawns.js). Its antlers guard its front and its tail its back: its
+// sides are open, and it turns slowly (`turnSpeed`). Close in front it tosses its antlers (clip
+// frame 14). From further off it charges, as Monteur does: it lowers its head and scrapes a hoof,
+// then runs along its heading (a `roll`, steering little) and tramples whoever it runs into; one
+// that runs into something with nobody run over `crash`es into its `dazed` (stars over its head,
+// every blow hurting it more). Behind it, it sweeps its tail round: an attack that is `back` is only
+// started with the player behind it, without turning round to them, turns its back to them while it
+// winds up, and lands behind it (its arc is about its back: game/enemyai.js, game/enemycombat.js).
+const MOOSE_TOSS = {
+  name: 'toss', clip: 'toss', weight: 2, reach: 1.45, hitAt: 14 / 30, trackUntil: 0.3, attackTime: 33 / 30, hitReach: 1.75,
+  arc: 0.5, power: 1, knock: 6, knockDown: false, hop: 4, reason: 'Tossed by a Moose!',
+};
+const MOOSE_CHARGE = {
+  name: 'charge', clip: 'charge', weight: 2, reach: 7, minReach: 2.5, hitAt: 21 / 30, trackUntil: 21 / 30, attackTime: 69 / 30, hitReach: 0,
+  arc: 0.5, power: 1.3, knock: 7, knockDown: true, hop: 4, reason: 'Trampled by a Moose!',
+  roll: { from: 21 / 30, to: 51 / 30, speed: 6.5, steer: 0.35, bounces: 0, reach: 0.25, crash: 'dazed' }, steady: { from: 21 / 30, to: 51 / 30 },
+};
+// (only a charge that runs into something starts it)
+const MOOSE_DAZED = {
+  name: 'dazed', clip: 'dazed', weight: 0, reach: 0, hitAt: 60 / 30, trackUntil: 0, attackTime: 60 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Moose', recover: 0.5,
+  exposed: { from: 0.1, until: 1.6, damage: 1.5, thud: true },
+};
+const MOOSE_TAIL = {
+  name: 'tail', clip: 'tail', weight: 1, reach: 1.9, hitAt: 16 / 30, trackUntil: 0.3, attackTime: 36 / 30, hitReach: 2.1,
+  arc: 0.2, back: true, power: 0.9, knock: 6.5, knockDown: false, hop: 4, reason: 'Clubbed by a Moose\'s tail!',
+};
+export const MOOSE = {
+  type: 'moose', species: 'moose', label: 'Moose', hp: 100, damage: 20, knock: 6,
+  xp: 64, coins: [12, 24],
+  radius: 0.5, height: 2.4, bodyHeight: 1.5, mass: 4, turnSpeed: 2.2, turnStride: 0.45,
+  aggro: 4.5, giveUp: 9, chase: 1.7, wander: 0.65, homeSpeed: 0.9,
+  ...MOOSE_TOSS, reach: MOOSE_CHARGE.reach, cooldown: 1.5, ichor: ['#d0503a', '#7a2418'], pitch: 0.75,
+  attacks: [MOOSE_TOSS, MOOSE_CHARGE, MOOSE_DAZED, MOOSE_TAIL],
+  poise: 1, hitStun: 0.22, deathTime: 2, corpseTime: 4,
+  parts: { fur: ['MooseFur', 'MooseMuzzle', 'MooseBrows'], antlers: ['MooseAntlers'], ball: ['MooseTailBall'], eyes: ['MooseEyes_glow'] },
+  colors: paints({ fur: 'ember.deep@+6', antlers: 'stone.pale', ball: 'ember.dark@+6', eyes: 'eyes.sun' }),
+  style: 'brute', charge: 1.3,
+  seedSalt: 0x3005e1, spacing: 5,
+};
+export const ENEMY_PROFILES = [SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, SPICY, WOLLA, WOLK, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, MOOSE];
 
 // Gusto, the first real boss (blender/gusto.py), in place of the first descent guardian
 // (core/bosses.js). A round white-grey head with red eyes and jagged teeth, two long arms with
@@ -1071,7 +1113,7 @@ export const MANSK_RIBBONS = {
 // grow back, game/monteur.js) and charges you with his head (a `roll` along his heading, run
 // straight at you, steering little; one that runs into something with nobody run over `crash`es
 // into his `stuck`: dazed, every blow hurting him double); he keeps his distance for both (`ranged`,
-// `keep`). Spiders crawl out round him. As the sun
+// `keep`). Moose come up out of the floor round him. As the sun
 // he rolls at you instead, makes stones rain out of the sky round you (`rain`, game/meteors.js,
 // `look` 'stone') and turns the world (`spin`, a cast: game/roll.js turns every game's view).
 // Where things are on him (model space: x, up, forward), read off his clips (blender/monteur.py)
@@ -1101,7 +1143,7 @@ const MONTEUR_STUCK = {
 const MONTEUR_SUMMON = {
   name: 'summon', clip: 'summon', weight: 2, reach: 12, hitAt: 30 / 30, trackUntil: 0.5, attackTime: 45 / 30, hitReach: 0,
   arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Monteur',
-  summon: { kind: 'montspider', muzzle: MONTEUR_AT.summon },
+  summon: { kind: 'montmoose', muzzle: MONTEUR_AT.summon },
 };
 export const MONTEUR = {
   type: 'monteur', species: 'monteur', label: 'Monteur', hp: 2000, damage: 24, knock: 4,
@@ -1523,6 +1565,21 @@ export const SHADOW_FLIMMER = enemyKind(FLIMMER, {
   colors: paints({ skin: 'ink.dark' }), ichor: ['#b8b4d8', '#2a2838'],
   mods: { hp: 1.15, damage: 1.15, speed: 1.1, size: 1.1 },
 });
+// The Moose: the brown one of the forests and the highlands, a pale Frost moose in the snow and the
+// frozen caves, and a dark green Bog moose that wades through the swamp and the marsh (`slimeborn`:
+// their slime does not hold it, core/footing.js).
+const mooseAttacks = kind => [{ ...MOOSE_TOSS, reason: `Tossed by a ${kind}!` }, { ...MOOSE_CHARGE, reason: `Trampled by a ${kind}!` },
+  MOOSE_DAZED, { ...MOOSE_TAIL, reason: `Clubbed by a ${kind}'s tail!` }];
+export const FROST_MOOSE = enemyKind(MOOSE, {
+  type: 'frostmoose', label: 'Frost moose', reason: 'Tossed by a Frost moose!', attacks: mooseAttacks('Frost moose'),
+  colors: paints({ fur: 'frost.pale@+4', antlers: 'frost.light@-6', ball: 'frost.deep', eyes: 'eyes.ember' }), ichor: ['#c4ecff', '#4f8fbf'],
+  mods: { hp: 1.3, damage: 1.1, speed: 0.9 },
+});
+export const BOG_MOOSE = enemyKind(MOOSE, {
+  type: 'bogmoose', label: 'Bog moose', reason: 'Tossed by a Bog moose!', attacks: mooseAttacks('Bog moose'), slimeborn: true,
+  colors: paints({ fur: 'moss.deep@-6', antlers: 'ochre.pale', ball: 'moss.dark', eyes: 'eyes.sun' }), ichor: ['#b4e67e', '#3f6f1a'],
+  mods: { hp: 1.25, damage: 1.25, speed: 1.05 },
+});
 // from half his health on: a giant, six cells tall (the model at `size`), who stomps, jumps, kicks
 // and blasts; he walks over the hills on the floors like any enemy, but keeps clear of the bank
 // (game/squarlo.js); nothing staggers him and blows hurt him less, unless he is exposed
@@ -1665,11 +1722,11 @@ export const REN_FACE = enemyKind(FIREFACE, {
   type: 'renface', minion: true, plain: true, aggro: 10, giveUp: 14, coins: [0, 0], drops: MINION_DROPS(0.06), puff: EMBER_PUFF,
   mods: { hp: 0.55, damage: 0.55, xp: 0.15 },
 });
-// Monteur's minions (game/monteur.js): plain Spiders for now, weaker, going for the player at once;
-// they crawl out of the floor round him in a puff of dust
-export const MONT_SPIDER = enemyKind(SPIDER, {
-  type: 'montspider', minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
-  puff: { colors: ['#e0dacd', '#b8b0a0', '#8d877c'], size: 0.5 }, mods: { hp: 0.8, damage: 0.6, xp: 0.15 },
+// Monteur's minions (game/monteur.js): plain Moose, weaker, going for the player at once (tossing,
+// charging, clubbing like any Moose); they come up out of the floor round him in a puff of dust
+export const MONT_MOOSE = enemyKind(MOOSE, {
+  type: 'montmoose', minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
+  puff: { colors: ['#e0dacd', '#b8b0a0', '#8d877c'], size: 0.9 }, mods: { hp: 0.6, damage: 0.55, xp: 0.15 },
 });
 // small spiders of twigs, poured out of his ball by the dozen
 export const TOT_SPIDER = enemyKind(SPIDER, {
@@ -1729,8 +1786,8 @@ export const STAGE_TORNADO = enemyKind(TORNADO, {
 export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.values(GUARDIAN_KINDS), ...Object.values(DESCENT_GUARDIAN_KINDS), SAND_VIPER, BLOOD_VIPER, FROST_ADDER, VENOM_ADDER, SHADOW_MAMBA, FROST_SPIDER, BOG_SPIDER,
   GLOOM_SPIDER, REDBACK, FROST_STUNDER, STONE_STUNDER, MAGMA_STUNDER, BOG_OCTONAUT, CORAL_OCTONAUT, EMERALD_TRIANGLE, CRIMSON_TRIANGLE, FIRE_SHRAPS,
   BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, LAVA_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
-  NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
-  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_SPIDER].map(k => [k.type, k]));
+  NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, FROST_MOOSE, BOG_MOOSE, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
+  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
 // like the dead
@@ -1748,6 +1805,10 @@ export function shimmerOf(e) {
 // hit that lands is applied as it is: net/session.js)
 export const evades = (e, roll = Math.random()) => roll < (e.profile?.blur?.evade ?? 0) * shimmerOf(e);
 
+// Is (x, z) behind e? Its `back` attacks (the Moose's tail) are started only with the player there,
+// and land there (game/enemyai.js, game/enemycombat.js).
+export const BACK = -0.3;   // behind: the cosine of the angle to it, off e's heading, is below this
+export const behind = (e, x, z) => Math.cos(Math.atan2(x - e.x, z - e.z) - e.yaw) < BACK;
 // the attack e is performing (or about to perform): one of profile.attacks, else the profile
 export const attackOf = e => e.profile.attacks?.[e.attack] ?? e.profile;
 // how much more blows hurt e now: lying helpless after a missed grab (an attack's `exposed`), else 1

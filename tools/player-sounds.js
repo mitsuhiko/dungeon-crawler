@@ -14,6 +14,7 @@ export const SFX_GROUPS = [
   ['Totnar', ['skullthrow', 'bonk', 'rustle', 'shed', 'gloom', 'dawn']],
   ['Squarlo and the Squirtles', ['spray', 'cannon', 'tidecall', 'morph', 'stomp', 'spit', 'dig', 'pop', 'drip']],
   ['Bolime', ['gulp', 'splorch', 'boing']],
+  ['Moose', ['hooves']],
   ['Flip, Renew and the black hole', ['flip', 'blackhole', 'clockwind', 'rewind', 'rewound']],
 ];
 

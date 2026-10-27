@@ -1,5 +1,5 @@
 // Monteur's fight (core/monteur.js has the rules, docs/bosses.md tells it): this cube's Monteur and
-// the Spiders he calls, in one list (`monteurs`), so they fight, collide, travel and get shown to
+// the Moose he calls, in one list (`monteurs`), so they fight, collide, travel and get shown to
 // friends like any enemy. Each Monteur has a fight of his own here: { e (him), change (s left of
 // changing), cool (s to the next summon), chargeIn, rainIn, spinIn (s until those are due), thrown
 // (the throw whose stones are gone), started (the attack whose clock was set), minions }. A dev
@@ -62,7 +62,7 @@ export function updateMonteurs(dt) {
 function run(f, dt) {
   const e = f.e, a = e.mode === 'attack' ? attackOf(e) : null;
   f.minions = f.minions.filter(m => living(m) && monteurs.includes(m));
-  if (e.mode === 'dead') {   // the world turns back the right way up (game/roll.js); his Spiders go with him
+  if (e.mode === 'dead') {   // the world turns back the right way up (game/roll.js); his Moose go with him
     if (!f.over) { f.over = true; e.quarter = 0; f.minions.forEach(m => leave(m, G.leave)); f.minions = []; }
     return;
   }
@@ -118,7 +118,7 @@ function cast(f, a) {
   e.quarter = nextQuarter(e.quarter, Math.random());
   setStatus(tr('{name} turns the world!', { name: enemyName(e.profile) }));
 }
-// a summon's hit frame: Spiders crawl out of the floor round him, as many as fill up to the most
+// a summon's hit frame: Moose come up out of the floor round him, as many as fill up to the most
 function summon(f, a) {
   const e = f.e, kind = ENEMY_KINDS[a.summon.kind], n = summonCount(e.stage, f.minions.length);
   f.cool = G.summonCool[e.stage - 1];
