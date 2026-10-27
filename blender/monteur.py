@@ -40,6 +40,9 @@ Clips, 30 fps, in place (the game supplies root motion):
                       into the sky (extras.muzzle: the top of the ball).
     MonteurSpin       2.0 s: spins right round twice, rays flaring; at frame 36 the world turns.
     MonteurSunSummon  1.4 s: a hop and a stomp at frame 27 (extras.muzzle).
+    MonteurRaise      2.8 s: crouches and digs his rays into the floor, stomping at frame 27 (the
+                      floor cracks), strains, shaking, and heaves a mountain up out of it at frame
+                      63, stretching up, rays flaring; settles.
     MonteurDeath      2.4 s: the sun shudders, sinks, its rays drooping, and topples over on its
                       back; the stones drop to the floor. Held.
     MonteurStone      (a prop, not a clip): the stone he throws, and that rains down.
@@ -68,7 +71,7 @@ V = Vector
 SIDES = (("L", 1), ("R", -1))
 CLIPS = ("MonteurWalk", "MonteurThrow", "MonteurCharge", "MonteurStuck", "MonteurSummon", "MonteurChange",
          "MonteurSunWalk", "MonteurSunThrow", "MonteurRoll", "MonteurSunStuck", "MonteurRain", "MonteurSpin",
-         "MonteurSunSummon", "MonteurDeath")
+         "MonteurSunSummon", "MonteurRaise", "MonteurDeath")
 
 STONE_HEX, DARK_HEX, ANTLER_HEX, MOSS_HEX = "#8d877c", "#4a4540", "#c4bba9", "#6b7b45"
 EYE_HEX, TEETH_HEX, MOUTH_HEX, PEBBLE_HEX, VEIN_HEX = "#ff3b24", "#efe8d8", "#24181a", "#a39d91", "#ffb347"
@@ -93,6 +96,7 @@ SUN_STUCK_FRAMES = 60
 RAIN_FRAMES, RAIN_HIT = 54, 33
 SPIN_FRAMES, SPIN_HIT = 60, 36
 SUN_SUMMON_FRAMES, SUN_SUMMON_HIT = 42, 27
+RAISE_FRAMES, RAISE_HIT, RAISE_HEAVE = 84, 27, 63
 DEATH_FRAMES = 72
 
 
@@ -756,6 +760,20 @@ def sun_summon(f):
                     tuck=0.5 * max(0, hop), flare=D(8) * max(0, hop), stone_up=0.1 * max(0, hop))
 
 
+def raise_(f):
+    """Crouching, the rays dug into the floor (stomping at RAISE_HIT), straining and shaking, then
+    heaving it up at RAISE_HEAVE: stretched up tall, rays flaring, the stones flung up; settling."""
+    t, hit, heave, end = f / FPS, RAISE_HIT / FPS, RAISE_HEAVE / FPS, RAISE_FRAMES / FPS
+    # down (> 0: crouched, < 0: stretched up)
+    down = k_((0, 0), (hit - 0.35, 0.7), (hit - 0.12, -0.2), (hit, 1.0), (heave - 0.15, 1.15), (heave + 0.12, -0.9),
+              (heave + 0.45, -0.35), (end, 0))(t)
+    shake = math.sin(TAU * 11 * t) * k_((0, 0), (hit, 0), (hit + 0.1, 1), (heave - 0.05, 1), (heave + 0.1, 0))(t)
+    lift = max(0.0, -down)
+    return sun_idle(f, spos=V((0.03 * shake, 0, -0.2 * max(0.0, down) + 0.3 * lift)), squash=(1 + 0.1 * down, 1 - 0.12 * down),
+                    flare=D(-12) * max(0.0, down) + D(20) * lift, droop=0.4 * max(0.0, down), sroll=D(4) * shake, spitch=D(8) * max(0.0, down) - D(6) * lift,
+                    wave=(t, 1 + 2.5 * abs(down)), tuck=0.25 * max(0.0, down), stone_up=0.35 * lift, orbit=D(20) + 2 * t)
+
+
 def death(f):
     """The sun shudders, sinks onto its folding legs, its rays drooping, and topples over on its
     back; the stones drop to the floor round it. Still from 2 s on."""
@@ -826,6 +844,10 @@ def animate(rig, obj):
     ss = clip("MonteurSunSummon", sun_summon, SUN_SUMMON_FRAMES, extras={"attack_style": "summon", "hit_frame": SUN_SUMMON_HIT,
                                                                         "hit_time": SUN_SUMMON_HIT / FPS})
     ss.pose_markers.new("Stomp").frame = SUN_SUMMON_HIT
+    rs = clip("MonteurRaise", raise_, RAISE_FRAMES, extras={"attack_style": "cast", "hit_frame": RAISE_HIT, "hit_time": RAISE_HIT / FPS,
+                                                           "heave_frame": RAISE_HEAVE})
+    rs.pose_markers.new("Stomp").frame = RAISE_HIT
+    rs.pose_markers.new("Heave").frame = RAISE_HEAVE
     clip("MonteurDeath", death, DEATH_FRAMES, extras={"hold_last_frame": True, "hold_from": 2.0}, settle_from=round(1.7 * FPS))
     K.register(rig, CLIPS)
     # the points the game needs, read off the baked clips
@@ -849,8 +871,9 @@ def preview(scene, rig, path):
     side, front, three = (6.5, -2.0, 2.4), (1.8, -7.0, 2.6), (5.0, -5.0, 3.0)
     shots = [("MonteurWalk", 0, three), ("MonteurWalk", 9, side), ("MonteurThrow", THROW_HIT - 4, three), ("MonteurCharge", 14, side),
              ("MonteurCharge", CHARGE_HIT + 8, side), ("MonteurStuck", 30, three), ("MonteurSummon", SUMMON_HIT - 8, side),
-             ("MonteurChange", 52, three), ("MonteurSunWalk", 0, front), ("MonteurSunWalk", 6, three), ("MonteurSunThrow", SUN_THROW_HIT, three),
-             ("MonteurRoll", 40, side), ("MonteurSunStuck", 30, three), ("MonteurRain", RAIN_HIT + 3, front), ("MonteurSpin", 30, front),
+             ("MonteurChange", 52, three), ("MonteurSunWalk", 0, front), ("MonteurSunThrow", SUN_THROW_HIT, three),
+             ("MonteurRoll", 40, side), ("MonteurSunStuck", 30, three), ("MonteurRain", RAIN_HIT + 3, front), ("MonteurRaise", RAISE_HEAVE + 5, front),
+             ("MonteurSpin", 30, front),
              ("MonteurDeath", DEATH_FRAMES, three)]
     K.contact_sheet(scene, rig, shots, path, (0, -0.3, 1.6), size=360, cols=4)
     return [path]

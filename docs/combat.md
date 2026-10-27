@@ -260,16 +260,17 @@ The controls are the same for all.
   with a big round head, angry brows, a wide grin full of jagged teeth and branching antlers, on a
   long thin neck, a long oval body on four stubby legs, and a long tail curving up to a hard,
   smooth ball. Its antlers guard its front and its tail its back; it turns slowly (`turnSpeed`
-  2.2 rad/s), so its sides are the place to stand (`style: 'brute'`, a `charge` of 1.3×):
-  - Toss (up to 1.45 cells, in front): it lowers its antlers and flings them up at frame 14.
-  - Charge (from 2.5 to 7 cells): it lowers its head, scrapes a hoof and snorts (dust and puffs of
+  2.2 rad/s), so its sides are the place to stand (`style: 'brute'`, a `charge` of 1.3×). It is
+  drawn at a third of its model's size (`size`), about 0.8 cells tall, the player's height:
+  - Toss (up to 0.8 cells, in front): it lowers its antlers and flings them up at frame 14.
+  - Charge (from 1.6 to 6 cells): it lowers its head, scrapes a hoof and snorts (dust and puffs of
     breath, `render/mooseview.js`), then from 0.7 s gallops along its heading at 6.5 cells/s for
     a second, steering only 0.35 rad/s (Monteur's charge: a `roll`), and tramples whoever it runs
     into (1.3× its damage, knocked down). It cannot be staggered while it runs (`steady`). One that
     runs into something with nobody run over `crash`es into its daze: stars circle over its head,
     and for 1.5 s every blow hurts it 1.5× (`exposed`). One that runs out in the open skids to a
     stop. Jump aside!
-  - Tail (up to 1.9 cells, behind it): an attack that is `back` is started only with the player
+  - Tail (up to 1 cell, behind it): an attack that is `back` is started only with the player
     behind it (`behind` in `core/enemies.js`: off its heading by more than about 107°), without
     turning round to them; while it winds up it turns its back to them, and its blow lands behind
     it (the arc about its back). It cocks its tail and sweeps the ball round behind it at frame 16.

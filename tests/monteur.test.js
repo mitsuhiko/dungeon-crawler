@@ -11,7 +11,8 @@ import { MONTEUR_FIGHT, STONES_OF, phaseFloor, summonCount, barred, takeStones, 
 import { damageEnemy } from '../src/core/combat.js';
 import { kindsIn, speciesIn } from '../src/core/spawns.js';
 import { guardianLockMessage } from '../src/core/guardians.js';
-import { RUN_SPEED } from '../src/core/constants.js';
+import { RUN_SPEED, CHAR_R, CHAR_H } from '../src/core/constants.js';
+import { launch, stepProjectile } from '../src/core/projectiles.js';
 
 const named = (p, name) => p.attacks.find(a => a.name === name);
 const ALL = ['throw', 'volley', 'charge', 'stuck', 'summon', 'rain', 'spin'];
@@ -64,6 +65,17 @@ test('his stones: thrown one or three at a time, growing back one by one', () =>
   assert.ok(Math.abs(s - 3) < 1e-9, 'one grows back in its time');
   assert.equal(growStones(most, 10), most, 'never more than he has room for');
   assert.equal(takeStones(0.5, 1), 0);
+  assert.ok(MONTEUR_FIGHT.stones.grow <= 1, 'they grow back quickly');
+});
+
+test('his stones come down on a player however close they stand, as the moose and as the sun', () => {
+  for (const p of [MONTEUR, MONTEUR_SUN]) for (const d of [p.radius + CHAR_R + 0.02, 2, 3.5, 7]) {
+    const e = { x: 0, y: 0, z: 0, yaw: 0 }, body = { x: 0, y: 0, z: d, r: CHAR_R, h: CHAR_H };
+    const pr = launch(e, named(p, 'throw').projectile, { x: body.x, y: body.y + body.h * 0.55, z: body.z });
+    let end = null;
+    for (let t = 0; t < 3 && !end; t += 1 / 30) end = stepProjectile(pr, 1 / 30, body, (x, y) => y < 0);
+    assert.equal(end, 'hit', `${p.type} at ${d.toFixed(2)} cells`);
+  }
 });
 
 test('his charge: a run straight at you, faster than you run, that crashes into his daze when it misses', () => {

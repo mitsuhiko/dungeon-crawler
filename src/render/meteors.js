@@ -23,7 +23,7 @@ import { monteurModel } from './monteurmodel.js';
 const GRID = 8, LEVEL = 0.3;   // quads along a cell; how far off its level the ground may be
 const heightOn = (s, cx, cz, x, z) => s.cs ? floorY(s, x - cx, z - cz) : s.run ? runY(s, x - cx, z - cz) : null;
 const QUAD = [[0, 0], [0, 1], [1, 0], [1, 0], [0, 1], [1, 1]];   // (counter-clockwise from above)
-function groundPatch(x, y, z, r, turn = 0) {
+export function groundPatch(x, y, z, r, turn = 0) {
   const pos = [], uv = [], spots = [], c = Math.cos(turn), sn = Math.sin(turn), n = 1 / GRID;
   for (let i = Math.floor((x - r) * GRID); i < Math.ceil((x + r) * GRID); i++) for (let j = Math.floor((z - r) * GRID); j < Math.ceil((z + r) * GRID); j++) {
     const ax = i * n, az = j * n, mx = ax + n / 2, mz = az + n / 2;
@@ -47,7 +47,7 @@ function groundPatch(x, y, z, r, turn = 0) {
 }
 const plain = new THREE.PlaneGeometry(2, 2).rotateX(-Math.PI / 2);   // (to compile the shaders on)
 // what lies on a patch, drawn white on clear (tinted by the material): `draw(g, h)`, h half the size
-function painted(draw, size = 128) {
+export function painted(draw, size = 128) {
   const cv = document.createElement('canvas');
   cv.width = cv.height = size;
   const g = cv.getContext('2d');

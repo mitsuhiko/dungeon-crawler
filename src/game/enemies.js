@@ -33,6 +33,7 @@ import { slomos, resetSlomos, updateSlomos, detachSlomos } from './slomo.js';
 import { mansks, resetMansks, updateMansks, detachMansks, manskSeen } from './mansk.js';
 import { monteurs, resetMonteurs, updateMonteurs, detachMonteurs } from './monteur.js';
 import { followRoll } from './roll.js';
+import { updateMountains, resetMountains } from './mountains.js';
 import { qualmoses, resetQualmoses, updateQualmoses, detachQualmoses } from './qualmos.js';
 import { updateRewind, resetRewind, drawRewind } from './rewind.js';
 import { resetMovers } from './movers.js';
@@ -114,6 +115,7 @@ export function mirrorEnemies(m) {
 export const allEnemies = () => mirror ? mirror.list : [...spiders, ...stunders, ...snakes, ...octonauts, ...fireFaces, ...triangles, ...fireCats, ...shraps, ...spicies, ...wollas, ...wolks, ...squirtles, ...meckeds, ...tornados, ...slugs, ...bolimes, ...flimmers, ...mooses, ...gustos, ...totnars, ...squarlos, ...flips, ...foggerys, ...renews, ...slomos, ...mansks, ...monteurs, ...qualmoses, ...spawned];
 export function resetEnemies() {
   resetFlipWorld(); clearBlackHoles();   // (Flip's box the right way up again: game/flipworld.js)
+  resetMountains();   // (Monteur's mountain gone, the floors as they were: game/mountains.js)
   resetEnemyCombat(); clearProjectiles(); clearBeams(); clearQuakes(); clearTwisters(); clearJets(); clearShots(); clearThrows(); clearMeteors(); resetCalls();
   state.dark = 0; state.mist = 0; resetTide(); resetMovers();   // (Foggery's platforms back under his lava, game/movers.js)
   resetRewind();   // (Renew's time: the hero's tape and echoes, game/rewind.js)
@@ -240,6 +242,8 @@ export function updateEnemies(dt) {
   updateFireFaces(dt); updateTriangles(dt); updateFireCats(dt); updateShraps(dt); updateSpicies(dt); updateWollas(dt); updateWolks(dt); updateSquirtles(dt); updateMeckeds(dt); updateTornados(dt); updateSlugs(dt); updateBolimes(dt); updateFlimmers(dt); updateMooses(dt); updateGustos(dt); updateTotnars(dt); updateSquarlos(dt); updateFlips(dt); updateFoggerys(dt); updateRenews(dt); updateSlomos(dt); updateMansks(dt); updateMonteurs(dt); updateQualmoses(dt);
   stepEnemies(spawned, dt);
   spawned = spawned.filter(e => e.mode !== 'dead' || e.deadT < e.profile.corpseTime || (removeEnemyViews([e]), false));
+  // Monteur's mountain (game/mountains.js): it rises and falls, and carries who stands on it
+  updateMountains(allEnemies(), dt);
   // a boss's tide (game/tide.js): it drowns, but those that swim float (and the fluid dwellers
   // float in any fluid of theirs)
   updateTide(allEnemies(), dt);
@@ -265,6 +269,7 @@ function followEnemies(dt) {
   mirror.apply(dt);
   const list = mirror.list;
   updateFlipWorld(list, dt, false);
+  updateMountains(list, dt, false);
   hitWithSword(list); updateShots(dt, list); updateThrows(dt, list);
   awardKills(list);
   updateProjectiles(dt); updateQuakes(list, dt, false); updateGusts(list, dt, false); updateTwisters(list, dt, false); updateBlackHoles(list, dt, false); updateBurning(dt); updateChill(dt); updateToxic(dt);

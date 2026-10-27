@@ -492,14 +492,16 @@ export const FLIMMER = {
 // every blow hurting it more). Behind it, it sweeps its tail round: an attack that is `back` is only
 // started with the player behind it, without turning round to them, turns its back to them while it
 // winds up, and lands behind it (its arc is about its back: game/enemyai.js, game/enemycombat.js).
+// It is drawn at a third of its model's size (`size`: about 0.8 cells to the tips of its antlers,
+// the player's height), its body and reaches with it.
 const MOOSE_TOSS = {
-  name: 'toss', clip: 'toss', weight: 2, reach: 1.45, hitAt: 14 / 30, trackUntil: 0.3, attackTime: 33 / 30, hitReach: 1.75,
+  name: 'toss', clip: 'toss', weight: 2, reach: 0.8, hitAt: 14 / 30, trackUntil: 0.3, attackTime: 33 / 30, hitReach: 1.05,
   arc: 0.5, power: 1, knock: 6, knockDown: false, hop: 4, reason: 'Tossed by a Moose!',
 };
 const MOOSE_CHARGE = {
-  name: 'charge', clip: 'charge', weight: 2, reach: 7, minReach: 2.5, hitAt: 21 / 30, trackUntil: 21 / 30, attackTime: 69 / 30, hitReach: 0,
+  name: 'charge', clip: 'charge', weight: 2, reach: 6, minReach: 1.6, hitAt: 21 / 30, trackUntil: 21 / 30, attackTime: 69 / 30, hitReach: 0,
   arc: 0.5, power: 1.3, knock: 7, knockDown: true, hop: 4, reason: 'Trampled by a Moose!',
-  roll: { from: 21 / 30, to: 51 / 30, speed: 6.5, steer: 0.35, bounces: 0, reach: 0.25, crash: 'dazed' }, steady: { from: 21 / 30, to: 51 / 30 },
+  roll: { from: 21 / 30, to: 51 / 30, speed: 6.5, steer: 0.35, bounces: 0, reach: 0.12, crash: 'dazed' }, steady: { from: 21 / 30, to: 51 / 30 },
 };
 // (only a charge that runs into something starts it)
 const MOOSE_DAZED = {
@@ -508,13 +510,13 @@ const MOOSE_DAZED = {
   exposed: { from: 0.1, until: 1.6, damage: 1.5, thud: true },
 };
 const MOOSE_TAIL = {
-  name: 'tail', clip: 'tail', weight: 1, reach: 1.9, hitAt: 16 / 30, trackUntil: 0.3, attackTime: 36 / 30, hitReach: 2.1,
+  name: 'tail', clip: 'tail', weight: 1, reach: 1, hitAt: 16 / 30, trackUntil: 0.3, attackTime: 36 / 30, hitReach: 1.2,
   arc: 0.2, back: true, power: 0.9, knock: 6.5, knockDown: false, hop: 4, reason: 'Clubbed by a Moose\'s tail!',
 };
 export const MOOSE = {
   type: 'moose', species: 'moose', label: 'Moose', hp: 100, damage: 20, knock: 6,
   xp: 64, coins: [12, 24],
-  radius: 0.5, height: 2.4, bodyHeight: 1.5, mass: 4, turnSpeed: 2.2, turnStride: 0.45,
+  size: 1 / 3, radius: 0.24, height: 0.8, bodyHeight: 0.5, mass: 1.6, turnSpeed: 2.2, turnStride: 0.15,
   aggro: 4.5, giveUp: 9, chase: 1.7, wander: 0.65, homeSpeed: 0.9,
   ...MOOSE_TOSS, reach: MOOSE_CHARGE.reach, cooldown: 1.5, ichor: ['#d0503a', '#7a2418'], pitch: 0.75,
   attacks: [MOOSE_TOSS, MOOSE_CHARGE, MOOSE_DAZED, MOOSE_TAIL],
@@ -522,7 +524,7 @@ export const MOOSE = {
   parts: { fur: ['MooseFur', 'MooseMuzzle', 'MooseBrows'], antlers: ['MooseAntlers'], ball: ['MooseTailBall'], eyes: ['MooseEyes_glow'] },
   colors: paints({ fur: 'ember.deep@+6', antlers: 'stone.pale', ball: 'ember.dark@+6', eyes: 'eyes.sun' }),
   style: 'brute', charge: 1.3,
-  seedSalt: 0x3005e1, spacing: 5,
+  seedSalt: 0x3005e1, spacing: 2.5,
 };
 export const ENEMY_PROFILES = [SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, SPICY, WOLLA, WOLK, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, MOOSE];
 
@@ -1110,12 +1112,13 @@ export const MANSK_RIBBONS = {
 // game/monteur.js runs his fight, core/monteur.js holds its rules. Twice the health of a boss of
 // his level (hp 2000 grows like the descent tier's 1000), half a phase.
 // He throws his stones (a `projectile` that takes `stones` of them: one, or three fanned out; they
-// grow back, game/monteur.js) and charges you with his head (a `roll` along his heading, run
+// grow back, game/monteur.js; `steep`: from high between his antlers down at you, however close) and charges you with his head (a `roll` along his heading, run
 // straight at you, steering little; one that runs into something with nobody run over `crash`es
 // into his `stuck`: dazed, every blow hurting him double); he keeps his distance for both (`ranged`,
 // `keep`). Moose come up out of the floor round him. As the sun
 // he rolls at you instead, makes stones rain out of the sky round you (`rain`, game/meteors.js,
-// `look` 'stone') and turns the world (`spin`, a cast: game/roll.js turns every game's view).
+// `look` 'stone'), turns the world (`spin`, a cast: game/roll.js turns every game's view) and pulls
+// mountains out of the floor (`mountain`, a cast: game/mountains.js raises it in every game).
 // Where things are on him (model space: x, up, forward), read off his clips (blender/monteur.py)
 const MONTEUR_AT = Object.freeze({
   throw: [0, 2.917, 1.512], sunThrow: [0, 2.572, 0.649], summon: [0, 0.093, 1.526], sunSummon: [0, 0.183, 1.1], rain: [0, 2.604, 0],
@@ -1123,7 +1126,7 @@ const MONTEUR_AT = Object.freeze({
 const MONTEUR_THROW = {
   name: 'throw', clip: 'throw', weight: 3, reach: 10, hitAt: 21 / 30, trackUntil: 0.6, attackTime: 39 / 30, hitReach: 0,
   arc: 0.5, power: 0.7, knock: 4, knockDown: false, hop: 3, reason: "Hit by Monteur's stone!",
-  projectile: { kind: 'stone', speed: 9, radius: 0.22, range: 14, spin: 7, tumble: 5, stones: 1, muzzle: MONTEUR_AT.throw },
+  projectile: { kind: 'stone', speed: 9, radius: 0.22, range: 14, spin: 7, tumble: 5, stones: 1, steep: true, muzzle: MONTEUR_AT.throw },
 };
 const MONTEUR_VOLLEY = {
   ...MONTEUR_THROW, name: 'volley', weight: 2, power: 0.55,
@@ -1178,9 +1181,16 @@ const MONTEUR_SPIN = {
   name: 'spin', clip: 'spin', weight: 1, reach: 40, hitAt: 36 / 30, trackUntil: 0.3, attackTime: 60 / 30, hitReach: 0,
   arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Monteur', cast: 'spin',
 };
+// a mountain pulled out of the floor under the fight (game/monteur.js raises it, core/mountains.js):
+// he crouches and digs his rays into the floor, which cracks round the middle between him and you
+// from the stomp (the hit frame), strains, and heaves it up at 2.1 s, as it rises
+const MONTEUR_MOUNTAIN = {
+  name: 'mountain', clip: 'raise', weight: 3, reach: 14, hitAt: 27 / 30, trackUntil: 0.5, attackTime: 84 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Monteur', cast: 'mountain',
+};
 export const MONTEUR_SUN = {
   ...MONTEUR, type: 'monteursun', height: 3.3, bodyHeight: 2.4, chase: 1.3, cooldown: 1.1, gait: 'sun',
-  ...SUN_THROW, attacks: [SUN_THROW, SUN_VOLLEY, SUN_ROLL, SUN_STUCK, SUN_SUMMON, MONTEUR_RAIN, MONTEUR_SPIN], phase: 2,
+  ...SUN_THROW, attacks: [SUN_THROW, SUN_VOLLEY, SUN_ROLL, SUN_STUCK, SUN_SUMMON, MONTEUR_RAIN, MONTEUR_SPIN, MONTEUR_MOUNTAIN], phase: 2,
 };
 // Qualmos, the boss at the core of the world (depth 20, core/bosses.js; modelled by hand after a
 // child's drawing, blender/qualmos.blend, exported by blender/qualmos.py): a slender blue-green
@@ -1726,7 +1736,7 @@ export const REN_FACE = enemyKind(FIREFACE, {
 // charging, clubbing like any Moose); they come up out of the floor round him in a puff of dust
 export const MONT_MOOSE = enemyKind(MOOSE, {
   type: 'montmoose', minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
-  puff: { colors: ['#e0dacd', '#b8b0a0', '#8d877c'], size: 0.9 }, mods: { hp: 0.6, damage: 0.55, xp: 0.15 },
+  puff: { colors: ['#e0dacd', '#b8b0a0', '#8d877c'], size: 0.45 }, mods: { hp: 0.6, damage: 0.55, xp: 0.15 },
 });
 // small spiders of twigs, poured out of his ball by the dozen
 export const TOT_SPIDER = enemyKind(SPIDER, {

@@ -7,6 +7,9 @@
 // Totnar's) is turned to cross the line of e's heading where the target is as far. One that is
 // `lob`bed (Slomo's slug arms; lob: its gravity, cells/s²) flies in an arc from its muzzle onto
 // the target, `speed` along the ground: it falls on from there till it lands (stepProjectile).
+// One thrown from up high (`steep`: Monteur's stones, from between his antlers) is pitched at the
+// target however steep, measured along e's heading (straight at a target under or behind the
+// muzzle), so it still hits someone standing right in front of its thrower.
 export function launch(e, spec, target) {
   const [mx, my, mz] = spec.muzzle;
   let s = Math.sin(e.yaw), c = Math.cos(e.yaw);
@@ -20,8 +23,13 @@ export function launch(e, spec, target) {
     const d = Math.max(mz + 1, Math.hypot(target.x - e.x, target.z - e.z)), ax = e.x + s * d - x, az = e.z + c * d - z, l = Math.hypot(ax, az);
     s = ax / l; c = az / l;
   }
-  const flat = Math.max(0.5, Math.hypot(target.x - x, target.z - z));
-  const slope = Math.max(-0.45, Math.min(0.45, (target.y - y) / flat)), l = Math.hypot(1, slope);
+  let flat = Math.max(0.5, Math.hypot(target.x - x, target.z - z));
+  if (spec.steep) {   // (one standing under or behind the muzzle: straight at them)
+    const dx = target.x - x, dz = target.z - z, along = dx * s + dz * c, d = Math.hypot(dx, dz);
+    if (along < 0.3 && d > 0.01) { s = dx / d; c = dz / d; flat = d; } else flat = Math.max(0.3, along);
+  }
+  const most = spec.steep ? Infinity : 0.45;
+  const slope = Math.max(-most, Math.min(most, (target.y - y) / flat)), l = Math.hypot(1, slope);
   return { kind: spec.kind, spec, x, y, z, vx: s * spec.speed / l, vy: slope * spec.speed / l, vz: c * spec.speed / l,
     travelled: 0, t: 0 };
 }

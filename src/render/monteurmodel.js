@@ -4,6 +4,6 @@ import { loadEnemyModel } from './enemymodel.js';
 export const monteurModel = loadEnemyModel('assets/monteur.glb', 1, {
   walk: 'MonteurWalk', attack: { throw: 'MonteurThrow', charge: 'MonteurCharge', stuck: 'MonteurStuck', summon: 'MonteurSummon',
     change: 'MonteurChange', sunThrow: 'MonteurSunThrow', roll: 'MonteurRoll', sunStuck: 'MonteurSunStuck', rain: 'MonteurRain',
-    spin: 'MonteurSpin', sunSummon: 'MonteurSunSummon' },
+    spin: 'MonteurSpin', sunSummon: 'MonteurSunSummon', raise: 'MonteurRaise' },
   death: 'MonteurDeath', gaits: { sun: 'MonteurSunWalk' }, props: ['MonteurStone'],
 });

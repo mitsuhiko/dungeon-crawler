@@ -46,6 +46,8 @@ import { LIGHT_VIEWS, lightview } from './teach.js';
 import { showPerf, runBench } from './perf.js';
 import { setRoll, spinRoll, rollNow, setRollKeys, holdRoll } from './roll.js';
 import { KEY_MODES } from '../core/roll.js';
+import { SHAPES, placeMountain, freeCells } from '../core/mountains.js';
+import { devMountain, downMountain, mountainNow } from './mountains.js';
 
 const dev = cmd => addCommand(commands, { ...cmd, dev: true });
 const ahead = (d = 2.5) => ({ x: player.x + Math.sin(player.yaw) * d, y: player.y, z: player.z + Math.cos(player.yaw) * d });
@@ -132,6 +134,28 @@ dev({
   run({ mode }) {
     if (mode !== undefined) setRollKeys(mode);
     return rollSays();
+  },
+});
+
+// Monteur's mountains (game/mountains.js, core/mountains.js) to try out: one of a shape (or the
+// next at random) pulled up out of the floor round the hero, anywhere, no Monteur needed; off:
+// brought down. It stands its time and falls apart like his.
+const MOUNTAIN_SAY = { mesa: 'sheer sides, flat on top, a ladder now and then', terraces: 'a stepped cone: slopes and ledges to jump up',
+  ridge: 'a long back sloping down to both ends', tiers: 'a ledge round a needle, ladders now and then', crag: 'lumps and cliffs at random',
+  off: 'the one standing falls apart' };
+addType(commands, { name: 'mountain', values: () => Object.entries(MOUNTAIN_SAY).map(([v, hint]) => ({ value: v, label: v, hint })) });
+dev({
+  name: 'mountain', help: 'pull one of Monteur\'s mountains out of the floor round you: mesa, terraces, ridge, tiers or crag (none: any), or off',
+  args: [{ name: 'shape', type: 'mountain', optional: true }],
+  run({ shape }) {
+    const now = mountainNow();
+    if (shape === 'off') { downMountain(); return now ? 'The mountain falls apart' : 'There is no mountain here'; }
+    const spec = { n: Math.floor(Math.random() * 2 ** 30), seed: Math.floor(Math.random() * 2 ** 31), shape: shape ?? SHAPES[Math.floor(Math.random() * SHAPES.length)],
+      a: Math.round(player.yaw * 100) / 100, x: player.x, z: player.z, phase: 'crack', t: 0, life: 25, any: true };
+    const at = state.map && placeMountain(state.map, spec, 2, freeCells(state.map, true));
+    if (!at) return 'No room for a mountain here';
+    devMountain(Object.assign(spec, at));
+    return `A mountain comes up out of the floor (${spec.shape})`;
   },
 });
 

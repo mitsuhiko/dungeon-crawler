@@ -12,6 +12,7 @@ import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, 
   SQUIRTLE, fireAt } from '../src/core/enemies.js';
 import { MANSK_FIGHT } from '../src/core/mansk.js';
 import { MONTEUR_FIGHT } from '../src/core/monteur.js';
+import { MOUNTAIN } from '../src/core/mountains.js';
 import { CHAR_SCALE } from '../src/core/constants.js';
 
 await decoderReady;
@@ -631,8 +632,8 @@ test('Slomo: three shapes in one model, his clips match his attacks, his slugs t
 });
 test('Monteur: a moose and a sun in one model, his clips match his attacks, his stones thrown from where they float', () => {
   const { json: j, duration } = glb('monteur'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
-  assert.deepEqual(Object.keys(a).sort(), ['MonteurChange', 'MonteurCharge', 'MonteurDeath', 'MonteurRain', 'MonteurRoll', 'MonteurSpin', 'MonteurStuck',
-    'MonteurSummon', 'MonteurSunStuck', 'MonteurSunSummon', 'MonteurSunThrow', 'MonteurSunWalk', 'MonteurThrow', 'MonteurWalk']);
+  assert.deepEqual(Object.keys(a).sort(), ['MonteurChange', 'MonteurCharge', 'MonteurDeath', 'MonteurRain', 'MonteurRaise', 'MonteurRoll', 'MonteurSpin',
+    'MonteurStuck', 'MonteurSummon', 'MonteurSunStuck', 'MonteurSunSummon', 'MonteurSunThrow', 'MonteurSunWalk', 'MonteurThrow', 'MonteurWalk']);
   for (const n of ['MonteurWalk', 'MonteurSunWalk']) assert.equal(a[n].extras.loop, true, n);
   assert.ok(Math.abs(duration(a.MonteurDeath) - MONTEUR.deathTime) < 1e-5); assert.equal(a.MonteurDeath.extras.hold_last_frame, true);
   const clip = name => 'Monteur' + name[0].toUpperCase() + name.slice(1);
@@ -646,6 +647,8 @@ test('Monteur: a moose and a sun in one model, his clips match his attacks, his 
     if (at.rain) assert.deepEqual(c.extras.muzzle, at.rain.muzzle, at.clip);
     if (at.roll) assert.equal(c.extras.charge_end / 30, at.roll.to, at.clip);
   }
+  // the mountain: the floor cracks at his stomp, and it rises as he heaves (core/mountains.js)
+  assert.ok(Math.abs(a.MonteurRaise.extras.heave_frame / 30 - MONTEUR_SUN.attacks.find(at => at.cast === 'mountain').hitAt - MOUNTAIN.crack) < 1e-9);
   // his walks' pace (the game plays them at his speed)
   assert.ok(Math.abs(a.MonteurWalk.extras.speed - MONTEUR.chase) < 0.2 && Math.abs(a.MonteurSunWalk.extras.speed - MONTEUR_SUN.chase) < 0.2);
   assert.ok(Math.abs(duration(a.MonteurChange) - MONTEUR_FIGHT.morphTime) < 1e-5, 'his change lasts as long as it takes him');

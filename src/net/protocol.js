@@ -99,6 +99,7 @@
 
 import { ITEMS } from '../core/items.js';
 import { RARITY } from '../core/gear/rarities.js';
+import { SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
 export const PROTOCOL = 16;
@@ -312,8 +313,12 @@ const slomoRow = e => [(e.arms ?? [1, 1]).map(r2), e.floodSide ?? 0, r2(e.front 
 // ribbons are out, 0..1), slowing (s left of the time he slowed)] (game/mansk.js)
 const manskRow = e => [r2(e.lift ?? 0), e.horns ?? 1, r2(e.grow ?? 0), r2(e.slowing ?? 0)];
 // Monteur's: [stones (how many float between his antlers, 0..5), quarter (how far round he has
-// turned the world, 0..3)] (game/monteur.js; every game turns its own view after it, game/roll.js)
-const monteurRow = e => [r2(e.stones ?? 5), e.quarter ?? 0];
+// turned the world, 0..3), mountain (the one he pulled up: [n, seed, x, z, shape, a, phase, t,
+// life], shape and phase their indices in core/mountains.js SHAPES and PHASES; 0: none)]
+// (game/monteur.js; every game turns its own view after it, game/roll.js, and raises its own
+// mountain after it, game/mountains.js)
+const mountainRow = m => m ? [m.n, m.seed, m.x, m.z, SHAPES.indexOf(m.shape), m.a ?? 0, PHASES.indexOf(m.phase), r2(m.t), m.life] : 0;
+const monteurRow = e => [r2(e.stones ?? 5), e.quarter ?? 0, mountainRow(e.mountain)];
 export function rowOf(e, i, runner = 0) {
   const b = e.beam;
   return [i, r2(e.x), r2(e.y), r2(e.z), r2(e.yaw), Math.max(0, MODES.indexOf(e.mode)), r2(e.mode === 'dead' ? e.deadT : e.t),

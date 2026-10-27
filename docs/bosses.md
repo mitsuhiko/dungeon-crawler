@@ -1147,8 +1147,9 @@ one model (each clip shows one form and scales the other's bones away).
 Profiles: `MONTEUR` and `MONTEUR_SUN` (`STAGE_PROFILES.monteur`, one a phase) in
 `src/core/enemies.js`; the fight's rules in `src/core/monteur.js` (`MONTEUR_FIGHT`); the fight in
 `src/game/monteur.js`, the world he turns in `src/game/roll.js` (its rules `src/core/roll.js`,
-[camera.md](camera.md), "The world's roll"), what the game does to his model in
-`src/render/monteurview.js`.
+[camera.md](camera.md), "The world's roll"), his mountains in `src/game/mountains.js` (their rules
+`src/core/mountains.js`, how they show `src/render/mountains.js`), what the game does to his model
+in `src/render/monteurview.js`.
 
 | | Level 9 |
 |---|---|
@@ -1158,7 +1159,7 @@ Profiles: `MONTEUR` and `MONTEUR_SUN` (`STAGE_PROFILES.monteur`, one a phase) in
 | Poise | 2 s |
 
 His arena is the one his depth would have anyway (any arena type, in the theme of depth 7: mostly
-act II's caves). The mountains he will pull out of its floor are still to come.
+act II's caves). As the sun he pulls mountains out of its floor (below).
 
 He keeps his distance (`style: 'ranged'`, `keep` 3.5 to 7 cells): his stones fly from there, and
 his charge needs room.
@@ -1167,9 +1168,9 @@ his charge needs room.
 
 - **Stones** (within 10 cells, clip `MonteurThrow`, 1.3 s): he rears his head back and flicks it
   forward, and at 0.7 s a stone flies from between his antlers (a projectile, 9 cells/s, tumbling, a
-  little push). Now and then **three at once**, fanned out (`volley`). Each throw takes its stones
+  little push), pitched down at you however close you stand (`steep`). Now and then **three at once**, fanned out (`volley`). Each throw takes its stones
   (`stones`): those thrown are gone from between his antlers, and they grow back one by one, one
-  every 2.2 s (`MONTEUR_FIGHT.stones`); without the stones for it he does not throw.
+  every 0.6 s (`MONTEUR_FIGHT.stones`); without the stones for it he does not throw.
 - **The charge** (2.5 to 9 cells, clip `MonteurCharge`, 2.4 s; 3 to 4 s into the fight, then every
   6 to 9 s): he lowers his head, his antlers to the front, and scrapes a hoof (the tell), and from
   0.9 s to 2 s gallops straight at you at 9 cells/s (you run 2.8), hardly steering (0.45 rad/s:
@@ -1213,10 +1214,52 @@ him, his stones flying over to it. He fights on as `MONTEUR_SUN`, his stones all
   wall or along the ceiling. What the keys do meanwhile: [camera.md](camera.md), "The world's
   roll" (still to settle).
 - **Moose**, up to **two**, every 12 s (clip `MonteurSunSummon`: a hop and a stomp).
+- **Mountains** (within 14 cells, clip `MonteurRaise`, 2.8 s; 8 s into the phase, then 6 to 10 s
+  after the last one is gone; one at a time): it crouches and digs its rays into the floor, and at
+  its stomp (0.9 s) the floor cracks round the middle between it and you, glowing like its veins,
+  "Monteur pulls a mountain out of the floor!". At 2.1 s it heaves, and the mountain rises out of
+  the floor (1.8 s, dust rolling out at its foot, rock falling off its sides): whoever stands on it
+  rides up, he too. See below.
 
 His death (clip `MonteurDeath`: the sun shudders, sinks on its folding legs, its rays drooping,
 and topples over on its back, the stones dropping to the floor round it) turns the world back the
-right way up and takes his Moose along.
+right way up, brings his mountain down and takes his Moose along.
+
+### His mountains
+
+A mountain takes the open ground of the fight round where it rises (`core/mountains.js
+freeCells`: one floor in its column, nothing over it, nothing built or standing on it: no stair, no
+ladder's foot, no portal, no prop that blocks), at least 16 cells of it, where the shape he pulls
+next fits best within 3 cells of the middle between him and you (`placeMountain`). Each is
+another shape than the last (`SHAPES`), and each looks different:
+
+| Shape | What it is | Height (levels over the highest ground under it) | A way up |
+|---|---|---|---|
+| `mesa` | sheer sides, flat on top but for a few bumps, the rim a level lower | 8 to 12 | a ladder 6 times in 10, else none |
+| `terraces` | a stepped cone, rings a level or two apart | up to about 8 | its slopes from the ground; ledges to jump up |
+| `ridge` | a long back three or four cells wide along the line between him and you, sheer sides, sloping down to both ends | 5 to 7 in the middle | its ends (where the ground beside them is low enough); a ladder 3 times in 10 |
+| `tiers` | a ledge all round a needle | the ledge 4 to 5, the needle 5 to 7 more | a ladder onto the ledge half the time, one up the needle 7 times in 10 |
+| `crag` | lumps and cliffs at random | 2 to 10 | whatever slopes and jumps it has |
+
+Its cells stay the cube's own floors: while it stands their heights, corners and links are its
+(`planMountain`: its cells join as walkable slopes a level apart at most, and the ground beside it
+only where that was walked onto before; the corners smoothed like the generator's), so the physics,
+his way, the Moose's and the hero's (click to move, up its ladders and jumps) take it as floor like
+any other. While it rises and falls nothing walks on or off it (the links to the ground are cut);
+up, its slopes join the ground and its ladders (iron rungs) are there. Every change of its links
+puts a copy of the cube's map in `state.map`, so what is worked out once a map is worked out anew;
+once it is gone the floors are given back as they were, and `state.map` is the cube's own again.
+It shows built like the cube's terrain (`render/mountains.js`, at its full height, sinking under
+the ground by as far as it is under its height).
+
+It stands 20 to 30 s, then falls apart, "The mountain crumbles!": it sinks back into the floor in
+four jolts (2.4 s), each a thud that shakes the ground, chunks tumbling off its edges, dust rolling
+out at its foot; whoever is on it rides down. Knocked off it (his charge, a stone, a Moose, a
+missed jump) you climb back up where there is a way. Where there is none, he brings it down
+(`MOUNTAIN.apart`, `game/mountains.js mountainApart`): one of you on it, the other cut off, for
+2 s (from 1 s after it is up), "Monteur brings the mountain down!". You higher up than him: when
+he cannot walk up to you (he climbs no ladders and jumps up nothing). He up there: when you cannot
+get to him, climbing and jumping too. A mountain he only cracked is gone at once when he dies.
 
 ## Monteur's minions
 
@@ -1419,9 +1462,11 @@ every game simulates his ribbons itself (`render/manskview.js`) and slows its ow
 him slow time (`game/mansk.js manskSeen`). A grab of his (in his mouth, in his ribbons) is a blow
 like Gusto's; his balls of light are only sent to the others once he lets them go. Monteur's stage
 swaps his profile likewise, and his row carries six more slots (the first five unused): how many
-stones float between his antlers and how far round he has turned the world (`quarter`); every game
-turns its own view after it (`game/roll.js followRoll`) and lets its own stones rain round its own
-player as he throws them up. Renew's stage swaps his profile like Foggery's, and his row carries
+stones float between his antlers, how far round he has turned the world (`quarter`) and his
+mountain (`[n, seed, x, z, shape, a, phase, t, life]`, `net/protocol.js`); every game turns its own
+view after it (`game/roll.js followRoll`), raises its own mountain after it (the same one: it is
+planned from the spec and the cube, `game/mountains.js`; its clock runs on between his rows) and
+lets its own stones rain round its own player as he throws them up. Renew's stage swaps his profile like Foggery's, and his row carries
 three more slots (the first two unused): the room's clock, whether time runs back and whether the
 fight is on, and a fourth: how far he has risen away at the end (2: gone). Every game records its own hero and rewinds them after his clock, and has its own
 echoes and ghosts (from what it was shown), the echoes hurting only it (`game/rewind.js`); the fight's bodies are rewound by the runner and shown
@@ -1443,7 +1488,8 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 `/spawn oozeslug`, `/spawn oozebolime`, `/spawn slimesquirtle`; `/arena bowl`, `/boss slomo`.
 `/spawn mansk` (`addMansks`: his whole fight anywhere), `/spawn stagetornado`; `/arena stage`,
 `/boss mansk`. `/spawn monteur` (`addMonteurs`: his whole fight anywhere), `/spawn montmoose`;
-`/boss monteur`; `/roll` and `/rollkeys` turn the world without him ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`), `/boss qualmos`.
+`/boss monteur`; `/roll` and `/rollkeys` turn the world without him, `/mountain` pulls one of his
+mountains out of the floor anywhere ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`), `/boss qualmos`.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
 becomes the boss's level, takes a Long Sword of it and goes into his arena (`goBoss`).
@@ -1466,7 +1512,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1478,6 +1524,7 @@ await (await import('./tests/browser/renew.js')).runRenewChecks()      // Renew'
 await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk's, in his museum: breathing in and the spit, the balls of light, flying and landing, slowed time, the horns breaking, the ribbons catching and squeezing
 await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the blob bursting, the flood from a side, his slimes
 await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
+await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
 ```
 
@@ -1520,7 +1567,8 @@ things: `Blender -b --python blender/themes.py` (`blender/themes_museum.py`).
 Monteur: `Blender -b --python blender/monteur.py -- assets/monteur.glb blender/monteur.blend
 blender/previews/monteur-preview.png`, then `node tools/compress-assets.mjs assets/monteur.glb`. The throw,
 summon and rain points it prints must match `MONTEUR_AT` (`tests/assets.test.js`), his clips last as
-long as his attacks, his charge's run ends where the roll does (`charge_end`).
+long as his attacks, his charge's run ends where the roll does (`charge_end`), and his mountain
+rises as he heaves (`MonteurRaise`'s `heave_frame`: its hit frame and `MOUNTAIN.crack` later).
 
 Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb
 blender/previews/qualmos-preview.png` (it reads `blender/qualmos.blend` and never writes it), then

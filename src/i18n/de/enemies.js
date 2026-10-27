@@ -321,6 +321,9 @@ export default {
   '{name} crashed! Hit him while he is dazed': '{name} ist aufgeprallt! Schlag zu, solange er benommen ist',
   '{name} crumbles into a sun of stone!': '{name} zerfällt zu einer Sonne aus Stein!',
   '{name} turns the world!': '{name} dreht die Welt!',
+  '{name} pulls a mountain out of the floor!': '{name} zieht einen Berg aus dem Boden!',
+  '{name} brings the mountain down!': '{name} lässt den Berg einstürzen!',
+  'The mountain crumbles!': 'Der Berg zerfällt!',
   '{name} enters phase {phase}!': '{name} beginnt Phase {phase}!',
 
   // guardians (core/guardians.js)

@@ -13,10 +13,10 @@ const names = (p, d) => attacksInReach(p, d, 0).map(i => p.attacks[i].name);
 
 test('up close it tosses, from further off it charges, and its tail is for whoever stands behind it', () => {
   const toss = named(MOOSE, 'toss'), charge = named(MOOSE, 'charge'), dazed = named(MOOSE, 'dazed'), tail = named(MOOSE, 'tail');
-  assert.deepEqual(names(MOOSE, 1), ['toss', 'tail']);
-  assert.deepEqual(names(MOOSE, 1.7), ['tail']);
-  assert.deepEqual(names(MOOSE, 2.2), [], 'too far for a blow, too close for a charge');
-  assert.deepEqual(names(MOOSE, 5), ['charge']);
+  assert.deepEqual(names(MOOSE, 0.6), ['toss', 'tail']);
+  assert.deepEqual(names(MOOSE, 0.9), ['tail']);
+  assert.deepEqual(names(MOOSE, 1.3), [], 'too far for a blow, too close for a charge');
+  assert.deepEqual(names(MOOSE, 4), ['charge']);
   assert.ok(MOOSE.reach === charge.reach && MOOSE.style === 'brute');
   // its tail lands behind it, and only a player behind it draws it
   assert.ok(tail.back && !toss.back && !charge.back);

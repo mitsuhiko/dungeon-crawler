@@ -19,6 +19,7 @@ import { removeEnemyViews } from '../render/enemies.js';
 import { guardianId } from '../core/guardians.js';
 import { STAGE_PROFILES, enemyProfile } from '../core/enemies.js';
 import { followMovers } from '../game/movers.js';
+import { SHAPES, PHASES } from '../core/mountains.js';
 import { Timeline, lerpAngle, PREDICT } from './sync.js';
 import { MODES, BURNING, TOXIC, CHILLED, ZAPPED, rosterOf, rowOf } from './protocol.js';
 
@@ -193,11 +194,13 @@ export class Viewer {
         e.grow = Number.isFinite(grow) ? Math.max(0, Math.min(1, grow)) : 0;
         e.slowing = Number.isFinite(slowing) ? Math.max(0, Math.min(10, slowing)) : 0;
       }
-      // Monteur's stones and how far round he has turned the world (game/monteur.js; game/roll.js turns ours after it)
+      // Monteur's stones, how far round he has turned the world and his mountain (game/monteur.js;
+      // game/roll.js turns ours after it, game/mountains.js raises ours after it)
       if (Array.isArray(b[24])) {
-        const [stones, quarter] = b[24];
+        const [stones, quarter, mountain] = b[24];
         e.stones = Number.isFinite(stones) ? Math.max(0, Math.min(5, stones)) : 5;
         e.quarter = Number.isInteger(quarter) && quarter >= 0 && quarter < 4 ? quarter : 0;
+        e.mountain = mountainOf(mountain, e.mountain);
       }
       if (e.mode === 'dead') { e.hp = 0; e.deadT = b[6]; e.dark = 0; (e.beam || e.bolts) && mirrorBeam(e, null); return; }
       mirrorBeam(e, Array.isArray(b[12]) ? b[12] : null, Array.isArray(b[16]) ? b[16] : null);
@@ -215,3 +218,13 @@ export class Viewer {
 
 // is the player able to take a blow from the runner's enemies now?
 export const canBeHit = () => player.hp > 0 && !player.ragdoll && !state.transitioning;
+
+// Monteur's mountain from his row ([n, seed, x, z, shape, a, phase, t, life], net/protocol.js), the
+// one he had kept if it is the same (game/mountains.js runs its clock on between rows); null: none
+function mountainOf(row, had) {
+  if (!Array.isArray(row)) return null;
+  const [n, seed, x, z, shape, a, phase, t, life] = row;
+  if (![n, seed, x, z, a, t, life].every(Number.isFinite) || !SHAPES[shape] || !PHASES[phase]) return null;
+  const m = had?.n === n ? had : { n, seed, x, z, shape: SHAPES[shape], a };
+  return Object.assign(m, { phase: PHASES[phase], t, life });
+}

@@ -5,7 +5,7 @@ A long oval barrel of a body on four short, stubby legs with dark hooves; a long
 forward from its chest to a big round head with angry brows, a wide grin full of jagged teeth and
 two branching antlers; and a long tail curving up behind it to a hard, smooth ball that it swings
 like a club. Faces -Y in Blender, +Z up; one unit = one game cell, about 2.4 cells to the tips of
-its antlers.
+its antlers (the game draws it at a third of that: core/enemies.js MOOSE `size`).
 
 The body, neck, head, legs and tail are one OpenVDB SDF skinned to body, neck and head, two bones
 per leg (IK) and a four-bone tail; the antlers, brows, eyes, teeth, mouth and nostrils ride the head
