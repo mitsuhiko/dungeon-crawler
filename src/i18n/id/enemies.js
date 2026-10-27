@@ -87,7 +87,6 @@ export default {
   // --- core/enemies.js: the fight lines ----------------------------------------------------------
   '{name} missed! Hit him while he is down': '{name} meleset! Pukul dia selagi ia jatuh',
   '{name} is out of breath! Hit him now': '{name} kehabisan napas! Pukul dia sekarang',
-  '{name} is winded! Hit him now': '{name} terengah-engah! Pukul dia sekarang',
   '{name} is stuck! Hit his foot': '{name} macet! Pukul kakinya',
   'Temp Boss {kind}': 'Bos Sementara {kind}',
   'Guardian {kind}': 'Penjaga {kind}',
@@ -216,7 +215,6 @@ export default {
   'Slimed by a Slime squirtle!': 'Dilumuri lendir Squirtle Lendir!',
   "Hit by Slomo's slug!": 'Kena siput Slomo!',
   "Hit by Slomo's meteorite!": 'Kena meteorit Slomo!',
-  'Squashed flat by Slomo!': 'Digencet sampai gepeng oleh Slomo!',
   'Slimed by Slomo!': 'Dilumuri lendir Slomo!',
   'Scorched by Foggery!': 'Terpanggang Foggery!',
   'Burned by a fire geyser!': 'Terbakar geyser api!',
@@ -326,7 +324,6 @@ export default {
   'Shot by your own echo!': 'Tertembak panah gemamu sendiri!',
 
   // --- game/slomo.js, game/engulf.js, core/meteors.js --------------------------------------------
-  '{name} grows legs!': '{name} menumbuhkan kaki!',
   '{name} bursts out of his slime!': '{name} meledak keluar dari lendirnya!',
   '{name} floods the bowl with slime!': '{name} membanjiri cekungan dengan lendir!',
   '{name} swallowed you! Jump to break free!': '{name} menelanmu! Lompat untuk melepaskan diri!',

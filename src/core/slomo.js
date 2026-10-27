@@ -1,31 +1,27 @@
 // Slomo's fight as rules (game/slomo.js runs it; his profiles are core/enemies.js SLOMO,
 // SLOMO_LEGS and SLOMO_SLUG). docs/bosses.md tells the whole fight.
 //
-// Three phases, a third of his health each. No blow takes him below the next phase's share of his
-// health (`splits`); there he changes (`morphTime` s, nothing hurting him meanwhile) and fights on
-// with the next phase's attacks:
+// Two phases, half his health each. No blow takes him below the slug's share of his health
+// (`splits`); there he changes (`morphTime` s, nothing hurting him meanwhile: the blob bursts and
+// the slug inside it turns round) and fights on with the slug's attacks:
 //   1 (a blob)      a great see-through blob of slime with two slug arms: he throws the slugs at
 //                   the end of his arms (each lands where it flies and comes to life: an arm slug
 //                   that crawls after the player, latches on and dies; the arm grows a new one,
 //                   `arms.grow`) and spits slime meteorites up into the sky that come down round
 //                   the player (`rain`)
-//   2 (legs)        the blob in front of a slug body on long legs: he walks after the player and
-//                   now and then (`jump`) jumps up high onto them (his landing sends out
-//                   shockwaves); he floods the bowl with slime from one side (`flood`), and the
-//                   meteorites
-//   3 (the slug)    the slug alone, legs and all: he spits slime, calls slimes out of himself (up to
+//   2 (the slug)    the slug alone, on its legs: he spits slime, calls slimes out of himself (up to
 //                   `minions.slimes`: Ooze slugs and Ooze bolimes) and Slime squirtles (up to
-//                   `minions.squirtles`), floods the bowl and the meteorites
+//                   `minions.squirtles`), floods the bowl with slime from one side (`flood`) and
+//                   the meteorites
 // The flood comes in from a side of his bowl (a different one each time, at random): its front
 // runs across in `surge` s, the slime stands `high` s and drains away in `drain` s. It never stands
 // over anyone's head; it slows whoever wades through it (`slow`: the slime's, on top of the wading).
 // His death drains the flood and takes his minions along. His arena is always at night.
 import { mulberry32 } from './util.js';
-import { JUMP_V, GRAV, CHAR_R } from './constants.js';
 
 export const SLOMO_FIGHT = Object.freeze({
-  splits: [2 / 3, 1 / 3],    // the shares of his health phase 2 and phase 3 start at
-  morphTime: 3.2,            // s he changes into the next phase's shape, nothing hurting him
+  splits: [1 / 2],           // the share of his health phase 2 starts at
+  morphTime: 3.2,            // s he changes into the slug, nothing hurting him
   appear: 0.5,               // s more nothing hurts him once he has changed
   arms: { grow: 3 },         // s a slug arm he threw takes to grow back
   armSlugs: 4,               // the most arm slugs about at once (more thrown ones melt where they land)
@@ -37,26 +33,25 @@ export const SLOMO_FIGHT = Object.freeze({
   // casts (s); they come down round the player (game/meteors.js rainOf)
   rain: { first: 4, every: [8, 12] },
   flood: { first: 5, every: [13, 19], surge: 2.4, high: 1.5, drain: 10, slow: { time: 0.35, slow: 0.72, source: 'slime' } },
-  jump: { first: 3, every: [8, 12] },   // phase 2: s into it before his first jump, then between jumps (he walks after you meanwhile)
-  minions: { slimes: 5, squirtles: 2 },   // phase 3: the most slimes (Ooze slugs, Ooze bolimes) / Slime squirtles at once
+  minions: { slimes: 5, squirtles: 2 },   // phase 2: the most slimes (Ooze slugs, Ooze bolimes) / Slime squirtles at once
   summonCool: { slimes: 8, squirtles: 12 },   // s from one summon of each to the next
-  firstSummon: 2,            // s into phase 3 before his first summons
+  firstSummon: 2,            // s into phase 2 before his first summons
   leave: 0.5,                // s a minion he takes along lingers, gone, before it is let go
 });
-const ALL = ['armL', 'armR', 'meteor', 'jump', 'flood', 'spit', 'summon', 'squirtle'];
-const MINE = [['armL', 'armR', 'meteor'], ['jump', 'flood', 'meteor'], ['spit', 'summon', 'squirtle', 'flood', 'meteor']];
+const ALL = ['armL', 'armR', 'meteor', 'flood', 'spit', 'summon', 'squirtle'];
+const MINE = [['armL', 'armR', 'meteor'], ['spit', 'summon', 'squirtle', 'flood', 'meteor']];
 
 // the health below which no blow takes him in phase `phase` (0 in the last)
 export const phaseFloor = (maxHp, phase) => phase <= SLOMO_FIGHT.splits.length ? Math.ceil(maxHp * SLOMO_FIGHT.splits[phase - 1]) : 0;
 // how many a summon of `name` ('slimes' or 'squirtles') brings with `alive` of them about
 export const summonCount = (name, alive) => Math.max(0, (SLOMO_FIGHT.minions[name] ?? 0) - alive);
 // The attacks he may not start now (names): those of the other phases; the flood when it is due,
-// and then nothing else; the meteorites, the jump and the summons only when due; an arm throw only
-// while he has that slug arm.
-export function barred({ phase, arms = [1, 1], floodDue = false, rainDue = false, jumpDue = false, slimesDue = false, squirtlesDue = false }) {
+// and then nothing else; the meteorites and the summons only when due; an arm throw only while he
+// has that slug arm.
+export function barred({ phase, arms = [1, 1], floodDue = false, rainDue = false, slimesDue = false, squirtlesDue = false }) {
   const mine = new Set(MINE[phase - 1]);
   if (floodDue && mine.has('flood')) return new Set(ALL.filter(n => n !== 'flood'));
-  return new Set(ALL.filter(n => !mine.has(n) || n === 'flood' || (n === 'meteor' && !rainDue) || (n === 'jump' && !jumpDue) || (n === 'armL' && arms[0] < 1)
+  return new Set(ALL.filter(n => !mine.has(n) || n === 'flood' || (n === 'meteor' && !rainDue) || (n === 'armL' && arms[0] < 1)
     || (n === 'armR' && arms[1] < 1) || (n === 'summon' && !slimesDue) || (n === 'squirtle' && !squirtlesDue)));
 }
 
@@ -107,20 +102,4 @@ export function rainOf(rain, seed) {
     out.push({ dx: Math.cos(a) * d, dz: Math.sin(a) * d, delay: i * rain.stagger });
   }
   return out;
-}
-
-// Jumping over his shockwaves (core/enemies.js SLOMO_JUMP `wave`, game/quakes.js): a ring's band,
-// `width` deep, runs out at `speed`; whoever is on the ground when it rolls under them is thrown off
-// their feet, one in the air is not. It is under a body of radius r for under = (width + 2 r) / speed
-// s. A jump keeps the hero off the ground for air = 2 JUMP_V / GRAV s (0.57), so a jump started at
-// most air - under before the band reaches them, and no later than when it does, clears it: `window`
-// s to jump in. Of two rings `gap` s apart each can be cleared with a jump of its own however early
-// or late in the first window one jumped, if one is down again before the second window opens:
-// gap >= 2 air - under (`gap`). (One jump over both would need gap <= air - 2 under: far too tight.)
-// He lands on his shadow, so the hero who got out of it stands just outside it (`near`): the first
-// band reaches them `reach` s after he lands; `from` / `to`: their window to jump in, s from his
-// landing (from < 0: as he comes down).
-export function dodge(wave, near = 0, r = CHAR_R) {
-  const air = 2 * JUMP_V / GRAV, under = (wave.width + 2 * r) / wave.speed, reach = Math.max(0, near) / wave.speed;
-  return { air, under, window: air - under, gap: 2 * air - under, reach, from: reach + under - air, to: reach };
 }

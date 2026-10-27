@@ -8,7 +8,7 @@ import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THROW_CLIP, KINDS } f
 import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
-  SQUARLO, SQUARLO_GIANT, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_LEGS, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, fireAt } from '../src/core/enemies.js';
+  SQUARLO, SQUARLO_GIANT, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, fireAt } from '../src/core/enemies.js';
 import { MANSK_FIGHT } from '../src/core/mansk.js';
 import { CHAR_SCALE } from '../src/core/constants.js';
 
@@ -582,9 +582,9 @@ test('Slomo: three shapes in one model, his clips match his attacks, his slugs t
     'SlomoMeteor', 'SlomoMeteorLegs', 'SlomoMeteorSlug', 'SlomoOoze', 'SlomoSpit', 'SlomoStride', 'SlomoSummon']);
   for (const n of ['SlomoOoze', 'SlomoStride', 'SlomoCrawl']) assert.equal(a[n].extras.loop, true, n);
   assert.ok(Math.abs(duration(a.SlomoDeath) - SLOMO.deathTime) < 1e-5); assert.equal(a.SlomoDeath.extras.hold_last_frame, true);
-  const clip = { armL: 'SlomoArmL', armR: 'SlomoArmR', meteor: 'SlomoMeteor', jump: 'SlomoJump', flood: 'SlomoFlood', meteorLegs: 'SlomoMeteorLegs',
-    spit: 'SlomoSpit', summon: 'SlomoSummon', meteorSlug: 'SlomoMeteorSlug', floodSlug: 'SlomoFloodSlug' };
-  for (const at of [...SLOMO.attacks, ...SLOMO_LEGS.attacks, ...SLOMO_SLUG.attacks]) {
+  const clip = { armL: 'SlomoArmL', armR: 'SlomoArmR', meteor: 'SlomoMeteor', spit: 'SlomoSpit', summon: 'SlomoSummon', meteorSlug: 'SlomoMeteorSlug',
+    floodSlug: 'SlomoFloodSlug' };
+  for (const at of [...SLOMO.attacks, ...SLOMO_SLUG.attacks]) {
     const c = a[clip[at.clip]];
     assert.ok(c, at.clip);
     assert.equal(c.extras.hit_frame / 30, at.hitAt, at.clip);
@@ -592,10 +592,9 @@ test('Slomo: three shapes in one model, his clips match his attacks, his slugs t
     if (at.projectile) assert.deepEqual(c.extras.muzzle, at.projectile.muzzle, at.clip);
     if (at.summon) assert.deepEqual(c.extras.muzzle, at.summon.muzzle, at.clip);
     if (at.rain) assert.deepEqual(c.extras.muzzle, at.rain.muzzle, at.clip);
-    if (at.jump) assert.equal(c.extras.ride_frame / 30, at.jump.from);
   }
-  // his gaits' paces: the feet that are down sweep back as fast as he goes (blender/slomo.py)
-  assert.ok(a.SlomoStride.extras.speed >= SLOMO_LEGS.chase * 0.9 && a.SlomoCrawl.extras.speed >= SLOMO_SLUG.chase * 0.9);
+  // his gait's pace: the feet that are down sweep back as fast as he goes (blender/slomo.py)
+  assert.ok(a.SlomoCrawl.extras.speed >= SLOMO_SLUG.chase * 0.9);
   const names = new Set(j.materials.map(m => m.name));
   for (const m of [...Object.values(SLOMO.parts).flat(), ...SLOMO.shell.parts]) assert.ok(names.has(m), m);
   const skin = j.materials.find(m => m.name === 'SlomoSkin').pbrMetallicRoughness.baseColorFactor;

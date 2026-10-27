@@ -1,5 +1,5 @@
-// A big boss's jump onto the player (Giant Squarlo's, game/squarlo.js; Slomo's on his legs,
-// game/slomo.js: an attack's `jump` with a stomp beam, its shadow): the shadow shows on the floor
+// A big boss's jump onto the player (Giant Squarlo's, game/squarlo.js: an attack's `jump` with a
+// stomp beam, its shadow): the shadow shows on the floor
 // he can land on nearest the player (in the arena, `edge` cells clear of the cube's sides: off its
 // bank) and follows them there (jump.track cells/s) until it holds still at the last (beam.lock);
 // he crouches, springs off at jump.from and flies (core/squarlo.js jumpLift high over the line) to
@@ -52,7 +52,7 @@ export function touchDown(f, e) {
 }
 // a floor he fits on (bossfight.js fitting) at (x, z), the one nearest to the height y
 function landing(f, x, z, y) {
-  if (!f.fits || f.fitsFor !== f.e.profile.type) {   // (his body's: Slomo's changes with his shape)
+  if (!f.fits || f.fitsFor !== f.e.profile.type) {   // (his body's: it changes with his shape)
     f.fits = new Map(); f.fitsFor = f.e.profile.type;
     for (const g of fitting(f.e.profile)) f.fits.set(g.c, [...(f.fits.get(g.c) ?? []), g]);
   }

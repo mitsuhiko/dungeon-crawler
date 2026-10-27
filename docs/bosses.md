@@ -1063,39 +1063,37 @@ like a mask dropped (ManskDeath; a slap and a puff of dust), his ribbons falling
 
 ![Slomo's clips](img/model-slomo.jpg)
 
-From the kids' sketches (`blender/slomo.py`, `assets/slomo.glb`): a slime boss in three shapes, one
+From the kids' sketches (`blender/slomo.py`, `assets/slomo.glb`): a slime boss in two shapes, one
 model (each clip shows one shape and scales the others' bones away; `render/slomoview.js` blends the
-gait of one shape into the next while he changes, so the blob slides forward and the slug grows out
-of it behind on its legs, then the blob bursts and the slug turns round).
+blob's gait into the slug's while he changes, so the blob bursts and the slug turns round). The
+model still holds a third shape he no longer fights in, the blob on a slug body on legs, and its
+clips (`SlomoStride`, `SlomoJump`, `SlomoFlood`, `SlomoMeteorLegs`); the game leaves them unused.
 
 - **The blob** (phase 1): a great see-through dome of lime slime, about 2.9 cells tall to his eyes
   (its skin drawn translucent, his `shell`, like a Bolime's), the squiggly stuff a Bolime has
   inside it drawn like the sketch's angry face (two wavy lines, a bar and a frown), two eye stalks
   on top with a V of slime between them, and two long slime arms out of his sides, each ending in a
   Slug (the slime marsh's: striped, curly legs, eye stalks).
-- **On legs** (phase 2): the blob, a little smaller, sits in front of a slug body striped dark
-  across its back, carried on six long legs, the slug's own eye stalks at its far end.
-- **The slug** (phase 3): the slug alone, turned round (its head in front now), still on its legs,
-  leaving a trail of slime.
+- **The slug** (phase 2): the slug that was inside him, striped dark across its back, turned round
+  (its head in front), on six long legs, leaving a trail of slime.
 
-Profiles: `SLOMO`, `SLOMO_LEGS` and `SLOMO_SLUG` (`STAGE_PROFILES.slomo`, one a phase) in
-`src/core/enemies.js`; the fight's rules in `src/core/slomo.js` (`SLOMO_FIGHT`); the fight in
-`src/game/slomo.js`, his flood in `src/game/tide.js` (its rolling front `render/slomofx.js`), his
-jump in `src/game/bossjump.js` (shared with Giant Squarlo), his meteorites in `src/game/meteors.js`,
-his shockwaves in `src/game/quakes.js`.
+Profiles: `SLOMO` and `SLOMO_SLUG` (`STAGE_PROFILES.slomo`, one a phase) in `src/core/enemies.js`;
+the fight's rules in `src/core/slomo.js` (`SLOMO_FIGHT`); the fight in `src/game/slomo.js`, his
+flood in `src/game/tide.js` (its rolling front `render/slomofx.js`), his meteorites in
+`src/game/meteors.js`; he keeps off the bank round his bowl with `keepIn` (`src/game/bossjump.js`).
 
 | | Level 15 |
 |---|---|
-| Health | 3380 (the descent tier's floor, grown fourteen levels), a third a phase |
-| Damage | 58 (slug arm ×0.7 and a slowing; meteorite ×0.6; landing ×1.3, shockwave ×0.5; slime ball ×0.55 a ball, slowing; an Arm slug's bite ×0.5 of its own; the flood: none, it slows) |
+| Health | 3380 (the descent tier's floor, grown fourteen levels), half a phase |
+| Damage | 58 (slug arm ×0.7 and a slowing; meteorite ×0.6; slime ball ×0.55 a ball, slowing; an Arm slug's bite ×0.5 of its own; the flood: none, it slows) |
 | XP | 650 grown; coins 190–340 at level 1; two weapons and two potions like a descent guardian |
-| Poise | 2 s; on legs nothing staggers him, and blows do ×0.8 unless he is winded |
+| Poise | 2 s |
 
 The slime is his own (`slimeborn`): it does not hold him. A big body, he turns no faster than his
-`turnSpeed` (1.1–1.6 rad/s, `game/enemyai.js turn`), and turning on the spot steps round too: his
-gait goes on as far as his feet go round (`turnStride`, `render/enemies.js`). His legs walk in two
-tripods; a foot that is down sweeps back as fast as he goes (the clips' `speed`: 4 L sin(swing) a
-loop, `blender/slomo.py`), so his feet stay put on the ground.
+`turnSpeed` (1.3–1.6 rad/s, `game/enemyai.js turn`), and turning on the spot steps round too: his
+gait goes on as far as his feet go round (`turnStride`, `render/enemies.js`). The slug's legs walk in
+two tripods; a foot that is down sweeps back as fast as he goes (the clip's `speed`: 4 L sin(swing)
+a loop, `blender/slomo.py`), so his feet stay put on the ground.
 
 ### His arena: the slime bowl
 
@@ -1120,7 +1118,7 @@ under it and the wet ground), its front a wall of slime rolling on (`render/slom
 it slows (the wading, and its slime: `flood.slow`, `game/tide.js`; the enemies the slime does not
 hold go on). The mounds and the doorways stay dry. Beaten, it is gone for good.
 
-### Phase 1: the blob (full health to two thirds)
+### Phase 1: the blob (full health to half)
 
 - **Slug arm** (within 10 cells, clips `SlomoArmL` / `SlomoArmR`, 1.5 s): he winds an arm up and
   back and whips it forward, and at 0.9 s the slug on its end flies off in an arc (`lob`: thrown up
@@ -1138,47 +1136,25 @@ hold go on). The mounds and the doorways stay dry. Beaten, it is gone for good.
   own come down round its own player, from his attack clock (`game/meteors.js`), and they spare the
   enemies.
 
-### Growing legs
-
-At two thirds he stops (mode `split`): for 3.2 s nothing hurts him while the slug body grows out of
-the blob behind it and his arms are drawn in; the Arm slugs go with them.
-
-### Phase 2: on legs (two thirds to a third)
-
-- He walks after the player on his legs (`brute`, 1.5 cells/s).
-- **Jump** (within 12 cells, up a hill too, clip `SlomoJump`, 3 s, every 8–12 s, the first 3 s into
-  the phase, `jump`): like Giant Squarlo's, up to 9 cells high. His shadow shows from 0.4 s on the
-  floor nearest the player and follows them at 2.8 cells/s, holding still for the last 0.4 s; he
-  springs off at 0.7 s and lands on it at 2 s: whoever is in it (1.6 cells) is squashed flat (×1.3)
-  and dazed for 2.5 s. He squats winded until 2.7 s: blows do ×1.3 ("Slomo is winded! Hit him now").
-- **Two shockwaves** from his landing, one second apart (`wave.rings`, `gap`, `game/quakes.js`),
-  each running out at 7 cells/s to 7 cells: whoever is on the ground when one rolls under them is
-  thrown off their feet (×0.5). **Jump over each.** The timing is the hero's jump's
-  (`core/slomo.js dodge`): a band 0.9 deep is under a body (0.22 round) for 0.19 s; a jump keeps them
-  in the air 2 JUMP_V / GRAV = 0.57 s, so a jump started up to 0.38 s before the band reaches them
-  (and no later than when it does) clears it. Of two rings each can be cleared with a jump of its
-  own however early or late one jumped for the first if the gap is at least 2 × 0.57 − 0.19 = 0.95 s:
-  it is 1 s. Just outside his shadow the first band comes 0.23 s after he lands: jump as he comes
-  down (from 0.15 s before to 0.23 s after), and again a second later.
-- **The flood** (from anywhere, clip `SlomoFlood`, 2.4 s, the first 5 s into the phase, then 13–19 s
-  after it drained): he rears up on his hind legs and slams down at 1.8 s, nothing hurting him
-  meanwhile (`ward`; "Slomo floods the bowl with slime!"). The slime comes in from a side of the bowl
-  (another than the last time, at random), its front across in 2.4 s; it stands 1.5 s and drains
-  away in **10 s**. While it is due he starts nothing else.
-- **Meteorites** (clip `SlomoMeteorLegs`): six of them.
-
 ### Bursting out
 
-At a third the blob bursts (a splash of goo) and the slug turns round (3.2 s, nothing hurting him).
+At half his health he stops (mode `split`): for 3.2 s nothing hurts him while the blob bursts (a
+splash of goo) and the slug inside it turns round; his arms go with the blob, and the Arm slugs
+with them.
 
-### Phase 3: the slug (a third to death)
+### Phase 2: the slug (half to death)
 
 - **Slime** (within 9 cells, clip `SlomoSpit`, 1.4 s): he rears up and spits three balls of slime at
   once, fanned out (0.55 each), that slow.
 - **Slimes** (clip `SlomoSummon`, 1.6 s, every 8 s): he heaves and slimes plop out of his back, Ooze
   slugs and Ooze bolimes in turn, as many as fill up to **five**.
 - **Slime squirtles** (the summon's clip, every 12 s): up to **two**, popping out of the floor.
-- **The flood** (clip `SlomoFloodSlug`) and the **meteorites** (`SlomoMeteorSlug`, five), as before.
+- **The flood** (from anywhere, clip `SlomoFloodSlug`, 2.4 s, the first at most 5 s into the phase,
+  then 13–19 s after it drained): he rears up and slams down at 1.8 s, nothing hurting him
+  meanwhile (`ward`; "Slomo floods the bowl with slime!"). The slime comes in from a side of the bowl
+  (another than the last time, at random), its front across in 2.4 s; it stands 1.5 s and drains
+  away in **10 s**. While it is due he starts nothing else.
+- **Meteorites** (clip `SlomoMeteorSlug`): five of them.
 
 His death drains the flood away for good and takes his minions along.
 
@@ -1275,7 +1251,7 @@ await (await import('./tests/browser/squarlo.js')).runSquarloChecks() // Squarlo
 await (await import('./tests/browser/foggery.js')).runFoggeryChecks()  // Foggery's, in his caldera: the lava, the climb, his cats, the platforms
 await (await import('./tests/browser/renew.js')).runRenewChecks()      // Renew's, in his arena: the rewinds, the echoes and ghosts, his minions, the bow and keeping away, the morning stars, the end and his flail, the dusk
 await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk's, in his museum: breathing in and the spit, the balls of light, flying and landing, slowed time, the horns breaking, the ribbons catching and squeezing
-await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the flood from a side, the jump and jumping over its shockwaves, his slimes
+await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the blob bursting, the flood from a side, his slimes
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
 ```
 
@@ -1305,7 +1281,7 @@ cats points it prints must match `FOGGERY` and `FOGGERY_BALL` (`tests/assets.tes
 
 Slomo: `Blender -b --python blender/slomo.py -- assets/slomo.glb blender/slomo.blend
 blender/previews/slomo-preview.png`, then `npm run compress-assets`. The arm, meteorite, spit and
-summon points it prints must match `SLOMO`, `SLOMO_LEGS` and `SLOMO_SLUG` (`tests/assets.test.js`).
+summon points it prints must match `SLOMO` and `SLOMO_SLUG` (`tests/assets.test.js`).
 
 Mansk: `Blender -b --python blender/mansk.py -- assets/mansk.glb blender/mansk.blend
 blender/previews/mansk-preview.png`, then `npm run compress-assets`. The mouth, gulp, horn tip,

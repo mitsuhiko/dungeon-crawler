@@ -1,9 +1,8 @@
 // What the game does to Slomo's model on top of his clips (render/enemies.js; his fight:
-// game/slomo.js). The model holds all three of his shapes (blender/slomo.py): each clip shows one,
-// the others' bones scaled away. While he changes (mode 'split') the gait of the shape he leaves
-// and the gait of the next are blended (the blob sliding forward and the slug growing out of it
-// behind on its legs; then the blob bursting, the slug turning round), goo splashing off him. A slug
-// arm he threw (his `arms`, 0 .. 1) is scaled away at its end and grows back.
+// game/slomo.js). The model holds his shapes (blender/slomo.py; he fights as the blob and the
+// slug): each clip shows one, the others' bones scaled away. While he changes (mode 'split') the
+// blob's gait and the slug's are blended (the blob bursting, the slug turning round), goo splashing
+// off him. A slug arm he threw (his `arms`, 0 .. 1) is scaled away at its end and grows back.
 import * as THREE from 'three';
 import { SLOMO_FIGHT } from '../core/slomo.js';
 import { STAGE_PROFILES } from '../core/enemies.js';
@@ -22,7 +21,7 @@ export function makeSlomoLook(model) {
 
 export function slomoLook(v, e, dt) {
   const s = v.slomo, stage = e.stage ?? 1;
-  if (e.mode === 'split' && stage < 3 && e.mode !== 'dead') {
+  if (e.mode === 'split' && stage < 2) {
     // changing: from this shape's gait into the next one's
     const k = ease((e.t - 0.3) / (SLOMO_FIGHT.morphTime - 0.6)), from = gaitOf(stage), to = gaitOf(stage + 1), A = v.actions;
     if (!s.morph) { s.morph = true; s.burst = false; }
@@ -32,8 +31,8 @@ export function slomoLook(v, e, dt) {
       if (name === from || name === to) A[name].time = 0;
     }
     v.mixer.update(0);
-    if (Math.hypot(e.x - player.x, e.z - player.z) < 22) splash(e, dt, stage === 2 && k > 0.35 ? 3 : 1);
-    if (stage === 2 && k > 0.45 && !s.burst) { s.burst = true; burst(e); }
+    if (Math.hypot(e.x - player.x, e.z - player.z) < 22) splash(e, dt, k > 0.35 ? 3 : 1);
+    if (k > 0.45 && !s.burst) { s.burst = true; burst(e); }
   } else if (s.morph) {
     s.morph = false;
     v.height = e.profile.height / v.size;

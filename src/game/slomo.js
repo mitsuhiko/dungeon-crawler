@@ -3,21 +3,19 @@
 // squirtles he calls), in one list (`slomos`), so they fight, collide, travel and get shown to
 // friends like any enemy. Each Slomo has a fight of his own here: { e (him), flood (core/slomo.js
 // newFlood), floodIn (s until the next flood is due), rainIn (s until he next spits meteorites),
-// jumpIn (s until he may jump again),
 // cool ({ slimes, squirtles }: s to the next summon of each), morph (s left of changing), thrown
-// (the attack whose slug arm is off), minions, leap and fits (his jump, game/bossjump.js) }. A dev
-// spawn (game/devspawn.js) gets one too; out of his bowl there is no flood.
+// (the attack whose slug arm is off), minions }. A dev spawn (game/devspawn.js) gets one too; out
+// of his bowl there is no flood.
 //
-// On him: `stage` (1 a blob, 2 on legs, 3 the slug: his profile, core/enemies.js STAGE_PROFILES),
+// On him: `stage` (1 a blob, 2 the slug: his profile, core/enemies.js STAGE_PROFILES),
 // `arms` ([left, right]: 1 a slug on the end of it, 0 just thrown, growing back), `tide` (how high
 // his flood stands, 0 .. 1), `floodSide` and `front` (where it comes in from, how far across it is:
 // game/tide.js), all sent to friends with his row (net/protocol.js).
 // Movement and attacks are the shared enemy AI's (game/enemyai.js): the fight says which attacks
 // may start (`barred`), carries out the summons (`summon`) and the flood (`cast`) at their hit frames,
-// brings a thrown slug arm to life where it lands (`landed`, game/projectiles.js), carries him
-// through the air when he jumps (game/bossjump.js) and changes his shape. While he changes (mode
-// 'split') the AI leaves him be. The meteorites he spits are read off his attack clock by every
-// game (game/meteors.js), the shockwaves of his landing too (game/quakes.js).
+// brings a thrown slug arm to life where it lands (`landed`, game/projectiles.js) and changes his
+// shape. While he changes (mode 'split') the AI leaves him be. The meteorites he spits are read off
+// his attack clock by every game (game/meteors.js).
 // An Arm slug that reaches its player latches on (mode 'split', sitting on their head: nothing
 // touches it, core/enemies.js absent), bites them now and then and drops off dead.
 import { HEAD_Y } from '../core/constants.js';
@@ -32,7 +30,7 @@ import { groundAt } from '../physics/collide.js';
 import { standingAt, tideFluid } from '../physics/fluid.js';
 import { removeEnemyViews } from '../render/enemies.js';
 import { living, engage, leave, minionFloors, minion, sweep, fitting } from './bossfight.js';
-import { leap, touchDown, keepIn } from './bossjump.js';
+import { keepIn } from './bossjump.js';
 import { alive } from './party.js';
 import { hitBody, attacker } from './enemycombat.js';
 import { afflictEnemy } from './statuses.js';
@@ -53,8 +51,8 @@ export function resetSlomos() {
 export function addSlomos(list) {
   for (const e of list) {
     Object.assign(e, { stage: 1, tide: 0, floodSide: 0, front: 0, arms: [1, 1], hpFloor: phaseFloor(e.profile.hp, 1) });
-    const f = { e, flood: newFlood(), floodIn: G.flood.first, rainIn: G.rain.first, jumpIn: G.jump.first, cool: { slimes: G.firstSummon, squirtles: G.firstSummon },
-      morph: 0, thrown: -1, minions: [], n: 0, nonce: Math.random().toString(36).slice(2, 7), over: false, leap: null, fits: null };
+    const f = { e, flood: newFlood(), floodIn: G.flood.first, rainIn: G.rain.first, cool: { slimes: G.firstSummon, squirtles: G.firstSummon },
+      morph: 0, thrown: -1, minions: [], n: 0, nonce: Math.random().toString(36).slice(2, 7), over: false };
     e.barred = barred({ phase: 1, arms: e.arms });
     e.summon = a => summon(f, a);
     e.cast = a => cast(f, a);
@@ -68,7 +66,7 @@ export function updateSlomos(dt) {
   for (const f of fights) run(f, dt);
   for (const e of slomos) if (e.shield > 0) e.shield = Math.max(0, e.shield - dt);
   stepEnemies(slomos.filter(e => e.mode !== 'gone' && e.mode !== 'split'), dt);
-  for (const f of fights) { moves(f, dt); if (f.e.mode !== 'dead' && !f.leap && hasBowl()) keepIn(f.e, dt, f.e.profile.radius + 1.6); }
+  for (const f of fights) if (f.e.mode !== 'dead' && hasBowl()) keepIn(f.e, dt, f.e.profile.radius + 1.6);
   for (const f of fights) latches(f, dt);
   wading();
   slomos = sweep(slomos, dt);
@@ -102,37 +100,35 @@ function run(f, dt) {
     return;
   }
   if (e.mode === 'chase' || e.mode === 'attack') {   // (in the fight)
-    f.rainIn -= dt; f.jumpIn -= dt; f.cool.slimes -= dt; f.cool.squirtles -= dt;
+    f.rainIn -= dt; f.cool.slimes -= dt; f.cool.squirtles -= dt;
     if (f.flood.phase === 'dry') f.floodIn -= dt;
   }
-  // the meteorites and the jumps he starts set their own clocks
+  // the meteorites he starts set their own clock
   if (e.mode === 'attack' && attackOf(e).rain && f.rainIn <= 0) f.rainIn = between(G.rain.every);
-  if (e.mode === 'attack' && attackOf(e).jump && f.jumpIn <= 0) f.jumpIn = between(G.jump.every);
   e.barred = barred({ phase: e.stage, arms: e.arms, floodDue: hasBowl() && f.flood.phase === 'dry' && f.floodIn <= 0, rainDue: f.rainIn <= 0,
-    jumpDue: f.jumpIn <= 0,
     slimesDue: f.cool.slimes <= 0 && summonCount('slimes', count(f, 'oozeslug') + count(f, 'oozebolime')) > 0,
     squirtlesDue: f.cool.squirtles <= 0 && summonCount('squirtles', count(f, 'slimesquirtle')) > 0 });
-  if (e.stage < 3 && e.hp <= e.hpFloor) split(f);
+  if (e.stage < 2 && e.hp <= e.hpFloor) split(f);
 }
 const count = (f, type) => f.minions.filter(m => m.type === type).length;
 
-// down to the next phase's share of his health: he stops and changes, nothing hurting him
-// meanwhile (render/slomoview.js blends his shapes); the Arm slugs go with the arms
+// down to half his health: he stops and changes, nothing hurting him meanwhile (the blob bursts
+// and the slug turns round: render/slomoview.js blends his shapes); the Arm slugs go with the arms
 function split(f) {
   const e = f.e;
   Object.assign(e, { mode: 'split', speed: 0, path: null, t: 0, shield: G.morphTime + G.appear });
   f.morph = G.morphTime;
-  if (e.stage === 1) for (const m of f.minions) if (m.type === 'armslug' && m.mode !== 'split') leave(m, G.leave);
-  setStatus(e.stage === 1 ? tr('{name} grows legs!', { name: enemyName(e.profile) }) : tr('{name} bursts out of his slime!', { name: enemyName(e.profile) }));
-  sfx('morph', { at: e, pitch: e.stage === 1 ? 0.7 : 1 });
+  for (const m of f.minions) if (m.type === 'armslug' && m.mode !== 'split') leave(m, G.leave);
+  setStatus(tr('{name} bursts out of his slime!', { name: enemyName(e.profile) }));
+  sfx('morph', { at: e, pitch: 1 });
 }
 function changed(f) {
   const e = f.e;
   e.stage++;
   e.profile = enemyProfile(STAGE_PROFILES.slomo[e.stage - 1], e.level);
   Object.assign(e, { attack: 0, t: 0, cool: 0.8, shield: G.appear, hpFloor: phaseFloor(e.profile.hp, e.stage), arms: [1, 1] });
-  f.rainIn = Math.max(f.rainIn, 3); f.floodIn = Math.min(f.floodIn, G.flood.first); f.jumpIn = G.jump.first;
-  if (e.stage === 3) f.cool = { slimes: G.firstSummon, squirtles: G.firstSummon + 4 };
+  f.rainIn = Math.max(f.rainIn, 3); f.floodIn = Math.min(f.floodIn, G.flood.first);
+  f.cool = { slimes: G.firstSummon, squirtles: G.firstSummon + 4 };
   engage(e);
 }
 
@@ -176,14 +172,6 @@ function armSlug(f, pr) {
   const m = minion(e, `${e.id}:arm:${f.nonce}${++f.n}`, kind, s, Math.atan2(pr.vx, pr.vz), f.n);
   m.cool = 0.4; m.age = 0;
   slomos.push(m); f.minions.push(m);
-}
-
-// What his jump does to him, after the AI's step (game/bossjump.js); a jump cut short (his death,
-// his change) comes down where he is
-function moves(f, dt) {
-  const e = f.e, a = e.mode === 'attack' ? attackOf(e) : null;
-  if (f.leap && (!a?.jump || e.attacks !== f.leap.attacks)) touchDown(f, e);
-  if (a?.jump) leap(f, e, a, dt, e.profile.radius + 1.6);
 }
 
 // The Arm slugs: one that reaches its player latches on, sits on their head biting them every so

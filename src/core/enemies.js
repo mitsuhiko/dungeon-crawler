@@ -872,8 +872,8 @@ export const RENEW_TWIN = {
   attacks: [RENEW_TWIN_SWING, RENEW_TWIN_DASH, RENEW_ROLL], phase: 4, circle: 2,
 };
 // Slomo, the boss at the bottom of act II (depth 13, core/bosses.js; blender/slomo.py, after the
-// kids' sketches): a slime boss in three shapes, one model (the clips of each shape scale the
-// others' bones away; render/slomoview.js blends from one shape into the next while he changes).
+// kids' sketches): a slime boss in two shapes, one model (the clips of each shape scale the
+// other's bones away; render/slomoview.js blends from the blob into the slug while he changes).
 // He fights in his slime bowl (cubegen/arenashapes.js `bowl`), always at night; game/slomo.js runs
 // his fight, core/slomo.js holds its rules. The slime is his own (`slimeborn`): it does not hold him.
 // Phase 1 (SLOMO): a great see-through blob of lime slime (its skin drawn translucent: `shell`),
@@ -883,17 +883,10 @@ export const RENEW_TWIN = {
 // it comes to life (`becomes`: an Arm slug that crawls after the player, latches on, bites a few
 // times and drops off dead). He spits slime meteorites up into the sky (a cast with a `rain`:
 // they come down round the player, game/meteors.js).
-// Phase 2 (SLOMO_LEGS): the blob in front of a slug body on six long legs. Nothing staggers him and
-// blows do less (`steadfast`, `armour`), unless he is exposed. He walks after the player on his legs
-// (turning no faster than `turnSpeed`: he steps round, core/enemies.js), now and then (core/slomo.js
-// `jump`) he jumps super high onto the player
-// (`jump`, his shadow following them, like Giant Squarlo's; landing on a player squashes them flat)
-// and his landing sends out shockwaves, two rings (`wave.rings`, game/quakes.js) a second apart:
-// jump over each as it comes (timed for the hero's jump: core/slomo.js dodge).
-// He floods his bowl with slime from one side (a cast, `ward`ed: game/slomo.js). The meteorites stay.
-// Phase 3 (SLOMO_SLUG): the slug alone, still on its legs. He spits balls of slime (three at once),
-// calls Ooze slugs and Ooze bolimes out of himself and Slime squirtles, floods the bowl and spits
-// meteorites.
+// Phase 2 (SLOMO_SLUG): the blob bursts and the slug inside it turns round, on six legs (turning no
+// faster than `turnSpeed`: he steps round). He spits balls of slime (three at once), calls Ooze slugs
+// and Ooze bolimes out of himself and Slime squirtles, floods his bowl with slime from one side (a
+// cast, `ward`ed: game/slomo.js) and spits meteorites.
 const SLOMO_ARM = {
   name: 'armL', clip: 'armL', weight: 3, reach: 10, hitAt: 27 / 30, trackUntil: 0.75, attackTime: 45 / 30, hitReach: 0,
   arc: 0.5, power: 0.7, knock: 2.5, knockDown: false, hop: 2.5, reason: "Hit by Slomo's slug!",
@@ -907,16 +900,6 @@ const SLOMO_METEOR = {
   name: 'meteor', clip: 'meteor', weight: 2, reach: 14, hitAt: 33 / 30, trackUntil: 0.6, attackTime: 54 / 30, hitReach: 0,
   arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Slomo', cast: 'meteors',
   rain: { count: 4, spread: [1.4, 3.6], stagger: 0.3, power: 0.6, reason: "Hit by Slomo's meteorite!", muzzle: [0, 3.082, 0.083] },
-};
-const SLOMO_JUMP = {
-  name: 'jump', clip: 'jump', weight: 3, reach: 12, rise: 3, hitAt: 60 / 30, trackUntil: 21 / 30, attackTime: 90 / 30, hitReach: 0,
-  arc: -1, power: 1.3, knock: 0, knockDown: false, hop: 0, daze: 2.5, reason: 'Squashed flat by Slomo!',
-  beam: { kind: 'stomp', aim: 'feet', time: 48 / 30, track: 0, lock: 12 / 30, radius: 1.6, range: 20, sky: 12, clear: false,
-    muzzle: [0, 0, 0] },
-  jump: { from: 21 / 30, height: 9, track: 2.8 },
-  // (two rings a second apart: each to jump over with a jump of its own, core/slomo.js dodge)
-  wave: { speed: 7, reach: 7, width: 0.9, rise: 0.4, power: 0.5, knock: 7, hop: 3.5, rings: 2, gap: 1 },
-  exposed: { from: 60 / 30, until: 81 / 30, damage: 1.3, say: msg('{name} is winded! Hit him now') },
 };
 const SLOMO_FLOOD = {
   name: 'flood', clip: 'flood', weight: 1, reach: 40, hitAt: 54 / 30, trackUntil: 0.4, attackTime: 72 / 30, hitReach: 0,
@@ -947,19 +930,13 @@ export const SLOMO = {
   style: 'ranged', keep: [3.5, 7], guardian: true, guardianRole: 'descent', boss: 'slomo',
   seedSalt: 0x5105a0, spacing: 6,
 };
-// ... on legs (phase 2): the blob in front of a slug body
-export const SLOMO_LEGS = {
-  ...SLOMO, type: 'slomolegs', radius: 1.1, height: 3.1, bodyHeight: 2.6, mass: 16, chase: 1.5, wander: 0.8, gait: 'stride', turnSpeed: 1.1, turnStride: 1.3,
-  ...SLOMO_JUMP, cooldown: 1.1, attacks: [SLOMO_JUMP, SLOMO_FLOOD, { ...SLOMO_METEOR, clip: 'meteorLegs', rain: { ...SLOMO_METEOR.rain, count: 6, muzzle: [0, 2.627, 0.62] } }],
-  phase: 2, style: 'brute', steadfast: true, armour: 0.8,
-};
-// ... the slug alone (phase 3), still on its legs, leaving a trail of slime
+// ... the slug alone (phase 2), on its legs, leaving a trail of slime
 export const SLOMO_SLUG = {
   ...SLOMO, type: 'slomoslug', radius: 0.85, height: 2.3, bodyHeight: 1.6, mass: 9, chase: 1.2, wander: 0.6, gait: 'crawl', trail: '#3e7a2a',
   turnSpeed: 1.3, turnStride: 1,
   ...SLOMO_SPIT, cooldown: 1.1, attacks: [SLOMO_SPIT, SLOMO_SUMMON, SLOMO_SQUIRTLE, { ...SLOMO_FLOOD, clip: 'floodSlug' },
     { ...SLOMO_METEOR, clip: 'meteorSlug', rain: { ...SLOMO_METEOR.rain, count: 5, muzzle: [0, 2.371, 1.167] } }],
-  phase: 3, style: 'ranged', keep: [3, 7],
+  phase: 2, style: 'ranged', keep: [3, 7],
 };
 // Mansk, the seventh real boss (blender/mansk.py, after the kids' drawing), in place of the descent
 // guardian of depth 6 (core/bosses.js): a white mask floating with nobody behind it, a big round
@@ -1403,7 +1380,7 @@ export const SQUARLO_GIANT = enemyKind(SQUARLO, {
 // a boss's profile for each of its stages (game/squarlo.js; a friend's game swaps it by the stage
 // the runner sends, net/foes.js)
 export const STAGE_PROFILES = { squarlo: [SQUARLO, SQUARLO_GIANT], foggery: [FOGGERY, FOGGERY_BALL, FOGGERY_BALL],
-  renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_LEGS, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS] };
+  renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS] };
 // One full attack and recovery, averaged over a species' attacks (s), and what it deals per
 // second at level 1 (a projectile's burn included): how dangerous it is to stand next to.
 export function attackCycle(profile) {

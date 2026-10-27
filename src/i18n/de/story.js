@@ -476,10 +476,6 @@ export default {
     'Er hat eine Schnecke geworfen! Die will dir auf den Kopf!',
   'Do not look up, look down: watch for the shadows!':
     'Nicht nach oben schauen, nach unten: Achte auf die Schatten!',
-  'He is growing legs. Why would he need legs?':
-    'Ihm wachsen Beine. Wozu braucht er Beine?',
-  'He is jumping! When he lands, jump over both waves.':
-    'Er springt! Wenn er landet, spring über beide Wellen.',
   'Slime coming in! Up on a mound!':
     'Da kommt Schleim! Rauf auf einen Hügel!',
   'The blob burst! It was a slug the whole time.':
@@ -550,8 +546,6 @@ export default {
     'Wenn er einatmet, geh zur Seite, nicht zurück. Seitwärts bist du sofort draußen.',
   'When he whirls his ribbons, get far away from him.':
     'Wenn er mit seinen Bändern wirbelt, geh weit weg von ihm.',
-  'His waves come one after the other. Jump over the first, then again a second later.':
-    'Seine Wellen kommen eine nach der anderen. Spring über die erste, und eine Sekunde später noch mal.',
   'When the slime floods in, get onto a mound. Wading is too slow.':
     'Wenn der Schleim hereinflutet, rauf auf einen Hügel. Waten ist zu langsam.',
   'It is dark and sticky down here. Let us be careful together.':

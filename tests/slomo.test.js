@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { BOSSES, bossAt, BOSS_ARENAS } from '../src/core/bosses.js';
-import { SLOMO, SLOMO_LEGS, SLOMO_SLUG, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, SQUIRTLE, ENEMY_KINDS, STAGE_PROFILES,
+import { SLOMO, SLOMO_SLUG, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, SQUIRTLE, ENEMY_KINDS, STAGE_PROFILES,
   makeEnemy, absent, blowOf } from '../src/core/enemies.js';
-import { SLOMO_FIGHT, phaseFloor, summonCount, barred, newFlood, stepFlood, raiseFlood, drainFlood, floodBox, rainOf, dodge } from '../src/core/slomo.js';
+import { SLOMO_FIGHT, phaseFloor, summonCount, barred, newFlood, stepFlood, raiseFlood, drainFlood, floodBox, rainOf } from '../src/core/slomo.js';
 import { damageEnemy } from '../src/core/combat.js';
 import { launch, stepProjectile } from '../src/core/projectiles.js';
 import { kindsIn, speciesIn } from '../src/core/spawns.js';
 import { guardianLockMessage } from '../src/core/guardians.js';
 import { worldThemes, themeAt } from '../src/themes/depth.js';
 import { BOWL } from '../src/cubegen/arenashapes.js';
-import { LH, N, HEAD_Y, WATER, ACID, JUMP_V, GRAV } from '../src/core/constants.js';
+import { LH, N, HEAD_Y, WATER, ACID } from '../src/core/constants.js';
 
 const bowlOf = seed => { const w = new World(seed), L = w.layout(13); return state.map = w.cube(L.down).map; };
 const named = (p, name) => p.attacks.find(a => a.name === name);
@@ -48,35 +48,35 @@ test('his slime bowl: a flat basin his flood stands in, under the head, the moun
   }
 });
 
-test('three phases, a third of his health each, and his shapes', () => {
-  assert.deepEqual(STAGE_PROFILES.slomo, [SLOMO, SLOMO_LEGS, SLOMO_SLUG]);
+test('two phases, half his health each, and his shapes', () => {
+  assert.deepEqual(STAGE_PROFILES.slomo, [SLOMO, SLOMO_SLUG]);
+  assert.deepEqual([SLOMO.phase, SLOMO_SLUG.phase], [1, 2]);
   const e = makeEnemy({ id: 's', level: 15, x: 0, y: 0, z: 0 }, SLOMO);
   e.hpFloor = phaseFloor(e.profile.hp, 1);
   damageEnemy(e, 1e6);
-  assert.equal(e.hp, Math.ceil(e.profile.hp * 2 / 3));
-  assert.equal(phaseFloor(1000, 2), 334); assert.equal(phaseFloor(1000, 3), 0);
-  // the blob is see-through, the slime his own; on legs nothing staggers him; the slug leaves a trail
+  assert.equal(e.hp, Math.ceil(e.profile.hp / 2));
+  assert.equal(phaseFloor(1000, 1), 500); assert.equal(phaseFloor(1000, 2), 0);
+  // the blob is see-through, the slime his own; the slug leaves a trail
   assert.deepEqual(SLOMO.shell.parts, ['SlomoSkin']); assert.ok(SLOMO.slimeborn && SLOMO_SLUG.slimeborn);
-  assert.ok(SLOMO_LEGS.steadfast && SLOMO_LEGS.armour < 1 && SLOMO_LEGS.gait === 'stride');
   assert.ok(SLOMO_SLUG.trail && SLOMO_SLUG.gait === 'crawl');
+  // nothing of the jump is left: no shockwaves, no squashing
+  assert.ok(STAGE_PROFILES.slomo.every(p => p.attacks.every(a => !a.jump && !a.wave)));
   // a big body steps round, it does not spin on the spot
   for (const p of STAGE_PROFILES.slomo) assert.ok(p.turnSpeed > 0.5 && p.turnSpeed < 2 && p.turnStride > 0, p.type);
 });
 
 test('what he may do when: his phase\'s attacks, the flood and the timed ones when due, an arm while he has it', () => {
-  const allowed = o => ['armL', 'armR', 'meteor', 'jump', 'flood', 'spit', 'summon', 'squirtle'].filter(n => !barred(o).has(n));
+  const allowed = o => ['armL', 'armR', 'meteor', 'flood', 'spit', 'summon', 'squirtle'].filter(n => !barred(o).has(n));
   assert.deepEqual(allowed({ phase: 1 }), ['armL', 'armR']);
   assert.deepEqual(allowed({ phase: 1, arms: [0.4, 1], rainDue: true }), ['armR', 'meteor']);
   assert.deepEqual(allowed({ phase: 1, floodDue: true }), ['armL', 'armR'], 'no flood in phase 1');
-  assert.deepEqual(allowed({ phase: 2 }), []);
-  assert.deepEqual(allowed({ phase: 2, jumpDue: true, rainDue: true }), ['meteor', 'jump']);
-  assert.deepEqual(allowed({ phase: 2, jumpDue: true, floodDue: true }), ['flood']);
-  assert.deepEqual(allowed({ phase: 3, slimesDue: true, squirtlesDue: true }), ['spit', 'summon', 'squirtle']);
-  assert.deepEqual(allowed({ phase: 3, floodDue: true }), ['flood']);
+  assert.deepEqual(allowed({ phase: 2 }), ['spit']);
+  assert.deepEqual(allowed({ phase: 2, rainDue: true, slimesDue: true, squirtlesDue: true }), ['meteor', 'spit', 'summon', 'squirtle']);
+  assert.deepEqual(allowed({ phase: 2, floodDue: true, rainDue: true }), ['flood']);
   assert.equal(summonCount('slimes', 3), 2); assert.equal(summonCount('slimes', 6), 0); assert.equal(summonCount('squirtles', 0), 2);
-  for (const [p, names] of [[SLOMO, ['armL', 'armR', 'meteor']], [SLOMO_LEGS, ['jump', 'flood', 'meteor']], [SLOMO_SLUG, ['spit', 'summon', 'squirtle', 'flood', 'meteor']]])
+  for (const [p, names] of [[SLOMO, ['armL', 'armR', 'meteor']], [SLOMO_SLUG, ['spit', 'summon', 'squirtle', 'flood', 'meteor']]])
     assert.deepEqual(p.attacks.map(a => a.name), names);
-  assert.ok(named(SLOMO_LEGS, 'flood').ward && named(SLOMO_SLUG, 'flood').ward, 'nothing hurts him while he calls the flood');
+  assert.ok(named(SLOMO_SLUG, 'flood').ward, 'nothing hurts him while he calls the flood');
 });
 
 test('the flood: in from a side, across in a few seconds, and 10 s to drain', () => {
@@ -101,19 +101,6 @@ test('the flood: in from a side, across in a few seconds, and 10 s to drain', ()
   // his death drains it from wherever it stands
   raiseFlood(w); stepFlood(w, 0.5); drainFlood(w);
   assert.equal(w.phase, 'drain');
-});
-
-test('the shockwaves of his landing can each be jumped over', () => {
-  const jump = named(SLOMO_LEGS, 'jump'), wave = jump.wave, d = dodge(wave, jump.beam.radius);
-  assert.ok(Math.abs(d.air - 2 * JUMP_V / GRAV) < 1e-9);
-  assert.ok(d.window >= 0.3, 'time enough to jump over a ring: ' + d.window);
-  assert.equal(wave.rings, 2);
-  assert.ok(wave.gap >= d.gap, `down again before the second ring: ${wave.gap} >= ${d.gap}`);
-  assert.ok(wave.gap <= d.gap + 0.3, 'and not dawdling after it');
-  // just outside his shadow: jump as he comes down (from a little before to a little after it)
-  assert.ok(d.from < 0 && d.from > -0.4 && d.to > 0.1 && d.to < 0.5, `${d.from} .. ${d.to}`);
-  // the jump itself: super high, a shadow on the player
-  assert.ok(jump.jump.height >= 8 && jump.beam.kind === 'stomp' && jump.daze > 0 && jump.exposed);
 });
 
 test('his slug arms fly in an arc onto the player and come to life as Arm slugs that latch on', () => {
