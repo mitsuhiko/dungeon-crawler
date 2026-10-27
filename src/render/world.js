@@ -6,7 +6,7 @@ import { FLUID_LOOK, fluidGlow, tickTides, WIND } from './materials.js';
 import { partMeshes } from './partmeshes.js';
 import { bakeCells } from './watercells.js';
 import { buildCubeParts } from './cubegeo.js';
-import { buildFalls, lavaLights } from './falls.js';
+import { buildFalls, lavaLights, tickFalls } from './falls.js';
 import { addGhosts } from './ghosts.js';
 import { buildMarkers, townPortalFx } from './markers.js';
 import { adoptLights, releaseLights, trackLight, untrackLight } from './lightpool.js';
@@ -46,7 +46,7 @@ export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = []
   const water = waterUniforms(m);
   // (Flip's box draws its sides itself, render/flipview.js: the cube's parts are its proxy's)
   const fluidMeshes = flip ? [] : partMeshes(geo, host, m.interior ? ['stone'] : [], water, bake);
-  const { splashes, lights } = buildFalls(m, group);
+  const { splashes, lights, crowns } = buildFalls(m, group);
   lavaLights(m, group, lights);
   const markers = buildMarkers(m, host, showPath, seen, open, locked);
   // decoration (also sets the colliders of blocking props on the map); missingSets: the prop
@@ -70,7 +70,7 @@ export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = []
   if (!flip) keepFixedOutOfSun(group);
   bakeMaterials(group, bake);
   scene.add(group);
-  const world = { group, glass, fluidMeshes, splashes, lights, villagers, missingSets, trialView, flip, movers, bake, ...markers };
+  const world = { group, glass, fluidMeshes, splashes, crowns, lights, villagers, missingSets, trialView, flip, movers, bake, ...markers };
   setTownPortal(world, townPad);
   return world;
 }
@@ -127,6 +127,7 @@ export function animateWorld(world, dt, time) {
   tickTides();
   bakeCells(time);
   world.splashes.forEach((s, i) => { const k = 1 + Math.sin(time * 9 + i) * 0.08; s.scale.set(k, 1, k); });
+  tickFalls(world.crowns, world.group);
   for (const l of world.lights) l.intensity = 5 + Math.sin(time * 4 + l.position.x) * 1.5;
   for (const p of world.portalFx) p.tick(time);
   tickTrialView(world, time);

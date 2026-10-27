@@ -9,6 +9,7 @@ import { paletteOf } from './fluidpal.js';
 import { palRow } from '../themes/fluids.js';
 import { cutMaterial } from './section.js';
 import { FALL_WIDTH } from './parts.js';
+import { camera } from './scene.js';
 
 // What rides on the water where a cartoon fall lands (FLUID_LOOK rides): a crown of foam
 // round the foot of the sheet, its top edge in peaks that rise and fall, and on the pool a ragged
@@ -33,18 +34,30 @@ function rides(mat, name, S, style, fragment) {
   mat.customProgramCacheKey = () => key + '-' + name + '-' + style;   // (programs are shared by key)
   return mat;
 }
-function foamCrown(cx, y, cz, dx, foam, S, style) {
-  // an open ring, wide across the sheet, shallow out from the cliff; u round it, v up
-  const g = new THREE.CylinderGeometry(1, 1, 0.42, 28, 1, true).translate(0, 0.21, 0);
-  g.scale(dx ? 0.36 : FALL_WIDTH * 0.62, 1, dx ? FALL_WIDTH * 0.62 : 0.36).translate(cx, y - 0.06, cz);
-  const mat = rides(cutMaterial(new THREE.MeshBasicMaterial({ color: foam, transparent: true, depthWrite: false, side: THREE.DoubleSide })), 'crown', S, style, `
+// The crown stands round the sheet's foot, half behind it and half in front: the sheet does not
+// write depth, so the half away from the camera is drawn before the sheets (PART_ORDER.fall,
+// render/partmeshes.js) and the half towards it after them (tickFalls picks which is which).
+// Returns [the cliff's half, the downstream half].
+function foamCrown(cx, y, cz, dx, dz, foam, S, style) {
+  const mat = crownMaterial(foam, S, style), down = Math.atan2(dx, dz);
+  return [down + Math.PI / 2, down - Math.PI / 2].map(start => {
+    // half an open ring, wide across the sheet, shallow out from the cliff; u round the whole
+    // ring (the peaks run on across the halves), v up
+    const g = new THREE.CylinderGeometry(1, 1, 0.42, 14, 1, true, start, Math.PI).translate(0, 0.21, 0);
+    const uv = g.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setX(i, (start + uv.getX(i) * Math.PI) / TAU);
+    g.scale(dx ? 0.36 : FALL_WIDTH * 0.62, 1, dx ? FALL_WIDTH * 0.62 : 0.36).translate(cx, y - 0.06, cz);
+    return new THREE.Mesh(g, mat);
+  });
+}
+function crownMaterial(foam, S, style) {
+  return rides(cutMaterial(new THREE.MeshBasicMaterial({ color: foam, transparent: true, depthWrite: false, side: THREE.DoubleSide })), 'crown', S, style, `
     float u = vRideUv.x * ${TAU.toFixed(4)}, v = vRideUv.y;
     float peak = 0.3 + 0.7 * (0.5 + 0.5 * sin(u * 9.0 + tm * 4.0)) * (0.6 + 0.4 * sin(u * 5.0 - tm * 2.7 + 1.0));
     float av = fwidth(v) + 1e-4;
     diffuseColor.a = 1.0 - smoothstep(peak - av, peak + av, v);
     diffuseColor.rgb *= mix(vec3(0.78, 0.9, 1.0), vec3(1.0), smoothstep(0.1, 0.35, v));
     if (diffuseColor.a < 0.01) discard;`);
-  return new THREE.Mesh(g, mat);
 }
 const TRAIL = 4.5;   // world units the foam streams off downstream
 function ripples(cx, y, cz, dx, dz, foam, S, style) {
@@ -78,10 +91,16 @@ function ripples(cx, y, cz, dx, dz, foam, S, style) {
   return new THREE.Mesh(g, mat);
 }
 
+// What lies flat on the pool (the ripples, the splash ring) is drawn after the fluids' surfaces
+// and before the sheets (PART_ORDER, render/partmeshes.js): what of it lies behind a sheet shows
+// through it, what lies in front is under the water where the sheet runs on. The crown's half
+// behind the sheet just after it, its half in front after the sheets.
+const FLAT_ORDER = 2.5, BACK_ORDER = 2.6;
+
 // a splash ring where a fall lands (render/parts.js fallSheets has the sheet), or the cartoon
-// foam and ripples
+// foam and ripples; crowns: what tickFalls turns to the camera
 export function buildFalls(m, group) {
-  const splashes = [], lights = [];
+  const splashes = [], lights = [], crowns = [];
   for (const f of m.falls) {
     const [dx, dz] = DIRS[f.d], bx = f.c % N, bz = (f.c / N) | 0;
     const yTop = restY(f.top * LH) + 0.02, yBot = restY(f.bot * LH) - 0.02, h = yTop - yBot;
@@ -91,15 +110,16 @@ export function buildFalls(m, group) {
     if (L.rides) {
       // the pool's surface (render/floors.js fluidVolume) and the foot of the sheet (parts.js)
       const surf = restY(f.bot * LH), cx = ex + dx * 0.32, cz = ez + dz * 0.32;
-      const crown = foamCrown(cx, surf, cz, dx, foam, cells, L.style), rip = ripples(cx, surf + 0.015, cz, dx, dz, foam, cells, L.style);
-      crown.renderOrder = 10 * f.layer + 5; rip.renderOrder = 10 * f.layer + 4;
-      group.add(crown, rip);
+      const [cliff, downstream] = foamCrown(cx, surf, cz, dx, dz, foam, cells, L.style), rip = ripples(cx, surf + 0.015, cz, dx, dz, foam, cells, L.style);
+      rip.renderOrder = FLAT_ORDER;
+      crowns.push({ cliff, downstream, cx, cz, dx, dz, front: 10 * f.layer + 5 });
+      group.add(cliff, downstream, rip);
       continue;
     }
     const splash = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.55, 0.05, 14),
       cutMaterial(new THREE.MeshBasicMaterial({ color: foam, transparent: true, opacity: 0.55, depthWrite: false })));
     splash.position.set(ex + dx * 0.3, yBot + 0.06, ez + dz * 0.3);
-    splash.renderOrder = 10 * f.layer + 4;
+    splash.renderOrder = FLAT_ORDER;
     group.add(splash); splashes.push(splash);
     if (f.type === LAVA) {
       const l = new THREE.PointLight(lavaGlow(pal), 6, 6, 2);
@@ -107,7 +127,22 @@ export function buildFalls(m, group) {
       lights.push(l); group.add(l);
     }
   }
-  return { splashes, lights };
+  tickFalls(crowns, group);
+  return { splashes, lights, crowns };
+}
+
+// every frame (render/world.js animateWorld): each crown's half on the camera's side of its sheet
+// in front of the sheets, the other behind them
+const eye = new THREE.Vector3();
+export function tickFalls(crowns, group) {
+  if (!crowns.length) return;
+  group.updateWorldMatrix(true, false);
+  group.worldToLocal(eye.copy(camera.position));
+  for (const c of crowns) {
+    const downstream = (eye.x - c.cx) * c.dx + (eye.z - c.cz) * c.dz > 0;
+    c.cliff.renderOrder = downstream ? BACK_ORDER : c.front;
+    c.downstream.renderOrder = downstream ? c.front : BACK_ORDER;
+  }
 }
 
 // the light lava gives off: its palette's glow, a little towards the classic orange
