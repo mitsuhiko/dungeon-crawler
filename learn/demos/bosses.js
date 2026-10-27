@@ -42,7 +42,7 @@ const BOSS = {
     swim: ['In deep water he paddles about.', 'In tiefem Wasser paddelt er herum.'],
     blow: ['Jet: water gathers in his hands, then a jet blows you back. Step out of its way before it blows.', 'Strahl: Wasser sammelt sich in seinen Händen, dann bläst dich ein Strahl zurück. Geh aus dem Weg, bevor er bläst.'],
     cast: ['He calls the tide! The water rises over the flats: get up a hill. Nothing hurts him while he calls it.', 'Er ruft die Flut! Das Wasser steigt über die Ebene: Rauf auf einen Hügel! Solange er ruft, tut ihm nichts weh.'],
-    summon: ['He slaps the floor and Tide squirtles pop out of it.', 'Er schlägt auf den Boden, und Flut-Squirtles springen heraus.'],
+    summon: ['He slaps the floor and Squirtles pop out of it.', 'Er schlägt auf den Boden, und Squirtles springen heraus.'],
     rest: ['Out of breath: after the tide (and every few attacks) he has to sit down. Hit him now, every blow does more!', 'Außer Atem: Nach der Flut (und alle paar Angriffe) muss er sich hinsetzen. Jetzt zuschlagen, jeder Treffer macht mehr!'],
     stride: ['At half his health he grows into a giant, six cells tall, and stomps about.', 'Bei halber Gesundheit wächst er zu einem Riesen, sechs Felder hoch, und stapft herum.'],
     stomp: ['Stomp (as a giant): his foot\'s shadow follows you. Get out from under it! Then his foot is stuck: hit it.', 'Stampfen (als Riese): Der Schatten seines Fußes folgt dir. Raus da! Danach steckt sein Fuß fest: Schlag drauf.'],

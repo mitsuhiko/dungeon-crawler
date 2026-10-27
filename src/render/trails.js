@@ -41,11 +41,14 @@ function drop(p) { scene.remove(p.mesh); p.mesh.material.dispose(); }
 // can a puddle lie where e is: on a flat floor (not a stair or a ramp)
 const flat = e => !e.f?.kind;
 
-// the trail of enemy e (its view v): new puddles behind it as it moves, and the old ones drying
+// the trail of enemy e (its view v): new puddles behind it as it moves, and the old ones drying.
+// Their colour: its kind's `trail`, or the view's own (`trailColor`: a Squirtle's, the fluid it
+// lives in, render/squirtleview.js).
 export function wetTrail(v, e, dt, off) {
-  const color = e.profile.trail;
+  const color = e.profile.trail && (v.trailColor ?? e.profile.trail);
   if (!color) return;
   const t = v.trail || (v.trail = { color: new THREE.Color(color), list: [], last: null, splashed: false, crashed: -1 });
+  if (v.trailColor) t.color.set(v.trailColor);
   const size = (e.profile.size ?? 1) * (e.profile.trailSize ?? 1);
   // (a fluid dweller wets only the land: in its fluid there is nothing to see)
   const dry = !e.profile.dwells || !fluidAround(e.profile, e.x, e.y, e.z);

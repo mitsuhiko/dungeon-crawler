@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { BOSSES, bossAt, BOSS_ARENAS } from '../src/core/bosses.js';
-import { SQUARLO, SQUARLO_GIANT, SQUIRTLE, TIDE_SQUIRTLE, CORAL_SQUIRTLE, ENEMY_KINDS, GUARDIAN_TIERS, STAGE_PROFILES,
+import { SQUARLO, SQUARLO_GIANT, SQUIRTLE, SQUARLO_SQUIRTLE, LAVA_SQUIRTLE, ENEMY_KINDS, GUARDIAN_TIERS, STAGE_PROFILES,
   makeEnemy, guardianLevel, attacksInReach, blowOf, waveBlowOf, fireAt, exposedBy, hurtBy, airborne, wardedNow, absent } from '../src/core/enemies.js';
 import { SQUARLO_FIGHT, splitHp, summonCount, newTide, stepTide, raiseTide, drainTide, tideLevel, barred, jumpLift, waveRadius, waveOver, inWave } from '../src/core/squarlo.js';
 import { damageEnemy, weaponHit, SWORD } from '../src/core/combat.js';
@@ -48,7 +48,7 @@ test('he fights alone in his tidal hills, and brings his Squirtles', () => {
     const [s] = spots;
     assert.equal(s.kind, SQUARLO); assert.equal(s.id, guardianId(map.key)); assert.equal(s.level, guardianLevel(2, 'descent'));
     assert.deepEqual(speciesIn(map).sort(), ['squarlo', 'squirtle']);
-    assert.deepEqual(kindsIn(map).sort(), ['squarlo', 'tidesquirtle']);
+    assert.deepEqual(kindsIn(map).sort(), ['squarlo', 'squarlosquirtle']);
     assert.ok(gateLocked(map, createRun()));
     // nothing in the zone blocks: a giant walks it and the water comes and goes
     for (const f of map.floors) if (f.encounter) assert.equal(map.staticBlockers[f.c].length, 0);
@@ -246,8 +246,8 @@ test('Squirtles burrow (nothing touches one under the surface) and live in the f
   assert.ok(SQUIRTLE.burrow.speed > SQUIRTLE.chase && SQUIRTLE.swims);
   const ball = blowOf(SQUIRTLE);
   assert.ok(ball.push.speed * ball.push.time < 0.5, 'a tiny, tiny push');
-  assert.ok(TIDE_SQUIRTLE.minion && TIDE_SQUIRTLE.coins[1] === 0);
-  assert.ok(CORAL_SQUIRTLE.hp > SQUIRTLE.hp);
+  assert.ok(SQUARLO_SQUIRTLE.minion && SQUARLO_SQUIRTLE.coins[1] === 0);
+  assert.ok(LAVA_SQUIRTLE.hp > SQUIRTLE.hp);
   // at every depth the lagoons, the sunken grotto and the cenote (water), the slime marsh (acid)
   // and the volcanic caves and the abyss (lava) may appear at (themes/index.js acts), each kind in
   // its own fluid
@@ -258,8 +258,8 @@ test('Squirtles burrow (nothing touches one under the surface) and live in the f
   const fluids = { lagoon: WATER, grotto: WATER, cenote: WATER, slime: ACID, volcanic: LAVA, abyss: LAVA };
   for (const r of DEPTH_SPAWNS) for (const e of r.roster.filter(e => e.type === 'squirtle'))
     for (const k of Object.keys(e.kinds)) for (const w of e.where) assert.deepEqual(ENEMY_KINDS[k].dwells, [fluids[w]], `${k} in ${w}`);
-  assert.deepEqual(TIDE_SQUIRTLE.dwells, [WATER]); assert.deepEqual(ENEMY_KINDS.slimesquirtle.dwells, [ACID]);
-  assert.ok(CORAL_SQUIRTLE.lavaproof && CORAL_SQUIRTLE.fireproof);
+  assert.deepEqual(SQUARLO_SQUIRTLE.dwells, [WATER]); assert.deepEqual(ENEMY_KINDS.slimesquirtle.dwells, [ACID]);
+  assert.ok(LAVA_SQUIRTLE.lavaproof && LAVA_SQUIRTLE.fireproof);
   for (let seed = 0; seed < 60; seed++) {
     assert.ok(!population({ seed, depth: 2, biome: 'meadow' }).has('squirtle'));
   }

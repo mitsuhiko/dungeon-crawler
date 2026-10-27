@@ -3,7 +3,7 @@
 // one fights from its water, leaps out of it at a hero standing near on the bank and crashes down
 // on them, shrinks there, dissolves into a puddle nothing touches, runs back into the lake and
 // rises again; it is never shoved out of the water; put on the bank it does the same; in the
-// lineup room, with no water anywhere, it seeps away. In Squarlo's tidal hills his Tide squirtles
+// lineup room, with no water anywhere, it seeps away. In Squarlo's tidal hills his Squirtles
 // pop out of his water, and when his tide falls, one left on what dries goes back into the water
 // that stays.
 import { paused } from './combat.js';
@@ -99,12 +99,12 @@ export async function runSquirtleChecks() {
       Object.assign(q, { mode: 'chase', think: 0, target: player, cool: 99 });
       run(0.1);
       q.summon(q.profile.attacks.find(a => a.name === 'summon'));
-      const tides = allEnemies().filter(e => e.type === 'tidesquirtle');
+      const tides = allEnemies().filter(e => e.type === 'squarlosquirtle');
       check(tides.length && tides.every(s => wetAt(s.profile, s.f) !== null), 'his Squirtles pop out of his water: ' + tides.length);
       log('summoned');
       q.cast({ cast: 'tide' });
       run(SQUARLO_FIGHT.tide.rise + 1, () => { player.hp = 1e5; q.cool = 99; });
-      const tide = ENEMY_KINDS.tidesquirtle, rest = m.tide.rest * LH;
+      const tide = ENEMY_KINDS.squarlosquirtle, rest = m.tide.rest * LH;
       const high = m.floors.find(f => f.encounter && livesOn(tide, f) && f.top * LH > rest - SHALLOW + 0.1 && Math.hypot(f.x - q.x, f.z - q.z) > 3);
       check(high, 'a floor in the water at high tide only');
       log('high tide');

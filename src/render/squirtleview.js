@@ -14,7 +14,7 @@
 // Spray where it dives and rises, crashes, rushes along; ripples round it in water, embers off it
 // in lava, bubbles in slime: in its palette's colours. A lava one lights its surroundings. Its bar,
 // label and "!" are an enemy's, its silhouette where terrain hides it on land too; wet puddles where
-// it goes on land (render/trails.js).
+// it goes on land, in its palette's colours too (render/trails.js).
 import * as THREE from 'three';
 import { scene, camera } from './scene.js';
 import { squirtleModel } from './squirtlemodel.js';
@@ -53,8 +53,11 @@ function palIn(e, wet) {
   return m.fluidRows?.[wet.fluid] ?? palRow(m.depth ?? 0, wet.fluid, 0);
 }
 
+// It looks like the fluid it is in from the start (one it pops out of, a guardian's pond of any
+// fluid), else like the first it lives in.
 function makeView(e, prefab) {
-  const fluid = e.profile.dwells?.[0] ?? WATER, size = e.profile.size ?? 1;
+  const wet = fluidAround(e.profile, e.x, e.y, e.z), own = wet && e.profile.dwells?.includes(wet.fluid) ? wet : null;
+  const fluid = own?.fluid ?? e.profile.dwells?.[0] ?? WATER, size = e.profile.size ?? 1;
   const { model, mesh, material: plain, parts } = dressEnemy(prefab, e.profile);
   const material = mesh.material = squirtleMaterial(fluid, parts);   // (its eyes in its kind's colours)
   plain.dispose();
@@ -93,7 +96,7 @@ function makeView(e, prefab) {
   group.userData.figure = true;   // (casts into the realtime shadow maps as the quality level asks: render/shadows.js)
   const m = state.map;
   return { squirtle: true, group, tilt, model, mesh, material, flow: material.userData.flow, ghost, silhouette, mixer, actions, weights,
-    tag, bar, hpBar, label, mark, markT: 0, light, fluid, pal: m?.fluidRows?.[fluid] ?? palRow(m?.depth ?? 0, fluid, 0),
+    tag, bar, hpBar, label, mark, markT: 0, light, fluid, pal: palIn(e, own) ?? m?.fluidRows?.[fluid] ?? palRow(m?.depth ?? 0, fluid, 0),
     yaw: e.yaw, size, land: 1, sink: e.under ? 1 : 0, puddle: e.under ? 1 : 0, underWas: e.under ? 1 : 0,
     idleT: Math.random() * 1.6, swimT: 0, was: { x: e.x, z: e.z, vx: 0, vz: 0 }, slosh: { x: 0, z: 0, vx: 0, vz: 0 }, speed: 0,
     crashed: -1, trail: null };
@@ -147,8 +150,10 @@ function animate(e, dt, off) {
   v.was.x = e.x; v.was.z = e.z;
   v.tilt.rotation.set(v.slosh.z, 0, -v.slosh.x);
   // in its fluid, on land; diving under it, a puddle on land
+  // (the colours of the body of its fluid it is in: its puddles on land too, render/trails.js)
   const wet = fluidAround(e.profile, e.x, e.y, e.z);
-  if (wet && !off.x && !off.y && !off.z) v.pal = palIn(e, wet) ?? v.pal;
+  if (wet?.fluid === v.fluid && !off.x && !off.y && !off.z) v.pal = palIn(e, wet) ?? v.pal;
+  v.trailColor = paletteOf(v.pal).hex.body;
   v.land = toward(v.land, e.mode === 'ashore' ? 0.6 : 1, dt * 1.2);
   v.puddle = toward(v.puddle, !dead && e.under && !wet ? 1 : 0, dt / 0.35);
   v.sink = toward(v.sink, !dead && e.under && wet ? 1 : 0, dt / (e.profile.burrow?.sink ?? 0.35));

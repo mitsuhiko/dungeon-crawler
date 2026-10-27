@@ -349,7 +349,7 @@ such floor of the fight (a hill). Only if that quarter is all they have left doe
   player in it is hit once (26 at level 4) and blown back at 9 cells/s fading over 0.55 s.
   Stepping out of its cone before it blows dodges it. Never while his water is up.
 - **Squirtles** (within 9 cells, clip `SquarloSummon`, 1.4 s): he slaps the floor in front of
-  him at 0.8 s, and Tide squirtles pop out of his water, as near to him as it is
+  him at 0.8 s, and Squirtles pop out of his water, as near to him as it is
   (`game/bossfight.js minionFloors`): as many as fill up to **three**, every 9 s at most (the
   first after 4 s of fighting). They live in his water alone: when the tide rises they come after
   you over the drowned flats, and when it falls, those left on what dries go back into the water
@@ -465,8 +465,9 @@ the rosters.
   The rig is the sketch's curve bent: the head tips up and the jaw drops to open the mouth, the lip
   curls, the top leans about the rear foot the more the higher, and the root carries the squash,
   the stretch and the puddle. It wets the land where it goes and where it crashes down (`trail`,
-  `render/trails.js`); ripples spread round it in water, embers rise off it in lava, bubbles pop
-  round it in slime. Its water ball is a glossy drop of its colour (`render/projectiles.js`).
+  `render/trails.js`: puddles in the colour of the body of fluid it came out of); ripples spread
+  round it in water, embers rise off it in lava, bubbles pop round it in slime. Its water ball is
+  a glossy drop of its colour (`render/projectiles.js`).
 - It **lives in a fluid** (`dwells`: the ones it lives in, `physics/dwell.js`): a fluid floor's
   (a pool, a river, a lake) or a standing one at least 0.1 cells deep over the floor (a boss's
   tide or flood, a trial's). It is only put down in one (`game/enemyspawn.js`: a cube without its
@@ -501,12 +502,13 @@ the rosters.
 
 | Kind | Where | Health, damage | Notes |
 |---|---|---|---|
-| Squirtle | the water of the lagoon isles (act I), the sunken grotto and the jungle cenote (act II) | 42, 13 | blue |
-| Moss squirtle | the acid of the slime marsh (act II) | ×1.2, ×1.15 | moss green |
-| Coral squirtle | the lava of the volcanic depths and the obsidian abyss (act III) | ×1.5, ×1.4 | coral red, ×1.1 speed; lava and fire do not burn it |
-| Tide squirtle | Squarlo's (`minion`), in his water | ×0.7, ×0.6 | teal; pops out of his water, a little XP once, now and then a minor health potion |
+| Squirtle | the water of the lagoon isles (act I), the sunken grotto and the jungle cenote (act II) | 42, 13 | |
+| Toxic squirtle | the acid of the slime marsh (act II) | ×1.2, ×1.15 | |
+| Lava squirtle | the lava of the volcanic depths and the obsidian abyss (act III) | ×1.5, ×1.4 | ×1.1 speed; lava and fire do not burn it |
+| Squirtle (Squarlo's, `SQUARLO_SQUIRTLE`) | Squarlo's (`minion`, `plain`), in his water | ×0.7, ×0.6 | a plain Squirtle to see and by name; pops out of his water, a little XP once, now and then a minor health potion |
 
-(Their colours are their water balls' and their eyes'; their bodies are always their fluid's.)
+(Their colours are their water balls' and their eyes'; their bodies and their puddles are always
+the colours of the body of fluid they are in.)
 
 A roster entry may keep to some themes (`where` in `core/spawns.js`: the biome, the theme's prop
 set): each kind of Squirtle lives only in its own fluid there. A guardian arena whose population
@@ -1330,7 +1332,7 @@ to the others as it moves them.
 kills it whatever its phase. `/spawn custotriangle` spawns its minions on their own. Likewise
 `/spawn totnar` (`addTotnars`), `/spawn snapskull`, `/spawn totspider` and `/spawn totstunder`,
 and `/spawn squarlo` (`addSquarlos`; without his tidal hills he calls no tide), `/spawn squirtle`,
-`/spawn coralsquirtle` and `/spawn tidesquirtle`. `/arena tidal` goes to his arena. `/spawn flip`
+`/spawn lavasquirtle` and `/spawn squarlosquirtle`. `/arena tidal` goes to his arena. `/spawn flip`
 (`addFlips`; out of his box he turns nothing, and a black hole lets a swallowed player out
 elsewhere without a turn) and `/spawn skywolla`; `/arena flip` goes to his box. `/spawn foggery`
 (`addFoggerys`; out of his caldera there is no lava, no climb and no platforms), `/spawn fogface`

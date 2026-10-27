@@ -39,7 +39,7 @@ test('Bolimes live only in the slime marsh, at every depth it may appear at', ()
   }
 });
 
-// (the Moss squirtles in its acid take a share of the marsh's cubes from them: core/spawns.js)
+// (the Toxic squirtles in its acid take a share of the marsh's cubes from them: core/spawns.js)
 test('a slime marsh cube mostly has Slugs or Bolimes, a cube anywhere else never', () => {
   const cube = (seed, depth, biome) => population({ seed, depth, key: `${seed},-${depth},0`, biome });
   let slimy = 0;

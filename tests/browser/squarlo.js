@@ -78,7 +78,7 @@ export async function runSquarloChecks() {
       // Squirtles pop out of his water, at most three; under it nothing hurts them
       run(1);
       strike(q, 'summon'); run(0.05);
-      let squirtles = alive('tidesquirtle');
+      let squirtles = alive('squarlosquirtle');
       check(squirtles.length >= 1 && squirtles.length <= SQUARLO_FIGHT.minions[0] && squirtles.every(s => s.under), 'Squirtles, under the surface: ' + squirtles.length);
       check(squirtles.every(s => wetAt(s.profile, s.f) !== null), 'in his water');
       check(!damageEnemy(squirtles[0], 1), 'nothing hurts one under the floor');
@@ -140,7 +140,7 @@ export async function runSquarloChecks() {
       putBody(q, flats[0]); Object.assign(q, { mode: 'chase', cool: 1, think: 0 }); q.barred = new Set(['tide', 'summon', 'rest']);
       // (none of his Squirtles about while his own blows are tried: they would leap onto the player
       // and crash down on them)
-      const calm = () => { for (const s of alive('tidesquirtle')) { s.under = 0; damageEnemy(s, s.hp); } };
+      const calm = () => { for (const s of alive('squarlosquirtle')) { s.under = 0; damageEnemy(s, s.hp); } };
       calm();
       // nothing staggers him, and blows hurt him less
       const hp0 = q.hp;
@@ -181,7 +181,7 @@ export async function runSquarloChecks() {
 
       // his death drains the water, takes the Squirtles along and opens the gate
       strike(q, 'summon'); run(0.1);
-      check(alive('tidesquirtle').length >= 1, 'a giant summons too');
+      check(alive('squarlosquirtle').length >= 1, 'a giant summons too');
       strike(q, 'tide', 0); run(q.profile.attacks.find(a => a.name === 'tide').hitAt + 1);
       check(q.tide > 0, 'the tide rises in phase 2 too');
       check(gateLocked(map, state.run), 'locked while he lives');

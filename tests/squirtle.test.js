@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { LH, WATER, LAVA, ACID } from '../src/core/constants.js';
-import { SQUIRTLE, CORAL_SQUIRTLE, MOSS_SQUIRTLE, ENEMY_KINDS, makeEnemy } from '../src/core/enemies.js';
+import { SQUIRTLE, LAVA_SQUIRTLE, TOXIC_SQUIRTLE, ENEMY_KINDS, makeEnemy } from '../src/core/enemies.js';
 import { World } from '../src/world/world.js';
 import { testRoomKey } from '../src/world/testrooms.js';
 import { walker, walkerOf, wetAt, standY, livesOn, SUNK } from '../src/physics/dwell.js';
@@ -26,7 +26,7 @@ test('a wave taller than the hero, its ball of water a bit bigger, a leap, and e
   const leap = SQUIRTLE.attacks.find(a => a.name === 'leap');
   assert.ok(leap.ride.onto && leap.beam.kind === 'stomp' && leap.minReach > 0 && leap.reach < SQUIRTLE.reach, 'a leap onto a player near it');
   assert.ok(SQUIRTLE.projectile.radius > 0.15 && ENEMY_KINDS.slimesquirtle.projectile.radius > 0.17);
-  assert.deepEqual([SQUIRTLE.dwells, MOSS_SQUIRTLE.dwells, CORAL_SQUIRTLE.dwells], [[WATER], [ACID], [LAVA]]);
+  assert.deepEqual([SQUIRTLE.dwells, TOXIC_SQUIRTLE.dwells, LAVA_SQUIRTLE.dwells], [[WATER], [ACID], [LAVA]]);
 });
 
 test('in the lake of the shores room it floats, lives on its water alone, and climbs back into it from the bank', () => {
@@ -43,8 +43,8 @@ test('in the lake of the shores room it floats, lives on its water alone, and cl
   // from the bank, over the land, into the water
   const back = nearest(bank, g => livesOn(SQUIRTLE, g), 40, walker(SQUIRTLE, true));
   assert.ok(back && back.at(-1).fluid === WATER);
-  // a Coral squirtle has no lava here: the lake is not for it
-  assert.equal(wetAt(CORAL_SQUIRTLE, f), null);
+  // a Lava squirtle has no lava here: the lake is not for it
+  assert.equal(wetAt(LAVA_SQUIRTLE, f), null);
 });
 
 test('it is not shoved out of its water, and stepping keeps it floating', () => {
@@ -61,9 +61,9 @@ test('a standing fluid of its own over the floor is its water too, while it is d
   try {
     setTide({ y: top + 0.4, fluid: WATER, box: [0, 0, 16, 16] });
     assert.equal(wetAt(SQUIRTLE, g), top + 0.4);
-    assert.equal(wetAt(MOSS_SQUIRTLE, g), null);
+    assert.equal(wetAt(TOXIC_SQUIRTLE, g), null);
     setTide({ y: top + 0.4, fluid: WATER, look: ACID, box: [0, 0, 16, 16] });
-    assert.equal(wetAt(MOSS_SQUIRTLE, g), top + 0.4, "Slomo's flood: water drawn as slime");
+    assert.equal(wetAt(TOXIC_SQUIRTLE, g), top + 0.4, "Slomo's flood: water drawn as slime");
     setTide({ y: top + 0.05, fluid: WATER, box: [0, 0, 16, 16] });
     assert.equal(wetAt(SQUIRTLE, g), null, 'too shallow');
   } finally { setTide(null); }

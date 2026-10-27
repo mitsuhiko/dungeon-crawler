@@ -275,19 +275,20 @@ export const WOLK = {
   seedSalt: 0x6c1d2f5, spacing: 4,
 };
 // A living wave (blender/squirtle.py; render/squirtleview.js draws its body as the fluid it lives
-// in, in that body of fluid's colours: its `colors` are its eyes' and its water ball's):
-// its back arches up into the crest, which is its head, and the wave's curl in front is its mouth,
-// opening and closing; taller than the hero. It wets the land where it goes (`trail`, bigger:
-// `trailSize`, render/trails.js). It lives in a fluid (`dwells`: the ones it lives in,
-// physics/dwell.js): it is only ever put down in one and moves only through it. It pokes out of it
-// to spit a ball of water (a projectile with a tiny `push`), and leaps out of it at a player near
-// it (`leap`: up onto a stomp beam's shadow at their feet, game/enemyai.js `ride`, and crashing
-// down there onto whoever is under it). On land it cannot keep its shape: it shrinks, stands a
-// moment, then dissolves into a puddle that nothing can touch and runs back into its fluid, where
-// it rises again (game/enemyai.js `ashore`). `burrow`: in the fight it stays up for `up` s (least,
-// most), dives and moves under the surface at `speed` for `under` s, then comes up again, sooner
-// where it has a shot; `sink`: s its diving and coming up take. Under the surface (`under` on the
-// enemy) nothing sees, hits or touches it (`absent`). It `swims`: no water drowns it.
+// in, in that body of fluid's colours: its `colors` are its eyes' and its water ball's): its back
+// arches up into the crest, which is its head, and the wave's curl in front is its mouth, opening
+// and closing; taller than the hero. It wets the land where it goes (`trail`, bigger: `trailSize`,
+// render/trails.js; in the colours of its fluid, not the `trail` colour). It lives in a fluid
+// (`dwells`: the ones it lives in, physics/dwell.js): it is only ever put down in one and moves
+// only through it. It pokes out of it to spit a ball of water (a projectile with a tiny `push`),
+// and leaps out of it at a player near it (`leap`: up onto a stomp beam's shadow at their feet,
+// game/enemyai.js `ride`, and crashing down there onto whoever is under it). On land it cannot keep
+// its shape: it shrinks, stands a moment, then dissolves into a puddle that nothing can touch and
+// runs back into its fluid, where it rises again (game/enemyai.js `ashore`). `burrow`: in the fight
+// it stays up for `up` s (least, most), dives and moves under the surface at `speed` for `under` s,
+// then comes up again, sooner where it has a shot; `sink`: s its diving and coming up take. Under
+// the surface (`under` on the enemy) nothing sees, hits or touches it (`absent`). It `swims`: no
+// water drowns it.
 const SQUIRTLE_SPIT = {
   name: 'spit', clip: 'spit', weight: 1, reach: 5, hitReach: 0, hitAt: 15 / 30, trackUntil: 0.4, attackTime: 33 / 30,
   arc: 0.5, knockDown: false, hop: 2.5, reason: 'Splashed by a Squirtle!',
@@ -648,7 +649,7 @@ const SQUARLO_TIDE = {
 const SQUARLO_SUMMON = {
   name: 'summon', clip: 'summon', weight: 2, reach: 9, hitAt: 24 / 30, trackUntil: 0.5, attackTime: 42 / 30, hitReach: 0,
   arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Squarlo',
-  summon: { kind: 'tidesquirtle', muzzle: [0, 0.172, 0.175] },
+  summon: { kind: 'squarlosquirtle', muzzle: [0, 0.172, 0.175] },
 };
 const SQUARLO_REST = {
   name: 'rest', clip: 'rest', weight: 0, reach: 40, hitAt: 6 / 30, trackUntil: 0, attackTime: 66 / 30, hitReach: 0,
@@ -1281,11 +1282,11 @@ export const EMBER_WOLLA = enemyKind(WOLLA, {
   colors: paints({ waves: 'ember.mid', eyes: 'eyes.ice' }), ichor: ['#ffc07a', '#a0480f'], trail: '#7a4a24',
   mods: { hp: 1.45, damage: 1.4, speed: 1.1, size: 1.12 },
 });
-// The Squirtles of the lava (the volcanic caves and the abyss): coral red, tougher and quicker;
-// lava does not burn them, nor fire.
-export const CORAL_SQUIRTLE = enemyKind(SQUIRTLE, {
-  type: 'coralsquirtle', label: 'Coral squirtle', reason: 'Splashed by a Coral squirtle!',
-  attacks: squirtleAttacks('Splashed by a Coral squirtle!'), dwells: [LAVA], lavaproof: true, fireproof: true, trail: '#a0401c',
+// The Squirtles of the lava (the volcanic caves and the abyss): tougher and quicker; lava does not
+// burn them, nor fire.
+export const LAVA_SQUIRTLE = enemyKind(SQUIRTLE, {
+  type: 'lavasquirtle', label: 'Lava squirtle', reason: 'Splashed by a Lava squirtle!',
+  attacks: squirtleAttacks('Splashed by a Lava squirtle!'), dwells: [LAVA], lavaproof: true, fireproof: true, trail: '#a0401c',
   colors: paints({ body: 'crimson.mid@+10', eyes: 'ochre.pale' }), ichor: ['#ffc0a8', '#b0402a'],
   mods: { hp: 1.5, damage: 1.4, speed: 1.1 },
 });
@@ -1347,9 +1348,9 @@ export const STORM_WOLK = enemyKind(WOLK, {
   ichor: ['#c4c4d4', '#3a3a4a'], mods: { hp: 1.3, damage: 1.3, speed: 1.1 },
 });
 // the Squirtles of the slime (the slime marsh's acid)
-export const MOSS_SQUIRTLE = enemyKind(SQUIRTLE, {
-  type: 'mosssquirtle', label: 'Moss squirtle', reason: 'Splashed by a Moss squirtle!', dwells: [ACID],
-  attacks: squirtleAttacks('Splashed by a Moss squirtle!'), trail: '#5f9a34',
+export const TOXIC_SQUIRTLE = enemyKind(SQUIRTLE, {
+  type: 'toxicsquirtle', label: 'Toxic squirtle', reason: 'Splashed by a Toxic squirtle!', dwells: [ACID],
+  attacks: squirtleAttacks('Splashed by a Toxic squirtle!'), trail: '#5f9a34',
   colors: paints({ body: 'moss.mid', eyes: 'ochre.pale' }), ichor: ['#c8f0a0', '#4f8f2a'],
   mods: { hp: 1.2, damage: 1.15 },
 });
@@ -1546,12 +1547,11 @@ export const SNAP_SKULL = {
 };
 // the species that are only ever a boss's minions (each its own model)
 export const MINION_PROFILES = [SNAP_SKULL];
-// Squarlo's Squirtles: teal, weaker, and they go for the player at once; they live in his tide
+// Squarlo's Squirtles: plain Squirtles (`plain`: they look like and are called what they are, their
+// body the water of his tide they live in), weaker, and they go for the player at once
 const SPLASH_PUFF = { colors: ['#e8fbff', '#9fe0f0', '#6ac2d8'], size: 0.5 };
-export const TIDE_SQUIRTLE = enemyKind(SQUIRTLE, {
-  type: 'tidesquirtle', label: 'Tide squirtle', reason: 'Splashed by a tide squirtle!', minion: true,
-  attacks: squirtleAttacks('Splashed by a tide squirtle!'), trail: '#3a9a9a',
-  colors: paints({ body: 'jade.mid', eyes: 'jade.pale' }), ichor: ['#b8f4ff', '#2a9fa8'],
+export const SQUARLO_SQUIRTLE = enemyKind(SQUIRTLE, {
+  type: 'squarlosquirtle', minion: true, plain: true,
   aggro: 10, giveUp: 14, coins: [0, 0], drops: MINION_DROPS(0.05), puff: SPLASH_PUFF,
   mods: { hp: 0.7, damage: 0.6, xp: 0.15 },
 });
@@ -1642,9 +1642,9 @@ export const STAGE_TORNADO = enemyKind(TORNADO, {
 });
 export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.values(GUARDIAN_KINDS), ...Object.values(DESCENT_GUARDIAN_KINDS), SAND_VIPER, BLOOD_VIPER, FROST_ADDER, VENOM_ADDER, SHADOW_MAMBA, FROST_SPIDER, BOG_SPIDER,
   GLOOM_SPIDER, REDBACK, FROST_STUNDER, STONE_STUNDER, MAGMA_STUNDER, BOG_OCTONAUT, CORAL_OCTONAUT, EMERALD_TRIANGLE, CRIMSON_TRIANGLE, FIRE_SHRAPS,
-  BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, CORAL_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
-  NIGHTSHADE, DUST_WOLK, STORM_WOLK, MOSS_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
-  TIDE_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO].map(k => [k.type, k]));
+  BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, LAVA_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
+  NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
+  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
 // like the dead
