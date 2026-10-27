@@ -10,6 +10,13 @@
 // go and use them. The ways out of the cube (portals, the town portal, house doors: game/ways.js)
 // too, labelled with where they go, and clicked to walk up to them and through.
 // Labels that would overlap are pushed upwards into a stack. Runs after the camera moved.
+//
+// Everything clicked in the world (but the enemies: game/pointer.js) is hovered here, and the cursor
+// shows it (a pointer). What is hovered is the thing itself, not its label: each has a body
+// (bodyOf: what it takes up in the cube, from its view where it has one), and the cursor on that
+// body, or on its label, hovers it. A label may hang well above its thing (labelY: the glassmaker's
+// glass floats, his sword stands tall), so its place never says where the thing is. A new kind of
+// thing to click gets a body here, never a hover of its own (tests/browser/hover.js checks them).
 import * as THREE from 'three';
 import { camera, renderer } from '../render/scene.js';
 import { lootView } from '../render/loot.js';
@@ -34,20 +41,18 @@ import { RARITY } from '../core/gear/rarities.js';
 import { tr, say, onLanguageChange } from '../i18n/i18n.js';
 import { itemNames, setItemNames } from './settings.js';
 import { curtained } from './hud.js';
+import { NPC_H } from '../core/npcs.js';
 
 const layer = document.getElementById('loot-labels'), canvas = renderer.domElement;
 const labels = new Map();   // pickup id (or 'chest:' + site id) -> { el, p, w, h }
 // another language: the labels are made again in it
 onLanguageChange(() => { for (const l of labels.values()) l.el.remove(); labels.clear(); });
-const PICK = 26;             // px: how close the cursor must be to an item to hover it
-const CHEST_PICK = 40;       // ... and to a chest
-const VILLAGER_PICK = 46;    // ... and to a villager's head
-const PART_PICK = 40;        // ... and to a trial's part
-const WAY_PICK = 50;         // ... and to a way out (a gate is big)
+const PICK_PAD = 6;           // px the cursor may be off a thing's body and still hover it
+const PICK_MIN = 14;          // px: the least a body is wide on screen (far off, small things)
 const PART_COLOR = '#8fd0ff', WAY_COLOR = '#c9b8ff';
 // a chest's label colour: a grander site, a rarer colour
 const CHEST_COLOR = { basic: '#d8d2c4', uncommon: RARITY.decent.css, rare: RARITY.unusual.css, exceptional: RARITY.remarkable.css };
-let hovered = null, overLabel = null, cursor = '';
+let hovered = null, overLabel = null, cursor = '';   // overLabel: the key of the thing whose label the cursor is on
 
 // villagers (state.map.villagers) have an outfit, chests (reward sites) a prestige; the trial's
 // usable parts are this frame's usableParts()
@@ -86,8 +91,10 @@ function label(p) {
     e.preventDefault(); e.stopPropagation();
     if (isWay(p)) orderWay(p); else if (part) orderPart(p); else if (isVillager(p)) orderTrade(p); else if (p.prestige) orderChest(p); else if (p.questItem) orderWalk(p.x, p.y, p.z); else orderPickup(p);
   });
-  el.addEventListener('pointerenter', () => { overLabel = p; });
-  el.addEventListener('pointerleave', () => { if (overLabel === p) overLabel = null; });
+  // (by key: some lists make their things anew every frame, game/intro.js, game/questworld.js)
+  const key = keyOf(p);
+  el.addEventListener('pointerenter', () => { overLabel = key; });
+  el.addEventListener('pointerleave', () => { if (overLabel === key) overLabel = null; });
   layer.append(el);
   l = { el, p, w: 0, h: 0 };
   labels.set(keyOf(p), l);
@@ -106,24 +113,79 @@ function screen(p, off) {
   return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
 }
 
+// everything here to hover and click (parts: this frame's usableParts)
+const thingsHere = () => [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView),
+  ...introThingsHere().filter(lootView), ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : [])];
+const ZERO = new THREE.Vector3(), cubeOffset = () => state.world?.group.position ?? ZERO;
+// (tests/browser/hover.js) everything hovered here, each with its body; and the key of what is hovered
+export const hoverables = () => thingsHere().map(p => ({ key: keyOf(p), body: bodyOf(p, cubeOffset()) }));
+export const hoveredKey = () => hovered && keyOf(hovered);
+
+// What thing p takes up, for the hover: a standing cylinder { x, z, y0, y1, r } in the scene (off:
+// where the cube is drawn). A thing with a view (an item, a quest's or the beginning's thing,
+// render/loot.js) is where its view is, however it floats, stands or is scaled; the others by
+// what they are.
+const box = new THREE.Box3(), size = new THREE.Vector3(), mid = new THREE.Vector3();
+const body = (x, y, z, h, r, off) => ({ x: x + off.x, z: z + off.z, y0: y + off.y, y1: y + off.y + h, r });
+// a way out (game/ways.js): a gate, a well, a ring, the town portal's pad, a door
+function wayBody(p, off) {
+  if (p.kind === 'door') return body(p.x, p.door.y, p.z, 1.7, 0.55, off);
+  if (p.kind === 'town') return body(p.x, p.pad.y, p.z, 0.8, 0.7, off);
+  const y = p.portal.y;
+  if (p.kind === 'side') return body(p.x, y, p.z, 2.2, 0.9, off);
+  if (p.kind === 'up') return body(p.walk.x, y, p.walk.z, 2.2, 0.7, off);
+  return body(p.walk.x, y - 0.2, p.walk.z, 0.7, 0.6, off);
+}
+export function bodyOf(p, off) {
+  if (isVillager(p)) return body(p.x, p.y, p.z, NPC_H + 0.1, 0.32, off);
+  if (p.prestige) return body(p.anchor.x, p.anchor.y, p.anchor.z, 0.8, 0.5, off);
+  if (isPart(p)) return body(p.x, p.y, p.z, 0.9, 0.4, off);
+  if (isWay(p)) return wayBody(p, off);
+  const view = lootView(p);
+  if (view) {
+    box.setFromObject(view);
+    if (!box.isEmpty()) {
+      box.getSize(size); box.getCenter(mid);
+      return { x: mid.x, z: mid.z, y0: box.min.y, y1: box.max.y, r: Math.max(size.x, size.z) / 2 };
+    }
+  }
+  return body(p.x, p.y, p.z, 0.5, 0.3, off);
+}
+// how far the cursor (px, py) is from body b on screen, in its widths (under 1: on it)
+const ends = [new THREE.Vector3(), new THREE.Vector3()];
+function offBody(b, px, py) {
+  const [a, c] = ends;
+  a.set(b.x, (b.y0 + b.y1) / 2, b.z).applyMatrix4(camera.matrixWorldInverse);
+  const depth = -a.z;
+  if (depth <= 0) return Infinity;
+  const unit = innerHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));   // px per unit at depth 1
+  const r = Math.max(PICK_MIN, b.r * unit / depth) + PICK_PAD;
+  a.set(b.x, b.y0, b.z).project(camera); c.set(b.x, b.y1, b.z).project(camera);
+  const ax = (a.x + 1) / 2 * innerWidth, ay = (1 - a.y) / 2 * innerHeight, bx = (c.x + 1) / 2 * innerWidth, by = (1 - c.y) / 2 * innerHeight;
+  // the nearest point on the body's axis from foot to top, on screen
+  const dx = bx - ax, dy = by - ay, len = dx * dx + dy * dy, t = len > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len)) : 0;
+  return Math.hypot(px - ax - dx * t, py - ay - dy * t) / r;
+}
+
 export function updateLootLabels() {
   // (not behind the curtain: they come up with the world as it lifts, under it, style.css #fade;
   // nothing unseen is hovered or clicked meanwhile)
   const live = !state.inventoryOpen && !state.transitioning && !!state.world && !curtained();
   parts = new Set(live && state.mode === 'play' ? usableParts() : []);
-  const list = live ? [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView), ...introThingsHere().filter(lootView),
-    ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : [])] : [];
-  const off = state.world?.group.position ?? v.set(0, 0, 0), spots = new Map();
+  const list = live ? thingsHere() : [];
+  const off = cubeOffset(), spots = new Map();
   for (const p of list) { const s = screen(p, off); if (s) spots.set(p, s); }
-  // the item under the cursor: a label it points at, else the nearest item on screen
+  // the thing under the cursor: the one whose label it is on, else the one whose body it is on
+  // (the nearest to its middle, for its size: a coin at a villager's feet wins on the coin)
   hovered = null;
-  if (live && overLabel && spots.has(overLabel)) hovered = overLabel;
+  const onLabel = live && overLabel ? list.find(p => keyOf(p) === overLabel) : null;
+  if (onLabel) hovered = onLabel;
   else if (live && pointer.inside && !hoveredEnemy()) {
     const px = (pointer.ndc.x + 1) / 2 * innerWidth, py = (1 - pointer.ndc.y) / 2 * innerHeight;
-    let best = Infinity;
-    for (const [p, s] of spots) {
-      const d = Math.hypot(s.x - px, s.y - py) / (isVillager(p) ? VILLAGER_PICK : p.prestige ? CHEST_PICK : isPart(p) ? PART_PICK : isWay(p) ? WAY_PICK : PICK);   // items win when close
-      if (d < Math.min(1, best)) { best = d; hovered = p; }
+    let best = 1;
+    for (const p of list) {
+      const d = offBody(bodyOf(p, off), px, py);
+      if (d < best) { best = d; hovered = p; }
     }
   }
   const show = [...spots.keys()].filter(p => itemNames() || p === hovered || p.questItem || isVillager(p) && villagerText(p).match(/^[!?] /));
@@ -145,7 +207,7 @@ export function updateLootLabels() {
     l.el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
     l.el.classList.toggle('hovered', p === hovered);
   }
-  for (const [id, l] of labels) if (!keep.has(id)) { l.el.remove(); labels.delete(id); if (overLabel === l.p) overLabel = null; }
+  for (const [id, l] of labels) if (!keep.has(id)) { l.el.remove(); labels.delete(id); if (overLabel === id) overLabel = null; }
   const want = hoveredEnemy() ? 'crosshair' : hovered ? 'pointer' : '';
   if (want !== cursor) canvas.style.cursor = cursor = want;
 }

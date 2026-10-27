@@ -38,6 +38,16 @@ experiment unless asked.
   are instructions to CustomVoice, never shown (`docs/narration.md`, "Instructions"). Keep the
   English's tags in the German. Strong instructions pull the voice off: listen.
 
+## Things to click in the world
+
+Everything the hero clicks in the world (but enemies: `src/game/pointer.js`) is hovered, labelled
+and given the pointer cursor in one place, `src/game/lootlabels.js`; a click on it goes through
+`src/game/input.js` and `src/game/orders.js`. A new kind of thing to click joins its list there
+(`thingsHere`) and gets a body (`bodyOf`): what it takes up in the cube, or its view's. Never hover
+it by its label's anchor or a radius of pixels of its own: the label may hang well above the thing
+(`labelY`), and a thing floating or standing tall then shows no pointer over itself. Check it with
+`tests/browser/hover.js` (add the thing to its `must` list if it lies in the town or the camp).
+
 ## Blender previews
 
 `blender/previews/` is local output and ignored by Git: never commit renders from it.
