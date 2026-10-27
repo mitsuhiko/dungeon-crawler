@@ -2,7 +2,15 @@
 // Vendored from https://tools.simonwillison.net/scrimshaw-jukebox (github.com/simonw/tools, scrimshaw-jukebox.html @ d97b73d).
 // Apache-2.0, see LICENSE. Changed: IIFE/UMD wrapper replaced by ES module exports; the glass
 // instruments (glassharp, crystal, bowl), the theremin and drums (glasstap, chimes, shatter) added
-// for Cube Crawler.
+// for Cube Crawler; and the hooks the game's sampler (src/audio/sampler.js) renders notes with
+// (captureNotes).
+
+// (Cube Crawler) While a capture is set (captureNotes), every note an instrument builds tells it
+// how it ends (the held ones' attack, decay and release, the struck ones' decay and damping) and leaves
+// its vibrato out, saying how it would have been: the sampler renders the note without it and
+// plays the vibrato itself, so a held note's sample loops on a steady tone.
+let capture = null;
+function captureNotes(c) { capture = c; }
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
@@ -30,6 +38,7 @@ function O(S, type, f, t, stop, p, ratio = 1, detune = 0) {
 // sustained envelope; returns time when the voice is silent
 function adsr(param, t, d, { a = 0.01, dc = 0.1, s = 1, r = 0.1, peak = 1 }) {
   const tOn = t + a, tOff = Math.max(t + d, tOn + 0.003);
+  if (capture) { capture.held = true; capture.a = Math.max(capture.a ?? 0, a); capture.dc = Math.max(capture.dc ?? 0, dc); capture.r = Math.max(capture.r ?? 0, r); }
   param.setValueAtTime(0, t);
   param.linearRampToValueAtTime(peak, tOn);
   if (s < 1) param.setTargetAtTime(peak * s, tOn, Math.max(0.002, dc / 3));
@@ -42,6 +51,10 @@ function perc(param, t, { a = 0.002, tau = 0.3, peak = 1, damp = null, dampTau =
   param.linearRampToValueAtTime(peak, t + a);
   param.setTargetAtTime(0, t + a, Math.max(0.002, tau));
   let end = t + a + tau * 7;
+  if (capture) {
+    (capture.percs ??= []).push({ at: t + a, tau, peak });
+    if (damp != null) (capture.damps ??= []).push([damp, dampTau]);
+  }
   if (damp != null && damp + dampTau * 7 < end) {
     const td = Math.max(damp, t + a + 0.002);
     param.setTargetAtTime(0, td, dampTau);
@@ -75,6 +88,7 @@ function noiseSrc(S, t, stop) {
   return src;
 }
 function vibrato(S, t, stop, targets, { rate = 5, depth = 10, delay = 0.2, rise = 0.3 }) {
+  if (capture) { capture.vib ??= { rate, depth, delay, rise }; return; }
   const lfo = S.ctx.createOscillator();
   lfo.frequency.value = rate * (0.94 + Math.random() * 0.12);
   const g = G(S);
@@ -733,4 +747,4 @@ async function renderOffline(song, seconds, sampleRate = 44100, opts = {}) {
   return ctx.startRendering();
 }
 
-export { createSynth, renderOffline, INST, DRUM, mtof };
+export { createSynth, renderOffline, INST, DRUM, mtof, captureNotes };

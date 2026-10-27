@@ -8,6 +8,8 @@
      page of sounds). The scores in music/ with the game's synth: the game's songs (SONGS), then
      any folder of scores listed in FOLDERS (each with an index.json of { name, title, file }).
      Moods switch voices like the game does; click a voice to mute it, shift-click to solo.
+     "samples" plays a song as the game does, its drums and notes from what the synth rendered
+     (src/audio/drumkit.js, src/audio/sampler.js); off, the synth plays every note live.
      Then the sounds, played by the game's own code into the same AudioContext and buses
      (src/audio/context.js): the effects (sfx.js, grouped in tools/player-sounds.js), the
      enemies' voices, the footsteps, the ambient beds and drones (loops.js) and the splash
@@ -83,6 +85,7 @@
       <span style="color:var(--dim)">Mood</span><span id="moods"></span>
       <label><input type="checkbox" id="loop" checked> loop</label>
       <label><input type="checkbox" id="follow" checked> piano roll</label>
+      <label title="as the game plays a song: its drums and notes from samples the synth rendered once (the jingles stay live, as in the game); off: the synth plays every note live"><input type="checkbox" id="samples" checked> samples</label>
     </div>
     <div id="errors"></div>
     <canvas id="roll"></canvas>
@@ -113,6 +116,8 @@ import { footstep, renderSteps, STEP_SOUNDS, STEP_LEVEL, GAITS } from './src/aud
 import { setAmbience, setDrone, drip, pop } from './src/audio/loops.js';
 import { splashHit, splashShatter, splashSwell, renderSplashSound, SPLASH_CUES } from './src/audio/splash.js';
 import { SFX_GROUPS, BEDS, DRONES } from './tools/player-sounds.js';
+import { prepareDrums, playDrum } from './src/audio/drumkit.js';
+import { prepareSamples, playSampled } from './src/audio/sampler.js';
 
 const GAME = SONGS;                           // music/<name>.scrim, as src/game/music.js plays them
 const FOLDERS = { jingles: 'Jingles', films: 'Films' };   // music/<dir>: label, for scores that are not songs (the jingles, audio/jingles.js) or that the game doesn't play
@@ -207,16 +212,27 @@ async function start(pos = pausedAt) {
   syn.out.gain.value = cur.group === 'Jingles' ? JINGLE_LEVEL : MUSIC_LEVEL;
   const sess = syn.session(cur.song);
   syn.warm(cur.song);
+  if (sampled()) { prepareDrums(ctx, cur.song); prepareSamples(ctx, cur.song); }
   sess.ch.forEach((c, i) => { c.base = c.input.gain.value; if (!voiceOn(i)) c.input.gain.value = 0; });
   const origin = ctx.currentTime + 0.08 - pos;
   play = { sess, origin, ...cursorAt(pos) };
   $('play').textContent = 'Pause';
 }
+// the game's way (samples: audio/music.js play) for a song, the synth's for a jingle or with it off
+const sampled = () => $('samples').checked && cur?.group !== 'Jingles';
+function note(ev, t) {
+  if (sampled() && !voiceOn(ev.v)) return;   // (a muted voice's samples would count against the notes at once, sampler.js CAP)
+  t = Math.round(t * ctx.sampleRate) / ctx.sampleRate;
+  const v = cur.song.voices[ev.v];
+  if (sampled() && (v.drum ? playDrum(ctx, v.inst, ev.vel, play.sess.ch[ev.v].input, t) : playSampled(ctx, play.sess, ev, t))) return;
+  play.sess.play(ev, t);
+}
+$('samples').onchange = () => { if (play && sampled()) { prepareDrums(ctx, cur.song); prepareSamples(ctx, cur.song); } };
 // a sting (a mood's, as it begins): its notes from the next sixteenth on, over the loop
 function sting(tl) {
   const { tempo, steps } = cur.song, step = 60 / tempo / steps;
   const at = play.origin + Math.ceil((ctx.currentTime + 0.04 - play.origin) / step) * step;
-  for (const ev of tl.events) { play.sess.play(ev, at + ev.t); lit[ev.v] = Math.max(lit[ev.v] ?? 0, at + ev.t); }
+  for (const ev of tl.events) { note(ev, at + ev.t); lit[ev.v] = Math.max(lit[ev.v] ?? 0, at + ev.t); }
 }
 function stop(keep = false) {
   if (!play) return;
@@ -248,7 +264,7 @@ function tick() {
     const ev = tl.events[play.i], t = play.origin + passStart(play.k) + ev.t;
     if (t > horizon) return;
     if (t >= ctx.currentTime - 0.03) {
-      play.sess.play(ev, Math.max(t, ctx.currentTime + 0.005));
+      note(ev, Math.max(t, ctx.currentTime + 0.005));
       lit[ev.v] = Math.max(lit[ev.v] ?? 0, t);
     }
     play.i++;

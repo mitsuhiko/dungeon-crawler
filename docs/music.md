@@ -22,12 +22,39 @@ or window (a setting: on at first, but not in the guide's game window). The synt
 built for the first song and leaves the bus a few seconds after the music stops, so with the
 music off its compressors and reverb cost nothing.
 
-The synth builds every note from Web Audio nodes, and every running node is work for the audio
-thread. The drums are rendered once per song instead (`src/audio/drumkit.js`): each drum and
-velocity the song uses is rendered offline when the song starts (three takes of the short hits,
-whose noise differs) and played as one buffer source into its voice's channel; until they are in,
-the synth plays them. That took about a third off the music's work. The melodic notes stay live:
-rendering them all would take 45 to 90 MB per song.
+The synth builds every note from Web Audio nodes (ten to twenty a note: oscillators, filters,
+a vibrato, noise), and every running node is work for the audio thread; 30 to 70 notes sound at
+once. So the game plays its songs from samples, as old consoles and MIDI sound banks did: the
+synth renders each sound a song uses once, offline, and the player plays it back as a buffer
+source and a gain. Until a song's samples are in, the synth plays its notes live.
+
+- The drums (`src/audio/drumkit.js`): each drum and velocity the song uses, three takes of the
+  short hits (their noise differs); the long ones (a gong, thunder, a crash) stay live.
+- The other notes (`src/audio/sampler.js`): each note the song plays (the instrument, the voice's
+  settings, the pitch, and for brass, trumpet, synth bass and crystal the velocity in quarter
+  steps, which changes their sound), when the song first plays, kept for the next time up to
+  40 MB (the least recently used of other songs go first). A held note (strings, choir, flute,
+  glass harmonica ...) is rendered without its vibrato: its attack, then a stretch of its steady
+  tone, a whole number of its periods, that loops, its end crossfaded into what comes before its
+  start; the player lets it go with the instrument's release and plays the vibrato as the
+  instrument would have, one slow oscillator per voice into its notes' detune (the synth tells
+  the sampler both: `captureNotes`). A note short enough is rendered whole. A struck note
+  (mallets, bells, plucked strings) is rendered ringing as long as the song holds it, and damped
+  by the player where the synth would have; one with noise in it (a mallet's knock, a plucked
+  string's random start) gets two takes. Crystal, whose FM settles into one long fading sine, is
+  rendered with its envelope taken out and loops; the player puts the envelope back. A note whose
+  sound stays under 10 kHz is rendered at half the rate (half the memory; not the plucked
+  strings, whose Karplus-Strong loop sounds different at another rate). A song takes 10 to 24 MB
+  of samples and a quarter to half a second to render (on a fast machine, off the main thread).
+- At most 24 notes of a song sound at once; one more lets the one going longest go, a fading one
+  first.
+
+Against the synth playing it all live, the notes cost the audio thread a fifth to a half (an
+offline render, without the reverb: overworld 1.5% of a core to 0.7%, Gusto's second phase 6.1%
+to 1.2%); with the reverb, which costs the same either way and is now most of what is left, the
+music as a whole 40 to 70%. The jingles (below) stay live: short, and seldom.
+`tests/browser/samples.js` checks that the samples sound like the synth: every instrument note
+by note, and the songs second by second. `tools/player.html` plays a song both ways ("samples").
 
 Notes are scheduled from the main thread 1 s ahead (2.5 s in a hidden tab, whose timers slow
 down), so a stalled frame does not starve the audio. A note that comes late all the same still
@@ -39,6 +66,7 @@ plays, at once, if it is at most 150 ms late; a later one is dropped.
 | `src/audio/score.js` | compiles a score and reads its moods (pure, tested in node) |
 | `src/audio/music.js` | the player: schedules notes ahead, loops, switches songs, fades voices between moods |
 | `src/audio/drumkit.js` | the drum hits a song uses, rendered once and played as samples |
+| `src/audio/sampler.js` | the other notes a song uses, rendered once (held ones looping) and played as samples |
 | `src/game/music.js` | picks the song (`songFor`) and the mood from the game state; `forceMood` holds one (`__game.musicMood`) |
 | `src/core/bossmusic.js` | the bosses with a song of their own, its moods and how his fight picks one (Gusto's: `gustoMusic` in `src/core/gusto.js`) |
 

@@ -10,7 +10,9 @@
 // The synth (compressors, a long reverb) is built for the first song and only hangs on the bus
 // while a song plays or rings out: the audio thread works on every node it can reach from the
 // speakers, heard or not, and with the music off that was most of the game's sound work.
-// The drums play from hits rendered once per song (drumkit.js), the rest from the synth.
+// The drums play from hits rendered once per song (drumkit.js), the other notes from samples
+// the synth rendered when the song first played (sampler.js); until they are in, the synth plays
+// them live.
 // A film plays a score of its own (playFilmScore): its notes laid out ahead for the film's time
 // (core/film.js scorePlan, score.js filmEvents), over the held songs, until it rings out or the
 // film is skipped; the next song waits for its last notes. It plays unless the music was turned
@@ -22,6 +24,7 @@ import { createSynth } from '../../vendor/scrimshaw/synth.js';
 import { loadScore, voicesIn } from './score.js';
 import { onAudioStart } from './context.js';
 import { prepareDrums, playDrum } from './drumkit.js';
+import { prepareSamples, playSampled, sampleInfo } from './sampler.js';
 
 const VOLUME = 0.4;                         // the music sits under the sound effects
 const LOOKAHEAD = 1, HIDDEN_LOOKAHEAD = 2.5;   // seconds scheduled ahead; timers slow down in hidden tabs
@@ -133,6 +136,7 @@ export function musicInfo() {
     enabled, want, mood, playing: cur?.score.name ?? null, time: cur ? ctx.currentTime - cur.startAt : 0,
     film: reel && { score: reel.score.name, time: ctx.currentTime - reel.base, notes: reel.events.length, played: reel.i },
     voices: cur ? cur.score.song.voices.filter((_, i) => cur.voices[i].on).map(v => v.name) : [],
+    samples: sampleInfo(cur?.sess),
   };
 }
 
@@ -154,6 +158,7 @@ function startSong(score) {
   const sess = syn.session(song);
   syn.warm(song);
   prepareDrums(ctx, song);
+  prepareSamples(ctx, song, { first: playing });
   // gain: the voice's level; on: in the mood; at: when it last joined or leaves; scheduled:
   // how far its notes were scheduled when it last left (they still play, unheard, and are
   // heard again if it comes back before then)
@@ -174,14 +179,15 @@ function stopSong() {
 // a voice joining plays from its switch time on, one leaving plays up to it
 const audible = (vc, t) => (vc.on ? t >= vc.at : t < vc.at);
 
-// one note of the song: a drum from its rendered hits once they are in, else the synth.
+// one note of the song: a drum from its rendered hits, the others from their samples, once they
+// are in; else the synth.
 // On a sample frame: Chrome renders the synth's short attacks (a ramp of a few ms, then a decay)
 // at about half their energy when they start between two frames, so the drums' and plucks'
 // loudness jumped by up to 3 dB with where the beat fell.
 function play(ev, t, on = cur) {
   t = Math.round(t * ctx.sampleRate) / ctx.sampleRate;
   const v = on.score.song.voices[ev.v];
-  if (v.drum && playDrum(ctx, v.inst, ev.vel, on.sess.ch[ev.v].input, t)) return;
+  if (v.drum ? playDrum(ctx, v.inst, ev.vel, on.sess.ch[ev.v].input, t) : playSampled(ctx, on.sess, ev, t)) return;
   on.sess.play(ev, t);
 }
 
@@ -287,6 +293,7 @@ export function playFilmScore(score, events, base) {
   const sess = syn.session(score.song);
   syn.warm(score.song);
   prepareDrums(ctx, score.song);
+  prepareSamples(ctx, score.song, { events });
   const last = base + Math.max(...events.map(e => e.t + e.d));
   reel = { score, sess, events, base, i: 0, last };
 }

@@ -7,7 +7,8 @@
 // more than WAIT away (then it is left out), and one already playing or waiting is not played
 // twice. Every score is fetched when audio starts, its plucked strings rendered ahead (warm);
 // the synth hangs on the bus only while a jingle plays and rings out: the audio thread works on
-// every node it can reach.
+// every node it can reach. They play live, not from samples (audio/sampler.js): a few seconds
+// now and then, and rendering every jingle's notes ahead would hold more memory than they cost.
 import { createSynth } from '../../vendor/scrimshaw/synth.js';
 import { loadScore } from './score.js';
 import { onAudioStart } from './context.js';
