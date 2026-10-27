@@ -174,7 +174,7 @@ The controls are the same for all.
 - Squarlo (`blender/squarlo.py`), the third real boss, in place of the descent guardian of depth
   2, in tidal hills of his own: tiny (smaller than the player), teal and boxy, with a floppy cap,
   three dots for a face and cupped hands, and super fast. He blows jets of water that knock you
-  back, summons Squirtles out of the floor and, warded while he casts, calls the tide: the flats
+  back, summons Squirtles out of his water and, warded while he casts, calls the tide: the flats
   drown and only the hills stay safe; now and then he has to rest. At half his health he grows
   into a giant six cells tall in a fog and stomps (his foot's shadow shows where). See
   [bosses.md](bosses.md).
@@ -220,9 +220,14 @@ The controls are the same for all.
   and his Tornados, not for himself. At a third his horns break and long red ribbons come out,
   simulated as ropes (`core/ribbon.js`): they swirl round him, catch you, squeeze you and let you
   go. See [bosses.md](bosses.md#mansk).
-- Squirtle (`blender/squirtle.py`): a little blue water serpent with a beak that runs about under
-  the floor (nothing touches it there) and pokes out of it to spit balls of water with a tiny
-  push; it lives in the lagoons, the sunken grotto and the cenote, and Squarlo summons them.
+- Squirtle (`blender/squirtle.py`, drawn as the fluid it lives in: `render/squirtleview.js`): a living wave, taller than the hero: its back arches up into
+  the crest, which is its head, and the wave's curl in front is its mouth. It lives in a fluid
+  (water, lava or slime, each kind its own: `physics/dwell.js`), dives under its surface (nothing
+  touches it there), spits balls of water with a tiny push, and leaps out at a player near it to
+  crash down on them. On land it shrinks, stands a moment, then dissolves into a puddle that runs
+  back into its fluid. It lives in the lagoons, the sunken grotto, the cenote, the slime marsh,
+  the volcanic depths and the abyss; Squarlo and Slomo summon them. See
+  [bosses.md](bosses.md#squirtle).
 - Wolk (`blender/wolk.py`): a sad little light blue cloud with a tear on its cheek, walking on
   two long stick legs, two thin arms with three-fingered hands hanging from its belly. It
   fights from afar (`style: 'ranged'`, 2.6–4.2 cells, from 4.5 cells). To strike it closes its

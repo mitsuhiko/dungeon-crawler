@@ -107,10 +107,13 @@ function run(f, dt) {
   if (e.mode === 'attack' && attackOf(e).rain && f.rainIn <= 0) f.rainIn = between(G.rain.every);
   e.barred = barred({ phase: e.stage, arms: e.arms, floodDue: hasBowl() && f.flood.phase === 'dry' && f.floodIn <= 0, rainDue: f.rainIn <= 0,
     slimesDue: f.cool.slimes <= 0 && summonCount('slimes', count(f, 'oozeslug') + count(f, 'oozebolime')) > 0,
-    squirtlesDue: f.cool.squirtles <= 0 && summonCount('squirtles', count(f, 'slimesquirtle')) > 0 });
+    squirtlesDue: f.cool.squirtles <= 0 && summonCount('squirtles', count(f, 'slimesquirtle')) > 0 && floodUp(f) });
   if (e.stage < 2 && e.hp <= e.hpFloor) split(f);
 }
 const count = (f, type) => f.minions.filter(m => m.type === type).length;
+// is his flood up in the bowl, for Slime squirtles to live in (they live in it alone, and dry up
+// once it drains: game/enemyai.js `ashore`)?
+const floodUp = f => hasBowl() && f.flood.phase !== 'dry' && f.flood.k >= 0.75 && f.flood.front >= 0.5;
 
 // down to half his health: he stops and changes, nothing hurting him meanwhile (the blob bursts
 // and the slug turns round: render/slomoview.js blends his shapes); the Arm slugs go with the arms
@@ -140,7 +143,8 @@ function cast(f, a) {
   setStatus(tr('{name} floods the bowl with slime!', { name: enemyName(f.e.profile) }));
 }
 // a summon's hit frame: slimes plop out of him (Ooze slugs and Ooze bolimes in turn), or Slime
-// squirtles pop out of the floor, as many as fill up to the most
+// squirtles pop out of his flood (the nearest of it: game/bossfight.js minionFloors), as many as
+// fill up to the most
 function summon(f, a) {
   const e = f.e, squirtles = a.name === 'squirtle', name = squirtles ? 'squirtles' : 'slimes';
   const n = squirtles ? summonCount(name, count(f, 'slimesquirtle')) : summonCount(name, count(f, 'oozeslug') + count(f, 'oozebolime'));
@@ -152,7 +156,7 @@ function summon(f, a) {
     const kind = kinds[(f.n + i) % kinds.length];
     const m = minion(e, `${e.id}:minion:${f.nonce}${++f.n}`, kind, s, e.yaw + (Math.random() - 0.5) * 2, f.n);
     m.cool = 0.6 + Math.random();
-    if (squirtles) Object.assign(m, { under: 1, pop: true, dig: 0.2 + Math.random() * 0.3 });   // (they pop out of the floor)
+    if (squirtles) Object.assign(m, { under: 1, pop: true, dig: 0.2 + Math.random() * 0.3 });   // (they pop out of the slime)
     return m;
   });
   slomos.push(...list); f.minions.push(...list);

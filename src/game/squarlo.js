@@ -109,7 +109,8 @@ function cast(f, a) {
   f.tideIn = Infinity;
   setStatus(tr('The water is rising! Get up a hill!'));
 }
-// a summon's hit frame: Squirtles pop out of the floor round him, as many as fill up to the most
+// a summon's hit frame: Squirtles pop out of his water, the nearest of it to him (they live in it:
+// physics/dwell.js, game/bossfight.js minionFloors), as many as fill up to the most
 function summon(f, a) {
   const e = f.e, kind = ENEMY_KINDS[a.summon.kind], n = summonCount(e.stage, f.minions.length);
   f.cool = G.summonCool[e.stage - 1];
@@ -117,7 +118,7 @@ function summon(f, a) {
   const giant = e.stage === 2;
   const list = minionFloors(e, kind, n, squarlos.filter(living), giant ? { ahead: 3, within: 7 } : { ahead: 1.2, within: 4.5 }).map(s => {
     const m = minion(e, `${e.id}:minion:${f.nonce}${++f.n}`, kind, s, e.yaw + (Math.random() - 0.5) * 2, f.n);
-    Object.assign(m, { under: 1, pop: true, dig: 0.2 + Math.random() * 0.3, cool: 0.8 + Math.random() });   // (they pop out of the floor)
+    Object.assign(m, { under: 1, pop: true, dig: 0.2 + Math.random() * 0.3, cool: 0.8 + Math.random() });   // (they pop out of the water)
     return m;
   });
   squarlos.push(...list); f.minions.push(...list);

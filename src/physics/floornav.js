@@ -5,7 +5,7 @@ import { floorY, runY, topOf } from '../core/surfaces.js';
 
 const free = new WeakMap();
 // what stands in column c between lo and hi, other than `self`: floors, structures, pillars
-function columnClear(map, c, lo, hi, self) {
+export function columnClear(map, c, lo, hi, self) {
   const floors = (map.cols[c] || []).every(g => g === self
     || floorY(g, 0.5, 0.5) <= lo + 0.001 || g.bottom * LH >= hi);
   const pieces = (map.pieces[c] || []).every(p => {

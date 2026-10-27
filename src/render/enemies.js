@@ -67,13 +67,15 @@ import { qualmosModel } from './qualmosmodel.js';
 import { makeManskLook, manskLook, disposeManskLook } from './manskview.js';
 import { isFigure, animateFigures, removeFigureViews } from './renewview.js';
 import { isFlimmer, animateFlimmers, removeFlimmerViews, flimmerWarmup } from './flimmerview.js';
+import { isSquirtle, animateSquirtles, removeSquirtleViews, squirtleWarmup } from './squirtleview.js';
 import { STAGE_PROFILES, enemyName } from '../core/enemies.js';
 import { SQUARLO_FIGHT } from '../core/squarlo.js';
 import { standingAt } from '../physics/fluid.js';
 import { groundAt } from '../physics/collide.js';
 import { surfaceY } from './surface.js';
 import { WIND } from './materials.js';
-import { WATER } from '../core/constants.js';
+import { WATER, LAVA, ACID } from '../core/constants.js';
+import { fluidAround } from '../physics/dwell.js';
 import { sfx } from '../audio/sfx.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { glow, soft, emit, rand } from './particles.js';
@@ -366,21 +368,23 @@ function clouds(v, e) {
   w.mode = e.mode; w.x = e.x; w.z = e.z;
 }
 // Burrowing (a species with `burrow`: the Squirtle, game/enemyai.js): while it is `under` the
-// floor it sinks into it (over burrow.sink s, with a scrape), its bar, label and silhouette gone,
-// and leaves a trail of dirt (of spray in water) as it moves down there; it pops out again.
-const DIRT = ['#8a7458', '#6b5a44', '#a89070'], SPRAY = ['#ffffff', '#c8f0ff', '#8fd4f0'];
+// floor (a fluid dweller: the surface of its fluid) it sinks into it (over burrow.sink s, with a
+// scrape), its bar, label and silhouette gone, and leaves a trail of dirt (of spray in a fluid, of
+// its colour) as it moves down there; it pops out again.
+const DIRT = ['#8a7458', '#6b5a44', '#a89070'];
+const SPRAYS = { [WATER]: ['#ffffff', '#c8f0ff', '#8fd4f0'], [LAVA]: ['#fff0a0', '#ffa040', '#e0501a'], [ACID]: ['#f2ffc8', '#c0f070', '#78b838'] };
 function burrowLook(v, e, dt) {
   const b = e.profile.burrow;
   if (!b) return;
   const want = e.under ? 1 : 0, near = Math.hypot(e.x - player.x, e.z - player.z) < 16;
-  const wet = standingAt(e.x, e.z)?.y > e.y + 0.05, colors = wet ? SPRAY : DIRT;
+  const wet = fluidAround(e.profile, e.x, e.y, e.z), colors = SPRAYS[wet?.fluid] ?? DIRT, top = wet ? wet.y : e.y;
   if (want !== v.underWas) {
     v.underWas = want;
     if (near) {
       sfx(want ? 'dig' : 'pop', { at: e });
       for (let i = 0; i < 16; i++) {
         const a = rand(0, Math.PI * 2), s = rand(0.6, 1.8);
-        here(soft, e.x, e.y + 0.05, e.z, { v: [Math.cos(a) * s, rand(1, 2.6), Math.sin(a) * s], life: rand(0.4, 0.7),
+        here(soft, e.x, top + 0.05, e.z, { v: [Math.cos(a) * s, rand(1, 2.6), Math.sin(a) * s], life: rand(0.4, 0.7),
           size: rand(0.05, 0.1), color: colors[i % 3], alpha: 0.95, gravity: 9, drag: 1 });
       }
     }
@@ -390,7 +394,7 @@ function burrowLook(v, e, dt) {
   v.ghost.opacity = v.sink > 0.02 ? 0 : GHOST_OPACITY;
   if (v.sink > 0.5) { v.bar.visible = false; v.label.visible = false; v.mark.visible = false; }
   if (v.sink > 0.9 && e.speed > 0.3 && near && Math.random() < dt * 22)
-    here(soft, e.x + rand(-0.12, 0.12), e.y + 0.04, e.z + rand(-0.12, 0.12), { v: [rand(-0.5, 0.5), rand(0.6, 1.4), rand(-0.5, 0.5)],
+    here(soft, e.x + rand(-0.12, 0.12), top + 0.04, e.z + rand(-0.12, 0.12), { v: [rand(-0.5, 0.5), rand(0.6, 1.4), rand(-0.5, 0.5)],
       life: rand(0.35, 0.6), size: rand(0.05, 0.11), color: colors[Math.floor(Math.random() * 3)], alpha: 0.9, gravity: 7, drag: 1 });
 }
 // A boss whose stages are profiles of their own (Squarlo, core/enemies.js STAGE_PROFILES): while
@@ -426,10 +430,15 @@ function growLook(v, e, dt) {
   }
 }
 // in deep water a swimmer floats (game/tide.js): ripples spread round it as it swims
-const swimming = e => { const s = standingAt(e.x, e.z); return !!e.profile.swims && s?.fluid === WATER && s.y - e.y > e.profile.bodyHeight * 0.3; };
+const swimming = e => {
+  const s = standingAt(e.x, e.z);
+  return !!e.profile.swims && s?.fluid === WATER && s.y - e.y > e.profile.bodyHeight * 0.3;
+};
 function ripples(v, e, dt) {
   if (!v.swim || Math.hypot(e.x - player.x, e.z - player.z) > 14 || e.under) return;
-  const y = surfaceY(WATER, standingAt(e.x, e.z).y, WIND.value) + 0.02, n = (e.speed > 0.3 ? 14 : 3) * dt;
+  const surface = fluidAround(e.profile, e.x, e.y, e.z)?.y;
+  if (surface === undefined) return;
+  const y = surfaceY(WATER, surface, WIND.value) + 0.02, n = (e.speed > 0.3 ? 14 : 3) * dt;
   if (Math.random() < n)
     here(soft, e.x + rand(-0.1, 0.1), y, e.z + rand(-0.1, 0.1), { v: [rand(-0.3, 0.3), 0.05, rand(-0.3, 0.3)], life: rand(0.6, 1),
       size: rand(0.12, 0.2) * Math.sqrt(v.size), grow: 2.2, color: '#f2fcff', alpha: 0.5, drag: 1 });
@@ -443,7 +452,7 @@ function wardLook(v, e, dt) {
   for (let i = Math.floor(110 * dt + Math.random()); i > 0; i--) {
     const k = Math.random(), ang = spin + k * 9 + (i % 3) * 2.09;
     here(soft, e.x + Math.cos(ang) * r, e.y + k * h, e.z + Math.sin(ang) * r, { v: [-Math.sin(ang) * 2 * s, 0.8, Math.cos(ang) * 2 * s],
-      life: rand(0.2, 0.35), size: rand(0.05, 0.09) * s, color: SPRAY[i % 3], alpha: 0.9 });
+      life: rand(0.2, 0.35), size: rand(0.05, 0.09) * s, color: SPRAYS[WATER][i % 3], alpha: 0.9 });
   }
   if (Math.random() < dt * 8) here(glow, e.x, e.y + h * 0.5, e.z, { life: 0.3, size: 0.9 * s, grow: 0.6, color: '#9feaff', alpha: 0.35 });
 }
@@ -736,6 +745,7 @@ export function animateEnemies(list, dt, off = ZERO) {
   let made = 0;
   for (const e of list) {
     if (isFlimmer(e)) { animateFlimmers([e], dt, off); continue; }   // (a figure of its own, render/flimmerview.js)
+    if (isSquirtle(e)) { animateSquirtles([e], dt, off); continue; }   // (drawn as its fluid, render/squirtleview.js)
     if (isFigure(e)) { animateFigures([e], dt, off); continue; }   // (Renew: a figure, render/renewview.js)
     const prefab = prefabs[e.profile.species];
     if (!prefab?.ready) { prefab?.load(); continue; }   // not loaded before (a friend's, a dev spawn): shown once it is
@@ -827,7 +837,7 @@ export function enemyWarmup(kinds) {
   const list = [];
   for (const k of kinds) {
     const kind = ENEMY_KINDS[k], prefab = kind && prefabs[kind.species];
-    if (warmed.has(k) || !prefab?.ready) continue;
+    if (warmed.has(k) || !prefab?.ready || kind.species === 'squirtle') continue;   // (squirtleWarmup)
     warmed.add(k);
     const e = makeEnemy({ id: 'warm:' + k, x: 0, y: 0, z: 0, yaw: 0, level: 1,
       ...(kind.guardian && { guardian: true, guardianRole: kind.guardianRole, boss: kind.boss }) }, kind);
@@ -839,11 +849,12 @@ export function enemyWarmup(kinds) {
     list.push(e);
   }
   list.push(...flimmerWarmup(kinds));   // (the Flimmers: the hero's figure, blurred)
+  list.push(...squirtleWarmup(kinds));   // (the Squirtles: drawn as their fluid)
   return { objects: list.flatMap(e => [e.view.group, ...(e.view.trail?.list ?? []).map(p => p.mesh)]), dispose: () => removeEnemyViews(list) };
 }
 
 export function removeEnemyViews(list) {
-  removeFigureViews(list); removeFlimmerViews(list);
+  removeFigureViews(list); removeFlimmerViews(list); removeSquirtleViews(list);
   for (const e of list) if (e.view) {
     const v = e.view;
     scene.remove(v.group);

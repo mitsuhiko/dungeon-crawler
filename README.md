@@ -140,7 +140,7 @@ docs that explain how the game works, from the big ideas down to the real code:
   weapon drop tables (`node tools/loot-table.mjs`), the balance simulation
   (`node tools/balance.mjs`, see `docs/balance.md`), the enemy palette page
   (`/tools/palette.html`, see `docs/enemy-kinds.md`) and the iOS Safari probe in an Xcode simulator
-  (`uv run --no-project tools/sim-probe.py --full`, see `docs/lighting.md`), and the menus' glass
+  (`uv run --no-project tools/sim-probe.py --full`, see `docs/lighting.md`), the menus' glass
   facets (`node tools/facets.mjs`, see `docs/ui.md`).
 - `docs/`: design notes; `docs/assets/` documents the asset libraries.
 - `learn/`: an interactive guide for children (about 12), in English and German (the German in the

@@ -260,8 +260,9 @@ export function robotOf(r) {
 // --- the enemies (net/foes.js) --------------------------------------------------------------------
 
 // (new modes go at the end: an older game reads one it does not know as idle)
-// ('gone' and 'split': a boss away, or splitting, game/gusto.js)
-export const MODES = ['idle', 'walk', 'home', 'alert', 'chase', 'attack', 'search', 'defend', 'dead', 'hide', 'gone', 'split'];
+// ('gone' and 'split': a boss away, or splitting, game/gusto.js; 'ashore': a fluid dweller out of
+// its fluid, game/enemyai.js)
+export const MODES = ['idle', 'walk', 'home', 'alert', 'chase', 'attack', 'search', 'defend', 'dead', 'hide', 'gone', 'split', 'ashore'];
 // the statuses an enemy shows (bits of its row; enchanted weapons' chill and zap: game/enchants.js)
 export const BURNING = 1, TOXIC = 2, CHILLED = 4, ZAPPED = 8;
 const r2 = x => Math.round(x * 100) / 100;

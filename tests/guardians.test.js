@@ -18,6 +18,7 @@ import { damageEnemy } from '../src/core/combat.js';
 import { enemySpots, guardianSpots, guardianKind } from '../src/game/enemyspawn.js';
 import { coordinateDefence } from '../src/game/defence.js';
 import { walkable, findPath } from '../src/physics/enemynav.js';
+import { walker } from '../src/physics/dwell.js';
 import { buildCubeGeometry } from '../src/render/cubegeo.js';
 
 const signature = spots => spots.map(s => [s.id, s.kind.type, s.level, s.f.id, s.x, s.y, s.z, s.yaw]);
@@ -74,7 +75,10 @@ test('each species has a distinct pink guardian kind with unchanged movement and
   }
 });
 
-test('guardian arenas have dry, connected floors, shared ground entrances and no fall-through bypass', () => {
+// the fluids an arena's fluid dwellers (the Squirtles) live in: its ponds' (cubegen/guardian.js)
+const pondFluids = m => new Set([...population(m)].flatMap(([type, p]) => Object.keys(p.kinds ?? { [type]: 1 }))
+  .map(k => ENEMY_KINDS[k]).filter(k => k?.dwells).map(k => k.dwells[0]));
+test('guardian arenas have dry, connected floors (but their fluid dwellers\' ponds), shared ground entrances and no fall-through bypass', () => {
   for (const seed of [0, 1, 2, 7, 42, 123]) {
     const w = new World(seed);
     for (let d = 0; d < 20; d++) for (const [key, g] of w.layout(d).guardians) {
@@ -89,7 +93,8 @@ test('guardian arenas have dry, connected floors, shared ground entrances and no
       // Foggery's caldera, its bridge over the floor, cubegen/towerarena.js)
       const stacked = !!m.flip || !!m.tower;
       if (!stacked) assert.equal(m.floors.length, 256);
-      assert.ok(m.floors.every(f => !f.fluid && !f.covered));
+      const fluids = pondFluids(m);
+      assert.ok(m.floors.every(f => !f.covered && (!f.fluid || f.encounter && fluids.has(f.fluid))));
       if (!stacked) for (const f of m.floors) if (f.encounter) for (const [dx, dz] of DIRS) {
         const other = m.floors[(f.z + dz) * 16 + f.x + dx];
         if (!other.encounter && other.top < f.top - 1) assert.ok(m.fences.has(edgeKey(f.x, f.z, other.x, other.z)));
@@ -130,12 +135,16 @@ test('double the full local roster with exactly one promoted guardian, without o
       assert.equal(guard.level, depthLevel(d) + (d ? g.role === 'descent' ? 2 : 1 : 0));
       for (const [type, p] of pop) {
         assert.equal(p.count, ordinary.get(type).count * 2);
-        const cfg = ENEMY_PROFILES.find(p => p.species === type);
-        assert.equal(enemySpots(map, cfg).length, p.count);
+        const cfg = ENEMY_PROFILES.find(p => p.species === type), placed = enemySpots(map, cfg).length;
+        // (a fluid dweller: as many as its pond holds, most of them)
+        if (cfg.dwells) assert.ok(placed <= p.count && placed >= p.count * 0.6, `${type}: ${placed} of ${p.count}`);
+        else assert.equal(placed, p.count);
       }
       assert.equal(new Set(spots.map(s => s.f.id)).size, spots.length);
       for (const a of spots) {
-        assert.ok(walkable(a.f, a.kind.height) && findPath(a.f, guard.f, 40, a.kind.height));
+        // (a fluid dweller in its pond, and the guardian a way off: it is only ever there)
+        if (a.kind.dwells) { assert.ok(walkable(a.f, walker(a.kind)), 'in its pond'); continue; }
+        assert.ok(walkable(a.f, a.kind.height) && findPath(a.f, guard.kind.dwells ? map.guardian.floor : guard.f, 40, a.kind.height));
         for (const b of spots) if (a !== b)
           assert.ok(Math.hypot(a.x - b.x, a.z - b.z) >= a.kind.radius + b.kind.radius + .1);
       }
@@ -192,7 +201,7 @@ test('guardians are pink and amber, except where a species dresses them otherwis
 test('the messages call a guardian by its kind: the one guardianSpots promotes', () => {
   const w = new World(5);
   for (const depth of [0, 1, 3, 4]) for (const [key, g] of w.layout(depth).guardians) {
-    const map = w.cube(key).map, kind = guardianKind(map), label = kind.label;   // (English: the label is its name)
+    const map = state.map = w.cube(key).map, kind = guardianKind(map), label = kind.label;   // (English: the label is its name)
     assert.equal(kind, guardianSpots(map)[0].kind, 'the guardian that stands there');
     const exit = map.portals.find(p => p.dir === map.exit);
     if (g.role === 'side') {

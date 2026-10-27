@@ -1,5 +1,6 @@
-// Projectiles in flight: the fireball / Triangle punch / ice ball / Totnar's skull / water ball / slime ball / Foggery's eye / Slomo's slug meshes exported
-// (Renew's spells and the echoes' shots: orbs of light, no model; his arrows: the game's arrow)
+// Projectiles in flight: the fireball / Triangle punch / ice ball / Totnar's skull / slime ball / Foggery's eye / Slomo's slug meshes exported
+// (Renew's spells and the echoes' shots: orbs of light, no model; his arrows: the game's arrow; a
+// Squirtle's water ball: a drop made here, of its thrower's colour)
 // beside their thrower (enemymodel.js props), turned along the flight (a `tumble`ing one end over
 // end), each with a light and a particle trail.
 // A thrower's kind recolours the mesh and replaces the light and trail colours.
@@ -13,12 +14,12 @@ import { fireFaceModel } from './firefacemodel.js';
 import { triangleModel } from './trianglemodel.js';
 import { shrapsModel } from './shrapsmodel.js';
 import { totnarModel } from './totnarmodel.js';
-import { squirtleModel } from './squirtlemodel.js';
 import { slugModel } from './slugmodel.js';
 import { flipModel } from './flipmodel.js';
 import { foggeryModel } from './foggerymodel.js';
 import { slomoModel } from './slomomodel.js';
 import { kindColors, recolor } from './recolor.js';
+import { toLinear } from '../core/oklch.js';
 
 const LOOKS = {
   fireball: { model: fireFaceModel, prop: () => fireFaceModel.props?.FireFaceBall, light: [0xff7424, 3.5, 3.5], trail: ['#ffd25a', '#ff8a2a', '#ff4a17'], rate: 90 },
@@ -28,7 +29,7 @@ const LOOKS = {
   // its eyes glow; bone dust and embers stream off it
   skull: { model: totnarModel, prop: () => totnarModel.props?.TotnarSkull, light: [0xff5a1e, 1.4, 2.5], trail: ['#efe6cf', '#ff8a3a', '#bfb49a'], rate: 30, gravity: 1.5 },
   // a Squirtle's ball of water, wobbling, dripping as it flies
-  water: { model: squirtleModel, prop: () => squirtleModel.props?.SquirtleDrop, light: [0x8fdcff, 0.8, 2], trail: ['#ffffff', '#c8f0ff', '#7fcaf0'], rate: 40, gravity: 6 },
+  water: { drop: true, light: [0x8fdcff, 0.8, 2], trail: ['#ffffff', '#c8f0ff', '#7fcaf0'], rate: 40, gravity: 6 },
   // a Slug's ball of slime, wobbling, goo dripping off it as it flies
   slimeball: { model: slugModel, prop: () => slugModel.props?.SlugBall, light: [0x9aff5a, 0.9, 2.2], trail: ['#d8ff9a', '#8ae048', '#3e7a2a'], rate: 35, gravity: 6 },
   // Flip's ball of light, its little ring spinning, sparkles streaming off it
@@ -71,11 +72,35 @@ function orbView(pr, look) {
   scene.add(group); trackLight(light, group, group, 2);
   return { group, light, look, trail: [pr.spec.color ?? '#bdf3ff', ...look.trail], owned: [core, halo], base: look.light[1] };
 }
+// A Squirtle's water ball: a glossy drop of its thrower's colour (lighter), round in front, a tail
+// behind it (-Z: back along the flight), as big as the ball is (DROP: the radius it is made at)
+const DROP = 0.13;
+const dropGeometry = (() => {
+  const g = new THREE.SphereGeometry(DROP, 16, 12), pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {   // drawn out behind into a point
+    const z = pos.getZ(i);
+    if (z < 0) { const k = -z / DROP; pos.setZ(i, z * (1 + 1.4 * k * k)); pos.setX(i, pos.getX(i) * (1 - 0.45 * k * k)); pos.setY(i, pos.getY(i) * (1 - 0.45 * k * k)); }
+  }
+  g.computeVertexNormals();
+  return g;
+})();
+function dropView(pr, look) {
+  const group = new THREE.Group(), body = pr.profile?.colors?.body;
+  const color = new THREE.Color(body ? new THREE.Color(...toLinear(body)) : 0x5aaee8).lerp(new THREE.Color(1, 1, 1), 0.35);
+  const material = new THREE.MeshStandardMaterial({ color, roughness: 0.12, metalness: 0, transparent: true, opacity: 0.85 });
+  const mesh = new THREE.Mesh(dropGeometry, material);
+  mesh.scale.setScalar((pr.spec.radius ?? DROP) / DROP * 0.8);
+  group.add(mesh);
+  const light = new THREE.PointLight(look.light[0], look.light[1], look.light[2], 2);
+  scene.add(group); trackLight(light, group, group, 2);
+  return { group, light, look, trail: pr.profile?.sparks ?? look.trail, owned: [material], base: look.light[1] };
+}
 const ahead = new THREE.Vector3();
 
 function makeView(pr) {
   if (LOOKS[pr.kind].orb) return orbView(pr, LOOKS[pr.kind]);
   if (LOOKS[pr.kind].arrow) return arrowView(pr, LOOKS[pr.kind]);
+  if (LOOKS[pr.kind].drop) return dropView(pr, LOOKS[pr.kind]);
   const look = LOOKS[pr.kind], group = new THREE.Group(), src = look.prop();
   if (!src) look.model.load();   // (the thrower's model has it: loaded already, unless thrown by a friend's)
   const colors = kindColors(pr.profile, look.model), owned = [];

@@ -349,8 +349,11 @@ such floor of the fight (a hill). Only if that quarter is all they have left doe
   player in it is hit once (26 at level 4) and blown back at 9 cells/s fading over 0.55 s.
   Stepping out of its cone before it blows dodges it. Never while his water is up.
 - **Squirtles** (within 9 cells, clip `SquarloSummon`, 1.4 s): he slaps the floor in front of
-  him at 0.8 s, and Tide squirtles pop out of the floor round him: as many as fill up to
-  **three**, every 9 s at most (the first after 4 s of fighting).
+  him at 0.8 s, and Tide squirtles pop out of his water, as near to him as it is
+  (`game/bossfight.js minionFloors`): as many as fill up to **three**, every 9 s at most (the
+  first after 4 s of fighting). They live in his water alone: when the tide rises they come after
+  you over the drowned flats, and when it falls, those left on what dries go back into the water
+  that stays (see [the Squirtle](#squirtle)).
 - **The tide** (from anywhere, clip `SquarloCast`, 2.4 s): once it is due he starts nothing
   else: 8 s into the fight, then 13–19 s after the last tide drained. He throws his arms up and
   wiggles, water spiralling up round him (every game says "Squarlo calls the tide! Get up a
@@ -424,32 +427,93 @@ His death drains the water and takes his Squirtles along.
 
 ## Squirtle
 
-![The Squirtle's clips](../learn/img/model-squirtle.jpg)
+![The Squirtle in water, lava and slime: at rest, spitting, swimming, leaping, crashed down and melted into a puddle](../learn/img/model-squirtle.jpg)
 
-From the kids' sketch (`blender/squirtle.py`, `assets/squirtle.glb`): a little blue water serpent
-with a beak. Its body pokes out of the floor and rises in a curve, leaning back, into a round head
-looking forward; a little curl sticks out of its front, its belly is pale. Profile: `SQUIRTLE` in
-`src/core/enemies.js`, a species of its own in the rosters.
+From the kids' sketch: a living wave, a breaking wave that is a creature (1.8 cells tall, about
+1.9 long, radius 0.65: taller than the hero; `blender/squirtle.py`, drawn by
+`render/squirtleview.js`). Seen from the side, its back rises out of its fluid at the rear and
+arches up and forward into the crest, and the crest is its head, an eye on either flank; the lip
+of the wave curls over in front of it. The curl comes down from under the head and forward again
+under the snout as its lower jaw, the tip turned up: between them, opening forward, is its mouth,
+the dark barrel of the wave, which opens and closes as it breathes. Under the jaw its front comes
+down into its fluid; under the arch is the wave's hollow. Foam along the crest, on the lip, the
+jaw's tip and round its foot. Profile: `SQUIRTLE` in `src/core/enemies.js`, a species of its own in
+the rosters.
 
-- It **runs about under the floor** (`burrow`, `game/enemyai.js`): in the fight it stays up for
-  2.4–3.6 s, then (not in the middle of a throw) dives and moves about under the floor at
+- **Its body is its fluid** (`render/squirtlelook.js`): it is drawn in the look of the water, lava
+  or slime it lives in, in the palette of the very body of fluid it is in (`render/fluidpal.js`:
+  the pool's, the river's, a boss's flood's), with the same moving cartoon cells its pool is drawn
+  with (`render/watercells.js`), streaming over it the way its water runs: up its back, over the
+  crest and out to the lip (its UVs are flow coordinates, `blender/squirtle.py flow_uvs`), finer,
+  faster streaks running up it as down a fall. Water and slime are a little see-through, their
+  lines lit by themselves, slime bubbling; lava is molten rock in bands of heat with blotches of
+  crust coming and going, its foam its hottest, its mouth glowing, and it lights its
+  surroundings. Its colour attribute says where its foam is and the barrel of its mouth, sharpened
+  in the shader, wobbly and broken up by the cells. Where it stands in its fluid nothing of it is
+  drawn under the surface (the surface as the pool draws it, rising and falling with the tide and
+  the waves: `render/surface.js`), and foam hugs it where it comes out (lava: a glowing seam): it
+  rises out of its fluid, not out of a hole in it.
+- **Its clips** (30 fps): breathing (`SquirtleIdle`, 1.6 s) it rolls and swells, a roll running up
+  its back, and its mouth opens and shuts; moving (`SquirtleSwim`, by how fast) it leans into the
+  way it goes, its lip curled over, surging; spitting (`SquirtleSpit`) it rears back with its mouth
+  wide and lunges; leaping (`SquirtleLeap`) it gathers itself low, stretches out through the air,
+  curling over, and crashes down flat, spraying; on land it shrinks, and dissolving it slumps into
+  a puddle (`SquirtleMelt`, played as far as it has melted) that runs along the ground; dying
+  (`SquirtleDeath`) it crashes forward and runs out into a puddle that fades (in its fluid: that
+  sinks into it). Diving it sinks into its fluid and rises out of it again (the surface hides what
+  is under it), spraying; its whole body sloshes after it as it speeds up and turns (a spring).
+  The rig is the sketch's curve bent: the head tips up and the jaw drops to open the mouth, the lip
+  curls, the top leans about the rear foot the more the higher, and the root carries the squash,
+  the stretch and the puddle. It wets the land where it goes and where it crashes down (`trail`,
+  `render/trails.js`); ripples spread round it in water, embers rise off it in lava, bubbles pop
+  round it in slime. Its water ball is a glossy drop of its colour (`render/projectiles.js`).
+- It **lives in a fluid** (`dwells`: the ones it lives in, `physics/dwell.js`): a fluid floor's
+  (a pool, a river, a lake) or a standing one at least 0.1 cells deep over the floor (a boss's
+  tide or flood, a trial's). It is only put down in one (`game/enemyspawn.js`: a cube without its
+  fluid has none), floats in it with 0.3 of its body under the surface, and moves only through it:
+  its hunts, its posts and its cover are all in it (its walker, `physics/enemynav.js`), and no
+  blow shoves it out. Too tall to pass under a bridge or a low ceiling, it keeps out from under
+  them.
+- It **leaps at a player near it** (`leap`, 0.5–4.2 cells, three times as likely as a spit when in
+  reach; clip `SquirtleLeap`, 1.8 s): it gathers itself, and a shadow at the player's feet follows
+  them (a stomp beam, locking 0.3 s before it lands); at 0.4 s it throws itself out of its fluid
+  through the air (a `ride` up to 1.4 cells high, onto the land if that is where the shadow lies)
+  and at 1.2 s crashes down: whoever is within 1.1 cells is hit (1.3 times its damage) and thrown
+  off their feet. The same in every fluid.
+- **On land it cannot keep its shape** (`ashore`, `game/enemyai.js`): wherever it is out of its
+  fluid (it leapt, its tide fell, its flood drained, a dev spawn) it shrinks to 0.6 of its size and
+  stands 1.2 s, still to be hit: the time to strike back. Then it dissolves into a puddle of its
+  fluid (`under`: nothing sees, hits or touches it) that runs back over the land into the nearest
+  of its fluid where its whole body fits, as fast as it moves under the surface, and rises there
+  again 0.3 s later. With none to get back to it seeps away after 1.5 s (no reward).
+- It **dives under the surface** (`burrow`, `game/enemyai.js`): in the fight it stays up for
+  2.4–3.6 s, then (not in the middle of an attack) dives and moves about under the surface at
   3.4 cells/s for 1.4–2.4 s, and comes up again where it has a shot (or a little later anyway).
-  Under the floor (`under`) nothing sees, hits or touches it (`core/enemies.js absent`); its
-  bar and label go, a trail of dirt (of spray in water) follows it, and it sinks in and pops out
-  with a scrape and a pop (`render/enemies.js burrowLook`). Out of the fight it stays up.
-- Up, it fights from afar (`style: 'ranged'`, 2.4–4.4 cells, from 5): it rears back, puffs up
-  and spits a ball of water at 0.5 s (a projectile, 7.5 cells/s): 13 at level 1 and a tiny push
-  (2.4 cells/s for 0.15 s).
+  Under it (`under`) nothing sees, hits or touches it (`core/enemies.js absent`); its bar and
+  label go, a trail of spray of its fluid's colour follows it, and it sinks in and pops out with
+  a scrape and a pop (`render/squirtleview.js`; its puddle on land too). It never dives on land. Out of the fight it stays up.
+- Up, it fights from afar (`style: 'ranged'`, 2.4–4.4 cells, from 5): it rears back, its head
+  tipping up and its mouth opening wide, and spits a ball of water (radius 0.2) out of its mouth at
+  0.5 s (a projectile, 7.5 cells/s): 13 at level 1 and a tiny push (2.4 cells/s for 0.15 s). From
+  a player with a short weapon (not a friend: their weapon it cannot tell) it keeps no distance: it
+  comes up to the shore near them (`closeIn`, `game/tactics.js shorePath`), from where it leaps.
 - It `swims`: no water drowns it.
 
 | Kind | Where | Health, damage | Notes |
 |---|---|---|---|
-| Squirtle | the lagoon isles (act I), the sunken grotto and the jungle cenote (act II, early) | 42, 13 | blue |
-| Coral squirtle | the sunken grotto and the jungle cenote (act II, from 9) | ×1.5, ×1.4 | coral red, ×1.1 speed |
-| Tide squirtle | Squarlo's (`minion`) | ×0.7, ×0.6 | teal; pops out of the floor round him, a little XP once, now and then a minor health potion |
+| Squirtle | the water of the lagoon isles (act I), the sunken grotto and the jungle cenote (act II) | 42, 13 | blue |
+| Moss squirtle | the acid of the slime marsh (act II) | ×1.2, ×1.15 | moss green |
+| Coral squirtle | the lava of the volcanic depths and the obsidian abyss (act III) | ×1.5, ×1.4 | coral red, ×1.1 speed; lava and fire do not burn it |
+| Tide squirtle | Squarlo's (`minion`), in his water | ×0.7, ×0.6 | teal; pops out of his water, a little XP once, now and then a minor health potion |
+
+(Their colours are their water balls' and their eyes'; their bodies are always their fluid's.)
 
 A roster entry may keep to some themes (`where` in `core/spawns.js`: the biome, the theme's prop
-set): the Squirtles live only in those waters.
+set): each kind of Squirtle lives only in its own fluid there. A guardian arena whose population
+has Squirtles gets a pond of their fluid dug into its fight zone (`cubegen/guardian.js
+digPonds`: 3.5 cells for each of them, 8 to 28, a level under the floor round it and too deep to
+wade; an arena with no room for one falls back to a plainer one); they are placed in it, and its
+guardian, if it is one of them (any fluid is its), guards from it.
 
 ## Water: wading and drowning
 
@@ -1150,7 +1214,10 @@ with them.
   once, fanned out (0.55 each), that slow.
 - **Slimes** (clip `SlomoSummon`, 1.6 s, every 8 s): he heaves and slimes plop out of his back, Ooze
   slugs and Ooze bolimes in turn, as many as fill up to **five**.
-- **Slime squirtles** (the summon's clip, every 12 s): up to **two**, popping out of the floor.
+- **Slime squirtles** (the summon's clip, every 12 s): up to **two**, popping out of his flood,
+  and only while it is up (`floodUp`: half across the bowl and 0.75 of its height); then he starts
+  nothing else first. They live in it alone (its water is drawn as slime, `look`, and is theirs),
+  and dry up once it has drained.
 - **The flood** (from anywhere, clip `SlomoFloodSlug`, 2.4 s, the first at most 5 s into the phase,
   then 13–19 s after it drained): he rears up and slams down at 1.8 s, nothing hurting him
   meanwhile (`ward`; "Slomo floods the bowl with slime!"). The slime comes in from a side of the bowl
@@ -1170,7 +1237,7 @@ health potion now and then; the slime is their own (or they swim): his flood doe
 | Arm slug (`ARM_SLUG`) | Slug | 0.55× | a thrown slug arm come to life: ×2.4 speed, ×0.25 health, never spits; latches on and drops off dead |
 | Ooze slug (`OOZE_SLUG`) | Slug | 1× | pale lime, ×0.7 health, ×0.6 damage |
 | Ooze bolime (`OOZE_BOLIME`) | Bolime | 1× | pale, ×0.7 health, ×0.6 damage |
-| Slime squirtle (`SLIME_SQUIRTLE`) | Squirtle | 1.3× | bright lime; spits slime balls that slow |
+| Slime squirtle (`SLIME_SQUIRTLE`) | Squirtle | 1.3× | bright lime; lives in his flood; spits slime balls (radius 0.23) that slow |
 
 ## Qualmos
 
@@ -1233,7 +1300,7 @@ other bolts of his storm (`bolts`, shown like his beam, `game/beams.js mirrorBea
 skulls fly there like any projectile, but only the runner brings them to life. A game that takes
 over running his cube (`adoptEnemies`) starts him at the stage his health gives: he loses the
 skulls he has lost again at once. Squarlo's stage (2: a giant), how high he has the water
-(`tide`, 0 to 1) and whether a Squirtle is under the floor (`under`) go along with their rows
+(`tide`, 0 to 1) and whether a Squirtle is under the surface (`under`) go along with their rows
 (`net/protocol.js rowOf`): a friend's game swaps his profile by his stage (`STAGE_PROFILES`,
 `net/foes.js`) and raises its own water by his tide (`game/tide.js`). Flip's row carries one more
 slot: the way his box is turned (an index into `ORIENTS`), how often he turned it and his black
@@ -1320,10 +1387,13 @@ blender/totnar.blend blender/previews/totnar-preview.png assets/snapskull.glb`, 
 (`tests/assets.test.js`).
 
 Squarlo: `Blender -b --python blender/squarlo.py -- assets/squarlo.glb blender/squarlo.blend
-blender/previews/squarlo-preview.png`, the Squirtle: `Blender -b --python blender/squirtle.py --
-assets/squirtle.glb blender/squirtle.blend blender/previews/squirtle-preview.png`, then
-`npm run compress-assets`. The jet, summon and spit points and where the stomping foot comes down
-that they print must match `SQUARLO`, `SQUARLO_GIANT` and `SQUIRTLE` (`tests/assets.test.js`).
+blender/previews/squarlo-preview.png`, then `npm run compress-assets`. The jet and summon points
+and where the stomping foot comes down that it prints must match `SQUARLO` and `SQUARLO_GIANT`
+(`tests/assets.test.js`).
+
+The Squirtle: `Blender -b --python blender/squirtle.py -- assets/squirtle.glb blender/squirtle.blend
+blender/previews/squirtle-preview.png`, then `npm run compress-assets`. The middle of its mouth at
+its spit's hit frame that it prints must match `SQUIRTLE`'s muzzle (`tests/assets.test.js`).
 
 Flip: `Blender -b --python blender/flip.py -- assets/flip.glb blender/flip.blend
 blender/previews/flip-preview.png`, then `npm run compress-assets`. The throw and summon points it

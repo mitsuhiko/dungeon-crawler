@@ -174,9 +174,9 @@ again. The lineup is planned with the room (`cubegen/testrooms.js` `lineUp`), so
 | Wolk | (base) | `frost.pale` | | | | | | 1–3 |
 | Dust wolk | Wolk | `ochre.pale` | ×1.2 | ×1.15 | 1 | 1 | ×1.17 | 4–6 |
 | Storm wolk | Wolk | `ink.mid` | ×1.3 | ×1.3 | ×1.1 | 1 | ×1.3 | 3, 5–6 |
-| Squirtle | (base) | `azure.mid` | | | | | | 1–8, 10 |
-| Coral squirtle | Squirtle | `crimson.mid@+10` | ×1.5 | ×1.4 | ×1.1 | 1 | ×1.43 | 9–13 |
-| Moss squirtle | Squirtle | `moss.mid` | ×1.2 | ×1.15 | 1 | 1 | ×1.17 | 7–9, 11–13 |
+| Squirtle | (base) | `azure.mid` | | | | | | 1–13 (water) |
+| Coral squirtle | Squirtle | `crimson.mid@+10` | ×1.5 | ×1.4 | ×1.1 | 1 | ×1.43 | 14–19 (lava) |
+| Moss squirtle | Squirtle | `moss.mid` | ×1.2 | ×1.15 | 1 | 1 | ×1.17 | 7–13 (acid) |
 | Mecked | (base) | `ochre.mid` | | | | | | 6–8 |
 | Frost mecked | Mecked | `frost.light` | ×1.3 | ×1.1 | ×0.9 | 1 | ×1.2 | 9–10 |
 | Bog mecked | Mecked | `moss.deep` | ×1.25 | ×1.25 | ×1.05 | 1 | ×1.25 | 11–13 |
@@ -203,6 +203,8 @@ Gusto's Custo triangle (half size, `frost.light@-6`, 1.9× as fast, `minion`: in
 summons it) is a Triangle kind too, and Totnar's Twig spider (0.55×) and Bramble stunder
 (0.72×), both `ochre.deep`, are a Spider and a Stunder kind; his snapping skull (`stone.pale`) is
 a species of its own that only he brings (`MINION_PROFILES`); see [bosses.md](bosses.md).
+The Squirtles' kinds each live in a fluid of their own (`dwells`: [bosses.md](bosses.md#squirtle)):
+the blue ones in water, the Moss ones in acid, the Coral ones in lava.
 Squarlo's Tide squirtle (`jade.mid`, ×0.7 health, ×0.6 damage) is a Squirtle minion, and Flip's Sky
 wolla (`frost.light`, ×0.6 health and damage) a Wolla minion. Renew's spiders (×0.8 health, ×0.6 damage) and Fire-faces (×0.55) are `plain` minions too.
 Mansk's Tornados (`STAGE_TORNADO`, ×0.6 health, ×0.55 damage) are `plain` minions too.

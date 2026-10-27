@@ -1,10 +1,14 @@
 // Wet trails: a species with a `trail` colour (the Wolla) leaves puddles on the floor as it
-// moves, a little apart, that glisten and dry up again; dying, it leaves a big one. Each enemy
+// moves, a little apart, that glisten and dry up again; dying, it leaves a big one. A fluid
+// dweller (the Squirtle, physics/dwell.js) leaves them on land alone, bigger (`trailSize`), and a
+// big one where it crashes down out of a leap. Each enemy
 // view owns its puddles (they go with it); they lie where they were left in the world and
 // follow the cube's offset like the enemy. Only looks: nothing slips on them.
 import * as THREE from 'three';
 import { scene } from './scene.js';
 import { soft, emit, rand } from './particles.js';
+import { attackOf } from '../core/enemies.js';
+import { fluidAround } from '../physics/dwell.js';
 
 const EVERY = 0.3;   // cells moved between puddles
 const LIFE = 5;      // s a puddle lasts (the last of it fading)
@@ -41,13 +45,21 @@ const flat = e => !e.f?.kind;
 export function wetTrail(v, e, dt, off) {
   const color = e.profile.trail;
   if (!color) return;
-  const t = v.trail || (v.trail = { color: new THREE.Color(color), list: [], last: null, splashed: false });
-  const size = e.profile.size ?? 1;
+  const t = v.trail || (v.trail = { color: new THREE.Color(color), list: [], last: null, splashed: false, crashed: -1 });
+  const size = (e.profile.size ?? 1) * (e.profile.trailSize ?? 1);
+  // (a fluid dweller wets only the land: in its fluid there is nothing to see)
+  const dry = !e.profile.dwells || !fluidAround(e.profile, e.x, e.y, e.z);
+  const a = e.profile.dwells && e.mode === 'attack' ? attackOf(e) : null;
+  if (a?.ride && e.t >= a.hitAt && t.crashed !== e.attacks) {   // crashing down out of a leap
+    t.crashed = e.attacks;
+    if (dry && flat(e)) for (let i = 0; i < 4; i++)
+      puddle(t, e.x + rand(-0.35, 0.35) * size, e.y, e.z + rand(-0.35, 0.35) * size, rand(0.3, 0.5) * size, LIFE * 1.6);
+  }
   if (e.mode === 'dead') {
-    if (!t.splashed && flat(e)) puddle(t, e.x, e.y, e.z, 0.62 * size, LIFE * 1.6);
+    if (!t.splashed && flat(e) && dry) puddle(t, e.x, e.y, e.z, 0.62 * size, LIFE * 1.6);
     t.splashed = true;
   } else if (!t.last || Math.hypot(e.x - t.last.x, e.z - t.last.z) > 2) t.last = { x: e.x, z: e.z };   // (a slid cube: no smear)
-  else if (Math.hypot(e.x - t.last.x, e.z - t.last.z) > EVERY && flat(e)) {
+  else if (Math.hypot(e.x - t.last.x, e.z - t.last.z) > EVERY && flat(e) && dry) {
     puddle(t, e.x + rand(-0.08, 0.08), e.y, e.z + rand(-0.08, 0.08), rand(0.17, 0.26) * size, LIFE);
     t.last = { x: e.x, z: e.z };
     for (let i = 0; i < 2; i++)   // dripping off its lowest wave

@@ -237,9 +237,11 @@ export function updateEnemies(dt) {
   updateFireFaces(dt); updateTriangles(dt); updateFireCats(dt); updateShraps(dt); updateSpicies(dt); updateWollas(dt); updateWolks(dt); updateSquirtles(dt); updateMeckeds(dt); updateTornados(dt); updateSlugs(dt); updateBolimes(dt); updateFlimmers(dt); updateGustos(dt); updateTotnars(dt); updateSquarlos(dt); updateFlips(dt); updateFoggerys(dt); updateRenews(dt); updateSlomos(dt); updateMansks(dt); updateQualmoses(dt);
   stepEnemies(spawned, dt);
   spawned = spawned.filter(e => e.mode !== 'dead' || e.deadT < e.profile.corpseTime || (removeEnemyViews([e]), false));
-  // a boss's tide (game/tide.js): it drowns, but those that swim float
+  // a boss's tide (game/tide.js): it drowns, but those that swim float (and the fluid dwellers
+  // float in any fluid of theirs)
   updateTide(allEnemies(), dt);
-  if (state.tide != null) { drownEnemies(allEnemies()); floatSwimmers(allEnemies()); }
+  if (state.tide != null) drownEnemies(allEnemies());
+  floatSwimmers(allEnemies());
   updateProjectiles(dt); updateBeams(dt); updateQuakes(allEnemies(), dt); updateGusts(allEnemies(), dt); updateTwisters(allEnemies(), dt); updateBlackHoles(allEnemies(), dt); updateBurning(dt); updateChill(dt); updateToxic(dt);
   passEngulfers(allEnemies());   // a Bolime that came down on nobody spits out at once (game/engulf.js)
   if (!turning()) contactEnemies(allEnemies(), dt);   // (all frozen while Flip's world turns)

@@ -70,11 +70,17 @@ function mergeParts(scene) {
   }
   const parts = meshes.map(({ material: m }) => ({ name: m.name, color: m.color.clone(), emissive: m.emissive.clone(),
     strength: m.emissiveIntensity, roughness: m.roughness, metalness: m.metalness }));
-  const geometry = mergeGeometries(meshes.map((m, i) => {
+  const geometries = meshes.map((m, i) => {
     const g = m.geometry.clone();
     g.setAttribute('part', new THREE.BufferAttribute(new Uint8Array(g.attributes.position.count).fill(i), 1));
     return g;
-  }));
+  });
+  // (an attribute quantized in some parts and not in others, as UVs out of 0..1 are: floats in all)
+  for (const name of Object.keys(geometries[0].attributes)) {
+    const kinds = new Set(geometries.map(g => g.attributes[name] && g.attributes[name].array.constructor.name + g.attributes[name].normalized));
+    if (kinds.size > 1) for (const g of geometries) if (g.attributes[name]) g.setAttribute(name, floats(g.attributes[name]));
+  }
+  const geometry = mergeGeometries(geometries);
   if (!geometry) throw new Error('body parts could not be merged');
   const mesh = new THREE.SkinnedMesh(geometry, first.material);
   mesh.name = first.parent.name;
@@ -83,6 +89,13 @@ function mergeParts(scene) {
   first.parent.add(mesh);
   meshes.forEach(m => m.removeFromParent());
   return { mesh, parts, side: first.material.side };
+}
+
+// a (quantized) attribute as plain floats
+function floats(a) {
+  const out = new Float32Array(a.count * a.itemSize);
+  for (let i = 0; i < a.count; i++) for (let k = 0; k < a.itemSize; k++) out[i * a.itemSize + k] = a.getComponent(i, k);
+  return new THREE.BufferAttribute(out, a.itemSize);
 }
 
 // the body without the parts a kind hides (profile.hide: material names; e.g. the Shraps'

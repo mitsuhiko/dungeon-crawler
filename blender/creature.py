@@ -484,8 +484,9 @@ def contact_sheet(scene, rig, shots, path, target, size=360, cols=4):
         scene.frame_set(saved[5])
 
 
-def export_gltf(rig, obj, path, extra=()):
-    """Export rig + skinned mesh, plus `extra` standalone objects (projectile props)."""
+def export_gltf(rig, obj, path, extra=(), texcoords=False, colors=False):
+    """Export rig + skinned mesh, plus `extra` standalone objects (projectile props); texcoords,
+    colors: with the mesh's UVs, its active colour attribute (most have neither worth sending)."""
     path = str(Path(path).resolve())
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     view_layer = bpy.context.view_layer
@@ -504,7 +505,8 @@ def export_gltf(rig, obj, path, extra=()):
                                   export_animation_mode="ACTIONS", export_force_sampling=True,
                                   export_anim_single_armature=False, export_rest_position_armature=True,
                                   export_frame_step=1, export_skins=True, export_normals=True,
-                                  export_texcoords=False, export_cameras=False, export_lights=False)
+                                  export_texcoords=texcoords, export_vertex_color="ACTIVE" if colors else "MATERIAL",
+                                  export_cameras=False, export_lights=False)
     finally:
         for o in view_layer.objects:
             if o is not None:

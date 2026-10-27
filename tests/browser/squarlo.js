@@ -1,6 +1,6 @@
 // In devtools: await (await import('./tests/browser/squarlo.js')).runSquarloChecks()
 // Squarlo's whole fight in his real arena (the descent of depth 2, his tidal hills): the water
-// standing in the flats, his jet pushing the player back, Squirtles popping out of the floor and
+// standing in the flats, his jet pushing the player back, Squirtles popping out of his water and
 // diving into it, the tide (he cannot be hurt while he calls it) drowning the flats but not the
 // hills (drowning there costs a quarter of one's health, and magic pulls one out onto a hill), the
 // rest after it, growing into a giant at half his health, the giant's stomp, its shockwave and
@@ -22,6 +22,7 @@ import { loadSpecies } from '../../src/render/enemies.js';
 import { groundY, walkable } from '../../src/physics/enemynav.js';
 import { muzzleAt } from '../../src/core/beams.js';
 import { fitting, put as putBody } from '../../src/game/bossfight.js';
+import { wetAt } from '../../src/physics/dwell.js';
 
 const check = (value, message) => { if (!value) throw Error(message); };
 const run = (seconds, dt = 1 / 30, also = () => {}) => { for (let t = 0; t < seconds; t += dt) { updateEnemies(dt); also(dt); } };
@@ -74,11 +75,12 @@ export async function runSquarloChecks() {
       run(blow.gust.time + 0.1, 1 / 30, dt => { updatePlayer(dt); pushed ||= !!player.gust; });
       check(player.lastHurt?.reason === blow.reason && pushed, 'the jet hit and pushed the player back');
 
-      // Squirtles pop out of the floor round him, at most three; under it nothing hurts them
+      // Squirtles pop out of his water, at most three; under it nothing hurts them
       run(1);
       strike(q, 'summon'); run(0.05);
       let squirtles = alive('tidesquirtle');
-      check(squirtles.length >= 1 && squirtles.length <= SQUARLO_FIGHT.minions[0] && squirtles.every(s => s.under), 'Squirtles, under the floor: ' + squirtles.length);
+      check(squirtles.length >= 1 && squirtles.length <= SQUARLO_FIGHT.minions[0] && squirtles.every(s => s.under), 'Squirtles, under the surface: ' + squirtles.length);
+      check(squirtles.every(s => wetAt(s.profile, s.f) !== null), 'in his water');
       check(!damageEnemy(squirtles[0], 1), 'nothing hurts one under the floor');
       run(0.8);
       check(squirtles.every(s => !s.under), 'they pop out');
@@ -136,13 +138,17 @@ export async function runSquarloChecks() {
         && Math.hypot(g.x - f.x, g.z - f.z) < 5).length;
       const flats = fitting(q.profile).sort((a, b) => room(b) - room(a) || level0(a) - level0(b));
       putBody(q, flats[0]); Object.assign(q, { mode: 'chase', cool: 1, think: 0 }); q.barred = new Set(['tide', 'summon', 'rest']);
+      // (none of his Squirtles about while his own blows are tried: they would leap onto the player
+      // and crash down on them)
+      const calm = () => { for (const s of alive('tidesquirtle')) { s.under = 0; damageEnemy(s, s.hp); } };
+      calm();
       // nothing staggers him, and blows hurt him less
       const hp0 = q.hp;
       check(damageEnemy(q, 20) && !q.staggered && hurtBy(q) < 1, 'the giant does not stagger, his skin is thick');
       q.hp = hp0;
 
       // the stomp: his foot's shadow lies where his foot comes down; the foot comes down there
-      stand(3);
+      calm(); stand(3);
       let stomp = strike(q, 'stomp', 0);
       run(stomp.hitAt - stomp.beam.time + 0.05);
       const ring = beams.find(b => b.enemy === q);
@@ -156,14 +162,14 @@ export async function runSquarloChecks() {
       check(exposedBy(q) > 1 && hurtBy(q) > 1, 'his foot stuck, he is hit harder');
       run(stomp.attackTime, 1 / 30, withPlayer);
       // its shockwave throws a player further off off their feet
-      stand(3.6); player.lastHurt = null;
+      calm(); stand(3.6); player.lastHurt = null;
       stomp = strike(q, 'stomp', 0);
       run(stomp.hitAt + 0.8, 1 / 30, withPlayer);
       check(/shockwave/.test(player.lastHurt?.reason ?? ''), 'the shockwave: ' + player.lastHurt?.reason);
       run(2, 1 / 30, withPlayer);
 
       // the jump: his shadow follows the player; he flies onto it and squashes them, dazed
-      stand(6); player.lastHurt = null;
+      calm(); stand(6); player.lastHurt = null;
       const jump = strike(q, 'jump', 0), from = { x: q.x, z: q.z };
       let high = 0;
       run(jump.hitAt + 0.05, 1 / 30, dt => { high = Math.max(high, q.y - level0(q.f)); withPlayer(dt); });

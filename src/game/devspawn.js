@@ -7,7 +7,8 @@ import { N } from '../core/constants.js';
 import { idx } from '../core/util.js';
 import { ENEMY_KINDS, enemyRoll, coinRange, guardianLevel, makeEnemy } from '../core/enemies.js';
 import { damageEnemy } from '../core/combat.js';
-import { walkable, floorAt, groundY } from '../physics/enemynav.js';
+import { walkable, floorAt } from '../physics/enemynav.js';
+import { walker, standY } from '../physics/dwell.js';
 import { removeEnemyViews } from '../render/enemies.js';
 import { player, state } from './state.js';
 import { addEnemies, allEnemies, detachEnemies } from './enemies.js';
@@ -25,12 +26,15 @@ import { pickFloor, pointer } from './pointer.js';
 const SPREAD = 1.1;   // the least distance between enemies of one spawn
 let serial = 0;
 
-// the n floors nearest (x, y, z) that fit the kind's body, apart from each other
+// the n floors nearest (x, y, z) that fit the kind's body, apart from each other (a fluid
+// dweller's: in its fluid, physics/dwell.js, if the cube has any; else on land, where it dries up)
 function spotsNear(kind, x, y, z, n) {
-  const h = kind.height, r = kind.radius;
-  const fits = f => walkable(f, h) && [[r, 0], [-r, 0], [0, r], [0, -r]].every(([dx, dz]) => floorAt(f, f.x + 0.5 + dx, f.z + 0.5 + dz, h));
-  const near = state.map.floors.filter(fits).map(f => {
-    const fy = groundY(f, f.x + 0.5, f.z + 0.5);
+  const wet = kind.dwells ? walker(kind) : null, r = wet ? Math.min(kind.radius, 0.42) : kind.radius;
+  const fitsAs = h => f => walkable(f, h) && [[r, 0], [-r, 0], [0, r], [0, -r]].every(([dx, dz]) => floorAt(f, f.x + 0.5 + dx, f.z + 0.5 + dz, h));
+  let floors = wet ? state.map.floors.filter(fitsAs(wet)) : [];
+  if (!floors.length) floors = state.map.floors.filter(fitsAs(kind.height));
+  const near = floors.map(f => {
+    const fy = standY(kind, f, f.x + 0.5, f.z + 0.5);
     return { f, y: fy, d: Math.hypot(f.x + 0.5 - x, f.z + 0.5 - z) + Math.abs(fy - y) * 2 };
   }).sort((a, b) => a.d - b.d);
   const out = [];
@@ -80,7 +84,7 @@ function enlist(kind, list) {
 export function spawnLineup() {
   for (const [i, { type, x, z, yaw }] of (state.map?.testRoom?.lineup ?? []).entries()) {
     const kind = ENEMY_KINDS[type], f = state.map.cols[idx(Math.floor(x), Math.floor(z))].at(-1);
-    const e = spawned(kind, f, x, groundY(f, x, z), z, yaw, null, i);
+    const e = spawned(kind, f, x, standY(kind, f, x, z), z, yaw, null, i);
     e.dormant = true;
     enlist(kind, [e]);
   }

@@ -17,6 +17,7 @@
 // recovers; 'brute' (the default) holds its ground. `charge`: how much faster it runs the last
 // few cells at a player it sees.
 import { hash32, mulberry32 } from './util.js';
+import { WATER, LAVA, ACID } from './constants.js';
 import { toxinOf } from './status.js';
 import { paint } from './palette.js';
 import { noun, msg, say, form } from '../i18n/i18n.js';
@@ -273,25 +274,46 @@ export const WOLK = {
   style: 'ranged', keep: [2.6, 4.2],
   seedSalt: 0x6c1d2f5, spacing: 4,
 };
-// A little blue water serpent with a beak (blender/squirtle.py) that runs about under the floor
-// and pokes out of it to throw water (a projectile with a tiny `push`). `burrow`: in the fight it
-// stays up for `up` s (least, most), dives and moves under the floor at `speed` for `under` s, then
-// comes up again, sooner where it has a shot (game/enemyai.js); `sink`: s its diving and coming up
-// take. Under the floor (`under` on the enemy) nothing sees, hits or touches it (`absent`). It
-// `swims`: no water drowns it.
+// A living wave (blender/squirtle.py; render/squirtleview.js draws its body as the fluid it lives
+// in, in that body of fluid's colours: its `colors` are its eyes' and its water ball's):
+// its back arches up into the crest, which is its head, and the wave's curl in front is its mouth,
+// opening and closing; taller than the hero. It wets the land where it goes (`trail`, bigger:
+// `trailSize`, render/trails.js). It lives in a fluid (`dwells`: the ones it lives in,
+// physics/dwell.js): it is only ever put down in one and moves only through it. It pokes out of it
+// to spit a ball of water (a projectile with a tiny `push`), and leaps out of it at a player near
+// it (`leap`: up onto a stomp beam's shadow at their feet, game/enemyai.js `ride`, and crashing
+// down there onto whoever is under it). On land it cannot keep its shape: it shrinks, stands a
+// moment, then dissolves into a puddle that nothing can touch and runs back into its fluid, where
+// it rises again (game/enemyai.js `ashore`). `burrow`: in the fight it stays up for `up` s (least,
+// most), dives and moves under the surface at `speed` for `under` s, then comes up again, sooner
+// where it has a shot; `sink`: s its diving and coming up take. Under the surface (`under` on the
+// enemy) nothing sees, hits or touches it (`absent`). It `swims`: no water drowns it.
+const SQUIRTLE_SPIT = {
+  name: 'spit', clip: 'spit', weight: 1, reach: 5, hitReach: 0, hitAt: 15 / 30, trackUntil: 0.4, attackTime: 33 / 30,
+  arc: 0.5, knockDown: false, hop: 2.5, reason: 'Splashed by a Squirtle!',
+  projectile: { kind: 'water', speed: 7.5, radius: 0.2, range: 7.5, push: 2.4, pushTime: 0.15,
+    muzzle: [0, 0.807, 1.037] },
+};
+const SQUIRTLE_LEAP = {
+  name: 'leap', clip: 'leap', weight: 3, reach: 4.2, minReach: 0.5, hitAt: 36 / 30, trackUntil: 0.3, attackTime: 54 / 30, hitReach: 0,
+  arc: -1, power: 1.3, knock: 5, knockDown: true, hop: 3.5, reason: 'Splashed by a Squirtle!', recover: 1.2,
+  ride: { from: 12 / 30, height: 1.4, onto: true }, steady: { from: 12 / 30, to: 36 / 30 },
+  beam: { kind: 'stomp', aim: 'feet', time: 30 / 30, track: 1.8, lock: 0.3, radius: 1.1, range: 14, sky: 5, clear: false,
+    muzzle: [0, 0, 0] },
+};
+// a Squirtle kind's attacks: its own reason for both, and what else its spit is
+const squirtleAttacks = (reason, spit = {}) => [{ ...SQUIRTLE_SPIT, reason, ...spit }, { ...SQUIRTLE_LEAP, reason }];
 export const SQUIRTLE = {
   type: 'squirtle', species: 'squirtle', label: 'Squirtle', hp: 42, damage: 13, knock: 1.5,
   xp: 30, coins: [6, 12],
-  radius: 0.24, height: 0.8, bodyHeight: 0.65, mass: 0.8, swims: true,
+  radius: 0.65, height: 1.8, bodyHeight: 1.53, mass: 3, swims: true, dwells: [WATER], trail: '#4f8fd0', trailSize: 1.6,
   aggro: 5.5, giveUp: 9, chase: 1.6, wander: 0.5, homeSpeed: 1,
-  reach: 5, hitReach: 0, hitAt: 15 / 30, trackUntil: 0.4, attackTime: 33 / 30, cooldown: 1.4,
-  arc: 0.5, knockDown: false, hop: 2.5, reason: 'Splashed by a Squirtle!', ichor: ['#a8e4ff', '#3a7fd0'], pitch: 1.4,
-  projectile: { kind: 'water', speed: 7.5, radius: 0.15, range: 7.5, push: 2.4, pushTime: 0.15,
-    muzzle: [0, 0.392, 0.477] },
+  ...SQUIRTLE_SPIT, reach: SQUIRTLE_SPIT.reach, cooldown: 1.4, ichor: ['#a8e4ff', '#3a7fd0'], pitch: 1.4,
+  attacks: [SQUIRTLE_SPIT, SQUIRTLE_LEAP],
   burrow: { speed: 3.4, up: [2.4, 3.6], under: [1.4, 2.4], sink: 0.35 },
   poise: 0, hitStun: 0.2, deathTime: 1.4, corpseTime: 3,
-  parts: { body: ['SquirtleBody'], belly: ['SquirtleBelly'], eyes: ['SquirtleEyes'] },
-  colors: paints({ body: 'azure.mid', belly: 'frost.pale' }),
+  parts: { body: ['SquirtleBody'], eyes: ['SquirtleEyes'] },
+  colors: paints({ body: 'azure.mid', eyes: 'frost.pale' }),
   style: 'ranged', keep: [2.4, 4.4],
   seedSalt: 0x5917e1, spacing: 3,
 };
@@ -1259,10 +1281,12 @@ export const EMBER_WOLLA = enemyKind(WOLLA, {
   colors: paints({ waves: 'ember.mid', eyes: 'eyes.ice' }), ichor: ['#ffc07a', '#a0480f'], trail: '#7a4a24',
   mods: { hp: 1.45, damage: 1.4, speed: 1.1, size: 1.12 },
 });
-// The Squirtles of the sunken grotto and the cenote: coral red, tougher and quicker.
+// The Squirtles of the lava (the volcanic caves and the abyss): coral red, tougher and quicker;
+// lava does not burn them, nor fire.
 export const CORAL_SQUIRTLE = enemyKind(SQUIRTLE, {
   type: 'coralsquirtle', label: 'Coral squirtle', reason: 'Splashed by a Coral squirtle!',
-  colors: paints({ body: 'crimson.mid@+10', belly: 'ochre.pale' }), ichor: ['#ffc0a8', '#b0402a'],
+  attacks: squirtleAttacks('Splashed by a Coral squirtle!'), dwells: [LAVA], lavaproof: true, fireproof: true, trail: '#a0401c',
+  colors: paints({ body: 'crimson.mid@+10', eyes: 'ochre.pale' }), ichor: ['#ffc0a8', '#b0402a'],
   mods: { hp: 1.5, damage: 1.4, speed: 1.1 },
 });
 // Every species comes in at least three ordinary kinds. The fire species burn hotter the deeper
@@ -1322,9 +1346,11 @@ export const STORM_WOLK = enemyKind(WOLK, {
   colors: paints({ body: 'ink.mid', limbs: 'violet.deep' }), gloom: { color: paint('ink.dark'), parts: ['body'] }, beamColor: '#e0ccff',
   ichor: ['#c4c4d4', '#3a3a4a'], mods: { hp: 1.3, damage: 1.3, speed: 1.1 },
 });
+// the Squirtles of the slime (the slime marsh's acid)
 export const MOSS_SQUIRTLE = enemyKind(SQUIRTLE, {
-  type: 'mosssquirtle', label: 'Moss squirtle', reason: 'Splashed by a Moss squirtle!',
-  colors: paints({ body: 'moss.mid', belly: 'ochre.pale' }), ichor: ['#c8f0a0', '#4f8f2a'],
+  type: 'mosssquirtle', label: 'Moss squirtle', reason: 'Splashed by a Moss squirtle!', dwells: [ACID],
+  attacks: squirtleAttacks('Splashed by a Moss squirtle!'), trail: '#5f9a34',
+  colors: paints({ body: 'moss.mid', eyes: 'ochre.pale' }), ichor: ['#c8f0a0', '#4f8f2a'],
   mods: { hp: 1.2, damage: 1.15 },
 });
 // The Meckeds: a pale blue one in the frozen caves, a dark green one in the swamp and the cenote
@@ -1463,13 +1489,15 @@ const guardianMods = (base, t) => ({
 // Hot pink (the palette's `pink`, hue 350) is reserved for side guardians, `amber` (65) for
 // descent guardians (core/palette.js GUARDIAN_HUES); eyes remain pale for contrast. A species may dress its guardians otherwise (`guardianLooks.side` /
 // `.descent`: colours, glow, `finish` and the like, in place of these): the Wolk's are grey and
-// silver.
+// silver. A fluid dweller's guard from any fluid (its arena's pond is of the fluid its kinds live
+// in, cubegen/guardian.js), and lava does not burn them.
+const anyFluid = base => base.dwells && { dwells: [WATER, LAVA, ACID], lavaproof: true };
 export const GUARDIAN_KINDS = Object.fromEntries(ENEMY_PROFILES.map(base => [base.species, enemyKind(base, {
   type: 'guardian' + base.type, label: 'Guardian ' + base.label, baseLabel: base.label, guardian: true, guardianRole: 'side', bossPlaceholder: false,
   colors: paints(Object.fromEntries(Object.keys(base.parts).map(role => [role, role === 'eyes' ? 'eyes.bone' : 'pink.vivid']))),
   light: '#ff3fa8', sparks: ['#ff3fa8', '#ffd0ee'], ichor: ['#ff3fa8', '#9b165d'],
   poise: Math.max(base.poise, GUARDIAN_TIERS.side.poise), mods: guardianMods(base, GUARDIAN_TIERS.side),
-  ...base.guardianLooks?.side,
+  ...anyFluid(base), ...base.guardianLooks?.side,
 })]));
 // Explicit future-boss hook: a separate kind, not a level-dependent recolouring. Players know a
 // descent guardian as a Temp Boss: it holds the place of the depth's real boss to come
@@ -1480,7 +1508,7 @@ export const DESCENT_GUARDIAN_KINDS = Object.fromEntries(ENEMY_PROFILES.map(base
   colors: paints(Object.fromEntries(Object.keys(base.parts).map(role => [role, role === 'eyes' ? 'eyes.bone' : 'amber.vivid']))),
   light: '#ff9b35', sparks: ['#ff9b35', '#fff0cc'], ichor: ['#ff9b35', '#9b4b16'],
   poise: Math.max(base.poise, GUARDIAN_TIERS.descent.poise), mods: guardianMods(base, GUARDIAN_TIERS.descent),
-  ...base.guardianLooks?.descent,
+  ...anyFluid(base), ...base.guardianLooks?.descent,
 })]));
 // Gusto's minions (game/gusto.js summons them): half a Triangle, light blue and much faster,
 // whose punches do not knock the player over. Never in a roster (`minion`); a little XP, no
@@ -1518,11 +1546,12 @@ export const SNAP_SKULL = {
 };
 // the species that are only ever a boss's minions (each its own model)
 export const MINION_PROFILES = [SNAP_SKULL];
-// Squarlo's Squirtles: teal, weaker, and they go for the player at once
+// Squarlo's Squirtles: teal, weaker, and they go for the player at once; they live in his tide
 const SPLASH_PUFF = { colors: ['#e8fbff', '#9fe0f0', '#6ac2d8'], size: 0.5 };
 export const TIDE_SQUIRTLE = enemyKind(SQUIRTLE, {
   type: 'tidesquirtle', label: 'Tide squirtle', reason: 'Splashed by a tide squirtle!', minion: true,
-  colors: paints({ body: 'jade.mid', belly: 'jade.pale' }), ichor: ['#b8f4ff', '#2a9fa8'],
+  attacks: squirtleAttacks('Splashed by a tide squirtle!'), trail: '#3a9a9a',
+  colors: paints({ body: 'jade.mid', eyes: 'jade.pale' }), ichor: ['#b8f4ff', '#2a9fa8'],
   aggro: 10, giveUp: 14, coins: [0, 0], drops: MINION_DROPS(0.05), puff: SPLASH_PUFF,
   mods: { hp: 0.7, damage: 0.6, xp: 0.15 },
 });
@@ -1594,11 +1623,14 @@ export const OOZE_BOLIME = enemyKind(BOLIME, {
   aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05), puff: SLIME_PUFF,
   mods: { hp: 0.7, damage: 0.6, xp: 0.15 },
 });
-// a Squirtle of slime, a bit bigger, whose spit is a ball of slime that slows
+// a Squirtle of slime, a bit bigger, whose spit is a ball of slime that slows; it lives in his
+// flood (drawn as slime: `look`, game/tide.js) and dries up once that drains
+const SLIME_BALL = { kind: 'slimeball', radius: 0.23, push: 0, pushTime: 0, slow: { time: 2, slow: 0.6, source: 'slime' } };
 export const SLIME_SQUIRTLE = enemyKind(SQUIRTLE, {
-  type: 'slimesquirtle', label: 'Slime squirtle', reason: 'Slimed by a Slime squirtle!', minion: true,
-  projectile: { ...SQUIRTLE.projectile, kind: 'slimeball', radius: 0.17, push: 0, pushTime: 0, slow: { time: 2, slow: 0.6, source: 'slime' } },
-  colors: paints({ body: 'moss.glow', belly: 'moss.pale' }), ichor: ['#c8f0a0', '#4f8f2a'],
+  type: 'slimesquirtle', label: 'Slime squirtle', reason: 'Slimed by a Slime squirtle!', minion: true, dwells: [ACID],
+  projectile: { ...SQUIRTLE.projectile, muzzle: SQUIRTLE.projectile.muzzle.map(v => v * 1.3), ...SLIME_BALL },
+  attacks: squirtleAttacks('Slimed by a Slime squirtle!', { projectile: { ...SQUIRTLE.projectile, ...SLIME_BALL } }), trail: '#8ad048',
+  colors: paints({ body: 'moss.glow', eyes: 'moss.pale' }), ichor: ['#c8f0a0', '#4f8f2a'],
   aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05), puff: SLIME_PUFF,
   mods: { hp: 1.1, damage: 0.8, size: 1.3, xp: 0.2 },
 });
