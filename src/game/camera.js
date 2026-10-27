@@ -42,7 +42,8 @@ function overview() {
   // distance that fits the cube's bounding sphere into the narrower field of view
   const fovV = THREE.MathUtils.degToRad(OVERVIEW_FOV);
   const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
-  const d = 12.5 / Math.sin(Math.min(fovV, fovH) / 2) * view.zoom;
+  const fitRadius = state.map?.qualmos?.kind === 'planet' ? state.map.qualmos.planetRadius : 12.5;
+  const d = fitRadius / Math.sin(Math.min(fovV, fovH) / 2) * view.zoom;
   // hit kicks shove the whole view a little (scaled with the view distance)
   const s = d * 0.03;
   target.x += kick.x * s; target.y += kick.y * s; target.z += kick.z * s;

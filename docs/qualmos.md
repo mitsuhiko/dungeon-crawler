@@ -1,4 +1,12 @@
-# Qualmos — core boss prototype
+# Qualmos — rescue-route prototype
+
+Upstream's native Qualmos (`src/core/qualmos.js`, `src/game/qualmos.js`,
+`assets/qualmos.glb`, `blender/qualmos.py`) is kept intact after the rebase.
+The rescue route uses the separate `amphibian` prototype (`assets/amphibian.glb`,
+`blender/amphibian.py`, `blender/amphibian.blend`) so the two animation contracts do not collide.
+
+Upstreams Qualmos bleibt unverändert erhalten. Die Rettungsreise verwendet den getrennten
+`amphibian`-Prototyp, damit sich Modelle und Animationen nicht gegenseitig überschreiben.
 
 ## Playtest / Testen
 
@@ -7,25 +15,71 @@ Run `npm run serve`, then open:
 `http://localhost:8000/?dev=1&seed=123&at=qualmos&lang=de&splash=0`
 
 This starts a disposable seeded developer world, prepares a level-22 hero with an
-item-level-22 Unusual Long Sword, and enters the actual final arena at `0,-20,0`.
-It does not load a saved hero. Other seeds also work. Console: `/boss amphibian`
-restarts the encounter; `/spawn amphibian` spawns another. `/god on` enables invulnerability.
+item-level-99 OMG Arcane Staff, god mode enabled, and enters the glass-bird antechamber at `0,-20,0`.
+Every developer start (`?dev=1`) now grants this staff and invulnerability; `/god off` turns it off.
+It does not load a saved hero. Other seeds also work. Console: `/boss qualmos`
+returns to the antechamber; `/spawn amphibian` spawns a boss in the current room.
+`/god on` enables invulnerability.
 
 `npm run serve` starten und den Link oben öffnen. Du beginnst auf Tiefe 20 mit
-Level 22 und einem passenden Langschwert. Gespeicherte Helden werden nicht geladen.
-In der Entwicklerkonsole: `/boss amphibian` für einen neuen Versuch, `/god on` für Unverwundbarkeit.
+Level 22, einem OMG-Arkanstab auf Gegenstandsstufe 99 und aktivierter Unverwundbarkeit.
+Jeder Entwicklerstart (`?dev=1`) gibt dir diesen Stab und God-Modus; `/god off` schaltet ihn aus.
+Gespeicherte Helden werden nicht geladen.
+Du startest im Glasvogel-Vorraum. In der Entwicklerkonsole bringt dich `/boss qualmos`
+zurück dorthin; `/god on` aktiviert Unverwundbarkeit.
+
+## Rescue route / Rettungsreise
+
+Each of the three antechambers provides ordinary floor loot: a glass bird, a breathing
+helmet and the glassmaker's recording. Collect the kit, wear the helmet and hold that
+chapter's bird in your off hand (not alongside a bow), then press the action button.
+Equipping it alone never starts travel. The bird grows, the hero mounts it, and they fly
+to the planet. Defeat Qualmos and rescue the glassmaker, then hold the bird and press
+the action button again for the animated return to the next glass world. On arrival the bird goes back into the bag.
+After the third rescue, the last flight reaches the three rescued glassmakers.
+
+Each bird has two flights: outward and onward. Returning to an unfinished chapter does
+not charge for the outward flight again; loading a destination does not spend a flight.
+Progress is stored in the world's `run.told` flags. This route is still a prototype;
+multiplayer and the complete browser journey need validation.
+
+In jedem der drei Vorräume liegen ein Glasvogel, ein Atemhelm und die Aufnahme des
+Glasmachers als gewöhnliche Beute. Sammle die Ausrüstung ein, setze den Helm auf und
+halte den Vogel dieses Kapitels in der Nebenhand (nicht zusammen mit einem Bogen).
+Halte den Vogel in der Hand und drücke den Aktionsbutton; Ausrüsten allein startet keinen
+Flug. Der Vogel wächst, du steigst auf und fliegst zum Planeten. Besiege Qualmos und rette
+den Glasmacher. Halte den Vogel erneut in der Hand und drücke den Aktionsbutton, um mit
+Animation zur nächsten Glaswelt zu fliegen. Nach jeder Landung liegt der Vogel wieder im Inventar.
+Nach der dritten Rettung führt der letzte Flug zu den drei befreiten Glasmachern.
+
+The transparent globe has radius 8.25; its wider platform uses one 16-cell cube. A deep lagoon beside the dry rescue path lets Qualmos retreat
+underwater for a few seconds before returning to the bank. He does not heal while hidden.
+The distant preview through the antechamber's breach stays small. The bird and helmet are
+enlarged only as floor pickups, not when worn. Both flights have a short 3D riding film;
+reduced-motion settings shorten it and remove the hopping and banking.
+
+Die durchsichtige Kugel hat Radius 8,25; die breitere Plattform verwendet einen 16-Zellen-Würfel. In einer tiefen Lagune neben dem trockenen Rettungsweg kann
+Qualmos kurz untertauchen, bevor er ans Ufer zurückkehrt. Dabei heilt er sich nicht.
+Vom Vorraum aus ist der Planet nur klein und weit entfernt zu sehen. Vogel und Helm sind
+nur am Boden größer, nicht beim Tragen. Hin- und Rückflug zeigen eine kurze 3D-Reitanimation;
+bei reduzierten Bewegungen ist sie kürzer und ohne Hüpfen oder Schräglage.
+
+Jeder Vogel hat zwei Flüge: hin und weiter. Die Rückkehr zu einem noch nicht abgeschlossenen
+Kapitel verbraucht den Hinflug nicht erneut; das Laden des Zielorts verbraucht keinen Flug.
+Der Fortschritt wird mit der Welt gespeichert. Mehrspieler und die vollständige Reise im
+Browser sind noch nicht geprüft.
 
 ## Design / Entwurf
 
 Blue-green slender amphibian based on the child's drawing: six tentacles with pale green
 suckers, two arms, hard head and back spines, wide toothy grin. Named **Qualmos**.
-The authored model and action showcase are in `blender/qualmos.blend`.
-`blender/qualmos.py` joins/decimates the authored parts and exports the skinned GLB,
+The prototype's authored model and action showcase are in `blender/amphibian.blend`.
+`blender/amphibian.py` joins/decimates the authored parts and exports the skinned GLB,
 including a death clip. Run meshopt compression after exporting.
 
 Blau-grünes, schlankes Amphibienwesen nach der Kinderzeichnung: sechs Tentakel mit
 hellgrünen Saugnäpfen, zwei Arme, harte Stacheln und ein breites Grinsen mit Zähnen.
-Das Blender-Modell mit Animationsvorschau liegt in `blender/qualmos.blend`.
+Das Prototyp-Modell mit Animationsvorschau liegt in `blender/amphibian.blend`.
 
 Native health: **6760 at level 22**, exactly twice Slomo's **3380 at level 15**.
 The base HP compensates for the ordinary level growth; the final value is not scaled twice.
@@ -51,20 +105,23 @@ verwundbar und nimmt anderthalbfachen Schaden, danach folgt eine Erholungspause.
 ## Prototype limitations / Noch offen
 
 This is a playable integration prototype, not the final story encounter or polished balance.
-It reuses the ordinary dry arena, generic melee hits, the existing jet/pull effects,
-and slime/ice projectile visuals. There is not yet a swimming arena, held-player grab,
+It reuses generic melee hits, the existing jet/pull effects, and slime/ice projectile visuals.
+The rescue planets now have a deep-water retreat, but there is not yet a held-player grab,
 real thrown spine geometry, local ink cloud, bespoke sound, final dialogue, or multiplayer
-validation. The dive pose needs further artistic polish. No new recorded narration is added.
+validation. The dive pose needs further artistic polish. The rescue route adds narration text;
+rendered voice clips are local, optional output.
 
-Spielbarer Prototyp, noch kein fertig abgestimmter Endkampf: bisher trockene Arena und
-wiederverwendete Treffer-/Projektil-/Wassereffekte. Wasserarena, echtes Festhalten,
+Spielbarer Prototyp, noch kein fertig abgestimmter Endkampf: wiederverwendete
+Treffer-/Projektil-/Wassereffekte und eine Lagune zum Untertauchen. Echtes Festhalten,
 eigene Stachelprojektile, Tintenwolke, Sounds und Story-Ende fehlen noch.
 Die Tauchbewegung braucht noch Feinschliff; Mehrspieler ist noch nicht geprüft.
+Die Rettungsreise ergänzt Erzähltexte; Sprachaufnahmen sind optionale lokale Ausgaben.
 
 ## Checks / Prüfungen
 
-- `node --test tests/amphibian.test.js tests/kinds.test.js`: HP, phase gates, three seeded core
-  arenas, compressed model/animations and existing material contracts.
+- `node --test tests/amphibian.test.js tests/qualmos-voyage.test.js`: HP, phase gates,
+  antechambers and three glass worlds across three seeds, compressed model/animations,
+  rescue progression, charge accounting, retries and ordinary equipment slots.
 - Chromium developer-entry smoke test: real core, level-22 hero, model loaded;
   all eleven attacks and all four phase transitions exercised without JavaScript errors.
 - Full Windows test run is not clean: guide/music path-sensitive checks need separate review.

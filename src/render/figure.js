@@ -148,6 +148,8 @@ export function wear(f, id, opts = {}) {
     if (!o.isMesh) return;
     o.material = [].concat(o.material).map(m => {
       m = m.clone();
+      // Glass must not occlude the face (or the bird's glowing core) with its depth buffer.
+      if (m.transparent && m.opacity < 1) m.depthWrite = false;
       materials.push(m);
       // the gem-like part (the glTF material Items_Facets) shines in the item's glow colour
       if (def.glow && /Facets/.test(m.name)) { m.emissive.set(def.glow); m.emissiveIntensity = .6; glowing.push(m); }

@@ -10,7 +10,6 @@ import { BOSS_ARENAS, BOSSES, bossAt } from '../core/bosses.js';
 import { guardianId } from '../core/guardians.js';
 import { ENEMY_KINDS, guardianLevel } from '../core/enemies.js';
 import { xpForLevel, levelFromXP, fullHealth } from '../core/progression.js';
-import { devSwapWeapon } from './equipment.js';
 import { testRoomKey, isTestRoom } from '../world/testrooms.js';
 import * as THREE from 'three';
 import { camera, renderer } from '../render/scene.js';
@@ -265,7 +264,7 @@ export async function goBoss(kind) {
     const c = await whenReady(cubes.get(key));
     if (state.cubes !== cubes) return;
     enterCube(c, c.map.portals[0].dir);
-    setStatus(`${ENEMY_KINDS[kind].label} · depth ${depth} · ${c.map.arena.type} arena`);
+    setStatus(`${ENEMY_KINDS[kind].label} · depth ${depth} · ${c.map.arena?.type ?? 'glass-bird antechamber'}`);
   } finally { if (state.cubes === cubes) state.transitioning = false; }
 }
 
@@ -347,16 +346,17 @@ if (state.dev && new URLSearchParams(location.search).get('at') === 'trial') {
 }
 
 // ?at=<boss> (?at=qualmos): once the world is there, into that boss's arena (goBoss) as a hero of
-// his level, with a Long Sword of it
+// his level, keeping the developer's OMG staff
 const atBoss = state.dev ? new URLSearchParams(location.search).get('at') : null;
 if (Object.values(BOSSES).includes(atBoss)) {
   const depth = Number(Object.keys(BOSSES).find(d => BOSSES[d] === atBoss)), level = guardianLevel(depth, 'descent');
   const wait = async () => {
     if (!state.map || state.transitioning) { setTimeout(wait, 200); return; }
-    player.xp = xpForLevel(level); player.level = levelFromXP(player.xp);
-    player.maxHp = fullHealth(player.level, player.inventory); player.hp = player.maxHp;
-    await devSwapWeapon('weapon_sword_long', 'unusual', level);
-    await goBoss(atBoss);
+    try {
+      player.xp = xpForLevel(level); player.level = levelFromXP(player.xp);
+      player.maxHp = fullHealth(player.level, player.inventory); player.hp = player.maxHp;
+      await goBoss(atBoss);
+    } catch (error) { console.error('Boss test could not start', error); }
   };
   setTimeout(wait, 200);
 }

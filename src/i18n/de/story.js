@@ -4,6 +4,12 @@
 // clockwork, cheerful, with a child's voice. Neither says Würfel: ein Stück der Welt, das Glas. The
 // German is recorded too (docs/narration.md): write it to be spoken.
 export default {
+  'The glass bird': 'Der Glasvogel',
+  'Found before Qualmos': 'Gefunden vor Qualmos',
+  'Hello! If you hear this, I am happy that you made it here.': 'Hallo! Wenn du das hörst, bin ich glücklich, dass du es hierher geschafft hast.',
+  'I am away for a while.': 'Ich bin mal weg.',
+  'The glass bird is very rare, so use it wisely.': 'Der Glasvogel ist sehr selten, deshalb benutze ihn weise.',
+  'It can fly you somewhere twice.': 'Du kannst dich damit zweimal irgendwohin fliegen lassen.',
   // his recordings (core/narration.js RECORDINGS)
   'A voice in the glass': 'Eine Stimme im Glas',
   'Found on the town plaza': 'Gefunden auf dem Platz der Stadt',

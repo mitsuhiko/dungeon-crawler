@@ -9,6 +9,7 @@ import { QUALMOS_PHASES, PHASES, phaseFloor, barred, phaseDue, enterPhase } from
 import { damageEnemy } from '../src/core/combat.js';
 import { population, speciesIn } from '../src/core/spawns.js';
 import { guardianSpots } from '../src/game/enemyspawn.js';
+import { generateGuardian } from '../src/cubegen/guardian.js';
 
 const named = name => QUALMOS.attacks.find(a => a.name === name);
 
@@ -20,12 +21,13 @@ test('Qualmos waits at the core, depth 20, with twice the health of Slomo at his
   assert.equal(enemyProfile(QUALMOS, 22).hp, 6760);
 });
 
-test('the core\'s last cube is his arena: him alone, its entrance and no way on', () => {
+test('the native core arena has Qualmos alone, its entrance and no way on', () => {
   for (const seed of [1, 123, 456]) {
     const w = new World(seed), L = w.layout(20);
     const [k, g] = [...L.guardians].find(([, x]) => x.boss === 'qualmos');
     assert.equal(k, '0,-20,0'); assert.equal(g.final, true); assert.equal(L.down, null);
-    const map = state.map = w.cube(k).map;
+    // The voyage replaces the core's first room; keep testing upstream's native arena independently.
+    const map = state.map = generateGuardian(w.descentSpec(20));
     assert.equal(map.guardian.final, true); assert.equal(map.guardian.portalId, null);
     assert.equal(map.exit, null); assert.equal(map.portals.length, 1); assert.ok(map.portals[0].dir < 4);
     assert.deepEqual([...population(map).keys()], ['qualmos']);

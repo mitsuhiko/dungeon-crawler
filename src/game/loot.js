@@ -53,6 +53,7 @@ import { online, relay } from '../net/online.js';
 import { log } from './log.js';
 import { tr } from '../i18n/i18n.js';
 import { narrate } from './narrator.js';
+import { voyageItemTaken } from './qualmos-voyage.js';
 
 export const TOSS_TIME = 0.55;   // the arc out of the body
 const TAKE_REACH = 0.6;          // a clicked pickup is taken from this close (cells)
@@ -133,6 +134,17 @@ export function spill(source, at, copper, items, extra = {}, from = { x: at.x, y
   return out;
 }
 
+// Authored ordinary pickups, already resting at exact positions. They use the same models,
+// labels, click-to-collect, inventory, save and full-bag checks as every other item.
+export function groundItems(source, items) {
+  if (state.run.dropped.has(source)) return [];
+  const out = items.map((item, i) => place(lootIn(state.cubeKey), item, `${source}#${i}`, source,
+    { x: item.x, y: item.y, z: item.z }, { x: item.x, y: item.y, z: item.z }, { toss: 1, kept: true }));
+  state.run.dropped.add(source);
+  relay.drop?.(state.cubeKey, source, out);
+  return out;
+}
+
 // put item ({ itemId, count, gen? }) down at the player's feet; it stays there through a death
 export function dropAtFeet(item) {
   const source = `b:${online.slot ?? 0}:${page}${++bagDrops}`;
@@ -166,6 +178,7 @@ const room = p => fits(player.inventory, p);
 function credit(p) {
   if (p.gen ? !addInstance(player.inventory, p) : !addItem(player.inventory, p.itemId, p.count)) return false;
   autoBar(player.inventory, p.itemId);   // a potion goes on the quick bar
+  voyageItemTaken(p.itemId);
   gained ||= { copper: 0, items: new Map(), color: null };
   const def = ITEMS[p.itemId];
   if (def.category === 'currency') { gained.copper += def.value * p.count; sfx('coin', { pitch: def.value >= 1000 ? 0.8 : def.value >= 10 ? 0.9 : 1 }); }

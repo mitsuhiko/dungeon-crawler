@@ -7,6 +7,7 @@
 // texts are messages, src/i18n/sources.js lists them): a description may have parameters, its
 // `params` ({ heal: 40 } for 'Restores {heal}% ...').
 import { msg, phrase } from '../i18n/i18n.js';
+import { GLASS_HELMET, glassBirdId, glassRecordingId } from './qualmos-voyage.js';
 
 const model = name => `assets/items/${name}.glb`;
 // Base weapon stats at item level 1 (core/gear/stats.js grows the damage with item level):
@@ -315,7 +316,21 @@ export function outfitOf(ids) {
   }
   return out;
 }
-export const ITEMS = Object.fromEntries([...WEAPONS, ...COINS, ...POTIONS, ...stackables, ...TOOLS, ...WEARABLES, ...ARMORS, ...QUEST_ITEMS].map(i => [i.id, i]));
+// Authored rescue-route equipment. Not random armor bases: these are found only in the antechambers.
+export const VOYAGE_ITEMS = [
+  { id: GLASS_HELMET, name: 'Glass breathing helmet', category: 'wearable', slot: 'head', stackLimit: 1, bound: true,
+    model: model('wear_glass_helmet'), floorScale: 1.25, description: 'A helmet of star-glass that keeps air around your head. Wear it like a hat before flying.',
+    armor: { slot: 'head', armor: 0, block: 0, speed: 0, perks: {} }, voyagePart: 'helmet' },
+  ...[1, 2, 3].flatMap(chapter => [
+    { id: glassBirdId(chapter), name: 'Glass bird', category: 'held', slot: 'left', stackLimit: 1, bound: true,
+      model: model('held_glass_bird'), floorScale: 1.5, description: 'A rare glass bird with two flights. Hold it in your off hand to fly: once to Qualmos, once onward.',
+      armor: { slot: 'shield', armor: 0, block: 0, speed: 0, perks: {} }, use: 'holdBird', voyagePart: 'bird', voyageChapter: chapter },
+    { id: glassRecordingId(chapter), name: "Glassmaker's recording", category: 'usable', stackLimit: 1, bound: true,
+      model: model('item_glass_recording'), description: 'The glassmaker left his voice in this glass. Use it to listen again.',
+      use: 'glassRecording', voyagePart: 'message', voyageChapter: chapter },
+  ]),
+];
+export const ITEMS = Object.fromEntries([...WEAPONS, ...COINS, ...POTIONS, ...stackables, ...TOOLS, ...WEARABLES, ...ARMORS, ...QUEST_ITEMS, ...VOYAGE_ITEMS].map(i => [i.id, i]));
 // items that are generated (core/gear/): a weapon or a piece of armor
 export const isGear = itemId => !!(ITEMS[itemId]?.weapon || ITEMS[itemId]?.armor);
 export const OLD_SWORD = WEAPONS[0];

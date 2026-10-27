@@ -1,6 +1,22 @@
 // Enemies: their kinds (nouns, with gender: messages say them in sentences), what their blows
 // are called when they hurt you, the bounties' names, and what the bosses do.
 export default {
+  'Fly through the opening': 'Durch das Loch hinausfliegen',
+  'Rescue the glassmaker': 'Glasmacher retten',
+  'Fly to the next glass world': 'Zur nächsten Glaswelt fliegen',
+  'Glassmakers rescued: {n}/3': 'Glasmacher gerettet: {n}/3',
+  'The flight could not start. Your bird charge was not used.': 'Der Flug konnte nicht starten. Dein Vogelflug wurde nicht verbraucht.',
+  'All three glassmakers are safe. Thank you!': 'Alle drei Glasmacher sind in Sicherheit. Danke!',
+  'The glass bird grows. Climb on — next stop, the planet!': 'Der Glasvogel wächst. Steig auf – nächster Halt: der Planet!',
+  'Climb on! The glass bird carries you back to the glass world.': 'Steig auf! Der Glasvogel bringt dich zurück zur Glaswelt.',
+  'First defeat Qualmos and rescue the glassmaker.': 'Besiege zuerst Qualmos und rette den Glasmacher.',
+  'Qualmos reaches for your throat — dodge the grab!': 'Qualmos greift nach deinem Hals – weiche aus!',
+  'Qualmos slips into the water. Watch for him to surface!': 'Qualmos verkriecht sich im Wasser. Pass auf, wo er wieder auftaucht!',
+  'Flights left: {n}': 'Übrige Flüge: {n}',
+  'Hold in hand': 'In die Hand nehmen',
+  'Put on the glass breathing helmet in your inventory first.': 'Setze zuerst den Glashelm zum Atmen im Inventar auf.',
+  'Hold this world’s glass bird in your off hand before flying.': 'Nimm vor dem Fliegen den Glasvogel dieser Welt in die Nebenhand.',
+  'First collect the recording and listen to the glassmaker.': 'Sammle zuerst die Aufnahme ein und höre dem Glasmacher zu.',
   'Qualmos': { text: 'Qualmos', g: 'm' },
   'Hit by the amphibian!': 'Von Qualmos getroffen!',
   'Qualmos enters phase {phase}!': 'Qualmos beginnt Phase {phase}!',

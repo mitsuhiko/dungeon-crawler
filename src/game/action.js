@@ -19,6 +19,7 @@ import { ITEMS } from '../core/items.js';
 import { partInReach, usePart } from './trials.js';
 import { sleepingRobot, canWakeRobot, wakeRobot } from './robot.js';
 import { tr, noun } from '../i18n/i18n.js';
+import { pendingVoyageAction, useVoyageThing } from './qualmos-voyage.js';
 
 // a villager with something to say: quests to give, or wares
 export const talkative = v => !!(shopOf(v) || giverOf(v) || v?.lost || v?.helper);
@@ -49,6 +50,8 @@ function showcase(list) {
 export function pendingAction() {
   if (state.mode !== 'play' || !state.map || state.transitioning || state.inventoryOpen
     || player.down || player.ragdoll || player.hp <= 0) return null;
+  const voyage = pendingVoyageAction();
+  if (voyage) return voyage;
   const chest = chestInReach();
   if (chest) return { kind: 'chest', target: chest, label: tr('Open the chest'), picture: 'treasure_chest' };
   const villager = villagerInReach();
@@ -67,6 +70,7 @@ export function pendingAction() {
 
 export function useAction() {
   const a = pendingAction();
+  if (a?.kind === 'voyage') return useVoyageThing(a.target);
   if (a?.kind === 'chest') return openChest(a.target);
   if (a?.kind === 'talk') { talkTo(a.target); return true; }
   if (a?.kind === 'part') return usePart(a.target);

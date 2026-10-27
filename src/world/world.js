@@ -19,6 +19,8 @@ import { bridgesOf } from '../themes/builds.js';
 import { trialFaces } from './trials.js';
 import { isTestRoom, testRoomOf } from './testrooms.js';
 import { generateTestRoom } from '../cubegen/testrooms.js';
+import { generateVoyageMap } from '../cubegen/qualmos-voyage.js';
+import { voyagePocket, QUALMOS_CORE } from '../core/qualmos-voyage.js';
 
 // how much each WFC kind leans towards an archetype (times the theme's weights)
 const LEAN = { highland: { mesa: 2, spire: 2, archipelago: 0.3 }, lake: { archipelago: 3, crater: 2 }, gorge: { chasm: 3 },
@@ -127,6 +129,16 @@ export class World {
   // (world/testrooms.js) are not part of the grid
   cube(k) {
     let c = this.cubes.get(k);
+    const pocket = voyagePocket(k);
+    if (!c && pocket) {
+      c = { key: k, map: generateVoyageMap({ key: k, seed: hash32(this.seed ^ hashKey(k)), biome: this.layout(20).theme.props }, pocket), visits: 0 };
+      this.cubes.set(k, c);
+    }
+    if (!c && k === QUALMOS_CORE) {
+      this.prepare(k);
+      c = { key: k, map: generateVoyageMap(this.spec(k), { kind: 'room', chapter: 1 }), visits: 0 };
+      this.cubes.set(k, c);
+    }
     if (!c && isTestRoom(k)) {
       const d = -parse(k)[1];
       // (the boss room is built from the spec of the depth's own descent arena: cubegen/testrooms.js)

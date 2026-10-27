@@ -9,6 +9,7 @@ import { World } from './world.js';
 import { faceKey } from './coords.js';
 import { isInterior } from './town.js';
 import { isTestRoom } from './testrooms.js';
+import { voyagePocket } from '../core/qualmos-voyage.js';
 import { buildCubeParts } from '../render/cubegeo.js';
 import { partBuffers } from '../render/parts.js';
 import { setLightmapDensity } from '../render/lightmap.js';
@@ -18,6 +19,7 @@ const queue = [];   // keys still to make, the next first
 let scheduled = false;
 
 function info(k) {
+  if (voyagePocket(k)) return { kind: 'meadow', sock: null, K: 1, faces: [null, null, null, null, null, null] };
   if (isInterior(k)) return { kind: 'interior', sock: null, K: world.cube(k).map.K, faces: [null, null, null, null, null, null] };
   if (isTestRoom(k)) return { kind: 'meadow', sock: null, K: world.cube(k).map.K, faces: [null, null, null, null, null, null] };
   const t = world.wfc.tiles.get(k);

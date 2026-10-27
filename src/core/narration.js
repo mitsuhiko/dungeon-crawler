@@ -139,6 +139,7 @@ const deep = (id, title) => { const depth = depthOfGlass(id); return { id, title
 export const RECORDINGS = [
   { id: 'glass', title: msg('A voice in the glass'), found: msg('Found on the town plaza'), where: 'town' },
   { id: 'camp', title: msg('Where the sword fell'), found: msg('Found in the merchant camp'), where: 'camp' },
+  { id: 'qualmos', title: msg('The glass bird'), found: msg('Found before Qualmos'), where: { depth: 20 } },
   deep('breath', msg('Every glass begins with a breath')),
   deep('star-sand', msg('Star-sand')),
   deep('birds', msg('Little birds of glass')),
@@ -220,6 +221,14 @@ const G_HUSH = 'Speak low and hushed, slowly, as if afraid to wake something.';
 const G_PROUD = 'Speak low and steady, with a craftsman\'s quiet pride.';
 
 export const LINES = [
+  recording('qualmos', 'hello', 'Hello! If you hear this, I am happy that you made it here.',
+    'A message the glassmaker left in a small glass recording with a rare bird and a breathing helmet. Glad someone found it.', G_FOND),
+  recording('qualmos', 'away', 'I am away for a while.',
+    'A short, dry goodbye, as in the child\'s story: he has stepped away.', G_WRY),
+  recording('qualmos', 'rare', 'The glass bird is very rare, so use it wisely.',
+    'The bird has only two flights. A gentle but clear warning not to waste them.', G_CALM),
+  recording('qualmos', 'flights', 'It can fly you somewhere twice.',
+    'He explains the bird\'s two uses plainly, in his existing glassmaker voice.', G_CALM),
   // --- the glass on the town plaza: the first thing a hero finds (core/intro.js) -------------------
   recording('glass', 'found', 'So my glass found someone. Good.',
     'The first words of the bubble of star-glass the hero just broke open on the town plaza, at noon. He recorded it long ago, down in the dark, and has no idea who hears it. Quietly glad, a little surprised.',

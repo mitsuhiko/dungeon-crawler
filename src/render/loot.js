@@ -46,7 +46,7 @@ const sparkOf = (r, k) => r.glow?.rainbow ? rainbow(sparkColor, Math.random()) :
 
 function proto(itemId) {
   if (protos.has(itemId)) return protos.get(itemId);
-  if (itemId === GLASS_VIEW) {   // the glassmaker's glass (core/intro.js): made, not loaded
+  if (itemId === GLASS_VIEW || ITEMS[itemId]?.voyagePart === 'message') {   // All recordings share the beginning's glass sphere.
     protos.set(itemId, glassBubble()); loads.set(itemId, Promise.resolve());
     return protos.get(itemId);
   }
@@ -73,7 +73,7 @@ function proto(itemId) {
     root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(root), centre = box.getCenter(new THREE.Vector3());
     root.position.sub(centre);
-    const wrap = new THREE.Group(), scale = weapon ? WEAPON_SCALE : def.armor ? ARMOR_SCALE : SCALE;
+    const wrap = new THREE.Group(), scale = def.floorScale ?? (weapon ? WEAPON_SCALE : def.armor ? ARMOR_SCALE : SCALE);
     wrap.add(root); wrap.scale.setScalar(scale);
     wrap.userData.half = (box.max.y - box.min.y) / 2 * scale;
     wrap.userData.scale = scale;

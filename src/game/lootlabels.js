@@ -33,6 +33,7 @@ import { waysHere } from './ways.js';
 import { usableParts, partLabel } from './trials.js';
 import { questItemsHere } from './questworld.js';
 import { introThingsHere } from './intro.js';
+import { voyageThingsHere } from './qualmos-voyage.js';
 import { sleepingRobot } from './robot.js';
 import { shopOf } from '../core/shops.js';
 import { GIVERS, giverOf, giverMark } from '../core/quests.js';
@@ -118,7 +119,7 @@ function screen(p, off) {
 
 // everything here to hover and click (parts: this frame's usableParts)
 const thingsHere = () => [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView),
-  ...introThingsHere().filter(lootView), ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : []), ...[sleepingRobot()].filter(Boolean)];
+  ...introThingsHere().filter(lootView), ...voyageThingsHere(), ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : []), ...[sleepingRobot()].filter(Boolean)];
 const ZERO = new THREE.Vector3(), cubeOffset = () => state.world?.group.position ?? ZERO;
 // (tests/browser/hover.js) everything hovered here, each with its body; and the key of what is hovered
 export const hoverables = () => thingsHere().map(p => ({ key: keyOf(p), body: bodyOf(p, cubeOffset()) }));
@@ -140,6 +141,7 @@ function wayBody(p, off) {
   return body(p.walk.x, y - 0.2, p.walk.z, 0.7, 0.6, off);
 }
 export function bodyOf(p, off) {
+  if (p.voyage) return body(p.x, p.y, p.z, p.bodyHeight, p.radius, off);
   if (isVillager(p)) return body(p.x, p.y, p.z, NPC_H + 0.1, 0.32, off);
   if (p.prestige) return body(p.anchor.x, p.anchor.y, p.anchor.z, 0.8, 0.5, off);
   if (isPart(p)) return body(p.x, p.y, p.z, 0.9, 0.4, off);
