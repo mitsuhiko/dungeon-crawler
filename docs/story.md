@@ -112,13 +112,14 @@ Decided:
   again where the hero came out. Coming back towards it the short way, it takes the short way too.
   While it waits it drifts about a little and looks at the hero; while it talks it faces them.
 - **It is in no fight**: invincible, nobody's target, nothing hits it, it is never in the way
-  (it has no body) and cannot be clicked.
+  (it has no body) and cannot be clicked. It flies round the heroes and the enemies, never through
+  them (round to the side, or over one where a wall is beside it).
 - **Its light**: its amber core lights what is round it (a moving light, about four cells).
 - **It brings you back** when you die, to the last safe place (not built yet).
 - **Its memory**: it knows something about the glassmaker, but cannot get at all of what it
   remembers at once.
-- **Playing together**: every player has a robot of their own. One of them, the host's, is the
-  one that tells the story. For now each player sees only their own ([online.md](online.md)).
+- **Playing together**: every player has a robot of their own, and everyone sees everyone's
+  ([online.md](online.md)). One of them, the host's, is the one that tells the story.
 
 Still open:
 

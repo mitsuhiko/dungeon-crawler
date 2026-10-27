@@ -16,7 +16,8 @@
 // death: a jump), it fades out where it is and in again where the hero came out (BLINK).
 //
 // It is not in any fight: no enemy sees it, nothing hits it, and it is never in the way (it has
-// no body). It has a light of its own (render/robot.js).
+// no body; it flies round the heroes and the enemies: game/robot.js avoid). It has a light of its
+// own (render/robot.js).
 import { N } from './constants.js';
 import { parse } from '../world/coords.js';
 import { LINES } from './narration.js';

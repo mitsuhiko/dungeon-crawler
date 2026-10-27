@@ -52,10 +52,12 @@ import { tintCharacter, wornSkin } from '../render/character.js';
 import { skinImage } from '../game/skinfiles.js';
 import { isSkinPng } from '../core/skin.js';
 import { openRoom, joinRoom } from './transport.js';
-import { PROTOCOL, MAX_PLAYERS, RELAYED, isFor, validTo, freeSlot, runnerOf, roomCode, cleanName, isMe,
+import { PROTOCOL, MAX_PLAYERS, RELAYED, isFor, validTo, freeSlot, runnerOf, roomCode, cleanName, isMe, robotOf,
   SEND_EVERY, FOES_EVERY, FAR_EVERY, PING_EVERY, LOST, REJOIN_EVERY, REJOIN_TRIES, CHAT_MAX, chatAllowed,
   SKIN_EVERY, SKIN_BYTES, skinIdOf, skinPieces, isSkinPiece, toBase64, fromBase64 } from './protocol.js';
 import { Timeline } from './sync.js';
+import { robotWord, showOtherRobot } from '../game/robot.js';
+import { removeOtherRobot } from '../render/robot.js';
 import { online, relay, travel } from './online.js';
 import { Runner, Viewer, canBeHit } from './foes.js';
 import { setOthers } from '../game/party.js';
@@ -141,7 +143,7 @@ function dropPeer(slot) {
   if (!p) return;
   p.body.here = false;
   peers.delete(slot); online.peers.delete(slot);
-  removePartner(slot);
+  removePartner(slot); removeOtherRobot(slot);
   setPartnerSkin(slot, null);
   skinSends.delete(slot);
 }
@@ -300,7 +302,7 @@ function apart() {
   settleClaims();   // what we reached for is ours: nobody else is left to have it
   setOthers([]);
   online.buddies = [];
-  removePartner();
+  removePartner(); removeOtherRobot();
 }
 
 // --- the host: guests coming and going ---------------------------------------------------------
@@ -772,7 +774,8 @@ function send(now) {
   const p = player, at = truePosition(), r = x => Math.round(x * 1000) / 1000;
   const m = { t: 'me', ts: now, seed: state.cubes.seed, cube: state.cubeKey, busy: busy(), pose,
     body: [at.x, at.y, at.z, p.vx, p.vz].map(r), ground: p.grounded ? 1 : 0, swim: p.swimming ? 1 : 0, down: p.ragdoll ? 1 : 0,
-    ko: downInfo(), hp: p.hp, maxHp: p.maxHp, level: p.level, weapon, ...capturedLook(), sealed: sealedIn() ? 1 : 0 };
+    ko: downInfo(), hp: p.hp, maxHp: p.maxHp, level: p.level, weapon, ...capturedLook(), sealed: sealedIn() ? 1 : 0,
+    robot: robotWord() };
   if (online.role === 'host') { m.from = 0; passMe(m, 0); }
   else link?.send(m);
 }
@@ -895,6 +898,9 @@ export function updateOnline() {
     const here = b && !b.busy && b.seed === seed && b.cube === state.cubeKey && !state.transitioning;
     showPartner(p.slot, here ? span : null, p.name);
     showHelp(p.slot, here && Array.isArray(b.ko) && finite(...b.ko) ? b.ko : null, p.name);
+    // and their robot, wherever it is (it may be left behind in a cube beside ours)
+    const rb = b && b.seed === seed ? robotOf(b.robot) : null, ra = rb && span.a.seed === seed ? robotOf(span.a.robot) : null;
+    showOtherRobot(p.slot, rb && { a: ra, b: rb, k: span.k });
   }
 }
 

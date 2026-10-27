@@ -6,12 +6,14 @@
 //
 // Its glass is drawn like the glassmaker's (render/glassbubble.js): see-through teal, catching the
 // light on its facets, not the GLB's transmission (a second pass over the whole scene). Its light
-// is a moving light source (render/lightpool.js). One robot: ours (the others' are not shown yet).
+// is a moving light source (render/lightpool.js). Ours, and playing together the others' too
+// (drawOtherRobot), each a copy of the GLB with materials of its own (each fades on its own).
 import * as THREE from 'three';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 import { loadGLB } from './gltf.js';
 import { cullBySphere, ownShadowDepth } from './skinned.js';
 import { scene } from './scene.js';
-import { trackLight } from './lightpool.js';
+import { trackLight, untrackLight } from './lightpool.js';
 import { warm } from './warmup.js';
 
 const URL = 'assets/robot.glb';
@@ -32,15 +34,18 @@ function materials(name, m) {
 }
 
 export const robotView = { ready: false, group: null, mixer: null, actions: {}, weights: {}, light: null, parts: [], cheer: 0 };
+// the GLB as loaded, kept untouched: every view is a copy of it
+let template = null;
 
-export const robotReady = loadGLB(URL).then(gltf => {
-  const group = new THREE.Group(), model = gltf.scene;
+// a robot's view, made from the template: { group, model, mixer, actions, weights, light, parts, cheer }
+function makeView() {
+  const group = new THREE.Group(), model = cloneSkinned(template.scene);
   group.add(model);
   group.userData.figure = true;   // (casts into the realtime shadow maps as the quality level asks: render/shadows.js)
   const parts = [];
   model.traverse(o => {
     if (!o.isMesh) return;
-    const name = o.material.name, m = materials(name, o.material);
+    const name = o.material.name, m = materials(name, o.material.clone());
     m.userData.keep = true;
     o.material = m;
     o.renderOrder = 10 + m.order;
@@ -51,7 +56,7 @@ export const robotReady = loadGLB(URL).then(gltf => {
   ownShadowDepth(model);
   const mixer = new THREE.AnimationMixer(model), actions = {}, weights = {};
   for (const [k, name] of Object.entries(CLIPS)) {
-    const clip = gltf.animations.find(c => c.name === name);
+    const clip = template.animations.find(c => c.name === name);
     if (!clip) throw new Error(`robot: no clip ${name}`);
     const a = mixer.clipAction(clip);
     if (k === 'cheer') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
@@ -62,25 +67,35 @@ export const robotReady = loadGLB(URL).then(gltf => {
   light.position.y = 0.9;   // (its core: blender/robot.py, the middle 0.9 over the floor)
   trackLight(light, group, group, 2);
   scene.add(group);
-  Object.assign(robotView, { ready: true, group, model, mixer, actions, weights, light, parts });
-  const warming = warm([group]);   // (its shaders, before it first shows: compiled while shown, at once)
   group.visible = false;
+  return { ready: true, group, model, mixer, actions, weights, light, parts, cheer: 0 };
+}
+
+export const robotReady = loadGLB(URL).then(gltf => {
+  template = gltf;
+  const view = makeView();
+  Object.assign(robotView, view);
+  view.group.visible = true;
+  const warming = warm([view.group]);   // (its shaders, before it first shows: compiled while shown, at once)
+  view.group.visible = false;
   return warming;
 }).catch(e => { console.error('the robot failed to load', e); });
 
 // it cheers (a hop and a somersault), once, then goes on as it was
-export function robotCheer() {
-  if (!robotView.ready) return;
-  const a = robotView.actions.cheer;
+export function robotCheer() { if (robotView.ready) cheer(robotView); }
+function cheer(v) {
+  const a = v.actions.cheer;
   a.reset().play();
-  robotView.cheer = a.getClip().duration;
+  v.cheer = a.getClip().duration;
 }
 
 // Draw it at `at` (the scene's coordinates: its feet, the floor under it), turned to `yaw`, `fade`
 // of it showing (0: hidden); `clip`: what it does ('hover', 'fly', 'talk'), blended into
-export function drawRobot(at, yaw, fade, clip, dt) {
-  const v = robotView;
-  if (!v.ready) return;
+export function drawRobot(at, yaw, fade, clip, dt) { if (robotView.ready) drawView(robotView, at, yaw, fade, clip, dt); }
+// what ours shows now ('cheer' while it cheers), for the others (game/robot.js robotWord)
+export const robotClip = clip => robotView.cheer > 0 ? 'cheer' : clip;
+
+function drawView(v, at, yaw, fade, clip, dt) {
   v.group.visible = !!at && fade > 0.01;
   if (!v.group.visible) return;
   v.group.position.copy(at);
@@ -95,6 +110,32 @@ export function drawRobot(at, yaw, fade, clip, dt) {
     v.actions[name].setEffectiveWeight(w);
   }
   v.mixer.update(dt);
+}
+
+// The others' robots (playing together: net/session.js, game/robot.js showOtherRobot), by player
+// number: a view each, made the first time it shows. Their 'cheer' comes as a clip: it plays once
+// as it starts.
+const others = new Map();   // slot -> { view, clip, at (s: when it was drawn last) }
+export function drawOtherRobot(slot, at, yaw, fade, clip) {
+  if (!template) return;
+  let o = others.get(slot);
+  if (!at || fade <= 0.01) { if (o) o.view.group.visible = false; return; }
+  if (!o) others.set(slot, o = { view: makeView(), clip: null, at: null });
+  const now = performance.now() / 1000, dt = Math.min(0.1, now - (o.at ?? now));
+  o.at = now;
+  if (clip === 'cheer' && o.clip !== 'cheer') cheer(o.view);
+  o.clip = clip;
+  drawView(o.view, at, yaw, fade, clip === 'cheer' ? 'hover' : clip, dt);
+}
+// player `slot` went (undefined: all of them)
+export function removeOtherRobot(slot) {
+  if (slot === undefined) { for (const s of [...others.keys()]) removeOtherRobot(s); return; }
+  const o = others.get(slot);
+  if (!o) return;
+  o.view.group.removeFromParent();
+  untrackLight(o.view.light);
+  for (const p of o.view.parts) p.material.dispose();
+  others.delete(slot);
 }
 
 // hidden (no robot, the main menu)

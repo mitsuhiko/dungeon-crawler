@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { roomCode, readCode, CODE_LETTERS, CODE_LENGTH, cleanName, packPose, isPose, isMe, BONES, Q,
-  MAX_PLAYERS, RELAYED, isFor, validTo, freeSlot, runnerOf } from '../src/net/protocol.js';
+  MAX_PLAYERS, RELAYED, isFor, validTo, freeSlot, runnerOf, robotOf, ROBOT_CLIPS } from '../src/net/protocol.js';
 import { Timeline, lerpAngle, DELAY } from '../src/net/sync.js';
 import { TrialOwner, trialMessage, trialAct, followTrial, TRIAL_EVERY } from '../src/net/trials.js';
 import { newTrial, stepTrial, trialSealed, ARM_TIME } from '../src/core/trials.js';
@@ -47,6 +47,16 @@ test('a pose packs into whole numbers and checks out', () => {
   assert.ok(isMe(me));
   assert.ok(!isMe({ ...me, cube: 3 }));
   assert.ok(!isMe({ ...me, pose: null }));
+});
+
+// everyone sees everyone's robot (game/robot.js robotWord): its cube, place, yaw, fade and clip
+test("a `me` says where the player's robot is and what it does", () => {
+  assert.deepEqual(robotOf(['0,0,0', 1.5, 2, 3, 0.5, 0.25, ROBOT_CLIPS.indexOf('fly')]),
+    { k: '0,0,0', x: 1.5, y: 2, z: 3, yaw: 0.5, fade: 0.25, clip: 'fly' });
+  assert.equal(robotOf(['0,0,0', 1, 2, 3, 0, 4, 99]).fade, 1);
+  assert.equal(robotOf(['0,0,0', 1, 2, 3, 0, 1, 99]).clip, 'hover');
+  for (const bad of [undefined, null, [], ['0,0,0', 1, 2, 3, 0, 1], [7, 1, 2, 3, 0, 1, 0], ['0,0,0', 1, NaN, 3, 0, 1, 0], 'robot'])
+    assert.equal(robotOf(bad), null);
 });
 
 test('messages go to everyone, one player or a few', () => {

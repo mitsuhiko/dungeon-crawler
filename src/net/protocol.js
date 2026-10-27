@@ -28,12 +28,13 @@
 //   world   { seed, defeated, ... }    host -> guests: the host went into another world (and its
 //                                      progress there, as in the welcome)
 //   me      { ts, seed, cube, busy, pose, body, ground, swim, down, ko, hp, maxHp, level,
-//             weapon, armed, worn, skin }  to all, about 20 times a second: where I am and how I
+//             weapon, armed, worn, skin, robot }  to all, about 20 times a second: where I am and how I
 //                                      look (`ts`: the sender's clock, ms; skin: the id of the
 //                                      painted skin I wear, or null; worn: what I wear,
 //                                      'id@rarity@back' each, wornOf; body: [x, y, z, vx,
 //                                      vz], what enemies go after; ko: lying downed, [helped up
-//                                      %, s left], game/downed.js). The host passes it on less
+//                                      %, s left], game/downed.js; robot: where my robot is and
+//                                      what it does, robotOf). The host passes it on less
 //                                      often to players in another cube (FAR_EVERY).
 // A cube's enemies are run by the player there with the lowest number (net/foes.js): the
 // runner. Those with it in the cube are shown them (viewers):
@@ -243,6 +244,17 @@ export function isMe(m) {
   return m?.t === 'me' && Number.isFinite(m.ts) && Number.isFinite(m.seed) && typeof m.cube === 'string'
     && isPose(m.pose) && Number.isFinite(m.hp) && Number.isFinite(m.maxHp)
     && Array.isArray(m.body) && m.body.length === 5 && m.body.every(Number.isFinite);
+}
+
+// A player's robot (game/robot.js robotWord), in their `me`: [cube, x, y, z, yaw, fade, clip]
+// (where it is, in that cube's coordinates; how much of it shows; what it does, an index into
+// ROBOT_CLIPS). None: they have none yet.
+export const ROBOT_CLIPS = ['hover', 'fly', 'talk', 'cheer'];
+// what a `me` says of the robot: { k, x, y, z, yaw, fade, clip }, or null
+export function robotOf(r) {
+  if (!Array.isArray(r) || r.length !== 7 || typeof r[0] !== 'string' || !r.slice(1).every(Number.isFinite)) return null;
+  const [k, x, y, z, yaw, fade, clip] = r;
+  return { k, x, y, z, yaw, fade: Math.min(1, Math.max(0, fade)), clip: ROBOT_CLIPS[clip] ?? 'hover' };
 }
 
 // --- the enemies (net/foes.js) --------------------------------------------------------------------
