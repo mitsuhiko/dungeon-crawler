@@ -131,6 +131,17 @@ export function addInstance(inv, item) {
   inv.version++;
   return instanceId;
 }
+// the instance `instanceId` in the bag becomes item ({ itemId, gen }) where it is: same slot, same
+// instanceId, so whatever points at it (in hand, worn, on the quick bar) points at the new one.
+// false: not in the bag
+export function replaceInstance(inv, instanceId, item) {
+  const slot = ownedItem(inv, instanceId);
+  if (!slot || !ITEMS[item?.itemId]) return false;
+  Object.assign(slot, { itemId: item.itemId, count: item.count ?? 1 });
+  if (item.gen) slot.gen = item.gen; else delete slot.gen;
+  inv.version++;
+  return true;
+}
 // would item ({ itemId, count, gen? }) go into the bag now? (coins always do)
 export function fits(inv, item) {
   const def = ITEMS[item?.itemId];

@@ -9,7 +9,7 @@ import { World } from '../src/world/world.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { step, faceKey } from '../src/world/coords.js';
 import { TOWN_KEY, TOWN_LEVEL, TOWN_RELIC, CAMP_GLASS, CAMP_RELIC, CAMP_ROBOT, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
-import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, campGlassThere, swordThere, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../src/core/intro.js';
+import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, campGlassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../src/core/intro.js';
 import { GLASS, PER_DEPTH, glassAt } from '../src/core/glass.js';
 import { recordingLines } from '../src/core/narration.js';
 import { portalLocked, lockMessage } from '../src/core/guardians.js';
@@ -111,6 +111,34 @@ test('a new hero comes empty-handed; the sword it finds is the glassmaker\'s, an
   slot.gen.name = 'Old Sword';
   const back = checkHero(JSON.parse(JSON.stringify(old)));
   assert.equal(back.inventory.slots.find(s => s?.itemId === OLD_SWORD.id).gen.name, "Glassmaker's Old Sword");
+});
+
+test('the sword pulled out replaces one of his already in the bag, where it is; else it takes a free slot', async () => {
+  const { createInventory, equipItem, addInstance, assignBar, barIndexOf, ownedItem } = await import('../src/core/inventory.js');
+  const count = inv => inv.slots.filter(s => s?.itemId === OLD_SWORD.id).length;
+  // empty-handed: into the bag
+  const fresh = createInventory(), got = pullSword(fresh);
+  assert.equal(got.replaced, false); assert.equal(count(fresh), 1);
+  // carrying his sword from another world (enchanted there, on the quick bar, in hand): replaced
+  const inv = createPlayerStats().inventory, had = inv.slots.find(s => s?.itemId === OLD_SWORD.id);
+  had.gen.enchant = 'something'; assignBar(inv, 2, had.instanceId);
+  const at = inv.slots.indexOf(had), bar = barIndexOf(inv, had);
+  const again = pullSword(inv);
+  assert.deepEqual(again, { id: had.instanceId, replaced: true });
+  assert.equal(count(inv), 1, 'never a second one');
+  assert.equal(inv.slots.indexOf(ownedItem(inv, had.instanceId)), at);
+  assert.equal(inv.equipped, had.instanceId); assert.equal(barIndexOf(inv, ownedItem(inv, had.instanceId)), bar);
+  assert.equal(ownedItem(inv, had.instanceId).gen.enchant, undefined, 'a fresh one');
+  // a full bag does not matter when there is one to replace; with none, it is refused
+  while (addInstance(inv, fixedWeapon('weapon_sword_short')));
+  assert.ok(pullSword(inv));
+  const full = createInventory();
+  while (addInstance(full, fixedWeapon('weapon_sword_short')));
+  assert.equal(pullSword(full), null);
+  // the one in hand is the one replaced, when there are two
+  const two = createInventory(), a = addInstance(two, fixedWeapon(OLD_SWORD.id)), b = addInstance(two, fixedWeapon(OLD_SWORD.id));
+  equipItem(two, b);
+  assert.equal(pullSword(two).id, b); assert.ok(a);
 });
 
 test('a recording is told whole once it begins, and is cut short by the next or by leaving its place', async () => {

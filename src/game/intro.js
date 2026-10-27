@@ -5,7 +5,8 @@
 // - a glass breaks and its recording plays (game/narrator.js): the town's opens the memories (the
 //   inventory's Memories tab, game/memorypanel.js) and the town's gate; the camp's tells where the
 //   sword fell;
-// - the sword goes into the bag (in hand, if nothing is) and the camp's gate out to the road opens.
+// - the sword goes into the bag (in hand, if nothing is; one of his in the bag already is replaced
+//   by it, core/intro.js pullSword) and the camp's gate out to the road opens.
 // His words only ever come out of his glass: coming somewhere or taking the sword says nothing.
 // Each recording cuts short the one before, and leaving its place cuts it short (core/narration.js
 // RECORDINGS: the narrator does it, game/narrator.js).
@@ -13,11 +14,10 @@
 // Playing together the others are told (relay.story, net/session.js): a gate opened here opens
 // for everyone, and a recording one of us sets off plays for everyone at once (heardStory).
 import { player, state, setStatus, worldPaused } from './state.js';
-import { INTRO_GATES, glassThere, campGlassThere, swordThere, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../core/intro.js';
+import { INTRO_GATES, glassThere, campGlassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../core/intro.js';
 import { meetRobot } from '../core/robot.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
-import { fixedWeapon } from '../core/gear/generate.js';
-import { addInstance, equipItem, fits } from '../core/inventory.js';
+import { equipItem } from '../core/inventory.js';
 import { sfx } from '../audio/sfx.js';
 import { narrate } from './narrator.js';
 import { syncEquippedWeapon } from './equipment.js';
@@ -95,14 +95,13 @@ function findGlass(p) {
 }
 
 function takeSword(p) {
-  const inv = player.inventory, sword = fixedWeapon(OLD_SWORD.id);
-  if (!fits(inv, sword)) {
+  const inv = player.inventory, got = pullSword(inv);   // (his sword in the bag already: replaced)
+  if (!got) {
     if (!refused) setStatus(tr('Inventory is full'));
     refused = true;
     return;
   }
-  const id = addInstance(inv, sword);
-  if (!inv.equipped && !inv.readied) { equipItem(inv, id); syncEquippedWeapon(); }
+  if (!inv.equipped && !inv.readied) { equipItem(inv, got.id); syncEquippedWeapon(); }
   storyBurst(state.world, p.x, p.y + 0.4, p.z, STEEL, 16);
   sfx('pickup');
   floatText(`+${tr(OLD_SWORD.name)}`, q => q.set(player.x, player.visY + 1.55, player.z), { life: 1.6 });

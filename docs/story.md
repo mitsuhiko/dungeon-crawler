@@ -252,7 +252,8 @@ gate that will not open until it is found (gates of his glass, like a guardian's
    nothing, and it is there until it is heard (`run.told`).
 3. **The sword** (`CAMP_RELIC`): it stands in the ground in the middle of the camp. Pulled out it is
    the hero's (the **Glassmaker's Old Sword**, in hand if nothing is) and the camp's gate out to the
-   road opens. It says nothing: it is no glass.
+   road opens. A hero who comes with his sword in the bag already (from another world) gets no
+   second one: the one pulled out takes its place (in hand or on the quick bar, if it was). It says nothing: it is no glass.
 
 Nobody has to stand about and listen. A recording counts as heard whole the moment it begins (the
 Memories have all of it), the next recording cuts it short, and leaving its place does too (the

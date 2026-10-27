@@ -22,8 +22,12 @@
 // together opened for everyone). The town's glass is there while its gate is shut; the camp's until
 // its recording is heard (run.told); the sword while its gate is shut, and after that for a hero
 // without any weapon (one who joins a friend's world with an empty bag, or sold everything): it is
-// never short of one.
+// never short of one. A hero who comes into a world with his sword in the bag already (from another
+// world) does not get a second: the one pulled out takes its place (pullSword).
 import { msg } from '../i18n/i18n.js';
+import { OLD_SWORD } from './items.js';
+import { fixedWeapon } from './gear/generate.js';
+import { addInstance, fits, ownedItem, slotOf, replaceInstance } from './inventory.js';
 import { isClearing, isInterior } from '../world/town.js';
 import { recordingLines } from './narration.js';
 import { glassAt, depthOfGlass } from './glass.js';
@@ -49,6 +53,18 @@ export const glassThere = run => !run.unlockedGates.has(INTRO_GATES.glass);
 export const campGlassThere = run => !recordingLines('camp').some(l => run.told.has(l.id));
 // is the sword there, for a hero who carries `weapons` weapons (any, in the bag)?
 export const swordThere = (run, weapons) => !run.unlockedGates.has(INTRO_GATES.sword) || weapons === 0;
+
+// The sword pulled out of the ground into the bag (inv). One of his in the bag already (the one in
+// hand, else the first) is replaced by it where it is: still in hand, on the quick bar. Else it goes
+// into a free slot. { id: its instanceId, replaced }, or null: the bag is full.
+export function pullSword(inv) {
+  const sword = fixedWeapon(OLD_SWORD.id), held = ownedItem(inv, inv.equipped);
+  const had = held?.itemId === OLD_SWORD.id ? held : slotOf(inv, OLD_SWORD.id);
+  if (had) return replaceInstance(inv, had.instanceId, sword) && { id: had.instanceId, replaced: true };
+  if (!fits(inv, sword)) return null;
+  const id = addInstance(inv, sword);
+  return id && { id, replaced: false };
+}
 
 // what playing together tells the others (net/session.js `story`): the town's glass found (its gate
 // open, its recording heard by everyone), the sword taken (its gate open), the camp's glass found
