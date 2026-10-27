@@ -117,7 +117,7 @@ export function drawMinimap() {
   const me = truePosition();
   // the same view as last time (to half a pixel), and drawn not long ago: nothing to do
   const px = v => Math.round(v / N * CELL * 2);
-  const seen = [state.cubeKey, px(me.x), px(me.z), Math.round(view.yaw * 200), Math.round(player.yaw * 20),
+  const seen = [state.cubeKey, px(me.x), px(me.z), Math.round((view.yaw + view.roll) * 200), Math.round(player.yaw * 20),
     ...online.buddies.map(b => `${b.cube} ${px(b.x)} ${px(b.z)} ${Math.round(b.yaw * 20)}`)].join('|');
   const now = performance.now();
   const scale = Math.min(Math.max(devicePixelRatio || 1, 1), 3) * uiScale() * size;   // (style.css zooms it by the UI scale, and sizes it by the settings)
@@ -125,7 +125,9 @@ export function drawMinimap() {
   drawn = seen; drawnAt = now; drawnScale = scale;
   const fx = inside ? (door ? door.x / N : 0.5) : me.x / N, fz = inside ? (door ? door.z / N : 0.5) : me.z / N;
   const cx = X0 + fx, cz = Z0 + fz;
-  cos = Math.cos(view.yaw); sin = Math.sin(view.yaw);
+  // (the world rolled on the screen, game/roll.js: the map rolls with it)
+  const turn = view.yaw + view.roll;
+  cos = Math.cos(turn); sin = Math.sin(turn);
   const visited = k => !!W.cubes.get(k)?.visits;
   const tp = state.run.townPortal, friends = online.buddies.filter(b => b.cube), away = friends.filter(b => !spot(b, cx, Y, cz));
   // a line of text under the map each: the cube and depth, being in a house, the town portal,
@@ -155,7 +157,7 @@ export function drawMinimap() {
   const marks = [];
   g.save();
   octagon(); g.clip();
-  g.translate(C, C); g.rotate(view.yaw);
+  g.translate(C, C); g.rotate(turn);
   for (let dz = -REACH; dz <= REACH; dz++) for (let dx = -REACH; dx <= REACH; dx++) {
     const k = key(X0 + dx, Y, Z0 + dz), c = W.cubes.get(k);
     if (!c?.visits) continue;

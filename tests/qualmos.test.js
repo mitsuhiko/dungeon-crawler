@@ -15,9 +15,11 @@ const named = name => QUALMOS.attacks.find(a => a.name === name);
 test('Qualmos waits at the core, depth 20, with twice the health of Slomo at his own level', () => {
   assert.equal(BOSSES[20], 'qualmos'); assert.equal(bossAt(20), 'qualmos'); assert.equal(ENEMY_KINDS.qualmos, QUALMOS);
   assert.equal(guardianLevel(20, 'descent'), 22);
-  const others = Object.entries(BOSSES).filter(([, k]) => k !== 'qualmos').map(([d, k]) => enemyProfile(ENEMY_KINDS[k], guardianLevel(+d, 'descent')).hp);
-  assert.equal(enemyProfile(QUALMOS, 22).hp, 2 * Math.max(...others));
+  assert.equal(enemyProfile(QUALMOS, 22).hp, 2 * enemyProfile(ENEMY_KINDS.slomo, guardianLevel(13, 'descent')).hp);
   assert.equal(enemyProfile(QUALMOS, 22).hp, 6760);
+  // (more than any other boss: Monteur, twice a boss of his level, too)
+  const others = Object.entries(BOSSES).filter(([, k]) => k !== 'qualmos').map(([d, k]) => enemyProfile(ENEMY_KINDS[k], guardianLevel(+d, 'descent')).hp);
+  assert.ok(enemyProfile(QUALMOS, 22).hp > Math.max(...others));
 });
 
 test('the core\'s last cube is his arena: him alone, its entrance and no way on', () => {

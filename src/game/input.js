@@ -45,6 +45,7 @@ import { answerDeath } from './deathask.js';
 import { useAction } from './action.js';
 import { cameraKeyDown, cameraKeyUp, cancelCameraKey } from './camerakey.js';
 import { screenToWorld, WALK_BELOW } from '../core/stick.js';
+import { unturn } from '../core/roll.js';
 import { mouseLook, looking, capture, escJustReleased } from './mouselook.js';
 import { toggleLock } from './lockon.js';
 import { forwardYaw } from '../core/view.js';
@@ -296,7 +297,8 @@ addEventListener('wheel', e => {
   if (!state.inventoryOpen && !state.menuOpen && state.mode === 'play') view.zoomTarget = stepZoom(view.zoomTarget, Math.sign(e.deltaY) * (invertZoom() ? -1 : 1));
 }, { passive: true });
 
-// desired direction in world space (WASD or the touch stick, relative to the camera)
+// desired direction in world space (WASD or the touch stick, relative to the camera; the world
+// rolled on the screen, as the keys follow it: game/roll.js)
 export function inputDir() {
   if (state.inventoryOpen || state.leaveAsk || state.deathAsk) return [0, 0];
   if (player.autoDir) return player.autoDir;
@@ -307,6 +309,6 @@ export function inputDir() {
   if (held('moveLeft')) ix -= 1;
   const s = controls.stick;
   if (s.m > 0) { ix += s.x; iy += s.y; }
-  return screenToWorld(ix, iy, view.yaw);
+  return screenToWorld(...unturn(ix, iy, view.keyRoll), view.yaw);
 }
 export function takeJump() { const j = controls.jumpPressed; controls.jumpPressed = false; return j; }

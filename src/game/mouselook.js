@@ -16,6 +16,7 @@
 import { state, view } from './state.js';
 import { cameraMode, lookSpeed, invertLook } from './settings.js';
 import { look, LOOK_SPIKE } from '../core/view.js';
+import { unturnMouse } from '../core/roll.js';
 import { renderer } from '../render/scene.js';
 import { setMenuOpen } from './escmenu.js';
 import { settingsOpen } from './settingsmenu.js';
@@ -77,8 +78,10 @@ document.addEventListener('pointerlockchange', () => {
 document.addEventListener('pointerlockerror', refused);
 
 // the mouse moved this far (px) while captured: the view turns (with a lock-on, sideways
-// movement moves the lock instead: game/lockon.js)
+// movement moves the lock instead: game/lockon.js). The world rolled (game/roll.js), it turns the
+// way the mouse went on the screen
 export function lookBy(dx, dy) {
+  [dx, dy] = unturnMouse(dx, dy, view.roll);
   const turned = look(view.yaw, view.pitch, dx, dy, lookSpeed(), invertLook());
   if (lockTarget()) nudgeLock(dx);
   else { view.yaw = view.yawTarget = turned.yaw; }

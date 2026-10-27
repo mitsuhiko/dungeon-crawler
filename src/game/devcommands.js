@@ -44,6 +44,8 @@ import { setFluidPalettes, paletteOf } from '../render/fluidpal.js';
 import { rowSlot } from '../themes/fluids.js';
 import { LIGHT_VIEWS, lightview } from './teach.js';
 import { showPerf, runBench } from './perf.js';
+import { setRoll, spinRoll, rollNow, setRollKeys, holdRoll } from './roll.js';
+import { KEY_MODES } from '../core/roll.js';
 
 const dev = cmd => addCommand(commands, { ...cmd, dev: true });
 const ahead = (d = 2.5) => ({ x: player.x + Math.sin(player.yaw) * d, y: player.y, z: player.z + Math.cos(player.yaw) * d });
@@ -99,6 +101,37 @@ dev({
   run({ speed }) {
     if (speed !== undefined) state.daySpeed = speed;
     return `The time of day runs ${state.daySpeed === 0 ? 'not at all' : `${state.daySpeed}× as fast`}: it is ${timeOfDay()}`;
+  },
+});
+
+// The world rolled on the screen (game/roll.js, docs/camera.md "The world's roll"): Monteur's spin
+// to try out. /roll: to a quarter and stay, or spin from quarter to quarter by itself; /rollkeys:
+// what the movement keys follow while it is turned
+const ROLLS = { 0: 'unturned', 90: 'a quarter round', 180: 'upside down', 270: 'a quarter round the other way', spin: 'from quarter to quarter by itself, resting a while at each', off: 'back to the fight: unturned, or as a Monteur here has it' };
+addType(commands, { name: 'roll', values: () => Object.entries(ROLLS).map(([v, hint]) => ({ value: v, label: v, hint })) });
+const KEYS_SAY = { world: 'the keys stay with the world as it was unturned', screen: 'the keys follow the screen (up is up the screen)',
+  catchup: 'the keys stay with the world while it turns and catch up with the screen once it rests' };
+addType(commands, { name: 'rollkeys', values: () => KEY_MODES.map(v => ({ value: v, label: v, hint: KEYS_SAY[v] })) });
+const rollSays = () => {
+  const r = rollNow();
+  return `The world is ${r.turning ? `turning to ${r.at}°` : `at ${r.at}°`}${r.spin ? ', spinning' : ''}; keys: ${r.mode} (${KEYS_SAY[r.mode]})`;
+};
+dev({
+  name: 'roll', help: 'roll the world on the screen (Monteur\'s spin): to 0, 90, 180 or 270 degrees and stay, spin, or off: back to Monteur (none: how it is)',
+  args: [{ name: 'how', type: 'roll', optional: true }],
+  run({ how }) {
+    if (how === 'spin') { holdRoll(true); spinRoll(); }
+    else if (how === 'off') holdRoll(false);
+    else if (how !== undefined) { holdRoll(true); setRoll(Number(how)); }
+    return rollSays();
+  },
+});
+dev({
+  name: 'rollkeys', help: 'what the movement keys follow while the world is rolled: world, screen or catchup (none: which)',
+  args: [{ name: 'mode', type: 'rollkeys', optional: true }],
+  run({ mode }) {
+    if (mode !== undefined) setRollKeys(mode);
+    return rollSays();
   },
 });
 

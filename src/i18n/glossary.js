@@ -12,7 +12,7 @@
 //             game's own tables: their translation is the catalog's. tools/i18n.mjs checks that
 //             the guide's German never calls a thing by its English name where it has a German one.
 // What stays the same in every language: the world names (they are made from the seed and give
-// it back: core/names.js), the bosses' names (Gusto, Totnar, Squarlo, Flip, Foggery, Renew, Mansk, Slomo, Qualmos), the
+// it back: core/names.js), the bosses' names (Gusto, Totnar, Squarlo, Flip, Foggery, Renew, Mansk, Monteur, Slomo, Qualmos), the
 // made-up kinds (Stunder, Shraps, Spicy, Wolla, Wolk, Squirtle, Mecked, Flimmer), "Seed" and "XP".
 import { ITEMS } from '../core/items.js';
 import { RARITIES } from '../core/gear/rarities.js';
@@ -52,7 +52,7 @@ export const GLOSSARY = [
     { en: /\bguardians?\b/i, de: /wächter/i }),
   term('Temp Boss', { word: { en: 'Temp Boss', de: 'Temp-Boss', id: 'Bos Sementara' }, g: 'm' }, 'the guardian of a well, standing in for a boss to come; "Temp-Boss-Spinne"',
     { en: /\bTemp Boss\b/i, de: /Temp-Boss/i }),
-  term('boss', { word: { en: 'boss', de: 'Boss', id: 'bos' }, g: 'm' }, 'a real boss: Gusto, Totnar, Squarlo, Flip, Foggery, Renew, Mansk, Slomo, Qualmos (their names stay)',
+  term('boss', { word: { en: 'boss', de: 'Boss', id: 'bos' }, g: 'm' }, 'a real boss: Gusto, Totnar, Squarlo, Flip, Foggery, Renew, Mansk, Monteur, Slomo, Qualmos (their names stay)',
     { except: ['A painted round shield with an iron boss.'] }),
   term('horde', { word: { en: 'horde', de: 'Horde', id: 'gerombolan' }, g: 'f' }, 'many enemies of one kind, asleep in their camp until woken'),
   term('villager', { word: { en: 'villagers', de: 'Leute in der Stadt', id: 'warga' }, g: 'pl' }, 'the people of the town who give quests and trade',

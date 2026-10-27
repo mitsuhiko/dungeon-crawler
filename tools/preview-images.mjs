@@ -41,6 +41,7 @@ export const IMAGES = {
   'foggery-preview.png': ['docs/img/model-foggery.jpg'],
   'slomo-preview.png': ['docs/img/model-slomo.jpg'],
   'mansk-preview.png': ['docs/img/model-mansk.jpg'],
+  'monteur-preview.png': ['docs/img/model-monteur.jpg'],
   'loadout-bow-front.png': ['docs/img/loadout-bow.jpg'],
   'loadout-sword-front.png': ['docs/img/loadout-sword.jpg'],
   'loadout-crossbow-front.png': ['docs/img/loadout-crossbow.jpg'],

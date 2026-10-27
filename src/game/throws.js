@@ -21,6 +21,7 @@ import { controls } from './inputstate.js';
 import { inFluid, trialFluid } from '../physics/fluid.js';
 import { douses } from '../core/douse.js';
 import { screenToWorld, aimReach } from '../core/stick.js';
+import { unturn } from '../core/roll.js';
 import { relay } from '../net/online.js';
 import { drawFlasks, removeFlaskViews, drawAreas, removeAreaViews, drawArc } from '../render/throws.js';
 import { absent, hurtBy, evades } from '../core/enemies.js';
@@ -46,7 +47,7 @@ export function throwTarget() {
 function aimTarget() {
   const flask = readiedFlask(player), a = controls.aim;
   if (!flask || !a.m) return null;
-  const [dx, dz] = screenToWorld(a.x, a.y, view.yaw), d = aimReach(a.m, flask.flask.range);
+  const [dx, dz] = screenToWorld(...unturn(a.x, a.y, view.keyRoll), view.yaw), d = aimReach(a.m, flask.flask.range);
   const x = player.x + dx * d, z = player.z + dz * d, h = groundAt(x, z, player.y + 1.5, 0).h;
   return { x, y: Number.isFinite(h) && h > player.y - 4 ? h : player.y, z };
 }

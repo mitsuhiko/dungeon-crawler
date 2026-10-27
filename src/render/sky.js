@@ -1,5 +1,6 @@
 // The backdrop: a hazy night sky with shimmering stars, fixed to the screen (it does not
-// turn with the camera). Built for cost:
+// turn with the camera; but the world rolled on the screen, game/roll.js, it rolls with it: the
+// stars cover all the screen may turn to, the haze mirrored past its edges). Built for cost:
 //   - clouds: a small pre-blurred mask made once at startup; the GPU's bilinear filter does
 //     the rest. The colours are uniforms (set from the theme by look.js), so changing depth
 //     never touches the texture. Drawn at the far plane after the opaque pass, so the depth
@@ -75,6 +76,7 @@ function makeMask() {
   for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) data[i * 4 + k] = Math.round(Math.min(1, Math.max(0, ch[k][i])) * 255);
   const tex = new THREE.DataTexture(data, MW, MH, THREE.RGBAFormat);   // row 0 = bottom, as gl expects
   tex.magFilter = tex.minFilter = THREE.LinearFilter;
+  tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;   // (rolled, the screen's corners reach past it)
   tex.needsUpdate = true;
   return tex;
 }
@@ -85,7 +87,11 @@ const U = {
   mask: { value: makeMask() },
   top: { value: new THREE.Color() }, bottom: { value: new THREE.Color() },
   haze: { value: new THREE.Color() }, tint: { value: new THREE.Color() },
+  roll: { value: 0 }, aspect: { value: 1 },
 };
+// a point on the screen rolled (clip space, x scaled by the aspect to be square) where it is on the
+// screen unrolled: turned by the roll (core/roll.js unturn)
+const TURN = `vec2 turn(vec2 p, float a) { float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }`;
 const tri = new THREE.BufferGeometry();
 tri.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3));
 const backdrop = new THREE.Mesh(tri, new THREE.ShaderMaterial({
@@ -93,10 +99,13 @@ const backdrop = new THREE.Mesh(tri, new THREE.ShaderMaterial({
   vertexShader: `varying vec2 vUv;
     void main() { vUv = position.xy * 0.5 + 0.5; gl_Position = vec4(position.xy, 1.0, 1.0); }`,
   fragmentShader: `precision mediump float;
-    uniform sampler2D mask; uniform vec3 top, bottom, haze, tint; varying vec2 vUv;
+    uniform sampler2D mask; uniform vec3 top, bottom, haze, tint; uniform float roll, aspect; varying vec2 vUv;
+    ${TURN}
     void main() {
-      vec3 m = texture2D(mask, vUv).rgb;
-      vec3 c = mix(mix(mix(bottom, top, vUv.y), haze, m.r), tint, m.g) * m.b;
+      vec2 uv = vUv;
+      if (roll != 0.0) { vec2 p = (uv - 0.5) * vec2(aspect, 1.0); uv = turn(p, roll) / vec2(aspect, 1.0) + 0.5; }
+      vec3 m = texture2D(mask, uv).rgb;
+      vec3 c = mix(mix(mix(bottom, top, clamp(uv.y, 0.0, 1.0)), haze, m.r), tint, m.g) * m.b;
       // dither (interleaved gradient noise): dark gradients band badly in 8 bits
       float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
       gl_FragColor = vec4(c + (n - 0.5) / 255.0, 1.0);
@@ -107,17 +116,18 @@ backdrop.renderOrder = 1e9;   // last of the opaque pass: early depth rejects co
 scene.add(backdrop);
 
 // --- stars ----------------------------------------------------------------------------------
-const SU = { time: { value: 0 }, gain: { value: 1 }, scale: { value: 1 } };
+const SU = { time: { value: 0 }, gain: { value: 1 }, scale: { value: 1 }, roll: U.roll, aspect: U.aspect };
 const stars = new THREE.Points(new THREE.BufferGeometry(), new THREE.ShaderMaterial({
   uniforms: SU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   // position: clip x, y and size (css px); star: brightness, phase, speed, twinkle amount
-  vertexShader: `attribute vec4 star; uniform float time, gain, scale; varying vec3 vC;
+  vertexShader: `attribute vec4 star; uniform float time, gain, scale, roll, aspect; varying vec3 vC;
+    ${TURN}
     void main() {
       float b = star.x * gain * max(0.0, 1.0 - star.w + star.w * sin(time * star.z + star.y));
       float t = fract(star.y * 13.7) * 2.0 - 1.0;   // slight warm / cool tint
       vC = b * vec3(1.0 + 0.1 * t, 1.0, 1.0 - 0.1 * t);
       gl_PointSize = position.z * scale;
-      gl_Position = vec4(position.xy, 1.0, 1.0);
+      gl_Position = vec4(turn(position.xy * vec2(aspect, 1.0), -roll) / vec2(aspect, 1.0), 1.0, 1.0);
     }`,
   fragmentShader: `precision mediump float; varying vec3 vC;
     void main() {
@@ -130,13 +140,17 @@ stars.frustumCulled = false; stars.matrixAutoUpdate = false;
 stars.renderOrder = -1e9;   // first of the transparent pass: water, glass etc. blend over them
 scene.add(stars);
 
-// about one star per 900 css px², denser in the haze band
+// about one star per 900 css px², denser in the haze band; over all the screen may roll to (a
+// circle round its middle through its corners), the haze mirrored past its edges like the mask
+const mirror = t => t < 0 ? -t : t > 1 ? 2 - t : t;
 function placeStars() {
-  const r = rng(1234), want = Math.min(3000, Math.round(innerWidth * innerHeight / 900));
+  const aspect = innerWidth / innerHeight, half = Math.hypot(aspect, 1) / 2, eu = half / aspect - 0.5, ev = half - 0.5;
+  const area = (1 + 2 * eu) * (1 + 2 * ev);
+  const r = rng(1234), want = Math.round(Math.min(3000, innerWidth * innerHeight / 900) * area);
   const pos = new Float32Array(want * 3), st = new Float32Array(want * 4);
   for (let i = 0; i < want;) {
-    const u = r(), v = r();
-    if (r() * 1.6 > 0.55 + cloudAt(u, v)[0]) continue;
+    const u = -eu + r() * (1 + 2 * eu), v = -ev + r() * (1 + 2 * ev);
+    if (r() * 1.6 > 0.55 + cloudAt(mirror(u), mirror(v))[0]) continue;
     const k = r();
     const [size, bright] = k < 0.03 ? [3.5 + r() * 2.5, 0.8 + r() * 0.2]   // a few big ones with a glow
       : k < 0.25 ? [1.8 + r(), 0.6 + r() * 0.4] : [1 + r() * 0.6, 0.4 + r() * 0.45];
@@ -154,7 +168,7 @@ function placeStars() {
 placeStars();
 let w = innerWidth, h = innerHeight;
 addEventListener('resize', () => {
-  if (Math.abs(innerWidth * innerHeight - w * h) > 0.1 * w * h) { w = innerWidth; h = innerHeight; placeStars(); }
+  if (Math.abs(innerWidth * innerHeight - w * h) > 0.1 * w * h || Math.abs(innerWidth / innerHeight - w / h) > 0.1 * w / h) { w = innerWidth; h = innerHeight; placeStars(); }
 });
 
 // colours as linear THREE.Colors (as look.js blends them); stars: 0..1
@@ -168,4 +182,6 @@ export function setSkyLook(top, bottom, haze, tint, amount) {
 }
 
 // the stars' size is in CSS pixels: follow the pixel ratio (it changes with the frame rate)
-export function tickSky(seconds) { SU.time.value = seconds; SU.scale.value = renderer.getPixelRatio(); }
+export function tickSky(seconds) { SU.time.value = seconds; SU.scale.value = renderer.getPixelRatio(); U.aspect.value = innerWidth / innerHeight; }
+// the world rolled on the screen (game/roll.js): the sky rolls with it (radians, as the camera)
+export function setSkyRoll(a) { U.roll.value = a; }

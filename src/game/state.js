@@ -75,8 +75,10 @@ export const state = {
 };
 
 // the camera (game/camera.js): which way it looks from and how far (the zoom presets), eased towards the targets; the close
-// view's pitch (core/view.js), and whether the mouse is turning it (game/camerakey.js)
-export const view = { yaw: -Math.PI / 4, yawTarget: -Math.PI / 4, zoom: DEFAULT_ZOOM, zoomTarget: DEFAULT_ZOOM, pitch: PITCH, orbiting: false };
+// view's pitch (core/view.js), and whether the mouse is turning it (game/camerakey.js); how far the world
+// is rolled on the screen and the angle the movement keys follow (game/roll.js, core/roll.js)
+export const view = { yaw: -Math.PI / 4, yawTarget: -Math.PI / 4, zoom: DEFAULT_ZOOM, zoomTarget: DEFAULT_ZOOM, pitch: PITCH, orbiting: false,
+  roll: 0, keyRoll: 0 };
 
 // The inventory, the Esc menu, "Leave the fight?" and "You died" stop the world, except when playing
 // together: the friend plays on, and so do the enemies (only your own input stops)

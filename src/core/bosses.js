@@ -1,13 +1,14 @@
 // The real bosses: each takes the place of one depth's descent guardian (the others stay boss
 // placeholders, docs/guardians.md). depth -> the boss's kind (core/enemies.js BOSS_PROFILES):
 // Gusto on the road out of town, Totnar a depth below, Squarlo below him, Flip below Squarlo,
-// Foggery below Flip, Renew below Foggery, Mansk below Renew (the last of act I); Slomo at the bottom of act II (depth 13), where the slime
+// Foggery below Flip, Renew below Foggery, Mansk below Renew (the last of act I); Monteur below Mansk, the first of act II (depth 7);
+// Slomo at the bottom of act II (depth 13), where the slime
 // marsh comes in the worlds that show it (it is the act's last theme), else whatever theme is there;
 // Qualmos at the core (depth 20), the end of the world: there is no descent there, he guards its
 // last cube, the final arena, with no way on (world/layout.js `final`, cubegen/guardian.js).
 // The layout marks that arena's guardian with `boss` (world/layout.js, cubegen/guardian.js); its
 // spawn is the boss alone (game/enemyspawn.js guardianSpots), with no defenders. docs/bosses.md.
-export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 13: 'slomo', 20: 'qualmos' });
+export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 7: 'monteur', 13: 'slomo', 20: 'qualmos' });
 export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[depth] ?? null : null;
 // How a boss's arena differs from its planned one (cubegen/guardian.js, cubegen/arenaprops.js):
 // `braziers` lit round the fight zone, for a boss who makes it dark (Totnar; Renew, whose fight

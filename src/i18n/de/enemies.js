@@ -81,6 +81,7 @@ export default {
   Renew: { text: 'Renew', g: 'm' },
   Slomo: { text: 'Slomo', g: 'm' },
   Mansk: { text: 'Mansk', g: 'm' },
+  Monteur: { text: 'Monteur', g: 'm' },
   Qualmos: { text: 'Qualmos', g: 'm' },
   'Guardian {kind}': 'Wächter-{kind}',
   'Temp Boss {kind}': 'Temp-Boss-{kind}',
@@ -216,6 +217,10 @@ export default {
   "Blasted by Mansk's ball of light!": 'Von Mansks Lichtkugel weggesprengt!',
   "Squeezed by Mansk's ribbons!": 'Von Mansks Bändern zerquetscht!',
   "Swept away by Mansk's ribbons!": 'Von Mansks Bändern weggefegt!',
+  "Hit by Monteur's stone!": 'Von Monteurs Stein getroffen!',
+  'Rammed by Monteur!': 'Von Monteur gerammt!',
+  'Run over by Monteur!': 'Von Monteur überrollt!',
+  "Hit by Monteur's falling stone!": 'Von Monteurs herabfallendem Stein getroffen!',
   'Hit by Qualmos!': 'Von Qualmos getroffen!',
   'Soaked by Qualmos!': 'Von Qualmos durchnässt!',
   'Inked by Qualmos!': 'Von Qualmos mit Tinte bespritzt!',
@@ -301,6 +306,9 @@ export default {
   '{name} rises into the air!': '{name} steigt in die Luft!',
   "{name}'s horns break!": 'Die Hörner von {name} brechen ab!',
   '{name} slows time!': '{name} verlangsamt die Zeit!',
+  '{name} crashed! Hit him while he is dazed': '{name} ist aufgeprallt! Schlag zu, solange er benommen ist',
+  '{name} crumbles into a sun of stone!': '{name} zerfällt zu einer Sonne aus Stein!',
+  '{name} turns the world!': '{name} dreht die Welt!',
   '{name} enters phase {phase}!': '{name} beginnt Phase {phase}!',
 
   // guardians (core/guardians.js)

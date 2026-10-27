@@ -1,4 +1,4 @@
-// Projectiles in flight: the fireball / Triangle punch / ice ball / Totnar's skull / slime ball / Foggery's eye / Slomo's slug meshes exported
+// Projectiles in flight: the fireball / Triangle punch / ice ball / Totnar's skull / slime ball / Foggery's eye / Slomo's slug / Monteur's stone meshes exported
 // (Renew's spells and the echoes' shots: orbs of light, no model; his arrows: the game's arrow; a
 // Squirtle's water ball: a drop made here, of its thrower's colour)
 // beside their thrower (enemymodel.js props), turned along the flight (a `tumble`ing one end over
@@ -18,6 +18,7 @@ import { slugModel } from './slugmodel.js';
 import { flipModel } from './flipmodel.js';
 import { foggeryModel } from './foggerymodel.js';
 import { slomoModel } from './slomomodel.js';
+import { monteurModel } from './monteurmodel.js';
 import { kindColors, recolor } from './recolor.js';
 import { toLinear } from '../core/oklch.js';
 
@@ -38,6 +39,8 @@ const LOOKS = {
   eye: { model: foggeryModel, prop: () => foggeryModel.props?.FoggeryEye, light: [0xff8a3a, 2.4, 3], trail: ['#ffd25a', '#ff8a2a', '#ff4a17'], rate: 70 },
   // one of Slomo's slug arms, thrown in an arc, head first, wriggling, goo dripping off it
   slugarm: { model: slomoModel, prop: () => slomoModel.props?.SlomoArmSlug, light: [0x9aff5a, 1, 2.4], trail: ['#d8ff9a', '#8ae048', '#3e7a2a'], rate: 30, gravity: 6 },
+  // one of Monteur's stones, tumbling, its cracks glowing, dust streaming off it
+  stone: { model: monteurModel, prop: () => monteurModel.props?.MonteurStone, light: [0xffb347, 1, 2.4], trail: ['#e0dacd', '#b8b0a0', '#ffb347'], rate: 30, gravity: 3 },
   // a spell of Renew's staff, or an echo's shot (game/rewind.js): no model, a glowing orb in its
   // `color` (the spec's), like the player's spells (render/shots.js)
   orb: { orb: true, light: [0xbdf3ff, 2.2, 3], trail: ['#ffffff'], rate: 60 },

@@ -345,7 +345,8 @@ function backOff(e, retreat, t0) {
 // A roll (Totnar's): from roll.from to roll.to it rolls along its heading at roll.speed (picking
 // up speed at first), turning towards the player at no more than roll.steer rad/s. What stops it
 // (a wall, an edge: it never rolls off) bounces it off, towards the player if they are that way;
-// after roll.bounces bounces the next stop ends the roll (it sits dizzy for the rest of the attack).
+// after roll.bounces bounces the next stop ends the roll (it sits dizzy for the rest of the attack;
+// one that `crash`es, having run nobody over, goes on into that attack: Monteur's charge, dazed).
 // Every player it touches (within roll.reach of its body) is run over, once a roll.
 function rollOn(e, a, t0, dt) {
   const r = a.roll;
@@ -361,7 +362,12 @@ function rollOn(e, a, t0, dt) {
   const bx = Math.abs(fx * step) > 0.01 && Math.abs(mx) < Math.abs(fx * step) * 0.5;
   const bz = Math.abs(fz * step) > 0.01 && Math.abs(mz) < Math.abs(fz * step) * 0.5;
   if (bx || bz) {
-    if (e.rolling.bounces >= r.bounces) { e.t = Math.max(e.t, r.to); e.speed = 0; return; }
+    if (e.rolling.bounces >= r.bounces) {
+      e.speed = 0;
+      if (r.crash && !e.rolling.over.size) whiff(e, { miss: r.crash });
+      else e.t = Math.max(e.t, r.to);
+      return;
+    }
     e.rolling.bounces++;
     const back = Math.atan2(bx ? -fx : fx, bz ? -fz : fz);
     e.yaw = Math.cos(want - back) > 0.3 ? want : back;

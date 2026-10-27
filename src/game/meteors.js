@@ -12,7 +12,8 @@
 // in his arena, day or night: read off his attack clock like a shockwave (game/quakes.js), every game
 // lets them come down round its own player as he spits them (core/slomo.js rainOf), each hitting
 // only that player (with the boss's blow, `rain.power` of his damage) and leaving its splat. They
-// spare the enemies (they are his).
+// spare the enemies (they are his). A rain of another `look` (Monteur's: 'stone', stones falling
+// out of the sky, render/meteors.js) leaves no splat, and does not slow.
 import { state, player } from './state.js';
 import { allEnemies, mirroring } from './enemies.js';
 import { hitBody } from './enemycombat.js';
@@ -121,11 +122,12 @@ function bossRain(dt) {
     const a = e.mode === 'attack' ? attackOf(e) : null;
     if (!a?.rain || e.rained === e.attacks || e.t < a.hitAt) continue;
     e.rained = e.attacks;
-    const blow = { ...blowOf(e.profile, { power: a.rain.power, knock: METEOR.knock, hop: 3, reason: a.rain.reason, slow: METEOR.slow }), by: attacker(e) };
+    const look = a.rain.look ?? 'slime', slime = look === 'slime';
+    const blow = { ...blowOf(e.profile, { power: a.rain.power, knock: METEOR.knock, hop: 3, reason: a.rain.reason, slow: slime ? METEOR.slow : null }), by: attacker(e) };
     const x0 = player.x, z0 = player.z;
     for (const { dx, dz, delay } of rainOf(a.rain, (Math.random() * 2 ** 32) >>> 0)) {
       const start = rainClock + delay, id = `rain:${++rainId}`;
-      rain.push({ m: { id, t: start + METEOR.warn }, x: x0 + dx, z: z0 + dz, since: start, blow, landed: false, view: null });
+      rain.push({ m: { id, t: start + METEOR.warn }, x: x0 + dx, z: z0 + dz, since: start, blow, look, landed: false, view: null });
     }
   }
   // their warnings starting: where they come down (on the ground there, open to the sky)
@@ -144,7 +146,7 @@ function bossRain(dt) {
     if (rainClock < r.m.t) return true;
     r.landed = true;
     meteorFx(r, 'land');
-    splats.push({ x: r.at.x, y: r.at.y, z: r.at.z, t: 0 });
+    if (r.look === 'slime') splats.push({ x: r.at.x, y: r.at.y, z: r.at.z, t: 0 });
     const p = player, { x, y, z } = r.at, d = Math.hypot(p.x - x, p.z - z);
     if (d <= METEOR.radius + p.r && Math.abs(p.y - y) < 1.2 && p.hp > 0 && !p.ragdoll && open(p.x, p.y, p.z))
       hitBody(p, r.blow, x, z, d ? (p.x - x) / d : 1, d ? (p.z - z) / d : 0);

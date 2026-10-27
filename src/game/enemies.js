@@ -30,6 +30,8 @@ import { foggerys, resetFoggerys, updateFoggerys, detachFoggerys } from './fogge
 import { renews, resetRenews, updateRenews, detachRenews } from './renew.js';
 import { slomos, resetSlomos, updateSlomos, detachSlomos } from './slomo.js';
 import { mansks, resetMansks, updateMansks, detachMansks, manskSeen } from './mansk.js';
+import { monteurs, resetMonteurs, updateMonteurs, detachMonteurs } from './monteur.js';
+import { followRoll } from './roll.js';
 import { qualmoses, resetQualmoses, updateQualmoses, detachQualmoses } from './qualmos.js';
 import { updateRewind, resetRewind, drawRewind } from './rewind.js';
 import { resetMovers } from './movers.js';
@@ -108,7 +110,7 @@ export function mirrorEnemies(m) {
   }
 }
 
-export const allEnemies = () => mirror ? mirror.list : [...spiders, ...stunders, ...snakes, ...octonauts, ...fireFaces, ...triangles, ...fireCats, ...shraps, ...spicies, ...wollas, ...wolks, ...squirtles, ...meckeds, ...tornados, ...slugs, ...bolimes, ...flimmers, ...gustos, ...totnars, ...squarlos, ...flips, ...foggerys, ...renews, ...slomos, ...mansks, ...qualmoses, ...spawned];
+export const allEnemies = () => mirror ? mirror.list : [...spiders, ...stunders, ...snakes, ...octonauts, ...fireFaces, ...triangles, ...fireCats, ...shraps, ...spicies, ...wollas, ...wolks, ...squirtles, ...meckeds, ...tornados, ...slugs, ...bolimes, ...flimmers, ...gustos, ...totnars, ...squarlos, ...flips, ...foggerys, ...renews, ...slomos, ...mansks, ...monteurs, ...qualmoses, ...spawned];
 export function resetEnemies() {
   resetFlipWorld(); clearBlackHoles();   // (Flip's box the right way up again: game/flipworld.js)
   resetEnemyCombat(); clearProjectiles(); clearBeams(); clearQuakes(); clearTwisters(); clearJets(); clearShots(); clearThrows(); clearMeteors(); resetCalls();
@@ -117,7 +119,7 @@ export function resetEnemies() {
   removeEnemyViews(spawned); spawned = [];
   state.enemyGrace = ENTRY_GRACE;
   if (mirror) { removeEnemyViews(mirror.list); mirror.list = []; mirror.reset(); return; }
-  resetSpiders(); resetStunders(); resetSnakes(); resetOctonauts(); resetFireFaces(); resetTriangles(); resetFireCats(); resetShraps(); resetSpicies(); resetWollas(); resetWolks(); resetSquirtles(); resetMeckeds(); resetTornados(); resetSlugs(); resetBolimes(); resetFlimmers(); resetGustos(); resetTotnars(); resetSquarlos(); resetFlips(); resetFoggerys(); resetRenews(); resetSlomos(); resetMansks(); resetQualmoses();
+  resetSpiders(); resetStunders(); resetSnakes(); resetOctonauts(); resetFireFaces(); resetTriangles(); resetFireCats(); resetShraps(); resetSpicies(); resetWollas(); resetWolks(); resetSquirtles(); resetMeckeds(); resetTornados(); resetSlugs(); resetBolimes(); resetFlimmers(); resetGustos(); resetTotnars(); resetSquarlos(); resetFlips(); resetFoggerys(); resetRenews(); resetSlomos(); resetMansks(); resetMonteurs(); resetQualmoses();
   spawnLineup();   // a dev test room's every kind (game/devspawn.js)
   for (const e of allEnemies()) liveAgain(state.run, e);   // those come back in a life of their own (core/respawn.js)
   defenceThink = 0;
@@ -234,7 +236,7 @@ export function updateEnemies(dt) {
   // Flip's world turning (game/flipworld.js): everything in it turns with it
   updateFlipWorld(list, dt);
   updateSpiders(dt); updateStunders(dt); updateSnakes(dt); updateOctonauts(dt);
-  updateFireFaces(dt); updateTriangles(dt); updateFireCats(dt); updateShraps(dt); updateSpicies(dt); updateWollas(dt); updateWolks(dt); updateSquirtles(dt); updateMeckeds(dt); updateTornados(dt); updateSlugs(dt); updateBolimes(dt); updateFlimmers(dt); updateGustos(dt); updateTotnars(dt); updateSquarlos(dt); updateFlips(dt); updateFoggerys(dt); updateRenews(dt); updateSlomos(dt); updateMansks(dt); updateQualmoses(dt);
+  updateFireFaces(dt); updateTriangles(dt); updateFireCats(dt); updateShraps(dt); updateSpicies(dt); updateWollas(dt); updateWolks(dt); updateSquirtles(dt); updateMeckeds(dt); updateTornados(dt); updateSlugs(dt); updateBolimes(dt); updateFlimmers(dt); updateGustos(dt); updateTotnars(dt); updateSquarlos(dt); updateFlips(dt); updateFoggerys(dt); updateRenews(dt); updateSlomos(dt); updateMansks(dt); updateMonteurs(dt); updateQualmoses(dt);
   stepEnemies(spawned, dt);
   spawned = spawned.filter(e => e.mode !== 'dead' || e.deadT < e.profile.corpseTime || (removeEnemyViews([e]), false));
   // a boss's tide (game/tide.js): it drowns, but those that swim float (and the fluid dwellers
@@ -250,6 +252,7 @@ export function updateEnemies(dt) {
   state.dark = darkness(allEnemies()); state.mist = misty(allEnemies());
   updateRewind(dt, allEnemies());   // Renew's time, as our hero lives it (game/rewind.js)
   manskSeen(allEnemies());   // Mansk's slowed time, as our hero lives it (game/mansk.js)
+  followRoll(allEnemies());   // the world as Monteur turned it, on our screen (game/roll.js)
 }
 // a boss keeping the cube dark (Totnar, game/totnar.js; shown one, its `dark` comes with it)
 const darkness = list => list.some(e => e.dark && e.mode !== 'dead') ? 1 : 0;
@@ -269,6 +272,7 @@ function followEnemies(dt) {
   state.dark = darkness(list); state.mist = misty(list);
   updateRewind(dt, list);
   manskSeen(list);
+  followRoll(list);
 }
 export function drawEnemies(dt, off = { x: 0, y: 0, z: 0 }) {
   animateEnemies(allEnemies(), dt, off); drawAllProjectiles(dt, off); drawAllBeams(dt, off); drawQuakes(dt, off); drawTwisters(twisters, dt, off); drawJets(dt);
@@ -280,5 +284,5 @@ export function detachEnemies() {
   clearProjectiles(); clearBeams(); clearQuakes(); clearTwisters(); clearJets(); clearShots(); clearThrows(); hordeGroups = [];
   if (mirror) { const list = mirror.list; mirror.list = []; return list; }
   return [...detachSpiders(), ...detachStunders(), ...detachSnakes(), ...detachOctonauts(),
-    ...detachFireFaces(), ...detachTriangles(), ...detachFireCats(), ...detachShraps(), ...detachSpicies(), ...detachWollas(), ...detachWolks(), ...detachSquirtles(), ...detachMeckeds(), ...detachTornados(), ...detachSlugs(), ...detachBolimes(), ...detachFlimmers(), ...detachGustos(), ...detachTotnars(), ...detachSquarlos(), ...detachFlips(), ...detachFoggerys(), ...detachRenews(), ...detachSlomos(), ...detachMansks(), ...detachQualmoses(), ...detachSpawned()];
+    ...detachFireFaces(), ...detachTriangles(), ...detachFireCats(), ...detachShraps(), ...detachSpicies(), ...detachWollas(), ...detachWolks(), ...detachSquirtles(), ...detachMeckeds(), ...detachTornados(), ...detachSlugs(), ...detachBolimes(), ...detachFlimmers(), ...detachGustos(), ...detachTotnars(), ...detachSquarlos(), ...detachFlips(), ...detachFoggerys(), ...detachRenews(), ...detachSlomos(), ...detachMansks(), ...detachMonteurs(), ...detachQualmoses(), ...detachSpawned()];
 }

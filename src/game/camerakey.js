@@ -6,6 +6,7 @@
 // close view has the mouse captured anyway (game/mouselook.js), it turns without the key; there
 // a hold and a move only keep the tap from switching.
 import { keyPress, keyMove, keyRelease, snapYaw, clampPitch, YAW_PER_PX, PITCH_PER_PX } from '../core/view.js';
+import { unturnMouse } from '../core/roll.js';
 import { view, state, setStatus } from './state.js';
 import { cameraMode, setCameraMode } from './settings.js';
 import { looking } from './mouselook.js';
@@ -48,8 +49,10 @@ addEventListener('pointermove', e => {
   if (!keyMove(key, e.movementX, e.movementY) || looking()) return;
   view.orbiting = true;
   document.body.classList.add('orbiting');
-  // right turns the view to the right (the yaw is where the camera stands, seen from the hero)
-  view.yaw -= e.movementX * YAW_PER_PX;
+  // right turns the view to the right (the yaw is where the camera stands, seen from the hero), on
+  // the screen as the world is rolled on it (game/roll.js)
+  const [mx, my] = unturnMouse(e.movementX, e.movementY, view.roll);
+  view.yaw -= mx * YAW_PER_PX;
   view.yawTarget = view.yaw;
-  if (cameraMode() === 'close') view.pitch = clampPitch(view.pitch + e.movementY * PITCH_PER_PX);
+  if (cameraMode() === 'close') view.pitch = clampPitch(view.pitch + my * PITCH_PER_PX);
 });

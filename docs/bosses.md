@@ -6,7 +6,7 @@ boss placeholders ([guardians.md](guardians.md)): the game calls them **Temp Bos
 depth has which: so far the first descent, on the road out of town (depth 0), has **Gusto**, the
 second (depth 1) **Totnar**, the third (depth 2) **Squarlo**, the fourth (depth 3) **Flip**, the
 fifth (depth 4) **Foggery**, the sixth (depth 5) **Renew** and the seventh (depth 6, the last of
-act I) **Mansk**; at the bottom of act II (depth 13) **Slomo**; and at the core (depth 20), where
+act I) **Mansk**; the first of act II (depth 7) **Monteur**; at the bottom of act II (depth 13) **Slomo**; and at the core (depth 20), where
 there is no descent, **Qualmos** guards the last cube (a prototype for now, see [Qualmos](#qualmos)).
 A boss may bring an arena of its own (`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's
 caldera, Mansk's museum, Slomo's slime bowl), or only braziers lit round the one his depth has
@@ -27,8 +27,8 @@ Like every guardian's arena, leaving it while the boss lives asks first, and bei
 the entrance never takes you out ([guardians.md](guardians.md#encounter-and-persistence)).
 
 Each boss runs its own fight (`game/gusto.js`, `game/totnar.js`, `game/squarlo.js`, `game/flip.js`,
-`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/slomo.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
-`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/slomo.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
+`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/slomo.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
+`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/slomo.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
 body into it, the floors a body fits on, putting minions down round their boss and letting
 bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they pay a little XP
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
@@ -1127,6 +1127,102 @@ like a mask dropped (ManskDeath; a slap and a puff of dust), his ribbons falling
 |---|---|---|---|
 | Tornado (`STAGE_TORNADO`) | Tornado | 1× | plain, ×0.6 health, ×0.55 damage; in slowed time slower still |
 
+## Monteur
+
+![Monteur's clips](img/model-monteur.jpg)
+
+From the kids' drawing (`blender/monteur.py`, `assets/monteur.glb`): a boss of stone in two forms,
+one model (each clip shows one form and scales the other's bones away).
+
+- **The moose** (phase 1): a long blocky body of grey stone on four short thick legs with dark hooves,
+  a long neck rising forward to a round head with a long snout, a glowing red eye on each side
+  and a row of jagged teeth along his mouth, two big branching antlers, little antler crowns
+  standing up along his back, moss on it. About 3.4 cells to the tips of his antlers. Between his
+  antlers float **five stones** with glowing cracks (bones of their own, `stone.0` to `stone.4`):
+  the ones he throws.
+- **The sun** (phase 2): a round craggy ball of stone with eleven antlers sticking out all round it
+  like rays, a face in the middle (red eyes under heavy brows, a mouth full of jagged teeth), on two
+  short legs. The stones float over it, between its upper rays.
+
+Profiles: `MONTEUR` and `MONTEUR_SUN` (`STAGE_PROFILES.monteur`, one a phase) in
+`src/core/enemies.js`; the fight's rules in `src/core/monteur.js` (`MONTEUR_FIGHT`); the fight in
+`src/game/monteur.js`, the world he turns in `src/game/roll.js` (its rules `src/core/roll.js`,
+[camera.md](camera.md), "The world's roll"), what the game does to his model in
+`src/render/monteurview.js`.
+
+| | Level 9 |
+|---|---|
+| Health | 4720: twice a boss of his level (`hp` 2000, grown like the descent tier's 1000), half a phase |
+| Damage | 43 (a stone ×0.7, three at once ×0.55 each; the charge ×1.1 and a knock-down; a falling stone ×0.55) |
+| XP | 750 grown; coins 200–340 at level 1; two weapons and two potions like a descent guardian |
+| Poise | 2 s |
+
+His arena is the one his depth would have anyway (any arena type, in the theme of depth 7: mostly
+act II's caves). The mountains he will pull out of its floor are still to come.
+
+He keeps his distance (`style: 'ranged'`, `keep` 3.5 to 7 cells): his stones fly from there, and
+his charge needs room.
+
+### Phase 1: the moose (full health to half)
+
+- **Stones** (within 10 cells, clip `MonteurThrow`, 1.3 s): he rears his head back and flicks it
+  forward, and at 0.7 s a stone flies from between his antlers (a projectile, 9 cells/s, tumbling, a
+  little push). Now and then **three at once**, fanned out (`volley`). Each throw takes its stones
+  (`stones`): those thrown are gone from between his antlers, and they grow back one by one, one
+  every 2.2 s (`MONTEUR_FIGHT.stones`); without the stones for it he does not throw.
+- **The charge** (2.5 to 9 cells, clip `MonteurCharge`, 2.4 s; 3 to 4 s into the fight, then every
+  6 to 9 s): he lowers his head, his antlers to the front, and scrapes a hoof (the tell), and from
+  0.9 s to 2 s gallops straight at you at 9 cells/s (you run 2.8), hardly steering (0.45 rad/s:
+  a `roll` along his heading, `game/enemyai.js rollOn`), kicking up dust. Whoever he runs into is
+  rammed and knocked down. Step aside as he starts. If he runs into something (a wall, an edge, a
+  pillar) having run nobody over, he **crashes** (`crash`): into his `stuck` (clip
+  `MonteurStuck`, 2.2 s), his head on the ground, dazed, shaking it; until 1.7 s every blow hurts
+  him **double** (`exposed`, a thud and dust: "Monteur crashed! Hit him while he is dazed").
+- **Spiders** (within 12 cells, clip `MonteurSummon`, 1.5 s): he rears up on his hind legs and
+  stomps down at 1 s, and plain Spiders crawl out of the floor round him (`MONT_SPIDER`, in a puff
+  of dust): as many as fill up to **three**, every 10 s at most (the first 4 s into the fight).
+- No blow takes him below half his health (`hpFloor`).
+
+### Crumbling
+
+At half his health he stops (mode `split`, 3 s, clip `MonteurChange` on his clock; nothing hurts
+him meanwhile and 0.5 s more): "Monteur crumbles into a sun of stone!". He rears up roaring and
+crumbles, chips and dust falling off him, the moose shrinking away as the sun swells up out of
+him, his stones flying over to it. He fights on as `MONTEUR_SUN`, his stones all back.
+
+### Phase 2: the sun (half to death)
+
+- **Stones** and **three at once** as before (clip `MonteurSunThrow`, 1.1 s, the stone flies at
+  0.6 s).
+- **Rolling** instead of the charge (clip `MonteurRoll`): it crouches, tucks its legs and rolls
+  over and over at 9.5 cells/s; it crashes the same way (clip `MonteurSunStuck`, 2 s: tipped over on
+  its back, legs kicking, every blow double till 1.5 s).
+- **Stone rain** (within 16 cells, clip `MonteurRain`, 1.8 s; 3 s into the phase, then every 9 to
+  12 s): it crouches and heaves up, throwing stones up into the sky at 1.1 s, and **ten** come
+  down: the first on you, the rest 1 to 5 cells round you, 0.16 s apart (an attack's `rain` like
+  Slomo's meteorites, `game/meteors.js`, with `look: 'stone'`, `render/meteors.js`): each one's
+  shadow grows with a warm rim for 1.7 s, then the stone falls (his thrown stone, bigger), landing
+  in chips and dust; within 1.1 cells of it you are hit and knocked back. No splat, no slowing.
+  Under a roof nothing reaches you.
+- **Turning the world** (from anywhere, clip `MonteurSpin`, 2 s; 5 s into the phase, then every 13
+  to 18 s; while it is due he starts nothing else): it spins right round twice and at 1.2 s the
+  world turns, "Monteur turns the world!": a quarter either way or half round from where it
+  is (`nextQuarter`), never staying (his `quarter`, 0 to 3). The view turns slowly about where it
+  looks (`game/roll.js`) till it rests there; gravity stays with the floor, so you run up the
+  wall or along the ceiling. What the keys do meanwhile: [camera.md](camera.md), "The world's
+  roll" (still to settle).
+- **Spiders**, up to **two**, every 12 s (clip `MonteurSunSummon`: a hop and a stomp).
+
+His death (clip `MonteurDeath`: the sun shudders, sinks on its folding legs, its rays drooping,
+and topples over on its back, the stones dropping to the floor round it) turns the world back the
+right way up and takes his Spiders along.
+
+## Monteur's minions
+
+| | Kind of | Size | Notes |
+|---|---|---|---|
+| Spider (`MONT_SPIDER`) | Spider | 1× | plain, ×0.8 health, ×0.6 damage, for now |
+
 ## Slomo
 
 ![Slomo's clips](img/model-slomo.jpg)
@@ -1320,7 +1416,11 @@ come down. Mansk's stage swaps his profile likewise, and his row carries five mo
 four unused): how high he flies, his horns, how far his ribbons are out and how long time stays slow;
 every game simulates his ribbons itself (`render/manskview.js`) and slows its own player when it sees
 him slow time (`game/mansk.js manskSeen`). A grab of his (in his mouth, in his ribbons) is a blow
-like Gusto's; his balls of light are only sent to the others once he lets them go. Renew's stage swaps his profile like Foggery's, and his row carries
+like Gusto's; his balls of light are only sent to the others once he lets them go. Monteur's stage
+swaps his profile likewise, and his row carries six more slots (the first five unused): how many
+stones float between his antlers and how far round he has turned the world (`quarter`); every game
+turns its own view after it (`game/roll.js followRoll`) and lets its own stones rain round its own
+player as he throws them up. Renew's stage swaps his profile like Foggery's, and his row carries
 three more slots (the first two unused): the room's clock, whether time runs back and whether the
 fight is on, and a fourth: how far he has risen away at the end (2: gone). Every game records its own hero and rewinds them after his clock, and has its own
 echoes and ghosts (from what it was shown), the echoes hurting only it (`game/rewind.js`); the fight's bodies are rewound by the runner and shown
@@ -1341,7 +1441,8 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 `/boss renew`. `/spawn slomo` (`addSlomos`; out of his bowl there is no flood), `/spawn armslug`,
 `/spawn oozeslug`, `/spawn oozebolime`, `/spawn slimesquirtle`; `/arena bowl`, `/boss slomo`.
 `/spawn mansk` (`addMansks`: his whole fight anywhere), `/spawn stagetornado`; `/arena stage`,
-`/boss mansk`. `/spawn qualmos` (`addQualmoses`), `/boss qualmos`.
+`/boss mansk`. `/spawn monteur` (`addMonteurs`: his whole fight anywhere), `/spawn montspider`;
+`/boss monteur`; `/roll` and `/rollkeys` turn the world without him ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`), `/boss qualmos`.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
 becomes the boss's level, takes a Long Sword of it and goes into his arena (`goBoss`).
@@ -1364,7 +1465,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1375,6 +1476,7 @@ await (await import('./tests/browser/foggery.js')).runFoggeryChecks()  // Fogger
 await (await import('./tests/browser/renew.js')).runRenewChecks()      // Renew's, in his arena: the rewinds, the echoes and ghosts, his minions, the bow and keeping away, the morning stars, the end and his flail, the dusk
 await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk's, in his museum: breathing in and the spit, the balls of light, flying and landing, slowed time, the horns breaking, the ribbons catching and squeezing
 await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the blob bursting, the flood from a side, his slimes
+await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
 ```
 
@@ -1413,6 +1515,11 @@ Mansk: `Blender -b --python blender/mansk.py -- assets/mansk.glb blender/mansk.b
 blender/previews/mansk-preview.png`, then `npm run compress-assets`. The mouth, gulp, horn tip,
 diamond, summon and lash points it prints must match `MANSK_AT` (`tests/assets.test.js`). His museum's
 things: `Blender -b --python blender/themes.py` (`blender/themes_museum.py`).
+
+Monteur: `Blender -b --python blender/monteur.py -- assets/monteur.glb blender/monteur.blend
+blender/previews/monteur-preview.png`, then `node tools/compress-assets.mjs assets/monteur.glb`. The throw,
+summon and rain points it prints must match `MONTEUR_AT` (`tests/assets.test.js`), his clips last as
+long as his attacks, his charge's run ends where the roll does (`charge_end`).
 
 Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb
 blender/previews/qualmos-preview.png` (it reads `blender/qualmos.blend` and never writes it), then

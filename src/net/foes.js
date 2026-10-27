@@ -193,6 +193,12 @@ export class Viewer {
         e.grow = Number.isFinite(grow) ? Math.max(0, Math.min(1, grow)) : 0;
         e.slowing = Number.isFinite(slowing) ? Math.max(0, Math.min(10, slowing)) : 0;
       }
+      // Monteur's stones and how far round he has turned the world (game/monteur.js; game/roll.js turns ours after it)
+      if (Array.isArray(b[24])) {
+        const [stones, quarter] = b[24];
+        e.stones = Number.isFinite(stones) ? Math.max(0, Math.min(5, stones)) : 5;
+        e.quarter = Number.isInteger(quarter) && quarter >= 0 && quarter < 4 ? quarter : 0;
+      }
       if (e.mode === 'dead') { e.hp = 0; e.deadT = b[6]; e.dark = 0; (e.beam || e.bolts) && mirrorBeam(e, null); return; }
       mirrorBeam(e, Array.isArray(b[12]) ? b[12] : null, Array.isArray(b[16]) ? b[16] : null);
     });

@@ -17,7 +17,7 @@ import { idx } from '../../src/core/util.js';
 
 const check = (value, message) => { if (!value) throw Error(message); };
 const run = (seconds, dt = 1 / 30, also = () => {}) => { for (let t = 0; t < seconds; t += dt) { updatePlayer(dt); updateEnemies(dt); also(); } };
-const MINIONS = { gusto: ['custotriangle'], totnar: ['snapskull', 'totspider', 'totstunder'], squarlo: ['squirtle'], flip: ['wolla'], foggery: ['fireface', 'firecat'], renew: ['spider', 'fireface'], mansk: ['tornado'], slomo: ['slug', 'bolime', 'squirtle'] };
+const MINIONS = { gusto: ['custotriangle'], totnar: ['snapskull', 'totspider', 'totstunder'], squarlo: ['squirtle'], flip: ['wolla'], foggery: ['fireface', 'firecat'], renew: ['spider', 'fireface'], mansk: ['tornado'], monteur: ['spider'], slomo: ['slug', 'bolime', 'squirtle'] };
 
 export async function runBossRoomChecks(only = null) {   // only: the bosses to check (names), else all
   return paused(async () => {
@@ -28,7 +28,7 @@ export async function runBossRoomChecks(only = null) {   // only: the bosses to 
         await goTestRoom('boss', Number(depth));
         const map = state.map;
         check(map.testRoom?.name === 'boss' && map.depth === Number(depth) && !map.guardian && !map.portals.length, `${boss}: his test room`);
-        await loadSpecies([boss, ...MINIONS[boss]]);
+        await loadSpecies([boss, ...MINIONS[boss] ?? []]);
         const list = allEnemies(), b = list[0], spot = map.testRoom.lineup[0];
         check(list.length === 1 && b.boss === boss && b.dormant && !b.guardianGate, `${boss} alone, dormant, no gate`);
         check(Math.hypot(b.x - spot.x, b.z - spot.z) < 1e-6, `${boss} on the guardian's spot`);

@@ -1061,6 +1061,85 @@ export const MANSK_RIBBONS = {
   ...MANSK_LASH, attacks: [MANSK_INHALE, MANSK_SPIT, MANSK_LASH, MANSK_WHIRL, MANSK_SUMMON, MANSK_SLOW], phase: 3,
   style: 'brute', ribbons: true,
 };
+// Monteur, the eighth real boss (blender/monteur.py, after the kids' drawing), in place of the descent
+// guardian of depth 7, the first of act II (core/bosses.js): a moose of stone with stones floating
+// between his antlers (phase 1), who crumbles into a sun of stone with antlers all round it like
+// rays, on two legs (phase 2, MONTEUR_SUN). One model holds both forms (render/monteurview.js).
+// game/monteur.js runs his fight, core/monteur.js holds its rules. Twice the health of a boss of
+// his level (hp 2000 grows like the descent tier's 1000), half a phase.
+// He throws his stones (a `projectile` that takes `stones` of them: one, or three fanned out; they
+// grow back, game/monteur.js) and charges you with his head (a `roll` along his heading, run
+// straight at you, steering little; one that runs into something with nobody run over `crash`es
+// into his `stuck`: dazed, every blow hurting him double); he keeps his distance for both (`ranged`,
+// `keep`). Spiders crawl out round him. As the sun
+// he rolls at you instead, makes stones rain out of the sky round you (`rain`, game/meteors.js,
+// `look` 'stone') and turns the world (`spin`, a cast: game/roll.js turns every game's view).
+// Where things are on him (model space: x, up, forward), read off his clips (blender/monteur.py)
+const MONTEUR_AT = Object.freeze({
+  throw: [0, 2.917, 1.512], sunThrow: [0, 2.572, 0.649], summon: [0, 0.093, 1.526], sunSummon: [0, 0.183, 1.1], rain: [0, 2.604, 0],
+});
+const MONTEUR_THROW = {
+  name: 'throw', clip: 'throw', weight: 3, reach: 10, hitAt: 21 / 30, trackUntil: 0.6, attackTime: 39 / 30, hitReach: 0,
+  arc: 0.5, power: 0.7, knock: 4, knockDown: false, hop: 3, reason: "Hit by Monteur's stone!",
+  projectile: { kind: 'stone', speed: 9, radius: 0.22, range: 14, spin: 7, tumble: 5, stones: 1, muzzle: MONTEUR_AT.throw },
+};
+const MONTEUR_VOLLEY = {
+  ...MONTEUR_THROW, name: 'volley', weight: 2, power: 0.55,
+  projectile: { ...MONTEUR_THROW.projectile, volley: 3, fan: 0.28, stones: 3 },
+};
+const MONTEUR_CHARGE = {
+  name: 'charge', clip: 'charge', weight: 3, reach: 9, minReach: 2.5, hitAt: 27 / 30, trackUntil: 27 / 30, attackTime: 72 / 30, hitReach: 0,
+  arc: 0.5, power: 1.1, knock: 8, knockDown: true, hop: 4, reason: 'Rammed by Monteur!',
+  roll: { from: 27 / 30, to: 60 / 30, speed: 9, steer: 0.45, bounces: 0, reach: 0.3, crash: 'stuck' }, steady: { from: 27 / 30, to: 60 / 30 },
+};
+// (only a charge that runs into something starts it)
+const MONTEUR_STUCK = {
+  name: 'stuck', clip: 'stuck', weight: 0, reach: 0, hitAt: 66 / 30, trackUntil: 0, attackTime: 66 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Monteur', recover: 0.6,
+  exposed: { from: 0.1, until: 1.7, damage: 2, thud: true, say: msg('{name} crashed! Hit him while he is dazed') },
+};
+const MONTEUR_SUMMON = {
+  name: 'summon', clip: 'summon', weight: 2, reach: 12, hitAt: 30 / 30, trackUntil: 0.5, attackTime: 45 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Monteur',
+  summon: { kind: 'montspider', muzzle: MONTEUR_AT.summon },
+};
+export const MONTEUR = {
+  type: 'monteur', species: 'monteur', label: 'Monteur', hp: 2000, damage: 24, knock: 4,
+  xp: 750, coins: [200, 340],
+  radius: 0.9, height: 3.4, bodyHeight: 2.1, mass: 14, turnSpeed: 2.4,
+  aggro: 9, giveUp: 18, chase: 1.15, wander: 0.5, homeSpeed: 0.8,
+  ...MONTEUR_THROW, cooldown: 1.2, ichor: ['#d8d0c0', '#6a645a'], pitch: 0.5,
+  attacks: [MONTEUR_THROW, MONTEUR_VOLLEY, MONTEUR_CHARGE, MONTEUR_STUCK, MONTEUR_SUMMON], phase: 1,
+  poise: 2, hitStun: 0.2, deathTime: 2.4, corpseTime: 5,
+  parts: { stone: ['MonteurStone'], antlers: ['MonteurAntlers'], moss: ['MonteurMoss'], eyes: ['MonteurEyes_glow'], veins: ['MonteurVeins_glow'] },
+  light: '#ff8a3a', sparks: ['#ffe8c0', '#ffb347', '#c8c0b0'],
+  style: 'ranged', keep: [3.5, 7], guardian: true, guardianRole: 'descent', boss: 'monteur',
+  seedSalt: 0x3047e0, spacing: 6,
+};
+// ... the sun (phase 2): on two legs; rolls at you, rains stones, turns the world
+const SUN_THROW = { ...MONTEUR_THROW, clip: 'sunThrow', hitAt: 18 / 30, attackTime: 33 / 30, trackUntil: 0.5,
+  projectile: { ...MONTEUR_THROW.projectile, muzzle: MONTEUR_AT.sunThrow } };
+const SUN_VOLLEY = { ...MONTEUR_VOLLEY, clip: 'sunThrow', hitAt: 18 / 30, attackTime: 33 / 30, trackUntil: 0.5,
+  projectile: { ...MONTEUR_VOLLEY.projectile, muzzle: MONTEUR_AT.sunThrow } };
+const SUN_ROLL = { ...MONTEUR_CHARGE, clip: 'roll', reason: 'Run over by Monteur!', roll: { ...MONTEUR_CHARGE.roll, speed: 9.5, steer: 0.5 } };
+const SUN_STUCK = { ...MONTEUR_STUCK, clip: 'sunStuck', hitAt: 60 / 30, attackTime: 60 / 30, exposed: { ...MONTEUR_STUCK.exposed, until: 1.5 } };
+const SUN_SUMMON = { ...MONTEUR_SUMMON, clip: 'sunSummon', hitAt: 27 / 30, attackTime: 42 / 30, summon: { ...MONTEUR_SUMMON.summon, muzzle: MONTEUR_AT.sunSummon } };
+// (stones out of the sky: `count` of them, the first on the player and the rest `spread` cells round
+// them, `stagger` s apart, each hitting with `power` of his damage; `look`: stones, not slime)
+const MONTEUR_RAIN = {
+  name: 'rain', clip: 'rain', weight: 2, reach: 16, hitAt: 33 / 30, trackUntil: 0.6, attackTime: 54 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Monteur', cast: 'rain',
+  rain: { count: 10, spread: [1, 5], stagger: 0.16, power: 0.55, reason: "Hit by Monteur's falling stone!", muzzle: MONTEUR_AT.rain, look: 'stone' },
+};
+// the world turns (game/monteur.js picks how far, game/roll.js turns it)
+const MONTEUR_SPIN = {
+  name: 'spin', clip: 'spin', weight: 1, reach: 40, hitAt: 36 / 30, trackUntil: 0.3, attackTime: 60 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Monteur', cast: 'spin',
+};
+export const MONTEUR_SUN = {
+  ...MONTEUR, type: 'monteursun', height: 3.3, bodyHeight: 2.4, chase: 1.3, cooldown: 1.1, gait: 'sun',
+  ...SUN_THROW, attacks: [SUN_THROW, SUN_VOLLEY, SUN_ROLL, SUN_STUCK, SUN_SUMMON, MONTEUR_RAIN, MONTEUR_SPIN], phase: 2,
+};
 // Qualmos, the boss at the core of the world (depth 20, core/bosses.js; modelled by hand after a
 // child's drawing, blender/qualmos.blend, exported by blender/qualmos.py): a slender blue-green
 // amphibian on six tentacles, with spines and a toothy grin. He waits alone in the core's last cube,
@@ -1110,7 +1189,7 @@ export const QUALMOS = {
   style: 'brute', guardian: true, guardianRole: 'descent', boss: 'qualmos',
   seedSalt: 0xa6f1b1, spacing: 6,
 };
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, QUALMOS];
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, QUALMOS];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp
@@ -1456,7 +1535,8 @@ export const SQUARLO_GIANT = enemyKind(SQUARLO, {
 // a boss's profile for each of its stages (game/squarlo.js; a friend's game swaps it by the stage
 // the runner sends, net/foes.js)
 export const STAGE_PROFILES = { squarlo: [SQUARLO, SQUARLO_GIANT], foggery: [FOGGERY, FOGGERY_BALL, FOGGERY_BALL],
-  renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS] };
+  renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS],
+  monteur: [MONTEUR, MONTEUR_SUN] };
 // One full attack and recovery, averaged over a species' attacks (s), and what it deals per
 // second at level 1 (a projectile's burn included): how dangerous it is to stand next to.
 export function attackCycle(profile) {
@@ -1585,6 +1665,12 @@ export const REN_FACE = enemyKind(FIREFACE, {
   type: 'renface', minion: true, plain: true, aggro: 10, giveUp: 14, coins: [0, 0], drops: MINION_DROPS(0.06), puff: EMBER_PUFF,
   mods: { hp: 0.55, damage: 0.55, xp: 0.15 },
 });
+// Monteur's minions (game/monteur.js): plain Spiders for now, weaker, going for the player at once;
+// they crawl out of the floor round him in a puff of dust
+export const MONT_SPIDER = enemyKind(SPIDER, {
+  type: 'montspider', minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
+  puff: { colors: ['#e0dacd', '#b8b0a0', '#8d877c'], size: 0.5 }, mods: { hp: 0.8, damage: 0.6, xp: 0.15 },
+});
 // small spiders of twigs, poured out of his ball by the dozen
 export const TOT_SPIDER = enemyKind(SPIDER, {
   type: 'totspider', label: 'Twig spider', reason: 'Bitten by a twig spider!', minion: true,
@@ -1644,7 +1730,7 @@ export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.valu
   GLOOM_SPIDER, REDBACK, FROST_STUNDER, STONE_STUNDER, MAGMA_STUNDER, BOG_OCTONAUT, CORAL_OCTONAUT, EMERALD_TRIANGLE, CRIMSON_TRIANGLE, FIRE_SHRAPS,
   BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, LAVA_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
   NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
-  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO].map(k => [k.type, k]));
+  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_SPIDER].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
 // like the dead

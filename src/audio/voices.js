@@ -266,6 +266,17 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         noise(t + 1.4, 0.3, filter('highpass', 2500 * p, 1, amp(t + 1.4, 0.005, 0.3, 0.25, out)));
       },
     },
+    monteur: {   // the stone moose: a long, low bellow rising and falling, stone grinding under it, a crumbling groan
+      alert: (t, out, p) => {
+        bend(t, 1.1, 70 * p, 140 * p, 85 * p, 420 * p, 0.5, out);
+        noise(t + 0.1, 0.9, filter('lowpass', 500 * p, 2, amp(t + 0.1, 0.15, 0.3, 0.7, out)));
+      },
+      windup: (t, out, p) => { noise(t, 0.35, filter('bandpass', 260 * p, 2, amp(t, 0.03, 0.45, 0.3, out))); bend(t + 0.05, 0.35, 90 * p, 120 * p, 100 * p, 450 * p, 0.3, out); },
+      death: (t, out, p) => {
+        bend(t, 1.8, 120 * p, 80 * p, 40 * p, 380 * p, 0.5, out);
+        for (let i = 0; i < 6; i++) noise(t + 0.3 + i * 0.22, 0.12, filter('bandpass', (300 + 120 * i) * p, 3, amp(t + 0.3 + i * 0.22, 0.005, 0.3, 0.1, out)));
+      },
+    },
     qualmos: {   // the core's amphibian: a deep gurgling croak, a wet hiss through his teeth, a long bubbling sinking groan
       alert: (t, out, p) => {
         bend(t, 0.6, 90 * p, 150 * p, 80 * p, 520 * p, 0.5, out);

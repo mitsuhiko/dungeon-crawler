@@ -2,15 +2,19 @@
 // land, growing and darkening with a bright rim that pulses faster the nearer it is; the lump of
 // glowing slime falling into it out of the sky, a light of its own and goo streaming off it; and
 // the splats they leave, flat puddles drying up. In the cube's coordinates, with its offset.
+// Monteur's stones (a rain of `look` 'stone') fall the same way: a rock with glowing cracks (his
+// thrown stone, the prop of his model) tumbling down, dust streaming off it, a warm rim round its
+// shadow.
 // The shadow and the splats lie on the ground of the level it lands on, and only there: not
 // hanging in the air past a ledge, nor cutting into the cliff beside it.
 import * as THREE from 'three';
 import { scene } from './scene.js';
-import { glow, emit, rand } from './particles.js';
+import { glow, soft, emit, rand } from './particles.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { METEOR, fallAt, warnAt } from '../core/meteors.js';
 import { stillGroundAt } from '../physics/collide.js';
 import { floorY, runY } from '../core/surfaces.js';
+import { monteurModel } from './monteurmodel.js';
 
 // The ground round (x, y, z) out to r, on its level only: a grid of small quads along the cells'
 // edges, each lying on its own ground (a ramp's slope), those over a drop or under a higher floor
@@ -60,37 +64,53 @@ const lump = new THREE.IcosahedronGeometry(0.32, 1);
 const flat = { transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 };
 const GOO = ['#d8ff9a', '#b8ff5a', '#8ae048'];
 const lumpMaterial = new THREE.MeshStandardMaterial({ color: '#4e8a2a', emissive: '#9aff4a', emissiveIntensity: 1.4, roughness: 0.3 });
+// how each look comes down: the shadow's and the rim's colour, the light, what streams off it
+const LOOKS = {
+  slime: { shadow: '#0e2a08', rim: '#b8ff5a', light: '#9aff5a', glow: 2.5, trail: GOO, rate: 70, particle: glow },
+  stone: { shadow: '#1a1410', rim: '#ffb347', light: '#ffb347', glow: 1.2, trail: ['#e0dacd', '#b8b0a0', '#8d877c'], rate: 40, particle: soft, scale: 2.2 },
+};
+// the falling thing: a lump of slime, or a stone (Monteur's: a copy of his thrown stone)
+function rockOf(look) {
+  const prop = look === 'stone' && monteurModel.props?.MonteurStone;
+  if (!prop) return new THREE.Mesh(lump, lumpMaterial);
+  const g = new THREE.Group(), m = prop.clone();
+  m.position.set(0, 0, 0); m.scale.setScalar(LOOKS.stone.scale);
+  m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.userData.sharedGeo = true; } });
+  g.add(m);
+  return g;
+}
 
-function makeView(at) {
+function makeView(at, look = 'slime') {
+  const L = LOOKS[look] ?? LOOKS.slime;
   const group = new THREE.Group(), ground = at ? groundPatch(at.x, at.y, at.z, METEOR.radius) : plain;
-  const shadow = new THREE.Mesh(ground, new THREE.MeshBasicMaterial({ color: '#0e2a08', map: own(DISC), opacity: 0, ...flat }));
-  const ring = new THREE.Mesh(ground, new THREE.MeshBasicMaterial({ color: '#b8ff5a', map: own(RIM), opacity: 0, ...flat, blending: THREE.AdditiveBlending }));
-  const rock = new THREE.Mesh(lump, lumpMaterial);
+  const shadow = new THREE.Mesh(ground, new THREE.MeshBasicMaterial({ color: L.shadow, map: own(DISC), opacity: 0, ...flat }));
+  const ring = new THREE.Mesh(ground, new THREE.MeshBasicMaterial({ color: L.rim, map: own(RIM), opacity: 0, ...flat, blending: THREE.AdditiveBlending }));
+  const rock = rockOf(look);
   rock.visible = false;
-  const light = new THREE.PointLight('#9aff5a', 0, 5, 2);
+  const light = new THREE.PointLight(L.light, 0, 5, 2);
   group.add(shadow, ring, rock);
   scene.add(group); trackLight(light, rock, group, 2);
-  return { group, shadow, ring, rock, light };
+  return { group, shadow, ring, rock, light, look: L };
 }
 // list: the meteorites showing ({ m, at, landed, view }), at the world's play time `clock`
 export function drawMeteors(list, clock, dt, off = { x: 0, y: 0, z: 0 }) {
   for (const v of list) {
     if (!v.at) continue;
-    const w = v.view || (v.view = makeView(v.at)), { m, at } = v, u = warnAt(m, clock), f = fallAt(m, clock);
+    const w = v.view || (v.view = makeView(v.at, v.look)), { m, at } = v, u = warnAt(m, clock), f = fallAt(m, clock), L = w.look;
     w.group.position.set(at.x + off.x, at.y + off.y + 0.02, at.z + off.z);
     scaled(w.shadow.material.map, 0.35 + 0.65 * u); scaled(w.ring.material.map, 0.35 + 0.65 * u);
     w.shadow.material.opacity = v.landed ? 0 : 0.15 + 0.4 * u;
     w.ring.material.opacity = v.landed ? 0 : (0.35 + 0.35 * Math.sin(clock * (6 + 20 * u))) * u;
     w.rock.visible = f > 0 && !v.landed;
-    w.light.intensity = w.rock.visible ? 2.5 : 0;
+    w.light.intensity = w.rock.visible ? L.glow : 0;
     if (!w.rock.visible) continue;
     const h = METEOR.sky * (1 - f) * (1 - f);   // (falling faster and faster)
     w.rock.position.set(0, h + 0.3, 0);
     w.rock.rotation.set(clock * 3, clock * 2.2, 0);
-    w.rock.scale.setScalar(1 + 0.1 * Math.sin(clock * 30));
-    for (let i = Math.floor(70 * dt + Math.random()); i > 0; i--)
-      emit(glow, at.x + off.x + rand(-0.2, 0.2), at.y + off.y + h + rand(0.2, 0.6), at.z + off.z + rand(-0.2, 0.2),
-        { v: [rand(-0.3, 0.3), rand(1, 3), rand(-0.3, 0.3)], life: rand(0.25, 0.5), size: rand(0.1, 0.2), color: GOO[i % 3], drag: 1.5 });
+    if (L === LOOKS.slime) w.rock.scale.setScalar(1 + 0.1 * Math.sin(clock * 30));
+    for (let i = Math.floor(L.rate * dt + Math.random()); i > 0; i--)
+      emit(L.particle, at.x + off.x + rand(-0.2, 0.2), at.y + off.y + h + rand(0.2, 0.6), at.z + off.z + rand(-0.2, 0.2),
+        { v: [rand(-0.3, 0.3), rand(1, 3), rand(-0.3, 0.3)], life: rand(0.25, 0.5), size: rand(0.1, 0.2), color: L.trail[i % 3], drag: 1.5 });
   }
 }
 export function removeMeteorView(v) {

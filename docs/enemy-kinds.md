@@ -209,6 +209,7 @@ the fluid they are in, so of their `colors` only the eyes show). Squarlo's Squir
 ×0.6 damage) are `plain` Squirtle minions, and Flip's Sky wolla (`frost.light`, ×0.6 health and
 damage) a Wolla minion. Renew's spiders (×0.8 health, ×0.6 damage) and Fire-faces (×0.55) are `plain` minions too.
 Mansk's Tornados (`STAGE_TORNADO`, ×0.6 health, ×0.55 damage) are `plain` minions too.
+Monteur's Spiders (`MONT_SPIDER`, ×0.8 health, ×0.6 damage) are `plain` minions too, for now.
 Foggery's Fire-faces and Fire-cats are
 `plain` minions: they look like and are called what they are (×0.6 health and damage, the cats ×0.8
 health); both are `lavaproof`: they walk on his lava.

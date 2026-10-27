@@ -9,6 +9,7 @@ import { N, CUBE_H, BASE, LH } from '../core/constants.js';
 import { clamp } from '../core/util.js';
 import { OVERVIEW_FOV, BLEND_TIME, ANCHOR, AHEAD, closeDistance, snapYaw } from '../core/view.js';
 import { camera } from '../render/scene.js';
+import { setSkyRoll } from '../render/sky.js';
 import { character } from '../render/character.js';
 import { insideSolid, ceilingAt, cellAt } from '../physics/collide.js';
 import { standingAt } from '../physics/fluid.js';
@@ -24,6 +25,7 @@ const target = new THREE.Vector3(), focus = new THREE.Vector3();
 const overPos = new THREE.Vector3(), overQuat = new THREE.Quaternion();
 const closePos = new THREE.Vector3(), closeQuat = new THREE.Quaternion(), look = new THREE.Vector3();
 const m4 = new THREE.Matrix4();
+const rollQuat = new THREE.Quaternion(), VIEW_AXIS = new THREE.Vector3(0, 0, 1);   // (the camera's own: it looks down -Z)
 
 let blend = 0;      // 0: the overview, 1: the close view
 let arm = null;     // the close view's arm as it is now (null: not out)
@@ -154,6 +156,9 @@ export function updateCamera(dt) {
   if (t <= 0) { camera.position.copy(overPos); camera.quaternion.copy(overQuat); }
   else if (t >= 1) { camera.position.copy(closePos); camera.quaternion.copy(closeQuat); }
   else { camera.position.lerpVectors(overPos, closePos, t); camera.quaternion.slerpQuaternions(overQuat, closeQuat, t); }
+  // the world rolled on the screen (game/roll.js): the camera turns about where it looks
+  if (view.roll) camera.quaternion.multiply(rollQuat.setFromAxisAngle(VIEW_AXIS, view.roll));
+  setSkyRoll(view.roll);   // (the sky is drawn on the screen: it rolls along)
   shake(dt);
   const fov = OVERVIEW_FOV + (closeFov() - OVERVIEW_FOV) * t;   // (the close view's: the settings)
   if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }

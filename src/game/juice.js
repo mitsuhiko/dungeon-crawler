@@ -265,6 +265,7 @@ export function meteorFx(v, what) {
   const { x, y, z } = v.at, near = Math.max(0, 1 - Math.hypot(player.x - x, player.z - z) / 14);
   if (what === 'warn') return;
   if (what === 'fall') { if (near > 0) sfx('fall', { at: v.at, pitch: 1.6, volume: 0.25 + 0.5 * near }); return; }
+  if (v.look === 'stone') { stoneLandFx(v.at, near); return; }
   for (let i = 0; i < 26; i++)
     emit(soft, x, y + 0.2, z, { v: [rand(-3, 3), rand(1.5, 4.5), rand(-3, 3)], life: rand(0.5, 0.9), size: rand(0.08, 0.16),
       color: GOO[i % 3], alpha: 0.95, gravity: 9, drag: 0.6 });
@@ -273,6 +274,19 @@ export function meteorFx(v, what) {
     emit(soft, x + rand(-0.5, 0.5), y + 0.2, z + rand(-0.5, 0.5), { v: [rand(-0.4, 0.4), rand(0.5, 1), rand(-0.4, 0.4)], life: rand(0.9, 1.4),
       size: rand(0.3, 0.5), grow: 1, color: '#6a8a4a', alpha: 0.35, drag: 0.6 });
   sfx('whump', { at: v.at, pitch: 0.7, volume: 0.4 + 0.6 * near }); sfx('splorch', { at: v.at, volume: 0.3 + 0.5 * near });
+  if (near > 0.6) cameraKick(0, 0, 0.05 * near, 0.06 * near);
+}
+
+// one of Monteur's stones landing out of the sky: chips and dust thrown up, a thud
+const CHIPS = ['#e0dacd', '#b8b0a0', '#8d877c', '#ffb347'];
+function stoneLandFx({ x, y, z }, near) {
+  for (let i = 0; i < 16; i++)
+    emit(soft, x, y + 0.2, z, { v: [rand(-2.5, 2.5), rand(1.5, 4), rand(-2.5, 2.5)], life: rand(0.4, 0.8), size: rand(0.05, 0.11),
+      color: CHIPS[i % 4], alpha: 0.95, gravity: 10, drag: 0.5 });
+  for (let i = 0; i < 8; i++)
+    emit(soft, x + rand(-0.5, 0.5), y + 0.15, z + rand(-0.5, 0.5), { v: [rand(-0.8, 0.8), rand(0.3, 0.9), rand(-0.8, 0.8)], life: rand(0.8, 1.3),
+      size: rand(0.3, 0.55), grow: 1.2, color: '#c9c0ae', alpha: 0.4, drag: 1.5 });
+  sfx('thud', { at: { x, y, z }, pitch: 0.7, volume: 0.4 + 0.6 * near }); sfx('bonk', { at: { x, y, z }, pitch: 0.6, volume: 0.3 + 0.4 * near });
   if (near > 0.6) cameraKick(0, 0, 0.05 * near, 0.06 * near);
 }
 
@@ -697,7 +711,8 @@ const SUMMONS = { triangles: { sound: 'summon', flash: '#9fdcff', colors: ['#e0f
   embers: { sound: 'fireball', flash: '#ffb050', colors: ['#ffd25a', '#ff8a2a', '#ff4a17'], streak: 10 },
   time: { sound: 'summon', flash: '#e8fbff', colors: ['#ffffff', '#bdf3ff', '#ffe9a8'], streak: 12 },
   slime: { sound: 'splorch', flash: '#c8ff7a', colors: ['#d8ff9a', '#9ae048', '#5a9a2a'], streak: 9 },
-  wind: { sound: 'whirl', flash: '#f0ecff', colors: ['#ffffff', '#e6dcff', '#c8b8ff'], streak: 10 } };
+  wind: { sound: 'whirl', flash: '#f0ecff', colors: ['#ffffff', '#e6dcff', '#c8b8ff'], streak: 10 },
+  dust: { sound: 'rustle', flash: '#e8e0cf', colors: ['#e0dacd', '#b8b0a0', '#8d877c'], streak: 7 } };
 export function summonFx(mouth, list, look = 'triangles') {
   const s = SUMMONS[look];
   sfx(s.sound, { at: mouth });

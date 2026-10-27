@@ -22,7 +22,7 @@ import { walker } from '../src/physics/dwell.js';
 import { buildCubeGeometry } from '../src/render/cubegeo.js';
 
 const signature = spots => spots.map(s => [s.id, s.kind.type, s.level, s.f.id, s.x, s.y, s.z, s.yaw]);
-const arena = (seed = 123, depth = 7) => {   // (the first descent without a real boss, core/bosses.js)
+const arena = (seed = 123, depth = 8) => {   // (the first descent without a real boss, core/bosses.js)
   const world = new World(seed), key = world.layout(depth).down;
   return { world, map: state.map = world.cube(key).map };
 };
@@ -216,9 +216,9 @@ test('the messages call a guardian by its kind: the one guardianSpots promotes',
       assert.equal(guardianLockMessage(map, kind), `Defeat the ${label} to unlock this descent`);
     }
   }
-  const plain = w.cube(w.layout(7).down).map;
+  const plain = w.cube(w.layout(8).down).map;
   assert.equal(guardianLockMessage(plain), 'Defeat the Temp Boss to unlock this descent', 'unknown: by its tier');
-  assert.equal(guardianKind(w.cube(w.layout(7).route[1]).map), null, 'no guardian');
+  assert.equal(guardianKind(w.cube(w.layout(8).route[1]).map), null, 'no guardian');
 });
 test('leaving an arena while its guardian lives asks, and only when steered out', () => {
   const w = new World(3), run = createRun();

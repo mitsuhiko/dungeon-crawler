@@ -117,8 +117,42 @@ turns the view, there is no cursor and no walking by mouse.
   cut, the walls, the bar and the neighbours switch there. The main menu always shows the
   overview.
 
+## The world's roll (`game/roll.js`, `core/roll.js`)
+
+The view can turn about where it looks (`view.roll`), in both views: the world turns on the screen
+while gravity stays with its floor, so the hero seems to run up a wall (a quarter round) or along
+the ceiling (half round). It is Monteur's spin ([bosses.md](bosses.md#monteur)): a Monteur alive in
+the cube turns it to his `quarter` (`followRoll`, every game after the one it is shown: it comes
+with his row), and back the right way up once he is beaten or gone. The developer commands `/roll`
+and `/rollkeys` ([console.md](console.md)) turn it without him, and hold it while they do (`/roll
+off` gives it back). Only the view turns: in another cube, and out of play (the main menu), it is
+unturned at once.
+
+- **Turning** (`ROLL`, `stepRoll`): slowly, speeding up and slowing down (20°/s²) to at most
+  25°/s, and it rests at a quarter (0, 90, 180 or 270 degrees) exactly: a quarter takes about
+  5 s, half round about 8.5 s. `/roll 90` turns to a quarter the shorter way and stays;
+  `/roll spin` goes on by itself, a quarter either way or half round (`nextStop`), resting 6–10 s
+  at each.
+- **The camera** (`game/camera.js`): turned last, about its own axis (before the shaking), so the
+  overview's cutaway, the close view's arm and everything else see the camera where it was.
+- **The keys** (and the touch sticks, the flask's aim stick): what they follow is the question
+  the prototype is for (`KEY_MODES`, `view.keyRoll`, `game/input.js inputDir`): `world`, they stay
+  with the world as it was unturned (rolled half round, up on the keys runs down the screen);
+  `screen`, up is always up the screen (while it turns a key held curves the hero's way along);
+  `catchup` (the default), they stay with the world while it turns and catch up with the screen
+  once it has rested 1 s (most of the way in a second).
+- **The mouse** follows the screen whatever the keys do: clicks hit what is under the cursor
+  anyway (the pick goes through the turned camera), and the close view's mouse look, the camera
+  key's turning and the lock-on's flick turn the way the mouse went on the screen
+  (`unturnMouse`).
+- **The sky** (`render/sky.js`), drawn on the screen, rolls with it: the stars cover all the screen
+  may turn to (a circle through its corners), the haze is mirrored past its edges.
+- **The minimap** turns with it.
+
 ## Not yet
 
+- The world's roll: reduced motion does nothing to it yet; labels and damage numbers stay
+  upright on the screen.
 - The backdrop (sky, stars) is fixed to the screen; turning the close view leaves it in place.
 - Sounds pan by where they are on the screen; one behind the camera pans to the wrong side.
 - Enemies' silhouettes through walls show as in the overview, larger up close.
@@ -134,6 +168,8 @@ turns the view, there is no cursor and no walking by mouse.
   mouse look's turning (speed, invert, limits), the tap / hold decision and the default keys.
 - `tests/lockon.test.js`: which enemy the lock goes to, where a flick moves it, the locked
   camera's yaw.
+- `tests/roll.test.js`: the world's roll turning slowly to rest at a quarter, spinning on, what
+  the keys follow in each mode, a direction on the rolled screen back on the unrolled one.
 - `tests/browser/camera.js` (`runCameraChecks()`): the keys, turning, settling, losing the
   window, the close view's cut and walls and lens, the arm out of the solids all around the
   hero in a cave, the player's bar; mouse look (capturing on a click, turning, speed and
@@ -141,3 +177,7 @@ turns the view, there is no cursor and no walking by mouse.
   click attacking instead of walking) and the lock-on, with a stand-in for pointer lock
   (headless Chrome has none). The other browser checks run in the overview
   (`paused()` in tests/browser/combat.js sets it and puts the setting back).
+- `tests/browser/roll.js` (`runRollChecks()`): the world's roll: the camera's right side up a
+  quarter round, which way W, A and D run the hero on the screen with the keys following the
+  world or the screen (a quarter and half round), the close view's mouse look following the
+  screen, the slow turn to rest at a quarter and the keys catching up, `/roll` and `/rollkeys`.
