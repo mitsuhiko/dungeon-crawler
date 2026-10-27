@@ -18,6 +18,7 @@
 // few cells at a player it sees.
 import { hash32, mulberry32 } from './util.js';
 import { WATER, LAVA, ACID } from './constants.js';
+import { AMPHIBIAN_ATTACKS, AMPHIBIAN_MAX_HP, AMPHIBIAN_LEVEL } from './amphibian.js';
 import { toxinOf } from './status.js';
 import { paint } from './palette.js';
 import { noun, msg, say, form } from '../i18n/i18n.js';
@@ -1109,7 +1110,19 @@ export const QUALMOS = {
   style: 'brute', guardian: true, guardianRole: 'descent', boss: 'qualmos',
   seedSalt: 0xa6f1b1, spacing: 6,
 };
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, QUALMOS];
+// The rescue-route prototype is separate from upstream's native Qualmos and its assets.
+export const AMPHIBIAN = {
+  type: 'amphibian', species: 'amphibian', model: 'amphibian', label: 'Qualmos',
+  hp: AMPHIBIAN_MAX_HP / (1 + GROWTH.hp * (AMPHIBIAN_LEVEL - 1)), damage: 19, knock: 4,
+  xp: 1000, coins: [250, 450], radius: .65, height: 3.35, bodyHeight: 2.4, mass: 10,
+  aggro: 9, giveUp: 20, chase: 1.3, wander: .35, homeSpeed: .8,
+  ...AMPHIBIAN_ATTACKS[0], reach: 9, cooldown: 1.5, attacks: AMPHIBIAN_ATTACKS,
+  poise: 2, hitStun: .2, deathTime: 2.5, corpseTime: 5, steadfast: true, swims: true,
+  ichor: ['#6be8bd', '#246b98'], pitch: .65, parts: {},
+  style: 'brute', guardian: true, guardianRole: 'descent', boss: 'amphibian',
+  seedSalt: 0xa6f1b1, spacing: 6,
+};
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, QUALMOS, AMPHIBIAN];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp
