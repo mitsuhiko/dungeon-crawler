@@ -4,8 +4,11 @@ Status: the pipeline and the narrator are built. The lines ([story.md](story.md)
 ahead into audio files with a text-to-speech model, and the game plays them as things happen, one
 after the other, with subtitles (`src/game/narrator.js`, "In the game" below). The lines so far are
 the glassmaker's recordings of the beginning (`RECORDINGS`: the glass on the town plaza and the
-sword in the merchant camp, story.md "The beginning"), in the `glassmaker` voice, worn like an old
-recording; the inventory's Memories tab plays them again ("The memories" below). The old
+glass in the merchant camp, story.md "The beginning"), in the `glassmaker` voice, worn like an old
+recording; the inventory's Memories tab plays them again ("The memories" below). His recordings
+only ever come out of his glass: one plays when its bubble is found, never for coming somewhere or
+doing something. He does not know where his glass comes to rest, so he never says what is there
+(a town, a gate, the next one), only what is true wherever it came down. The old
 narrator's lines (a grandmother remembering, for the town and the first three depths) went with the
 old story; the moments they were said at stay, for the companion to come.
 
@@ -461,8 +464,8 @@ narrator, telling what happens there.
 Not in the guide's game window; `?narration=0` turns it off. With `?dev=1`, `/narrate <id>` says
 a line now, `/narrate forget` forgets what was said in this world.
 
-Playing together, a recording one player sets off (the glass found, the camp reached with it, the
-sword taken) plays for everyone at once, cutting short what was playing there (`story` messages,
+Playing together, a recording one player sets off (a glass of his found: the town's, the camp's)
+plays for everyone at once, cutting short what was playing there (`story` messages,
 [online.md](online.md)).
 
 ### The memories
@@ -474,6 +477,9 @@ there however little was heard), where each was found, and all its words; **List
 from the start (`hearAgain` in `src/game/narrator.js`), the line being
 said lit up. The world stays paused meanwhile (the inventory is open): the voice plays on its own,
 not through the queue, and stops when the panel closes or the tab changes.
+
+The memories are the glassmaker's recordings only. The robot's lines are not in them, unless one
+is marked to be (a recording of its own in `RECORDINGS`; none is yet).
 
 ## The films' lines
 
@@ -488,7 +494,7 @@ moment: the film plays it when its shot comes (`voiceClip` in `src/game/narrator
 A new moment for a line: its `on` and `when`, and if the game does not tell the narrator of it
 yet, a `narrate(...)` where it happens (a key in `MOMENTS`). Another recording of the glassmaker's:
 an entry in `RECORDINGS` (its title and where it is found, translated) and its lines
-(`recording(part, ...)` in `core/narration.js`), and something in the game that sets it off
-(`narrate('recording', { part })`). The other moments wait for lines: `depth` (with its `depth`),
+(`recording(part, ...)` in `core/narration.js`), and a bubble of his glass in the game that sets
+it off when it is found (`narrate('recording', { part })`, as `src/game/intro.js` does). The other moments wait for lines: `depth` (with its `depth`),
 `wander` (with its `act`), `theme`, `arena` / `boss` / `beaten` for its boss; the attack names are
 the boss's attacks' `name` (`core/enemies.js`).

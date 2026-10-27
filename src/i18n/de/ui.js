@@ -717,12 +717,13 @@ export default {
 
   'The way across is blocked': 'Der Weg hinüber ist versperrt',
 
-  // the beginning (core/intro.js, game/intro.js): the glassmaker's glass and his sword
+  // the beginning (core/intro.js, game/intro.js): the glassmaker's glass (in the town and the camp) and his sword
   'The gate will not open yet. Something glints on the plaza.': 'Das Tor geht noch nicht auf. Auf dem Platz glitzert etwas.',
   'The gate will not open yet. Take the sword from the ground first.': 'Das Tor geht noch nicht auf. Zieh zuerst das Schwert aus dem Boden.',
   'Bubble of star-glass': 'Blase aus Sternglas',
   'The glass broke, and a voice came out of it. The gate out of the town is open.':
     'Das Glas ist zerbrochen, und eine Stimme kam heraus. Das Tor aus der Stadt ist offen.',
+  'The glass broke, and a voice came out of it.': 'Das Glas ist zerbrochen, und eine Stimme kam heraus.',
   'You pulled {item:the} out of the ground': 'Du hast {item:den} aus dem Boden gezogen',
   'The gate to the road is open.': 'Das Tor zur Straße ist offen.',
   // the memories (game/memorypanel.js): the glassmaker's recordings heard

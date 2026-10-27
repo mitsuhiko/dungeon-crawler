@@ -1,8 +1,8 @@
 // In devtools: await (await import('./tests/browser/hover.js')).runHoverChecks()
 // Everything clicked in the world shows the pointer where it is, not only where its label hangs
 // (game/lootlabels.js bodyOf): in the town (the glassmaker's glass floating over the plaza, the
-// villagers, the gate) and in the merchant camp (his sword standing in the ground), seen from
-// close up and from far off. Each thing is pointed at in the middle of its body and low on it;
+// villagers, the gate) and in the merchant camp (another glass of his, his sword standing in the
+// ground), seen from close up and from far off. Each thing is pointed at in the middle of its body and low on it;
 // there the cursor must be a pointer, and the thing (or one in front of it) hovered. Then the
 // cursor goes to the empty sky: nothing hovered, no pointer. Plays in a fresh world, then puts
 // the one played back.
@@ -71,7 +71,7 @@ export async function runHoverChecks() {
     const camp = await state.cubes.get(step(town.key, town.map.exit));
     enterCube(camp, town.map.exit ^ 1);
     await frames(10);
-    results.push(...await checkHere('camp', ['story:sword']));
+    results.push(...await checkHere('camp', ['story:camp', 'story:sword']));
     return results;
   } finally {
     clearInput();

@@ -7,7 +7,9 @@
 // For now the lines are his recordings (RECORDINGS) and the robot's hello (`robot`): the old
 // narrator's (a grandmother whose memories were the cubes) went with the old story. The other
 // moments are kept for the robot, who sees what the hero does and will talk about it (docs/story.md,
-// "The robot"); a moment without lines says nothing.
+// "The robot"); a moment without lines says nothing. The memories (the inventory's Memories tab)
+// are his recordings only: the robot's lines are not in them, unless one is marked to be (a
+// recording of its own in RECORDINGS; none is yet).
 //
 // A line:
 //   id      what it is kept, sent and recorded under: lowercase words joined by '-' or '.'
@@ -93,8 +95,12 @@ export const MOMENTS = {
 
 // The glassmaker's recordings (docs/story.md): bubbles of star-glass he blew his words into, down in
 // the dark, and let rise. Each is a scene of lines (`on: 'recording'`, `when: { part }`), said when
-// it is found (core/intro.js, game/intro.js), and kept: the inventory's Memories tab
+// its bubble is found and breaks (core/intro.js, game/intro.js), never for coming somewhere or doing
+// something: his memories are always in his glass. Kept: the inventory's Memories tab
 // (game/memorypanel.js) plays the ones heard again. title: what the tab calls it; found: where.
+//
+// He does not know where his glass comes to rest, nor what lies about it: he never says what is
+// there (a town, a gate, the next one), only what is true wherever it came down.
 //
 // Players do not stand about to listen, so a recording never holds them up: it is told whole the
 // moment it begins (MOMENTS `whole`: the Memories have all of it), the next one cuts it short
@@ -102,8 +108,7 @@ export const MOMENTS = {
 // recording so its first line says what matters most.
 export const RECORDINGS = [
   { id: 'glass', title: msg('A voice in the glass'), found: msg('Found on the town plaza'), where: 'town' },
-  { id: 'camp', title: msg('Where the sword fell'), found: msg('Heard in the merchant camp'), where: 'camp' },
-  { id: 'sword', title: msg('The old sword'), found: msg('Heard with the sword in hand') },
+  { id: 'camp', title: msg('Where the sword fell'), found: msg('Found in the merchant camp'), where: 'camp' },
 ];
 // a recording's lines, in order
 export const recordingLines = id => LINES.filter(l => l.on === 'recording' && l.when?.part === id);
@@ -118,8 +123,8 @@ export const outOfPlace = (line, map) => { const w = recordingOf(line)?.where; r
 
 // His recordings are his voice (tools/voices/glassmaker), worn like an old recording when played
 // (the film's `worn`, game/narrator.js): low, tired and calm, a man talking to whoever finds the
-// glass, not knowing who or where they are. He cannot see them: he says what is true wherever the
-// glass came to rest.
+// glass, not knowing who or where they are. He cannot see them, nor where the glass came to rest:
+// he says what is true wherever that is.
 const recording = (part, id, text, note, instruct, more = {}) => ({ id: `recording.${part}.${id}`, on: 'recording', when: { part },
   voice: 'glassmaker', worn: true, text, note, instruct, ...more });
 
@@ -137,35 +142,30 @@ export const LINES = [
   recording('glass', 'keep', 'This glass keeps my words. Keep them with you, and listen again whenever you need to.',
     'What the glass is: it keeps what it holds, his voice too. The game opens the memories here (the inventory\'s Memories tab), so this is a promise: his words can be heard again.',
     'Speak low and warm, plainly, like someone explaining a gift.'),
-  recording('glass', 'gates', 'Your town is only one piece of the world. Where the pieces meet, there are gates of my glass.',
-    'He teaches the gates: the world is broken into pieces, and between them stand gates he made. Matter-of-fact, a craftsman\'s pride under it.',
+  recording('glass', 'gates', 'The world is in pieces now. Where the pieces meet, there are gates of my glass.',
+    'He teaches the gates: the world is broken into pieces, and between them stand gates he made. He does not know where his glass came down, so he says nothing of what is round the hero. Matter-of-fact, a craftsman\'s pride under it.',
     'Speak low and steady, matter-of-fact.'),
-  recording('glass', 'open', 'They know my glass, and they open for whoever carries it. So go on, out through the gate.',
-    'Why the town\'s gate opens now: the hero carries his glass. Then he sends them on, gently but firmly.',
+  recording('glass', 'open', 'They know my glass, and they open for whoever carries it. So carry it, and go on.',
+    'Why the gate out of the town opens now: the hero carries his glass (he does not know there is a town or a gate near; it is true of every gate). Then he sends them on, gently but firmly.',
     'Speak low and steady, then gently encouraging on the last sentence.'),
 
-  // --- the merchant camp, the glass found: where the sword fell ------------------------------------
+  // --- the glass in the merchant camp: where the sword fell ----------------------------------------
   recording('camp', 'tied', 'My old sword rose with this glass, tied to it. If the knot came loose, it did not fall far.',
-    'Coming into the merchant camp with the glass found. He tied his old sword to the bubble so whoever found it would not go out empty-handed; it came loose on the way and lies here, stuck in the ground. Cut short when the sword is taken.',
+    'A second bubble of his, found a few steps into the merchant camp. He tied his old sword to it so whoever found it would not go out empty-handed; it came loose on the way and lies close by, stuck in the ground (he cannot know that, only hope it).',
     'Speak low and thoughtful, a little wry about the knot.'),
   recording('camp', 'point', 'A sword falls point first. Look for one standing in the ground, and pull it out.',
     'Right after: he cannot see the hero, he only knows how a sword falls. Practical.',
     'Speak low and practical, calm.', { seed: { de: 2 } }),   // (the others mumble "Such eins")
-
-  // --- the sword pulled out of the ground ------------------------------------------------------------
-  recording('sword', 'honest', 'It is old and plain, but it is honest. It never broke on me.',
-    'The hero just pulled his old sword out of the ground in the merchant camp. Fond of it, the way a craftsman is fond of a good tool.',
+  recording('camp', 'honest', 'It is old and plain, but it is honest. It never broke on me.',
+    'About the sword, which the hero may not have found yet. Fond of it, the way a craftsman is fond of a good tool.',
     'Speak low and fond, with a faint smile.'),
-  recording('sword', 'gate', 'The next gate opens for my sword. Past it the world gets wild, so keep it in your hand.',
-    'The camp\'s gate out to the road opens once the sword is taken; past it the enemies start. A warning, not a fright.',
-    'Speak low and serious, a quiet warning.'),
-  recording('sword', 'listen', 'And listen for more of my glass. I will keep talking, for as long as I can.',
-    'The end of this recording: more of his bubbles lie further on. Tired, but he will not stop.',
+  recording('camp', 'listen', 'And listen for more of my glass. I will keep talking, for as long as I can.',
+    'The end of this recording: more of his bubbles lie somewhere, he does not know where. Tired, but he will not stop.',
     'Speak low and tired, slowing down at the end, a little hopeful.', { seed: 3 }),   // (the others pause long: "Und hör auf.")
 
   // --- the robot comes flying up, the first time the hero is out of the town (core/robot.js) ------
   robot('hello', 'there', 'There you are! I heard the glass break, and I flew as fast as my wings would go.',
-    'The robot\'s first words. The hero just left the town and the merchant camp for the road, and the little robot of star-glass came flying up to them. It heard the glassmaker\'s glass break on the town plaza and came looking. Glad, a little out of breath.',
+    'The robot\'s first words. The hero just left the town and the merchant camp for the road, and the little robot of star-glass came flying up to them. It heard the glassmaker\'s glass break and came looking. Glad, a little out of breath.',
     'Speak brightly and a little out of breath, glad, like an eager child.'),
   robot('hello', 'who', 'The star-readers made me, of glass and clockwork. I had a name once, but I cannot find it any more.',
     'Who it is: the star-readers built it. It cannot get at all of what it remembers, its own name too. Cheerful about the first sentence, puzzled and a little wistful about the second, not sad.',

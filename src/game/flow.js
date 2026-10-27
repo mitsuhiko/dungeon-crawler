@@ -52,7 +52,7 @@ import { setFluidPalettes } from '../render/fluidpal.js';
 import { tr } from '../i18n/i18n.js';
 import { askRespawn, forgetDeath } from './deathask.js';
 import { narrate, arrived, stopNarrator } from './narrator.js';
-import { introArrived, settleIntro } from './intro.js';
+import { settleIntro } from './intro.js';
 import { robotArrived, forgetRobot } from './robot.js';
 
 export function spawnAt(x, y, z) {
@@ -309,7 +309,6 @@ export function settleIn(neighbors = true) {
   const deeper = noteDepth(c.map, state.cubes.seed);
   if (deeper) actJingle(c.map.depth);
   arrived(c.map, state.cubeKey, c.visits, deeper);   // what the narrator has to say about it (game/narrator.js)
-  introArrived(c.map);   // the glassmaker's glass plays on in the merchant camp (game/intro.js)
   robotArrived(c.map);   // the robot comes, the first time out of the town; after that it is with us (game/robot.js)
   if (neighbors) showNeighbors(visitedNeighbors(state.cubeKey));
   if (gateLocked(state.map, state.run)) setStatus(guardianLockMessage(state.map, guardianKind(state.map)));

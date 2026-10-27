@@ -123,10 +123,9 @@ being helped up and getting back in. Up to four players, co-op.
   keeps its world after a lost connection in `visited` and `faces`.
 - The beginning ([story.md](story.md#the-beginning)) is shared too (`story`): whoever finds the
   glassmaker's glass on the plaza opens the town's gate for everyone, and his recording plays for
-  everyone at the same moment, wherever they are; the first to come into the merchant camp with
-  the glass found sets the camp's recording playing, for everyone; whoever takes his sword opens
-  the camp's gate, and his last word plays for everyone (each recording cutting short the one
-  before). Each player takes a sword of their own: it stays in the ground for a hero with no
+  everyone at the same moment, wherever they are; whoever finds his glass in the merchant camp
+  sets its recording playing, for everyone (and it is gone for everyone); whoever takes his sword
+  opens the camp's gate for everyone (each recording cutting short the one before). Each player takes a sword of their own: it stays in the ground for a hero with no
   weapon at all (one who joins empty-handed).
 - The robot ([story.md](story.md#the-robot)): every player has their own, which comes to them
   the first time they are out of the town (a guest's too, in a world where the host's came long

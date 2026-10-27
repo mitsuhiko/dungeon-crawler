@@ -1,5 +1,6 @@
 // The beginning (core/intro.js, docs/story.md "The beginning"): the glassmaker's glass on the town
-// plaza and his old sword in the merchant camp, each behind a gate of its own; a world starts at noon.
+// plaza, another in the merchant camp and his old sword there, the town's glass and the sword each
+// opening a gate of its own; a world starts at noon.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { N, LH } from '../src/core/constants.js';
@@ -7,8 +8,8 @@ import { containsXZ } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { step, faceKey } from '../src/world/coords.js';
-import { TOWN_KEY, TOWN_LEVEL, TOWN_RELIC, CAMP_RELIC, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
-import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, swordThere, skipIntro, pastIntro } from '../src/core/intro.js';
+import { TOWN_KEY, TOWN_LEVEL, TOWN_RELIC, CAMP_GLASS, CAMP_RELIC, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
+import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, campGlassThere, swordThere, skipIntro, pastIntro } from '../src/core/intro.js';
 import { portalLocked, lockMessage } from '../src/core/guardians.js';
 import { createRun, createPlayerStats } from '../src/core/progression.js';
 import { createWorld, checkWorld, createHero, checkHero } from '../src/core/save.js';
@@ -37,13 +38,16 @@ test('the town\'s way out opens for the glass, the merchant camp\'s for the swor
   assert.equal(portalLocked(camp, run, { dir: camp.exit }), false);
 });
 
-test('the glass floats over the plaza near the spawn, the sword stands beside the camp\'s road: dry, reachable, clear', () => {
+test('the glass floats over the plaza near the spawn, the camp\'s near its way in, the sword stands beside the camp\'s road: dry, reachable, clear', () => {
   const exits = new Set();
   for (let seed = 0; seed < 40; seed++) {
     const w = new World(seed), town = w.cube(w.start).map, camp = w.cube(step(w.start, town.exit)).map;
     exits.add(town.exit);
-    for (const [m, spot, plan] of [[town, TOWN_RELIC, town.town], [camp, CAMP_RELIC, camp.merchantCamp]]) {
-      const r = m.relic, cell = Math.floor(r.z) * N + Math.floor(r.x);
+    assert.deepEqual(Object.keys(town.relics), ['glass']);
+    assert.deepEqual(Object.keys(camp.relics), ['glass', 'sword']);
+    for (const [r, spot, m, plan] of [[town.relics.glass, TOWN_RELIC, town, town.town], [camp.relics.glass, CAMP_GLASS, camp, camp.merchantCamp],
+      [camp.relics.sword, CAMP_RELIC, camp, camp.merchantCamp]]) {
+      const cell = Math.floor(r.z) * N + Math.floor(r.x);
       assert.equal(r.y, TOWN_LEVEL * LH);
       assert.deepEqual([r.x, r.z].map(v => +v.toFixed(6)), rotateTownPoint(...spot, plan.yaw).map(v => +v.toFixed(6)));
       assert.equal(m.safe[cell], 1, 'reachable');
@@ -52,19 +56,29 @@ test('the glass floats over the plaza near the spawn, the sword stands beside th
       assert.ok(!m.authoredProps.some(p => Math.hypot(p.x - r.x, p.z - r.z) < 0.9), 'no clutter on it');
     }
     const spawn = town.portals.find(p => p.kind === 'spawn');
-    const d = Math.hypot(town.relic.x - spawn.x - 0.5, town.relic.z - spawn.z - 0.5);
+    const d = Math.hypot(town.relics.glass.x - spawn.x - 0.5, town.relics.glass.z - spawn.z - 0.5);
     assert.ok(d > 1 && d < 3, 'a few steps from where a new hero stands');
-    // beside the camp's road, not on it: walking along it does not take the sword
+    // the camp's glass a few steps in from the town's gate (the camp's second: the first is its exit)
+    const into = camp.portals[1], g = camp.relics.glass;
+    assert.notEqual(into.dir, camp.exit);
+    const steps = Math.hypot(g.x - into.x - 0.5, g.z - into.z - 0.5);
+    assert.ok(steps > 2 && steps < 4.5, `the camp's glass is ${steps} from the way in`);
+    // beside the camp's road, not on it: walking along it takes neither the glass nor the sword
     const road = camp.merchantCamp.paths[0].points, [a, b] = [road[0], road.at(-1)];
-    const along = Math.abs(a[0] - b[0]) < 1e-9 ? Math.abs(camp.relic.x - a[0]) : Math.abs(camp.relic.z - a[1]);
-    assert.ok(along > 1, `the sword is ${along} off the road`);
+    for (const [what, q] of Object.entries(camp.relics)) {
+      const along = Math.abs(a[0] - b[0]) < 1e-9 ? Math.abs(q.x - a[0]) : Math.abs(q.z - a[1]);
+      assert.ok(along > 0.85, `the ${what} is ${along} off the road`);
+    }
   }
   assert.deepEqual([...exits].sort(), [0, 1, 2, 3]);
 });
 
-test('the glass is there until it is found; the sword until it is taken, and for anyone without a weapon', () => {
+test('a glass is there until it is found; the sword until it is taken, and for anyone without a weapon', async () => {
+  const { recordingLines } = await import('../src/core/narration.js');
   const run = createRun();
-  assert.ok(glassThere(run)); assert.ok(swordThere(run, 3));
+  assert.ok(glassThere(run)); assert.ok(campGlassThere(run)); assert.ok(swordThere(run, 3));
+  run.told.add(recordingLines('camp')[0].id);
+  assert.ok(!campGlassThere(run), 'its recording heard');
   run.unlockedGates.add(INTRO_GATES.glass);
   assert.ok(!glassThere(run));
   run.unlockedGates.add(INTRO_GATES.sword);
@@ -101,14 +115,13 @@ test('a recording is told whole once it begins, and is cut short by the next or 
   const { RECORDINGS, recordingLines, recordingsHeard, outOfPlace, placeOf, MOMENTS } = await import('../src/core/narration.js');
   // (game/narrator.js does it, which the tests cannot load: it draws)
   assert.ok(MOMENTS.recording.cuts && MOMENTS.recording.whole);
-  assert.deepEqual(RECORDINGS.map(r => r.id), ['glass', 'camp', 'sword']);
+  assert.deepEqual(RECORDINGS.map(r => r.id), ['glass', 'camp'], 'his words are in his glass: the sword says nothing');
   assert.deepEqual(recordingsHeard(new Set([recordingLines('glass')[0].id])).map(r => r.id), ['glass']);
   const town = { town: {} }, house = { interior: true }, camp = { merchantCamp: {} }, road = {};
   assert.deepEqual([town, house, camp, road].map(placeOf), ['town', 'town', 'camp', null]);
-  const [glass] = recordingLines('glass'), [inCamp] = recordingLines('camp'), [sword] = recordingLines('sword');
+  const [glass] = recordingLines('glass'), [inCamp] = recordingLines('camp');
   assert.ok(!outOfPlace(glass, town) && !outOfPlace(glass, house) && outOfPlace(glass, camp), 'leaving the town cuts the glass\'s');
   assert.ok(outOfPlace(inCamp, road) && !outOfPlace(inCamp, camp));
-  assert.ok(!outOfPlace(sword, road), 'the sword\'s goes along');
 });
 
 test('playing together the beginning is told to everyone, through the host', () => {

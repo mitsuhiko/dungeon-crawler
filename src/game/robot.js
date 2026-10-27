@@ -3,8 +3,8 @@
 // the cube, high over everything, and once it is close says hello (core/narration.js `robot`) with a
 // cheer; from then on, and whenever the world is played again, it is with them: it comes in at
 // their side as they enter it (game/flow.js settleIn). It does not talk over the story: while one
-// is being told or waits its turn (the glassmaker's recording of the sword, still going as the
-// hero steps out onto the road: game/narrator.js storyQuiet) it does not come yet, but once it has
+// is being told or waits its turn (a recording of the glassmaker's found just before:
+// game/narrator.js storyQuiet) it does not come yet, but once it has
 // been quiet a moment (QUIET), wherever the hero is then, as long as it is out of the town.
 //
 // Every frame the hero's way gets its crumbs (where they really are: game/travel.js truePosition,

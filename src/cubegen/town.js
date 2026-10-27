@@ -61,10 +61,14 @@ export function generateClearing(spec) {
   if (portal && (!prev.has(Math.floor(portal.z) * N + Math.floor(portal.x))
     || plan.colliders.some(b => containsXZ(b, portal.x, portal.z, 1.1)) || plan.pond.some(c => Math.hypot(c % N + .5 - portal.x, Math.floor(c / N) + .5 - portal.z) < 1.5)))
     throw new Error('Clearing layout blocks the town portal spot');
-  // where the beginning's thing lies (core/intro.js): dry, reachable and clear of every body
-  const relic = { x: plan.relic.x, y: TOWN_LEVEL * LH, z: plan.relic.z };
-  if (!prev.has(Math.floor(relic.z) * N + Math.floor(relic.x)) || plan.colliders.some(b => containsXZ(b, relic.x, relic.z, CHAR_R + .1)))
-    throw new Error('Clearing layout blocks the relic');
+  // where the beginning's things lie (core/intro.js: the glass, the sword): dry, reachable and clear
+  // of every body
+  const relics = {};
+  for (const [k, q] of Object.entries(plan.relics)) {
+    const relic = relics[k] = { x: q.x, y: TOWN_LEVEL * LH, z: q.z };
+    if (!prev.has(Math.floor(relic.z) * N + Math.floor(relic.x)) || plan.colliders.some(b => containsXZ(b, relic.x, relic.z, CHAR_R + .1)))
+      throw new Error('Clearing layout blocks the ' + k);
+  }
   const pathTo = goal => {
     const path = [];
     for (let c = goal; c !== null; c = prev.get(c)) path.unshift(floors[c]);
@@ -85,7 +89,7 @@ export function generateClearing(spec) {
     safe: Uint8Array.from(floors, f => prev.has(f.c) ? 1 : 0),
     kind: 'meadow', archetype: 'plain', key: spec.key, depth: 0, cave: false, enemyFree: true, biome: 'meadow',
     staticBlockers, blockers: staticBlockers, occluders: plan.occluders, authoredProps: plan.placements, doors: plan.doors,
-    villagers: plan.villagers, spots: [], relic,
+    villagers: plan.villagers, spots: [], relics,
     ...(camp ? { merchantCamp: clearing } : { town: clearing }),
     routes: paths.map(path => path.map(f => ({ x: f.x + .5, y: TOWN_LEVEL * LH + .12, z: f.z + .5 }))),
   };

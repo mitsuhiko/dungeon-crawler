@@ -124,7 +124,7 @@ const segmentDistance = (x, z, [ax, az], [bx, bz]) => {
   return Math.hypot(x - ax - t * dx, z - az - t * dz);
 };
 
-function clearingPlan(exit, seed, buildings, gates, relic) {
+function clearingPlan(exit, seed, buildings, gates, relics) {
   const yaw = exitYaw[exit];
   if (yaw === undefined) throw new Error('Clearing needs a side exit');
   const y = TOWN_LEVEL * LH, R = mulberry32(hash32(seed ^ 0x70a11));
@@ -185,9 +185,10 @@ function clearingPlan(exit, seed, buildings, gates, relic) {
       top: y + t.height * scale, bottom: y + t.canopy * scale });
   };
   const [sx, sz] = rotateTownPoint(8.5, 8.5, yaw);
-  const [rx, rz] = rotateTownPoint(...relic, yaw);
   const plan = { placements, colliders, occluders, frontages, paths, doors, villagers, pond: [], yaw,
-    spawn: [Math.floor(sx), Math.floor(sz)], relic: { x: rx, z: rz } };
+    spawn: [Math.floor(sx), Math.floor(sz)], relics: Object.fromEntries(Object.entries(relics).map(([k, at]) => {
+      const [x, z] = rotateTownPoint(...at, yaw); return [k, { x, z }];
+    })) };
   // Solid clutter keeps away from gates, the spawn plaza and doorsteps, so every
   // generated route, gate cell and frontage stays walkable.
   const keepOut = () => [
@@ -211,7 +212,7 @@ function clearingPlan(exit, seed, buildings, gates, relic) {
       if (segmentDistance(x, z, p.points[i - 1], p.points[i]) < p.width / 2 + clearance) return false;
     if (Math.hypot(x - sx, z - sz) < 1.35 + r) return false;
     if (plan.portal && Math.hypot(x - plan.portal.x, z - plan.portal.z) < 1.1 + r) return false;
-    if (Math.hypot(x - plan.relic.x, z - plan.relic.z) < .9 + r) return false;
+    if (Object.values(plan.relics).some(q => Math.hypot(x - q.x, z - q.z) < .9 + r)) return false;
     if (kind === 'solid' && keepOut().some(q => Math.hypot(x - q.x, z - q.z) < q.r + r)) return false;
     return !clutter.some(c => Math.hypot(x - c.x, z - c.z) < (r + c.r) * (kind === 'cover' && c.kind === 'cover' ? .55
       : kind === 'cover' || c.kind === 'cover' ? .7 : 1));
@@ -299,14 +300,15 @@ function facing(put, name, candidates, [tx, tz]) {
 // Where the town end of a town portal stands (town-local; the plan rotates it with the exit):
 // east of the plaza, between the stable's and the pet shop's paths. Nothing is put on it.
 export const TOWN_PORTAL_SPOT = [12, 8.5];
-// Where the beginning's two things lie (town-local, core/intro.js): the glassmaker's glass over the
-// town's plaza, on the street to the gate, a few steps from where a new hero stands; his sword in
-// the merchant camp, in its middle, beside the road (walking along it does not pick it up).
-// Nothing is put on them (plan.relic).
-export const TOWN_RELIC = [8.5, 6.6], CAMP_RELIC = [7.3, 7.6];
+// Where the beginning's things lie (town-local, core/intro.js): the glassmaker's glass over the
+// town's plaza, on the street to the gate, a few steps from where a new hero stands; in the
+// merchant camp another glass of his, a few steps in from the town's side, beside the road, and his
+// sword in the camp's middle, beside the road on the other side (walking along it takes neither).
+// Nothing is put on them (plan.relics: { glass, sword }).
+export const TOWN_RELIC = [8.5, 6.6], CAMP_GLASS = [9.5, 12.0], CAMP_RELIC = [7.3, 7.6];
 
 export function townPlan(exit, seed) {
-  const { plan, path, tree, put, group, scatter, shore, R } = clearingPlan(exit, seed, BUILDINGS, [[8.5, .9]], TOWN_RELIC);
+  const { plan, path, tree, put, group, scatter, shore, R } = clearingPlan(exit, seed, BUILDINGS, [[8.5, .9]], { glass: TOWN_RELIC });
   const [px, pz] = rotateTownPoint(...TOWN_PORTAL_SPOT, plan.yaw);
   plan.portal = { x: px, z: pz };
   GROVE.forEach(([x, z], i) => tree(i, x, z));
@@ -368,7 +370,7 @@ export function townPlan(exit, seed) {
 }
 
 export function merchantCampPlan(exit, seed) {
-  const { plan, path, tree, put, group, scatter, R } = clearingPlan(exit, seed, MERCHANTS, [[8.5, .9], [8.5, 15.1]], CAMP_RELIC);
+  const { plan, path, tree, put, group, scatter, R } = clearingPlan(exit, seed, MERCHANTS, [[8.5, .9], [8.5, 15.1]], { glass: CAMP_GLASS, sword: CAMP_RELIC });
   // Open at both ends of the road; tents flank it instead of forming another row.
   [[1.0, 1.4], [14.7, 2.2], [1.0, 7.0], [14.9, 11.6], [2.0, 14.9], [12.9, 14.9]]
     .forEach(([x, z], i) => tree(i, x, z));

@@ -8,27 +8,22 @@ export default {
   'A voice in the glass': 'Eine Stimme im Glas',
   'Found on the town plaza': 'Gefunden auf dem Platz der Stadt',
   'Where the sword fell': 'Wo das Schwert hinfiel',
-  'Heard in the merchant camp': 'Gehört im Händlerlager',
-  'The old sword': 'Das alte Schwert',
-  'Heard with the sword in hand': 'Gehört mit dem Schwert in der Hand',
+  'Found in the merchant camp': 'Gefunden im Händlerlager',
   // the glass on the town plaza
   'So my glass found someone. Good.': 'Mein Glas hat also jemanden gefunden. Gut.',
   'This glass keeps my words. Keep them with you, and listen again whenever you need to.':
     'Dieses Glas bewahrt meine Worte. Behalte sie bei dir, und hör sie wieder an, wann immer du sie brauchst.',
-  'Your town is only one piece of the world. Where the pieces meet, there are gates of my glass.':
-    'Deine Stadt ist nur ein Stück der Welt. Wo die Stücke sich treffen, stehen Tore aus meinem Glas.',
-  'They know my glass, and they open for whoever carries it. So go on, out through the gate.':
-    'Sie kennen mein Glas, und sie öffnen sich für jeden, der es bei sich trägt. Also geh, hinaus durch das Tor.',
-  // the merchant camp: where the sword fell
+  'The world is in pieces now. Where the pieces meet, there are gates of my glass.':
+    'Die Welt ist jetzt in Stücken. Wo die Stücke sich treffen, stehen Tore aus meinem Glas.',
+  'They know my glass, and they open for whoever carries it. So carry it, and go on.':
+    'Sie kennen mein Glas, und sie öffnen sich für jeden, der es bei sich trägt. Also trag es bei dir und geh weiter.',
+  // the glass in the merchant camp: where the sword fell
   'My old sword rose with this glass, tied to it. If the knot came loose, it did not fall far.':
     'Mein altes Schwert stieg mit diesem Glas auf, daran festgebunden. Wenn der Knoten aufgegangen ist, fiel es nicht weit.',
   'A sword falls point first. Look for one standing in the ground, and pull it out.':
     'Ein Schwert fällt mit der Spitze voran. Such eins, das im Boden steckt, und zieh es heraus.',
-  // the sword pulled out of the ground
   'It is old and plain, but it is honest. It never broke on me.':
     'Es ist alt und schlicht, aber ehrlich. Es ist mir nie zerbrochen.',
-  'The next gate opens for my sword. Past it the world gets wild, so keep it in your hand.':
-    'Das nächste Tor öffnet sich für mein Schwert. Dahinter wird die Welt wild, also behalt es in der Hand.',
   'And listen for more of my glass. I will keep talking, for as long as I can.':
     'Und hör auf mehr von meinem Glas. Ich rede weiter, solange ich kann.',
 

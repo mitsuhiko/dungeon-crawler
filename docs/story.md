@@ -91,10 +91,9 @@ Decided:
   `core/narration.js`, in its voice): it heard the glass break and flew as fast as its wings would
   go; the star-readers made it, of glass and clockwork; it had a name once but cannot find it any
   more; it will come along and light the way, further down it gets dark. It does not talk over
-  the story: while a recording is still being told (the sword's, as the hero steps out onto the
-  road) or waits its turn, it does not come yet; once it has been quiet a moment it comes,
-  wherever the hero is then, as long as they are out of the town. So the glassmaker's last words
-  ("listen for more of my glass") hand over to the robot's first. The rule both ways: the story
+  the story: while a recording is still being told or waits its turn, it does not come yet; once it has been quiet a moment it comes,
+  wherever the hero is then, as long as they are out of the town. So the glassmaker's words never
+  have the robot's over them. The rule both ways: the story
   already being told finishes first (a recording found while the robot says hello waits too). (A first try at its
   character: cheerful and eager, a little forgetful. Its name stays open: it cannot find it.) The
   world keeps that it came (its hello, told: `run.told`), so from then on it is with the hero as
@@ -117,7 +116,8 @@ Decided:
 - **Its light**: its amber core lights what is round it (a moving light, about four cells).
 - **It brings you back** when you die, to the last safe place (not built yet).
 - **Its memory**: it knows something about the glassmaker, but cannot get at all of what it
-  remembers at once.
+  remembers at once. What it says is not one of the memories (the inventory's Memories tab: the
+  glassmaker's glass), unless a line of it is marked to be.
 - **Playing together**: every player has a robot of their own, and everyone sees everyone's
   ([online.md](online.md)). One of them, the host's, is the one that tells the story.
 
@@ -154,45 +154,54 @@ Still open:
 - **The robot** talks while you play, reacting to what happens (a robot can see what you do; a
   recording cannot). It replaces the earlier narrator's reactions.
 - **The glassmaker's recordings** lie at random places on the map and tell his story, what
-  happened to him and to the world. The first three are the beginning's (below). Once begun, a
-  recording is kept: the inventory's **Memories** tab plays it again.
+  happened to him and to the world. They are always in his glass: a bubble of star-glass, and a
+  recording plays when its bubble is found and breaks, never for coming somewhere or doing
+  something. The first two are the beginning's (below). Once begun, a recording is kept: the
+  inventory's **Memories** tab plays it again. Only his recordings are memories: the robot's
+  lines are not, unless one is marked to be.
+- **He does not know where his glass lands.** He blew his words into it down at the core and let
+  it rise; he never says what lies round the hero (a town, a gate, "the next gate"), only what is
+  true wherever it came to rest.
 - **The ending** (below) is the same in every world.
 
 ## The beginning
 
 Built (`src/core/intro.js`, `src/game/intro.js`). After the opening the town comes up slowly out of
 the black, at noon (a world's clock starts there: `core/daycycle.js` `START_CLOCK`). The hero comes
-empty-handed. Two things lie in the town's two parts, each behind a gate that will not open until it
-is found (gates of his glass, like a guardian's: `world/layout.js`, kept with the world). Three short
-recordings go with them (`RECORDINGS`, `core/narration.js`):
+empty-handed. Three things lie in the town's two parts; the town's glass and the sword each open a
+gate that will not open until it is found (gates of his glass, like a guardian's:
+`world/layout.js`, kept with the world). Two short recordings go with them, one in each glass
+(`RECORDINGS`, `core/narration.js`):
 
 1. **The glass** (`TOWN_RELIC`, `world/town.js`): a bubble of star-glass the size of a head,
    floating over the plaza a few steps from where the hero stands, faceted teal glass with an
    amber core (`src/render/glassbubble.js`). Walking into it breaks it, the town's gate opens, and
    his voice comes out (`'glass'`): his glass found someone; it keeps his words, to hear again (the
-   Memories tab opens); the town is one piece of the world, and where the pieces meet there are
-   gates of his glass; they open for whoever carries it, so go on, out through the gate.
-2. **The camp** (`'camp'`), coming into the merchant camp with the glass found: his old sword rose
-   with the glass, tied to it, and if the knot came loose it did not fall far; a sword falls point
-   first, pull it out.
+   Memories tab opens); the world is in pieces, and where the pieces meet there are gates of his
+   glass; they open for whoever carries it, so carry it and go on.
+2. **The camp's glass** (`CAMP_GLASS`): another bubble, a few steps into the merchant camp from
+   the town's side, beside the road. Walking into it breaks it (`'camp'`): his old sword rose with
+   this glass, tied to it, and if the knot came loose it did not fall far; a sword falls point
+   first, pull it out; it is old and plain but honest; listen for more of his glass. It opens
+   nothing, and it is there until it is heard (`run.told`).
 3. **The sword** (`CAMP_RELIC`): it stands in the ground in the middle of the camp. Pulled out it is
-   the hero's (the **Glassmaker's Old Sword**, in hand if nothing is), the camp's gate out to the
-   road opens, and he says a last word (`'sword'`): it is old and plain but honest; the next gate
-   opens for it, and past it the world gets wild; listen for more of his glass.
+   the hero's (the **Glassmaker's Old Sword**, in hand if nothing is) and the camp's gate out to the
+   road opens. It says nothing: it is no glass.
 
 Nobody has to stand about and listen. A recording counts as heard whole the moment it begins (the
 Memories have all of it), the next recording cuts it short, and leaving its place does too (the
 glass's when the hero leaves the town, the camp's when it leaves the camp): see
-[narration.md](narration.md#in-the-game). So walking straight out of the town ends the glass's
-words and starts the camp's; pulling the sword out ends the camp's and starts the sword's. This goes
-for his recordings to come too: each says what matters most first.
+[narration.md](narration.md#in-the-game). So breaking the camp's glass ends the town's words if
+they still go on, and walking out of the camp ends the camp's. This goes for his recordings to come
+too: each says what matters most first.
 
-The recording knows nothing of who hears it: it only says what is true wherever the glass came to
-rest. Playing together, a gate one player opens opens for everyone, and a recording one of them sets
-off plays for everyone at once (`story` messages, [online.md](online.md)). The sword stays for a hero
-without any weapon, so a friend who joins empty-handed is never without one. A world saved before
-the beginning, somebody already past the camp, has both gates open; so have the dev tools (`?dev=1`;
-`&intro=1` plays it).
+The recording knows nothing of who hears it, nor where it came to rest: it only says what is true
+wherever that is. Playing together, a gate one player opens opens for everyone, and a recording one
+of them sets off plays for everyone at once, its glass gone for everyone (`story` messages,
+[online.md](online.md)). The sword stays for a hero without any weapon, so a friend who joins
+empty-handed is never without one. A world saved before the beginning, somebody already past the
+camp, has both gates open; so have the dev tools (`?dev=1`; `&intro=1` plays it). The camp's glass
+is there in them too, until it is heard.
 
 ## The ending
 
