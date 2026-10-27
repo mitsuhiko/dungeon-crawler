@@ -91,11 +91,13 @@ function roomFor(floors, blocked, entrance, gate, need) {
   return free >= need + Math.max(8, Math.ceil(need * .35));
 }
 
+// The core's last arena (`final`, world/layout.js) has its entrance alone: its way on is planned
+// all the same (the boss stands before it), but never opened, and the map has no exit.
 export function generateGuardian(spec) {
-  const exit = spec.guardian.exit ?? spec.exit, role = spec.guardian.role ?? 'descent';
+  const exit = spec.guardian.exit ?? spec.exit, role = spec.guardian.role ?? 'descent', final = !!spec.guardian.final;
   const entry = spec.portals.find(p => p.dir < 4 && p.dir !== exit);
-  const onward = spec.portals.find(p => p.dir === exit);
-  if (!entry || !onward || spec.portals.length !== 2 || entry.layer || onward.layer
+  const onward = final ? { dir: 4 } : spec.portals.find(p => p.dir === exit);
+  if (!entry || !onward || spec.portals.length !== (final ? 1 : 2) || entry.layer || onward.layer
     || exit < 4 && entry.level !== onward.level)
     throw new Error('Guardian arena needs one ground entrance and one level onward exit');
   const ctx = createContext(spec.seed);
@@ -170,9 +172,9 @@ export function generateGuardian(spec) {
   const gate = portals[1], entrance = portals[0];
   const guardFloor = floors[idx(...U)];
   const boss = role === 'descent' ? spec.guardian.boss ?? null : null;
-  const guardian = { role, bossPlaceholder: role === 'descent' && !boss, boss, exit,
+  const guardian = { role, bossPlaceholder: role === 'descent' && !boss, boss, exit: final ? null : exit,
     floor: guardFloor, x: guardFloor.x + .5, z: guardFloor.z + .5,
-    y: floorY(guardFloor, .5, .5), yaw: Math.atan2(dx, dz), approach: [dx, dz], portalId: portals[1].id };
+    y: floorY(guardFloor, .5, .5), yaw: Math.atan2(dx, dz), approach: [dx, dz], portalId: final ? null : portals[1].id, ...final && { final } };
   const reached = reachFrom(entrance.floor, dress.blocked);
   if (!reached.has(guardFloor) || !reached.has(portals[1].floor)) throw new Error('Disconnected guardian arena');
   // Rails keep fights out of lower ground beside the zone: perimeter pockets two levels
@@ -189,7 +191,7 @@ export function generateGuardian(spec) {
     fenceList.push(rail); fences.set(edgeKey(f.x, f.z, other.x, other.z), [rail]);
   });
   ctx.stats.layers = 1; ctx.stats.mode = `guardian arena (${arena.type})`; ctx.stats.fences = fenceList.length;
-  return finishArena({ spec, ctx, role, cols: ctx.cols, floors, portals, exit, guardian, reached,
+  return finishArena({ spec, ctx, role, cols: ctx.cols, floors, portals: final ? [entrance] : portals, exit: final ? null : exit, guardian, reached,
     arena: { type: arena.type, requested },
     // the tidal hills' water (game/tide.js): its levels at rest and at high tide, and the box of
     // cells it stands in (inside the bank)

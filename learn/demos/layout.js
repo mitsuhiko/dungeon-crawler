@@ -70,10 +70,10 @@ export default function mount(el) {
     const boss = bossAt(d) && bossAt(d)[0].toUpperCase() + bossAt(d).slice(1);   // (the well's: a real boss, else a Temp Boss)
     const hordes = [...L.hordes].map(([k, h]) => [spine.indexOf(k) + 1, h.count]);
     out.innerHTML = tr(`depth ${d}: <b>${spine.length}</b> rooms on the route, <b>${cells.length - spine.length}</b> side rooms, `
-      + (d < MAX_DEPTH ? `<b>${sides}</b> guardian${sides === 1 ? '' : 's'} and ${boss ? `the boss <b>${boss}</b>` : 'a Temp Boss'} at the well` : 'the core: no way further down')
+      + (d < MAX_DEPTH ? `<b>${sides}</b> guardian${sides === 1 ? '' : 's'} and ${boss ? `the boss <b>${boss}</b>` : 'a Temp Boss'} at the well` : `the core: no way further down, the boss <b>${boss}</b> in its last room`)
       + hordes.map(([i, n]) => `; a horde of <b>${n}</b> in room ${i}`).join(''),
       `Tiefe ${d}: <b>${spine.length}</b> Räume auf der Route, <b>${cells.length - spine.length}</b> Nebenräume, `
-      + (d < MAX_DEPTH ? `<b>${sides}</b> Wächter und ${boss ? `der Boss <b>${boss}</b>` : 'ein Temp-Boss'} am Brunnen` : 'der Kern: kein Weg weiter nach unten')
+      + (d < MAX_DEPTH ? `<b>${sides}</b> Wächter und ${boss ? `der Boss <b>${boss}</b>` : 'ein Temp-Boss'} am Brunnen` : `der Kern: kein Weg weiter nach unten, der Boss <b>${boss}</b> in seinem letzten Raum`)
       + hordes.map(([i, n]) => `; eine Horde aus <b>${n}</b> in Raum ${i}`).join(''));
   }
   seedIn.oninput = draw; depthIn.oninput = draw;

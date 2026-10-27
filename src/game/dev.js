@@ -8,7 +8,9 @@
 // the same, and more: /goto a depth, a cube on it, a spot in that cube (goPlace).
 import { BOSS_ARENAS, BOSSES, bossAt } from '../core/bosses.js';
 import { guardianId } from '../core/guardians.js';
-import { ENEMY_KINDS } from '../core/enemies.js';
+import { ENEMY_KINDS, guardianLevel } from '../core/enemies.js';
+import { xpForLevel, levelFromXP, fullHealth } from '../core/progression.js';
+import { devSwapWeapon } from './equipment.js';
 import { testRoomKey, isTestRoom } from '../world/testrooms.js';
 import * as THREE from 'three';
 import { camera, renderer } from '../render/scene.js';
@@ -341,6 +343,21 @@ export async function goTrial(kind, from, key = null) {
 if (state.dev && new URLSearchParams(location.search).get('at') === 'trial') {
   const kind = new URLSearchParams(location.search).get('trial')?.split(':')[0];
   const wait = () => state.map && !state.transitioning ? goTrial(kind) : setTimeout(wait, 200);
+  setTimeout(wait, 200);
+}
+
+// ?at=<boss> (?at=qualmos): once the world is there, into that boss's arena (goBoss) as a hero of
+// his level, with a Long Sword of it
+const atBoss = state.dev ? new URLSearchParams(location.search).get('at') : null;
+if (Object.values(BOSSES).includes(atBoss)) {
+  const depth = Number(Object.keys(BOSSES).find(d => BOSSES[d] === atBoss)), level = guardianLevel(depth, 'descent');
+  const wait = async () => {
+    if (!state.map || state.transitioning) { setTimeout(wait, 200); return; }
+    player.xp = xpForLevel(level); player.level = levelFromXP(player.xp);
+    player.maxHp = fullHealth(player.level, player.inventory); player.hp = player.maxHp;
+    await devSwapWeapon('weapon_sword_long', 'unusual', level);
+    await goBoss(atBoss);
+  };
   setTimeout(wait, 200);
 }
 

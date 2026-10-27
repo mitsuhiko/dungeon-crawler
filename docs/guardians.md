@@ -2,7 +2,8 @@
 
 Every descent at depths 0–19 is guarded. Each route also contains **one or two
 mandatory sideways guardians**, selected by the world seed. The core (depth 20)
-has an up portal but no further descent or guardians.
+has an up portal but no further descent; its last cube is the final arena, its boss's, with no way
+on (`final`, [bosses.md](bosses.md#qualmos)).
 
 ## Pacing and topology
 

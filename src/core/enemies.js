@@ -1038,7 +1038,56 @@ export const MANSK_RIBBONS = {
   ...MANSK_LASH, attacks: [MANSK_INHALE, MANSK_SPIT, MANSK_LASH, MANSK_WHIRL, MANSK_SUMMON, MANSK_SLOW], phase: 3,
   style: 'brute', ribbons: true,
 };
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK];
+// Qualmos, the boss at the core of the world (depth 20, core/bosses.js; modelled by hand after a
+// child's drawing, blender/qualmos.blend, exported by blender/qualmos.py): a slender blue-green
+// amphibian on six tentacles, with spines and a toothy grin. He waits alone in the core's last cube,
+// with no way on (world/layout.js); game/qualmos.js runs his fight, core/qualmos.js holds its
+// rules: five phases, each bringing attacks of its own (QUALMOS_PHASES), a rage between them.
+// His blows are the shared enemy AI's: tentacle sweeps and slams, a leap (`lunge`), a jet and a
+// wave that push (`gust`), an undertow that pulls (`pull`), ink that slows and spines
+// (`projectile`); after his belly flop he lies `exposed` and takes more. Twice Slomo's health at
+// his level (6760 at level 22).
+const qualmosBlow = (name, attackTime, hitAt, more = {}) => ({
+  name, clip: name, weight: 1, reach: 3.2, hitAt, trackUntil: Math.max(0.1, hitAt - 0.45), attackTime, hitReach: 3.5,
+  arc: 0.25, power: 1, knock: 4, knockDown: false, hop: 3, reason: 'Hit by Qualmos!', ...more,
+});
+const QUALMOS_ATTACKS = [
+  qualmosBlow('whip', 1.8, 1.05, { hitReach: 3.6, arc: -0.1 }),
+  qualmosBlow('grab', 2.2, 0.95, { reach: 2.5, hitReach: 2.9, power: 1.1, knockDown: true, recover: 1.8 }),
+  qualmosBlow('doubleSlam', 2.2, 1.2, { arc: -0.2, power: 1.2, knockDown: true }),
+  qualmosBlow('waterJet', 3.2, 1.2, { reach: 8, minReach: 2, hitReach: 0, power: 0.7, reason: 'Soaked by Qualmos!',
+    gust: { kind: 'jet', thunder: [], time: 1.1, range: 8.5, width: 0.35, spread: 0.12, push: 7, pushTime: 0.4, muzzle: [0, 2.6, 0.36] } }),
+  qualmosBlow('dive', 2.8, 1.5, { reach: 6, hitReach: 3, power: 1.15, knockDown: true, lunge: { from: 0.8, to: 1.4, max: 3.5, stop: 1.4 } }),
+  qualmosBlow('inkBurst', 2.4, 1.3, { reach: 7, minReach: 2.5, hitReach: 0, power: 0.6, reason: 'Inked by Qualmos!',
+    projectile: { kind: 'slimeball', speed: 6, radius: 0.22, range: 9, muzzle: [0, 2.6, 0.35], slow: { time: 1.5, slow: 0.65, source: 'slime' } } }),
+  qualmosBlow('tailSpin', 2.4, 1.3, { arc: -1, hitReach: 3.6, power: 1.15, knockDown: true }),
+  qualmosBlow('undertow', 3, 1, { reach: 7, hitReach: 0, power: 0,
+    pull: { time: 1.3, range: 7.5, width: 0.6, spread: 0.35, speed: 2.8, hold: 0.7, stop: 2.2, muzzle: [0, 1, 0.4] } }),
+  qualmosBlow('spikeVolley', 2.8, 1.2, { reach: 9, minReach: 2, hitReach: 0, power: 0.5, reason: "Hit by Qualmos's spine!",
+    projectile: { kind: 'iceball', speed: 8, radius: 0.15, range: 11, volley: 3, fan: 0.22, muzzle: [0, 2.9, 0.2] } }),
+  qualmosBlow('tidalSurge', 3.2, 1.7, { reach: 8, hitReach: 0, power: 0.9, reason: 'Soaked by Qualmos!',
+    gust: { kind: 'jet', thunder: [], time: 0.8, range: 9, width: 1.1, spread: 0.22, push: 9, pushTime: 0.5, muzzle: [0, 1.2, 0.5] } }),
+  qualmosBlow('bellyFlop', 4.5, 2.3, { reach: 4.5, hitReach: 4.6, arc: -1, power: 1.5, knockDown: true,
+    exposed: { from: 2.65, until: 3.7, damage: 1.5 }, recover: 2.2 }),
+  // between phases (`weight` 0: only game/qualmos.js starts it), nothing hurting him (`ward`)
+  qualmosBlow('rage', 2.5, 2, { weight: 0, reach: 0, hitReach: 0, power: 0, ward: true }),
+];
+export const QUALMOS = {
+  type: 'qualmos', species: 'qualmos', label: 'Qualmos',
+  // (twice Slomo's health at his level, 15, grown to Qualmos's, 22: 6760)
+  hp: 2 * SLOMO.hp * (1 + GROWTH.hp * 14) / (1 + GROWTH.hp * 21), damage: 19, knock: 4,
+  xp: 1000, coins: [250, 450],
+  radius: 0.65, height: 3.35, bodyHeight: 2.4, mass: 10, swims: true,
+  aggro: 9, giveUp: 20, chase: 1.3, wander: 0.35, homeSpeed: 0.8,
+  ...QUALMOS_ATTACKS[0], reach: Math.max(...QUALMOS_ATTACKS.map(a => a.reach)), cooldown: 1.5, attacks: QUALMOS_ATTACKS,
+  ichor: ['#6be8bd', '#246b98'], pitch: 0.65,
+  poise: 2, hitStun: 0.2, deathTime: 2.5, corpseTime: 5, steadfast: true,
+  parts: { skin: ['QualmosSkin'], belly: ['QualmosBelly'], spines: ['QualmosSpines'], suckers: ['QualmosSuckers'], eyes: ['QualmosEyes_glow'] },
+  light: '#73ffe0', sparks: ['#e0fff6', '#73ffe0', '#246b98'],
+  style: 'brute', guardian: true, guardianRole: 'descent', boss: 'qualmos',
+  seedSalt: 0xa6f1b1, spacing: 6,
+};
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, QUALMOS];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp

@@ -65,6 +65,8 @@ scientists, no space and no rockets; there are star-readers, the sky and winged 
   help you, bring you back when you die and tell the story as you play (below, "The robot").
 - **The creature**: the last boss, waiting at the core. Clever, speaks the people's language, and
   wanted to escape. It was brought on board as something to be used, which makes it a prisoner too.
+  For now the boss at the core is Qualmos, a prototype of the fight ([bosses.md](bosses.md#qualmos)):
+  he says nothing yet, and beating him ends nothing.
 - **The hero**: a different person every game, from whichever part of the world the game is in.
 - **The other bosses**: just bosses that want to stop you. They have no story of their own, so
   the ones we have stay as they are.

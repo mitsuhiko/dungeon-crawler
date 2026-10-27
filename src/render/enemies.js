@@ -63,6 +63,7 @@ import { makeFoggeryLook, foggeryLook, disposeFoggeryLook } from './foggeryview.
 import { slomoModel } from './slomomodel.js';
 import { makeSlomoLook, slomoLook } from './slomoview.js';
 import { manskModel } from './manskmodel.js';
+import { qualmosModel } from './qualmosmodel.js';
 import { makeManskLook, manskLook, disposeManskLook } from './manskview.js';
 import { isFigure, animateFigures, removeFigureViews } from './renewview.js';
 import { isFlimmer, animateFlimmers, removeFlimmerViews, flimmerWarmup } from './flimmerview.js';
@@ -92,7 +93,7 @@ import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
 const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
-  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel };
+  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, qualmos: qualmosModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
 export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.load()));
 // light: [color, intensity, distance, height]; pulse: emissive / light swing with the
@@ -115,6 +116,7 @@ const GLOW = {
   glowbolime: { light: [0x7affd0, 1.5, 3.2, 0.6], pulse: 0.35 },
   // Slomo's stuff glows inside him, his eyes flare up to a throw
   slomo: { light: [0x9aff5a, 2.2, 4.5, 1.3], flare: 0.6 },
+  qualmos: { light: [0x73ffe0, 4, 5.5, 2.1], flare: 0.6 },
   // Mansk's diamond glows blue (render/manskview.js: brighter while he slows time)
   mansk: { light: [0x6fb4ff, 1.6, 4.5, 1.95], flare: 0.6 },
 };

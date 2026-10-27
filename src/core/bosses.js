@@ -2,14 +2,17 @@
 // placeholders, docs/guardians.md). depth -> the boss's kind (core/enemies.js BOSS_PROFILES):
 // Gusto on the road out of town, Totnar a depth below, Squarlo below him, Flip below Squarlo,
 // Foggery below Flip, Renew below Foggery, Mansk below Renew (the last of act I); Slomo at the bottom of act II (depth 13), where the slime
-// marsh comes in the worlds that show it (it is the act's last theme), else whatever theme is there.
+// marsh comes in the worlds that show it (it is the act's last theme), else whatever theme is there;
+// Qualmos at the core (depth 20), the end of the world: there is no descent there, he guards its
+// last cube, the final arena, with no way on (world/layout.js `final`, cubegen/guardian.js).
 // The layout marks that arena's guardian with `boss` (world/layout.js, cubegen/guardian.js); its
 // spawn is the boss alone (game/enemyspawn.js guardianSpots), with no defenders. docs/bosses.md.
-export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 13: 'slomo' });
+export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 13: 'slomo', 20: 'qualmos' });
 export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[depth] ?? null : null;
 // How a boss's arena differs from its planned one (cubegen/guardian.js, cubegen/arenaprops.js):
 // `braziers` lit round the fight zone, for a boss who makes it dark (Totnar; Renew, whose fight
-// goes from dusk into night, in the arena his depth would have anyway); a `type` of its
+// goes from dusk into night, in the arena his depth would have anyway; Qualmos, down in the dark
+// core); a `type` of its
 // own (cubegen/arenashapes.js BOSS_SHAPES): Squarlo's tidal hills, where his tide comes and goes;
 // Flip's box (cubegen/fliparena.js), which he turns any side up; Foggery's caldera of lava with
 // his tower in the middle (cubegen/towerarena.js): its doorway stands `door` levels up, in the
@@ -26,4 +29,5 @@ export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[d
 // Flip's void, Renew's dusk).
 export const BOSS_ARENAS = Object.freeze({ gusto: { days: true }, totnar: { braziers: 5 }, squarlo: { type: 'tidal' }, flip: { type: 'flip' },
   foggery: { type: 'tower', door: 8, centre: 7, props: ['volcanic'] }, renew: { braziers: 4 },
-  slomo: { type: 'bowl', props: ['slime'], night: true }, mansk: { type: 'stage', props: ['museum'] } });
+  slomo: { type: 'bowl', props: ['slime'], night: true }, mansk: { type: 'stage', props: ['museum'] },
+  qualmos: { braziers: 6 } });

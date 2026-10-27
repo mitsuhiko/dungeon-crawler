@@ -4,7 +4,7 @@
 import { CUBE_H, FALL_DAMAGE } from '../core/constants.js';
 import { floorY } from '../core/surfaces.js';
 import { step } from '../world/coords.js';
-import { depthOf } from '../themes/depth.js';
+import { depthOf, MAX_DEPTH } from '../themes/depth.js';
 import { groundAt } from '../physics/collide.js';
 import { player, state } from './state.js';
 import { startTravel } from './travel.js';
@@ -19,7 +19,7 @@ export function startFall() {
   if (state.map.trialRoom) return false;   // nothing falls out of a trial room (world/trials.js)
   if (state.map.flip) return false;   // nor out of Flip's box: out through a hole hurts (physics/hazards.js)
   const below = step(state.cubeKey, 4);
-  if (!state.cubes.layout(depthOf(below)).exists.has(below)) return false;
+  if (depthOf(below) > MAX_DEPTH || !state.cubes.layout(depthOf(below)).exists.has(below)) return false;   // (nothing below the core)
   // only the first cube of a fall counts
   state.fallFrom ||= { key: state.cubeKey, arrival: state.arrival, portalLock: state.portalLock,
     boundaryLock: state.boundaryLock, visit: state.visit, safe: { ...player.safe } };

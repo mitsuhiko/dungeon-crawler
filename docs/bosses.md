@@ -6,9 +6,11 @@ boss placeholders ([guardians.md](guardians.md)): the game calls them **Temp Bos
 depth has which: so far the first descent, on the road out of town (depth 0), has **Gusto**, the
 second (depth 1) **Totnar**, the third (depth 2) **Squarlo**, the fourth (depth 3) **Flip**, the
 fifth (depth 4) **Foggery**, the sixth (depth 5) **Renew** and the seventh (depth 6, the last of
-act I) **Mansk**; at the bottom of act II (depth 13) **Slomo**. A boss may bring an arena of its own
-(`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's caldera, Mansk's museum, Slomo's slime
-bowl), or only braziers lit round the one his depth has (Totnar, Renew).
+act I) **Mansk**; at the bottom of act II (depth 13) **Slomo**; and at the core (depth 20), where
+there is no descent, **Qualmos** guards the last cube (a prototype for now, see [Qualmos](#qualmos)).
+A boss may bring an arena of its own (`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's
+caldera, Mansk's museum, Slomo's slime bowl), or only braziers lit round the one his depth has
+(Totnar, Renew, Qualmos).
 
 The layout marks that arena's guardian with `boss` (`world/layout.js`, `cubegen/guardian.js`;
 `bossPlaceholder` is false there). The boss stands on the guardian's spot **alone**: no
@@ -25,8 +27,8 @@ Like every guardian's arena, leaving it while the boss lives asks first, and bei
 the entrance never takes you out ([guardians.md](guardians.md#encounter-and-persistence)).
 
 Each boss runs its own fight (`game/gusto.js`, `game/totnar.js`, `game/squarlo.js`, `game/flip.js`,
-`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/slomo.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
-`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/slomo.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
+`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/slomo.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
+`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/slomo.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
 body into it, the floors a body fits on, putting minions down round their boss and letting
 bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they pay a little XP
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
@@ -1170,6 +1172,55 @@ health potion now and then; the slime is their own (or they swim): his flood doe
 | Ooze bolime (`OOZE_BOLIME`) | Bolime | 1× | pale, ×0.7 health, ×0.6 damage |
 | Slime squirtle (`SLIME_SQUIRTLE`) | Squirtle | 1.3× | bright lime; spits slime balls that slow |
 
+## Qualmos
+
+After a child's drawing: a slender blue-green amphibian, about three cells tall, on six tentacles
+with pale green suckers, with two clawed arms, hard spines on his head and back, glowing sea-green
+eyes and a wide grin full of teeth. He is the boss at the **core** (depth 20), where the world ends:
+there is no descent there, so the layout makes the core's last cube (`0,-20,0`) a descent arena of
+its own with `final` set (`world/layout.js`). `cubegen/guardian.js` builds it like any descent arena
+(the boss stands before where its well would be), but gives it its entrance alone: no well, no
+`exit`, no `portalId`, and its route ends at him (`cubegen/arenamap.js finishArena`). The core is
+dark, so braziers burn round the fight zone (`BOSS_ARENAS.qualmos`).
+
+He is a **prototype**: the fight is all there, but it reuses what the game has. The arena is the
+ordinary dry one (no water to swim in yet), his blows are plain hits, his jet, wave and undertow
+are Squarlo's and Mansk's kinds of gust and pull, his ink and spines fly as slime and ice balls; he
+has no grab that holds you, no lines of his own for the narrator, and nothing happens once he is
+beaten (`docs/story.md` "The ending" is still to come).
+
+Unlike the other bosses he is modelled and animated **by hand**, in `blender/qualmos.blend` (its
+NLA track shows his clips one after the other). `blender/qualmos.py` exports him: it joins the
+parts into one skinned mesh (`Qualmos`, its materials renamed `Qualmos*`), names the clips
+`Qualmos*`, adds his death and collapses the mesh to its triangle budget (`blender/figure.py
+TRIANGLE_BUDGET`: 12000 of about 196000).
+
+Profile: `QUALMOS` in `src/core/enemies.js`; the fight's rules in `src/core/qualmos.js`
+(`QUALMOS_PHASES`, `phaseFloor`, `barred`, `enterPhase`); the fight in `src/game/qualmos.js`.
+
+| | Level 22 |
+|---|---|
+| Health | 6760: twice Slomo's at his level (3380 at 15), a fifth a phase |
+| Damage | 59 (×1 a plain blow, ×1.1 the grab, ×1.2 the double slam, ×1.15 the dive and the tail spin, ×1.5 the belly flop; the jet ×0.7, the wave ×0.9, ink ×0.6 and slowing, a spine ×0.5) |
+| XP | 1000 grown; coins 250–450 at level 1; two weapons and two potions like a descent guardian |
+| Poise | 2 s; nothing staggers him (`steadfast`) |
+
+Five phases, a fifth of his health each. No blow takes him below the next phase's share
+(`phaseFloor`); once he is down to it and not in the middle of an attack, he **rages**
+(`QualmosRage`, 2.5 s, `ward`ed: nothing hurts him) and fights on with that phase's attacks on top
+of the ones before (`barred`):
+
+| Phase | New attacks |
+|---|---|
+| 1 | tentacle whip, a reaching grab (knocks down), double slam (knocks down) |
+| 2 | water jet (pushes you away), a diving leap at you (`lunge`), ink that slows |
+| 3 | tail spin all round him, undertow (pulls you to him) |
+| 4 | a volley of three spines, fanned |
+| 5 | a wide tidal surge, a belly flop |
+
+After the belly flop he lies there a moment, **exposed** (2.65–3.7 s into it): blows hurt him
+×1.5, and he takes a while to get up (`recover`).
+
 ## Playing together
 
 The game that runs the cube's enemies runs the fight; the others are shown it (`net/foes.js`):
@@ -1221,7 +1272,10 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 `/boss renew`. `/spawn slomo` (`addSlomos`; out of his bowl there is no flood), `/spawn armslug`,
 `/spawn oozeslug`, `/spawn oozebolime`, `/spawn slimesquirtle`; `/arena bowl`, `/boss slomo`.
 `/spawn mansk` (`addMansks`: his whole fight anywhere), `/spawn stagetornado`; `/arena stage`,
-`/boss mansk`.
+`/boss mansk`. `/spawn qualmos` (`addQualmoses`), `/boss qualmos`.
+
+`?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
+becomes the boss's level, takes a Long Sword of it and goes into his arena (`goBoss`).
 
 `/boss gusto` goes into the real arena (one beaten is up again). `/testroom boss gusto` (or
 `/testroom boss 0`: a boss, or the depth whose boss it is) goes into his **test room**
@@ -1241,7 +1295,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/slomo.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1287,3 +1341,8 @@ Mansk: `Blender -b --python blender/mansk.py -- assets/mansk.glb blender/mansk.b
 blender/previews/mansk-preview.png`, then `npm run compress-assets`. The mouth, gulp, horn tip,
 diamond, summon and lash points it prints must match `MANSK_AT` (`tests/assets.test.js`). His museum's
 things: `Blender -b --python blender/themes.py` (`blender/themes_museum.py`).
+
+Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb
+blender/previews/qualmos-preview.png` (it reads `blender/qualmos.blend` and never writes it), then
+`node tools/compress-assets.mjs assets/qualmos.glb`. His clips must last as long as his attacks
+(`tests/assets.test.js`).

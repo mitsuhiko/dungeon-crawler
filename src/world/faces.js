@@ -18,7 +18,7 @@ export const LAYER_BASE = [0, 10, 16, 22];   // the levels of the world-wide lay
 
 const guardOf = (world, k) => {
   const d = -parse(k)[1];
-  if (d < 0 || d >= MAX_DEPTH) return null;
+  if (d < 0 || d > MAX_DEPTH) return null;
   return world.layout(d).guardians.get(k) ?? null;
 };
 const guarded = (world, k) => !!guardOf(world, k);

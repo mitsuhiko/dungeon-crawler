@@ -82,6 +82,7 @@ export default {
   Renew: { text: 'Renew', g: 'm' },
   Slomo: { text: 'Slomo', g: 'm' },
   Mansk: { text: 'Mansk', g: 'm' },
+  Qualmos: { text: 'Qualmos', g: 'm' },
   'Guardian {kind}': 'Wächter-{kind}',
   'Temp Boss {kind}': 'Temp-Boss-{kind}',
 
@@ -217,6 +218,10 @@ export default {
   "Blasted by Mansk's ball of light!": 'Von Mansks Lichtkugel weggesprengt!',
   "Squeezed by Mansk's ribbons!": 'Von Mansks Bändern zerquetscht!',
   "Swept away by Mansk's ribbons!": 'Von Mansks Bändern weggefegt!',
+  'Hit by Qualmos!': 'Von Qualmos getroffen!',
+  'Soaked by Qualmos!': 'Von Qualmos durchnässt!',
+  'Inked by Qualmos!': 'Von Qualmos mit Tinte bespritzt!',
+  "Hit by Qualmos's spine!": "Von Qualmos' Stachel getroffen!",
 
   // other ways to get hurt
   'Bitten!': 'Gebissen!',
@@ -298,6 +303,7 @@ export default {
   '{name} rises into the air!': '{name} steigt in die Luft!',
   "{name}'s horns break!": 'Die Hörner von {name} brechen ab!',
   '{name} slows time!': '{name} verlangsamt die Zeit!',
+  '{name} enters phase {phase}!': '{name} beginnt Phase {phase}!',
 
   // guardians (core/guardians.js)
   'Temp Boss': { text: 'Temp-Boss', g: 'm' },

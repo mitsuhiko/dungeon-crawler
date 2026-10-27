@@ -142,7 +142,7 @@ Surviving monsters reset on re-entry; their levels/drop rolls remain unchanged.
 `core/respawn.js`. An ordinary enemy, one of a cube's own or of its horde (its spot says
 `respawn`: the cube's key, `game/enemyspawn.js`), comes back once it has been dead for
 `RESPAWN` (300 s) of play and its cube is entered (`game/flow.js beginVisit`): never in front
-of you, and only one at a time as their times are up. Guardians, Gusto, Totnar, Squarlo, Flip, Foggery, Renew, Mansk, Slomo, guardian defenders,
+of you, and only one at a time as their times are up. Guardians, Gusto, Totnar, Squarlo, Flip, Foggery, Renew, Mansk, Slomo, Qualmos, guardian defenders,
 bounties, raiders, summoned minions and dev spawns never come back. So a player who needs to
 can farm: for XP (which the level falloff keeps from paying off far below one's level) and above
 all for loot.

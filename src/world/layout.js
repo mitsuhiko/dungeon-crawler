@@ -164,6 +164,9 @@ function build(seed, d, above, theme, opts = {}) {
       guardians.set(k, { role: 'side', exit: dir, bossPlaceholder: false });
       gateFaces.set(faceKey(k, dir), k);
     }
+  } else {
+    // the core's last cube: its boss's arena, the end of the world (`final`: no way on, cubegen/guardian.js)
+    guardians.set(K(end), { role: 'descent', exit: 4, bossPlaceholder: false, boss: bossAt(d), final: true });
   }
   // the beginning (core/intro.js): the town's gate opens for the glassmaker's glass, the merchant
   // camp's gate out to the road for his sword

@@ -17,16 +17,17 @@ export function reachFrom(start, blocked = null) {
 }
 
 // The map of a guardian arena. spec: the cube's; ctx: its context (cubegen/context.js); role:
-// 'descent' or 'side'; cols, floors; portals: [the entrance, the way on]; exit; guardian; reached:
-// reachFrom(the entrance's floor, what blocks), which must reach the way on; arena: { type,
+// 'descent' or 'side'; cols, floors; portals: [the entrance, the way on] (the core's last arena:
+// the entrance alone, its route ends at the boss); exit; guardian; reached: reachFrom(the
+// entrance's floor, what blocks), which must reach the way on; arena: { type,
 // requested }; tide: standing water or lava (game/tide.js); fences, fenceList; placements: the
 // arena's props (arenaPlacements); blockers: the colliders of those that block; walled; more:
 // whatever else the arena has (Flip's `flip`, Foggery's `tower` and `movers`).
 export function finishArena({ spec, ctx, role, cols, floors, portals, exit, guardian, reached, arena, tide = null,
   fences = new Map(), fenceList = [], placements = [], blockers = [], walled = !!spec.walled, more = {} }) {
-  // the way from the entrance to the way on, walked
+  // the way from the entrance to the way on (or the boss), walked
   const path = [];
-  for (let f = portals[1].floor; f; f = reached.get(f)) path.unshift(f);
+  for (let f = portals[1]?.floor ?? guardian.floor; f; f = reached.get(f)) path.unshift(f);
   const moves = path.slice(1).map((to, i) => ({ kind: 'walk', from: path[i], to, cells: [], cost: 1,
     d: DIRS.findIndex(([x, z]) => path[i].x + x === to.x && path[i].z + z === to.z) }));
   const staticBlockers = indexBlockers(blockers);

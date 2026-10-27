@@ -8,7 +8,7 @@ import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THROW_CLIP, KINDS } f
 import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
-  SQUARLO, SQUARLO_GIANT, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, fireAt } from '../src/core/enemies.js';
+  SQUARLO, SQUARLO_GIANT, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, QUALMOS, fireAt } from '../src/core/enemies.js';
 import { MANSK_FIGHT } from '../src/core/mansk.js';
 import { CHAR_SCALE } from '../src/core/constants.js';
 
@@ -37,7 +37,7 @@ const BUDGETS = {
   gusto: { Gusto: 8000 }, totnar: { Totnar: 10000, TotnarSkull: 1500 }, snapskull: { SnapSkull: 3000 },
   squarlo: { Squarlo: 8000 }, squirtle: { Squirtle: 5000, SquirtleDrop: 800 }, flip: { Flip: 10000, FlipBall: 1200 },
   foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
-  slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, robot: { Robot: 3000 },
+  slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, qualmos: { Qualmos: 12000 }, robot: { Robot: 3000 },
 };
 test('characters and enemies keep to their triangle budgets', () => {
   for (const [file, budget] of Object.entries(BUDGETS)) {
@@ -602,6 +602,15 @@ test('Slomo: three shapes in one model, his clips match his attacks, his slugs t
   // his shapes and his arms' slugs are bones the game scales and blends (render/slomoview.js), and the slug he throws
   for (const n of ['blob', 'body', 'top', 'core', 'slug', 'slug.head', 'hand.L', 'hand.R', 'arm.L.1', 'leg.1L', 'leg.3R', 'antenna.L', 'SlomoArmSlug'])
     assert.ok(j.nodes.some(o => o.name === n), n);
+});
+test('Qualmos: one skinned body, a clip for each of his attacks as long as it, his death held', () => {
+  const { json: j, duration } = glb('qualmos'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
+  const clip = name => 'Qualmos' + name[0].toUpperCase() + name.slice(1);
+  assert.deepEqual(Object.keys(a).sort(), ['QualmosDeath', 'QualmosWalk', ...QUALMOS.attacks.map(at => clip(at.clip))].sort());
+  assert.equal(j.skins.length, 1);
+  assert.equal(a.QualmosWalk.extras.loop, true);
+  assert.ok(Math.abs(duration(a.QualmosDeath) - QUALMOS.deathTime) < 1e-5); assert.equal(a.QualmosDeath.extras.hold_last_frame, true);
+  for (const at of QUALMOS.attacks) assert.ok(Math.abs(duration(a[clip(at.clip)]) - at.attackTime) < 1e-5, at.clip);
 });
 test('Mansk: a mask with horns, his clips match his attacks, his mouth, horns and ribbons\' stumps where the game takes them', () => {
   const { json: j, duration } = glb('mansk'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));

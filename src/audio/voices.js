@@ -266,6 +266,19 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         noise(t + 1.4, 0.3, filter('highpass', 2500 * p, 1, amp(t + 1.4, 0.005, 0.3, 0.25, out)));
       },
     },
+    qualmos: {   // the core's amphibian: a deep gurgling croak, a wet hiss through his teeth, a long bubbling sinking groan
+      alert: (t, out, p) => {
+        bend(t, 0.6, 90 * p, 150 * p, 80 * p, 520 * p, 0.5, out);
+        bend(t + 0.35, 0.5, 120 * p, 170 * p, 95 * p, 600 * p, 0.4, out);
+        gloops(t + 0.1, 6, 160 * p, 420 * p, 0.06, 0.2, out, false);
+      },
+      windup: (t, out, p) => { noise(t, 0.35, filter('bandpass', 2400 * p, 2, amp(t, 0.05, 0.3, 0.3, out))); bend(t + 0.1, 0.3, 110 * p, 160 * p, 120 * p, 600 * p, 0.25, out); },
+      death: (t, out, p) => {
+        bend(t, 1.8, 140 * p, 90 * p, 35 * p, 500 * p, 0.5, out);
+        gloops(t + 0.4, 12, 90 * p, 300 * p, 0.1, 0.25, out, false);
+        noise(t + 1, 1, filter('lowpass', 700 * p, 1, amp(t + 1, 0.1, 0.3, 0.9, out)));
+      },
+    },
     slug: {   // a Slug: a low wet gurgle, a slurp drawing breath, a long deflating sigh
       alert: (t, out, p) => { bend(t, 0.4, 110 * p, 150 * p, 95 * p, 500 * p, 0.4, out); gloops(t + 0.2, 4, 150 * p, 300 * p, 0.07, 0.18, out, false); },
       windup: (t, out, p) => {
