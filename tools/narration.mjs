@@ -1,6 +1,6 @@
 // The narrator's voice: renders the lines of src/core/narration.js to assets/narration/
 // (docs/narration.md). Every line, in every language with a voice (VOICES), in each of its forms,
-// becomes assets/narration/<lang>/<clip>.opus (Ogg Opus, mono, 16 kbit/s), where <clip> is the
+// becomes assets/narration/<lang>/<clip>.opus (Ogg Opus, mono, 10 kbit/s), where <clip> is the
 // line's id, or `<id>.<form>`.
 // assets/narration/manifest.json says what each clip was made from (its text, its seed, a hash of
 // its TTS settings) and how long it is. A clip is rendered again only when its line's text (with

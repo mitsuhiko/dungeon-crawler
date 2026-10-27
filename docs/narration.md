@@ -329,7 +329,7 @@ and a line with tags makes the same clip as without.
 | `tools/narration.mjs` | says every line in every voiced language and form, decides what to render, writes the manifest |
 | `tools/narration.py` | renders: Qwen3-TTS cloning the voice, then trimmed, levelled, Opus by ffmpeg (uv script, its dependencies inline) |
 | `tools/voices/<voice>.flac`, `.txt` | the voices cloned: a recording and its words (`experiment_*` not committed) |
-| `assets/narration/<lang>/<clip>.opus` | the clips: Ogg Opus, mono, 16 kbit/s (from the model's 24 kHz); `<clip>` is the id, or `<id>.<form>` |
+| `assets/narration/<lang>/<clip>.opus` | the clips: Ogg Opus, mono, 10 kbit/s (from the model's 24 kHz); `<clip>` is the id, or `<id>.<form>` |
 | `assets/narration/manifest.json` | per language and clip: its text (`text`, and with its tags `source`), seed, length in seconds and a hash of the settings that made it |
 | `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles; plays a recording again for the memories (`hearAgain`) |
 | `src/game/memorypanel.js` | the inventory's Memories tab: the recordings heard, to hear again |

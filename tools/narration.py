@@ -65,7 +65,7 @@ import torch
 
 # keep in step with PIPELINE in tools/narration.mjs: after a change here, --stale renders the
 # clips made before again
-BITRATE = 16  # kbit/s, mono Opus, from the model's 24 kHz
+BITRATE = 10  # kbit/s, mono Opus, from the model's 24 kHz
 LEAD_IN = 0.05  # seconds of quiet kept before the voice
 TAIL = 0.15  # and after it
 TARGET_RMS_DB = -20.0  # loudness of the spoken part
