@@ -2,20 +2,24 @@
 // cannot fit through the low ceilings that a spider can. The graph's nodes are floors and
 // structure pieces: enemies walk up and down stairs and ramps, over bridges and landings,
 // but none climbs ladders or jumps.
+// Wherever these take a body's height they take a walker too: a fluid dweller's (the Squirtles,
+// physics/dwell.js), which says itself which floors it may stand on and what lies next to one.
 import { DIRS } from '../core/constants.js';
 import { topOf } from '../core/surfaces.js';
 import { floorWalkable, navNeighbor, structureLinks } from './floornav.js';
 import { state } from '../game/state.js';
 import { cellAt, insideSolid } from './collide.js';
 import { containsXZ } from '../core/blockers.js';
+import { walkerOf, standY } from './dwell.js';
 
 export function walkable(f, height = .9, player = false) {
   if (f?.kind) structureLinks(state.map);   // gives the pieces their cells
+  if (typeof height === 'object') return height.ok(f);
   return floorWalkable(state.map, f, height, player);
 }
 const dirOf = (dx, dz) => DIRS.findIndex(([x, z]) => x === dx && z === dz);
 // ok: which floors may be entered (default: walkable for this height)
-const via = (f, d, height, ok) => navNeighbor(state.map, f, d, height, ok);
+const via = (f, d, height, ok) => typeof height === 'object' ? height.step(f, d) : navNeighbor(state.map, f, d, height, ok);
 export const neighbors = (f, height = 0.9, ok) => [0, 1, 2, 3].map(d => via(f, d, height, ok)).filter(Boolean);
 export function floorAt(f, x, z, height = 0.9) {
   const c = cellAt(x, z);
@@ -32,7 +36,7 @@ export const groundY = (f, x, z) => topOf(f, x - f.x, z - f.z);
 
 // The body must fit on the floors it covers; the probe is kept a little inside a cell's
 // half-width, so that even a broad body fits on a stair or bridge one cell wide.
-export function stepEnemy(s, mx, mz, radius = s.profile.radius, height = s.profile.height) {
+export function stepEnemy(s, mx, mz, radius = s.profile.radius, height = walkerOf(s)) {
   if (s.deck) return onDeck(s, s.x + mx, s.z + mz, radius);
   radius = Math.min(radius, 0.42);
   const go = (x, z) => {
@@ -40,7 +44,7 @@ export function stepEnemy(s, mx, mz, radius = s.profile.radius, height = s.profi
     if (!g) return false;
     for (const [ox, oz] of [[radius, 0], [-radius, 0], [0, radius], [0, -radius]])
       if (!floorAt(g, x + ox, z + oz, height)) return false;
-    s.x = x; s.z = z; s.f = g; s.y = groundY(g, x, z);
+    s.x = x; s.z = z; s.f = g; s.y = standY(s.profile, g, x, z);
     return true;
   };
   return go(s.x + mx, s.z + mz) || go(s.x + mx, s.z) || go(s.x, s.z + mz);

@@ -8,7 +8,7 @@ import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THROW_CLIP, KINDS } f
 import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
-  SQUARLO, SQUARLO_GIANT, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, fireAt } from '../src/core/enemies.js';
+  SQUARLO, SQUARLO_GIANT, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, fireAt } from '../src/core/enemies.js';
 import { MANSK_FIGHT } from '../src/core/mansk.js';
 import { CHAR_SCALE } from '../src/core/constants.js';
 
@@ -35,7 +35,7 @@ const BUDGETS = {
   octonaut: { Octonaut: 6000 }, fireface: { FireFace: 6000, FireFaceBall: 1500 }, triangle: { Triangle: 6000, TrianglePunch: 1500 },
   firecat: { FireCat: 8000 }, shraps: { Shraps: 8000, ShrapsIceBall: 1500 }, spicy: { Spicy: 6000 }, wolla: { Wolla: 8000 }, wolk: { Wolk: 6000 },
   gusto: { Gusto: 8000 }, totnar: { Totnar: 10000, TotnarSkull: 1500 }, snapskull: { SnapSkull: 3000 },
-  squarlo: { Squarlo: 8000 }, squirtle: { Squirtle: 5000, SquirtleDrop: 800 }, flip: { Flip: 10000, FlipBall: 1200 },
+  squarlo: { Squarlo: 8000 }, flip: { Flip: 10000, FlipBall: 1200 },
   foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
   slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, robot: { Robot: 3000 },
 };
@@ -495,18 +495,6 @@ test('Foggery: a frog and his ball, his clips match his attacks, his eyes thrown
   assert.ok(['L', 'R'].every(s => j.nodes.some(o => o.name === `flame_eye${s}`)) && j.nodes.filter(o => /^flame_ball/.test(o.name)).length >= 6);
   // a little taller than the player
   assert.ok(FOGGERY.height > CHAR_SCALE * 2 && FOGGERY.height < 2);
-});
-test('the Squirtle sways, spits from its beak at its hit frame and wilts', () => {
-  const { json: j, duration } = glb('squirtle'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
-  assert.deepEqual(Object.keys(a).sort(), ['SquirtleDeath', 'SquirtleSpit', 'SquirtleSway']);
-  assert.equal(a.SquirtleSway.extras.loop, true);
-  assert.equal(a.SquirtleSpit.extras.hit_frame / 30, SQUIRTLE.hitAt);
-  assert.ok(Math.abs(duration(a.SquirtleSpit) - SQUIRTLE.attackTime) < 1e-5);
-  assert.ok(Math.abs(duration(a.SquirtleDeath) - SQUIRTLE.deathTime) < 1e-5);
-  assert.deepEqual(a.SquirtleSpit.extras.muzzle, SQUIRTLE.projectile.muzzle);
-  const names = new Set(j.materials.map(m => m.name));
-  for (const m of Object.values(SQUIRTLE.parts).flat()) assert.ok(names.has(m), m);
-  assert.ok(j.nodes.some(n => n.name === 'SquirtleDrop'));
 });
 test('the Mecked waddles, bites and grabs on its attacks\' timings, and holds what it grabs along its clip', () => {
   const { json: j, duration } = glb('mecked'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));

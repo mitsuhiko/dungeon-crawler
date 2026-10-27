@@ -2,11 +2,13 @@
 // fight zone shaped by one of the arena types (cubegen/arenashapes.js) and dressed with
 // generated clutter (cubegen/arenaprops.js), and a sealed onward exit. The doorways and the
 // guardian's spot stay flat. Every free zone floor connects without jumps, and the zone
-// holds the doubled population; an arena that cannot falls back to a plainer one.
-import { N, LH, DIRS, MAX_L, WATER, ACID } from '../core/constants.js';
+// holds the doubled population; an arena that cannot falls back to a plainer one. Its fluid
+// dwellers (the Squirtles, physics/dwell.js) get a pond of their fluid dug into it (`digPonds`).
+import { N, LH, DIRS, OPP, MAX_L, WATER, ACID, FLUID_NAME } from '../core/constants.js';
 import { idx, edgeKey, clamp, mulberry32, hash32, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { population } from '../core/spawns.js';
+import { ENEMY_KINDS } from '../core/enemies.js';
 import { themeOf } from '../themes/depth.js';
 import { rockTint } from '../themes/surfaces.js';
 import { createContext } from './context.js';
@@ -91,6 +93,77 @@ function roomFor(floors, blocked, entrance, gate, need) {
   return free >= need + Math.max(8, Math.ceil(need * .35));
 }
 
+// The fluid dwellers an arena's population brings (the Squirtles: core/enemies.js `dwells`): how
+// many live in each fluid, Map fluid -> count (by its kinds' weights)
+function dwellers(spec) {
+  const out = new Map();
+  if (spec.guardian?.boss && (spec.guardian.role ?? 'descent') === 'descent') return out;   // (a boss brings his own)
+  for (const [type, p] of population({ seed: spec.seed, depth: spec.depth, guardian: true, biome: spec.biome })) {
+    const kinds = Object.entries(p.kinds ?? { [type]: 1 }).filter(([k]) => ENEMY_KINDS[k]?.dwells), total = kinds.reduce((s, [, w]) => s + w, 0);
+    for (const [k, w] of kinds) out.set(ENEMY_KINDS[k].dwells[0], (out.get(ENEMY_KINDS[k].dwells[0]) ?? 0) + p.count * w / total);
+  }
+  return out;
+}
+// A pond for an arena's fluid dwellers, one per fluid they live in: `per` cells for each of them
+// (`least`..`most`; smaller where that does not fit), round, on about one level of the fight zone,
+// away from the doorways, the guardian's spot, the props that block and the ramps. Its surface lies
+// a level under the lowest floor round it and under its own, its bed two levels under that (too deep
+// to wade, as a pool's: cubegen/pools.js); what was put on it that does not block goes. What is
+// left of the zone must still hold together and hold the rest of the population. false: no room
+// for one (the arena falls back to a plainer one; the plainest has none then, and the dwellers it
+// has no room for stay away, game/enemyspawn.js guardianSpots).
+const POND = { per: 3.5, least: 8, most: 28 };
+function digPonds(ctx, { floors, dress, shape }, frame, ends, need) {
+  const [start, gate] = ends, at = (x, z) => x >= 0 && z >= 0 && x < N && z < N ? floors[idx(x, z)] : null;
+  let blocked = new Set(dress.blocked), left = need;
+  const ponds = [], taken = new Set(), before = reachFrom(start, blocked);
+  for (const [fluid, n] of dwellers(ctx.spec)) {
+    const R = frame.R, far = (f, [x, z], d) => Math.hypot(f.x - x, f.z - z) >= d;
+    const ok = f => f.encounter && !f.prot && !taken.has(f) && !frame.flat[f.c] && !blocked.has(f.c) && !shape.ramp[f.c]
+      && far(f, frame.E, 4) && far(f, frame.U, 2.5) && far(f, frame.G, 2.5);
+    const seeds = floors.filter(ok);
+    for (let i = seeds.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [seeds[i], seeds[j]] = [seeds[j], seeds[i]]; }
+    const dig = size => {
+      for (const seed of seeds) {
+        const cells = [seed], set = new Set(cells);
+        const near = floors.filter(f => f !== seed && ok(f) && Math.abs(f.top - seed.top) <= 1)
+          .sort((a, b) => Math.hypot(a.x - seed.x, a.z - seed.z) - Math.hypot(b.x - seed.x, b.z - seed.z));
+        for (const f of near) {
+          if (cells.length >= size) break;
+          if (DIRS.some(([dx, dz]) => set.has(at(f.x + dx, f.z + dz)))) { cells.push(f); set.add(f); }
+        }
+        if (cells.length < size) continue;
+        const banks = cells.flatMap(f => DIRS.map(([dx, dz]) => at(f.x + dx, f.z + dz))).filter(g => !set.has(g));
+        const S = Math.min(...cells.map(f => f.top), ...banks.map(g => g?.top ?? -Infinity)) - 1, bed = S - 2;
+        if (bed < 1 || banks.some(g => !g || taken.has(g))) continue;
+        const out = new Set([...blocked, ...cells.map(f => f.c)]), wet = new Set([...taken, ...cells].map(f => f.c));
+        if (!roomFor(floors, out, start, gate, left - n)) continue;
+        // (the zone round it still all one, and all reached past the props that was before it)
+        const reach = reachFrom(start, wet), past = reachFrom(start, out);
+        if (!floors.every(f => !f.encounter || wet.has(f.c) || reach.has(f)) || !floors.every(f => !before.has(f) || wet.has(f.c) || past.has(f))) continue;
+        return { fluid, cells, set, S, bed, out };
+      }
+      return null;
+    };
+    let pond = null;
+    for (let size = clamp(Math.round(n * POND.per), POND.least, POND.most); !pond && size >= POND.least; size = Math.floor(size * 0.8)) pond = dig(size);
+    if (!pond) return false;
+    ponds.push(pond); blocked = pond.out; left -= n;
+    for (const f of pond.cells) taken.add(f);
+  }
+  for (const { fluid, cells, set, S, bed } of ponds) {
+    for (const f of cells) Object.assign(f, { fluid, surf: S, top: bed, cs: Array(4).fill(bed * LH), split: f.c % 2 });
+    for (const f of cells) DIRS.forEach(([dx, dz], d) => {
+      const g = at(f.x + dx, f.z + dz);
+      if (g && !set.has(g)) { f.link[d] = null; if (g.link[OPP[d]] === f) g.link[OPP[d]] = null; }
+    });
+    for (let i = dress.placements.length - 1; i >= 0; i--)
+      if (set.has(at(Math.floor(dress.placements[i].x), Math.floor(dress.placements[i].z)))) dress.placements.splice(i, 1);
+    ctx.stats.fluids.push(`${FLUID_NAME[fluid]} pond`);
+  }
+  return true;
+}
+
 export function generateGuardian(spec) {
   const exit = spec.guardian.exit ?? spec.exit, role = spec.guardian.role ?? 'descent';
   const entry = spec.portals.find(p => p.dir < 4 && p.dir !== exit);
@@ -153,14 +226,17 @@ export function generateGuardian(spec) {
     for (const clutter of [1, .5, 0]) {
       const dress = dressArena({ type, shape, floors, frame, R, biome: spec.biome, tint, clutter, braziers, props: own?.props });
       if (!roomFor(floors, dress.blocked, start, gate, need)) continue;
+      // (and its fluid dwellers' ponds)
+      if (!digPonds(ctx, { floors, dress, shape }, frame, [start, gate, guard], need)) continue;
       arena = { type, shape, floors, dress };
       break;
     }
     if (arena) break;
   }
-  if (!arena) {   // the plain flat arena of old: always fits
+  if (!arena) {   // the plain flat arena of old: always fits (a pond too, if it can)
     const floors = buildFloors(ctx, base, FLAT, level);
     arena = { type: 'plain', shape: FLAT, floors, dress: dressArena({ type: 'hills', shape: FLAT, floors, frame, R, biome: spec.biome, tint, clutter: 0, braziers }) };
+    digPonds(ctx, arena, frame, [floors[idx(ex, ez)], floors[idx(px, pz)], floors[idx(...U)]], need);
   }
   const { floors, dress } = arena;
   for (const f of floors) ctx.cols[f.c].push(f);

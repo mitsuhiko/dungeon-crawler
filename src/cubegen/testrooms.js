@@ -169,10 +169,11 @@ const KINDS = Object.values(ENEMY_KINDS);
 const tallest = row => Math.max(...row.map(k => k.height));
 const bySpecies = list => [...new Set(list.map(k => k.species))].map(s => list.filter(k => k.species === s));
 const byHeight = list => [...list].sort((a, b) => a.height - b.height);
-// (a species of one or two kinds shares its row with the next: the room is only so deep)
+// (a species shares its row with the next while the row holds seven at most: the room is only so
+// deep)
 const shareRows = rows => rows.reduce((out, row) => {
   const last = out.at(-1);
-  if (last && last.length <= 2 && last.length + row.length <= 7) out[out.length - 1] = [...last, ...row]; else out.push(row);
+  if (last && last.length + row.length <= 7) out[out.length - 1] = [...last, ...row]; else out.push(row);
   return out;
 }, []);
 const LINEUPS = {

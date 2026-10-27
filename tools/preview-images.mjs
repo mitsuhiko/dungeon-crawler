@@ -28,7 +28,7 @@ export const IMAGES = {
   'spicy-preview.png': ['learn/img/model-spicy.jpg'],
   'wolla-preview.png': ['learn/img/model-wolla.jpg'],
   'wolk-preview.png': ['learn/img/model-wolk.jpg'],
-  'squirtle-preview.png': ['learn/img/model-squirtle.jpg'],
+  'squirtle-preview.png': ['learn/img/model-squirtle.jpg'],   // (no model: node tools/squirtle-shape.mjs renders it)
   'mecked-preview.png': ['learn/img/model-mecked.jpg'],
   'tornado-preview.png': ['learn/img/model-tornado.jpg'],
   'slug-preview.png': ['learn/img/model-slug.jpg'],

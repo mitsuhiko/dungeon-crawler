@@ -158,13 +158,13 @@ TRIANGLE_BUDGET = {
     "Mecked": 7000,                                                      # (teeth, ears and a long tail)
     "Tornado": 7000,                                                     # (two skirts with scalloped hems)
     "Totnar": 10000, "SnapSkull": 3000,                                  # (Totnar: three skulls and a ball of sticks)
-    "Squarlo": 8000, "Squirtle": 5000,                                   # (Squarlo: drawn huge as a giant)
+    "Squarlo": 8000,                                                     # (Squarlo: drawn huge as a giant)
     "Slug": 6000, "SlugBall": 800, "Bolime": 6000,
     "Flip": 10000,                                                       # (41 little loops)
     "Foggery": 12000,                                                    # (a frog and his ball, both on fire)
     "Slomo": 12000,                                                      # (a blob with slug arms and a slug on legs)
     "Mansk": 9000,                                                       # (a head, two long wavy horns, a mouth to suck you in)
-    "FireFaceBall": 1500, "ShrapsIceBall": 1500, "TrianglePunch": 1500, "TotnarSkull": 1500, "SquirtleDrop": 800, "FlipBall": 1200, "FoggeryEye": 1500, "SlomoArmSlug": 1500,   # projectiles
+    "FireFaceBall": 1500, "ShrapsIceBall": 1500, "TrianglePunch": 1500, "TotnarSkull": 1500, "FlipBall": 1200, "FoggeryEye": 1500, "SlomoArmSlug": 1500,   # projectiles
     "TornadoTwister": 1500,                                              # (its twisters)
 }
 # How much the collapse spares material borders (joints: 1, kept outright). Fully kept, the

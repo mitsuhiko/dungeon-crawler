@@ -46,11 +46,13 @@ export const phaseFloor = (maxHp, phase) => phase <= SLOMO_FIGHT.splits.length ?
 // how many a summon of `name` ('slimes' or 'squirtles') brings with `alive` of them about
 export const summonCount = (name, alive) => Math.max(0, (SLOMO_FIGHT.minions[name] ?? 0) - alive);
 // The attacks he may not start now (names): those of the other phases; the flood when it is due,
-// and then nothing else; the meteorites and the summons only when due; an arm throw only while he
-// has that slug arm.
+// and then nothing else; the Slime squirtles when due (his flood is up for them to live in,
+// game/slomo.js), and then nothing else either; the meteorites and the summons only when due; an
+// arm throw only while he has that slug arm.
 export function barred({ phase, arms = [1, 1], floodDue = false, rainDue = false, slimesDue = false, squirtlesDue = false }) {
   const mine = new Set(MINE[phase - 1]);
   if (floodDue && mine.has('flood')) return new Set(ALL.filter(n => n !== 'flood'));
+  if (squirtlesDue && mine.has('squirtle')) return new Set(ALL.filter(n => n !== 'squirtle'));
   return new Set(ALL.filter(n => !mine.has(n) || n === 'flood' || (n === 'meteor' && !rainDue) || (n === 'armL' && arms[0] < 1)
     || (n === 'armR' && arms[1] < 1) || (n === 'summon' && !slimesDue) || (n === 'squirtle' && !squirtlesDue)));
 }

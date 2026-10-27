@@ -314,8 +314,8 @@ export default {
     'Der Große haut fest zu. Warte auf seinen Schlag, dann schlag zurück.',
   'A little cloud with lightning! When the ground under you crackles, step off it.':
     'Eine kleine Wolke mit Blitzen! Wenn es unter dir knistert, geh da weg.',
-  'Squirtles! They hide under the floor and pop up to spit water.':
-    'Squirtles! Sie verstecken sich unter dem Boden und tauchen auf, um Wasser zu spucken.',
+  'Squirtles! They hide under the water and pop up to spit at you.':
+    'Squirtles! Sie verstecken sich unter Wasser und tauchen auf, um nach dir zu spucken.',
   'A walking tornado! Its twisters throw you down, so step out of their way.':
     'Ein laufender Tornado! Seine Wirbel werfen dich um, also geh ihnen aus dem Weg.',
   'Those three flicker, and some blows go right through them. Hit them when they stop to punch.':
@@ -398,8 +398,8 @@ export default {
     'Wolken über dir! Raus aus den Ringen!',
   'A jet of water! Step out of the way.':
     'Ein Wasserstrahl! Geh zur Seite.',
-  'Squirtles, out of the floor!':
-    'Squirtles, aus dem Boden!',
+  'Squirtles, out of the water!':
+    'Squirtles, aus dem Wasser!',
   'He is calling the tide! Up a hill, quick!':
     'Er ruft die Flut! Schnell, auf einen Hügel!',
   'He is out of breath! Now is your chance!':

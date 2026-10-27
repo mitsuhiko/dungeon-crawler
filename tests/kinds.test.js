@@ -60,6 +60,7 @@ test('every kind recolours materials its species model has, and only those', () 
   assert.equal(new Set(Object.values(ENEMY_KINDS).map(k => k.type)).size, Object.keys(ENEMY_KINDS).length);
   const species = new Map([...ENEMY_PROFILES, ...BOSS_PROFILES, ...MINION_PROFILES].map(p => [p.type, p]));
   for (const p of [...ENEMY_PROFILES, ...BOSS_PROFILES, ...MINION_PROFILES]) {
+    if (p.model === false) continue;   // (no model: the Squirtle, a body of its fluid, render/squirtleview.js)
     const m = materials(p.model ?? p.species);   // (Renew and the Flimmers are the hero's own figure: assets/character.glb)
     for (const [role, names] of Object.entries(p.parts)) for (const name of names) assert.ok(m[name], `${p.type} ${role}: ${name}`);
     for (const name of Object.keys(m)) if (/Teeth|Fangs|Pupils|Mouth/.test(name) && name !== 'StunderMouth')
@@ -74,6 +75,7 @@ test('every kind recolours materials its species model has, and only those', () 
     // (a boss's minion that is its species plain, Foggery's Fire-faces and Fire-cats: same look, same name)
     if (k.plain) { assert.ok(k.minion && k.label === base.label && k.colors === base.colors, k.type); continue; }
     assert.ok(k.colors && k.label !== base.label, k.type);
+    if (base.model === false) { assert.ok(k.colors.body && k.colors.belly, k.type); continue; }
     const m = materials(base.model ?? k.species), t = recolorTable(m, k.parts, k.colors);
     for (const key of Object.keys(k.colors)) assert.ok(k.parts[key] || m[key], `${k.type}: ${key}`);
     for (const { color } of Object.values(t)) assert.ok(color.every(v => v >= 0 && v <= 1));

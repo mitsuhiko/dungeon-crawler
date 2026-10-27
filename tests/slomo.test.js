@@ -65,13 +65,15 @@ test('two phases, half his health each, and his shapes', () => {
   for (const p of STAGE_PROFILES.slomo) assert.ok(p.turnSpeed > 0.5 && p.turnSpeed < 2 && p.turnStride > 0, p.type);
 });
 
-test('what he may do when: his phase\'s attacks, the flood and the timed ones when due, an arm while he has it', () => {
+test('what he may do when: his phase\'s attacks, the flood and the Slime squirtles first when due, the timed ones when due, an arm while he has it', () => {
   const allowed = o => ['armL', 'armR', 'meteor', 'flood', 'spit', 'summon', 'squirtle'].filter(n => !barred(o).has(n));
   assert.deepEqual(allowed({ phase: 1 }), ['armL', 'armR']);
   assert.deepEqual(allowed({ phase: 1, arms: [0.4, 1], rainDue: true }), ['armR', 'meteor']);
   assert.deepEqual(allowed({ phase: 1, floodDue: true }), ['armL', 'armR'], 'no flood in phase 1');
   assert.deepEqual(allowed({ phase: 2 }), ['spit']);
-  assert.deepEqual(allowed({ phase: 2, rainDue: true, slimesDue: true, squirtlesDue: true }), ['meteor', 'spit', 'summon', 'squirtle']);
+  assert.deepEqual(allowed({ phase: 2, rainDue: true, slimesDue: true }), ['meteor', 'spit', 'summon']);
+  assert.deepEqual(allowed({ phase: 2, rainDue: true, slimesDue: true, squirtlesDue: true }), ['squirtle'], 'his flood is up: Slime squirtles first');
+  assert.deepEqual(allowed({ phase: 1, squirtlesDue: true }), ['armL', 'armR'], 'none in phase 1');
   assert.deepEqual(allowed({ phase: 2, floodDue: true, rainDue: true }), ['flood']);
   assert.equal(summonCount('slimes', 3), 2); assert.equal(summonCount('slimes', 6), 0); assert.equal(summonCount('squirtles', 0), 2);
   for (const [p, names] of [[SLOMO, ['armL', 'armR', 'meteor']], [SLOMO_SLUG, ['spit', 'summon', 'squirtle', 'flood', 'meteor']]])

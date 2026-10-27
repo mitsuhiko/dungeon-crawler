@@ -28,11 +28,18 @@
 // little ahead of a running player.
 // A burrowing one (a `burrow`: the Squirtle) keeps diving under the floor in the fight, moving
 // about fast down there where nothing sees, hits or touches it, and coming up again to throw.
+// A fluid dweller (a `dwells`: the Squirtle, physics/dwell.js) does all of that in its fluid alone:
+// its hunts, posts and cover are all in it, it dives under its surface and never on land, and it
+// leaps out of it only to crash down on a player near it. Out of it (it leapt, its tide fell, its
+// flood drained) it goes `ashore`: it stands a moment, dissolves into a puddle and runs back into
+// the nearest of it; with none to get back to it seeps away. It keeps its distance from a player
+// who shoots, but comes up to the shore near one with a short weapon (`closeIn`).
 import { player, state } from './state.js';
 import { party, chooseTarget, alive as canHurt } from './party.js';
 import { playerFloor, strikePlayer, hitBody, attacker } from './enemycombat.js';
-import { stepEnemy, findPath, pathToward, around, clearLine, walkable } from '../physics/enemynav.js';
-import { postPath, coverPath, covered } from './tactics.js';
+import { stepEnemy, findPath, pathToward, around, clearLine, walkable, nearest, floorAt } from '../physics/enemynav.js';
+import { walkerOf, walker, wetAt } from '../physics/dwell.js';
+import { postPath, coverPath, covered, shorePath } from './tactics.js';
 import { combatStats } from '../core/combat.js';
 import { attackOf, pickAttack, attacksInReach, lungeDistance, lungeAt, retreatAt, fireAt, shotOf, blowOf } from '../core/enemies.js';
 import { launchProjectile } from './projectiles.js';
@@ -61,6 +68,10 @@ const HIDE = 6;            // s it lies low in cover before it goes home
 const DANGER = 8;          // cells: how far a player whose weapon it cannot tell hits from
 const SAFE = 4;            // cells: the least it keeps away from a player it hides from
 const LEAD = 0.5;          // how much of a running player's way a throw is aimed ahead
+const STAND = 1.2;         // s a fluid dweller stands on land before it dissolves
+const RISE = 0.3;          // s a fluid dweller's puddle lies in its fluid before it rises
+const DRY = 1.5;           // s a fluid dweller's puddle with no way back into its fluid lasts
+const SHORE = 0.3;         // cells inside a short weapon's reach a fluid dweller comes up to
 
 // Calls to arms: where an enemy noticed the player (or was hit), heard by idle allies nearby.
 let calls = [];
@@ -80,6 +91,8 @@ const turn = (e, yaw, dt, rate = 8) => {
 const foe = e => e.target && (e.target === player || e.target.here) ? e.target : player;
 const toPlayer = e => { const p = foe(e); return Math.atan2(p.x - e.x, p.z - e.z); };
 const side = () => Math.random() < 0.5 ? -1 : 1;
+// how it walks: its height, a fluid dweller's walker (physics/dwell.js)
+const nav = e => walkerOf(e);
 // slime holds an enemy's feet as it holds the player's (core/footing.js enemyMire), and a slowing
 // (slime thrown or fallen on it, core/status.js) slows how fast it moves, not what else it does
 const mired = e => enemyMire(e, state.map, state.map?.biome && themeById(state.map.biome)) * chillFactor(e.slowed);
@@ -152,10 +165,10 @@ function provoke(e) {
   call(e);
   if (e.mode !== 'attack' && e.mode !== 'chase') { e.mode = 'chase'; e.think = 0; }
 }
-function goHome(e) { e.mode = 'home'; e.path = findPath(e.f, e.home, 40, e.profile.height) || [e.f]; e.provoked = 0; e.shy = false; }
+function goHome(e) { e.mode = 'home'; e.path = findPath(e.f, e.home, 40, nav(e)) || [e.f]; e.provoked = 0; e.shy = false; }
 // searching: to where it lost the player (as close as it gets), then about there
 function search(e) {
-  const s = e.seen, h = e.profile.height;
+  const s = e.seen, h = nav(e);
   e.mode = 'search'; e.t = SEARCH; e.pause = 0; e.look = e.yaw;
   e.path = s ? (s.f && findPath(e.f, s.f, HUNT, h)) || pathToward(e.f, s.x, s.y, s.z, HUNT, h) : null;
   e.lair = e.path?.at(-1) ?? e.f;
@@ -165,11 +178,24 @@ function danger(p) {
   const stats = p === player ? combatStats(player) : null;
   return Math.max(SAFE, p === player ? (stats?.ranged ? stats.range : 0) : DANGER) + 1;
 }
+// How near a fluid dweller comes to the player it fights, that they can hit it (their short
+// weapon's reach, SHORE inside it, and its body); null: it keeps its distance as any ranged one
+// does (from a player who shoots, or from a friend whose weapon it cannot tell)
+function closeIn(e, p = foe(e)) {
+  if (!e.profile.dwells || p !== player) return null;
+  const stats = combatStats(player);
+  return stats?.ranged ? null : (stats?.range ?? 1) + e.profile.radius - SHORE;
+}
+// the distances a ranged one keeps from the player it fights (a fluid dweller coming up to the
+// shore: none, it comes up close)
+const keepOf = e => closeIn(e) ? [0, closeIn(e)] : e.profile.keep;
 // the way to where it can attack the player it remembers: to the floor they stand on, else to
-// the nearest floor it can strike (or shoot) them from
+// the nearest floor it can strike (or shoot) them from (a fluid dweller coming up to the shore:
+// one near enough to them, or as near as its fluid goes)
 function way(e, far) {
-  const s = e.seen;
-  return (s.f && findPath(e.f, s.f, far, e.profile.height)) || postPath(e, s, far);
+  const s = e.seen, close = closeIn(e);
+  if (close) return shorePath(e, s, close, far);
+  return (s.f && findPath(e.f, s.f, far, nav(e))) || postPath(e, s, far);
 }
 // taking cover from a player it cannot get at
 function hide(e) {
@@ -192,7 +218,7 @@ function hunt(e) {
   else {
     // (hit in cover, with still no way to the player: on to other cover at once)
     if (provoked && e.shy) { hide(e); return; }
-    e.path = pathToward(e.f, e.seen.x, e.seen.y, e.seen.z, HUNT, cfg.height);
+    e.path = pathToward(e.f, e.seen.x, e.seen.y, e.seen.z, HUNT, nav(e));
     const stuck = provoked || (e.lost === 0 && e.path?.length <= 1);
     e.stranded = stuck ? (e.stranded || 0) + THINK : 0;
     if (e.stranded > (provoked ? BALK : STRANDED)) { hide(e); return; }
@@ -247,8 +273,8 @@ function decide(e) {
     // post's reach, it goes for the shooter (to their floor, else where it can strike them from)
     // rather than stand there as a target; with no way to them it keeps to its post
     const engage = alive && (relentless || e.defence.engage || e.provoked > 0);
-    const route = engage && ((target && findPath(e.f, target, FAR, cfg.height)) || postPath(e, p, FAR));
-    e.path = route || findPath(e.f, e.defence?.post ?? e.home, 40, cfg.height);
+    const route = engage && ((target && findPath(e.f, target, FAR, nav(e))) || postPath(e, p, FAR));
+    e.path = route || findPath(e.f, e.defence?.post ?? e.home, 40, nav(e));
     e.mode = route ? 'chase' : 'defend'; e.lost = 0;
     return;
   }
@@ -356,7 +382,8 @@ function rollOn(e, a, t0, dt) {
 // Up there it turns towards where it comes down. A ride cut short (its death) comes down where it is.
 const RIDE_STEP = 0.2;
 function landingOf(e, from, x, z) {
-  const s = { x: from.x, y: from.y, z: from.z, f: from.f, profile: e.profile }, dx = x - s.x, dz = z - s.z, d = Math.hypot(dx, dz);
+  // (a fluid dweller leaps out of its fluid onto the land: physics/dwell.js walkerOf)
+  const s = { x: from.x, y: from.y, z: from.z, f: from.f, profile: e.profile, ashore: true }, dx = x - s.x, dz = z - s.z, d = Math.hypot(dx, dz);
   for (let k = Math.ceil(d / RIDE_STEP), i = 0; i < k; i++) stepEnemy(s, dx / k, dz / k);
   return s;
 }
@@ -415,13 +442,14 @@ function manoeuvre(e, dt, d, strike) {
     return true;
   }
   if (cfg.style === 'ranged') {
-    const ux = (e.x - p.x) / (d || 1), uz = (e.z - p.z) / (d || 1), s = e.side || 1;
+    const ux = (e.x - p.x) / (d || 1), uz = (e.z - p.z) / (d || 1), s = e.side || 1, keep = keepOf(e), close = closeIn(e);
     // one that `backpedal`s (Renew with his staff or bow) runs backwards, facing the player,
     // whenever they are too close, at that share of its speed, ready to shoot or not
-    if (cfg.backpedal && d < cfg.keep[0] && slide(e, ux, uz, speed * cfg.backpedal, dt) > 0.3) return true;
+    if (cfg.backpedal && d < keep[0] && slide(e, ux, uz, speed * cfg.backpedal, dt) > 0.3) return true;
     if (e.cool <= 0 && state.enemyGrace <= 0 && !e.held) return false;
-    if (d < cfg.keep[0] && slide(e, ux, uz, speed * 0.9, dt) > 0.5) return true;
-    if (!strike && d > cfg.keep[0]) return false;   // no shot from here: get one
+    if (d < keep[0] && slide(e, ux, uz, speed * 0.9, dt) > 0.5) return true;
+    if (!strike && d > keep[0]) return false;   // no shot from here: get one
+    if (close && d > close) return false;   // (a fluid dweller: up to the shore, near enough to be hit)
     going(slide(e, uz * s, -ux * s, speed * 0.55, dt));
     return true;
   }
@@ -449,7 +477,9 @@ function fight(e, dt) {
   if (e.anchored) { e.speed = 0; turn(e, Math.atan2(dx, dz), dt, 3); return; }
   if (e.route) { follow(e, cfg.chase * (e.hurry ?? 1), dt); return; }
   if (d < 4 && e.lost === 0 && e.path.length <= 4 && manoeuvre(e, dt, d, strike)) return;
-  if (strike) { e.speed = 0; turn(e, Math.atan2(dx, dz), dt); return; }
+  // (a fluid dweller coming up to the shore goes on there while its throw recovers)
+  const close = closeIn(e);
+  if (strike && !(close && d > close)) { e.speed = 0; turn(e, Math.atan2(dx, dz), dt); return; }
   // a charger runs the last few cells at a player it sees, when it can strike again
   const charging = cfg.charge && e.lost === 0 && e.cool <= 0 && d > 1.5 && d < 5;
   follow(e, cfg.chase * (charging ? cfg.charge : 1), dt, e.lost === 0 ? [p.x, p.z] : e.seen && [e.seen.x, e.seen.z]);
@@ -509,8 +539,8 @@ function act(e, dt) {
     if (!follow(e, (cfg.wander + cfg.chase) / 2, dt)) return;
     e.speed = 0; turn(e, e.look, dt, 3);
     if ((e.pause -= dt) > 0) return;
-    const spots = around(e.lair ?? e.f, 2, cfg.height);
-    e.path = findPath(e.f, spots[Math.floor(Math.random() * spots.length)], 6, cfg.height);
+    const spots = around(e.lair ?? e.f, 2, nav(e));
+    e.path = findPath(e.f, spots[Math.floor(Math.random() * spots.length)], 6, nav(e));
     e.look = e.yaw + (Math.random() - 0.5) * 3; e.pause = 0.5 + Math.random() * 0.7;
     return;
   }
@@ -526,8 +556,8 @@ function act(e, dt) {
   else if (e.look !== undefined) turn(e, e.look, dt, 2);
   if ((e.t -= dt) > 0) return;
   if (Math.random() < 0.35) { e.look = e.yaw + (Math.random() - 0.5) * 2.5; e.t = 1 + Math.random() * 2; return; }
-  const spots = around(e.home, 2, cfg.height);
-  e.path = findPath(e.f, spots[Math.floor(Math.random() * spots.length)], 6, cfg.height);
+  const spots = around(e.home, 2, nav(e));
+  e.path = findPath(e.f, spots[Math.floor(Math.random() * spots.length)], 6, nav(e));
   e.mode = e.path ? 'walk' : 'idle'; e.t = 2;
 }
 // A blow that caught nothing and has a `miss` (Gusto's grab): it goes on into that attack (his
@@ -549,9 +579,52 @@ function burrow(e, dt) {
   e.dig = (e.dig ?? between(b.up)) - dt;
   if (e.under) {
     const p = foe(e), d = Math.hypot(p.x - e.x, p.z - e.z);
-    const shot = d > e.profile.keep[0] && d < e.profile.reach * 0.9 && Math.abs(p.y - e.y) < 1.5;
+    // (a fluid dweller coming up to the shore comes up there)
+    const close = closeIn(e), shot = d > keepOf(e)[0] && d < (close ?? e.profile.reach * 0.9) && Math.abs(p.y - e.y) < 1.5;
     if (e.dig <= 0 && (shot || e.pop || e.dig <= -1.5)) { e.under = 0; e.pop = false; e.dig = between(b.up); e.cool = Math.max(e.cool, b.sink + 0.3); }
-  } else if (e.dig <= 0 && e.mode !== 'attack') { e.under = 1; e.dig = between(b.under); }
+  } else if (e.dig <= 0 && e.mode !== 'attack' && (!e.profile.dwells || wetAt(e.profile, e.f) !== null)) { e.under = 1; e.dig = between(b.under); }
+}
+// A fluid dweller out of its fluid (game/enemyai.js header): it leapt onto the land, or its fluid
+// went from under it. It cannot keep its shape there: it stands STAND s, still to be hit (and
+// shrinking: render/enemies.js), then dissolves into a puddle (`under`: nothing touches it) that
+// runs back over the land into the nearest of its fluid, as fast as it moves under the surface,
+// and on into it until its body is clear of the bank (`inside`), and rises there (RISE s later).
+// Meanwhile it walks as on land (`ashore`: physics/dwell.js walkerOf). With no way back into one it seeps away after DRY s (no
+// reward: the land took it). true: it is ashore.
+function ashore(e, dt) {
+  const cfg = e.profile;
+  if (wetAt(cfg, e.f) !== null && (e.mode !== 'ashore' || inside(e))) {
+    if (e.mode === 'ashore') {
+      Object.assign(e, { mode: e.seen ? 'chase' : 'idle', t: 1, think: 0, path: null, side: side(), ashore: false });
+      if (e.under) Object.assign(e, { pop: true, dig: RISE });
+    }
+    e.dry = 0;
+    return false;
+  }
+  if (e.mode === 'attack') return false;
+  if (e.mode !== 'ashore') Object.assign(e, { mode: 'ashore', ashore: true, stand: e.under ? 0 : STAND, path: null, back: 0 });
+  if (e.stand > 0) { e.stand -= dt; e.speed = 0; turn(e, toPlayer(e), dt, 3); return true; }
+  e.under = 1;
+  if ((e.back -= dt) <= 0 || !e.path) {
+    e.back = 0.5;
+    const w = walker(cfg, false), r = Math.min(cfg.radius, 0.42);
+    // (to a floor of its fluid its whole body fits in, standing in its middle)
+    const roomy = f => w.ok(f) && [[r, 0], [-r, 0], [0, r], [0, -r]].every(([dx, dz]) => floorAt(f, f.x + 0.5 + dx, f.z + 0.5 + dz, w));
+    e.path = nearest(e.f, roomy, FAR, walkerOf(e));
+  }
+  if (!e.path) {
+    e.speed = 0;
+    if ((e.dry = (e.dry ?? 0) + dt) >= DRY) Object.assign(e, { noReward: true, hp: 0, mode: 'dead', deadT: 0, path: null });
+    return true;
+  }
+  e.dry = 0;
+  if (follow(e, cfg.chase, dt)) e.back = 0;   // (at its end and still dry: look again)
+  return true;
+}
+// is fluid dweller e all in its fluid, its body clear of the bank (as it moves: physics/enemynav.js)?
+function inside(e) {
+  const w = walker(e.profile, false), r = Math.min(e.profile.radius, 0.42);
+  return [[r, 0], [-r, 0], [0, r], [0, -r]].every(([dx, dz]) => floorAt(e.f, e.x + dx, e.z + dz, w));
 }
 // a blow's push, sliding along the floor graph and dying away quickly
 function knockback(e, dt) {
@@ -580,6 +653,7 @@ export function stepEnemies(list, realDt) {
     // passive (/passive), or dormant (a test room's lineup, game/devspawn.js: till it is hit), or
     // waiting for its fight to start it (Foggery at the foot of his tower, game/foggery.js)
     if (state.devPassive || e.dormant || e.waiting) { e.speed = 0; e.path = null; if (e.mode !== 'idle') { e.mode = 'idle'; e.t = 1; } continue; }
+    if (e.profile.dwells && e.f && ashore(e, dt)) { if (slow < 1) e.speed *= slow; continue; }
     if ((e.think -= dt) <= 0) { e.think = THINK * (0.8 + Math.random() * 0.4); decide(e); }
     if (e.profile.burrow) burrow(e, dt);
     act(e, dt);

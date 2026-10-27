@@ -2,6 +2,7 @@
 // wind-ups and damage. Posts are actual reachable floors, not points across gaps.
 import { gateLocked } from '../core/guardians.js';
 import { walkable, clearLine } from '../physics/enemynav.js';
+import { walker } from '../physics/dwell.js';
 import { isRanged } from '../core/enemies.js';
 
 export function coordinateDefence(map, run, list, player) {
@@ -42,7 +43,9 @@ export function coordinateDefence(map, run, list, player) {
       tx = g.x + vx / d * front - vz / d * flank;
       tz = g.z + vz / d * front + vx / d * flank;
     }
-    const floors = map.floors.filter(f => f.encounter && walkable(f, cfg.height)
+    // (a fluid dweller's posts are in its pond)
+    const body = cfg.dwells ? walker(cfg) : cfg.height;
+    const floors = map.floors.filter(f => f.encounter && walkable(f, body)
       && claimed.every(s => Math.hypot(f.x + .5 - s.x, f.z + .5 - s.z) >= cfg.radius + s.radius + .15));
     floors.sort((a, b) => Math.hypot(a.x + .5 - tx, a.z + .5 - tz) - Math.hypot(b.x + .5 - tx, b.z + .5 - tz));
     const post = floors[0] || e.home;

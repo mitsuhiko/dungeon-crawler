@@ -11,6 +11,7 @@
 import { LH, WATER, LAVA } from '../core/constants.js';
 import { tideLevel } from '../core/squarlo.js';
 import { setTide, standingAt, enemyUnder } from '../physics/fluid.js';
+import { standY } from '../physics/dwell.js';
 import { setTrialWater, setFloodFront } from '../render/trials.js';
 import { drawFloodFront } from '../render/slomofx.js';
 import { state, player } from './state.js';
@@ -41,7 +42,7 @@ export function updateTide(list, dt) {
   state.tide = shown;
   // (a flood: only as far across as its front has come)
   const box = t.flood ? floodBox(t.box, by?.floodSide ?? 0, by ? by.front ?? 1 : 1) : t.box;
-  setTide({ y: shown * LH, fluid: t.fluid, box });
+  setTide({ y: shown * LH, fluid: t.fluid, look: t.look, box });
   setTrialWater(state.world, shown * LH, 'running');
   if (t.flood) {
     setFloodFront(state.world, box);
@@ -71,10 +72,14 @@ export function walkOnLava(list) {
     if (s?.fluid === LAVA && s.y > e.y) e.y = s.y;
   }
 }
-// those that swim float in deep water (their body half under; `swimming`), wherever they move
+// those that swim float in deep water (their body half under; `swimming`), wherever they move; a
+// fluid dweller floats as deep in its fluid as it does (physics/dwell.js standY), rising and
+// falling with it
 export function floatSwimmers(list) {
   for (const e of list) {
-    if (!e.profile.swims || e.mode === 'dead') continue;
+    if (e.mode === 'dead' || e.deck || e.jump || e.riding) continue;
+    if (e.profile.dwells && e.f) { e.y = standY(e.profile, e.f, e.x, e.z); continue; }
+    if (!e.profile.swims) continue;
     const s = standingAt(e.x, e.z), half = e.profile.bodyHeight * 0.5;
     e.swimming = !!s && s.fluid === WATER && s.y - e.y > half;
     if (e.swimming) e.y = s.y - half;

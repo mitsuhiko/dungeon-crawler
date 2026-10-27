@@ -14,7 +14,7 @@ import { population, speciesIn, kindsIn, DEPTH_SPAWNS } from '../src/core/spawns
 import { guardianSpots } from '../src/game/enemyspawn.js';
 import { TIDAL } from '../src/cubegen/arenashapes.js';
 import { floorY } from '../src/core/surfaces.js';
-import { LH, N, HEAD_Y, RUN_SPEED, WADE_SLOW, WATER } from '../src/core/constants.js';
+import { LH, N, HEAD_Y, RUN_SPEED, WADE_SLOW, WATER, LAVA, ACID } from '../src/core/constants.js';
 import { setTide, inFluid, enemyUnder, standingAt } from '../src/physics/fluid.js';
 import { groundAt } from '../src/physics/collide.js';
 
@@ -238,7 +238,7 @@ test('the tide rises, stands and falls; his death drains it', () => {
   assert.equal(tideLevel({ rest: 1, high: 3 }, 0.5), 2);
 });
 
-test('Squirtles burrow (nothing touches one under the floor) and live in the waters', () => {
+test('Squirtles burrow (nothing touches one under the surface) and live in the fluids: water, slime and lava', () => {
   const e = makeEnemy({ id: 's', x: 5, y: 0, z: 5, level: 2 }, SQUIRTLE);
   e.under = 1;
   assert.ok(absent(e)); assert.equal(damageEnemy(e, 5), false);
@@ -248,9 +248,18 @@ test('Squirtles burrow (nothing touches one under the floor) and live in the wat
   assert.ok(ball.push.speed * ball.push.time < 0.5, 'a tiny, tiny push');
   assert.ok(TIDE_SQUIRTLE.minion && TIDE_SQUIRTLE.coins[1] === 0);
   assert.ok(CORAL_SQUIRTLE.hp > SQUIRTLE.hp);
-  // at every depth the lagoons, the sunken grotto and the cenote may appear at (themes/index.js acts)
+  // at every depth the lagoons, the sunken grotto and the cenote (water), the slime marsh (acid)
+  // and the volcanic caves and the abyss (lava) may appear at (themes/index.js acts), each kind in
+  // its own fluid
   const where = DEPTH_SPAWNS.flatMap((r, d) => r.roster.filter(e => e.type === 'squirtle').map(e => [d, e.where]));
-  assert.deepEqual(where, [1, 2, 3, 4, 5, 6].map(d => [d, ['lagoon']]).concat([7, 8, 9, 10, 11, 12, 13].map(d => [d, ['grotto', 'cenote']])));
+  assert.deepEqual(where, [1, 2, 3, 4, 5, 6].map(d => [d, ['lagoon']])
+    .concat([7, 8, 9, 10, 11, 12, 13].flatMap(d => [[d, ['grotto', 'cenote']], [d, ['slime']]]))
+    .concat([14, 15, 16, 17, 18, 19].map(d => [d, ['volcanic', 'abyss']])));
+  const fluids = { lagoon: WATER, grotto: WATER, cenote: WATER, slime: ACID, volcanic: LAVA, abyss: LAVA };
+  for (const r of DEPTH_SPAWNS) for (const e of r.roster.filter(e => e.type === 'squirtle'))
+    for (const k of Object.keys(e.kinds)) for (const w of e.where) assert.deepEqual(ENEMY_KINDS[k].dwells, [fluids[w]], `${k} in ${w}`);
+  assert.deepEqual(TIDE_SQUIRTLE.dwells, [WATER]); assert.deepEqual(ENEMY_KINDS.slimesquirtle.dwells, [ACID]);
+  assert.ok(CORAL_SQUIRTLE.lavaproof && CORAL_SQUIRTLE.fireproof);
   for (let seed = 0; seed < 60; seed++) {
     assert.ok(!population({ seed, depth: 2, biome: 'meadow' }).has('squirtle'));
   }
