@@ -30,7 +30,7 @@ export const AMPHIBIAN_ATTACKS = [
     projectile: { kind: 'iceball', speed: 8, radius: .15, range: 11, volley: 3, fan: .22, muzzle: [0, 2.9, .2] } }),
   attack('tidalSurge', 'tidalSurge', 5, 3.2, 1.7, { reach: 8, hitReach: 0, power: .9,
     gust: { kind: 'jet', thunder: [], time: .8, range: 9, width: 1.1, spread: .22, push: 9, pushTime: .5, muzzle: [0, 1.2, .5] } }),
-  attack('bellyFlop', 'bellyFlop', 5, 4.5, 2.3, { reach: 4.5, hitReach: 4.6, arc: -1, power: 1.5, knockDown: true,
+  attack('bellyFlop', 'bellyFlop', 2, 4.5, 2.3, { weight: 3, reach: 4.5, hitReach: 4.6, arc: -1, power: 1.5, knockDown: true,
     exposed: { from: 2.65, until: 3.7, damage: 1.5 }, recover: 2.2 }),
   attack('rage', 'rage', 1, 2.5, 2, { weight: 0, reach: 0, hitReach: 0, power: 0, cast: 'transition', ward: true }),
 ];

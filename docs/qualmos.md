@@ -92,12 +92,17 @@ Fünf Phasen mit Grenzen bei 80, 60, 40 und 20 Prozent; Übergänge können nich
 | Phase | New attacks / Neue Angriffe |
 |---|---|
 | 1 | Tentacle whip, reaching strike, double slam / Peitsche, Greifschlag, Doppelschlag |
-| 2 | Water jet, diving lunge, slowing ink projectile / Wasserstrahl, Tauchsprung, verlangsamendes Tintenprojektil |
+| 2 | Water jet, diving lunge, slowing ink projectile, belly flop / Wasserstrahl, Tauchsprung, verlangsamendes Tintenprojektil, Bauchplatscher |
 | 3 | Circular sweep, undertow pull / Rundumschlag, Sog |
 | 4 | Three-projectile spread / Stachelsalve |
-| 5 | Wide water blast, inflated belly flop / Flutstoß, aufgeblähter Bauchplatscher |
+| 5 | Wide water blast / Flutstoß |
 
-Earlier attacks remain available. Belly flop leaves him exposed for 1.05 seconds
+From phase 2, the belly flop is preferred first when in reach, then after two other attacks;
+ranged attacks remain available when the hero is too far away. Earlier attacks remain available.
+Ab Phase 2 kommt der Bauchplatscher in Reichweite zuerst und dann nach zwei anderen Angriffen;
+auf Distanz bleiben die Fernangriffe verfügbar.
+
+Belly flop leaves him exposed for 1.05 seconds
 with 1.5x incoming damage, followed by a recovery pause.
 Frühere Angriffe bleiben verfügbar. Nach dem Bauchplatscher ist er 1,05 Sekunden
 verwundbar und nimmt anderthalbfachen Schaden, danach folgt eine Erholungspause.

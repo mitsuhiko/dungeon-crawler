@@ -38,18 +38,46 @@ export function dressGlassmaker(f){
   for(const s of [-1,1])add(goggles,new THREE.BoxGeometry(.025,.025,.25),brass,s*.245,1.75,.125);
   attach('head',goggles);
   const pipe=new THREE.Group();
-  const start=new THREE.Vector3(0,1.62,.23),end=new THREE.Vector3(0,1.46,2.25),direction=end.clone().sub(start);
+  const start=new THREE.Vector3(0,1.62,.23),end=new THREE.Vector3(0,1.46,1.2),direction=end.clone().sub(start);
   const tube=add(pipe,new THREE.CylinderGeometry(.018,.023,direction.length(),10),iron,...start.clone().add(end).multiplyScalar(.5).toArray());
   tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
   const bubble=add(pipe,new THREE.IcosahedronGeometry(.26,2),glass,...end.toArray());
   add(pipe,new THREE.IcosahedronGeometry(.065,1),new THREE.MeshBasicMaterial({color:0xffb95a}),...end.toArray());
+  const grips={};
+  for(const [side,t] of [['L',.28],['R',.1]]){
+    const grip=new THREE.Object3D();grip.name=`GlassmakerPipeGrip.${side}`;
+    grip.position.lerpVectors(start,end,t);pipe.add(grip);grips[side]=grip;
+  }
   attach('spine',pipe);
-  f.group.userData.glassmakerOutfit={goggles,apron,pipe,bubble};
+  f.group.userData.glassmakerOutfit={goggles,apron,pipe,bubble,grips};
 }
-export function poseGlassmaker(f,time){
-  // Both hands support his own blowpipe; a little breathing brings its glass to life.
-  f.bones['upper_arm.R'].rotateX(-.8);f.bones['forearm.R'].rotateX(-1.15);
-  f.bones['upper_arm.L'].rotateX(-1);f.bones['forearm.L'].rotateX(-.95);
-  const outfit=f.group.userData.glassmakerOutfit;
-  outfit?.bubble.scale.setScalar(1+.035*Math.sin(time*1.8));
+function aimBone(bone,child,target){
+  const from=bone.getWorldPosition(new THREE.Vector3());
+  const direction=child.getWorldPosition(new THREE.Vector3()).sub(from).normalize();
+  const wanted=target.clone().sub(from).normalize();
+  const world=bone.getWorldQuaternion(new THREE.Quaternion());
+  world.premultiply(new THREE.Quaternion().setFromUnitVectors(direction,wanted));
+  bone.quaternion.copy(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world));
+  bone.updateWorldMatrix(false,true);
+}
+function holdPipe(f,side,grip){
+  const upper=f.bones[`upper_arm.${side}`],forearm=f.bones[`forearm.${side}`],hand=f.bones[`hand.${side}`];
+  const shoulder=upper.getWorldPosition(new THREE.Vector3()),elbow=forearm.getWorldPosition(new THREE.Vector3());
+  const wrist=hand.getWorldPosition(new THREE.Vector3()),target=grip.getWorldPosition(new THREE.Vector3());
+  const a=shoulder.distanceTo(elbow),b=elbow.distanceTo(wrist),axis=target.clone().sub(shoulder);
+  const distance=Math.max(Math.abs(a-b)+.001,Math.min(a+b-.001,axis.length()));axis.normalize();
+  const along=(a*a-b*b+distance*distance)/(2*distance),height=Math.sqrt(Math.max(0,a*a-along*along));
+  // The elbow bends outwards and in front, never behind the torso.
+  const pole=f.model.localToWorld(new THREE.Vector3(side==='L'?-.65:.65,1.02,.22)).sub(shoulder);
+  pole.addScaledVector(axis,-pole.dot(axis)).normalize();
+  const joint=shoulder.clone().addScaledVector(axis,along).addScaledVector(pole,height);
+  aimBone(upper,forearm,joint);
+  aimBone(forearm,hand,shoulder.clone().addScaledVector(axis,distance));
+}
+export function poseGlassmaker(f,time,headTurn=0){
+  const outfit=f.group.userData.glassmakerOutfit;if(!outfit)return;
+  f.bones.head.rotateY(-headTurn); // keep the mouth aligned with the pipe while blowing
+  f.group.updateWorldMatrix(true,true);
+  for(const side of ['L','R'])holdPipe(f,side,outfit.grips[side]);
+  outfit.bubble.scale.setScalar(1+.035*Math.sin(time*1.8));
 }

@@ -66,7 +66,7 @@ export function tickVoyageView(view,map){
     const npc=child.userData.glassmaker;if(!npc)continue;
     Object.assign(npc.v,{x:child.position.x,y:child.position.y,z:child.position.z});
     tickVillagers([npc],1/60,state.time);
-    poseGlassmaker(npc.f,state.time);
+    poseGlassmaker(npc.f,state.time,npc.head);
   }
   if(view.cage)view.cage.visible=!state.run.unlockedGates.has(map.key);
   if(view.maker)view.maker.visible=!voyageHas(told,q.chapter,'rescued');

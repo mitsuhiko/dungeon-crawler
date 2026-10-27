@@ -1,7 +1,8 @@
 // Qualmos prototype: the core's boss, or a developer spawn. Shared AI owns hits and movement.
 import { AMPHIBIAN, makeEnemy, attackOf } from '../core/enemies.js';
 import { amphibianFloor, amphibianBarred, amphibianWaterPose, amphibianPressure } from '../core/amphibian.js';
-import { state, setStatus } from './state.js';
+import { player, state, setStatus } from './state.js';
+import { prioritizeBellyFlop } from '../core/qualmos-attacks.js';
 import { enemySpots } from './enemyspawn.js';
 import { stepEnemies } from './enemyai.js';
 import { sweep } from './bossfight.js';
@@ -19,7 +20,7 @@ export function addAmphibians(list) {
     e.nativeProfile=e.profile;e.stage = 1;strengthen(e);e.barred = amphibianBarred(1);
     e.hpFloor = amphibianFloor(1, e.profile.hp);
     e.cast = () => {};
-    e.waterWait = 12; e.waterRetreat = null;
+    e.waterWait = 12; e.waterRetreat = null;e.lastBellyFlopAttack=null;
     amphibians.push(e);
   }
 }
@@ -67,6 +68,8 @@ export function updateAmphibians(dt) {
     if(e.mode==='attack'&&attackOf(e).name==='grab'&&e.announcedGrab!==e.attacks){
       e.announcedGrab=e.attacks;setStatus(tr('Qualmos reaches for your throat — dodge the grab!'));
     }
+    const target=e.target?.here?e.target:player;
+    e.barred=prioritizeBellyFlop(e,amphibianBarred(e.stage),Math.hypot(target.x-e.x,target.z-e.z),Math.abs(target.y-e.y));
     // Invulnerability only for the visible phase transition, not for an entire phase.
     e.shield = e.mode === 'attack' && attackOf(e).name === 'rage' ? .1 : 0;
   }

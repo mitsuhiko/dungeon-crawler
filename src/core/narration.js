@@ -73,6 +73,7 @@ export const SIBLING = { m: { sib: 'm' }, f: { sib: 'f' } };
 //          told at once (the Memories show it whole; leaving it early loses nothing there)
 //   shuffle the line that fits best, of those one picked by the world's seed (linesFor)
 export const MOMENTS = {
+  glassmaker: { pri: 3, all: true }, // the rescued craftsman speaking in person
   recording: { pri: 3, all: true, cuts: true, whole: true },   // one of the glassmaker's recordings found ({ part }: RECORDINGS)
   robot: { pri: 3, all: true, whole: true },  // the robot ({ what }): 'hello', the hero woke it (core/robot.js; told: it woke)
   town: { pri: 1, ttl: 6, quiet: 4 },         // close to one of the villagers ({ who }: world/town.js VILLAGERS)
@@ -221,6 +222,18 @@ const G_HUSH = 'Speak low and hushed, slowly, as if afraid to wake something.';
 const G_PROUD = 'Speak low and steady, with a craftsman\'s quiet pride.';
 
 export const LINES = [
+  { id:'glassmaker.rescued.thanks',on:'glassmaker',when:{what:'rescued'},voice:'glassmaker',
+    text:'Thank you! I thought I would never see the sky again.',
+    note:'The rescued craftsman thanks the hero in person, relieved and warm.',instruct:G_FOND },
+  { id:'glassmaker.rescued.tools',on:'glassmaker',when:{what:'rescued'},voice:'glassmaker',
+    text:'Qualmos made me work for him. My glasses and my pipe were all I had left.',
+    note:'He explains why he was trapped, holding the tools seen in the opening.',instruct:G_CALM },
+  { id:'glassmaker.rescued.others',on:'glassmaker',when:{what:'rescued',chapter:[1,2]},voice:'glassmaker',
+    text:'Other glassmakers are still waiting. Take the glass bird and bring them home.',
+    note:'After the first or second rescue, he asks for help for the remaining craftspeople.',instruct:G_CALM },
+  { id:'glassmaker.rescued.home',on:'glassmaker',when:{what:'rescued',chapter:3},voice:'glassmaker',
+    text:'You found all three of us. Now we can go home.',
+    note:'After the third rescue, he is quietly happy that everyone can return home.',instruct:G_FOND },
   recording('qualmos', 'hello', 'Hello! If you hear this, I am happy that you made it here.',
     'A message the glassmaker left in a small glass recording with a rare bird and a breathing helmet. Glad someone found it.', G_FOND),
   recording('qualmos', 'away', 'I am away for a while.',

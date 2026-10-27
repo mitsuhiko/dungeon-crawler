@@ -8,17 +8,17 @@
 // takes him below the next phase's share (`phaseFloor`), and there he rages (his `rage`: warded,
 // nothing hurts him meanwhile) and fights on with the next phase's attacks on top of the ones before:
 //   1  whip (a tentacle's sweep), grab (an arm reaches out), doubleSlam (two tentacles slam down)
-//   2  waterJet (a jet that pushes you away), dive (a leap at you), inkBurst (ink that slows you)
+//   2  waterJet (a jet that pushes you away), dive (a leap at you), inkBurst (ink that slows you),
+//      bellyFlop (he flops onto you, then lies exposed and takes more)
 //   3  tailSpin (all his tentacles sweep round), undertow (a pull towards him)
 //   4  spikeVolley (three spines at once, fanned)
-//   5  tidalSurge (a wide wave that shoves), bellyFlop (blown up, he flops onto you: then he lies
-//      there a moment, exposed, and takes more)
+//   5  tidalSurge (a wide wave that shoves)
 export const QUALMOS_PHASES = Object.freeze([
   ['whip', 'grab', 'doubleSlam'],
-  ['waterJet', 'dive', 'inkBurst'],
+  ['waterJet', 'dive', 'inkBurst', 'bellyFlop'],
   ['tailSpin', 'undertow'],
   ['spikeVolley'],
-  ['tidalSurge', 'bellyFlop'],
+  ['tidalSurge'],
 ]);
 export const PHASES = QUALMOS_PHASES.length;
 

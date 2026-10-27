@@ -4,6 +4,10 @@
 // clockwork, cheerful, with a child's voice. Neither says Würfel: ein Stück der Welt, das Glas. The
 // German is recorded too (docs/narration.md): write it to be spoken.
 export default {
+  'Thank you! I thought I would never see the sky again.': 'Danke! Ich dachte schon, ich würde den Himmel nie wiedersehen.',
+  'Qualmos made me work for him. My glasses and my pipe were all I had left.': 'Qualmos zwang mich, für ihn zu arbeiten. Nur meine Brille und mein Blasrohr waren mir geblieben.',
+  'Other glassmakers are still waiting. Take the glass bird and bring them home.': 'Andere Glasmacher warten noch. Nimm den Glasvogel und bring sie nach Hause.',
+  'You found all three of us. Now we can go home.': 'Du hast uns alle drei gefunden. Jetzt können wir nach Hause.',
   'The glass bird': 'Der Glasvogel',
   'Found before Qualmos': 'Gefunden vor Qualmos',
   'Hello! If you hear this, I am happy that you made it here.': 'Hallo! Wenn du das hörst, bin ich glücklich, dass du es hierher geschafft hast.',

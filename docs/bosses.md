@@ -1280,10 +1280,13 @@ of the ones before (`barred`):
 | Phase | New attacks |
 |---|---|
 | 1 | tentacle whip, a reaching grab (knocks down), double slam (knocks down) |
-| 2 | water jet (pushes you away), a diving leap at you (`lunge`), ink that slows |
+| 2 | water jet (pushes you away), a diving leap at you (`lunge`), ink that slows, a belly flop |
 | 3 | tail spin all round him, undertow (pulls you to him) |
 | 4 | a volley of three spines, fanned |
-| 5 | a wide tidal surge, a belly flop |
+| 5 | a wide tidal surge |
+
+From phase 2 he prefers a belly flop first when the hero is in range, then after two other
+attacks (`core/qualmos-attacks.js`); outside its reach he keeps his ranged attacks.
 
 After the belly flop he lies there a moment, **exposed** (2.65–3.7 s into it): blows hurt him
 ×1.5, and he takes a while to get up (`recover`).

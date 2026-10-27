@@ -5,7 +5,7 @@ import { whenReady } from './hud.js';
 import { clearOrder } from './orders.js';
 import { cancelSword } from './sword.js';
 import { groundItems } from './loot.js';
-import { playRecording } from './narrator.js';
+import { playRecording, narrate } from './narrator.js';
 import { setInventoryOpen } from './inventory.js';
 import { playVoyageFlight } from '../render/voyage-flight.js';
 import { ITEMS } from '../core/items.js';
@@ -68,6 +68,7 @@ export function useVoyageThing(target){
   const q=state.map.qualmos,told=state.run.told;
   if(target.voyageKind==='rescue'){
     told.add(voyageFlag(q.chapter,'rescued'));
+    narrate('glassmaker',{what:'rescued',chapter:q.chapter});
     setStatus(tr('Glassmakers rescued: {n}/3',{n:rescuedGlassmakers(told)}));return true;
   }
   if(target.voyageKind==='fly'){
