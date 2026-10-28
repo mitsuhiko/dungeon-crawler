@@ -32,6 +32,7 @@ import { character, mountWeapon } from './character.js';
 import { prepareHeld, updateHeld } from './held.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { makeBar, makeLevelLabel } from './bars.js';
+import { bossBarred } from '../core/bossbar.js';
 import { glow, soft, emit, rand } from './particles.js';
 import { player } from '../game/state.js';
 import { uiScale } from '../game/uiscale.js';
@@ -222,7 +223,7 @@ function animate(e, dt, off) {
   if (e.rising) { if (Math.random() < dt * 50 * rise) sparkle(e, 1.4, off); }
   else if (e.mode === 'split') clocks(v, e, dt, off);
   v.light.intensity = (e.mode === 'split' ? 2.6 : 1.1) * seen;
-  v.bar.visible = v.label.visible = !dead && !ghost && e.mode !== 'gone';
+  v.bar.visible = v.label.visible = !dead && !ghost && e.mode !== 'gone' && !bossBarred(e);   // (he is a boss: his bar is on the screen, game/bossbar.js)
   v.bar.quaternion.copy(INV.setFromAxisAngle(UP, -v.yaw)).multiply(camera.quaternion);
   v.tag.scale.setScalar(uiScale());
   v.hpBar.set(e.hp / e.profile.hp);

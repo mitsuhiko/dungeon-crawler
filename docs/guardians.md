@@ -28,7 +28,7 @@ Each species has two distinct registered kinds, excluded from ordinary rosters:
 | Tier | Kind table | Indicators | Hook |
 |---|---|---|---|
 | Side guardian | `GUARDIAN_KINDS` | Hot-pink body/glow, pink HP bar, `◆ Guardian Spider` label (its species) | `guardianRole: 'side'` |
-| Descent guardian | `DESCENT_GUARDIAN_KINDS` | Amber body/glow, wider amber HP bar, `♛ Temp Boss Spider` label | `guardianRole: 'descent'`, `bossPlaceholder: true` |
+| Descent guardian | `DESCENT_GUARDIAN_KINDS` | Amber body/glow; the boss bar on the screen, titled `♛ Temp Boss Spider`, nothing over its head ([ui.md](ui.md#the-boss-bar)) | `guardianRole: 'descent'`, `bossPlaceholder: true` |
 
 Players know them by those names, the kinds' labels (`Guardian Grass snake`, `Temp Boss
 Fire-face`): a descent guardian is a Temp Boss, holding the place of the boss its depth will
@@ -39,7 +39,7 @@ Gate unlocked!".
 
 A species may replace the pink and amber look with its own (`guardianLooks` on its profile,
 [enemy-kinds.md](enemy-kinds.md#guardians)): the Wolk's guardians are a grey and a shining
-silver cloud. The HP bar and the label keep the tier's colour.
+silver cloud. The side guardian's HP bar and label keep the tier's colour, and so does the boss bar.
 
 `map.guardian.role` and `.bossPlaceholder`, spawn/enemy fields, kind profiles, and
 onward marker `userData` expose these identifiers. The descent tier is explicitly

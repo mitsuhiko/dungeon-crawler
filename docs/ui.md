@@ -5,7 +5,7 @@ The menus borrow the look of the glass bird on the splash screen (`src/game/spla
 glowing inside. The world is low-poly and flat-shaded too, so the menus now match it. The main
 menu, the settings, the Esc menu, the "Leave the fight?" and "You died" questions, the teleport
 scroll's list, the skin painter, the inventory (with its quests) and the HUD have it: the quick
-bar, the chat (open), the minimap, the potions at work and the quest followed (`style.css`, the
+bar, the chat (open), the minimap, the potions at work, the quest followed and the boss bar (`style.css`, the
 block "the glass" near the top).
 
 ## The rules
@@ -71,3 +71,32 @@ The panels' facets are `assets/ui/facets.svg`, made by `node tools/facets.mjs`: 
 of points with random heights, each cell cut into two triangles, every triangle shaded by its
 slope against the key light. The seed is fixed, so running it again makes the same picture;
 change the numbers at the top of the tool to change the surface.
+
+## The boss bar
+
+A boss shows his health on the screen, not over his head: a strip of glass along the top
+(`#boss-bar`, `src/game/bossbar.js`; whose and how in `src/core/bossbar.js`), his title in amber
+over an amber fill: `♛ Gusto · Lv 1`, `♛ Temp Boss Spider · Lv 3`.
+
+- **Whose:** every descent guardian, a real boss and a Temp Boss alike (`bossBarred`: `guardian`
+  with `guardianRole` `'descent'`, [guardians.md](guardians.md)), wherever it stands, a dev spawn
+  and the boss test room too. There is one bar: of several (dev spawns) the nearest. Nothing shows
+  over his head, nor over the bodies that pass for him (Gusto's proxies, which never drive the
+  bar: only the real one does, vanished too). Everything else that can be hit keeps its small bar
+  over its head (`render/enemies.js`, `render/flimmerview.js`, `render/squirtleview.js`): side
+  guardians, defenders, minions.
+- **When:** from the moment you come into his cube until he is beaten, whether he has noticed you
+  or not. Beaten, the fill drops to nothing and the bar fades about a second later. It is not there
+  while the curtain is down or between cubes, and the menus hide it (`body.in-menu`).
+- **No phases.** One fill, his health of his profile's. It follows his health as it is, so Renew's
+  bar runs back while his time runs back (his health comes off the fight's tape) and is full again
+  for his next phase.
+- **The damage strip:** behind the fill a pale strip stands where his health was a moment ago.
+  A hit drops the fill at once; the strip stands `TRAIL.hold` (0.4 s; each new hit meanwhile
+  starts that again, so a combo makes one chunk, but at most `TRAIL.most`, 1.2 s, so a burn ticking
+  on does not hold it up), then eases down to the fill (`TRAIL.rate`). Health coming back takes it
+  up at once. With reduce motion it goes along with the fill.
+- On touch the quick bar is along the top: the boss bar goes under it.
+
+Its checks: `node --test tests/bossbar.test.js`, and in the game (`?dev=1`)
+`await (await import('./tests/browser/bossbar.js')).runBossBarChecks()`.

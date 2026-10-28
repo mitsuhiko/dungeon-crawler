@@ -92,6 +92,7 @@ export default {
   Archived: 'Abgelegt',
   'Potions at work': 'Wirkende Tränke',
   'Quick bar': 'Schnellleiste',
+  'Boss health': 'Gesundheit des Bosses',
   'Teleport to': 'Teleportieren zu',
   'Turn the view left': 'Ansicht nach links drehen',
   'Turn the view right': 'Ansicht nach rechts drehen',

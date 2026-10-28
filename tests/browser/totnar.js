@@ -45,7 +45,7 @@ export async function runTotnarChecks() {
       check(list.length === 1 && t.boss === 'totnar' && t.guardianGate === map.key && t.stage === 1, 'Totnar alone guards the descent of depth 1');
       check(map.arenaPlacements.filter(p => p.name.includes('brazier')).length >= 3, 'braziers light his arena');
       drawEnemies(0);
-      check(t.view?.bar.visible && t.view.ball && t.view.shed.length === 2, 'his bar, his ball and what he sheds');
+      check(t.view && !t.view.bar.visible && t.view.ball && t.view.shed.length === 2, 'his bar on the screen, not over him; his ball and what he sheds');
       player.hp = player.maxHp = 1e5; state.enemyGrace = 0;
       // the player on a floor about d from him, level with him, in his sight; he faces them
       const stand = d => {

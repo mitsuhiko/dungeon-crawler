@@ -39,7 +39,7 @@ export async function runGustoChecks() {
       const map = state.map, list = allEnemies(), gusto = list[0];
       check(list.length === 1 && gusto.boss === 'gusto' && gusto.guardianGate === map.key, 'Gusto alone guards the first descent');
       drawEnemies(0);
-      check(gusto.view?.bar.visible && gusto.view.label.visible && gusto.view.tentacles.length === 24, 'his bar, label and tentacles');
+      check(gusto.view && !gusto.view.bar.visible && !gusto.view.label.visible && gusto.view.tentacles.length === 24, 'nothing over his head (his bar is on the screen), and his tentacles');
       player.hp = player.maxHp = 1e5; state.enemyGrace = 0;
       const ahead = d => [gusto.x + Math.sin(gusto.yaw) * d, gusto.z + Math.cos(gusto.yaw) * d];
       const stand = d => { const [x, z] = ahead(d); spawnAt(x, gusto.y, z); player.vx = player.vz = 0; };
@@ -114,7 +114,7 @@ export async function runGustoChecks() {
       damageEnemy(gusto, 10); run(0.05);
       check(proxies.every(p => p.hp === gusto.hp && p.profile.hp === gusto.profile.hp), 'the proxies show his health');
       drawEnemies(0);
-      check(proxies.every(p => p.view?.label.visible), 'and look the same');
+      check(proxies.every(p => p.view && !p.view.label.visible && !p.view.bar.visible), 'and look the same: nothing over their heads either');
 
       // proxies: one touch and gone, no XP; he can be hit a moment after the last, then vanishes
       const xp = player.xp;

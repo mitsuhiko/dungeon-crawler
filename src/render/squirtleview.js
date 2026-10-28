@@ -23,6 +23,7 @@ import { squirtleMaterial } from './squirtlelook.js';
 import { attackOf, enemyName, ENEMY_KINDS, makeEnemy } from '../core/enemies.js';
 import { WATER, LAVA, ACID, LH, N } from '../core/constants.js';
 import { guardianColor, guardianTitle } from '../core/guardians.js';
+import { bossBarred } from '../core/bossbar.js';
 import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 import { soft, glow, emit, rand } from './particles.js';
 import { sfx } from '../audio/sfx.js';
@@ -225,6 +226,7 @@ function tags(v, e, dt, dead) {
   v.tag.position.y = Math.min(e.profile.height, CREST * v.size * v.land + 0.15) + 0.12; v.tag.scale.setScalar(uiScale());
   v.bar.visible = !!e.guardian || !!e.hovered || !e.hordeId && e.hp < e.profile.hp;
   v.label.visible = v.bar.visible || !e.hordeId && Math.hypot(e.x - player.x, e.z - player.z) < e.profile.aggro + 1;
+  if (bossBarred(e)) v.bar.visible = v.label.visible = false;   // a Temp Boss's: on the screen (game/bossbar.js)
   if (!e.guardian) v.label.setLevel(e.level, e.hovered ? enemyName(e.profile) : null);
   v.bar.quaternion.copy(inverseYaw.setFromAxisAngle(UP, -v.yaw)).multiply(camera.quaternion);
   v.hpBar.set(e.hp / e.profile.hp);

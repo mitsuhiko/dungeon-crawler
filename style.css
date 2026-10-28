@@ -93,7 +93,7 @@
 body.calm :is(.glass, .glass *) { --glint-color: transparent; }
 /* the UI scale (the settings, game/uiscale.js): the HUD and the menus zoomed as a whole, offsets from the window's edges and all.
    Inside them nothing uses vw / vh (browsers disagree on whether zoom scales those): percentages of the window instead. */
-:is(#quickbar, #effects, #teleport-menu, #chat, #minimap, #quest-track, #trial-hud, #trial-banner, #loading, #look-hint, #crosshair, #teach-pace,
+:is(#quickbar, #effects, #teleport-menu, #chat, #minimap, #quest-track, #trial-hud, #boss-bar, #trial-banner, #loading, #look-hint, #crosshair, #teach-pace,
   #menu-overlay, #leave-overlay, #death-overlay, #settings-overlay, #inventory-overlay, #title-logo, #title-panel, #title-hero b, #title-hero small) { zoom: var(--ui); }
 html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(ellipse at 50% 35%, #2a3140 0%, #12151c 70%, #0b0d12 100%); font: 16px/1.35 var(--font-body); color: #d8dde6; }
 /* the type (vendor/fonts/fonts.css): Cinzel on what is pressed and what names things, Crimson Text for the rest,
@@ -668,7 +668,7 @@ body.touch.ui-roomy #chat { bottom: calc(82px + env(safe-area-inset-bottom)); }
 body.touch.ui-roomy #inventory-overlay { padding: calc(12px + env(safe-area-inset-top)) 12px calc(84px + env(safe-area-inset-bottom)); }
 
 /* the main menu (game/menu.js): the heroes, the worlds, joining a friend */
-body.in-menu :is(#quickbar, #teleport-menu, #chat, #minimap, #effects, #touch, #loot-labels, #dev, #teach-pace) { display: none !important; }
+body.in-menu :is(#quickbar, #boss-bar, #teleport-menu, #chat, #minimap, #effects, #touch, #loot-labels, #dev, #teach-pace) { display: none !important; }
 #title-overlay { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: var(--pad); overflow: auto; }
 /* wide: the menu on the left, the living cube right of it (game/showcase.js moves the picture); the dark the bird waits in
    behind the menu */
@@ -778,6 +778,22 @@ li.title-form, .title-rename { flex-direction: column; }
 #quest-track[hidden] { display: none; }
 #quest-track b { display: block; color: var(--ember-hi); font: 13px/1.5 var(--font-display); }
 body.touch #quest-track { top: calc(2px + 148px * var(--map, 1) + env(safe-area-inset-top)); width: 150px; font-size: 14px; }
+/* the boss bar (game/bossbar.js, docs/ui.md "The boss bar"): a boss's health along the top, a strip of glass with his name in
+   amber over an amber fill; behind the fill the damage strip, pale, lagging after a hit. It fades in and out (.on). On touch the
+   quick bar is up there: it goes under it. */
+#boss-bar { --c1: 14px; --c2: 4px; --c3: 14px; --c4: 4px; --glow: #ffa0401f; --glow-at: 50% 120%;
+  position: fixed; top: calc(14px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none;
+  box-sizing: border-box; width: min(520px, 60%); padding: 5px 14px 10px; text-align: center;
+  opacity: 0; visibility: hidden; transition: opacity .6s, visibility 0s .6s; }
+#boss-bar.on { opacity: 1; visibility: visible; transition: opacity .25s; }
+#boss-name { display: block; overflow: hidden; color: var(--ember-text); font: 15px/1.5 var(--font-display); letter-spacing: .04em;
+  white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 0 8px #ffa04059, 0 1px 2px #000; }
+#boss-meter { position: relative; height: 10px; margin-top: 2px; overflow: hidden; background: #070909e6; box-shadow: inset 0 1px 2px #000;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
+#boss-meter i { position: absolute; inset: 0; transform-origin: left center; }
+#boss-trail { background: #ffe6c4bf; }
+#boss-fill { background: linear-gradient(#ffd08a, #ff9b35 45%, #c8601e); box-shadow: inset 0 1px 0 #fff0d8aa; }
+body.touch #boss-bar { top: calc(74px + env(safe-area-inset-top)); width: min(420px, 70%); }
 /* a trial room (game/trials.js): its name and what it needs while it runs, the banner as it arms */
 #trial-hud { position: fixed; top: calc(14px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none;
   min-width: 220px; padding: 6px 12px 8px; background: #0b0e14c8; border: 1px solid #ffffff26; border-radius: 4px; font: 15px/1.35 var(--font-body);

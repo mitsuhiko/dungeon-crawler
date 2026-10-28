@@ -7,6 +7,7 @@ import { paused } from './combat.js';
 import { state, player } from '../../src/game/state.js';
 import { BOSSES, BOSS_ARENAS } from '../../src/core/bosses.js';
 import { damageEnemy } from '../../src/core/combat.js';
+import { bossOf } from '../../src/core/bossbar.js';
 import { allEnemies, updateEnemies, resetEnemies, drawEnemies } from '../../src/game/enemies.js';
 import { updatePlayer } from '../../src/game/update.js';
 import { goTestRoom, leaveTestRoom } from '../../src/game/dev.js';
@@ -36,7 +37,7 @@ export async function runBossRoomChecks(only = null) {   // only: the bosses to 
         if (boss === 'squarlo') check(map.tide && state.tide !== undefined, 'the tidal water');
         if (boss === 'totnar') check(map.arenaPlacements.some(p => p.name.includes('brazier')), 'the braziers');
         drawEnemies(0);
-        check(b.view?.label.visible, `${boss}: his name over his bar`);
+        check(b.view && !b.view.label.visible && !b.view.bar.visible && bossOf(allEnemies(), player) === b, `${boss}: his bar on the screen, nothing over his head`);
         // the player walks up to him: he stays put, nothing of his fight starts
         player.hp = player.maxHp = 1e5; state.enemyGrace = 0;
         const near = map.floors.filter(f => f.encounter && walkable(f, 1)).sort((p, q) =>

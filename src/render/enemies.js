@@ -98,6 +98,7 @@ import { RIGS } from './rigs.js';
 import { attackOf, makeEnemy, ENEMY_KINDS } from '../core/enemies.js';
 import { toLinear } from '../core/oklch.js';
 import { guardianColor, guardianTitle } from '../core/guardians.js';
+import { bossBarred } from '../core/bossbar.js';
 import { player, state } from '../game/state.js';
 import { character } from './character.js';
 import { uiScale } from '../game/uiscale.js';
@@ -855,6 +856,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     v.bar.visible = !!e.guardian || !!e.hovered || !e.hordeId && e.hp < e.profile.hp;
     v.label.visible = v.bar.visible || !e.hordeId && Math.hypot(e.x - player.x, e.z - player.z) < e.profile.aggro + 1;
     if (e.mode === 'split' && e.profile.latches) v.bar.visible = v.label.visible = false;   // (on a head: no bar over it)
+    if (bossBarred(e)) v.bar.visible = v.label.visible = false;   // a boss's (and his proxies'): on the screen (game/bossbar.js)
     // a guardian always says what it is; any other enemy while hovered (or locked on: what a
     // click goes for, game/pointer.js), else only its level
     if (!e.guardian) v.label.setLevel(e.level, e.hovered ? enemyName(e.profile) : null);

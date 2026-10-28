@@ -39,6 +39,7 @@ import { keepPrograms } from './render/programs.js';
 import { updatePlayerBar } from './render/playerbar.js';
 import { updatePortalBar } from './render/portalbar.js';
 import { updateCastBar } from './render/castbar.js';
+import { updateBossBar } from './game/bossbar.js';
 import { updateQuickbar } from './game/quickbar.js';
 import { updateTeleportMenu } from './game/teleportmenu.js';
 import { updateLeave } from './game/leavefight.js';
@@ -228,6 +229,7 @@ function frame(now = performance.now()) {
   updateOnline();   // playing together: send our pose, follow, show the partner (net/session.js)
   updatePortalBar();
   updateCastBar();
+  updateBossBar(dt);   // a boss's health along the top of the screen (game/bossbar.js)
   updateMusic(elapsed);
   updateNarrator(elapsed);   // the Glassmaker's voice and her subtitles (game/narrator.js)
   updateQuests(elapsed);   // the world's quests: goals done, offers made, told to the others (game/quests.js)

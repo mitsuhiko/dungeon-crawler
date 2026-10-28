@@ -15,8 +15,9 @@ caldera, Mansk's museum, Slomo's slime bowl), or only braziers lit round the one
 The layout marks that arena's guardian with `boss` (`world/layout.js`, `cubegen/guardian.js`;
 `bossPlaceholder` is false there). The boss stands on the guardian's spot **alone**: no
 defenders, it brings its own (`game/enemyspawn.js` `bossSpot`). It is a guardian in every other
-way: the descent guardian's level, id, gate, seal, amber HP bar and drops; its death alone opens
-the well, for good. Its label shows its name (`♛ Gusto · Lv 1`), the locked well says
+way: the descent guardian's level, id, gate, seal, boss bar and drops; its death alone opens
+the well, for good. Its health shows in the boss bar along the top of the screen, not over its
+head, under its name (`♛ Gusto · Lv 1`; [ui.md](ui.md#the-boss-bar)), the locked well says
 "Defeat Gusto to unlock this descent", and the music turns to the boss mood like for any
 guardian, unless the boss has a song of his own (Gusto: `music/gusto.scrim`, its moods his
 fight's phases, `docs/music.md`). Beating any boss plays a jingle (`src/audio/jingles.js`,
@@ -148,8 +149,8 @@ and two **proxies**.
   in it is hit once (12 at level 1) and blown back at 7 cells/s fading over 0.7 s (about 2.5
   cells). It stops turning at 0.85 s: stepping out of the cone then dodges it.
 - Summons now fill up to **two** Custo triangles; any of the three can summon.
-- **Proxies** look exactly like it, carry its name and show its health (their bars drop with
-  its own). Any hit at all, however small (a burn tick too), makes one go up in a cloud: no XP,
+- **Proxies** look exactly like it: nothing over their heads, as over his (the boss bar is his
+  alone, [ui.md](ui.md#the-boss-bar)). Any hit at all, however small (a burn tick too), makes one go up in a cloud: no XP,
   no loot. The real one takes damage like any enemy: the play is to find it, and mostly to beat
   it while one proxy still stands.
 - When the **second proxy** goes, the real one can still be hit for **1.5 seconds** (if it is in
@@ -853,8 +854,9 @@ drained, and nothing can be taken out of it meanwhile ([loot.md](loot.md)).
 
 No model of his own: Renew is a hero like the player, the very figure (`figure`, `model:
 'character'`: `render/renewview.js` draws him with the player's rig and the player's clips, Idle,
-Walk, Run, Slash, Cast, Shoot, Roll and Jump), tinted blue grey, in a hood (`wear_hood`), with his
-boss's bar, title and silhouette. In his hand is a weapon of the game's, one a phase: the **Medium
+Walk, Run, Slash, Cast, Shoot, Roll and Jump), tinted blue grey, in a hood (`wear_hood`), with a boss's
+silhouette, and his health in the boss bar ([ui.md](ui.md#the-boss-bar)), which runs back with his
+rewinds. In his hand is a weapon of the game's, one a phase: the **Medium
 Sword**, the **Hunting Bow**, the **Morning Star** and the **Twin Morning Star** (`RENEW_FIGHT.weapons`,
 their item models, `mountWeapon`; the flails, one ball and then two, are a kind of weapon of their
 own, [loot.md](loot.md)), the bow carried in the hero's own hold for it; the bow's string is drawn
@@ -1578,7 +1580,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/bossbar.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1593,6 +1595,7 @@ await (await import('./tests/browser/qualmos.js')).runQualmosChecks()  // Qualmo
 await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
 await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
+await (await import('./tests/browser/bossbar.js')).runBossBarChecks()   // the boss bar: up on coming in, the damage strip, Gusto's proxies, Renew's rewind, a Temp Boss
 ```
 
 Re-export the model with `Blender -b --python blender/gusto.py -- assets/gusto.glb

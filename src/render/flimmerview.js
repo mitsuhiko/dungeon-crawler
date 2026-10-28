@@ -21,6 +21,7 @@ import { CHAR_SCALE, WALK_SPEED, RUN_SPEED, WALK_ANIM, RUN_ANIM } from '../core/
 import { attackOf, shimmerOf, enemyName, ENEMY_KINDS, makeEnemy } from '../core/enemies.js';
 import { toLinear, toHex } from '../core/oklch.js';
 import { guardianColor, guardianTitle } from '../core/guardians.js';
+import { bossBarred } from '../core/bossbar.js';
 import { rig, rigReady, createFigure } from './figure.js';
 import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 import { glow, soft, emit, rand } from './particles.js';
@@ -278,6 +279,7 @@ function tags(v, e, dt, dead) {
   v.tag.position.y = e.profile.height + 0.12; v.tag.scale.setScalar(uiScale());
   v.bar.visible = !!e.guardian || !!e.hovered || !e.hordeId && e.hp < e.profile.hp;
   v.label.visible = v.bar.visible || !e.hordeId && Math.hypot(e.x - player.x, e.z - player.z) < e.profile.aggro + 1;
+  if (bossBarred(e)) v.bar.visible = v.label.visible = false;   // a Temp Boss's: on the screen (game/bossbar.js)
   if (!e.guardian) v.label.setLevel(e.level, e.hovered ? enemyName(e.profile) : null);
   v.bar.quaternion.copy(inverseYaw.setFromAxisAngle(UP, -v.yaw)).multiply(camera.quaternion);
   v.hpBar.set(e.hp / e.profile.hp);

@@ -7,6 +7,7 @@ import { createRun } from '../../src/core/progression.js';
 import { GUARDIAN_KINDS, DESCENT_GUARDIAN_KINDS, makeEnemy } from '../../src/core/enemies.js';
 import { damageEnemy } from '../../src/core/combat.js';
 import { gateLocked, portalLocked } from '../../src/core/guardians.js';
+import { bossBarred } from '../../src/core/bossbar.js';
 import { DIRS, N } from '../../src/core/constants.js';
 import { faceKey, step } from '../../src/world/coords.js';
 import { allEnemies, updateEnemies, drawEnemies } from '../../src/game/enemies.js';
@@ -38,7 +39,11 @@ export async function runGuardianChecks() {
       check(guard.guardianRole === 'descent' && guard.bossPlaceholder, 'descent kind exposes the future-boss hook');
       const population = list.length;
       drawEnemies(0);
-      check(guard.view?.bar.visible && guard.view.label.visible, 'guardian label and health bar always visible');
+      check(guard.view && !guard.view.bar.visible && !guard.view.label.visible, 'a Temp Boss: its bar on the screen, nothing over its head');
+      const defender = list.find(e => !e.guardian);
+      defender.hovered = true; drawEnemies(0);
+      check(defender.view?.bar.visible && defender.view.label.visible, 'its defenders keep their own bars');
+      defender.hovered = false;
       const fx = state.world.portalFx.find(f => f.obj.userData.portal.id === down.id);
       const swirl = fx.obj.children.find(o => o.geometry?.type === 'CircleGeometry');
       check(swirl.material.color.getHexString() === 'ff3547', 'locked well shines red');
@@ -87,7 +92,7 @@ export async function runGuardianChecks() {
       }
       await loadSpecies([...new Set(samples.map(e => e.profile.species))]);   // (loaded when first needed)
       animateEnemies(samples, 0);
-      check(samples.every(e => e.view?.label.visible), 'every guardian kind has a loaded model and a label');
+      check(samples.every(e => e.view && e.view.label.visible === !bossBarred(e)), 'every guardian kind has a loaded model; a side guardian a label, a Temp Boss the bar on the screen');
       renderer.compile(scene, camera);
       removeEnemyViews(samples); samples.length = 0;
       damageEnemy(guard, guard.hp); updateEnemies(.001);
