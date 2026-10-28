@@ -24,7 +24,7 @@ export function mired(p) {
 }
 
 // learn: physics.html#feel #walls (see learn/README.md)
-function horizontal(dt, dx, dz, run) {
+function horizontal(dt, dx, dz, run, jump) {
   const p = player;
   // an ice ball's chill or a slowing slows every way of moving (core/status.js moveFactor), a
   // swiftness potion quickens it (core/potions.js), and so do light boots (core/gear/stats.js),
@@ -55,8 +55,8 @@ function horizontal(dt, dx, dz, run) {
 
   // axis-separated moves so the body slides along walls
   const mx = p.vx * dt, mz = p.vz * dt;
-  if (Math.abs(mx) > 1e-6) { if (canMove(p.x + mx, p.z, 'x', Math.sign(mx))) p.x += mx; else p.vx = 0; }
-  if (Math.abs(mz) > 1e-6) { if (canMove(p.x, p.z + mz, 'z', Math.sign(mz))) p.z += mz; else p.vz = 0; }
+  if (Math.abs(mx) > 1e-6) { if (canMove(p.x + mx, p.z, 'x', Math.sign(mx), jump)) p.x += mx; else p.vx = 0; }
+  if (Math.abs(mz) > 1e-6) { if (canMove(p.x, p.z + mz, 'z', Math.sign(mz), jump)) p.z += mz; else p.vz = 0; }
 }
 
 // learn: physics.html#feel #move-code (see learn/README.md)
@@ -121,7 +121,7 @@ export function movePlayer(dt, dx, dz, run, jump) {
   if (p.grounded && p.support?.mover) { p.x += p.support.dx; p.z += p.support.dz; }
   if (p.gust) { const k = pushControl(p.gust); dx *= k; dz *= k; }
   if (p.pull) [dx, dz] = steerPulled(dx, dz);
-  horizontal(dt, dx, dz, run);
+  horizontal(dt, dx, dz, run, jump);
   if (p.gust) blown(dt);
   if (p.pull) pulled(dt);
   jumping(dt, jump);

@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { state } from './fixtures.js';
+import { state, flatMap } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { World } from '../src/world/world.js';
 import { TRIALS, STONE_TIME, newTrial, stepTrial, touchStone, crustState, balanceFallen, resolveTrial, resetTrial, trialFluidLevel, trialSealed } from '../src/core/trials.js';
 import { TrialOwner, trialMessage, followTrial } from '../src/net/trials.js';
 import { N, LH, CHAR_R, CHAR_H, LAVA, ACID } from '../src/core/constants.js';
 import { movePlayer } from '../src/physics/move.js';
+import { canMove } from '../src/physics/canmove.js';
 import { groundAt, setGoneFloors } from '../src/physics/collide.js';
 import { inFluid, setTrialFluid } from '../src/physics/fluid.js';
 
@@ -66,6 +67,25 @@ test('slab clocks are sent immediately to friends and late joiners, including lo
     assert.equal(trialMessage({ ...packet, stones }).stones, undefined);
 });
 
+test('only a deliberate Balance jump may cross the lava/acid ledge probe; walking and other rooms stay protected', () => {
+  for (const fluid of [LAVA, ACID]) for (const kind of [null, 'collapse', 'balance']) {
+    const m = flatMap();
+    for (const f of m.floors) { f.top = 4; f.bottom = 0; f.cs = [2, 2, 2, 2]; }
+    for (const f of m.floors.filter(f => f.x === 3)) { f.top = 0; f.cs = [0, 0, 0, 0]; f.fluid = fluid; f.surf = 2; }
+    m.trial = kind ? { kind } : null;
+    Object.assign(player, { x: 2.82, z: 8.5, y: 2, vx: 2.8, vy: 0, vz: 0, r: CHAR_R, h: CHAR_H,
+      grounded: true, swimming: false, fluid: 0, wade: 0, support: m.floors[8 * N + 2], stun: 0, coyote: 0, jumpBuf: 0, climb: null });
+    assert.equal(canMove(2.86, 8.5, 'x', 1), false, `${kind}: ordinary walking stays protected`);
+    assert.equal(canMove(2.86, 8.5, 'x', 1, true), kind === 'balance', `${kind}: jump permission is scoped`);
+    movePlayer(1 / 60, 1, 0, true, true);
+    if (kind === 'balance') assert.ok(player.vx > 3 && player.x > 2.82 && player.vy > 0, 'the actual take-off keeps its momentum');
+    else assert.equal(player.x, 2.82, 'other rooms retain the ordinary ledge stop');
+    Object.assign(player, { x: 2.82, y: 2, grounded: true });
+    for (const f of m.floors.filter(f => f.x === 3)) { f.fluid = 0; f.top = 12; f.cs = [6, 6, 6, 6]; }
+    assert.equal(canMove(2.86, 8.5, 'x', 1, true), false, 'jump permission never bypasses a solid wall');
+  }
+});
+
 function* rooms() {
   for (const seed of [0, 1, 2, 3, 123, 456]) {
     const w = new World(seed, { trial: 'balance' });
@@ -84,6 +104,8 @@ test('generated rooms have small safe aprons, varied slab sizes and silhouettes,
     assert.ok([LAVA, ACID].includes(tr.fluid));
     assert.equal(TRIALS.balance.population, 0);
     assert.equal(tr.entryApron.length, 9); assert.equal(tr.exitApron.length, 9);
+    const aprons = new Set([...tr.entryApron, ...tr.exitApron]);
+    assert.ok(!m.fenceList.some(e => e.cliff != null && aprons.has(m.floors[e.cliff].c)), 'no fence on the start or across the final landing');
     const groups = new Map();
     for (const q of tr.crust) {
       if (!groups.has(q.stone)) groups.set(q.stone, []);

@@ -70,6 +70,10 @@ This extends the existing collapse-room aprons, crust rendering/collision and tr
 it is not the removed `stones` puzzle. The final reach graph proves the jumps, and the normal
 slow-player timing check allows the full run-up before take-off on each slab. The flight itself
 need not finish before that slab sinks. Tests also run the actual character and fluid physics.
+Both safe aprons (including their portal pads) are unfenced: no rail blocks the first take-off
+or the last landing. In Balance only, an explicitly requested jump may cross a lava/acid ledge
+probe on its take-off frame without losing horizontal momentum. Walking remains edge-protected,
+and solid walls/fences and every other room keep the existing movement rules.
 Landing on the exit apron resolves the trial, restores the stones and opens the way back.
 A missed jump returns the hero directly to the entrance apron, without death, HP loss or leaving
 the cube; the slabs reset for an immediate retry (also with god mode enabled). Reuse the ordinary
@@ -80,7 +84,10 @@ trial reset, spawn and owner/viewer sharing paths. A resolved trial remains reso
 Im Entwicklermodus bringt **`/trial balance`** dich vor das markierte Portal des Rätsels.
 Geh hindurch. Zwischen der kleinen Start- und Zielplattform liegt nur Lava oder Gift mit
 getrennten Steinplatten unterschiedlicher Größe: quadratisch, rechteckig und L-förmig.
-Die Abstände bleiben springbar. Spring mit Anlauf von Platte zu Platte: **Drei Sekunden nach der
+Die Start- und Zielinsel haben keine Zäune, damit Absprung und letzte Landung frei bleiben.
+Nur hier darf ein bewusst ausgelöster Sprung direkt an der Lava- oder Giftkante abspringen,
+ohne dass die Kantensicherung den Anlauf abbremst. Beim Gehen und in anderen Räumen bleibt
+die Sicherung unverändert. Die Abstände bleiben springbar. Spring mit Anlauf von Platte zu Platte: **Drei Sekunden nach der
 ersten Landung** versinkt jede betretene Platte. Der Countdown läuft auch weiter, wenn du sie
 verlässt; Zurückspringen setzt ihn nicht zurück. Unberührte Platten warten auf dich. Am Ziel
 kommen die Platten wieder hoch und bleiben stabil. Beim Fallen kommst du ohne Tod oder

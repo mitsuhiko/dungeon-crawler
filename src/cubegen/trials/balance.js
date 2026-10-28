@@ -83,7 +83,9 @@ export function shapeBalance(ctx) {
     else { lvl0[c] = 0; ctx.seaCells.push(c); }
   }
   ctx.trialKeep = new Set([...crust.keys(), ...entry.cells, ...exit.cells]);
-  ctx.noFence = new Set(crust.keys());
+  // Neither apron may fence off the first take-off or the final landing. Keep the ordinary
+  // walls and portal seals, but no visible or invisible cliff rail on either safe island.
+  ctx.noFence = new Set([...crust.keys(), ...safe]);
   Object.assign(ctx.trialBuild, { failed: false, crust, basin: level - 0.5, entryApron: entry.cells,
     exitApron: exit.cells, entryCentre: entry.centre, exitCentre: exit.centre, keep: [...ctx.trialKeep] });
 }

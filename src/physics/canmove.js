@@ -49,7 +49,7 @@ export function railedFace(x, z, y, dir, map = state.map) {
 }
 
 // can the body's center move to (nx,nz) along one axis? probes the center and three rim points
-export function canMove(nx, nz, axis, sign) {
+export function canMove(nx, nz, axis, sign, jump = false) {
   const r = player.r, y = player.y, step = player.swimming ? SWIM_STEP : STEP;
   const ci = cellAt(nx, nz);
   if (ci < 0) return false;
@@ -70,7 +70,10 @@ export function canMove(nx, nz, axis, sign) {
     // a rim probe ahead on a steep (but walkable) slope lies more than a step above the feet,
     // so it may look as high as the steepest slope rises from the center to it (rises at a
     // cell edge are hopBlocked's).
-    if (player.grounded && !player.swimming) {
+    // Balance permits a deliberate take-off at the hazardous edge. Horizontal movement runs
+    // before jumping this frame; without this, the rim probe kills its run-up at the last step.
+    // Walking, solid walls/fences and every other room keep their normal protection.
+    if (player.grounded && !player.swimming && !(jump && state.map.trial?.kind === 'balance')) {
       const gr = groundAt(sx, sz, y, step + STEEP * Math.hypot(sx - nx, sz - nz));
       if (!gr.s || !wadeable(gr)) return false;
     }
