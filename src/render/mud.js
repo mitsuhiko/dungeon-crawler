@@ -25,7 +25,9 @@ const drift = new THREE.Vector2();
 const uniforms = { uMudTex: { value: null }, uMudSize: { value: new THREE.Vector2(1, 1) }, uMudOrigin: { value: new THREE.Vector2() },
   uMudTime: { value: 0 }, uMudDrift: { value: drift }, uMudEdge: { value: MUD_FLOW.wet * 1.4 } };
 
-// (the field, smoothed: a cubic B-spline over the 4 × 4 samples round p, cube coordinates)
+// (the field, smoothed: a cubic B-spline over the 4 × 4 samples round p, cube coordinates; and its
+// slope along x and z, from the spline's own derivative; and the sheet's height there, never down on
+// the ground: a smooth max of the surface and the ground a little over it, no kink)
 const FIELD = `
   uniform highp sampler2D uMudTex;
   uniform vec2 uMudSize, uMudOrigin;
@@ -34,13 +36,30 @@ const FIELD = `
     float f2 = f * f, f3 = f2 * f;
     return vec4((1.0 - 3.0 * f + 3.0 * f2 - f3), (4.0 - 6.0 * f2 + 3.0 * f3), (1.0 + 3.0 * f + 3.0 * f2 - 3.0 * f3), f3) / 6.0;
   }
-  vec3 mudField(vec2 p) {
+  vec4 mudSlopes(float f) {
+    return vec4(-(1.0 - f) * (1.0 - f), 3.0 * f * f - 4.0 * f, -3.0 * f * f + 2.0 * f + 1.0, f * f) * 0.5;
+  }
+  vec3 mudField(vec2 p, out vec3 dx, out vec3 dz) {
     vec2 t = (p - uMudOrigin) * ${MUD_RES.toFixed(1)} - 0.5, i = floor(t), f = t - i;
-    vec4 wx = mudWeights(f.x), wy = mudWeights(f.y);
+    vec4 wx = mudWeights(f.x), wy = mudWeights(f.y), sx = mudSlopes(f.x), sy = mudSlopes(f.y);
     ivec2 c = ivec2(i);
     vec3 s = vec3(0.0);
-    for (int b = 0; b < 4; b++) for (int a = 0; a < 4; a++) s += wx[a] * wy[b] * mudFetch(c + ivec2(a - 1, b - 1));
+    dx = vec3(0.0); dz = vec3(0.0);
+    for (int b = 0; b < 4; b++) for (int a = 0; a < 4; a++) {
+      vec3 v = mudFetch(c + ivec2(a - 1, b - 1));
+      s += wx[a] * wy[b] * v; dx += sx[a] * wy[b] * v; dz += wx[a] * sy[b] * v;
+    }
+    dx *= ${MUD_RES.toFixed(1)}; dz *= ${MUD_RES.toFixed(1)};
     return s;
+  }
+  vec3 mudField(vec2 p) { vec3 dx, dz; return mudField(p, dx, dz); }
+  // the sheet's height at p and its normal there
+  float mudSheet(vec2 p, out vec3 n) {
+    vec3 dx, dz, f = mudField(p, dx, dz);
+    float a = f.r, b = f.b + ${LIFT}, k = 0.06, h = clamp(0.5 + 0.5 * (a - b) / k, 0.0, 1.0);
+    vec2 g = mix(vec2(dx.b, dz.b), vec2(dx.r, dz.r), h);
+    n = normalize(vec3(-g.x, 1.0, -g.y));
+    return mix(b, a, h) + k * h * (1.0 - h);
   }
 `;
 function material() {
@@ -55,12 +74,8 @@ function material() {
     // the surface, and its slope (for the light) from the smoothed surface a little to each side
     sh.vertexShader = 'varying vec2 vMudP;\n' + FIELD + sh.vertexShader.replace('#include <beginnormal_vertex>', `
       vMudP = position.xz;
-      // (never closer to the ground under it than LIFT: no fighting with it where it is thin)
-      vec3 mudAt = mudField(position.xz);
-      float mudY = max(mudAt.r, mudAt.b + ${LIFT}), e = 0.5 / ${MUD_RES.toFixed(1)};
-      float mudDx = mudField(position.xz + vec2(e, 0.0)).r - mudField(position.xz - vec2(e, 0.0)).r;
-      float mudDz = mudField(position.xz + vec2(0.0, e)).r - mudField(position.xz - vec2(0.0, e)).r;
-      vec3 objectNormal = normalize(vec3(-mudDx, 2.0 * e, -mudDz));
+      vec3 objectNormal;
+      float mudY = mudSheet(position.xz, objectNormal);
       #ifdef USE_TANGENT
         vec3 objectTangent = vec3(1.0, 0.0, 0.0);
       #endif`).replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.y = mudY;');
@@ -78,7 +93,13 @@ function material() {
         col = mix(col, ${GOOP_RIM}, (1.0 - smoothstep(uMudEdge, uMudEdge + 0.04, d)) * 0.7);
         diffuseColor.rgb = col;
         diffuseColor.a = inside;
-      }`);
+      }`).replace('#include <normal_fragment_begin>', `
+      // (the normal of the smoothed sheet itself, every pixel: no triangle shows in its gloss)
+      vec3 mudN;
+      mudSheet(vMudP, mudN);
+      float faceDirection = 1.0;
+      vec3 normal = normalize((viewMatrix * vec4(mudN, 0.0)).xyz);
+      vec3 nonPerturbedNormal = normal;`);
   };
   mat.customProgramCacheKey = () => 'cut-mud-goop';
   return mat;
