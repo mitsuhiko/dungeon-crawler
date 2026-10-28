@@ -16,6 +16,7 @@ export const SFX_GROUPS = [
   ['Bolime', ['gulp', 'splorch', 'boing']],
   ['Moose', ['hooves']],
   ['Flip, Renew and the black hole', ['flip', 'blackhole', 'clockwind', 'rewind', 'rewound']],
+  ['Boss intros', ['reveal']],
 ];
 
 // the ambient beds (loops.js setAmbience) and drones (setDrone: level, and pitch in Hz as the

@@ -20,6 +20,7 @@ import { tickCast, cancelCast } from './townportal.js';
 import { tickEffects, effectMod } from '../core/potions.js';
 import { absent } from '../core/enemies.js';
 import { iceStep } from './trials.js';
+import { introHolds, introSteer } from './bossintro.js';
 import { msg, tr } from '../i18n/i18n.js';
 
 // during the wind-up, step in towards an enemy that is just out of reach
@@ -45,6 +46,14 @@ export function updatePlayer(dt) {
   if (player.held) { cancelSword(); cancelCast(tr('Portal interrupted')); clearOrder(); if (player.held.twirl) tickTwirl(dt); else tickHeld(dt); return; }
   // carried round as Flip turns the world, in his tractor beam or inside a black hole (game/flipworld.js moves us)
   if (player.flipping) { cancelSword(); cancelCast(tr('Portal interrupted')); clearOrder(); return; }
+  // a boss's intro (game/bossintro.js): walking on a few steps, then standing, looking at him
+  if (introHolds()) {
+    cancelSword(); clearOrder();
+    const [dx, dz] = introSteer(), gr = movePlayer(dt, dx, dz, false, false);
+    updateLayer(gr);
+    applyHazards(dt, gr);
+    return;
+  }
   if (player.getUp) tickGetUp(dt);
   // keys win over mouse orders
   const keys = inputDir();

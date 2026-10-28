@@ -808,7 +808,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     v.group.rotation.y = v.yaw;
     placeFloor(v, e, dt, off);
     if (e.mode === 'dead') { dying(v, e, dt, off); if (e.ghost) ghostLook(v, e); continue; }
-    if (!e.ghost) clouds(v, e);
+    if (!e.ghost && !e.staged) clouds(v, e);   // (a boss's intro moves him as it likes: no clouds)
     v.group.visible = e.mode !== 'gone';
     if (e.mode === 'gone') { if (v.light) v.light.intensity = 0; continue; }
     if (e.mode === 'split' && e.profile.latches) onHead(v, e);
@@ -817,9 +817,12 @@ export function animateEnemies(list, dt, off = ZERO) {
       if (e.mode === 'split' && !STAGE_PROFILES[e.boss]) shudder(v, e, dt);
     }
     growLook(v, e, dt);
-    const attack = e.mode === 'attack', strike = A[attackOf(e).clip ?? 'attack'];
-    if (attack && v.attacks !== e.attacks) {
-      v.attacks = e.attacks; strike.reset().play(); strike.timeScale = 0;
+    // an attack's clip; or a pose (a boss's intro, game/reveals.js: { clip, t }), played like one
+    const posed = e.pose && A[e.pose.clip] ? e.pose : null;
+    const attack = e.mode === 'attack' || !!posed, strike = posed ? A[posed.clip] : A[attackOf(e).clip ?? 'attack'];
+    const struck = posed ? `pose:${posed.clip}` : e.attacks;
+    if (attack && v.attacks !== struck) {
+      v.attacks = struck; strike.reset().play(); strike.timeScale = 0;
     }
     // turning on the spot it steps round too: its feet go round as far as the turn takes them
     // (`turnStride`: cells from its middle to its feet, else its radius)
@@ -843,7 +846,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     if (gait === 'idle') v.idleT = ((v.idleT ?? v.seed) + dt) % W.getClip().duration;
     W.time = gait === 'idle' ? v.idleT : v.phase * W.getClip().duration;
     if (A.fast) A.fast.time = v.phase * A.fast.getClip().duration;
-    if (attack) strike.time = Math.min(e.t, strike.getClip().duration);
+    if (attack) strike.time = Math.min(posed ? posed.t : e.t, strike.getClip().duration);
     for (const name in A) {
       const target = name === gait ? (attack ? 0 : 1 - fast) : name === 'fast' ? (attack ? 0 : fast)
         : name === 'walk' || prefab.gaits?.[name] ? 0 : +(attack && A[name] === strike);
@@ -882,7 +885,21 @@ export function animateEnemies(list, dt, off = ZERO) {
     glowFx(v, e, dt, 1); glints(v, e, dt);
     if (v.mansk) manskLook(v, e, dt, off);   // (after the glow: it brightens his diamond)
     if (e.ghost) ghostLook(v, e);
+    introLook(v, e, dt);
   }
+}
+// A boss's intro (game/bossintro.js): no bars or names over anybody's head. A boss in his intro (game/reveals.js): `veil` fades him in (0: not there, his light out too),
+// and `dressView(v, dt)` does what his reveal does to the view (Totnar's skulls popping up)
+function introLook(v, e, dt) {
+  if (e.veil !== undefined) {
+    const a = Math.min(1, Math.max(0, e.veil));
+    v.material.opacity = a; v.material.depthWrite = a > 0.99;
+    if (v.light) v.light.intensity *= a;
+    v.group.visible = a > 0.01;
+    v.veiled = true;
+  } else if (v.veiled) { v.veiled = false; v.material.opacity = 1; v.material.depthWrite = true; }
+  if (state.intro?.full) v.bar.visible = v.label.visible = v.mark.visible = false;   // (nothing over anybody's head meanwhile)
+  e.dressView?.(v, dt);
 }
 // An enemy of each of these kinds made once off-screen, for the shaders it is drawn with
 // (render/warmup.js, render/cubeassets.js): its body, silhouette, bar, label and the puddle a

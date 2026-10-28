@@ -2,14 +2,14 @@
 // the lowest solid in the way and the cut drops just below it (a slab underside or a terrain
 // level). Revealing is quick; restoring waits until the character has been visible a while.
 // The close view (game/camera.js) has none: its camera stays out of the solids, and the walls
-// stay up.
+// stay up; nor has a boss's intro, while its free camera is on.
 import { N, LH } from '../core/constants.js';
 import { camera } from '../render/scene.js';
 import { setCut } from '../render/section.js';
 import { insideSolid, groundAt } from '../physics/collide.js';
 import { fluidSurface } from '../physics/fluid.js';
 import { player, state } from './state.js';
-import { updateCamera, closeView } from './camera.js';
+import { updateCamera, closeView, cineView } from './camera.js';
 import { mapInfo, inSlab, outOfSlabs } from './cutinfo.js';
 import { viewBlockedAt } from '../core/blockers.js';
 
@@ -95,7 +95,7 @@ export function updateCut(dt) {
   const m = state.map;
   if (!m) return;
   if (m !== lastMap) { resetCut(); return; }
-  if (closeView()) { open(m); return; }
+  if (closeView() || cineView()) { open(m); return; }   // (a boss's intro: its free camera, game/camera.js)
   const t = cachedTarget(m);
   if (t > cut + 1e-3) {
     // restoring hidden geometry: only once the character has been in clear view for a moment;
@@ -118,7 +118,7 @@ export function resetCut() {
   if (!m) return;
   updateCamera(0);   // the camera may still be looking at the previous spot
   lastMap = m; vel = 0; hold = RESTORE_DELAY; lastKey = null;
-  if (closeView()) { open(m); return; }
+  if (closeView() || cineView()) { open(m); return; }
   cut = mapInfo(m).top;
   cut = target(m);
   apply(m);

@@ -654,6 +654,7 @@ function knockback(e, dt) {
 // learn: enemies.html#decide-code #fair (see learn/README.md)
 export function stepEnemies(list, realDt) {
   for (const e of list) {
+    if (e.staged) { e.speed = 0; e.path = null; continue; }   // a boss's intro moves him (game/reveals.js)
     if (e.riding && (e.mode !== 'attack' || e.attacks !== e.riding.attacks)) touchDown(e);
     knockback(e, realDt);
     if (e.mode === 'dead') { e.deadT += realDt; continue; }

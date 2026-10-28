@@ -504,6 +504,12 @@ const SOUNDS = {
     noise(t, 0.6, filter('lowpass', 700 * p, 0.8, amp(t, 0.005, 0.8, 0.55, out)));
     for (let i = 0; i < 8; i++) { const at = t + 0.1 + Math.random() * 0.5; noise(at, 0.02, filter('bandpass', (900 + Math.random() * 900) * p, 3, amp(at, 0.002, 0.2, 0.02, out))); }
   },
+  reveal(t, out, p) {    // a boss's name coming up in his intro: a deep hit, a dark chord swelling under it, a cold shimmer
+    tone('sine', 82 * p, 38 * p, t, 0.9, amp(t, 0.004, 1, 0.9, out));
+    noise(t, 0.5, filter('lowpass', 900 * p, 0.8, amp(t, 0.004, 0.7, 0.45, out)));
+    for (const hz of [55, 82.4, 116.5]) tone('sawtooth', hz * p, hz * p * 0.985, t, 2.2, filter('lowpass', 500 * p, 1.5, amp(t, 0.25, 0.14, 1.9, out)));
+    for (const [i, hz] of [1245, 1661, 1760].entries()) { const at = t + 0.12 + i * 0.07; tone('triangle', hz * p, hz * p, at, 1.2, amp(at, 0.05, 0.035, 1.1, out)); }
+  },
   morph(t, out, p) {     // Squarlo growing in the fog: a long, rising, wobbling groan of stretching
     const g = amp(t, 0.4, 0.5, 2.6, out);
     tone('sawtooth', 60 * p, 160 * p, t, 3, filter('lowpass', 400 * p, 2, g));

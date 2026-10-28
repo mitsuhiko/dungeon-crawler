@@ -332,6 +332,19 @@ export default {
   '{name} enters phase {phase}!': '{name} beginnt Phase {phase}!',
   '{name} slips under the water!': '{name} taucht unter!',
 
+  // the line under a boss's name in his intro (core/bossintro.js)
+  'The Hungry Grin': 'Das hungrige Grinsen',
+  'The Ember in the Brambles': 'Die Glut im Gestrüpp',
+  'Small Lord of the Tides': 'Kleiner Herr der Gezeiten',
+  'Who Turns the World': 'Der die Welt umdreht',
+  'Lord of the Lava': 'Herr der Lava',
+  'The Echo of Time': 'Das Echo der Zeit',
+  'The Hollow Mask': 'Die hohle Maske',
+  'The Stone That Walks': 'Der wandelnde Stein',
+  'King of the Slime': 'König des Schleims',
+  'At the End of the World': 'Am Ende der Welt',
+  'Keeper of the Well': 'Hüter des Brunnens',
+
   // guardians (core/guardians.js)
   'Temp Boss': { text: 'Temp-Boss', g: 'm' },
   guardian: { text: 'Wächter', g: 'm' },

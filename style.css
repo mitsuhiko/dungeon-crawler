@@ -794,6 +794,30 @@ body.touch #quest-track { top: calc(2px + 148px * var(--map, 1) + env(safe-area-
 #boss-trail { background: #ffe6c4bf; }
 #boss-fill { background: linear-gradient(#ffd08a, #ff9b35 45%, #c8601e); box-shadow: inset 0 1px 0 #fff0d8aa; }
 body.touch #boss-bar { top: calc(74px + env(safe-area-inset-top)); width: min(420px, 70%); }
+#boss-bar.on.intro { transition: opacity 1s; }   /* (in his intro it fades in slowly) */
+/* a boss's intro (game/bossintro.js, docs/bosses.md "The intro"): black bars sliding in at the top and the bottom, his name and
+   his epithet coming up under him (the name drawing together, a line of amber growing under it), the HUD out of the way */
+#letterbox { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
+#letterbox i { position: absolute; left: 0; right: 0; height: 0; background: #000; transition: height .55s cubic-bezier(.3, .7, .3, 1); }
+#letterbox i:first-child { top: 0; }
+#letterbox i:last-child { bottom: 0; }
+#letterbox.on i { height: 10.5%; }
+#letterbox.shut i { height: 50.5%; transition: height .28s cubic-bezier(.5, 0, .9, .5); }   /* (shut a moment: the cut back to the game) */
+#boss-intro { position: fixed; left: 50%; top: 60%; z-index: 5; pointer-events: none; transform: translateX(-50%); text-align: center;
+  white-space: nowrap; opacity: 0; transition: opacity .6s; }
+#boss-intro.on { opacity: 1; transition: opacity .3s; }
+#boss-intro b { display: block; padding-left: .3em; color: var(--ember-text); font: 600 calc(64px * var(--ui, 1))/1.1 var(--font-display);
+  letter-spacing: .3em; text-shadow: 0 0 18px #ff8a3099, 0 0 4px #ff8a3066, 0 2px 4px #000; transition: letter-spacing 1.8s cubic-bezier(.15, .7, .25, 1); }
+#boss-intro.on b { letter-spacing: .08em; }
+#boss-intro b::after { content: ''; display: block; width: 0; height: 1px; margin: 6px auto 0;
+  background: linear-gradient(90deg, transparent, var(--ember) 30%, var(--ember-hi) 50%, var(--ember) 70%, transparent); transition: width 1.2s .15s; }
+#boss-intro.on b::after { width: 110%; }
+#boss-intro span { display: block; margin-top: 4px; color: #eadfcf; font: italic calc(28px * var(--ui, 1))/1.3 var(--font-body);
+  text-shadow: 0 1px 3px #000, 0 0 10px #000a; opacity: 0; transition: opacity .6s .4s; }
+#boss-intro.on span { opacity: 1; }
+body.calm #boss-intro b, body.calm #boss-intro b::after { transition: none; }
+body.cinematic :is(#quickbar, #effects, #minimap, #quest-track, #chat, #trial-hud, #loot-labels, #crosshair, #look-hint, #lock-marker, #touch,
+  #teleport-menu, #dev) { opacity: 0 !important; pointer-events: none !important; transition: opacity .4s; }
 /* a trial room (game/trials.js): its name and what it needs while it runs, the banner as it arms */
 #trial-hud { position: fixed; top: calc(14px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none;
   min-width: 220px; padding: 6px 12px 8px; background: #0b0e14c8; border: 1px solid #ffffff26; border-radius: 4px; font: 15px/1.35 var(--font-body);

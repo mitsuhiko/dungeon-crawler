@@ -35,6 +35,53 @@ bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they p
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
 dies.
 
+## The intro
+
+Coming into a boss's arena (a real boss's or a Temp Boss's) while he stands, the first time in
+a world, plays his intro (`game/bossintro.js`; its timings and shots in `core/bossintro.js`,
+how each boss appears in `game/reveals.js`). Once the curtain is up the hero walks on a few
+steps (towards him, while the ground goes on) and stops, turned to him, with no control; black
+bars slide in and the HUD fades out. The light of the arena goes, to the night's dark or most
+of it (`dim`, `render/look.js`), and its fires sink low. The camera leaves the hero (the free
+camera, [camera.md](camera.md#a-bosss-intro-the-free-camera-setcine)) and goes through the
+intro's shots while he appears, turning to the camera so it sees his face; his name comes up
+big under his feet with a line of what he is (his epithet: `EPITHETS`, "The Hungry Grin"; a
+Temp Boss's "Keeper of the Well") and a deep sting (`reveal`, `audio/sfx.js`); the light and the
+fires come back. Then the bars shut a moment, the camera cuts back to the game's, the bars go and
+his bar fades in, and the hero is free. About 7½ s (`length`); a click, Space or Enter skips to
+the cut back (after the first second). Meanwhile he is `staged` (the AI and his fight leave him
+be: nothing wakes him, not even Foggery's ramp), every enemy holds its attacks, the narrator
+and the robot stop (their subtitle goes) and wait till it is over, and nothing shows over
+anybody's head.
+
+- **The shots** are keys of the camera and what it looks at, round anchors (the hero, his spot,
+  where he is now, what the reveal adds), in the frame from the hero to his spot and scaled by
+  his height (`shotFrame`, `shotScale`); the camera goes through them on curves, a key may cut.
+  Before it starts, each key whose camera would stand in something, under a fluid, outside the
+  cube (or in a cave's walls) or not see what it looks at is moved round it (a little round,
+  further or closer, higher: the nearest clear place, `clearShots`), and where the way from one
+  key to the next would go into something, or lose sight of him for a while, it cuts instead.
+- **The default, the drop** (every boss without an intro of his own, Temp Bosses too): a
+  shadow grows on his empty spot, he falls out of the sky onto it with a crash (dust, the ground
+  shaking, the moment held; the fires flare up) and roars (his kind's alert, deeper). The camera
+  low and wide on his spot, a little in as he lands, then slowly round him.
+- **Gusto:** two red eyes light up in the empty air where his face will be (carried by his head
+  as it moves), he comes out of a cloud round them, rears back (his summon's clip, slower) and
+  roars: his song's band comes in (`roused`, `core/gusto.js gustoMusic`) and the light comes back.
+  The camera creeps in on the eyes and pulls back on the roar as its lens narrows (a dolly zoom).
+- **Totnar:** it goes dark (his `dark`, the gloom's sound) and every fire of the arena goes out;
+  he rolls in out of the dark from the side (`rollStart`: a floor 4½ to 7½ cells from his spot
+  with the fight's floors all the way, bumping up and down steps), each brazier flaring up as he
+  rolls by, bounces to a stop on his spot and turns to the camera; his skulls pop up one by one,
+  he spreads his arms (the gloom's clip) and his heart flares as the light comes back. The camera
+  runs alongside him, then rises for the skulls.
+- **After the first time** (`state.run.met`, saved with the world), or when someone else is in
+  the arena, or he is already fighting, or the enemies are another player's (playing together),
+  only his name shows a moment while his bar fades in; nothing is taken away. With reduce motion
+  the camera stays the game's; the rest is the same.
+- `/intro` plays this arena's intro again (`full`, or `again`), `/intro 3.2` holds the one playing
+  at that second, `/intro go` lets it go on ([console.md](console.md)).
+
 ## An arena of its own
 
 A boss's arena is drawn from a shape like any guardian's (`cubegen/arenashapes.js`: Squarlo's

@@ -437,6 +437,7 @@ function restoreRun({ run, faces, visited, deepest = 0 }) {
   r.townPortal = run.townPortal;
   r.smith = checkSmith(run.smith);
   for (const id of run.told ?? []) r.told.add(id);
+  for (const id of run.met ?? []) r.met.add(id);
   r.quests = checkQuestLog(run.quests);
   r.quests.deepest = Math.max(r.quests.deepest, deepest);
   takeLoot(run.loot);

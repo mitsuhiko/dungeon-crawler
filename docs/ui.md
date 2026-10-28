@@ -86,7 +86,8 @@ over an amber fill: `♛ Gusto · Lv 1`, `♛ Temp Boss Spider · Lv 3`.
   over its head (`render/enemies.js`, `render/flimmerview.js`, `render/squirtleview.js`): side
   guardians, defenders, minions.
 - **When:** from the moment you come into his cube until he is beaten, whether he has noticed you
-  or not. Beaten, the fill drops to nothing and the bar fades about a second later. It is not there
+  or not; in his intro only once it says (it fades in slowly then, `.intro`:
+  [bosses.md](bosses.md#the-intro)). Beaten, the fill drops to nothing and the bar fades about a second later. It is not there
   while the curtain is down or between cubes, and the menus hide it (`body.in-menu`).
 - **No phases.** One fill, his health of his profile's. It follows his health as it is, so Renew's
   bar runs back while his time runs back (his health comes off the fight's tape) and is full again
@@ -97,6 +98,13 @@ over an amber fill: `♛ Gusto · Lv 1`, `♛ Temp Boss Spider · Lv 3`.
   on does not hold it up), then eases down to the fill (`TRAIL.rate`). Health coming back takes it
   up at once. With reduce motion it goes along with the fill.
 - On touch the quick bar is along the top: the boss bar goes under it.
+
+In a boss's intro ([bosses.md](bosses.md#the-intro)) his name comes up big under his feet
+(`#boss-intro`: the name in amber Cinzel drawing together, a line of amber growing under it, his
+epithet in italics), black bars slide in at the top and the bottom (`#letterbox`, shutting a moment
+for the cut back), and the HUD fades out meanwhile (`body.cinematic`): the quick bar, the minimap,
+the chat, the quest followed, the potions at work, the player's bar and the bars and names over
+everyone's heads.
 
 Its checks: `node --test tests/bossbar.test.js`, and in the game (`?dev=1`)
 `await (await import('./tests/browser/bossbar.js')).runBossBarChecks()`.

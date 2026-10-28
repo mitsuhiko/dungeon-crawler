@@ -3,7 +3,8 @@
 // frames the whole cube; zooming in follows the player. The close view: behind the hero on an
 // arm that gets shorter where something is in the way, with a wide lens. Going from one to the
 // other blends where the camera is, where it looks and its lens (the close view's field of view is
-// a setting).
+// a setting). A boss's intro (game/bossintro.js) takes the camera over for a few seconds: a free
+// camera, blended over whichever view is on (setCine).
 import * as THREE from 'three';
 import { N, CUBE_H, BASE, LH } from '../core/constants.js';
 import { clamp } from '../core/util.js';
@@ -109,11 +110,85 @@ function close(dt) {
   quatLooking(closeQuat, closePos, look.addScaledVector(dir, -AHEAD));
 }
 
+// --- a boss's intro: the free camera ------------------------------------------------------------
+
+// { cam: [x, y, z], look: [x, y, z], fov (degrees), roll (degrees), w, avoid: [x, y, z, r] (a body
+// not to go through) } from game/bossintro.js, or
+// null: where the camera is and what it looks at, w how far it has taken over from the game's view
+// (0 .. 1). It stays in front of what stands between it and what it looks at, and over fluids.
+let cine = null;
+export function setCine(c) { cine = c; }
+// whether the intro's camera counts as there (no cutaway, the walls up, as in the close view)
+export const cineView = () => !!cine && cine.w >= 0.5;
+// how far the intro's camera keeps from the cube's sides where walls stand round it (cells)
+export const WALLED = 2.3;
+const cinePos = new THREE.Vector3(), cineLook = new THREE.Vector3(), cineQuat = new THREE.Quaternion(), toCam = new THREE.Vector3();
+const focusAt = new THREE.Vector3();
+// what the camera looks at: the hero, or (an intro) what its shot looks at; the fog, the lights
+// and the fires go by it (main.js)
+export function cameraFocus() {
+  focusAt.set(player.x, player.visY, player.z);
+  if (cine?.w > 0) focusAt.lerp(cineLook.set(...cine.look), cine.w);
+  return focusAt;
+}
+// is the camera at p in something (or just about: its near plane)?
+const boxed = p => [[0, 0, 0], [0.2, 0, 0], [-0.2, 0, 0], [0, 0, 0.2], [0, 0, -0.2], [0, -0.2, 0]].some(([x, y, z]) => solidAt(p.x + x, p.y + y, p.z + z));
+// the free camera over the game's (t: how far into the close view that is): from where the game's
+// camera is to where the intro's is, looking from what the game's looks at to what the intro's does
+// (so whatever the camera passes on its way, it keeps something in sight)
+const gameLook = new THREE.Vector3(), at = new THREE.Vector3();
+function intro(t) {
+  cineLook.set(...cine.look); cinePos.set(...cine.cam);
+  if (state.map && !state.transitioning) {
+    toCam.subVectors(cinePos, cineLook);
+    const len = toCam.length();
+    if (len > 1e-3) cinePos.copy(cineLook).addScaledVector(toCam.divideScalar(len), reach(cineLook.x, cineLook.y, cineLook.z, toCam, len));
+    overFluids(cinePos);
+  }
+  gameLook.copy(target);
+  if (t > 0) gameLook.lerp(look, t);
+  // from the game's camera round what it looks at to the intro's, round what that looks at: the
+  // point looked at goes from the one to the other, and the camera swings round it, from one's
+  // direction and distance to the other's (so it never passes through what it looks at)
+  const w = cine.w, o1 = toCam.subVectors(camera.position, gameLook), r1 = Math.max(0.1, o1.length());
+  const y1 = Math.atan2(o1.x, o1.z), p1 = Math.asin(clamp(o1.y / r1, -1, 1));
+  const o2 = at.subVectors(cinePos, cineLook), r2 = Math.max(0.1, o2.length());
+  const y2 = Math.atan2(o2.x, o2.z), p2 = Math.asin(clamp(o2.y / r2, -1, 1));
+  const yaw = y1 + Math.atan2(Math.sin(y2 - y1), Math.cos(y2 - y1)) * w, tilt = p1 + (p2 - p1) * w, r = r1 ** (1 - w) * r2 ** w;
+  at.lerpVectors(gameLook, cineLook, w);
+  camera.position.set(at.x + Math.sin(yaw) * Math.cos(tilt) * r, at.y + Math.sin(tilt) * r, at.z + Math.cos(yaw) * Math.cos(tilt) * r);
+  if (state.map && !state.transitioning) {
+    // on its way (from the game's camera, between the shots' keys) it never goes into anything:
+    // up out of whatever it would pass through, and in front of what stands between it and what
+    // it looks at (unless that itself is inside something, on the way from the game's)
+    const p = camera.position, b = cine.avoid;
+    // (nor through him: kept off the boss's body, [x, y, z, r])
+    if (b) {
+      toCam.set(p.x - b[0], p.y - b[1], p.z - b[2]);
+      const d = toCam.length();
+      if (d < b[3]) p.set(b[0], b[1], b[2]).addScaledVector(d > 1e-3 ? toCam.divideScalar(d) : toCam.set(0, 1, 0), b[3]);
+    }
+    // (mostly the intro's: in the cube, off its walls: a cave's or a canyon's, render/section.js)
+    const m = state.map.walled ? WALLED : 0.3, k = clamp((cine.w - 0.2) / 0.3, 0, 1);
+    p.x += (clamp(p.x, m, N - m) - p.x) * k; p.z += (clamp(p.z, m, N - m) - p.z) * k;
+    for (let i = 0; i < 64 && boxed(p); i++) p.y += 0.25;
+    if (cine.w > 0.1 && !solidAt(at.x, at.y, at.z)) {
+      toCam.subVectors(p, at);
+      const len = toCam.length();
+      if (len > 1e-3) p.copy(at).addScaledVector(toCam.divideScalar(len), reach(at.x, at.y, at.z, toCam, len));
+    }
+    overFluids(p);
+  }
+  quatLooking(cineQuat, camera.position, at);
+  if (cine.roll) cineQuat.multiply(rollQuat.setFromAxisAngle(VIEW_AXIS, THREE.MathUtils.degToRad(cine.roll) * cine.w));
+  camera.quaternion.copy(cineQuat);
+}
+
 // the hero fades out when the camera comes very close (a narrow room, a wall at the back)
 const FADE_FROM = 1, FADE_TO = 0.55;
 function fadeHero() {
   if (!character.ready) return;
-  const a = arm === null || blend < 0.5 ? 1 : clamp((arm - FADE_TO) / (FADE_FROM - FADE_TO), 0, 1);
+  const a = arm === null || blend < 0.5 || cineView() ? 1 : clamp((arm - FADE_TO) / (FADE_FROM - FADE_TO), 0, 1);
   const m = character.mesh.material;
   m.opacity = a;
   m.depthWrite = a > 0.99;
@@ -156,11 +231,13 @@ export function updateCamera(dt) {
   if (t <= 0) { camera.position.copy(overPos); camera.quaternion.copy(overQuat); }
   else if (t >= 1) { camera.position.copy(closePos); camera.quaternion.copy(closeQuat); }
   else { camera.position.lerpVectors(overPos, closePos, t); camera.quaternion.slerpQuaternions(overQuat, closeQuat, t); }
+  if (cine?.w > 0) intro(t);
   // the world rolled on the screen (game/roll.js): the camera turns about where it looks
   if (view.roll) camera.quaternion.multiply(rollQuat.setFromAxisAngle(VIEW_AXIS, view.roll));
   setSkyRoll(view.roll);   // (the sky is drawn on the screen: it rolls along)
   shake(dt);
-  const fov = OVERVIEW_FOV + (closeFov() - OVERVIEW_FOV) * t;   // (the close view's: the settings)
+  let fov = OVERVIEW_FOV + (closeFov() - OVERVIEW_FOV) * t;   // (the close view's: the settings)
+  if (cine?.w > 0) fov += (cine.fov - fov) * cine.w;
   if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
   camera.updateMatrixWorld();
   fadeHero();

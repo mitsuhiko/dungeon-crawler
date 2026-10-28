@@ -13,6 +13,7 @@ import { online } from '../net/online.js';
 import { player, state } from './state.js';
 import { commands } from './commands.js';
 import { spawnEnemies, killEnemies, clearEnemies } from './devspawn.js';
+import { devIntro, devHoldIntro } from './bossintro.js';
 import { goTo, goPlace, whereAmI, goHorde, goArena, goAdjacent, goSpan, goFeature, goStructure, goSpot, goTrial, goBoss, goTestRoom, leaveTestRoom, FEATURES } from './dev.js';
 import { BOSSES, BOSS_ARENAS } from '../core/bosses.js';
 import { DIR_NAME, readPlace, isCellText } from '../world/coords.js';
@@ -251,6 +252,17 @@ addType(commands, { name: 'boss', values: () => Object.entries(BOSSES).map(([d, 
 dev({
   name: 'boss', help: 'into a boss\'s arena (beaten: he is up again)', args: [{ name: 'boss', type: 'boss' }],
   async run({ boss }) { await goBoss(boss); },
+});
+addType(commands, { name: 'intro', values: () => [{ value: 'full', label: 'full', hint: 'as the first time' },
+  { value: 'again', label: 'again', hint: 'as after: his name, his bar' }, { value: 'go', label: 'go', hint: 'let a held one go on' }] });
+dev({
+  name: 'intro', help: 'the intro of the boss here again (docs/bosses.md "The intro"): as the first time (him back on his spot, you at the way in), or as after; a number: the one playing held at that second; go: let go',
+  args: [{ name: 'how', type: 'text', optional: true }],
+  run({ how = 'full' }) {
+    if (how === 'go') return devHoldIntro(null) ?? undefined;
+    if (Number.isFinite(+how)) return devHoldIntro(+how) ?? undefined;
+    return devIntro(how !== 'again') ?? undefined;
+  },
 });
 addType(commands, { name: 'testroom', values: () => [...Object.entries(TEST_ROOMS).map(([k, hint]) => ({ value: k, label: k, hint })),
   { value: 'leave', label: 'leave', hint: 'back to where you were' }] });

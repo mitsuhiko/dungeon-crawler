@@ -2,7 +2,8 @@
 // the top, from the moment you come into a boss's cube (a real boss's, a Temp Boss's) until he is
 // beaten. The fill follows his health as it is, so it runs back with Renew's rewind (his health
 // comes off the fight's tape, game/renew.js) and fills again with his next phase; the damage strip
-// behind it lags after a hit. Beaten, the fill drops to nothing, the strip drains after it and the
+// behind it lags after a hit. In his intro (game/bossintro.js) it waits until the intro says, and
+// fades in slowly (.intro). Beaten, the fill drops to nothing, the strip drains after it and the
 // bar fades away (`OUT` s). It is not there while the curtain is down or between cubes, and the
 // menus hide it (style.css body.in-menu).
 import { player, state } from './state.js';
@@ -26,8 +27,9 @@ export function updateBossBar(dt) {
   if (pick) { if (pick !== boss) trail = null; boss = pick; out = 0; }
   else if (boss && boss.mode === 'dead' && out < OUT && !state.transitioning) out += dt;   // beaten: it empties, then goes
   else boss = null;
-  const on = !!boss && out < OUT && !curtained();
+  const on = !!boss && out < OUT && !curtained() && (!state.intro || state.intro.bar);
   put('on', on, v => el.classList.toggle('on', v));
+  put('intro', !!state.intro, v => el.classList.toggle('intro', v));
   if (!boss) { trail = null; return; }
   const fill = boss.mode === 'dead' ? 0 : bossFill(boss);
   trail = trailStep(trail, fill, dt, reduceMotion());

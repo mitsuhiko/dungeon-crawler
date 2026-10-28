@@ -98,7 +98,7 @@ function run(f, dt) {
     if (eye !== undefined) { e.eyes[eye] = 0; f.thrown = e.attacks; }
   }
   for (let i = 0; i < 2; i++) if (e.eyes[i] < 1) e.eyes[i] = Math.min(1, e.eyes[i] + dt / G.eyes.grow);
-  if (!f.on) { wake(f); return; }
+  if (!f.on) { if (!e.staged) wake(f); return; }   // (not while his intro shows him: game/bossintro.js)
   if (e.mode === 'split') {   // curling up into his ball, or rising over the lava
     e.t += dt;
     if ((f.split -= dt) <= 0) e.stage === 1 ? curled(f) : risen(f);

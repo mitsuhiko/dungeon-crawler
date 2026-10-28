@@ -267,6 +267,8 @@ export function updateNarrator(elapsed) {
   if (!enabled) return;
   fetchManifest();
   if (worldPaused()) { hush(); return; }
+  // a boss's intro (game/bossintro.js): she stops (her subtitle goes) and waits till it is over
+  if (state.intro?.full) { if (current) finish(); return; }
   clock += elapsed;
   if (state.map && !state.transitioning) notice(elapsed);
   if (current) {

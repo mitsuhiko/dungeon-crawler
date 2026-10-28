@@ -165,7 +165,7 @@ function worldNow() {
   return { ...w, updated: Date.now(), deepest,
     run: { defeated: [...r.defeated], gates: [...r.unlockedGates], chests: [...r.chests], dropped: [...r.dropped], loot: savedLoot(),
       quests: packQuestLog(r.quests), clock: r.clock, kills: packKills(r.kills), trials: [...r.trials], smith: { visit: r.smith.visit, sold: [...r.smith.sold] },
-      told: [...r.told],
+      told: [...r.told], met: [...r.met],
       townPortal: tp ? { key: tp.key, depth: tp.depth, pad: { x: tp.pad.x, y: tp.pad.y, z: tp.pad.z }, back: { x: tp.back.x, y: tp.back.y, z: tp.back.z } } : null },
     faces: [...state.openedFaces], visited,
     spots: spot && current.hero ? { ...w.spots, [current.hero.id]: spot } : w.spots };
@@ -194,7 +194,7 @@ function changes() {
   let loot = 0;
   for (const l of r.loot.values()) loot += l.length;
   return [player.xp, player.inventory.version, state.cubeKey, r.defeated.size, r.unlockedGates.size, r.chests.size, r.dropped.size,
-    loot, state.openedFaces.size, r.townPortal?.key ?? '', state.cubes ? visitedKeys().length : 0, r.quests.version, r.told.size].join('|');
+    loot, state.openedFaces.size, r.townPortal?.key ?? '', state.cubes ? visitedKeys().length : 0, r.quests.version, r.told.size, r.met.size].join('|');
 }
 
 // main.js, every frame: count the time played, and once a second save what changed (every 30 s

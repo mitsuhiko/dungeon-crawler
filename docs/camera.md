@@ -117,6 +117,20 @@ turns the view, there is no cursor and no walking by mouse.
   cut, the walls, the bar and the neighbours switch there. The main menu always shows the
   overview.
 
+## A boss's intro: the free camera (`setCine`)
+
+A boss's intro ([bosses.md](bosses.md#the-intro), `game/bossintro.js`) takes the camera over for
+a few seconds, in either view: it hands `setCine` where the camera is to be, what it looks at, its
+lens and roll and how far it has taken over (`w`). Coming in, the point looked at goes from the
+game's to the intro's while the camera swings round it, from the game camera's direction and
+distance to the intro's (so it never passes through what it looks at); going back it cuts, behind
+black bars shut for a moment. Wherever it is, it never goes into anything: kept off the boss's
+body, inside the cube (off the walls of a cave or a canyon, `WALLED`), up out of what it would
+pass through, in front of what stands between it and what it looks at (`reach`, like the close
+view's arm) and over fluids. Past halfway it counts as there (`cineView()`): no cutaway, the
+walls up, the neighbours' reveal off, the hero not faded. The fog, the moving lights and the fires
+go by what it looks at (`cameraFocus()`), not the hero.
+
 ## The world's roll (`game/roll.js`, `core/roll.js`)
 
 The view can turn about where it looks (`view.roll`), in both views: the world turns on the screen

@@ -41,8 +41,8 @@ function onScreen() {
 }
 
 // after the camera moved, so the bars face it this frame; close: the close view
-export function updatePlayerBar(close = false) {
-  group.visible = character.ready && character.group.visible;   // (not in the main menu)
+export function updatePlayerBar(close = false, hidden = false) {
+  group.visible = character.ready && character.group.visible && !hidden;   // (not in the main menu, nor in a boss's intro)
   if (!group.visible) return;
   if (close) onScreen();
   else { group.position.set(player.x, player.visY + CHAR_H + 0.4, player.z); group.scale.setScalar(uiScale()); }   // (growing upwards from the bar)

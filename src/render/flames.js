@@ -180,6 +180,20 @@ export function flameSet(specs, lights = []) {
   return set;
 }
 
+// The flames under `root` (a cube's world group), where they burn in the world: [{ set, i, x, y, z }]
+// (set.power(i, v) lights or puts out flame i: Totnar's intro, game/reveals.js)
+export function firesUnder(root) {
+  const out = [];
+  for (const set of sets) {
+    let o = set.mesh;
+    while (o && o !== root) o = o.parent;
+    if (!o) continue;
+    set.mesh.updateWorldMatrix(true, false);
+    set.specs.forEach((f, i) => { set.mesh.localToWorld(at.set(f.x, f.y, f.z)); out.push({ set, i, x: at.x, y: at.y, z: at.z }); });
+  }
+  return out;
+}
+
 // A fluid rising and sinking over a cube's fires (a trial's, render/trials.js): the flames under
 // it go out, and those meant to burn flare up again once it has gone (y: its surface in the
 // group's coordinates, null: none). Only how they look: what is lit stays the game's.

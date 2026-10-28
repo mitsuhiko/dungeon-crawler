@@ -15,7 +15,7 @@ import { loadCube } from './game/flow.js';
 import { updatePlayer } from './game/update.js';
 import { updateArmor } from './game/armor.js';
 import { updateMovers } from './game/movers.js';
-import { updateCamera, closeView } from './game/camera.js';
+import { updateCamera, closeView, cineView, cameraFocus } from './game/camera.js';
 import { updateRoll } from './game/roll.js';
 import { updateCut } from './game/cut.js';
 import { updateHud, curtained } from './game/hud.js';
@@ -40,6 +40,7 @@ import { updatePlayerBar } from './render/playerbar.js';
 import { updatePortalBar } from './render/portalbar.js';
 import { updateCastBar } from './render/castbar.js';
 import { updateBossBar } from './game/bossbar.js';
+import { updateBossIntro, updateIntroCard, introFull } from './game/bossintro.js';
 import { updateQuickbar } from './game/quickbar.js';
 import { updateTeleportMenu } from './game/teleportmenu.js';
 import { updateLeave } from './game/leavefight.js';
@@ -167,6 +168,7 @@ function frame(now = performance.now()) {
     if (!state.transitioning) updateMeteors(dt);   // the slime meteorites at night (game/meteors.js)
     if (!state.transitioning) updateTrial(dt);   // a trial room's clock, its rising fluid (game/trials.js)
   }
+  updateBossIntro(dt);   // a boss's intro: him appearing, the camera's shots (game/bossintro.js; after the enemies)
 
   // smooth out small vertical snaps (steps), but not falls
   player.visY += (player.y - player.visY) * Math.min(1, dt * 25);
@@ -186,7 +188,8 @@ function frame(now = performance.now()) {
   tickPortalCloud(dt);
   tickNeighbors(dt);
   tickProps(state.time, state.night);   // (the wind; the town's windows and lamps lit at night: render/night.js)
-  tickFlames(dt, state.time, focusPoint(player.x, player.visY, player.z));   // the fires: flames, embers, smoke (render/flames.js)
+  const focus = cameraFocus();   // (the hero, or what a boss's intro looks at: game/camera.js)
+  tickFlames(dt, state.time, focusPoint(focus.x, focus.y, focus.z));   // the fires: flames, embers, smoke (render/flames.js)
   tickMotes(dt, state.map?.biome && themeById(state.map.biome), player.x, player.visY, player.z, state.night);   // what drifts in the air (render/motes.js)
   tickFootprints(dt, state.cubeKey);   // wet prints on the slime dry up (render/footprints.js)
   if (state.world) animateWorld(state.world, dt, state.time);
@@ -199,6 +202,7 @@ function frame(now = performance.now()) {
   updateCamera(pace.paused ? elapsed : dt);   // paused by the Teacher (game/pace.js): the view still turns
   if (!state.transitioning) updateCut(dt);   // after the camera: the cut depends on what the camera can see
   updateLootLabels();   // after the camera too: labels sit over their items
+  updateIntroCard();   // and a boss's name under him in his intro (game/bossintro.js)
   updateLockMarker();   // and the lock-on's ring over its enemy
   updateTrialTip();   // after the camera too: the name of a trial over its portal (game/trials.js)
   drawMinimap();   // after the camera too: the map turns with it
@@ -207,7 +211,9 @@ function frame(now = performance.now()) {
   // the look follows the depth smoothly (also while sliding down / up)
   if (state.cubeKey) state.lookDepth += (depthOf(state.cubeKey) - state.lookDepth) * Math.min(1, dt * 2.5);
   // and a boss's darkness comes and goes over a second or so (game/totnar.js)
-  state.lookDark += (state.dark - state.lookDark) * Math.min(1, dt * (state.dark ? 1.6 : 2.2));
+  // (and a boss's intro takes some of the light for a while: game/bossintro.js)
+  const dark = Math.max(state.dark, state.introDim);
+  state.lookDark += (dark - state.lookDark) * Math.min(1, dt * (dark > state.lookDark ? 1.6 : 2.2));
   // and so does a boss's fog (Squarlo growing, game/squarlo.js)
   state.lookMist += (state.mist - state.lookMist) * Math.min(1, dt * (state.mist ? 1.2 : 0.8));
   // and the world round Flip's box goes while his fight is on (game/flipworld.js): the sky black,
@@ -220,12 +226,13 @@ function frame(now = performance.now()) {
   if (state.lookDusk < 0.002) state.lookDusk = 0;
   // and the world's days and nights go round (game/daycycle.js)
   updateDayCycle(dt);
-  applyLook(state.lookDepth, camera.position.distanceTo(focusPoint(player.x, player.visY, player.z)), state.cubes?.layout.themes, state.lookDark, state.lookMist, state.lookVoid, state.lookDusk, lookCycle(dt));
+  applyLook(state.lookDepth, camera.position.distanceTo(cameraFocus()), state.cubes?.layout.themes, state.lookDark, state.lookMist, state.lookVoid, state.lookDusk, lookCycle(dt));
   followHero(dt);   // the hero's light where it stands (render/character.js)
-  updateLightPool(focusPoint(player.x, player.visY + 1, player.z));
+  const lit = cameraFocus();
+  updateLightPool(focusPoint(lit.x, lit.y + 1, lit.z));
   // (the close view's camera stays out of the solids: nothing of the neighbours is cut either)
-  cullNeighbors(player.x, player.z, !state.transitioning && !closeView(), state.showNeighbors, player.visY + (player.swimming ? 0.6 : 0.3));
-  updatePlayerBar(closeView());
+  cullNeighbors(player.x, player.z, !state.transitioning && !closeView() && !cineView(), state.showNeighbors, player.visY + (player.swimming ? 0.6 : 0.3));
+  updatePlayerBar(closeView(), introFull());   // (not in a boss's intro)
   updateOnline();   // playing together: send our pose, follow, show the partner (net/session.js)
   updatePortalBar();
   updateCastBar();
