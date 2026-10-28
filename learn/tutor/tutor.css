@@ -1,84 +1,94 @@
-/* The Teacher (tutor.js): the "Ask" button and the side panel. Colours from kids.css. */
-#tutor-btn { position: fixed; right: 14px; bottom: 14px; z-index: 12; display: flex; align-items: center; gap: 6px; padding: 5px 12px 5px 6px;
-  border: 1px solid var(--portal); border-radius: 22px; background: #2a2416ee; color: var(--portal); font: 13px var(--display); letter-spacing: 1px;
-  box-shadow: 0 0 14px #ffc94a33; }
-/* the Teacher's crystal ball */
-.orb { display: inline-block; flex: none; width: 26px; height: 26px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff 0 8%, #b9e6ff 14%, #5fa8ff 45%, #2a3f9a 80%, #182260 100%);
-  box-shadow: 0 0 10px #5fd3ff88, inset 0 -3px 6px #0006; }
+/* The Teacher (tutor.js): the "Ask" button and the side panel. The look is kids.css's: the game's glass (its lists of
+   surfaces name the Teacher's too), here only the cuts and what differs. */
+/* "Ask": a way on, so amber glass */
+#tutor-btn { --c1: 10px; --c2: 3px; --c3: 10px; --c4: 3px; --face: #22170f; --edge-hi: #d99a5c; --edge-lo: #6b4226; --glow: #ffa04052;
+  --glint-color: #ffe6c4; position: fixed; right: 14px; bottom: 14px; z-index: 12; display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px 5px 6px; color: var(--ember-text); font: 13px var(--display); letter-spacing: 1px; }
+/* the Teacher's crystal: a cut stone of the bird's glass, teal facets lit from the top left round an amber core */
+.orb { display: inline-block; flex: none; width: 26px; height: 26px; position: relative;
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  background: radial-gradient(circle at 50% 56%, #ffe2bc 0 9%, #ffa040 17%, #ffa04000 34%),
+    conic-gradient(from -22.5deg at 50% 50%, #d8f6f0 0 12.5%, #86e0d2 0 25%, #4f9e93 0 37.5%, #2b5c56 0 50%, #1d3f3b 0 62.5%, #2b5c56 0 75%,
+      #4f9e93 0 87.5%, #a8ece2 0); }
 #tutor-btn { padding-left: 7px; }
-#tutor-btn:hover { filter: brightness(1.2); background: #3a3018; }
+#tutor-btn:hover { --face: #2c1d12; --edge-hi: #ffc78a; --edge-lo: #8a5530; --glow: #ffa04080; color: #fff4e4; }
 body.tutor-open #tutor-btn { display: none; }
+/* (narrow: above the quick bar, not over its slots) */
+@media (max-width: 700px) { body:has(.qbar) #tutor-btn { bottom: 76px; } }
 
-#tutor { position: fixed; top: 0; right: 0; bottom: 0; z-index: 20; width: min(420px, 100vw); display: flex; flex-direction: column;
-  background: #10141cf7; border-left: 1px solid var(--line); box-shadow: -12px 0 40px #0009; }
+/* the panel: glass along the right edge of the window, cut only on its left */
+#tutor { --c1: 18px; --c2: 0px; --c3: 0px; --c4: 6px; --face: #0e1312f5; position: fixed; top: 0; right: 0; bottom: 0; z-index: 20;
+  width: min(420px, 100vw); display: flex; flex-direction: column; }
 #tutor[hidden], #tutor [hidden] { display: none !important; }
-#tutor header { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #2a2f3a; }
+#tutor header { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, transparent, #3b4f4b 15%, #3b4f4b 85%, transparent) 1; }
 #tutor header .orb { width: 30px; height: 30px; }
 #tutor header div { flex: 1; min-width: 0; display: flex; flex-direction: column; font-family: var(--display); }
 #tutor header b { color: var(--title); letter-spacing: 2px; font-size: 14px; font-weight: normal; }
 #tutor header small { color: var(--accent); font: 14px var(--read); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#tutor header button { padding: 3px 8px; font-size: 14px; }
+#tutor header button { --c1: 4px; --c2: 1px; --c3: 4px; --c4: 1px; padding: 3px 8px; font-size: 14px; }
 #tutor header button.play { font-size: 11px; padding: 4px 8px; }
 
 #tutor .log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 17px; line-height: 1.45; }
-#tutor .msg { max-width: 92%; padding: 8px 12px; border-radius: 10px; overflow-wrap: anywhere; }
+#tutor .msg { max-width: 92%; padding: 8px 12px; overflow-wrap: anywhere; }
 #tutor .msg > :last-child { margin-bottom: 0; }
 #tutor .msg p { margin: 0 0 8px; }
 #tutor .msg ul, #tutor .msg ol { margin: 0 0 8px; }
 #tutor .msg pre { font-size: 12px; margin: 4px 0 8px; padding: 8px 10px; }
 #tutor .msg code { white-space: normal; }
 #tutor .msg pre code { white-space: pre; }
-#tutor .me { align-self: flex-end; background: #2a3448; border: 1px solid #3c4a66; border-bottom-right-radius: 3px; white-space: pre-wrap; }
+/* what the reader said: lighter glass, cut to point at the right; the Teacher's answer: a well, cut to point at the left */
+#tutor .me { --c1: 8px; --c2: 8px; --c3: 0px; --c4: 8px; --face: #1c2928; --edge-hi: #4d6a64; --edge-lo: #263231; align-self: flex-end; white-space: pre-wrap; }
 #tutor .me.queued { opacity: .55; }
-#tutor .guide { align-self: flex-start; background: #1b2029; border: 1px solid #2f3846; border-bottom-left-radius: 3px; }
+#tutor .guide { --c1: 8px; --c2: 8px; --c3: 8px; --c4: 0px; --face: #131a19cc; align-self: flex-start; }
 #tutor .act { align-self: flex-start; font: italic 14px var(--read); color: var(--dim); padding: 1px 0 1px 18px; position: relative; }
 #tutor .act::before { content: "\25B8"; position: absolute; left: 4px; color: var(--accent); }
 #tutor .act.running::before { animation: tutor-pulse 1s infinite; }
 #tutor .act.err { color: #ff9a8a; }
 /* code the Teacher shows the reader before it runs it */
-#tutor .ran { align-self: stretch; border: 1px solid #3a4352; border-radius: 8px; background: #0f1218; padding: 6px 8px; }
+#tutor .ran { align-self: stretch; padding: 6px 8px; }
 #tutor .ran .lbl { font: 11px var(--display); color: var(--accent); margin-bottom: 4px; }
 #tutor .ran pre { margin: 0; font-size: 12px; max-height: 260px; }
 #tutor .ran .res { font: 11px/1.4 var(--mono); color: var(--muted); white-space: pre-wrap; margin-top: 4px; max-height: 120px; overflow: auto; }
 #tutor .ran.running .res { animation: tutor-pulse 1.2s infinite; }
-#tutor .ran.err { border-color: #8a3c3c; } #tutor .ran.err .res { color: #ff9a8a; }
+#tutor .ran.err { --edge-hi: #5e281d; --edge-lo: #c8664c; } #tutor .ran.err .res { color: #ff9a8a; }
 /* real code from the game, put in front of the reader (show_code) */
-#tutor .shown { align-self: stretch; border: 1px solid #3a4352; border-left: 3px solid var(--accent); border-radius: 8px; background: #0f1218; padding: 6px 0 4px; }
+#tutor .shown { align-self: stretch; padding: 6px 0 4px; box-shadow: inset 3px 0 0 var(--accent); }
 #tutor .shown.pending .lbl { animation: tutor-pulse 1.2s infinite; }
 #tutor .shown .lbl { font: 11px var(--display); color: var(--dim); margin: 0 8px 4px; }
 #tutor .shown .cap { font-size: 16px; color: var(--title); margin: 0 8px 4px; }
-#tutor .shown pre { margin: 0; border: 0; border-radius: 0; padding: 0; background: none; font-size: 12px; max-height: 340px; }
+#tutor .shown pre { margin: 0; border: 0; padding: 0; background: none; clip-path: none; box-shadow: none; font-size: 12px; max-height: 340px; }
 #tutor .shown .ln { display: block; padding: 0 8px 0 0; white-space: pre; }
 #tutor .shown .ln i { display: inline-block; width: 3.2em; padding-right: .8em; text-align: right; color: #4c5668; font-style: normal; user-select: none; }
-#tutor .shown .ln.on { background: #ffcf7a1f; box-shadow: inset 3px 0 0 var(--gold); }
+#tutor .shown .ln.on { background: #ffa0401f; box-shadow: inset 3px 0 0 var(--ember); }
 #tutor .shown .ln.on i { color: var(--gold); }
-#tutor .notice { font: 15px/1.45 var(--read); color: var(--muted); padding: 6px 10px; border-left: 3px solid var(--gold); background: #2a241622; }
-#tutor .notice.bad { border-color: #ff8a7a; color: #ffc4b8; }
-#tutor .notice.warn { border-color: var(--lv3); }
-#tutor .notice.divider { align-self: center; border: 0; background: none; }
+#tutor .notice { font: 15px/1.45 var(--read); color: var(--muted); padding: 6px 10px; box-shadow: inset 3px 0 0 var(--ember-hi); --face: #1d160f66; }
+#tutor .notice.bad { box-shadow: inset 3px 0 0 #ff8a7a; color: #ffc4b8; }
+#tutor .notice.warn { box-shadow: inset 3px 0 0 var(--lv3); }
+#tutor .notice.divider { align-self: center; border: 0; background: none; clip-path: none; box-shadow: none; }
 #tutor .notice button { margin-top: 8px; }
 #tutor .notice details { margin-top: 4px; color: var(--dim); overflow-wrap: anywhere; }
 #tutor .notice.setup { font: 16px/1.45 var(--read); color: var(--text); }
 #tutor .notice.setup p { margin: 0 0 6px; }
 #tutor .thinking { align-self: flex-start; display: flex; gap: 5px; padding: 10px 14px; }
-#tutor .thinking i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: tutor-pulse 1.2s infinite; }
+#tutor .thinking i { width: 6px; height: 6px; margin: 1px; transform: rotate(45deg); background: var(--accent); animation: tutor-pulse 1.2s infinite; }
 #tutor .thinking i:nth-child(2) { animation-delay: .2s; } #tutor .thinking i:nth-child(3) { animation-delay: .4s; }
 @keyframes tutor-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
 #tutor .hello { color: var(--text); }
 #tutor .hello p { margin: 0 0 8px; }
 #tutor .starts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-#tutor .starts button { font: 15px var(--read); background: #1b2029; border-color: var(--accent); border-radius: 14px; padding: 4px 11px; }
+#tutor .starts button { --c1: 6px; --c2: 2px; --c3: 6px; --c4: 2px; --edge-hi: color-mix(in srgb, var(--accent) 70%, #4d6a64); font: 15px var(--read); padding: 4px 11px; }
 
-#tutor form.ask { border-top: 1px solid #2a2f3a; padding: 10px 12px 12px; }
-#tutor textarea { width: 100%; resize: vertical; min-height: 44px; max-height: 40vh; font: 17px/1.4 var(--read); color: #eef1f5; background: #1a1f28;
-  border: 1px solid #3a4352; border-radius: 6px; padding: 8px 10px; }
-#tutor textarea:focus { outline: none; border-color: var(--gold); }
+#tutor form.ask { border-top: 1px solid; border-image: linear-gradient(90deg, transparent, #3b4f4b 15%, #3b4f4b 85%, transparent) 1; padding: 10px 12px 12px 16px; }
+#tutor textarea { --c1: 6px; --c2: 2px; --c3: 6px; --c4: 2px; width: 100%; resize: vertical; min-height: 44px; max-height: 40vh; font: 17px/1.4 var(--read);
+  padding: 8px 10px; }
 #tutor .row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 #tutor .hint { flex: 1; font: 13px var(--read); color: var(--dim); }
-#tutor .send { background: #3a3018; border-color: var(--portal); color: var(--portal); }
+/* send: the way on, amber */
+#tutor .send { --face: #22170f; --edge-hi: #d99a5c; --edge-lo: #6b4226; --glow: #ffa04052; --glint-color: #ffe6c4; color: var(--ember-text); }
+#tutor .send:hover:not(:disabled) { --face: #2c1d12; --edge-hi: #ffc78a; --edge-lo: #8a5530; --glow: #ffa04080; color: #fff4e4; }
 
-#tutor .sheet { position: absolute; inset: 56px 0 0; overflow-y: auto; background: #10141cfc; padding: 14px 16px; font-size: 16px; z-index: 1; }
+#tutor .sheet { position: absolute; inset: 56px 0 0; overflow-y: auto; background: #0e1312fc; padding: 14px 16px 14px 20px; font-size: 16px; z-index: 1; }
 #tutor .sheet[hidden] { display: none; }
 #tutor .sheet h3 { margin-top: 0; }
 #tutor .sheet label { display: block; white-space: normal; margin-bottom: 10px; }
@@ -87,7 +97,7 @@ body.tutor-open #tutor-btn { display: none; }
 #tutor .sheet details { margin: 0 0 12px; color: var(--muted); }
 #tutor .sheet small { color: var(--dim); }
 #tutor form.keys { display: flex; gap: 6px; margin: 8px 0 12px; }
-#tutor form.keys input { flex: 1; min-width: 0; font: 13px var(--mono); color: #e7dfcf; background: #343d46; border: 1px solid #69746d; border-radius: 4px; padding: 5px 6px; }
+#tutor form.keys input { flex: 1; min-width: 0; font: 13px var(--mono); padding: 5px 6px; }
 
 /* room for the panel next to the slides on wide screens */
 @media (min-width: 1100px) {
@@ -97,21 +107,22 @@ body.tutor-open #tutor-btn { display: none; }
 }
 
 /* the real game next to the guide (game.js) */
-#game-dock { position: fixed; left: 14px; bottom: 70px; z-index: 18; width: min(520px, calc(100vw - 28px)); height: 340px; display: flex; flex-direction: column;
-  background: #0b0d12; border: 1px solid var(--portal); border-radius: 8px; box-shadow: 0 16px 50px #000c; overflow: hidden; resize: both; min-width: 280px; min-height: 200px; }
+/* a glass panel around the game; amber edges while it has the keys */
+#game-dock { --c1: 14px; --c2: 4px; --c3: 0px; --c4: 4px; --face: #0b0c0d; position: fixed; left: 14px; bottom: 70px; z-index: 18;
+  width: min(520px, calc(100vw - 28px)); height: 340px; display: flex; flex-direction: column; overflow: hidden; resize: both; min-width: 280px; min-height: 200px; }
 #game-dock.big { width: min(1000px, calc(100vw - 28px)); height: min(640px, calc(100dvh - 130px)); }
-#game-dock header { cursor: move; user-select: none; touch-action: none; display: flex; align-items: center; gap: 8px; padding: 4px 8px; font: 12px var(--display); color: var(--muted); background: #161b24; border-bottom: 1px solid #2a2f3a; }
-#game-dock header b { color: var(--portal); font-weight: normal; letter-spacing: 1px; }
+#game-dock header { cursor: move; user-select: none; touch-action: none; display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 14px; font: 12px var(--display); color: var(--muted); border-bottom: 1px solid #263231; }
+#game-dock header b { color: var(--ember-text); font-weight: normal; letter-spacing: 1px; }
 #game-dock header .seed { flex: 1; }
-#game-dock header button { font-size: 12px; padding: 1px 7px; }
+#game-dock header button { --c1: 4px; --c2: 1px; --c3: 4px; --c4: 1px; font-size: 12px; padding: 1px 7px; }
 #game-dock .frame { flex: 1; position: relative; min-height: 0; }
 #game-dock iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
 /* who gets the keys: a glow while the game has them, "click to play" while the guide has them */
-#game-dock.focused { border-color: var(--gold); box-shadow: 0 0 0 2px #ffcf7a88, 0 16px 50px #000c; }
+#game-dock.focused { --edge-hi: #ffe6c4; --edge-lo: #e8903e; }
 #game-dock.focused header .seed { color: var(--gold); }
 #game-dock .wake { position: absolute; inset: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  border: 0; border-radius: 0; background: #0b0d1255; color: var(--title); font: 15px var(--display); letter-spacing: 1px; cursor: pointer; }
+  border: 0; clip-path: none; background: #0b0c0d55; color: var(--title); font: 15px var(--display); letter-spacing: 1px; cursor: pointer; }
 #game-dock .wake small { font: 14px var(--read); color: var(--muted); letter-spacing: 0; }
-#game-dock .wake:hover { background: #0b0d1233; }
+#game-dock .wake:hover { background: #0b0c0d33; }
 #game-dock.focused .wake { display: none; }
 @media (min-width: 1100px) { body.tutor-open #game-dock.big { width: min(1000px, calc(100vw - 460px)); } }

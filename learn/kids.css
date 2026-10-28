@@ -1,9 +1,16 @@
-/* The kids' guide. Colours, panels, keys and the quick bar come from the game's style.css;
-   every room takes the sky of one game depth (body[data-theme], values from src/themes/). */
+/* The kids' guide. It looks like the game's menus and HUD: the glass (docs/ui.md, style.css "the glass"), whose palette
+   and surface are repeated below. Cool teal glass outside, a warm amber core inside: frames, edges and headings are dark
+   glass, amber only marks what is alive (the way on, what is chosen, the focus). No round corners: cut ones, like a cut
+   stone, lit from the top left. Every room takes the sky of one game depth (body[data-theme], values from src/themes/). */
 :root {
+  /* the game's glass (style.css) */
+  --void: #0b0c0d; --glass-line: #86e0d2; --glass-hi: #d8f6f0; --ember: #ffa040; --ember-hi: #ffd6a0; --ember-text: #ffe2bc;
+  --ink: #e3ece9; --ink-dim: #98aaa5; --ink-faint: #62716d;
+  /* the guide's names for them */
   --sky1: #163640; --sky2: #081218; --accent: #76ad50;
-  --text: #d8dde6; --muted: #aab3c2; --dim: #8a96a8; --line: #444c5c; --panel: #12161ee6; --deep: #0b0d12;
-  --gold: #ffcf7a; --title: #ffe4ae; --portal: #ffc94a; --cyan: #5fd3ff; --green: #70d6aa; --violet: #b98cff;
+  --text: var(--ink); --muted: #a9bab5; --dim: #849792; --line: #34463f; --panel: #0e1312eb; --deep: #090c0c; --well: #090c0cb3;
+  --heading: #9cc9bf; --link: #9fe6da;
+  --gold: var(--ember-hi); --title: var(--ember-text); --portal: var(--ember); --cyan: #5fd3ff; --green: #70d6aa; --violet: #b98cff;
   --water: #2e86de; --lava: #ff5a00; --acid: #7dff3a;
   --lv1: #61dc6b; --lv2: #51a9ff; --lv3: #fd9f07;
   /* the type (../vendor/fonts/fonts.css), as in the game: Cinzel names things and is pressed, Crimson Text is read,
@@ -26,77 +33,144 @@
 [data-theme=abyss]    { --sky1: #300a14; --sky2: #040101; --accent: #e05a8a; }
 [data-theme=core]     { --sky1: #4a1404; --sky2: #0a0201; --accent: #ff5a00; }
 
+/* ---- the glass (as style.css draws it; docs/ui.md "How it is built") ------------------------
+   A surface: its corners cut by --c1 (top left) to --c4 (bottom left), clockwise; --face fills it; its edges lit from
+   above, --edge-hi on top fading to --edge-lo below; --glow an amber light from inside, from --glow-at; --under what lies
+   between the glow and the face (a room's sky, an item's rarity); --glint the band of light that crosses what is pressed
+   as it is hovered. The registered ones ease when they change. The lists name the Teacher's surfaces too (tutor/tutor.css). */
+@property --face { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@property --edge-hi { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@property --edge-lo { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@property --glow { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@property --glint { syntax: '<percentage>'; inherits: false; initial-value: 100%; }
+:where(
+  /* panels */ .slide, .qbar, #help section, #wordtip, .weapontip, #tutor, #game-dock, #map,
+  /* wells */ .card, pre, .note, #tutor :is(.me, .guide, .ran, .shown, .notice), .words div, .weapon, .machine .in, .machine .outv, .bagview .slot, .chip, .roomend .map,
+  /* pressed */ button, .btn, .deeper, .portal, .roomend .next, .room, .qbar a.slot, .qbar .door, .loots .it,
+  /* typed into */ select, textarea, input:not([type=range], [type=checkbox], [type=radio], [type=color])),
+  .demo::after /* (a pseudo-element cannot go into :where()) */ {
+  --c1: 5px; --c2: 5px; --c3: 5px; --c4: 5px; --glow-at: 50% 115%; --glint-color: var(--glass-hi);
+  --face: #18201f; --edge-hi: #4d6a64; --edge-lo: #263231;
+  border: var(--edge-w, 1px) solid transparent; border-radius: 0; border-image: linear-gradient(var(--edge-hi), var(--edge-lo)) 1;
+  clip-path: polygon(var(--c1) 0, calc(100% - var(--c2)) 0, 100% var(--c2), 100% calc(100% - var(--c3)), calc(100% - var(--c3)) 100%,
+    var(--c4) 100%, 0 calc(100% - var(--c4)), 0 var(--c1));
+  --frame: linear-gradient(110deg, transparent 42%, color-mix(in srgb, var(--glint-color) 16%, transparent) 42% 46.5%,
+      color-mix(in srgb, var(--glint-color) 7%, transparent) 46.5% 50%, transparent 50%) var(--glint) 0 / 250% 100% no-repeat border-box,
+    linear-gradient(to bottom right, var(--edge-hi) calc(50% + var(--edge-w, 1px)), transparent calc(50% + var(--edge-w, 1px))) left top / var(--c1) var(--c1) no-repeat border-box,
+    linear-gradient(to bottom left, var(--edge-hi) calc(50% + var(--edge-w, 1px)), transparent calc(50% + var(--edge-w, 1px))) right top / var(--c2) var(--c2) no-repeat border-box,
+    linear-gradient(to top left, var(--edge-lo) calc(50% + var(--edge-w, 1px)), transparent calc(50% + var(--edge-w, 1px))) right bottom / var(--c3) var(--c3) no-repeat border-box,
+    linear-gradient(to top right, var(--edge-lo) calc(50% + var(--edge-w, 1px)), transparent calc(50% + var(--edge-w, 1px))) left bottom / var(--c4) var(--c4) no-repeat border-box;
+  background: var(--frame), radial-gradient(ellipse 75% 95% at var(--glow-at), var(--glow), transparent) border-box,
+    var(--under, linear-gradient(transparent, transparent)), var(--face);
+  transition: --face .15s, --edge-hi .15s, --edge-lo .15s, --glow .25s, color .15s;
+}
+/* the panels: large uneven cuts, darker glass the sky shows through a little, the facets lit from the top left
+   (../assets/ui/facets.svg) and a still spark where the light meets the cut */
+:where(.slide, .qbar, #help section, #wordtip, .weapontip, #tutor, #game-dock, #map) {
+  --c1: 18px; --c2: 6px; --c3: 18px; --c4: 6px; --face: var(--panel); --edge-hi: #6b968d; --edge-lo: #1f2b29;
+  background: var(--frame), radial-gradient(circle at var(--c1) 1px, #f2fffc 0, #d8f6f080 1.5px, #86e0d224 14px, transparent 70px) border-box,
+    radial-gradient(ellipse 75% 95% at var(--glow-at), var(--glow), transparent) border-box,
+    url(../assets/ui/facets.svg) left top / 960px 960px no-repeat border-box, var(--face);
+}
+/* a well sunk into a panel (a card, a demo, code, a note): darker, its lower edge the lit one */
+:where(.card, pre, .note, .words div, .weapon, .machine .in, .machine .outv, .bagview .slot, .chip, .roomend .map,
+  #tutor :is(.me, .guide, .ran, .shown, .notice)), .demo::after {
+  --c1: 8px; --c2: 0px; --c3: 8px; --c4: 0px; --face: var(--well); --edge-hi: #1a2321; --edge-lo: #34463f; }
+/* pressed things: the glint crosses them on hover (the way back is instant, not swept) */
+:where(button, .btn, .deeper, .portal, .roomend .next, .room, .qbar a.slot, .qbar .door, .loots .it) { cursor: pointer; color: var(--ink); }
+:where(button, .btn, .deeper, .portal, .roomend .next, .room, .qbar a.slot, .qbar .door, .loots .it):hover:not(:disabled) {
+  --face: #213030; --edge-hi: #7fb3a8; --edge-lo: #2d3d3a; color: #fff;
+  --glint: 0%; transition: --glint .75s cubic-bezier(.2, .6, .3, 1), --face .15s, --edge-hi .15s, --edge-lo .15s, --glow .25s, color .15s; }
+/* the way on and what is chosen: the bird's amber core glowing from inside */
+:where(button.on, .portal, .roomend .next, .qbar .arrow.to-room, .qbar .door, .qbar a.slot.current) {
+  --face: #22170f; --edge-hi: #d99a5c; --edge-lo: #6b4226; --glow: #ffa04052; --glint-color: #ffe6c4; color: var(--ember-text); }
+:where(button.on, .portal, .roomend .next, .qbar .arrow.to-room, .qbar .door, .qbar a.slot.current):hover:not(:disabled) {
+  --face: #2c1d12; --edge-hi: #ffc78a; --edge-lo: #8a5530; --glow: #ffa04080; color: #fff4e4; }
+/* typed into: darker, deeper glass */
+:where(select, textarea, input) { --face: #0a0e0d; --edge-hi: #2a3836; --edge-lo: #4a625d; color: #fff; }
+:where(button, select, input):disabled { opacity: .45; cursor: default; }
+/* the focus: amber edges (an outline would be cut off with the corners) */
+:where(button, .btn, .deeper, .portal, .roomend .next, .room, .qbar a.slot, .qbar .door, .loots .it, select, textarea, input):focus-visible {
+  outline: none; --edge-hi: #fff4e4; --edge-lo: var(--ember-hi); box-shadow: inset 0 0 0 1px #ffe6c4aa; }
+@media (prefers-reduced-motion: reduce) { * { --glint-color: transparent; } }
+
 * { box-sizing: border-box; }
 /* every text block exists twice, <x lang="en"> and <x lang="de">; lang.js picks one */
 html:not([data-lang=de]) body [lang=de], html[data-lang=de] body [lang=en] { display: none !important; }
 html, body { margin: 0; min-height: 100%; }
-body { background: radial-gradient(ellipse at 50% 35%, var(--sky1) 0%, var(--sky2) 70%, #05070a 100%) fixed;
+body { background: radial-gradient(ellipse at 50% 35%, var(--sky1) 0%, var(--sky2) 70%, var(--void) 100%) fixed;
   color: var(--text); font: 19px/1.5 var(--read); }
 #stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
-a { color: var(--cyan); }
-a:hover { color: #9ae6ff; }
+a { color: var(--link); }
+a:hover { color: var(--glass-hi); }
+a:focus-visible { outline: 1px solid var(--ember-hi); outline-offset: 2px; }
 button, select, input { font-family: inherit; }
 h1, h2, h3, h4, .mono, button, select, kbd, .bar, .tag, label, th { font-family: var(--display); }
 code, pre { font-family: var(--mono); }
-h1 { color: var(--title); letter-spacing: 3px; font-size: 30px; margin: 0 0 8px; }
-h2 { color: var(--title); letter-spacing: 2px; font-size: 25px; margin: 0 0 14px; line-height: 1.25; }
-h3 { color: #c5cdbc; font-size: 16px; margin: 18px 0 6px; letter-spacing: 1px; }
+h1 { color: var(--title); letter-spacing: 3px; font-size: 30px; margin: 0 0 8px; text-shadow: 0 0 16px #ffa04040; }
+h2 { color: var(--title); letter-spacing: 2px; font-size: 25px; margin: 0 0 14px; line-height: 1.25; text-shadow: 0 0 16px #ffa04033; }
+h3 { color: var(--heading); font-size: 16px; margin: 18px 0 6px; letter-spacing: 1px; }
+/* a small heading in a slide: a cut gem before it, lit on its upper face (as in the game's menus) */
+:where(.slide, .page) h3:not(.room h3)::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 9px 0 1px; vertical-align: 2px;
+  transform: rotate(45deg); background: linear-gradient(135deg, var(--glass-hi) 0 35%, var(--glass-line) 35% 55%, #3f8a7f 55%); box-shadow: 0 0 6px #86e0d266; }
 p { margin: 0 0 12px; }
 ul, ol { margin: 0 0 12px; padding-left: 1.3em; }
 li { margin: 3px 0; }
+li::marker { color: var(--glass-line); }
 b, strong { color: #fff; }
 em { color: var(--gold); font-style: normal; }
-kbd { display: inline-block; min-width: 1.4em; text-align: center; background: #2a2f3a; border: 1px solid var(--line); border-radius: 3px;
-  padding: 0 5px; color: #e6e9ef; font-size: .82em; line-height: 1.5; }
-code { background: #0b0d12aa; border: 1px solid #2a2f3a; border-radius: 3px; padding: 0 4px; font-size: .84em; color: #e8dcc0; white-space: nowrap; }
-pre { background: var(--deep); border: 1px solid #2a2f3a; border-left: 3px solid var(--accent); border-radius: 4px; padding: 10px 14px;
+kbd { display: inline-block; min-width: 1.4em; text-align: center; background: #131a19; border: 1px solid; border-color: #4d6a64 #34463f #263231; border-radius: 1px;
+  padding: 0 5px; color: #dbe7e3; font-size: .82em; line-height: 1.5; }
+code { background: #090c0cb3; border: 1px solid #263231; border-radius: 1px; padding: 0 4px; font-size: .84em; color: #e8dcc0; white-space: nowrap; }
+pre { --face: var(--deep); padding: 10px 14px; box-shadow: inset 3px 0 0 var(--accent);
   font-size: 13px; line-height: 1.5; overflow: auto; margin: 0 0 12px; color: #d6dbe4; }
 pre code { background: none; border: 0; padding: 0; white-space: pre; color: inherit; font-size: inherit; }
 pre .c { color: #6f7f95; font-style: italic; } pre .s { color: #a5d6a7; } pre .k { color: #ffb86b; } pre .n { color: #8fd8ff; }
 pre .file { display: block; color: var(--dim); font-size: 11px; margin-bottom: 4px; font-style: normal; }
-pre .file .live, pre .file .excerpt { font-size: 9px; letter-spacing: 1px; border: 1px solid; border-radius: 3px; padding: 0 4px; margin-left: 6px; }
+pre .file .live, pre .file .excerpt { font-size: 9px; letter-spacing: 1px; border: 1px solid; padding: 0 4px; margin-left: 6px; }
 pre .file .live { color: var(--lv1); } pre .file .excerpt { color: var(--dim); }
 pre[data-code] { max-height: 62vh; }
-.note.stale { border-color: #ff8a7a; } .note.stale b:first-child { color: #ff8a7a; }
+.note.stale { box-shadow: inset 3px 0 0 #ff8a7a; } .note.stale b:first-child { color: #ff8a7a; }
 img { max-width: 100%; }
-button, .btn { font-size: 13px; color: #e7dfcf; background: #343d46; border: 1px solid #69746d; border-radius: 4px; padding: 6px 10px;
-  cursor: pointer; text-decoration: none; display: inline-block; line-height: 1.3; }
-button:hover:not(:disabled), .btn:hover { background: #465249; color: #fff; }
-button:focus-visible, .btn:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-button.on { background: #5a4a26; border-color: var(--gold); color: var(--title); }
-button:disabled { opacity: .45; cursor: default; }
-select, input[type=number], input[type=text] { font-size: 15px; color: #e7dfcf; background: #343d46; border: 1px solid #69746d; border-radius: 4px; padding: 5px 6px; }
+button, .btn { font-size: 13px; padding: 6px 10px; text-decoration: none; display: inline-block; line-height: 1.3; }
+select, input[type=number], input[type=text] { font-size: 15px; padding: 5px 6px; }
 input[type=number] { width: 6em; }
-input[type=range] { accent-color: var(--gold); vertical-align: middle; }
+input[type=range] { accent-color: var(--ember); vertical-align: middle; }
 label { font-size: 13px; color: var(--muted); white-space: nowrap; }
 
 /* ---- top bar ---------------------------------------------------------------------------- */
 .bar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 8px 14px;
-  font-size: 12px; color: var(--muted); background: linear-gradient(#0b0d12ee, #0b0d1200); }
+  font-size: 12px; color: var(--muted); background: linear-gradient(#0b0c0dee, #0b0c0d00); }
 .bar a { color: var(--muted); text-decoration: none; }
 .bar a:hover { color: #fff; }
 .bar .where { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar .where b { color: var(--title); font-weight: normal; letter-spacing: 1px; }
 .bar .where i { font-style: normal; color: var(--accent); }
 .bar .tools { display: flex; gap: 6px; align-items: center; }
-.bar button { font-size: 11px; padding: 3px 7px; }
-.lvpick { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
-.lvpick button { border: 0; border-radius: 0; background: #1a1f28; color: var(--dim); }
-.lvpick button.on { background: #2a3140; color: #fff; box-shadow: inset 0 -2px 0 var(--c); }
+.bar button { --c1: 4px; --c2: 1px; --c3: 4px; --c4: 1px; font-size: 11px; padding: 3px 7px; }
+/* the detail levels: one strip of glass, the chosen one glowing amber with its level's colour along its lower edge */
+.lvpick { display: inline-flex; gap: 2px; }
+.lvpick button { color: var(--dim); }
+.lvpick button:first-child { --c2: 0px; --c3: 0px; } .lvpick button:last-child { --c1: 0px; --c4: 0px; }
+.lvpick button:not(:first-child, :last-child) { --c1: 0px; --c2: 0px; --c3: 0px; --c4: 0px; }
+.lvpick button.on { box-shadow: inset 0 -2px 0 var(--c); }
 
 /* ---- slides ----------------------------------------------------------------------------- */
 main { padding: 54px 16px 90px; }
-.slide { display: none; max-width: 1120px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-  box-shadow: 0 16px 60px #0008; padding: 26px 32px 22px; position: relative; }
+.slide { display: none; max-width: 1120px; margin: 0 auto; padding: 26px 32px 22px; position: relative; }
 .slide.current { display: block; animation: slidein .25s ease-out; }
 @keyframes slidein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 body.slides .slide.current { min-height: calc(100dvh - 160px); }
 body.scroll .slide { display: block; margin-bottom: 26px; animation: none; }
 body.scroll .slide.too-deep { display: none; }
-.slide > .tag { position: absolute; top: 12px; right: 14px; font-size: 11px; color: var(--c); border: 1px solid var(--c); border-radius: 3px; padding: 0 6px; }
+/* the slide's level: a cut gem in the level's colour, and its name */
+.slide > .tag { position: absolute; top: 16px; right: 22px; display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 1px;
+  color: color-mix(in srgb, var(--c) 75%, var(--ink)); }
+.slide > .tag::before { content: ""; width: 7px; height: 7px; transform: rotate(45deg); background: linear-gradient(135deg, #fff 0 25%, var(--c) 25%);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--c) 70%, transparent); }
 .slide[data-lv="1"] { --c: var(--lv1); } .slide[data-lv="2"] { --c: var(--lv2); } .slide[data-lv="3"] { --c: var(--lv3); }
 .slide > h2 { padding-right: 120px; }
-.lead { font-size: 22px; color: #eef1f5; }
+.lead { font-size: 22px; color: #f2f7f5; }
 .muted { color: var(--muted); } .small { font-size: 16px; }
 .mono.small { font-size: 13px; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
@@ -104,109 +178,119 @@ body.scroll .slide.too-deep { display: none; }
 .cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .cols > *, .cols3 > * { min-width: 0; }
 @media (max-width: 860px) { .cols, .cols.wide-left, .cols.wide-right, .cols3 { grid-template-columns: 1fr; } .slide { padding: 20px 16px; } .slide > h2 { padding-right: 0; margin-top: 18px; } main { padding: 54px 8px 90px; } }
-.shot { display: block; width: 100%; border-radius: 6px; border: 1px solid var(--line); box-shadow: 0 8px 30px #0008; }
+/* a picture of the game: cut like the glass around it */
+.shot { display: block; width: 100%; border: 1px solid #34463f;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
 figure { margin: 0 0 12px; } figcaption { font-size: 15px; color: var(--dim); margin-top: 6px; font-style: italic; }
-.card { background: #181e28; border: 1px solid #2f3846; border-radius: 6px; padding: 12px 14px; }
+.card { padding: 12px 14px; }
 .card h3 { margin-top: 0; }
 .card > :last-child { margin-bottom: 0; }
 .icon { width: 64px; height: 64px; object-fit: contain; vertical-align: middle; }
 .icon.s { width: 36px; height: 36px; }
-.note { border-left: 3px solid var(--gold); background: #2a24161f; padding: 8px 12px; border-radius: 0 4px 4px 0; margin: 0 0 12px; }
-.note.think { border-color: var(--violet); }
+/* a note: a well with a line of light down its left side */
+.note { padding: 8px 12px; margin: 0 0 12px; box-shadow: inset 3px 0 0 var(--ember-hi); --face: #1d160f66; }
+.note.think { box-shadow: inset 3px 0 0 var(--violet); --face: #18122266; }
 .note > :last-child { margin-bottom: 0; }
 .note b:first-child { font-family: var(--display); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); margin-right: 4px; }
 .note.think b:first-child { color: var(--violet); }
 table { border-collapse: collapse; font-size: 17px; margin: 0 0 12px; width: 100%; }
-th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid #2a2f3a; vertical-align: top; }
-th { font-size: 12px; color: var(--dim); font-weight: normal; letter-spacing: 1px; }
+th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid #263231; vertical-align: top; }
+th { font-size: 12px; color: var(--heading); font-weight: normal; letter-spacing: 1px; border-bottom-color: #34463f; }
 .steps { counter-reset: s; list-style: none; padding: 0; }
 .steps > li { counter-increment: s; position: relative; padding-left: 38px; margin: 8px 0; }
-.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 4px; background: #2a2f3a;
-  border: 1px solid var(--line); color: var(--gold); font: 13px/26px var(--display); text-align: center; }
+.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 26px; height: 26px; background: linear-gradient(#24302e, #131a19);
+  color: var(--ember-hi); font: 13px/26px var(--display); text-align: center;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); box-shadow: inset 0 1px 0 #6b968d88; }
 
 /* links: words (glossary), dive deeper, portals to other rooms */
-a.w { color: inherit; text-decoration: underline dotted var(--gold); text-underline-offset: 3px; }
+a.w { color: inherit; text-decoration: underline dotted var(--ember-hi); text-underline-offset: 3px; }
 a.w:hover { color: var(--title); }
-#wordtip { position: fixed; z-index: 30; max-width: 340px; background: #1d2532f5; border: 1px solid var(--gold); border-radius: 6px; padding: 8px 11px;
-  font-size: 16px; color: var(--text); pointer-events: none; box-shadow: 0 8px 30px #000a; }
+#wordtip { position: fixed; z-index: 30; max-width: 340px; padding: 8px 12px 9px; font-size: 16px; color: var(--text); pointer-events: none;
+  --c1: 10px; --c3: 10px; --c2: 3px; --c4: 3px; --face: #111716f7; }
 #wordtip b { display: block; font-family: var(--display); color: var(--title); font-size: 13px; letter-spacing: 1px; margin-bottom: 2px; }
-.deeper, .portal { display: inline-flex; align-items: center; gap: 8px; font: 13px var(--display); text-decoration: none; border-radius: 4px; padding: 6px 11px; margin: 4px 6px 4px 0; }
-.deeper { color: #fff; background: #1d2532; border: 1px solid var(--c, var(--lv2)); }
+.deeper, .portal { display: inline-flex; align-items: center; gap: 8px; font: 13px var(--display); text-decoration: none; padding: 6px 11px; margin: 4px 6px 4px 0; }
+/* dive deeper: glass with the level's colour glowing in from below */
+.deeper { color: #fff; --glow: color-mix(in srgb, var(--c, var(--lv2)) 22%, transparent); }
 .deeper::before { content: "\25BC"; font-size: 9px; color: var(--c, var(--lv2)); }
 .deeper[data-lv="2"] { --c: var(--lv2); } .deeper[data-lv="3"] { --c: var(--lv3); } .deeper[data-lv="1"] { --c: var(--lv1); }
-.portal { color: var(--title); background: #2a2416; border: 1px solid var(--portal); }
-.portal::before { content: ""; width: 9px; height: 13px; border: 2px solid var(--portal); border-bottom: 0; border-radius: 6px 6px 0 0; }
-.deeper:hover, .portal:hover { filter: brightness(1.25); color: #fff; }
+.deeper:hover { --glow: color-mix(in srgb, var(--c, var(--lv2)) 38%, transparent); }
+/* a portal: a little gate of amber light */
+.portal::before { content: ""; flex: none; width: 9px; height: 13px; background: linear-gradient(var(--ember-hi), var(--ember));
+  clip-path: polygon(50% 0, 100% 30%, 100% 100%, 75% 100%, 75% 40%, 50% 25%, 25% 40%, 25% 100%, 0 100%, 0 30%); }
+.portal:hover { color: #fff4e4; }
 /* the end of a room: on to the next room, or back to the map */
-.roomend { margin-top: 26px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.roomend { margin-top: 26px; padding-top: 16px; border-top: 1px solid; border-image: linear-gradient(90deg, transparent, #3b4f4b 15%, #3b4f4b 85%, transparent) 1; }
 .roomend .done { font: 13px var(--display); color: var(--green); letter-spacing: 1px; margin-bottom: 10px; }
 .roomend .done b { color: var(--title); font-weight: normal; }
 .roomend .ways { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: stretch; }
-.roomend .way { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 8px; text-decoration: none; color: var(--text); }
+.roomend .way { display: flex; align-items: center; gap: 14px; padding: 12px 16px; text-decoration: none; color: var(--text); --c1: 12px; --c2: 3px; --c3: 12px; --c4: 3px; }
 .roomend .way span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .roomend .way small { font: 11px var(--display); letter-spacing: 1px; text-transform: uppercase; color: var(--dim); }
 .roomend .way b { font: 18px var(--display); color: var(--title); font-weight: normal; letter-spacing: 1px; }
 .roomend .way i { font-style: normal; font-size: 16px; color: var(--muted); }
-.roomend .way em { font-size: 22px; color: var(--portal); }
-.roomend .next { background: linear-gradient(90deg, #2a2416, #3a3018); border: 2px solid var(--portal); box-shadow: 0 0 24px #ffc94a22; }
+.roomend .way em { font-size: 22px; color: var(--ember); }
 .roomend .next em { margin-left: auto; }
-.roomend .next img { width: 56px; height: 56px; object-fit: contain; flex: none; }
-.roomend .map { background: #181e28; border: 1px solid var(--line); }
+.roomend .next img { width: 56px; height: 56px; object-fit: contain; flex: none; transform: scale(1.25); filter: drop-shadow(0 3px 6px #000c); }
 .roomend .map b { font-size: 15px; }
-.roomend .way:hover { filter: brightness(1.2); color: var(--text); }
+.roomend .map:hover { --face: #131c1b; --edge-hi: #4a625d; }
 .roomend .last { margin: 0; align-self: center; color: var(--title); }
 @media (max-width: 860px) { .roomend .ways { grid-template-columns: 1fr; } }
 
 
-/* the quick bar at the bottom: one slot per slide */
-.qbar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 10; display: flex; gap: 5px; align-items: center;
-  padding: 6px; background: #0b0d12d0; border: 1px solid var(--line); border-radius: 6px; max-width: calc(100vw - 24px); }
+/* the quick bar at the bottom, like the game's (style.css #quickbar): a strip of glass, one cut slot per slide, the slide
+   shown lit like the item in hand */
+.qbar { --c1: 10px; --c2: 3px; --c3: 10px; --c4: 3px; position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 10;
+  display: flex; gap: 5px; align-items: center; padding: 6px; max-width: calc(100vw - 24px); }
 .qbar .slots { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
-.qbar a.slot { position: relative; flex: none; width: 38px; height: 38px; border: 1px solid #3a4352; border-radius: 4px; text-decoration: none;
-  background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--c) 22%, transparent), #181e28 70%); color: #e6e9ef; font: 11px/1 var(--display); }
-.qbar a.slot span { position: absolute; left: 4px; top: 3px; }
-.qbar a.slot::after { content: ""; position: absolute; left: 5px; right: 5px; bottom: 4px; height: 3px; border-radius: 2px; background: var(--c); }
+.qbar a.slot { --c1: 6px; --c2: 2px; --c3: 6px; --c4: 2px; --face: #0f1514d9; --edge-hi: #465a56; --edge-lo: #27322f;
+  --under: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%);
+  position: relative; flex: none; width: 38px; height: 38px; text-decoration: none; color: #cfdad6; font: 11px/1 var(--display); }
+.qbar a.slot span { position: absolute; left: 5px; top: 3px; text-shadow: 0 1px 2px #000; }
+.qbar a.slot::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: 4px; height: 2px; background: var(--c); box-shadow: 0 0 6px color-mix(in srgb, var(--c) 60%, transparent); }
 .qbar a.slot.lv1 { --c: var(--lv1); } .qbar a.slot.lv2 { --c: var(--lv2); } .qbar a.slot.lv3 { --c: var(--lv3); }
-.qbar a.slot:hover { border-color: #8a96a8; }
-.qbar a.slot.current { box-shadow: inset 0 0 0 2px var(--gold); }
+.qbar a.slot.current { --edge-hi: #ffe6c4; --edge-lo: #e8903e; box-shadow: inset 0 0 0 1px #fff0d877, inset 0 0 12px #ffa040a6; color: #fff; }
 .qbar a.slot.too-deep { opacity: .3; }
-.qbar .arrow { flex: none; font-size: 15px; padding: 7px 10px; }
-.qbar .arrow.to-room { background: #3a3018; border-color: var(--portal); color: var(--portal); box-shadow: 0 0 12px #ffc94a55; }
-.qbar .door { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--portal); border-radius: 19px 19px 4px 4px;
-  background: #2a2416; margin-left: 4px; }
-.qbar .door img { width: 28px; height: 28px; object-fit: contain; }
-.qbar .door:hover { filter: brightness(1.25); }
+.qbar .arrow { --c1: 6px; --c2: 2px; --c3: 6px; --c4: 2px; flex: none; font-size: 15px; padding: 7px 10px; }
+/* the doors to the rooms before and after: a gate of glass, cut to a point on top */
+.qbar .door { --c1: 12px; --c2: 12px; --c3: 2px; --c4: 2px; flex: none; width: 38px; height: 38px; display: grid; place-items: center; margin-left: 4px; }
+/* (the icons are renders of the room's thing with room round it: drawn larger, the door's cut trims the empty margin) */
+.qbar .door img { width: 38px; height: 38px; object-fit: contain; margin-top: 3px; transform: scale(1.35); filter: drop-shadow(0 1px 2px #000c); }
 .qbar .door:first-child { margin: 0 4px 0 0; }
 body.scroll .qbar { display: none; }
-body.scroll .bar { background: #0b0d12f0; border-bottom: 1px solid #2a2f3a; }
+body.scroll .bar { background: #0b0c0df0; border-bottom: 1px solid; border-image: linear-gradient(90deg, transparent, #3b4f4b 20%, #3b4f4b 80%, transparent) 1; }
 
 /* language switch: in the room bar, or top right on the map and the word book */
 .langsw { font-weight: bold; letter-spacing: 1px; }
 .langbar { position: fixed; top: 10px; right: 14px; z-index: 10; }
 .langbar .langsw { font-size: 12px; padding: 4px 9px; }
 
-/* help overlay */
-#help { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: #080c13a0; }
-#help section { width: min(480px, 92vw); padding: 16px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; font-size: 16px; }
+/* help overlay: a panel over the dark the bird waits in */
+#help { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
+  background: radial-gradient(ellipse at 50% 45%, #0b0c0d8c 0%, #0b0c0dc4 60%, #050606eb 100%); }
+#help section { width: min(480px, 92vw); padding: 18px 22px; font-size: 16px; }
 #help h1 { font-size: 15px; } #help dl { display: grid; grid-template-columns: 9em 1fr; gap: 5px 12px; margin: 0; }
 #help dt { color: #e6e9ef; } #help dd { margin: 0; color: var(--muted); }
 
 /* ---- demos ------------------------------------------------------------------------------ */
-.demo { background: #0b0d12cc; border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin: 0 0 12px; position: relative; }
-.demo::before { content: "TRY IT"; position: absolute; top: -9px; left: 10px; background: var(--deep); color: var(--accent); border: 1px solid var(--line);
-  border-radius: 3px; font: 10px var(--display); letter-spacing: 2px; padding: 1px 6px; }
-.demo[data-keys]:focus { outline: 1px solid var(--gold); }
-.demo.real::before { content: "TRY IT \00B7 REAL GAME CODE"; color: var(--gold); border-color: #6a5a30; }
+/* a demo is a well whose glass lies behind it (::after), so its label (::before) can sit on its upper edge */
+.demo { padding: 10px; margin: 0 0 12px; position: relative; isolation: isolate; }
+.demo::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.demo::before { content: "TRY IT"; position: absolute; top: -9px; left: 12px; z-index: 1; background: linear-gradient(#18201f, #0e1312); color: var(--accent);
+  border: 1px solid #34463f; font: 10px var(--display); letter-spacing: 2px; padding: 1px 7px;
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
+.demo[data-keys]:focus { outline: none; }
+.demo[data-keys]:focus::after { --edge-hi: #fff4e4; --edge-lo: var(--ember-hi); }
+.demo.real::before { content: "TRY IT \00B7  REAL GAME CODE"; color: var(--ember-hi); border-color: #6b4226; background: linear-gradient(#2c1d12, #1a120b); }
 html[data-lang=de] .demo::before { content: "AUSPROBIEREN"; }
-html[data-lang=de] .demo.real::before { content: "AUSPROBIEREN \00B7 ECHTER SPIELCODE"; }
-.demo canvas { display: block; width: 100%; height: auto; max-height: 54vh; object-fit: contain; margin: 0 auto; border-radius: 4px; background: #070910; touch-action: none; }
+html[data-lang=de] .demo.real::before { content: "AUSPROBIEREN \00B7  ECHTER SPIELCODE"; }
+.demo canvas { display: block; width: 100%; height: auto; max-height: 54vh; object-fit: contain; margin: 0 auto; background: #070909; touch-action: none; }
 .demo .row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 8px 0 0; }
 .demo .out { font: 16px/1.45 var(--read); color: var(--muted); margin-top: 8px; min-height: 1.5em; white-space: pre-wrap; }
 .demo .out b { color: #fff; font-weight: normal; }
 .demo .loading { color: var(--dim); font: 16px var(--read); padding: 20px; text-align: center; }
 .demo .err { color: #ff8a7a; font: 16px var(--read); padding: 12px; }
-.chip { display: inline-block; font: 15px var(--read); border: 1px solid var(--line); border-radius: 3px; padding: 1px 7px; margin: 2px 3px 2px 0; background: #181e28; }
-.chip.ok { border-color: #3c8a4a; color: #8fe39a; } .chip.no { border-color: #8a3c3c; color: #ff9a8a; }
+.chip { --c1: 4px; --c3: 4px; display: inline-block; font: 15px var(--read); padding: 1px 7px; margin: 2px 3px 2px 0; }
+.chip.ok { --edge-hi: #3c8a4a; --edge-lo: #2a5a33; color: #8fe39a; } .chip.no { --edge-hi: #8a3c3c; --edge-lo: #5a2a2a; color: #ff9a8a; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 15px var(--read); color: var(--muted); margin-top: 6px; }
 .legend i { display: inline-block; width: 11px; height: 11px; border: 1px solid #0006; vertical-align: -1px; margin-right: 5px; }
 
@@ -216,38 +300,41 @@ html[data-lang=de] .demo.real::before { content: "AUSPROBIEREN \00B7 ECHTER SPIE
 .parts .zone.main { stroke: color-mix(in srgb, var(--cyan) 45%, transparent); }
 .parts .zone.worker { stroke: color-mix(in srgb, var(--violet) 55%, transparent); }
 .parts .zlabel { font: 10px var(--display); fill: var(--dim); letter-spacing: 1px; }
-.parts .edges path { fill: none; stroke: #8a96a8; opacity: .35; transition: opacity .2s; }
+.parts .edges path { fill: none; stroke: #8a9a96; opacity: .35; transition: opacity .2s; }
 .parts .edges path.out { stroke: var(--gold); opacity: 1; } .parts .edges path.in { stroke: var(--cyan); opacity: 1; }
 .parts .edges path.walk { stroke: var(--accent); opacity: 1; } .parts .edges path.dim { opacity: .08; } .parts .edges path.minor { opacity: 0; }
-.parts .ah.base { fill: #8a96a8; } .parts .ah.out { fill: var(--gold); } .parts .ah.in { fill: var(--cyan); } .parts .ah.walk { fill: var(--accent); }
+.parts .ah.base { fill: #8a9a96; } .parts .ah.out { fill: var(--gold); } .parts .ah.in { fill: var(--cyan); } .parts .ah.walk { fill: var(--accent); }
 .parts .node { cursor: pointer; outline: none; }
-.parts .node rect { fill: #181e28; stroke: #3a4352; stroke-width: 1.5; }
-.parts .node:hover rect, .parts .node:focus-visible rect { stroke: #8a96a8; }
-.parts .node.on rect { stroke: var(--gold); stroke-width: 2.5; fill: #222a36; }
+.parts .node rect { fill: #131a19; stroke: #3b4f4b; stroke-width: 1.5; }
+.parts .node:hover rect, .parts .node:focus-visible rect { stroke: #7fb3a8; }
+.parts .node.on rect { stroke: #d99a5c; stroke-width: 2.5; fill: #22170f; }
 .parts .node text { text-anchor: middle; }
 .parts .node .n { font: 14px var(--mono); fill: var(--title); } .parts .node .nick { font: 13px var(--read); fill: var(--muted); }
 .parts .t.main { fill: var(--cyan); } .parts .t.worker { fill: var(--violet); }
 .parts .walker { fill: var(--accent); stroke: #fff; stroke-width: 2; pointer-events: none; }
-ol.journey > li { cursor: pointer; border-radius: 4px; padding-top: 2px; padding-bottom: 2px; margin: 4px 0; }
+ol.journey > li { cursor: pointer; padding-top: 2px; padding-bottom: 2px; margin: 4px 0; }
 ol.journey > li:hover { background: #ffffff08; }
-ol.journey > li.on { background: #ffffff12; color: #fff; }
-ol.journey > li.on::before { background: var(--accent); color: #0b0d12; border-color: var(--accent); }
+ol.journey > li.on { background: linear-gradient(90deg, #ffa04022, transparent 80%); color: #fff; }
+ol.journey > li.on::before { background: linear-gradient(#ffc78a, #d99a5c); color: #1a120b; }
 
 /* function machines (machine demo) and stepping through code (stepper demo) */
 .machine { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin: 10px 0 4px; }
-.machine .in, .machine .outv { display: flex; flex-direction: column; gap: 4px; background: #181e28; border: 1px solid #2f3846; border-radius: 6px; padding: 8px 10px; }
+.machine .in, .machine .outv { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; }
 .machine .in { position: relative; } .machine .in::after, .machine .outv::before { content: "\25B6"; position: absolute; color: var(--accent); }
 .machine .in::after { right: -14px; top: 40%; } .machine .outv { position: relative; } .machine .outv::before { left: -14px; top: 40%; }
+/* (not cut: what is outside a cut surface is cut off with it, and the arrows hang out of these) */
+.machine .in, .machine .outv { clip-path: none; }
 .machine .in input { width: 100%; font-size: 18px; }
-.machine .body { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 18px; border: 2px solid var(--accent); border-radius: 10px;
-  background: linear-gradient(#232b38, #161b24); font-family: var(--mono); }
+.machine .body { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 18px; font-family: var(--mono);
+  background: linear-gradient(#22302d, #111816); box-shadow: inset 0 0 0 2px var(--accent);
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px); }
 .machine .body .name { color: var(--title); font-weight: normal; }
 .machine .gear { font-size: 26px; color: var(--accent); transition: transform .35s ease-out; display: inline-block; }
 .machine .res { font: 20px var(--mono); color: var(--gold); word-break: break-all; }
 pre.mcode { margin-top: 10px; }
 /* code that wraps instead of scrolling sideways (narrow columns) */
 pre.wrap, pre.mcode { white-space: pre-wrap; overflow-wrap: anywhere; }
-pre.stepper .ln { display: block; padding: 0 6px; margin: 0 -6px; border-radius: 3px; }
+pre.stepper .ln { display: block; padding: 0 6px; margin: 0 -6px; }
 pre.stepper .ln.ran { background: #ffffff08; }
 pre.stepper .ln.on { background: color-mix(in srgb, var(--accent) 28%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
 
@@ -256,56 +343,84 @@ pre.stepper .ln.on { background: color-mix(in srgb, var(--accent) 28%, transpare
 .bagview .slots, .bagview .qslots { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; }
 .bagview .qslots { grid-template-columns: repeat(6, 1fr); max-width: 50%; }
 .bagview .bl { margin: 8px 0 4px; }
-.bagview .slot { position: relative; aspect-ratio: 1; background: #181e28; border: 1px solid #2f3846; border-radius: 4px; }
+.bagview .slot { --c1: 6px; --c2: 2px; --c3: 6px; --c4: 2px; position: relative; aspect-ratio: 1; }
 .bagview .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 3px; }
-.bagview .slot span { position: absolute; right: 3px; bottom: 1px; font: 11px var(--display); color: #fff; text-shadow: 0 1px 2px #000; }
+.bagview .slot span { position: absolute; right: 4px; bottom: 1px; font: 11px var(--display); color: #fff; text-shadow: 0 1px 2px #000; }
 .bagview .slot.gone img { opacity: .3; }
 
 /* weapon card (loot demo), like the inventory's detail panel */
-.weapon { display: grid; grid-template-columns: 110px 1fr; gap: 12px; background: #181e28; border: 1px solid var(--rarity, var(--line)); border-radius: 6px; padding: 10px;
-  background-image: radial-gradient(circle at 55px 55px, color-mix(in srgb, var(--rarity) 25%, transparent), transparent 70px); }
+.weapon { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 10px; --edge-lo: color-mix(in srgb, var(--rarity, #34463f) 70%, transparent);
+  --under: radial-gradient(circle at 55px 55px, color-mix(in srgb, var(--rarity) 25%, transparent), transparent 70px); }
 .weapon img { width: 110px; height: 110px; object-fit: contain; }
 .weapon h4 { margin: 0; color: var(--rarity); font-size: 17px; }
-.weapon .base { color: #8f9aaa; font: 15px var(--read); }
-.weapon .stats { color: #b8c2d0; font: 15px/1.45 var(--read); margin: 6px 0 0; white-space: pre-line; }
+.weapon .base { color: #8f9e9a; font: 15px var(--read); }
+.weapon .stats { color: #b8c6c2; font: 15px/1.45 var(--read); margin: 6px 0 0; white-space: pre-line; }
 .weapon ul { list-style: none; padding: 0; margin: 4px 0 0; color: #8fb6ff; font: 15px var(--read); }
 /* 100 chests at once: every weapon, its card on hover (loot demo) */
 .loots { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 5px; margin: 10px 0; }
-.loots .it { position: relative; aspect-ratio: 1; padding: 0; border: 1px solid var(--rarity); border-radius: 5px; cursor: pointer;
-  background: radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--rarity) 35%, transparent), #181e28 72%); }
+.loots .it { --c1: 6px; --c2: 2px; --c3: 6px; --c4: 2px; --face: #0f1514d9; --edge-hi: color-mix(in srgb, var(--rarity) 80%, transparent); --edge-lo: color-mix(in srgb, var(--rarity) 35%, #27322f);
+  --under: radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--rarity) 35%, transparent), transparent 72%);
+  position: relative; aspect-ratio: 1; padding: 0; }
 .loots .it img { position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); object-fit: contain; }
-.loots .it:hover, .loots .it:focus-visible { background-color: #222a36; box-shadow: 0 0 0 1px var(--rarity), 0 0 12px color-mix(in srgb, var(--rarity) 60%, transparent); }
-.loots .it.on { box-shadow: 0 0 0 2px var(--gold); }
-.weapontip { position: fixed; z-index: 30; width: min(440px, 90vw); pointer-events: none; box-shadow: 0 10px 40px #000c; border-radius: 6px; background: #12161e; }
+.loots .it:hover, .loots .it:focus-visible { --face: #18221f; --edge-hi: var(--rarity); }
+.loots .it.on { --edge-hi: #ffe6c4; --edge-lo: #e8903e; box-shadow: inset 0 0 0 1px #fff0d877, inset 0 0 12px #ffa040a6; }
+.weapontip { position: fixed; z-index: 30; width: min(440px, 90vw); pointer-events: none; }
+.weapontip .weapon { --face: transparent; border: 0; clip-path: none; background: var(--under); }
 
 /* ---- the map (index.html) --------------------------------------------------------------- */
 .hero { max-width: 1120px; margin: 0 auto 22px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 26px; align-items: center; }
 @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
-.hero h1 { font-size: 34px; }
-.map { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; counter-reset: room; }
-.room { --c: var(--accent); position: relative; display: grid; grid-template-columns: 58px 1fr; gap: 4px 12px; align-items: start; text-decoration: none; color: var(--text);
-  padding: 14px; border-radius: 8px; border: 1px solid var(--line); background: linear-gradient(160deg, color-mix(in srgb, var(--sky1) 70%, #12161e), #12161ef0 60%); }
-.room:hover { border-color: var(--c); transform: translateY(-2px); transition: transform .15s; color: var(--text); }
-.room img { width: 58px; height: 58px; object-fit: contain; grid-row: span 3; filter: drop-shadow(0 4px 8px #000a); }
-.room .d { font: 11px var(--display); color: var(--c); letter-spacing: 1px; }
-.room h3 { margin: 0; color: var(--title); font-size: 16px; }
+/* the title as the game's main menu writes it (style.css #title-logo): wide amber capitals, lit from above */
+.hero h1 { font-size: 32px; letter-spacing: 4px; color: transparent; text-shadow: none;
+  background: linear-gradient(#ffeed4 15%, #ffbe70 55%, #e88f42 90%); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 0 14px #ffa04040); }
+/* the detail levels (map.js): glass, the ones you will see lit in their colour */
+#levels .card { --c1: 12px; --c2: 3px; --c3: 12px; --c4: 3px; color: var(--text); font-size: 15px; letter-spacing: .5px; }
+#levels .card.in { --edge-hi: var(--c); --edge-lo: color-mix(in srgb, var(--c) 40%, #1f2b29); --glow: color-mix(in srgb, var(--c) 14%, transparent); }
+#levels .card.on { --face: #22170f; --glow: #ffa04040; }
+/* the way down (map.js): one panel of glass, a room a depth, the depth gauge down its left */
+#map { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; padding: 14px 0; }
+/* a room: its depth on the gauge, its thing, what it is about, and its depth's sky coming in from the left */
+.room { --c: var(--accent); --c1: 0px; --c2: 0px; --c3: 0px; --c4: 0px; --face: transparent; --edge-hi: transparent; --edge-lo: transparent;
+  --under: linear-gradient(90deg, color-mix(in srgb, var(--sky1) 85%, transparent), color-mix(in srgb, var(--sky1) 25%, transparent) 40%, transparent 75%);
+  position: relative; display: grid; grid-template-columns: 84px 56px minmax(0, 1fr) 170px; gap: 0 18px; align-items: center;
+  padding: 0 24px 0 0; min-height: 76px; text-decoration: none; color: var(--text); }
+.room:hover { --face: #ffffff08; --edge-hi: #4d6a64; --edge-lo: #263231; color: var(--text); }
+.room + .room { box-shadow: inset 0 1px 0 #ffffff0a; }
+/* the gauge: the shaft running down, the room's depth beside it and a gem on it */
+.room .depth { position: relative; align-self: stretch; display: flex; align-items: center; justify-content: flex-end; padding-right: 30px;
+  font: 22px var(--display); color: var(--ink-dim); }
+.room .depth b { font-weight: normal; }
+.room .depth::before { content: ""; position: absolute; top: 0; bottom: 0; right: 13px; width: 1px; background: #86e0d233; }
+.room:first-child .depth::before { top: 50%; } .room:last-child .depth::before { bottom: 50%; }
+.room .depth::after { content: ""; position: absolute; right: 9px; top: calc(50% - 4px); width: 8px; height: 8px; transform: rotate(45deg);
+  background: var(--portal); box-shadow: 0 0 8px var(--portal); }
+.room.visited .depth::after { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+.room:hover .depth { color: var(--ember-text); }
+.room img { width: 56px; height: 56px; object-fit: contain; transform: scale(1.2); filter: drop-shadow(0 3px 6px #000c); }
+.room .text { padding: 10px 0; min-width: 0; }
+.room h3 { margin: 0; color: var(--title); font-size: 17px; letter-spacing: 1px; }
 .room p { margin: 0; font-size: 16px; color: var(--muted); }
-.room .seen { position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; border-radius: 2px; background: var(--portal); box-shadow: 0 0 8px var(--portal); }
-.room.visited .seen { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+.room .d { font: 12px var(--display); color: color-mix(in srgb, var(--accent) 55%, var(--ink-dim)); letter-spacing: 1px; text-align: right; }
+@media (max-width: 700px) {
+  .room { grid-template-columns: 52px 44px minmax(0, 1fr); gap: 0 12px; padding-right: 12px; }
+  .room .depth { font-size: 17px; padding-right: 24px; } .room .depth::before { right: 9px; } .room .depth::after { right: 5px; }
+  .room img { width: 44px; height: 44px; } .room .d { display: none; }
+}
 .page { max-width: 1120px; margin: 0 auto; }
 
 /* glossary */
 .words { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-.words div { background: #181e28; border: 1px solid #2f3846; border-radius: 6px; padding: 10px 12px; }
-.words div:target { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.words div { padding: 10px 12px; }
+.words div:target { --edge-hi: #ffc78a; --edge-lo: #d99a5c; --glow: #ffa04033; }
 .words dt { font: 15px var(--display); color: var(--title); letter-spacing: 1px; }
 .words dd { margin: 4px 0 0; font-size: 17px; }
 .words dd .more { display: block; margin-top: 4px; font-size: 15px; }
 
 @media print {
   body { background: #fff; color: #000; } .bar, .qbar, #stars { display: none; }
-  .slide { display: block !important; box-shadow: none; break-inside: avoid; background: #fff; border-color: #aaa; }
-  h1, h2, b { color: #000; }
+  .slide { display: block !important; break-inside: avoid; background: #fff; border: 1px solid #aaa; clip-path: none; }
+  h1, h2, b { color: #000; text-shadow: none; }
 }
 
 /* OMG, the best rarity, runs through every colour (like in the game's style.css) */

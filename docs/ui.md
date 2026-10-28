@@ -100,3 +100,21 @@ over an amber fill: `♛ Gusto · Lv 1`, `♛ Temp Boss Spider · Lv 3`.
 
 Its checks: `node --test tests/bossbar.test.js`, and in the game (`?dev=1`)
 `await (await import('./tests/browser/bossbar.js')).runBossBarChecks()`.
+
+## The guide
+
+The kids' guide (`learn/`) wears the same glass: `learn/kids.css` repeats the palette and the
+surface above (the registered properties, the cuts, the edges, the glow, the glint), with lists of
+its own panels (the slides, the quick bar, the map, the Teacher), wells (cards, demos, code,
+notes) and pressed things (buttons, rooms, slots, doors). Amber is the way on and what is chosen
+there too: the portals, the next room, the slide shown, the level picked. When the glass changes
+here, change it there.
+
+- The map (`learn/map.js`) is a way down: one panel, a row a room, the depth on a gauge down its
+  left with a gem on it (amber not yet visited, cyan visited, like the portals), each row tinted
+  by its depth's sky.
+- The item icons it shows (`assets/items/*.png`, rendered by `blender/items.py`) are cut out: no
+  background, only the item's shadow on the floor, so they sit on the glass.
+- Its screenshots (`learn/img/`) show the game as it looks now; retake one when the HUD changes.
+  The themed ones are of world 1309 (fungal swamp at depth 11, crystal mines at 16, volcanic at
+  18, as the captions say).
