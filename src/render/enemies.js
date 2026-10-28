@@ -35,6 +35,10 @@
 // twigs (`litter`) as it goes, with a thump and dust where it bounces off something. What he has
 // lost by his `stage` (`shed`: bones) is scaled away; losing it bursts it apart. His heart's light
 // grows as it shows more (`grow` in GLOW), and the light changing (his `dark`) flares it.
+// IK over the clips (render/ik.js, which bones in render/rigs.js; poseEnemy): near the hero, a
+// creature looks at them once it has noticed them (or they come close), stands with each foot on
+// the ground under it (stairs, slopes, ledges), and a claw or a fist reaches for them round its
+// hit; dying, all that lets go.
 import * as THREE from 'three';
 import { scene, camera } from './scene.js';
 import { spiderModel } from './spidermodel.js';
@@ -89,10 +93,12 @@ import { walkPrints, forgetWalker } from './footprints.js';
 import { slimeAt } from '../game/footsteps.js';
 import { dressEnemy, paintParts } from './enemymodel.js';
 import { findTentacles, shakeTentacles, findShed, hideShed, findBall, turnBall } from './bossbones.js';
+import { makeRig, restoreRig, poseRig } from './ik.js';
+import { RIGS } from './rigs.js';
 import { attackOf, makeEnemy, ENEMY_KINDS } from '../core/enemies.js';
 import { toLinear } from '../core/oklch.js';
 import { guardianColor, guardianTitle } from '../core/guardians.js';
-import { player } from '../game/state.js';
+import { player, state } from '../game/state.js';
 import { character } from './character.js';
 import { uiScale } from '../game/uiscale.js';
 import { cameraKick, footfallFx } from '../game/juice.js';
@@ -677,7 +683,32 @@ function makeView(e, prefab) {
     sink: e.under ? 1 : 0, underWas: e.under ? 1 : 0, height: e.profile.height / size, morphing: false, swim: false,
     fog: e.profile.species === 'foggery' ? makeFoggeryLook(model, group) : null, slomo: e.profile.species === 'slomo' ? makeSlomoLook(model) : null,
     mansk: e.profile.species === 'mansk' ? makeManskLook(model) : null, monteur: e.profile.species === 'monteur' ? makeMonteurLook(model) : null, moose: e.profile.species === 'moose',
-    qualmos: e.profile.species === 'qualmos' ? makeQualmosLook(group) : null };
+    qualmos: e.profile.species === 'qualmos' ? makeQualmosLook(group) : null, rig: makeRig(model, RIGS[e.profile.species]) };
+}
+// IK over the clips (render/ik.js): looking at the hero, feet on the ground, a reach round the hit.
+// Only near the hero and in the cube being played (not one sliding away through a portal).
+const IK_NEAR = 16, REACH = 0.6, heroAt = new THREE.Vector3(), clawAt = new THREE.Vector3();
+const groundUnder = (x, z, top) => { if (!state.map) return null; const h = groundAt(x, z, top, 0).h; return h === -Infinity ? null : h; };
+// how much a melee attack's reach shows: rising to the hit, then letting go
+function strikeReach(e) {
+  const a = e.mode === 'attack' ? attackOf(e) : null;
+  if (!a || !(a.hitReach > 0) || a.projectile || a.cast) return 0;
+  return ease((e.t - a.hitAt + 0.3) / 0.3) * (1 - ease((e.t - a.hitAt - 0.05) / 0.3));
+}
+function poseEnemy(v, e, dt, off, alive) {
+  const rig = v.rig;
+  if (!rig) return;
+  const d = Math.hypot(e.x - player.x, e.z - player.z), near = d < IK_NEAR && !off.x && !off.y && !off.z && dt > 0;
+  if (!near && !rig.dirty) return;
+  const sees = alive && near && !e.ghost && player.hp > 0 && e.mode !== 'split' && e.mode !== 'gone' && !e.under
+    && (d < e.profile.aggro + 1.5 || !['idle', 'home', 'wander'].includes(e.mode));
+  if (sees) {
+    if (character.ready) character.bones.head.getWorldPosition(heroAt); else heroAt.set(player.x, player.visY + 0.7, player.z);
+  }
+  const stands = alive && near && !e.profile.hover && !v.swim && !e.under && !e.falling && e.mode !== 'split';
+  const r = alive && near ? strikeReach(e) * REACH : 0;
+  poseRig(rig, dt, { look: sees ? heroAt : null, ground: stands ? groundUnder : null, base: e.y,
+    reach: r > 0 ? { at: clawAt.set(player.x, player.visY + 0.45, player.z), w: r } : null, weight: near ? 1 : 0 });
 }
 // the hover clip's beat (matches blender/triangle.py): sharp, twice per loop
 const beat = phase => (0.5 + 0.5 * Math.cos(2 * Math.PI * 2 * phase)) ** 6;
@@ -737,6 +768,7 @@ function dying(v, e, dt, off) {
   v.ghost.opacity = GHOST_OPACITY * fade;
   v.bar.visible = false; v.label.visible = false; v.mark.visible = false;
   v.group.visible = fade > 0;
+  restoreRig(v.rig);
   v.mixer.update(0);
   spinWheels(v, e, dt); turnWaves(v, e, dt); spinRings(v, e, dt); thunder(v, e); wetTrail(v, e, dt, off);
   shedParts(v, e); tumble(v, e, dt);
@@ -745,6 +777,7 @@ function dying(v, e, dt, off) {
   glowFx(v, e, 0, Math.max(0, 1 - e.deadT / e.profile.deathTime) * fade);   // the glow dies with it
   if (v.mansk) manskLook(v, e, dt, off);
   if (v.monteur) monteurLook(v, e, dt, off);
+  poseEnemy(v, e, dt, off, false);   // (letting go)
   if (v.qualmos) qualmosLook(v, e);
 }
 // Enemy views are made a few a frame: a cube's whole lineup at once (a horde's two dozen) held
@@ -832,8 +865,10 @@ export function animateEnemies(list, dt, off = ZERO) {
     v.markT = e.mode === 'alert' ? Math.min(v.markT + dt * 8, 1) : Math.max(v.markT - dt * 2, 0);
     v.mark.visible = v.markT > 0;
     v.mark.scale.setScalar(0.5 * (e.mode === 'alert' ? 1 + 0.35 * Math.sin(Math.PI * v.markT) : v.markT));
+    restoreRig(v.rig);
     v.mixer.update(0);
     spinWheels(v, e, dt); turnWaves(v, e, dt); spinRings(v, e, dt); thunder(v, e); wetTrail(v, e, dt, off); flail(v, e, 1);
+    poseEnemy(v, e, dt, off, true);
     prints(e, off);
     shedParts(v, e); tumble(v, e, dt); lightTurns(v, e, dt);
     burrowLook(v, e, dt); ripples(v, e, dt); wardLook(v, e, dt);

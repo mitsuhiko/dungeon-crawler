@@ -578,6 +578,18 @@ a check that his walk does not skate. The others may move over to it as they are
 at clips in motion (a still frame hides a foot skating or a limb snapping), `creature.py
 clip_videos` renders each as a little video (`blender/previews/` is not committed).
 
+In the game, IK is laid over the clips every frame (`src/render/ik.js`; which bones of each
+creature look, stand and reach in `src/render/rigs.js`): heads (and eyes) turn towards what they
+look at (an enemy at the hero once it noticed them, the hero at the enemy they fight, villagers and
+the robot at the hero), each foot stands on the ground under it (stairs, slopes, ledges: the hips
+go down for the lower foot), and a claw reaches for the hero round a melee hit. A foot the clip has
+down is **held** where it came down (foot locking): turning on the spot, tracking the hero in an
+attack or shoved, a body no longer skates over its feet; a held foot too far from where the clip
+has it takes a step of its own, while the other feet stand. Only near the hero, in the cube being
+played. `tests/browser/ik.js` checks every rig (`runIkChecks`), measures skating as a creature turns
+(`runSkateCheck`) and how well the walk clips match their pace (`runStrideChecks`); from the
+console, `(await import('/src/render/ik.js')).IK.on = false` turns it all off to compare.
+
 For browser integration checks, load the game, wait for the assets, then run
 in the browser console:
 

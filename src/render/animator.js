@@ -1,11 +1,13 @@
 // Drives the character from the controller state: places and turns the model, runs the
 // blend trees (render/blendtree.js), plays the attack clip of the weapon in hand (Slash, Shoot,
 // CrossbowShot, Cast) and lays its Hold pose over the rest, poses the ragdoll, and plays the
-// get-up clip (GetUpBack / GetUpFront), morphing from the ragdoll pose into it.
+// get-up clip (GetUpBack / GetUpFront), morphing from the ragdoll pose into it. IK over it all
+// (render/ik.js, heroIK): the hero looks at the enemy they fight and stands with each foot on the
+// ground under it.
 import * as THREE from 'three';
 import { clamp } from '../core/util.js';
 import { DIRS } from '../core/constants.js';
-import { player } from '../game/state.js';
+import { player, state } from '../game/state.js';
 import { FLAT } from '../game/juice.js';
 import { SWORD, swingClipTime, swingClipFrom } from '../core/combat.js';
 import { character } from './character.js';
@@ -13,6 +15,11 @@ import { applyRagdollPose } from './ragdollpose.js';
 import { stretchStride } from './stride.js';
 import { updateHeld } from './held.js';
 import { W, blend, updateBlend, resetMode } from './blendtree.js';
+import { makeRig, poseRig } from './ik.js';
+import { FIGURE_RIG } from './rigs.js';
+import { groundAt } from '../physics/collide.js';
+import { allEnemies } from '../game/enemies.js';
+import { hoveredEnemy } from '../game/pointer.js';
 
 // learn: animation.html#getup (see learn/README.md)
 const MORPH = 0.3;       // s from the ragdoll pose into the get-up clip
@@ -125,6 +132,7 @@ export function animateCharacter(dt, time) {
   ch.bones.spine.rotateX(Math.sin(time * 2.2) * 0.025 * W.idle * rest);
   holdWeapon(dt, shown && !getUp, rest);
   if (morph) applyMorph(dt);
+  heroIK(dt);
   if (ch.held && ch.sword?.visible) {
     ch.group.updateMatrixWorld(true);
     updateHeld(ch.held, p, { L: ch.bones['hand.L'], R: ch.bones['hand.R'] }, dt);
@@ -152,6 +160,35 @@ function holdWeapon(dt, shown, rest) {
   if (!bones || ch.holdWeight < 1e-3) return;
   const w = ch.holdWeight * rest * (1 - 0.25 * (W.walk + W.run));
   for (const [bone, q] of bones) bone.quaternion.slerp(q, w);
+}
+
+// IK over the hero's clips (render/ik.js; the animator puts every bone back before the mixer, so
+// nothing piles up): they look at the enemy they strike at, or point at, or else the nearest one
+// awake and after them, and stand with each foot on the ground under it, standing or walking on
+// the ground (not jumping, climbing, swimming, getting up or squashed flat)
+const LOOK_NEAR = 7, aim = new THREE.Vector3();
+const fighting = e => !!e?.profile && e.mode !== 'dead' && e.mode !== 'gone' && !e.under && !e.ghost;
+// (no cube yet, on the main menu: no ground to stand on)
+const groundUnder = (x, z, top) => { if (!state.map) return null; const h = groundAt(x, z, top, 0).h; return h === -Infinity ? null : h; };
+function heroFoe(p) {
+  if (p.sword.active && fighting(p.sword.target)) return p.sword.target;
+  const hovered = hoveredEnemy();
+  if (fighting(hovered)) return hovered;
+  let best = null, near = LOOK_NEAR;
+  for (const e of allEnemies()) {
+    if (!fighting(e) || e.mode === 'idle' || e.mode === 'home' || Math.abs(e.y - p.y) > 3) continue;
+    const d = Math.hypot(e.x - p.x, e.z - p.z);
+    if (d < near) { near = d; best = e; }
+  }
+  return best;
+}
+function heroIK(dt) {
+  const ch = character, p = player;
+  ch.rig ??= makeRig(ch.model, FIGURE_RIG);
+  const foe = p.hp > 0 && !getUp ? heroFoe(p) : null;
+  if (foe) aim.set(foe.x, foe.y + (foe.profile.bodyHeight ?? foe.profile.height) * 0.7, foe.z);
+  const stands = p.grounded && !p.swimming && !p.climb && !getUp && !(p.flat > 0) && (blend.mode === 'loco' || blend.mode === 'land');
+  poseRig(ch.rig, dt, { look: foe ? aim : null, ground: stands ? groundUnder : null, base: p.visY });
 }
 
 export const characterYaw = () => player.yaw;

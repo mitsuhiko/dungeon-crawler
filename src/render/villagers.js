@@ -1,8 +1,9 @@
 // The villagers at their trades in the clearings (world/town.js VILLAGERS): human figures like
 // the player (render/figure.js), their clay tinted, dressed in what they wear and hold. They
 // stand where the plan puts them (each one a collider there), breathe, shift their weight and
-// look about; when the player comes near they turn their head and body towards them, within
-// reach of where they stand facing. A crystal ball floats over its owner's hand, a glowing
+// look about; when the player comes near they turn their body towards them, within reach of where
+// they stand facing, and look at them (render/ik.js: up or down too, the eyes on the hero's
+// face). A crystal ball floats over its owner's hand, a glowing
 // thing lights its surroundings a little.
 import * as THREE from 'three';
 import { clamp } from '../core/util.js';
@@ -10,10 +11,12 @@ import { ITEMS, WEARABLES } from '../core/items.js';
 import { VILLAGERS } from '../world/town.js';
 import { player } from '../game/state.js';
 import { rig, rigReady, createFigure, dress, poseFigure, animateWorn, loadThing } from './figure.js';
+import { character } from './character.js';
+import { makeRig, poseRig } from './ik.js';
+import { FIGURE_RIG } from './rigs.js';
 
 const NOTICE = 3.2;   // cells: how close the player comes before they look
 const BODY = 1.1;     // radians a villager turns away from where they face, at most
-const HEAD = .9;      // ... and the head on top of that
 
 // everything the villagers and the people out in the world (core/npcs.js) may wear, loaded
 // (game/flow.js waits for it before the first cube)
@@ -39,28 +42,27 @@ export function buildVillagers(list, group) {
       if (glow) { const l = new THREE.PointLight(glow, .9, 1.8, 2); w.object.add(l); }
     }
     group.add(f.group);
-    return { f, v, yaw: v.yaw, head: 0, phase: i * 1.7 + v.x };
+    return { f, v, yaw: v.yaw, head: 0, phase: i * 1.7 + v.x, rig: makeRig(f.model, FIGURE_RIG) };
   });
 }
 
 // every frame (render/world.js animateWorld)
+const face = new THREE.Vector3();
 export function tickVillagers(views, dt, time) {
   for (const view of views) {
     const { f, v } = view, t = time + view.phase;
     poseFigure(f);
-    const dx = player.x - v.x, dz = player.z - v.z;
-    let body = 0, head = .3 * Math.sin(t * .31) * Math.sin(t * .17);   // looking about now and then
-    if (Math.hypot(dx, dz) < NOTICE && Math.abs(player.y - v.y) < 1.5) {
-      const off = wrap(Math.atan2(dx, dz) - v.yaw);
-      body = clamp(off, -BODY, BODY) * .7;
-      head = clamp(off - body, -HEAD, HEAD);
-    }
+    const dx = player.x - v.x, dz = player.z - v.z, sees = Math.hypot(dx, dz) < NOTICE && Math.abs(player.y - v.y) < 1.5;
+    let body = 0, head = sees ? 0 : .3 * Math.sin(t * .31) * Math.sin(t * .17);   // looking about now and then
+    if (sees) body = clamp(wrap(Math.atan2(dx, dz) - v.yaw), -BODY, BODY) * .7;
     view.yaw = angleTo(view.yaw, v.yaw + body, Math.min(1, dt * 2.5));
     view.head += (head - view.head) * Math.min(1, dt * 5);
     f.group.rotation.y = view.yaw;
     f.bones.head.rotateY(view.head);
     f.bones.spine.rotateX(Math.sin(t * 2.2) * .025);    // breathing
     f.bones.spine.rotateZ(Math.sin(t * .6) * .03);      // shifting their weight
+    if (sees && character.ready) character.bones.head.getWorldPosition(face);
+    poseRig(view.rig, dt, { look: sees && character.ready ? face : null });
     animateWorn(f, time, view.phase);
   }
 }

@@ -3,7 +3,8 @@
 // and lights what is round it. game/robot.js says where it is and what it does; here it is drawn
 // there, its clips blended (lying asleep, waking, hovering, flying, talking, a cheer), faded in and
 // out as it comes and goes (with the cube it is in, while a slide carries that away). Asleep its
-// core only glimmers (DORMANT_GLOW).
+// core only glimmers (DORMANT_GLOW). Awake, ours looks at the hero when near (render/ik.js: its
+// eyes, its body leaning a little).
 //
 // Its glass is drawn like the glassmaker's (render/glassbubble.js): see-through teal, catching the
 // light on its facets, not the GLB's transmission (a second pass over the whole scene). Its light
@@ -16,6 +17,9 @@ import { cullBySphere, ownShadowDepth } from './skinned.js';
 import { scene } from './scene.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { warm } from './warmup.js';
+import { character } from './character.js';
+import { makeRig, restoreRig, poseRig } from './ik.js';
+import { ROBOT_RIG } from './rigs.js';
 
 const URL = 'assets/robot.glb';
 const CLIPS = { hover: 'RobotHover', fly: 'RobotFly', talk: 'RobotTalk', cheer: 'RobotCheer', dormant: 'RobotDormant', wake: 'RobotWake' };
@@ -71,7 +75,7 @@ function makeView() {
   trackLight(light, group, group, 2);
   scene.add(group);
   group.visible = false;
-  return { ready: true, group, model, mixer, actions, weights, light, parts, cheer: 0 };
+  return { ready: true, group, model, mixer, actions, weights, light, parts, cheer: 0, rig: makeRig(model, ROBOT_RIG) };
 }
 
 export const robotReady = loadGLB(URL).then(gltf => {
@@ -117,8 +121,15 @@ function drawView(v, at, yaw, fade, clip, dt) {
     const w = v.weights[name] += ((name === want ? 1 : 0) - v.weights[name]) * k;
     v.actions[name].setEffectiveWeight(w);
   }
+  restoreRig(v.rig);
   v.mixer.update(dt);
+  // (ours looks at the hero, near: not asleep, nor while it cheers)
+  const looks = v === robotView && want !== 'dormant' && want !== 'cheer' && character.ready && character.group.visible
+    && character.group.position.distanceTo(at) < LOOK_NEAR;
+  if (looks) character.bones.head.getWorldPosition(face);
+  poseRig(v.rig, dt, { look: looks ? face : null });
 }
+const LOOK_NEAR = 6, face = new THREE.Vector3();
 
 // The others' robots (playing together: net/session.js, game/robot.js showOtherRobot), by player
 // number: a view each, made the first time it shows. Their 'cheer' comes as a clip: it plays once
