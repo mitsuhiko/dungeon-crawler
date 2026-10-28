@@ -58,7 +58,9 @@ The direct developer link is `?dev=1&seed=123&trial=balance&at=trial`.
 Browser check: `await (await import('./tests/browser/balance.js')).runBalanceChecks()`.
 
 Two small safe 3×3 aprons, at the entrance and exit, stand above a basin of lava or acid.
-Separate 2×2 stone slabs float between them, with gaps that require the normal running jump.
+Separate square, rectangular and L-shaped stone slabs of different sizes float between them,
+with gaps that require the normal running jump. Each keeps a 2×2 run-up core; larger outlines
+never touch another slab or either apron. Final reach and timing checks prove the resulting way.
 A slab's first grounded landing starts its own **three-second** timer, shared by all its cells.
 It shakes and darkens, then sinks and loses collision. Airborne passes never trigger it; leaving,
 returning or a friend's landing never resets its clock. Untouched slabs wait indefinitely.
@@ -69,16 +71,21 @@ it is not the removed `stones` puzzle. The final reach graph proves the jumps, a
 slow-player timing check allows the full run-up before take-off on each slab. The flight itself
 need not finish before that slab sinks. Tests also run the actual character and fluid physics.
 Landing on the exit apron resolves the trial, restores the stones and opens the way back.
-Failure/retry and the owner's clock/state sharing use the ordinary trial systems.
+A missed jump returns the hero directly to the entrance apron, without death, HP loss or leaving
+the cube; the slabs reset for an immediate retry (also with god mode enabled). Reuse the ordinary
+trial reset, spawn and owner/viewer sharing paths. A resolved trial remains resolved.
 
 ### Deutsch: Balance
 
 Im Entwicklermodus bringt **`/trial balance`** dich vor das markierte Portal des Rätsels.
 Geh hindurch. Zwischen der kleinen Start- und Zielplattform liegt nur Lava oder Gift mit
-getrennten Steinplatten. Spring mit Anlauf von Platte zu Platte: **Drei Sekunden nach der
+getrennten Steinplatten unterschiedlicher Größe: quadratisch, rechteckig und L-förmig.
+Die Abstände bleiben springbar. Spring mit Anlauf von Platte zu Platte: **Drei Sekunden nach der
 ersten Landung** versinkt jede betretene Platte. Der Countdown läuft auch weiter, wenn du sie
 verlässt; Zurückspringen setzt ihn nicht zurück. Unberührte Platten warten auf dich. Am Ziel
-kommen die Platten wieder hoch und bleiben stabil. Mit `/trial reset` kannst du neu versuchen.
+kommen die Platten wieder hoch und bleiben stabil. Beim Fallen kommst du ohne Tod oder
+Lebenspunktverlust direkt auf die Startplattform zurück; die Platten werden zurückgesetzt.
+Mit `/trial reset` kannst du ebenfalls neu versuchen.
 
 ## Shared rules
 

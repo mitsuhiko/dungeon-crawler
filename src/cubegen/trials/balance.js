@@ -1,5 +1,5 @@
-// Balance: the collapse room's small safe aprons, but no causeway. Each 2x2 slab is
-// separated by a one-cell jump. The room is checked by the ordinary reach graph after smoothing;
+// Balance: the collapse room's small safe aprons, but no causeway. Varied square,
+// rectangular and L-shaped slabs keep a 2x2 run-up core and gaps requiring a jump. The room is checked by the ordinary reach graph after smoothing;
 // only a grounded landing starts a slab's three-second clock (core/trials.js touchStone).
 import { N } from '../../core/constants.js';
 import { idx } from '../../core/util.js';
@@ -46,7 +46,31 @@ export function shapeBalance(ctx) {
   }
   if (!shuffle([...candidates.values()].filter(q => q.start), R).some(search)) return;
   const crust = new Map();
-  path.forEach((q, stone) => q.cells.forEach(c => crust.set(c, { stone })));
+  path.forEach((q, stone) => q.cells.forEach(c => crust.set(c, { stone, form: 'square' })));
+  // Grow different silhouettes away from the route's gaps, never toward another slab or an
+  // apron. Keep the proven 2x2 core: a larger-looking stone must not steal another's landing.
+  const forms = [
+    { form: 'rectangle', extra: [[2, 0], [2, 1]] },
+    { form: 'L', extra: [[0, 2], [0, 3]] },
+    { form: 'large square', extra: [[2, 0], [2, 1], [0, 2], [1, 2], [2, 2]] },
+  ];
+  for (const stone of shuffle([...path.keys()], R)) {
+    const q = path[stone], others = [...safe, ...[...crust].filter(([, v]) => v.stone !== stone).map(([c]) => c)];
+    const choices = shuffle(forms.flatMap(f => [0, 1, 2, 3].map(turn => ({ ...f, turn }))), R);
+    for (const choice of choices) {
+      const extra = choice.extra.map(([x, z]) => {
+        for (let i = 0; i < choice.turn; i++) [x, z] = [1 - z, x];
+        return [q.x + x, q.z + z];
+      });
+      if (extra.some(([x, z]) => x < 1 || z < 1 || x >= N - 1 || z >= N - 1)) continue;
+      const cells = extra.map(([x, z]) => idx(x, z));
+      if (distance(cells, others) < 2) continue;
+      for (const c of [...q.cells, ...cells]) crust.set(c, { stone, form: choice.form });
+      break;
+    }
+  }
+  const sizes = path.map((_, stone) => [...crust.values()].filter(q => q.stone === stone).length);
+  if (new Set([...crust.values()].map(q => q.form)).size < 2 || new Set(sizes).size < 2) return;
   const aprons = new Map();
   for (const a of [entry, exit]) for (const [c, row] of a.rows) aprons.set(c, Math.round(a.level + (level - a.level) * (row + 1) / 3));
   const pads = new Set([...entry.pad, ...exit.pad]);

@@ -410,7 +410,7 @@ function finishBalance(ctx, t) {
     const f = ctx.cols[c].find(f => f.layer === 0 && !f.fluid);
     if (!f) return null;
     f.crust = true; f.noSpawn = true;
-    cells.push({ c, f: f.id, stone: q.stone });
+    cells.push({ c, f: f.id, stone: q.stone, form: q.form });
   }
   const goal = t.goal;
   return { basin: t.basin, crust: cells, entryApron: t.entryApron, exitApron: t.exitApron,

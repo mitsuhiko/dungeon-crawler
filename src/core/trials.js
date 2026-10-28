@@ -12,6 +12,7 @@
 //           combines (a combiner: how many puzzles of the rotation it holds, world/trials.js
 //           combinerStages), mounts (a puzzle a combiner may hold: cubegen/trials/puzzles.js) }
 import { msg } from '../i18n/i18n.js';
+import { LH } from './constants.js';
 
 export const TRIALS = {
   flood: { name: msg('Rising water'), family: 'event', sealed: true, timed: true, depths: [1, 19], themes: null, weight: 1, color: '#3fa8ff', built: true,
@@ -318,6 +319,9 @@ export function crustState(m, s, q) {
 // Each floating slab has its own clock, started by the first grounded landing. Leaving it,
 // landing again or another player arriving never buys more time. The clock runs while airborne.
 export const STONE_TIME = 3;
+// Missed a slab: retry before ordinary fluid death (also with god mode on). Only the basin
+// surface matters, not the jump's apex or whether its vanished support still has a floor.
+export const balanceFallen = (m, y) => m?.kind === 'balance' && Number.isFinite(y) && y < m.basin * LH;
 export function touchStone(m, s, stone) {
   if (m?.kind !== 'balance' || !s || (s.phase !== 'armed' && s.phase !== 'running')
     || !Number.isInteger(stone) || !m.crust.some(q => q.stone === stone) || s.stones?.[stone] != null) return false;

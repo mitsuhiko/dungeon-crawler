@@ -3,14 +3,16 @@
 // (game/action.js), resolving and resetting it.
 //   state.trial: { key, kind, phase, t, done, at } (core/trials.js newTrial) or null
 import * as THREE from 'three';
-import { LH, N } from '../core/constants.js';
+import { LH, N, DIRS } from '../core/constants.js';
 import { step } from '../world/coords.js';
 import { camera } from '../render/scene.js';
 import { pointer } from './pointer.js';
 import { TRIALS, ARM_DISTANCE, ARM_TIME, PART_REACH, fogY, fogLevel, fogHurt, COLD, coldStep, STORM, stormPhase, newTrial, stepTrial, resolveTrial, resetTrial, trialFluidLevel,
-  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, STONE_TIME, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
+  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, STONE_TIME, balanceFallen, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
   traceBeam, beamDone, allLit, pressBrazier, pushTarget, clueMark } from '../core/trials.js';
 import { groundAt } from '../physics/collide.js';
+import { floorY } from '../core/surfaces.js';
+import { clearOrder } from './orders.js';
 import { setTrialFluid } from '../physics/fluid.js';
 import { drownEnemies } from './tide.js';
 import { setTrialWater, setTrialParts, setTrialBarriers, setCrust, setGridParts, setTrialFog, setStorm } from '../render/trials.js';
@@ -25,7 +27,7 @@ import { allEnemies, mirroring } from './enemies.js';
 import { relay, online } from '../net/online.js';
 import { followTrial } from '../net/trials.js';
 import { solveMirror, solveBraziers } from '../cubegen/trials/solve.js';
-import { refreshOpenFaces, spawnEntry, backBeforeTrial, besidePortal, rebuildWorld, hurt } from './flow.js';
+import { refreshOpenFaces, spawnAt, spawnEntry, backBeforeTrial, besidePortal, rebuildWorld, hurt } from './flow.js';
 import { CHAR_H } from '../core/constants.js';
 import { emit, soft, rand } from '../render/particles.js';
 import { stepSiege, stepChase, dropPortcullis, resetEvents, lightBeacon, eventHud, EVENT_HOW, EVENT_DONE } from './trialevents.js';
@@ -93,7 +95,7 @@ function stepCrust(m, s, dt) {
   if (fell) sfx('rumble', { volume: 0.35, pitch: 1.3 });
   setCrust(state.world, crust, dt, s.phase === 'resolved');
   // all of it gone, and still not across: there is no way over any more
-  if (s.phase === 'running' && gone.size === m.crust.length && !mirroring()) failTrial(msg('The way across is gone'));
+  if (m.kind !== 'balance' && s.phase === 'running' && gone.size === m.crust.length && !mirroring()) failTrial(msg('The way across is gone'));
 }
 // the sinking fog (miasma): a head in it hurts, more the longer it stays (core/trials.js fogHurt),
 // told in half-second bites
@@ -269,6 +271,7 @@ export function trialActFrom(m) {
   const s = state.trial;
   if (!s || m.key !== s.key || mirroring()) return;
   if (m.act === 'away') awayFrom = true;
+  if (m.act === 'part' && m.id === 'balance:retry' && mapTrial()?.kind === 'balance') { restartTrial(); return; }
   if (m.act === 'part' && /^stone:\d+$/.test(m.id)) { touchStone(mapTrial(), s, Number(m.id.slice(6))); return; }
   if (m.act === 'part' && m.id === 'keystone') { resolve(); return; }
   if (m.act === 'part' && m.id.startsWith('solve:')) { solvePuzzle(+m.id.slice(6)); return; }
@@ -595,6 +598,27 @@ export function failTrial(reason) {
   setStatus(tr(reason));
   restartTrial();
   spawnEntry();
+}
+
+// A missed Balance jump is a checkpoint retry, never ordinary fluid death or a trip to the
+// previous cube. Called by hazards before fluid/void handling, including in developer god mode.
+export function retryBalance() {
+  const m = mapTrial(), s = state.trial;
+  if (!s || player.hp <= 0 || !balanceFallen(m, player.y)) return false;
+  const c = m.entryApron[Math.floor(m.entryApron.length / 2)], f = state.map.cols[c].find(f => !f.fluid && f.layer === 0);
+  if (!f) return false;
+  if (s.phase !== 'resolved') {
+    if (mirroring()) relay.trialAct?.({ key: s.key, act: 'part', id: 'balance:retry' });
+    restartTrial();
+  }
+  gone.clear(); crust.clear(); stoneAsked.clear();
+  setCrust(state.world, crust, 0, true);
+  clearOrder();
+  state.arrival = { x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5 };
+  spawnAt(state.arrival.x, state.arrival.y, state.arrival.z);
+  player.yaw = Math.atan2(-DIRS[m.entry][0], -DIRS[m.entry][1]);
+  setStatus(tr('Back to the start: try the stones again!'));
+  return true;
 }
 
 // /trial solve: what the generator proved, as a lens over the room (game/teach.js): the timed way

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { World } from '../src/world/world.js';
-import { TRIALS, STONE_TIME, newTrial, stepTrial, touchStone, crustState, resolveTrial, resetTrial, trialFluidLevel, trialSealed } from '../src/core/trials.js';
+import { TRIALS, STONE_TIME, newTrial, stepTrial, touchStone, crustState, balanceFallen, resolveTrial, resetTrial, trialFluidLevel, trialSealed } from '../src/core/trials.js';
 import { TrialOwner, trialMessage, followTrial } from '../src/net/trials.js';
 import { N, LH, CHAR_R, CHAR_H, LAVA, ACID } from '../src/core/constants.js';
 import { movePlayer } from '../src/physics/move.js';
@@ -39,6 +39,16 @@ test('a whole slab sinks exactly three seconds after first contact, independentl
   assert.equal(crustState(m, s, m.crust[0]), 'whole');
 });
 
+test('Balance retries at its basin surface, not at the top of a jump, and never changes other trials', () => {
+  const m = model();
+  assert.equal(balanceFallen(m, m.basin * LH + 0.01), false);
+  assert.equal(balanceFallen(m, m.basin * LH - 0.01), true);
+  assert.equal(balanceFallen(m, -10), true);
+  assert.equal(balanceFallen({ ...m, kind: 'collapse' }, -10), false);
+  assert.equal(balanceFallen(null, -10), false);
+  assert.equal(balanceFallen(m, NaN), false);
+});
+
 test('slab clocks are sent immediately to friends and late joiners, including long attempts', () => {
   const m = model(), s = newTrial(m), owner = new TrialOwner(), viewer = newTrial(m);
   stepTrial(s, 0, { away: true }); stepTrial(s, 10000.004);
@@ -66,7 +76,7 @@ function* rooms() {
   }
 }
 
-test('generated rooms have small safe aprons, separate four-cell slabs, harmful fluid and checked jumps', () => {
+test('generated rooms have small safe aprons, varied slab sizes and silhouettes, harmful fluid and checked jumps', () => {
   let n = 0;
   for (const { seed, d, m } of rooms()) {
     const tr = m.trial;
@@ -81,7 +91,13 @@ test('generated rooms have small safe aprons, separate four-cell slabs, harmful 
       assert.ok(m.floors[q.f].crust && m.floors[q.f].noSpawn);
     }
     assert.ok(groups.size >= 3);
-    for (const cells of groups.values()) assert.equal(cells.length, 4);
+    for (const cells of groups.values()) assert.ok([4, 6, 9].includes(cells.length));
+    assert.ok(new Set(tr.crust.map(q => q.form)).size >= 2, 'different silhouettes in each room');
+    assert.ok(new Set([...groups.values()].map(c => c.length)).size >= 2, 'different sizes in each room');
+    for (const q of tr.crust.filter(q => q.form === 'L')) {
+      const cells = groups.get(q.stone), xs = cells.map(c => c % N), zs = cells.map(c => c / N | 0);
+      assert.ok((Math.max(...xs) - Math.min(...xs) + 1) * (Math.max(...zs) - Math.min(...zs) + 1) > cells.length, 'an L is not just a rectangle');
+    }
     const owner = new Map(tr.crust.map(q => [q.c, q.stone]));
     for (const [c, stone] of owner) for (const dc of [1, -1, N, -N])
       assert.ok(!owner.has(c + dc) || owner.get(c + dc) === stone, 'no walking between slabs');

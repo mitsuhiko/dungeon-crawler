@@ -5,6 +5,7 @@ export default {
   'The sunken room': 'Der versunkene Raum',
   'Crumbling floor': 'Bröckelnder Boden',
   'Balance': 'Balance',
+  'Back to the start: try the stones again!': 'Zurück zum Start: Versuch es noch einmal über die Platten!',
   'Jump from stone to stone! Each sinks three seconds after you land on it.': 'Spring von Platte zu Platte! Jede sinkt drei Sekunden nach deiner Landung.',
   'Jump from stone to stone!': 'Spring von Platte zu Platte!',
   'Jump! This stone sinks in {n} s': 'Spring! Diese Platte sinkt in {n} s',
