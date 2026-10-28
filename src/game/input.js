@@ -45,7 +45,8 @@ import { answerDeath } from './deathask.js';
 import { useAction } from './action.js';
 import { cameraKeyDown, cameraKeyUp, cancelCameraKey } from './camerakey.js';
 import { screenToWorld, WALK_BELOW } from '../core/stick.js';
-import { unturn } from '../core/roll.js';
+import { unturn, ROLL } from '../core/roll.js';
+import { keyRoll } from './roll.js';
 import { mouseLook, looking, capture, escJustReleased } from './mouselook.js';
 import { toggleLock } from './lockon.js';
 import { forwardYaw } from '../core/view.js';
@@ -298,17 +299,22 @@ addEventListener('wheel', e => {
 }, { passive: true });
 
 // desired direction in world space (WASD or the touch stick, relative to the camera; the world
-// rolled on the screen, as the keys follow it: game/roll.js)
+// rolled on the screen, as the keys follow it: game/roll.js keyRoll, which is told what is held
+// even when nothing moves the hero, so a key held through the inventory is a new one after it).
+// Only the roll may be latched: the camera's yaw (the camera keys, the mouse, the lock-on) always
+// steers the keys at once.
 export function inputDir() {
-  if (state.inventoryOpen || state.leaveAsk || state.deathAsk) return [0, 0];
-  if (player.autoDir) return player.autoDir;
   let ix = 0, iy = 0;
   if (held('moveUp')) iy += 1;
   if (held('moveDown')) iy -= 1;
   if (held('moveRight')) ix += 1;
   if (held('moveLeft')) ix -= 1;
-  const s = controls.stick;
+  const s = controls.stick, keys = ix || iy;
   if (s.m > 0) { ix += s.x; iy += s.y; }
-  return screenToWorld(...unturn(ix, iy, view.keyRoll), view.yaw);
+  const stopped = state.inventoryOpen || state.leaveAsk || state.deathAsk;
+  const roll = keyRoll(stopped ? 0 : ix, stopped ? 0 : iy, keys ? 0 : ROLL.swing);
+  if (stopped) return [0, 0];
+  if (player.autoDir) return player.autoDir;
+  return screenToWorld(...unturn(ix, iy, roll), view.yaw);
 }
 export function takeJump() { const j = controls.jumpPressed; controls.jumpPressed = false; return j; }

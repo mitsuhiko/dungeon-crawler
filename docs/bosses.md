@@ -1214,8 +1214,9 @@ him, his stones flying over to it. He fights on as `MONTEUR_SUN`, his stones all
   world turns, "Monteur turns the world!": a quarter either way or half round from where it
   is (`nextQuarter`), never staying (his `quarter`, 0 to 3). The view turns slowly about where it
   looks (`game/roll.js`) till it rests there; gravity stays with the floor, so you run up the
-  wall or along the ceiling. What the keys do meanwhile: [camera.md](camera.md), "The world's
-  roll" (still to settle).
+  wall or along the ceiling. The keys go the way the screen showed when they were pressed: one
+  held keeps its way through the turn and catches up once the view rests; one pressed meanwhile
+  is taken on the screen as it is ([camera.md](camera.md), "The world's roll").
 - **Moose**, up to **two**, every 12 s (clip `MonteurSunSummon`: a hop and a stomp).
 - **Mountains** (within 14 cells, clip `MonteurRaise`, 2.8 s; 8 s into the phase, then 6 to 10 s
   after the last one is gone; one at a time): it crouches and digs its rays into the floor, and at

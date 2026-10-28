@@ -111,7 +111,8 @@ dev({
 // what the movement keys follow while it is turned
 const ROLLS = { 0: 'unturned', 90: 'a quarter round', 180: 'upside down', 270: 'a quarter round the other way', spin: 'from quarter to quarter by itself, resting a while at each', off: 'back to the fight: unturned, or as a Monteur here has it' };
 addType(commands, { name: 'roll', values: () => Object.entries(ROLLS).map(([v, hint]) => ({ value: v, label: v, hint })) });
-const KEYS_SAY = { world: 'the keys stay with the world as it was unturned', screen: 'the keys follow the screen (up is up the screen)',
+const KEYS_SAY = { latch: 'a direction is taken on the screen as it is when given, held through the turn, caught up once it rests',
+  world: 'the keys stay with the world as it was unturned', screen: 'the keys follow the screen (up is up the screen)',
   catchup: 'the keys stay with the world while it turns and catch up with the screen once it rests' };
 addType(commands, { name: 'rollkeys', values: () => KEY_MODES.map(v => ({ value: v, label: v, hint: KEYS_SAY[v] })) });
 const rollSays = () => {
@@ -129,7 +130,7 @@ dev({
   },
 });
 dev({
-  name: 'rollkeys', help: 'what the movement keys follow while the world is rolled: world, screen or catchup (none: which)',
+  name: 'rollkeys', help: 'what the movement keys follow while the world is rolled: latch, world, screen or catchup (none: which)',
   args: [{ name: 'mode', type: 'rollkeys', optional: true }],
   run({ mode }) {
     if (mode !== undefined) setRollKeys(mode);

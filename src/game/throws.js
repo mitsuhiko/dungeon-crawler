@@ -42,12 +42,13 @@ export function throwTarget() {
   const a = aimPoint(player.y);
   return a && { x: a.x, y: player.y, z: a.z };
 }
-// the touch aim (game/touch.js): that way on the screen, as far as pushed, on the floor there
+// the touch aim (game/touch.js): that way on the screen (also with the world rolled: you aim at the
+// mark you see, game/roll.js), as far as pushed, on the floor there
 // (or at the player's height over a drop); null in the middle
 function aimTarget() {
   const flask = readiedFlask(player), a = controls.aim;
   if (!flask || !a.m) return null;
-  const [dx, dz] = screenToWorld(...unturn(a.x, a.y, view.keyRoll), view.yaw), d = aimReach(a.m, flask.flask.range);
+  const [dx, dz] = screenToWorld(...unturn(a.x, a.y, view.roll), view.yaw), d = aimReach(a.m, flask.flask.range);
   const x = player.x + dx * d, z = player.z + dz * d, h = groundAt(x, z, player.y + 1.5, 0).h;
   return { x, y: Number.isFinite(h) && h > player.y - 4 ? h : player.y, z };
 }

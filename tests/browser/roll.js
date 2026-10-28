@@ -1,7 +1,8 @@
 // Browser checks for the world's roll (docs/camera.md "The world's roll"): the camera turned about
 // where it looks, which way the movement keys run the hero on the screen in each mode (projected
 // through the turned camera), the mouse look turning the way the mouse went on the screen, the
-// slow turn and the keys catching up, and /roll and /rollkeys. Wherever the hero stands; the
+// slow turn with a key held latched through it (and taken anew when another is pressed) and
+// catching up once it rests, and /roll and /rollkeys. Wherever the hero stands; the
 // roll, its key mode and the view come back afterwards. From the console:
 //   await (await import('./tests/browser/roll.js')).runRollChecks()
 import * as THREE from 'three';
@@ -64,21 +65,31 @@ export async function runRollChecks() {
     setCameraMode('overview');
     results.push('the mouse look follows the screen');
 
-    // turning slowly; the keys catching up once it rests
-    setRollKeys('catchup'); setRoll(0, true);
+    // turning slowly with W held (the hero kept still: the keys are latched all the same): W keeps
+    // its way in the world, D pressed is taken on the screen as it is, and once it rests the keys
+    // held catch up with the screen within a second
+    setRollKeys('latch'); setRoll(0, true); settleCamera();
+    player.autoDir = [0, 0];
+    down('KeyW'); inputDir();
     check((await runCommand('/roll 90')) !== false, '/roll 90 runs');
     await delay(1000);
     let r = rollNow();
-    check(r.turning && r.angle > 0 && r.angle < 45 && r.keys === 0, `A second in, it is turning slowly, the keys still with the world (${r.angle}°, keys ${r.keys}°)`);
+    check(r.turning && r.angle > 0 && r.angle < 45 && r.keys === 0, `A second in, it is turning slowly, W held still with the world (${r.angle}°, keys ${r.keys}°)`);
+    down('KeyD'); inputDir(); r = rollNow();
+    check(r.keys === r.angle && r.keys > 0, `D pressed while it turns is taken on the screen as it is (${r.angle}°, keys ${r.keys}°)`);
+    up('KeyD');
     await delay(5500);
     r = rollNow();
     check(!r.turning && r.angle === 90, `It rests at a quarter round in about 5 s (${r.angle}°)`);
-    await delay(2500);
-    check(Math.abs(rollNow().keys - 90) <= 2, `Rested, the keys have caught up with the screen (${rollNow().keys}°)`);
+    check(Math.abs(r.keys - 90) <= 2, `Rested, the key held has caught up with the screen (${r.keys}°)`);
+    player.autoDir = null;
+    check(along(runs('KeyW'), [0, 1]), 'Rested, W held runs up the screen');
+    up('KeyW');
     check((await runCommand('/rollkeys screen')) !== false && rollKeys() === 'screen', '/rollkeys switches what the keys follow');
-    results.push('it turns slowly to rest at a quarter, the keys catch up');
+    results.push('it turns slowly to rest at a quarter, a key held latched through it, the keys catch up');
     return results;
   } finally {
+    up('KeyW'); up('KeyD'); player.autoDir = null;
     setRollKeys(keys); holdRoll(false); resetRoll();
     setCameraMode(mode); view.yaw = view.yawTarget = yaw; view.pitch = pitch; settleCamera();
   }

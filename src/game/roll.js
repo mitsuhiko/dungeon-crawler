@@ -1,19 +1,20 @@
 // The world's roll on the screen (core/roll.js has the rules, docs/camera.md tells it): how far it
 // is turned (`view.roll`, game/camera.js turns the camera by it) and the angle the movement keys
-// follow (`view.keyRoll`, game/input.js). Monteur turns it (`followRoll`: his `quarter`, which comes
+// follow (`keyRoll`, game/input.js: in `latch`, the one the direction held was taken at). Monteur turns it (`followRoll`: his `quarter`, which comes
 // to friends with his row, so every game turns its own view after him; back the right way up once
 // he is beaten or nowhere here), and so do the developer commands (/roll, /rollkeys:
 // game/devcommands.js; while they hold it, he does not). Out of play (the main menu) and in another
 // cube it is unturned at once.
 import { state, view } from './state.js';
-import { ROLL, KEY_MODES, stepRoll, nextStop, stepKeys, nearestTo } from '../core/roll.js';
+import { ROLL, KEY_MODES, stepRoll, nextStop, stepKeys, latchKeys, settleLatch, nearestTo } from '../core/roll.js';
 
 const r = { angle: 0, target: 0, speed: 0 };
 let spin = false;        // going on from quarter to quarter by itself
 let rest = 0;            // s it has rested at its target
 let holdFor = 0;         // s it rests there, spinning, before it goes on
-let mode = 'catchup';    // what the keys follow (core/roll.js KEY_MODES)
-let keyAngle = 0;
+let mode = 'latch';      // what the keys follow (core/roll.js KEY_MODES)
+let keyAngle = 0;        // ... in the other modes
+const latch = { held: false, x: 0, y: 0, angle: 0 };   // ... in `latch`: the direction held, the angle it was taken at
 let held = false;        // the developer commands hold it (Monteur does not turn it meanwhile)
 let followed = null;     // the quarter a Monteur here wants (null: none), and the cube it was in
 let cube = null;
@@ -22,7 +23,8 @@ const deg = a => Math.round(a * 180 / Math.PI);
 const quarterOf = a => ((Math.round(a / (Math.PI / 2)) % 4) + 4) % 4 * 90;
 
 // how it is now (the dev commands, the checks): degrees, unwrapped for `angle`
-export const rollNow = () => ({ angle: deg(r.angle), target: deg(r.target), at: quarterOf(r.target), spin, mode, keys: deg(keyAngle),
+export const rollNow = () => ({ angle: deg(r.angle), target: deg(r.target), at: quarterOf(r.target), spin, mode,
+  keys: deg(mode !== 'latch' ? keyAngle : latch.held ? latch.angle : r.angle),
   turning: r.angle !== r.target });
 
 // turn to a quarter (degrees: 0, 90, 180, 270), the shorter way, and stay there (now: at once, the
@@ -33,7 +35,8 @@ export function setRoll(degrees, now = false) {
   if (!now) return;
   r.angle = r.target; r.speed = 0; rest = ROLL.settle + 10;
   keyAngle = stepKeys(mode, keyAngle, r.angle, rest, 1e3);
-  view.roll = r.angle; view.keyRoll = keyAngle;
+  latch.angle = r.angle;
+  view.roll = r.angle;
 }
 // spin: from quarter to quarter by itself (resting a while at each), starting now
 export function spinRoll() {
@@ -64,8 +67,13 @@ export function followRoll(list) {
 export function resetRoll() {
   r.angle = r.target = r.speed = 0;
   spin = false; rest = 0; holdFor = 0; keyAngle = 0; followed = undefined;
-  view.roll = view.keyRoll = 0;
+  latch.held = false; latch.angle = 0;
+  view.roll = 0;
 }
+// The angle the movement keys follow (game/input.js), given the direction on the screen they (or
+// the touch move stick) give now: x, y (nothing: none); swing: how far it may turn and still be
+// the one held (core/roll.js latchKeys: 0 for the keys, ROLL.swing for the stick)
+export const keyRoll = (x = 0, y = 0, swing = 0) => mode === 'latch' ? latchKeys(latch, x, y, r.angle, swing) : keyAngle;
 export const rollKeys = () => mode;
 export function setRollKeys(m) {
   if (!KEY_MODES.includes(m)) return false;
@@ -84,6 +92,6 @@ export function updateRoll(dt) {
     rest = 0;
   }
   keyAngle = stepKeys(mode, keyAngle, r.angle, rest, dt);
+  settleLatch(latch, r.angle, rest, dt);
   view.roll = r.angle;
-  view.keyRoll = keyAngle;
 }

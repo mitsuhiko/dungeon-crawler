@@ -135,12 +135,20 @@ unturned at once.
   at each.
 - **The camera** (`game/camera.js`): turned last, about its own axis (before the shaking), so the
   overview's cutaway, the close view's arm and everything else see the camera where it was.
-- **The keys** (and the touch sticks, the flask's aim stick): what they follow is the question
-  the prototype is for (`KEY_MODES`, `view.keyRoll`, `game/input.js inputDir`): `world`, they stay
-  with the world as it was unturned (rolled half round, up on the keys runs down the screen);
-  `screen`, up is always up the screen (while it turns a key held curves the hero's way along);
-  `catchup` (the default), they stay with the world while it turns and catch up with the screen
-  once it has rested 1 s (most of the way in a second).
+- **The keys** (and the touch move stick: `KEY_MODES`, `game/roll.js keyRoll`,
+  `game/input.js inputDir`): `latch` (the default), a direction is taken on the screen as it is
+  when it is given. Held unchanged, it keeps its way in the world while the view turns under it
+  (the hero does not swerve), and once the view rests it catches up with the screen without waiting
+  (most of the way in a quarter second). A new direction is taken on the screen anew: a key pressed or
+  let go (W, then W and D), the stick let go or swung more than 60° from where it was taken. So
+  nothing is ever upside down once the view has stopped, and every key pressed goes where it
+  looks. Only the roll is latched: a turn the player makes (the camera keys, the mouse look, the
+  lock-on following its enemy) steers the keys at once, as without a roll. The others, to compare
+  (`/rollkeys`): `world`, they stay with the world as it was unturned (rolled half round, up on
+  the keys runs down the screen); `screen`, up is always up the screen (while it turns a key held
+  curves the hero's way along); `catchup`, they stay with the world while it turns and catch up
+  with the screen once it has rested 1 s (a half turn was about 11 s off the screen).
+- **The flask's aim stick** (touch) follows the screen: you aim at the mark you see.
 - **The mouse** follows the screen whatever the keys do: clicks hit what is under the cursor
   anyway (the pick goes through the turned camera), and the close view's mouse look, the camera
   key's turning and the lock-on's flick turn the way the mouse went on the screen
@@ -169,7 +177,8 @@ unturned at once.
 - `tests/lockon.test.js`: which enemy the lock goes to, where a flick moves it, the locked
   camera's yaw.
 - `tests/roll.test.js`: the world's roll turning slowly to rest at a quarter, spinning on, what
-  the keys follow in each mode, a direction on the rolled screen back on the unrolled one.
+  the keys follow in each mode (a direction latched through a half turn and caught up once it rests),
+  a direction on the rolled screen back on the unrolled one.
 - `tests/browser/camera.js` (`runCameraChecks()`): the keys, turning, settling, losing the
   window, the close view's cut and walls and lens, the arm out of the solids all around the
   hero in a cave, the player's bar; mouse look (capturing on a click, turning, speed and
@@ -180,4 +189,5 @@ unturned at once.
 - `tests/browser/roll.js` (`runRollChecks()`): the world's roll: the camera's right side up a
   quarter round, which way W, A and D run the hero on the screen with the keys following the
   world or the screen (a quarter and half round), the close view's mouse look following the
-  screen, the slow turn to rest at a quarter and the keys catching up, `/roll` and `/rollkeys`.
+  screen, the slow turn to rest at a quarter with W held latched through it (D pressed meanwhile
+  taken on the screen as it is) and caught up once it rests, `/roll` and `/rollkeys`.
