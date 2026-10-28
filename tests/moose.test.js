@@ -47,9 +47,10 @@ test('three kinds, each saying its own name when it hurts you; the Bog moose wad
     assert.ok(a.reason.includes(` ${k.label}`), `${k.type} ${a.name}: ${a.reason}`);
   assert.ok(BOG_MOOSE.slimeborn && !MOOSE.slimeborn && !FROST_MOOSE.slimeborn);
   assert.ok(FROST_MOOSE.hp > MOOSE.hp && BOG_MOOSE.damage > MOOSE.damage);
-  // and Monteur's (core/enemies.js MONT_MOOSE): plain Moose, weaker, that he calls up round him
+  // and Monteur's (core/enemies.js MONT_MOOSE): Mont Moose, plain Moose but weaker, that he calls up round him
   const mont = ENEMY_KINDS.montmoose;
-  assert.ok(mont.minion && mont.plain && mont.label === 'Moose' && mont.hp < MOOSE.hp && mont.damage < MOOSE.damage);
+  assert.ok(mont.minion && mont.plain && mont.label === 'Mont Moose' && mont.hp < MOOSE.hp && mont.damage < MOOSE.damage);
+  for (const a of mont.attacks.filter(a => a.power > 0)) assert.ok(a.reason.includes(' Mont Moose'), a.reason);
 });
 
 test('Moose come in herds, each kind in its own themes, from depth 2 on', () => {

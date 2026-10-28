@@ -71,8 +71,9 @@ test('every kind recolours materials its species model has, and only those', () 
     assert.equal(k.seedSalt, base.seedSalt);
     assert.equal(k.parts, base.parts);
     if (k === base) continue;
-    // (a boss's minion that is its species plain, Foggery's Fire-faces and Fire-cats: same look, same name)
-    if (k.plain) { assert.ok(k.minion && k.label === base.label && k.colors === base.colors, k.type); continue; }
+    // (a boss's minion that is its species plain, Foggery's Fire-faces and Fire-cats: same look, a name
+    // of its own only where the console must tell it apart (Monteur's Mont Moose))
+    if (k.plain) { assert.ok(k.minion && k.colors === base.colors, k.type); continue; }
     assert.ok(k.colors && k.label !== base.label, k.type);
     const m = materials(base.model ?? k.species), t = recolorTable(m, k.parts, k.colors);
     for (const key of Object.keys(k.colors)) assert.ok(k.parts[key] || m[key], `${k.type}: ${key}`);

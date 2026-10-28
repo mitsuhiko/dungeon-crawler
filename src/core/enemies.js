@@ -1732,10 +1732,10 @@ export const REN_FACE = enemyKind(FIREFACE, {
   type: 'renface', minion: true, plain: true, aggro: 10, giveUp: 14, coins: [0, 0], drops: MINION_DROPS(0.06), puff: EMBER_PUFF,
   mods: { hp: 0.55, damage: 0.55, xp: 0.15 },
 });
-// Monteur's minions (game/monteur.js): plain Moose, weaker, going for the player at once (tossing,
+// Monteur's minions (game/monteur.js): Mont Moose, plain Moose but weaker, going for the player at once (tossing,
 // charging, clubbing like any Moose); they come up out of the floor round him in a puff of dust
 export const MONT_MOOSE = enemyKind(MOOSE, {
-  type: 'montmoose', minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
+  type: 'montmoose', label: 'Mont Moose', reason: 'Tossed by a Mont Moose!', attacks: mooseAttacks('Mont Moose'), minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
   puff: { colors: ['#e0dacd', '#b8b0a0', '#8d877c'], size: 0.45 }, mods: { hp: 0.6, damage: 0.55, xp: 0.15 },
 });
 // small spiders of twigs, poured out of his ball by the dozen

@@ -1180,7 +1180,7 @@ his charge needs room.
   `MonteurStuck`, 2.2 s), his head on the ground, dazed, shaking it; until 1.7 s every blow hurts
   him **double** (`exposed`, a thud and dust: "Monteur crashed! Hit him while he is dazed").
 - **Moose** (within 12 cells, clip `MonteurSummon`, 1.5 s): he rears up on his hind legs and
-  stomps down at 1 s, and plain Moose come up out of the floor round him (`MONT_MOOSE`, in a puff
+  stomps down at 1 s, and Mont Moose (plain Moose, but weaker) come up out of the floor round him (`MONT_MOOSE`, in a puff
   of dust; they toss, charge and club with their tails like any Moose, [combat.md](combat.md)): as
   many as fill up to **two**, every 10 s at most (the first 4 s into the fight).
 - No blow takes him below half his health (`hpFloor`).
