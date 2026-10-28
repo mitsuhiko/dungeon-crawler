@@ -15,11 +15,12 @@ import { applyRagdollPose } from './ragdollpose.js';
 import { stretchStride } from './stride.js';
 import { updateHeld } from './held.js';
 import { W, blend, updateBlend, resetMode } from './blendtree.js';
-import { makeRig, poseRig } from './ik.js';
+import { makeRig, poseRig, shiftRig } from './ik.js';
 import { FIGURE_RIG } from './rigs.js';
 import { groundAt } from '../physics/collide.js';
 import { allEnemies } from '../game/enemies.js';
 import { hoveredEnemy } from '../game/pointer.js';
+import { slidingCubes } from '../game/travel.js';
 
 // learn: animation.html#getup (see learn/README.md)
 const MORPH = 0.3;       // s from the ragdoll pose into the get-up clip
@@ -168,8 +169,20 @@ function holdWeapon(dt, shown, rest) {
 // the ground (not jumping, climbing, swimming, getting up or squashed flat)
 const LOOK_NEAR = 7, aim = new THREE.Vector3();
 const fighting = e => !!e?.profile && e.mode !== 'dead' && e.mode !== 'gone' && !e.under && !e.ghost;
-// (no cube yet, on the main menu: no ground to stand on)
-const groundUnder = (x, z, top) => { if (!state.map) return null; const h = groundAt(x, z, top, 0).h; return h === -Infinity ? null : h; };
+// (no cube yet, on the main menu: no ground to stand on). The feet are in the world's coordinates;
+// while the cubes slide through a portal (game/travel.js) each is drawn moved, the new one first:
+// the ground is in the cube the point is in, where that is drawn
+const HERE = [[null, new THREE.Vector3()]];
+const groundUnder = (x, z, top) => {
+  if (!state.map) return null;
+  for (const [map, o] of slidingCubes() ?? HERE) {
+    const g = groundAt(x - o.x, z - o.z, top - o.y, 0, map ?? state.map);
+    if (g.i >= 0) return g.h === -Infinity ? null : g.h + o.y;
+  }
+  return null;
+};
+// the ground moved under the hero (the cubes sliding through a portal): what the feet hold with it
+export const shiftHeroFeet = (dx, dy, dz) => shiftRig(character.rig, dx, dy, dz);
 function heroFoe(p) {
   if (p.sword.active && fighting(p.sword.target)) return p.sword.target;
   const hovered = hoveredEnemy();
@@ -185,6 +198,8 @@ function heroFoe(p) {
 function heroIK(dt) {
   const ch = character, p = player;
   ch.rig ??= makeRig(ch.model, FIGURE_RIG);
+  // a moving platform carried them (physics/move.js): the feet they stand on go with it
+  if (p.carried.x || p.carried.z) { shiftRig(ch.rig, p.carried.x, 0, p.carried.z); p.carried.x = p.carried.z = 0; }
   const foe = p.hp > 0 && !getUp ? heroFoe(p) : null;
   if (foe) aim.set(foe.x, foe.y + (foe.profile.bodyHeight ?? foe.profile.height) * 0.7, foe.z);
   const stands = p.grounded && !p.swimming && !p.climb && !getUp && !(p.flat > 0) && (blend.mode === 'loco' || blend.mode === 'land');

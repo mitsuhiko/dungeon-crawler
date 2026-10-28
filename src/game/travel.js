@@ -19,6 +19,7 @@ import { setFade } from '../render/fade.js';
 import { setCut } from '../render/section.js';
 import { shiftParticles } from '../render/particles.js';
 import { shiftFloatText } from '../render/floattext.js';
+import { shiftHeroFeet } from '../render/animator.js';
 import { player, state, setStatus } from './state.js';
 import { sfx } from '../audio/sfx.js';
 import { jingle } from '../audio/jingles.js';
@@ -50,6 +51,9 @@ export const truePosition = () => trip ? (trip.last ?? trip.S) : player;
 // { key, group } where that is drawn while the slide carries it away (game/robot.js)
 export const tripKind = () => trip?.kind ?? null;
 export const leftCube = () => trip ? { key: trip.oldKey, group: trip.old.world.group } : null;
+// while sliding, the two cubes as drawn: [[map, offset (world)], ...], the new one first; for what
+// asks the ground under a point of the world (the hero's feet, render/animator.js). Null: none
+export const slidingCubes = () => trip?.cubes ?? null;
 
 // the cube behind the portal may still be generating: wait for it (frozen in the portal).
 // A side portal into a cube not drawn yet gets a cloud to walk onto (render/portalcloud.js).
@@ -104,7 +108,9 @@ function slide(p, c, cloud) {
   const D = new THREE.Vector3(D6[p.dir][0] * N, D6[p.dir][1] * GAP, D6[p.dir][2] * N);
   trip = { t: 0, s: 0, D, kind: p.kind, k, oldKey, old: { world: oldWorld, enemies: detachEnemies(), ghosts: detachNeighbors() },
     S: new THREE.Vector3(player.x, player.y, player.z).sub(D), A: new THREE.Vector3(A.x, A.y, A.z), last: null, motion,
-    drawn: D.clone() };   // the new cube's offset as last drawn (the old one's is that minus D)
+    drawn: D.clone(),   // the new cube's offset as last drawn (the old one's is that minus D)
+    cubes: [[m, off], [oldMap, oldOff]] };
+  off.copy(D); oldOff.set(0, 0, 0);   // (as drawn until the first updateTravel)
   // T: the walk and slide. Into a cube not drawn yet the new cube fades in CLOUD_DELAY later
   // (game/travelfx.js), so the travel lasts that much longer: you wait on the cloud.
   trip.T = p.kind === 'side' ? THREE.MathUtils.clamp(trip.S.distanceTo(trip.A) / 2.2, 0.9, 1.4) : 1.3;
@@ -146,7 +152,8 @@ export function updateTravel(dt) {
   off.copy(trip.D).multiplyScalar(1 - e); oldOff.copy(off).sub(trip.D);
   // what is in the air (sparks, embers, fireflies, numbers) slides with both cubes
   const dx = off.x - trip.drawn.x, dy = off.y - trip.drawn.y, dz = off.z - trip.drawn.z;
-  if (dx || dy || dz) { shiftParticles(dx, dy, dz); shiftFloatText(dx, dy, dz); trip.drawn.copy(off); }
+  // and so does the ground the hero's feet stand on
+  if (dx || dy || dz) { shiftParticles(dx, dy, dz); shiftFloatText(dx, dy, dz); shiftHeroFeet(dx, dy, dz); trip.drawn.copy(off); }
   // the path in the new cube's coordinates: walk straight through, fall, or rise
   const u = trip.kind === 'side' ? t : trip.kind === 'up' ? 1 - (1 - t) ** 2 : t * t;
   const x = trip.S.x + (trip.A.x - trip.S.x) * t, z = trip.S.z + (trip.A.z - trip.S.z) * t, y = trip.S.y + (trip.A.y - trip.S.y) * u;

@@ -93,7 +93,7 @@ import { walkPrints, forgetWalker } from './footprints.js';
 import { slimeAt } from '../game/footsteps.js';
 import { dressEnemy, paintParts } from './enemymodel.js';
 import { findTentacles, shakeTentacles, findShed, hideShed, findBall, turnBall } from './bossbones.js';
-import { makeRig, restoreRig, poseRig } from './ik.js';
+import { makeRig, restoreRig, poseRig, shiftRig } from './ik.js';
 import { RIGS } from './rigs.js';
 import { attackOf, makeEnemy, ENEMY_KINDS } from '../core/enemies.js';
 import { toLinear } from '../core/oklch.js';
@@ -700,6 +700,8 @@ function strikeReach(e) {
 function poseEnemy(v, e, dt, off, alive) {
   const rig = v.rig;
   if (!rig) return;
+  // a platform carried it (a Fire-cat: game/foggery.js): the feet it stands on go with it
+  if (e.carried && (e.carried.x || e.carried.z)) { shiftRig(rig, e.carried.x, 0, e.carried.z); e.carried.x = e.carried.z = 0; }
   const d = Math.hypot(e.x - player.x, e.z - player.z), near = d < IK_NEAR && !off.x && !off.y && !off.z && dt > 0;
   if (!near && !rig.dirty) return;
   const sees = alive && near && !e.ghost && player.hp > 0 && e.mode !== 'split' && e.mode !== 'gone' && !e.under

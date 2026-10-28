@@ -265,7 +265,11 @@ function carry() {
   const decks = moversNow();
   for (const c of cats()) {
     if (c.deck && !decks.includes(c.deck)) offDeck(c);
-    if (c.deck) onDeck(c, c.x + c.deck.dx, c.z + c.deck.dz);
+    if (!c.deck) continue;
+    const x = c.x, z = c.z;
+    onDeck(c, c.x + c.deck.dx, c.z + c.deck.dz);
+    // (and its feet, held where they stand: render/enemies.js poseEnemy)
+    c.carried ??= { x: 0, z: 0 }; c.carried.x += c.x - x; c.carried.z += c.z - z;
   }
 }
 // (its platform gone: onto the floor under it, the lava holding it up)

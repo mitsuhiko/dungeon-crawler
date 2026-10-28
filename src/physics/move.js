@@ -118,7 +118,8 @@ export function movePlayer(dt, dx, dz, run, jump) {
   const p = player;
   if (p.stun > 0) { p.stun -= dt; dx = dz = 0; jump = false; }
   // standing on a moving platform (game/movers.js): it carries us along
-  if (p.grounded && p.support?.mover) { p.x += p.support.dx; p.z += p.support.dz; }
+  // (and their feet, held where they stand: render/animator.js)
+  if (p.grounded && p.support?.mover) { p.x += p.support.dx; p.z += p.support.dz; p.carried.x += p.support.dx; p.carried.z += p.support.dz; }
   if (p.gust) { const k = pushControl(p.gust); dx *= k; dz *= k; }
   if (p.pull) [dx, dz] = steerPulled(dx, dz);
   horizontal(dt, dx, dz, run);

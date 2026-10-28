@@ -141,6 +141,18 @@ export function restoreRig(rig) {
   for (const [b, q, p] of rig.kept) { b.quaternion.copy(q); b.position.copy(p); }
   rig.dirty = false;
 }
+// The ground under a rig moved by (dx, dy, dz) (world) without the rig walking over it (both cubes
+// sliding past the camera in portal travel, game/travel.js; a moving platform carrying it,
+// physics/move.js and game/foggery.js): the feet it holds where they came
+// down (holdFeet) go with the ground, else they stayed behind in the world and every foot
+// stepped after it, its leg stretched out.
+export function shiftRig(rig, dx, dy, dz) {
+  if (!rig) return;
+  _s.set(dx, dy, dz);
+  for (const leg of rig.legs) {
+    leg.lock?.add(_s); leg.goal?.add(_s); leg.step?.from.add(_s);
+  }
+}
 function keep(rig) {
   for (const k of rig.kept) { k[1].copy(k[0].quaternion); k[2].copy(k[0].position); }
   rig.dirty = true;
