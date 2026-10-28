@@ -1,6 +1,6 @@
-import { createInventory, addInstance, addItem, equipItem, assignBar, whole } from './inventory.js';
+import { createInventory, addInstance, addItem, equipItem, wearItem, assignBar, whole } from './inventory.js';
 import { OLD_SWORD, TOWN_PORTAL, ROOM_PORTAL, TOOLS, HEALTH_POTION } from './items.js';
-import { fixedWeapon, rollWeapon } from './gear/generate.js';
+import { fixedWeapon, rollWeapon, rollArmor } from './gear/generate.js';
 import { wornTotals } from './gear/stats.js';
 import { createPotionState } from './potions.js';
 import { createQuestLog } from './quests.js';
@@ -58,7 +58,8 @@ export function xpProgress(p) {
 }
 // a new run: the glassmaker's old sword in hand (armed), the town portal scroll on quick bar slot 1,
 // a few health potions on slot 2 and the room portal scroll on the last slot; with the dev tools
-// (dev: true) also DEV_GOLD gold, an equipped OMG item-level-99 staff and god mode.
+// (dev: true) also DEV_GOLD gold, OMG item-level-99 plate armor, a staff and triple flail,
+// with the staff equipped, both weapons on the quick bar, and god mode.
 // A new hero in the game starts empty-handed
 // (armed: false; core/save.js createHero, game/flow.js): the sword is found in the merchant camp
 // (core/intro.js). The tests' heroes and the dev tools' have it in hand.
@@ -77,12 +78,19 @@ export function carryTools(inventory) {
 export function createPlayerStats(dev = false, { armed = true } = {}) {
   const inventory = createInventory();
   if (dev) addItem(inventory, 'item_coin_gold', DEV_GOLD);
-  if (dev) equipItem(inventory, addInstance(inventory, rollWeapon(() => .5, 99, { itemId: 'weapon_staff_arcane', rarity: 'omg' })));
-  else if (armed) equipItem(inventory, addInstance(inventory, fixedWeapon(OLD_SWORD.id)));
+  if (dev) {
+    const staff = addInstance(inventory, rollWeapon(() => .5, 99, { itemId: 'weapon_staff_arcane', rarity: 'omg' }));
+    const flail = addInstance(inventory, rollWeapon(() => .5, 99, { itemId: 'weapon_flail_triple', rarity: 'omg' }));
+    equipItem(inventory, staff);
+    assignBar(inventory, 2, staff); assignBar(inventory, 3, flail);
+    for (const itemId of ['armor_head_great', 'armor_body_plate', 'armor_shield_tower', 'armor_feet_greaves'])
+      wearItem(inventory, addInstance(inventory, rollArmor(() => .5, 99, { itemId, rarity: 'omg' })));
+  } else if (armed) equipItem(inventory, addInstance(inventory, fixedWeapon(OLD_SWORD.id)));
   carryTools(inventory);
   addItem(inventory, HEALTH_POTION.id, START_POTIONS);
   assignBar(inventory, 1, inventory.slots.find(s => s?.itemId === HEALTH_POTION.id).instanceId);
-  return { xp: 0, level: 1, maxHp: maxHealth(1), hp: maxHealth(1), god: dev, lastDamageAt: -Infinity, toxic: null, ...createPotionState(), inventory };
+  const hp = fullHealth(1, inventory);
+  return { xp: 0, level: 1, maxHp: hp, hp, god: dev, lastDamageAt: -Infinity, toxic: null, ...createPotionState(), inventory };
 }
 // defeated: enemy IDs; loot: cube key -> pickups lying there (game/loot.js); chests: the reward
 // sites whose chests are open (game/chests.js); townPortal: the open town portal, if any

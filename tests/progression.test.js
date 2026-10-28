@@ -5,10 +5,10 @@ import { resolve } from 'node:path';
 import { assetsRoot } from './paths.js';
 import { ITEMS, WEAPONS, OLD_SWORD, COINS, TOWN_PORTAL, ROOM_PORTAL, HEALTH_POTION, isMelee } from '../src/core/items.js';
 import { createInventory, addItem, addInstance, removeItem, takeItem, equipItem, equippedItem, addCopper, spendCopper, copperTotal, coinCounts,
-  assignBar, autoBar, barEntry, barIndexOf, BAR_SIZE } from '../src/core/inventory.js';
+  assignBar, autoBar, barEntry, barIndexOf, BAR_SIZE, wornItem } from '../src/core/inventory.js';
 import { fixedWeapon } from '../src/core/gear/generate.js';
 import { createPlayerStats, carryTools, createRun, xpForLevel, xpToNext, levelFromXP, xpProgress, xpScale, awardXP, awardKill, takeDamage, regenerate,
-  levelDamage, maxHealth, START_POTIONS, DEV_GOLD } from '../src/core/progression.js';
+  levelDamage, maxHealth, fullHealth, START_POTIONS, DEV_GOLD } from '../src/core/progression.js';
 import { drinkPotion, tickEffects } from '../src/core/potions.js';
 import { SPIDER, STUNDER, enemyProfile, enemyRoll, makeEnemy, coinRange, depthLevel } from '../src/core/enemies.js';
 import { itemStats } from '../src/core/gear/stats.js';
@@ -42,17 +42,33 @@ test("a new player has the glassmaker's old sword equipped, the scrolls and a fe
   assert.equal(equippedItem(bare.inventory), null);
   assert.deepEqual(bare.inventory.slots.filter(Boolean).map(s => s.itemId), [TOWN_PORTAL.id, ROOM_PORTAL.id, HEALTH_POTION.id]);
 });
-test('developer heroes start invincible with an equipped OMG level-99 staff, normal heroes do not', () => {
-  for(const armed of [true,false]){
-    const dev=createPlayerStats(true,{armed}),staff=equippedItem(dev.inventory);
-    assert.equal(dev.god,true);
-    assert.equal(ITEMS[staff.itemId].weapon.kind,'staff');
-    assert.equal(staff.gen.rarity,'omg');assert.equal(staff.gen.ilvl,99);
-    const hp=dev.hp;takeDamage(dev,1e9,10);assert.equal(dev.hp,hp);
-    dev.god=false;takeDamage(dev,1,11);assert.equal(dev.hp,hp-1);
+test('developer heroes start with OMG level-99 armor, staff and triple flail, normal heroes do not', () => {
+  for (const armed of [true, false]) {
+    const dev = createPlayerStats(true, { armed }), inv = dev.inventory, staff = equippedItem(inv);
+    assert.equal(dev.god, true);
+    assert.equal(staff.itemId, 'weapon_staff_arcane');
+    const flail = inv.slots.find(s => s?.itemId === 'weapon_flail_triple');
+    const armor = ['head', 'body', 'shield', 'feet'].map(slot => wornItem(inv, slot));
+    assert.deepEqual(armor.map(s => s.itemId), ['armor_head_great', 'armor_body_plate', 'armor_shield_tower', 'armor_feet_greaves']);
+    for (const item of [staff, flail, ...armor]) {
+      assert.equal(item.gen.rarity, 'omg'); assert.equal(item.gen.ilvl, 99);
+      assert.ok(item.gen.affixes.length > 0, 'ordinary generated gear, not bare item definitions');
+      assert.equal(inv.slots.filter(s => s?.itemId === item.itemId).length, 1);
+    }
+    assert.equal(ITEMS[flail.itemId].weapon.balls, 3);
+    assert.equal(barEntry(inv, 2).slot, staff); assert.equal(barEntry(inv, 3).slot, flail);
+    assert.ok(equipItem(inv, flail.instanceId)); assert.equal(equippedItem(inv), flail);
+    assert.ok(equipItem(inv, staff.instanceId));
+    assert.equal(dev.level, 1, 'item level is not hero level');
+    assert.equal(dev.maxHp, fullHealth(1, inv)); assert.equal(dev.hp, dev.maxHp);
+    const hp = dev.hp; takeDamage(dev, 1e9, 10); assert.equal(dev.hp, hp);
+    dev.god = false; takeDamage(dev, 1, 11); assert.equal(dev.hp, hp - 1);
   }
-  const normal=createPlayerStats();assert.equal(normal.god,false);
-  assert.equal(equippedItem(normal.inventory).itemId,OLD_SWORD.id);
+  const normal = createPlayerStats();
+  assert.equal(normal.god, false);
+  assert.equal(equippedItem(normal.inventory).itemId, OLD_SWORD.id);
+  assert.ok(Object.values(normal.inventory.worn).every(id => id === null));
+  assert.ok(!normal.inventory.slots.some(s => s?.gen?.rarity === 'omg'));
 });
 
 test('the portal scrolls are bound: they never leave the bag and never stack', () => {
