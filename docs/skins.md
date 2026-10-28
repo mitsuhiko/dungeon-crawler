@@ -47,6 +47,27 @@ Blender -b blender/character.blend --python blender/skin_ninjajavamc.py
 node --test tests/skinsecret.test.js
 ```
 
+## Hidden Technoblade skin
+
+Type the complete code `:technoblade` (including the colon) into **Skin name** in the painter.
+It loads the bundled pink pig-king skin automatically; click **Save Skin** to keep and wear it.
+Typing `Technoblade` without the colon is just a normal skin name. The existing
+`:ninjajavamc` code still works, and neither secret code can be overwritten by a saved painting.
+
+The user's reference is adapted onto the unchanged rounded hero: a pink face with snout and
+nostrils, jeweled gold crown, red royal coat, white trim, gold buttons, dark chain-patterned
+trousers and black boots. The crown is painted, not an extra mesh. The private screenshot is
+not shipped or loaded by the game; the authored PNG is lazy-loaded only when the code is used.
+
+Im Skin-Editor bei **Skin-Name** den vollständigen Code `:technoblade` mit Doppelpunkt
+eingeben. Der rosa Schweinekönig mit Krone und rotem Mantel wird geladen. Anschließend
+**Skin speichern** wählen. Ohne Doppelpunkt ist Technoblade nur ein normaler Skin-Name.
+
+```sh
+Blender -b blender/character.blend --python blender/skin_technoblade.py
+node --test tests/technoblade.test.js tests/skinsecret.test.js
+```
+
 ## UV asset
 
 `blender/character_uv.py` runs after decimation in `blender/character.py`. It separates the

@@ -664,6 +664,7 @@ export default {
   'Enter a skin name first.': 'Gib zuerst einen Namen für den Skin ein.',
   'Loading a skin will replace your unsaved painting. Continue?': 'Wenn du einen Skin lädst, wird dein ungespeichertes Bild ersetzt. Weiter?',
   'Loading secret skin …': 'Geheimer Skin wird geladen …',
+  'Easter egg unlocked: Technoblade! Choose Save Skin to keep it.': 'Osterei gefunden: Technoblade! Wähl Skin speichern, um ihn zu behalten.',
   'Easter egg unlocked: Ninjajavamc! Choose Save Skin to keep it.': 'Osterei gefunden: Ninjajavamc! Wähl Skin speichern, um ihn zu behalten.',
   'Could not load the secret skin. Try again with Enter.': 'Der geheime Skin ließ sich nicht laden. Versuch es noch mal mit Enter.',
   'Unsaved changes': 'Ungespeicherte Änderungen',

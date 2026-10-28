@@ -59,7 +59,7 @@ def paint(points):
     return colors
 
 
-def bake(mesh):
+def bake(mesh, paint_fn=paint):
     assert mesh.get("skin_uv_version") == UV_VERSION, "Unexpected SkinUV version"
     data = mesh.data
     data.calc_loop_triangles()
@@ -85,7 +85,7 @@ def bake(mesh):
         inside = (wa >= -1e-8) & (wb >= -1e-8) & (wc >= -1e-8)
         points = wa[inside, None]*positions[0] + wb[inside, None]*positions[1] + wc[inside, None]*positions[2]
         px, py = xx.ravel()[inside], yy.ravel()[inside]
-        pixels[py, px, :3] = paint(points)
+        pixels[py, px, :3] = paint_fn(points)
         pixels[py, px, 3] = 255
     # Four texels of nearest-neighbour padding, strictly outside the original islands.
     for _ in range(4):
