@@ -41,7 +41,10 @@ test('typing finds items by name, by word starts, by id and by letters', () => {
   assert.equal(best('item_potion_antidote'), 'item_potion_antidote');
   assert.equal(best('grsw'), 'weapon_sword_greatsword');         // letters in order, from the first
   assert.equal(score('xyzzy', { value: 'item_coin_gold', label: 'Gold' }), -1);
-  assert.equal(score('gold', { value: 'item_coin_gold', label: 'Gold' }), 100);
+  assert.equal(score('gold', { value: 'item_coin_gold', label: 'Gold' }), 95);
+  assert.equal(score('coin_gold', { value: 'item_coin_gold', label: 'Gold' }), 100);
+  // two of one name: the one whose id it is (the Moose, not the Monteur's moose 'montmoose')
+  assert.equal(pick('moose', [{ value: 'moose', label: 'Moose' }, { value: 'montmoose', label: 'Moose' }]).item.value, 'moose');
   assert.equal(score('', { value: 'a', label: 'A' }), 1);         // nothing typed: everything, in order
   // the better fit first, then the shorter name, then the order of the list
   const list = match('long', items).map(i => i.label);

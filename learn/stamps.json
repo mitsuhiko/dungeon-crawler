@@ -22,7 +22,7 @@
     "src/core/commands.js#match": "3780cb3c",
     "src/core/commands.js#parse": "49ee0119",
     "src/core/commands.js#pick": "c2842a2b",
-    "src/core/commands.js#score": "3686919d",
+    "src/core/commands.js#score": "dc8536c5",
     "src/core/commands.js#words": "91dbcb79",
     "src/core/constants.js#BRAKE": "3d173662",
     "src/core/constants.js#CHAR_H": "25dd6eaf",

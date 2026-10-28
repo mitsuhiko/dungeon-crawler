@@ -67,7 +67,8 @@ function inOrder(q, s) {
   return j === q.length;
 }
 
-// How well what was typed (q) fits a candidate { value, label }: 100 the very one, 80 the name
+// How well what was typed (q) fits a candidate { value, label }: 100 the very id (with or without
+// its prefix), 95 the very name (two kinds may share one), 80 the name
 // starts with it, 60 every typed word starts a word of the name (in order), 55 ... of the id,
 // 50 the id starts with it, 30 its letters come in this order from the first one on, 20 in
 // this order anywhere; -1: not at all.
@@ -76,7 +77,8 @@ export function score(q, { value, label = value }) {
   q = q.trim().toLowerCase();
   if (!q) return 1;
   const name = label.toLowerCase(), id = String(value).toLowerCase(), short = id.replace(PREFIX, '');
-  if (q === name || q === id || q === short) return 100;
+  if (q === id || q === short) return 100;
+  if (q === name) return 95;
   if (name.startsWith(q)) return 80;
   const typed = split(q);
   if (wordsStart(typed, split(name))) return 60;
