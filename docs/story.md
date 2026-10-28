@@ -5,7 +5,7 @@ beginning in the town and the robot coming and following (below) are built. This
 earlier story (an old Glassmaker woman whose memories were the cubes). The narrator's lines of that
 story are gone: what it says now (`src/core/narration.js`, `src/game/narrator.js`,
 [narration.md](narration.md)) are the glassmaker's recordings (the beginning's, and his glass in
-the depths that have a boss: "His glass in the depths" below) and the robot (its hello, and from
+the depths, down to the one above the core: "His glass in the depths" below) and the robot (its hello, and from
 then on what it sees: "What the robot says" below). Complements [world.md](world.md),
 [bosses.md](bosses.md), [quests.md](quests.md), [saves.md](saves.md), [online.md](online.md) and
 [i18n.md](i18n.md).
@@ -171,8 +171,10 @@ Still open:
 
 ## His glass in the depths
 
-Built for the depths that have a boss (`core/glass.js`, `world/spots.js`, `game/intro.js`): the
-road out of town (0), the sky (1 to 6) and the bottom of act II (13). Each such depth has a
+Built for every depth but the core (`core/glass.js`, `world/spots.js`, `game/intro.js`): the road
+out of town (0), the sky (1 to 6), act II (7 to 13) and act III (14 to 19); acts II and III are a
+first sketch, apart from the bottom of act II (13). The core's (20) is the ending's last recording,
+still to come. Each depth has a
 **chapter** of the before time, three recordings of about four lines, and a world places two of
 the three (from its seed): one **on the way**, in a room of the route about halfway along, and one
 **hidden**, in the hardest room of the depth to get to (a branch, high up, behind a guardian). So
@@ -190,10 +192,11 @@ rest. Now and then one touches on its depth sideways (a glassmaker's breath wher
 in, star-readers who never light a fire where Totnar brings the dark, a tide trapped in glass where
 Squarlo calls his, the ark turning where Flip turns his box, glass that minds heat over Foggery's
 lava, a day he would keep where Renew turns time back, a face behind a cloth where Mansk is a mask,
-comets still falling at night where Slomo's meteorites do).
+comets still falling at night where Slomo's meteorites do, the ground standing up where Monteur
+pulls mountains out of the floor, crystals, threads like a spider's, old bones, a buried town and
+rock that runs like syrup where act III's caves may be).
 
-The chapters, in the order of the depths (the depths between, 7 to 12, are left for the voyage
-with the creature aboard; act III for the core):
+The chapters, in the order of the depths:
 
 | Depth | Chapter | The three recordings |
 |---|---|---|
@@ -204,7 +207,19 @@ with the creature aboard; act III for the core):
 | 4 | tending the glass aboard | `furnace` (a small furnace in the hold; star-glass minds heat), `rigging` (every morning up the rigging; a cracked pane sounds high and thin), `cracks` (a crack is not a break; do not be afraid of them) |
 | 5 | days on the ark | `one-day` (the day he would keep if he could; glass only keeps), `clockworks` (the star-readers' winged clockworks, four glass feathers a side, good at finding people: the robot is never named), `evenings` (the sun going down below them; nobody spoke of the stone) |
 | 6 | the creature brought on board | `cloth` (one more thing under a cloth, put next to his furnace), `face` (the cloth slipped: a face that looked at him the way people look; he said he was sorry), `jar` (every evening a jar filled in the hold, humming; the pieces shone brighter; he did not ask) |
+| 7 | the creature learns to speak | `hum` (it hummed along with his furnace, and answered), `words` (its first word was hot; it learned faster than any apprentice, in his voice almost), `mountain` (it asked what a mountain was: the ground, standing up to look at the sky) |
+| 8 | the star-readers' worry | `charts` (the marks on their charts drifted apart; the lines of light grew thin; the jar went down more often), `lantern` (the oldest star-reader grew tired and gave him her lantern, a light that is not a fire), `quarrel` (the smiths wanted the thing off the ark; nobody asked it, or him) |
+| 9 | its questions | `why` (why was it kept in the dark? needed, by whom?), `hatch` (he opened the hatch an inch to show it the stars; it kept still all night), `left-open` (he left it open every night; eleven stars through an inch of sky) |
+| 10 | the smiths, and the cold | `boilers` (the boilers her hearts; an anvil ringing across the pieces), `songs` (the smiths' work songs, which it learned and hummed back, and they stopped singing), `frost` (frost on the wings every night; he scraped a thousand feathers every morning) |
+| 11 | a glass bird for the creature | `little-bird` (he blew it a little bird, like the children's; could glass fly?), `cage` (it kept the bird by its face and looked at its wings for a long time), `fond` (the oldest star-reader told him not to grow fond of it; too late) |
+| 12 | the last calm night | `calm` (the calmest night, everyone on deck, something coming), `promise` (it asked him never to leave it alone in the dark; it has kept him to it), `counted` (he counted the pieces, the last time he saw them all) |
 | 13 | the comet shower and the fall | `shower` (small comets at night, beautiful, then the wing; some still fall), `wings-broke` (the whole sky sounded like a cracked pane; the pieces drifted off like lanterns let go), `bottom` (they fell below everything into something soft; the cage was empty; something in the dark said his name, learned from him) |
+| 14 | waking in the dark | `hull` (he woke in the hull; the boilers still; only his own voice came back), `only-light` (his little furnace, the only light down there), `crystals` (walls glittering with crystals, grown from the glass that fell, a kind of company) |
+| 15 | its voice in the dark | `voice` (it speaks in a voice like his, always polite; it never hurts him, only will not let him go), `walls` (it moves along the walls on long soft arms, hangs threads like a spider), `bargain` (it wants him to build it wings; he said yes too quickly) |
+| 16 | the others | `lanterns-low` (only their lanterns in the hull; he chooses to think they climbed out), `bones` (old bones of things that fell long before them), `names` (he says their names to his furnace each night; names do not keep in glass) |
+| 17 | building it wings | `ruins` (a buried town; he takes glass from its windows and says sorry to the houses), `wings-again` (wings again, each feather given a little of his breath), `slowly` (he works slowly, not knowing what becomes of him after) |
+| 18 | his bubbles of glass | `first-bubble` (the first was an accident; hundreds since), `fire-below` (the rock runs like syrup below the hull; his bubbles must rise fast), `who-hears` (he never knows where they land; thank you for listening) |
+| 19 | nearly finished | `nearly` (the thing he builds nearly done, like the children's birds), `afraid` (it is afraid of the dark too; two old prisoners by one small fire), `find-me` (some of his glass does not rise far: if you found this deep down, you are close; find me) |
 
 ## What the robot says
 
@@ -217,8 +232,9 @@ boss's fight or after a death; only the story's scenes, a depth, an arena, a bos
 wait), and what comes while it keeps quiet is not said (it may come another time). Every line once in a world; what happens again and again (a death, a chest, standing about)
 is said in another order in every world (`shuffle`), so playing again brings other lines.
 
-- **A depth reached** (the boss depths), **a theme's first place** (the first act's and the slime
-  marsh), **wandering** about a place not seen before (the sky, and depth 13).
+- **A depth reached** (every one, down to the core), **a theme's first place** (every theme),
+  **wandering** about a place not seen before (the sky, the caves of act II, the deep, the core).
+  Acts II and III are a first sketch.
 - **An enemy of a new kind** coming after the hero: what it is and how to beat it.
 - **A boss's arena**: what it sees and the one thing to remember (Gusto's wide arms, the hills
   that stay dry of Squarlo's tide, climbing ahead of Foggery's lava ...); **in the fight** a short

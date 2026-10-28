@@ -4,8 +4,8 @@ Status: the pipeline and the narrator are built. The lines ([story.md](story.md)
 ahead into audio files with a text-to-speech model, and the game plays them as things happen, one
 after the other, with subtitles (`src/game/narrator.js`, "In the game" below). The lines so far are
 the glassmaker's recordings (`RECORDINGS`: the beginning's, the glass on the town plaza and the
-glass in the merchant camp, story.md "The beginning"; and his glass in the depths that have a
-boss, a chapter a depth, story.md "His glass in the depths"), in the `glassmaker` voice, worn like
+glass in the merchant camp, story.md "The beginning"; and his glass in the depths, a chapter a
+depth down to the one above the core, story.md "His glass in the depths"), in the `glassmaker` voice, worn like
 an old recording, which the inventory's Memories tab plays again ("The memories" below); and the
 robot's, in its own voice, from its hello on (story.md "What the robot says"). His recordings
 only ever come out of his glass: one plays when its bubble is found, never for coming somewhere or

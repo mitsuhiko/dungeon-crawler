@@ -167,7 +167,7 @@ test('his glass in the depths: two of each depth\'s three, one on the way, one h
     assert.ok(at.every(p => pool.includes(p)));
     assert.deepEqual(glassAt(seed, Number(d)), at, 'from the seed alone');
   }
-  assert.deepEqual(glassAt(1, 7), [], 'none where there is no chapter yet');
+  assert.deepEqual(glassAt(1, 20), [], 'none at the core: its last recording is the ending\'s');
   const seen = new Set(Array.from({ length: 40 }, (_, s) => glassAt(s, 0).join()));
   assert.ok(seen.size > 2, 'worlds place different ones');
   const map = { spots: [{ kind: 'hide', depth: 1 }, { kind: 'glass', depth: 1, glass: 0, anchor: {} }, { kind: 'glass', depth: 1, glass: 1, anchor: {} }] };

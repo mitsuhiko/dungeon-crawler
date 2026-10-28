@@ -6,14 +6,15 @@
 //
 // Each depth that has glass has a chapter of his story: three recordings of the same time
 // (GLASS), told in the order of the depths, the before time from the top down (act I: his craft,
-// the star-readers, the closing of the glass, the ark, its days, the creature; the bottom of
-// act II: the comet shower and the fall). A world places two of each depth's three (glassAt): one
+// the star-readers, the closing of the glass, the ark, its days, the creature; act II: the voyage
+// with the creature aboard, down to the comet shower and the fall at its bottom; act III: down at
+// the core, held by it). A world places two of each depth's three (glassAt): one
 // on the way (`way`, easy to come across), one hidden off it (high up, down a branch, behind a
 // guardian). So one world tells part of each chapter, and another world more of it: the
 // recordings of a chapter each stand on their own, and say what matters most first.
 //
-// So far the depths with a boss of their own (core/bosses.js BOSSES): the road out of town (0), the
-// sky (1 to 6) and the bottom of act II (13). Their chapters go on in the depths between, later.
+// Every depth has one but the core (20), whose last recording is the ending's (docs/story.md, "The
+// ending"), still to come. Act II's and act III's chapters are a first sketch.
 import { hash32, mulberry32 } from './util.js';
 
 // depth -> its chapter's recordings (RECORDINGS ids), in the story's order
@@ -25,7 +26,21 @@ export const GLASS = Object.freeze({
   4: ['furnace', 'rigging', 'cracks'],          // tending the glass on the ark
   5: ['one-day', 'clockworks', 'evenings'],     // days on the ark
   6: ['cloth', 'face', 'jar'],                  // the creature brought on board
+  // act II: the voyage, with the creature aboard (a sketch)
+  7: ['hum', 'words', 'mountain'],              // the creature learns to speak
+  8: ['charts', 'lantern', 'quarrel'],          // the star-readers' worry
+  9: ['why', 'hatch', 'left-open'],             // its questions
+  10: ['boilers', 'songs', 'frost'],            // the smiths, and the cold
+  11: ['little-bird', 'cage', 'fond'],          // a glass bird for the creature
+  12: ['calm', 'promise', 'counted'],           // the last calm night
   13: ['shower', 'wings-broke', 'bottom'],      // the comet shower and the fall
+  // act III: down at the core, held (a sketch; the core itself, 20, is the ending's, still to come)
+  14: ['hull', 'only-light', 'crystals'],       // waking in the dark
+  15: ['voice', 'walls', 'bargain'],            // its voice in the dark
+  16: ['lanterns-low', 'bones', 'names'],       // the others
+  17: ['ruins', 'wings-again', 'slowly'],       // building it wings
+  18: ['first-bubble', 'fire-below', 'who-hears'],   // his bubbles of glass
+  19: ['nearly', 'afraid', 'find-me'],          // nearly finished
 });
 export const PER_DEPTH = 2;   // glasses placed at a depth: one on the way, one hidden
 export const glassDepth = d => Object.hasOwn(GLASS, d);

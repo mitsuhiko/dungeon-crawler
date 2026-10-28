@@ -62,6 +62,43 @@ export default {
   'The comet shower': 'Der Kometenschauer',
   'The wings': 'Die Flügel',
   'Something soft and dark': 'Etwas Weiches, Dunkles',
+  // (acts II and III: a sketch)
+  "It hummed back": "Es summte zurück",
+  "Its first words": "Seine ersten Worte",
+  "The ground, standing up": "Der Boden, der aufsteht",
+  "Drifting, a little": "Ein wenig auseinander",
+  "Her lantern": "Ihre Laterne",
+  "Voices on deck": "Stimmen an Deck",
+  "Why it was kept": "Warum es gefangen war",
+  "An inch of sky": "Ein Fingerbreit Himmel",
+  "Left open": "Offen gelassen",
+  "Brass hearts": "Herzen aus Messing",
+  "Work songs": "Arbeitslieder",
+  "Frost on the feathers": "Reif auf den Federn",
+  "A little bird": "Ein kleiner Vogel",
+  "In its cage": "In seinem Käfig",
+  "Do not grow fond": "Häng dein Herz nicht daran",
+  "The last calm night": "Die letzte ruhige Nacht",
+  "A promise": "Ein Versprechen",
+  "All of them": "Alle zusammen",
+  "Waking in the hull": "Erwachen im Rumpf",
+  "The only light": "Das einzige Licht",
+  "Walls that glitter": "Wände, die glitzern",
+  "A voice like mine": "Eine Stimme wie meine",
+  "Along the walls": "An den Wänden entlang",
+  "A bargain": "Ein Handel",
+  "Lanterns in the hull": "Laternen im Rumpf",
+  "Older than us": "Älter als wir",
+  "Their names": "Ihre Namen",
+  "A town that fell": "Eine Stadt, die fiel",
+  "Wings again": "Wieder Flügel",
+  "Slowly": "Langsam",
+  "The first bubble": "Die erste Blase",
+  "Fire below": "Feuer darunter",
+  "Who hears them": "Wer sie hört",
+  "Nearly finished": "Fast fertig",
+  "Afraid of the dark": "Angst vor dem Dunkel",
+  "Find me": "Finde mich",
 
   // the road out of town: his craft
   'Every glass begins as a breath. Mine have, for forty years.':
@@ -238,6 +275,115 @@ export default {
     'Ich habe nicht gefragt. Damals dachte ich, das Fragen stehe mir nicht zu.',
   'Down here, I have had a long time to think of all the questions I did not ask.':
     'Hier unten hatte ich viel Zeit, an all die Fragen zu denken, die ich nicht gestellt habe.',
+  // act II, depths 7 to 12: the voyage, with the creature aboard (a sketch)
+  "At night I kept my furnace low, and the thing in the hold hummed along with it.":
+    "Nachts hielt ich meinen Ofen klein, und das Ding im Bauch der Arche summte mit ihm.",
+  "I hummed back, to see what it would do. It answered, a little higher.":
+    "Ich summte zurück, um zu sehen, was es tun würde. Es antwortete, ein wenig höher.",
+  "After that we hummed every night. The smiths thought I had gone strange.":
+    "Danach summten wir jede Nacht. Die Schmiede dachten, ich sei sonderbar geworden.",
+  "The first word it learned from me was hot. I said it every time I opened the furnace.":
+    "Das erste Wort, das es von mir lernte, war heiß. Ich sagte es jedes Mal, wenn ich den Ofen öffnete.",
+  "Then glass, and sorry, and night. It learned faster than any apprentice I ever had.":
+    "Dann Glas, und Entschuldigung, und Nacht. Es lernte schneller als jeder Lehrling, den ich je hatte.",
+  "It said them in my voice, almost. That frightened me more than its face had.":
+    "Es sagte sie fast mit meiner Stimme. Das machte mir mehr Angst als sein Gesicht.",
+  "One night it asked me what a mountain was. It had never seen the ground from above.":
+    "Eines Nachts fragte es mich, was ein Berg ist. Es hatte den Boden nie von oben gesehen.",
+  "I told it a mountain is the ground, standing up to look at the sky.":
+    "Ich sagte ihm, ein Berg ist der Boden, der aufsteht, um den Himmel anzusehen.",
+  "It liked that. It asked for the mountain again every night, the way a child asks for a story.":
+    "Das gefiel ihm. Jede Nacht wollte es den Berg wieder hören, so wie ein Kind nach einer Geschichte fragt.",
+  "Every night the star-readers marked the pieces on their charts. Every night the marks were a little further apart.":
+    "Jede Nacht zeichneten die Sternleser die Stücke in ihre Karten. Jede Nacht lagen die Zeichen ein wenig weiter auseinander.",
+  "The lines of light still held them, but they grew thin. I could see the stars through them.":
+    "Die Fäden aus Licht hielten sie noch, aber sie wurden dünn. Ich konnte die Sterne durch sie sehen.",
+  "So they went down with their jar more often. The humming in the hold grew quieter.":
+    "Also gingen sie öfter mit ihrem Krug hinunter. Das Summen im Bauch der Arche wurde leiser.",
+  "The oldest star-reader grew tired up there. She slept through the nights, and missed the stars.":
+    "Die älteste Sternleserin wurde müde dort oben. Sie verschlief die Nächte und verpasste die Sterne.",
+  "One evening she gave me her lantern. She said a glassmaker should have one light that is not a fire.":
+    "Eines Abends gab sie mir ihre Laterne. Sie sagte, ein Glasmacher sollte ein Licht haben, das kein Feuer ist.",
+  "I have it still, down here. It is the only light I do not have to feed.":
+    "Ich habe sie noch, hier unten. Es ist das einzige Licht, das ich nicht füttern muss.",
+  "The smiths wanted the thing put off the ark. The star-readers said we would fall without what it made.":
+    "Die Schmiede wollten das Ding von der Arche haben. Die Sternleser sagten, ohne das, was es machte, würden wir fallen.",
+  "They quarrelled on deck at night, loud enough to wake the pieces.":
+    "Nachts stritten sie an Deck, laut genug, um die Stücke zu wecken.",
+  "Nobody asked the thing what it wanted. Nobody asked me, either.":
+    "Niemand fragte das Ding, was es wollte. Mich fragte auch niemand.",
+  "Once it had words enough, it asked me why it was kept in the dark.":
+    "Als es genug Worte hatte, fragte es mich, warum es im Dunkeln gehalten wurde.",
+  "I said it was needed, and it asked: by whom? I had no answer I liked.":
+    "Ich sagte, es werde gebraucht, und es fragte: von wem? Ich hatte keine Antwort, die mir gefiel.",
+  "I thought about that question all night, at the furnace. I am still thinking about it.":
+    "Ich dachte die ganze Nacht über diese Frage nach, am Ofen. Ich denke noch immer darüber nach.",
+  "It asked to see the stars, just once. It had heard us talk about them every night.":
+    "Es bat darum, die Sterne zu sehen, nur ein einziges Mal. Es hatte uns jede Nacht von ihnen reden hören.",
+  "So I opened the hatch over the hold an inch, no more. Starlight fell in, a thin white line.":
+    "Also öffnete ich die Luke über dem Bauch der Arche einen Fingerbreit, nicht mehr. Sternenlicht fiel herein, ein dünner weißer Strich.",
+  "It did not move all night. I have never seen anything keep so still.":
+    "Es rührte sich die ganze Nacht nicht. Ich habe nie etwas so still gesehen.",
+  "After that I left the hatch open a little every night. Nobody noticed, or nobody said.":
+    "Danach ließ ich die Luke jede Nacht ein wenig offen. Niemand merkte es, oder niemand sagte etwas.",
+  "It counted the stars it could see. Eleven, through an inch of sky.":
+    "Es zählte die Sterne, die es sehen konnte. Elf, durch einen Fingerbreit Himmel.",
+  "Sometimes I wonder whether I should have opened it wider. Or not at all.":
+    "Manchmal frage ich mich, ob ich sie weiter hätte öffnen sollen. Oder gar nicht.",
+  "The smiths fed the ark's boilers day and night. They called them her hearts.":
+    "Die Schmiede heizten die Kessel der Arche Tag und Nacht. Sie nannten sie ihre Herzen.",
+  "Even up there they had an anvil. You could hear it ring out across the pieces.":
+    "Sogar dort oben hatten sie einen Amboss. Man hörte ihn über alle Stücke hinweg klingen.",
+  "Brass or glass, which is harder to work? We argued about it every evening, and both of us were wrong.":
+    "Messing oder Glas, was ist schwerer zu bearbeiten? Wir stritten jeden Abend darüber, und wir lagen beide falsch.",
+  "The smiths sang while they worked, slow songs in time with the hammer.":
+    "Die Schmiede sangen bei der Arbeit, langsame Lieder im Takt des Hammers.",
+  "The thing in the hold learned their songs too. It hummed them back, a little out of time.":
+    "Das Ding im Bauch der Arche lernte auch ihre Lieder. Es summte sie zurück, ein wenig aus dem Takt.",
+  "When the smiths heard it, they stopped singing. I never heard those songs again.":
+    "Als die Schmiede es hörten, hörten sie auf zu singen. Ich habe diese Lieder nie wieder gehört.",
+  "High up it was cold, colder than any winter at home. Frost grew on the wings every night.":
+    "Hoch oben war es kalt, kälter als jeder Winter daheim. Jede Nacht wuchs Reif auf den Flügeln.",
+  "Every morning I scraped the feathers clean, one by one, before the sun could crack them.":
+    "Jeden Morgen kratzte ich die Federn frei, eine nach der anderen, bevor die Sonne sie springen lassen konnte.",
+  "A thousand feathers, every morning. I knew each one by its sound.":
+    "Tausend Federn, jeden Morgen. Ich kannte jede an ihrem Klang.",
+  "One night I blew a little glass bird for it, like the ones I made for the children at my window.":
+    "Eines Nachts blies ich ihm einen kleinen Vogel aus Glas, wie die, die ich für die Kinder an meinem Fenster gemacht hatte.",
+  "I passed it through the bars. It held the bird the way you hold something that might fly away.":
+    "Ich reichte ihn durch die Gitter. Es hielt den Vogel, wie man etwas hält, das davonfliegen könnte.",
+  "It asked me whether glass could fly. I said only if you make it want to.":
+    "Es fragte mich, ob Glas fliegen kann. Ich sagte, nur wenn man es dazu bringt, dass es fliegen will.",
+  "It kept the bird close to its face, and hummed to it.":
+    "Es hielt den Vogel dicht an sein Gesicht und summte ihm etwas vor.",
+  "When the hold was dark, the bird caught the last of my furnace light.":
+    "Wenn es im Bauch der Arche dunkel war, fing der Vogel das letzte Licht meines Ofens ein.",
+  "It turned the bird round and round, and looked at its wings for a long time.":
+    "Es drehte den Vogel immer wieder hin und her und betrachtete lange seine Flügel.",
+  "The oldest star-reader saw the bird. She told me not to grow fond of the thing.":
+    "Die älteste Sternleserin sah den Vogel. Sie sagte, ich solle mein Herz nicht an das Ding hängen.",
+  "I told her it was too late for that. She did not smile.":
+    "Ich sagte ihr, dafür sei es zu spät. Sie lächelte nicht.",
+  "I think she knew something I did not. I wish I had asked her what.":
+    "Ich glaube, sie wusste etwas, das ich nicht wusste. Hätte ich sie doch gefragt, was.",
+  "The night before the comets was the calmest of all. No wind, no quarrels, only the boilers breathing.":
+    "Die Nacht vor den Kometen war die ruhigste von allen. Kein Wind, kein Streit, nur das Atmen der Kessel.",
+  "Everyone was on deck, even the oldest star-reader. Nobody said why.":
+    "Alle waren an Deck, sogar die älteste Sternleserin. Niemand sagte, warum.",
+  "I think we all felt something coming. We just did not know which way to look.":
+    "Ich glaube, wir alle spürten, dass etwas kam. Wir wussten nur nicht, wohin wir schauen sollten.",
+  "That night it asked me to promise one thing: never to leave it alone in the dark.":
+    "In jener Nacht bat es mich, ihm eines zu versprechen: es nie allein im Dunkeln zu lassen.",
+  "I promised. It was an easy promise to make, up there, under all those stars.":
+    "Ich versprach es. Es war leicht, das zu versprechen, dort oben, unter all den Sternen.",
+  "[sighing]I have kept it. Down here, it has kept me to it.":
+    "[sighing]Ich habe es gehalten. Hier unten sorgt es dafür, dass ich es halte.",
+  "Before I slept, I climbed the rigging and counted the pieces. They were all there.":
+    "Bevor ich schlief, kletterte ich in die Takelage und zählte die Stücke. Sie waren alle da.",
+  "It was the last time I saw them all together, hanging in the night like lanterns.":
+    "Es war das letzte Mal, dass ich sie alle zusammen sah, wie Laternen in der Nacht.",
+  "I am glad I counted. I still know the number by heart.":
+    "Ich bin froh, dass ich gezählt habe. Ich kenne die Zahl noch immer auswendig.",
   // depth 13: the comet shower, and the fall
   'The comets came at night, a whole shower of small ones. The star-readers had only ever looked for the one stone.':
     'Die Kometen kamen in der Nacht, ein ganzer Schauer kleiner. Die Sternleser hatten immer nur nach dem einen Stein Ausschau gehalten.',
@@ -263,6 +409,116 @@ export default {
     'Als ich aufwachte, war der Bauch der Arche offen, und der Käfig war leer.',
   '[whispers]Then something in the dark said my name. It had learned it from me.':
     '[whispers]Dann sagte etwas im Dunkeln meinen Namen. Es hatte ihn von mir gelernt.',
+
+  // act III, depths 14 to 19: down at the core, held (a sketch)
+  "I woke in the hull of the ark, lying on my back. Above me there was no sky at all.":
+    "Ich erwachte im Rumpf der Arche, auf dem Rücken liegend. Über mir war überhaupt kein Himmel.",
+  "The boilers had stopped. For the first time in a year, nothing was breathing but me.":
+    "Die Kessel standen still. Zum ersten Mal seit einem Jahr atmete nichts außer mir.",
+  "I called out for the others. Only my own voice came back.":
+    "Ich rief nach den anderen. Nur meine eigene Stimme kam zurück.",
+  "My little furnace had come down with me. I lit it with shaking hands.":
+    "Mein kleiner Ofen war mit mir heruntergekommen. Ich zündete ihn mit zitternden Händen an.",
+  "Down here it is the only light there is. Whatever happens, I keep it burning.":
+    "Hier unten ist er das einzige Licht, das es gibt. Was auch geschieht, ich halte ihn am Brennen.",
+  "Star-glass minds the heat, but I mind the dark more.":
+    "Sternglas fürchtet die Hitze, aber das Dunkel fürchte ich mehr.",
+  "In the furnace light the walls glittered. Crystals, everywhere, as tall as doors.":
+    "Im Licht des Ofens glitzerten die Wände. Kristalle, überall, so hoch wie Türen.",
+  "I think they grow from all the glass that ever fell this far. Some of it may be mine.":
+    "Ich glaube, sie wachsen aus all dem Glas, das je so tief gefallen ist. Manches davon ist vielleicht meins.",
+  "They catch the light and give it back. It is a kind of company.":
+    "Sie fangen das Licht und geben es zurück. Das ist eine Art Gesellschaft.",
+  "It speaks in whole sentences now, slowly, in a voice very like mine.":
+    "Es spricht jetzt in ganzen Sätzen, langsam, mit einer Stimme, die meiner sehr ähnlich ist.",
+  "It is always polite, and it says please. Somehow that is the worst of it.":
+    "Es ist immer höflich, und es sagt bitte. Irgendwie ist das das Schlimmste daran.",
+  "It has never once hurt me. It only will not let me go.":
+    "Es hat mir nie etwas getan. Es lässt mich nur nicht gehen.",
+  "It moves along the walls on long, soft arms. I hear it more than I see it.":
+    "Es bewegt sich auf langen, weichen Armen an den Wänden entlang. Ich höre es mehr, als ich es sehe.",
+  "It hangs threads of something from the rock, the way a spider would. I do not know what for.":
+    "Es hängt Fäden aus irgendetwas an den Fels, so wie eine Spinne. Ich weiß nicht, wofür.",
+  "When it comes near, my furnace burns lower. I have learned to feed it first.":
+    "Wenn es näher kommt, brennt mein Ofen niedriger. Ich habe gelernt, ihn vorher zu füttern.",
+  "It wants me to build something. In return it brings me food, and sand for my glass.":
+    "Es will, dass ich etwas baue. Dafür bringt es mir Essen, und Sand für mein Glas.",
+  "It wants to leave this place, and it cannot climb. So it wants wings.":
+    "Es will fort von hier, und es kann nicht klettern. Also will es Flügel.",
+  "I said yes too quickly, as I always do. But what else could I have said?":
+    "Ich habe zu schnell ja gesagt, wie immer. Aber was hätte ich sonst sagen sollen?",
+  "I searched the whole hull for the others. I found their lanterns, still turned down low.":
+    "Ich habe den ganzen Rumpf nach den anderen abgesucht. Ich fand ihre Laternen, noch immer klein gedreht.",
+  "Nothing else. Whether they climbed out or were carried off, I do not know.":
+    "Sonst nichts. Ob sie hinausgeklettert sind oder fortgetragen wurden, weiß ich nicht.",
+  "I choose to think they climbed. A man needs something to choose.":
+    "Ich entscheide mich zu glauben, dass sie geklettert sind. Ein Mensch braucht etwas, das er wählen kann.",
+  "Down here lie the bones of things that fell long before us. Big things, and very old.":
+    "Hier unten liegen die Knochen von Dingen, die lange vor uns gefallen sind. Große Dinge, und sehr alt.",
+  "So we were not the first to fall this far. That should not comfort me, but it does.":
+    "Wir waren also nicht die Ersten, die so tief fielen. Das sollte mich nicht trösten, aber es tut es.",
+  "I walk softly among them. It seems polite.":
+    "Ich gehe leise zwischen ihnen. Das scheint mir höflich.",
+  "Each night, before I sleep, I say the names of the smiths and the star-readers to my furnace.":
+    "Jede Nacht, bevor ich schlafe, sage ich meinem Ofen die Namen der Schmiede und der Sternleser.",
+  "I do not blow their names into my glass. Names do not keep in glass.":
+    "Ihre Namen blase ich nicht in mein Glas. Namen halten sich nicht in Glas.",
+  "But the fire remembers them, I think, for as long as it burns.":
+    "Aber das Feuer erinnert sich an sie, glaube ich, solange es brennt.",
+  "Not far from the hull lie the ruins of a town that fell long ago. A whole piece of the world.":
+    "Nicht weit vom Rumpf liegen die Trümmer einer Stadt, die vor langer Zeit gefallen ist. Ein ganzes Stück der Welt.",
+  "I take glass from its windows for the thing I must build. I always say sorry to the houses.":
+    "Ich nehme Glas aus ihren Fenstern für das, was ich bauen muss. Ich entschuldige mich jedes Mal bei den Häusern.",
+  "Nobody lives there any more. I looked, and I was glad, and I was sorry.":
+    "Dort wohnt niemand mehr. Ich habe nachgesehen, und ich war froh, und es tat mir leid.",
+  "So I am making wings again. Smaller than the ark's, but they must carry more.":
+    "Also mache ich wieder Flügel. Kleiner als die der Arche, aber sie müssen mehr tragen.",
+  "Every feather has to want the sky. This far from it, that is hard to blow.":
+    "Jede Feder muss den Himmel wollen. So weit weg von ihm ist das schwer zu blasen.",
+  "Every glass begins with a breath. I give each feather a little of mine.":
+    "Jedes Glas beginnt mit einem Atemzug. Ich gebe jeder Feder ein wenig von meinem.",
+  "I work slowly. It does not hurry me, but I work slowly all the same.":
+    "Ich arbeite langsam. Es drängt mich nicht, aber ich arbeite trotzdem langsam.",
+  "Once it has its wings, I do not know what becomes of me. Or of it, up there.":
+    "Wenn es erst seine Flügel hat, weiß ich nicht, was aus mir wird. Oder aus ihm, dort oben.",
+  "My master said there is no shame in a careful glassmaker. I am being very careful.":
+    "Mein Meister sagte, ein sorgfältiger Glasmacher braucht sich nicht zu schämen. Ich bin sehr sorgfältig.",
+  "The first bubble I blew my words into was an accident. I spoke while I blew, and the glass kept it.":
+    "Die erste Blase, in die ich meine Worte blies, war ein Versehen. Ich sprach beim Blasen, und das Glas bewahrte es.",
+  "I let it go, and it rose into the dark. That night I blew another, on purpose.":
+    "Ich ließ sie los, und sie stieg ins Dunkel. In jener Nacht blies ich noch eine, mit Absicht.",
+  "I have blown hundreds since. You are listening to one of them.":
+    "Seitdem habe ich Hunderte geblasen. Du hörst gerade eine davon.",
+  "Below the hull the rock is hot, and in places it runs like syrup.":
+    "Unter dem Rumpf ist der Fels heiß, und an manchen Stellen fließt er wie Sirup.",
+  "My bubbles must rise fast, or the heat makes them forget what they hold.":
+    "Meine Blasen müssen schnell steigen, sonst lässt die Hitze sie vergessen, was sie halten.",
+  "So I blow them when the rock is quiet, and let them go straight up.":
+    "Also blase ich sie, wenn der Fels ruhig ist, und lasse sie gerade nach oben steigen.",
+  "I never know where they come to rest. In a field, maybe, or a river, or somebody's pocket.":
+    "Ich weiß nie, wo sie zur Ruhe kommen. Auf einem Feld vielleicht, in einem Fluss, oder in jemandes Tasche.",
+  "I talk to whoever finds them as if I knew them. It is easier than talking to the dark.":
+    "Ich rede mit jedem, der sie findet, als würde ich ihn kennen. Das ist leichter, als mit dem Dunkel zu reden.",
+  "[whispers]If you have heard this many, thank you for listening.":
+    "[whispers]Wenn du so viele gehört hast, danke fürs Zuhören.",
+  "The thing I am building is nearly finished. Its wings catch my furnace light like water.":
+    "Das, was ich baue, ist fast fertig. Seine Flügel fangen das Licht meines Ofens wie Wasser.",
+  "It looks like the little birds I made for the children. I did not mean it to, but my hands did.":
+    "Es sieht aus wie die kleinen Vögel, die ich für die Kinder gemacht habe. Ich wollte das nicht, aber meine Hände wollten es.",
+  "It watches me work, and holds the little bird I gave it, all the time.":
+    "Es sieht mir bei der Arbeit zu und hält die ganze Zeit den kleinen Vogel, den ich ihm geschenkt habe.",
+  "Last night it told me it is afraid of the dark too. It always has been.":
+    "Letzte Nacht sagte es mir, dass es auch Angst vor dem Dunkel hat. Schon immer.",
+  "I did not know what to say. So I turned my furnace up, and we sat by it together.":
+    "Ich wusste nicht, was ich sagen sollte. Also machte ich meinen Ofen größer, und wir saßen zusammen davor.",
+  "Two old prisoners by one small fire. That is what we are now.":
+    "Zwei alte Gefangene an einem kleinen Feuer. Das sind wir jetzt.",
+  "Some of my glass does not rise far. If you found this one deep down, you are close.":
+    "Manches von meinem Glas steigt nicht weit. Wenn du dieses tief unten gefunden hast, bist du nah.",
+  "Follow the heat and the dark. I will keep my furnace burning.":
+    "Folge der Hitze und dem Dunkel. Ich halte meinen Ofen am Brennen.",
+  "[whispers]Find me.":
+    "[whispers]Finde mich.",
 
   // the robot (core/narration.js `says`): what it sees and says, from its hello on
   // a depth reached
@@ -729,6 +985,148 @@ export default {
     'Nicht ganz. Wir können es noch mal versuchen!',
   'Back to the start. At least I know the way now.':
     'Zurück zum Anfang. Wenigstens kenne ich jetzt den Weg.',
+
+  // the robot in acts II and III: depths, themes, Monteur and Qualmos, wandering (a sketch)
+  "No more open sky, only cracks of light. It is like being inside a lantern.":
+    "Kein offener Himmel mehr, nur noch Ritzen voller Licht. Das ist, als wären wir in einer Laterne.",
+  "Do you hear that? The walls hum down here, as if something big is asleep.":
+    "Hörst du das? Die Wände summen hier unten, als würde etwas Großes schlafen.",
+  "I think we are about halfway. Halfway to what, I do not know.":
+    "Ich glaube, wir sind ungefähr auf halbem Weg. Auf halbem Weg wohin, weiß ich nicht.",
+  "Ten wells down! I counted every one of them, I promise.":
+    "Zehn Brunnen tief! Ich hab jeden einzelnen mitgezählt, versprochen.",
+  "The glassmaker's glass comes from below, I am sure of it now. It feels warmer, the deeper we go.":
+    "Das Glas des Glasmachers kommt von unten, da bin ich mir jetzt sicher. Je tiefer wir kommen, desto wärmer fühlt es sich an.",
+  "It is getting darker. I will glow a little brighter, just for you.":
+    "Es wird dunkler. Ich leuchte ein bisschen heller, nur für dich.",
+  "It is really dark now, no cracks, no sky. Stay where my light is.":
+    "Jetzt ist es richtig dunkel, keine Ritzen, kein Himmel. Bleib da, wo mein Licht ist.",
+  "Good thing you have a lamp too. Two lights are braver than one.":
+    "Gut, dass du auch eine Lampe hast. Zwei Lichter sind mutiger als eins.",
+  "The rock is warm down here, like a hearth after the fire went out.":
+    "Der Fels ist warm hier unten, wie ein Herd, wenn das Feuer ausgegangen ist.",
+  "If you listen, you can hear something far below. Like breathing, or a furnace.":
+    "Wenn du lauschst, hörst du etwas tief unten. Wie Atmen, oder ein Ofen.",
+  "Everything down here fell from somewhere. I wonder if I did too.":
+    "Alles hier unten ist von irgendwo heruntergefallen. Ob ich wohl auch?",
+  "My gears are ticking faster. I think we are close to something.":
+    "Meine Zahnräder ticken schneller. Ich glaube, wir sind nah an etwas dran.",
+  "One more well, the very last one. I am not ready, but I am coming with you.":
+    "Noch ein Brunnen, der allerletzte. Ich bin nicht bereit, aber ich komme mit dir.",
+  "This is it: the bottom of everything. The core.":
+    "Das ist es: der Grund von allem. Der Kern.",
+  "If the glassmaker is anywhere, he is here. Can you smell a furnace?":
+    "Wenn der Glasmacher irgendwo ist, dann hier. Riechst du einen Ofen?",
+  "Roots, hanging from the ceiling! Something enormous is growing right above us.":
+    "Wurzeln, die von der Decke hängen! Direkt über uns wächst etwas Riesiges.",
+  "A grotto full of water, and it glows. The light comes from under the water!":
+    "Eine Grotte voller Wasser, und sie leuchtet. Das Licht kommt von unter dem Wasser!",
+  "Anvils and chimneys! Somebody worked brass here, like the smiths on... something. I forget.":
+    "Ambosse und Schornsteine! Hier hat jemand Messing bearbeitet, wie die Schmiede auf... irgendwas. Ich hab es vergessen.",
+  "Everything here is honey and wax. It smells sweet, and it is very, very sticky.":
+    "Hier ist alles Honig und Wachs. Es riecht süß, und es ist sehr, sehr klebrig.",
+  "Mushrooms taller than you! Do not touch the green water, it bites.":
+    "Pilze, größer als du! Fass das grüne Wasser nicht an, es beißt.",
+  "A jungle, under the ground! And a round hole of sky, far up there.":
+    "Ein Dschungel, unter der Erde! Und ganz weit oben ein rundes Loch voller Himmel.",
+  "Ice caves, and frost on my feathers! Somebody used to scrape frost off feathers like these, I think.":
+    "Eishöhlen, und Reif auf meinen Federn! Ich glaube, jemand hat früher Reif von solchen Federn gekratzt.",
+  "Crystals as tall as doors! They catch my light and throw it everywhere.":
+    "Kristalle, so hoch wie Türen! Sie fangen mein Licht und werfen es überallhin.",
+  "Webs everywhere, big ones. I would like to go home now, please.":
+    "Überall Netze, große. Ich möchte jetzt bitte nach Hause.",
+  "Bones, lots of old bones. They are very quiet, so let us be quiet too.":
+    "Knochen, ganz viele alte Knochen. Sie sind sehr still, also sind wir auch still.",
+  "A whole town, buried down here. Somebody lived in these houses, a long time ago.":
+    "Eine ganze Stadt, hier unten begraben. In diesen Häusern hat einmal jemand gewohnt, vor langer Zeit.",
+  "Lava, and it is so hot my glass tingles! Keep away from the glowing rock.":
+    "Lava, und es ist so heiß, dass mein Glas kribbelt! Halt dich vom glühenden Fels fern.",
+  "Black glass all around. It looks like the night sky fell down here and froze.":
+    "Schwarzes Glas, überall. Es sieht aus, als wäre der Nachthimmel heruntergefallen und erstarrt.",
+  "A cat made of fire! It runs in and pounces, so keep moving.":
+    "Eine Katze aus Feuer! Sie rennt heran und springt, also bleib in Bewegung.",
+  "A moose, made of stone! And stones float between its antlers.":
+    "Ein Elch aus Stein! Und zwischen seinem Geweih schweben Steine.",
+  "When he lowers his head, jump aside. If he runs into a wall, he gets dizzy!":
+    "Wenn er den Kopf senkt, spring zur Seite. Wenn er gegen eine Wand rennt, wird ihm schwindlig!",
+  "So many tentacles, and it is grinning at us. This is the bottom of everything, and it lives here.":
+    "So viele Tentakel, und es grinst uns an. Das ist der Grund von allem, und es wohnt hier.",
+  "It gets angrier every time it is hurt, and learns a new trick. Be ready for anything!":
+    "Jedes Mal, wenn es verletzt wird, wird es wütender und lernt einen neuen Trick. Sei auf alles gefasst!",
+  "He throws the stones from his antlers! Keep moving.":
+    "Er wirft die Steine aus seinem Geweih! Bleib in Bewegung.",
+  "Head down, here he comes! Jump out of the way!":
+    "Kopf runter, da kommt er! Spring aus dem Weg!",
+  "He crashed! Hit him now, it hurts him double!":
+    "Er ist aufgeprallt! Schlag jetzt zu, das tut ihm doppelt weh!",
+  "Moose, coming up out of the floor!":
+    "Seine Herde kommt aus dem Boden!",
+  "He is crumbling... into a sun made of stone?":
+    "Er zerfällt... zu einer Sonne aus Stein?",
+  "Stones from the sky! Watch for their shadows!":
+    "Steine vom Himmel! Achte auf ihre Schatten!",
+  "The world is turning! Do not worry, the floor stays under your feet.":
+    "Die Welt dreht sich! Keine Sorge, der Boden bleibt unter deinen Füßen.",
+  "The floor is cracking! Hold on, a mountain is coming up!":
+    "Der Boden reißt auf! Halt dich fest, da kommt ein Berg hoch!",
+  "An arm! Step back before it grabs you!":
+    "Ein Arm! Geh zurück, bevor er dich packt!",
+  "It is furious! Stay back until it calms down.":
+    "Es ist wütend! Halt Abstand, bis es sich beruhigt.",
+  "A jet of water! Step out of it sideways.":
+    "Ein Wasserstrahl! Geh seitlich raus.",
+  "It is leaping at you! Move!":
+    "Es springt auf dich zu! Beweg dich!",
+  "Ink! It slows you down, so keep out of its way.":
+    "Tinte! Die macht dich langsam, also weich ihr aus.",
+  "All its tentacles at once! Get away from it!":
+    "Alle Tentakel auf einmal! Weg von ihm!",
+  "It is pulling you in! Run the other way, hard!":
+    "Es zieht dich an! Lauf in die andere Richtung, so schnell du kannst!",
+  "Spines, three at once! Step between them!":
+    "Stacheln, drei auf einmal! Geh zwischen sie!",
+  "A big wave! It will shove you, so brace yourself.":
+    "Eine große Welle! Sie schubst dich, also mach dich bereit.",
+  "It is puffing up! Get out from under it, then hit it while it lies there!":
+    "Es bläst sich auf! Raus unter ihm, und dann schlag zu, solange es daliegt!",
+  "The stone sun went out! We did it!":
+    "Die Sonne aus Stein ist erloschen! Wir haben es geschafft!",
+  "I remember a hatch, open just a crack, and starlight falling through. And something very still, watching it.":
+    "Ich erinnere mich an eine Luke, nur einen Spalt offen, und Sternenlicht, das hindurchfiel. Und etwas ganz Stilles, das zusah.",
+  "We beat it! The thing at the bottom of the world!":
+    "Wir haben es besiegt! Das Ding am Grund der Welt!",
+  "But where is the glassmaker? I was so sure he would be here.":
+    "Aber wo ist der Glasmacher? Ich war mir so sicher, dass er hier ist.",
+  "Let him charge into a wall. Then he is dazed, and every hit counts double.":
+    "Lass ihn gegen eine Wand rennen. Dann ist er benommen, und jeder Schlag zählt doppelt.",
+  "When the floor cracks, a mountain is coming. Ride it up with him, or keep well away.":
+    "Wenn der Boden reißt, kommt ein Berg. Fahr mit ihm hoch, oder bleib weit weg.",
+  "When it puffs up, run. After its belly flop it lies still a moment, and that is your chance.":
+    "Wenn es sich aufbläst, lauf. Nach dem Bauchklatscher liegt es einen Moment still, und das ist deine Chance.",
+  "When it pulls you in, run away at once. The longer you wait, the harder it pulls.":
+    "Wenn es dich anzieht, lauf sofort weg. Je länger du wartest, desto stärker zieht es.",
+  "Up you get. Even down in the caves, I will always find you.":
+    "Hoch mit dir. Sogar unten in den Höhlen finde ich dich immer.",
+  "You scared me. It is far too dark down here to lose you.":
+    "Du hast mich erschreckt. Hier unten ist es viel zu dunkel, um dich zu verlieren.",
+  "Light is coming through a crack up there. Somebody else's sky, far away.":
+    "Da oben kommt Licht durch eine Ritze. Der Himmel von jemand anderem, weit weg.",
+  "Plink, plonk. The caves are playing music with their drips.":
+    "Plink, plonk. Die Höhlen machen Musik mit ihren Tropfen.",
+  "Some of these mushrooms glow like me. I think we are cousins.":
+    "Manche von diesen Pilzen leuchten wie ich. Ich glaube, wir sind Cousins.",
+  "Sometimes I think I can hear humming, far below. Then it stops.":
+    "Manchmal glaube ich, tief unten ein Summen zu hören. Dann hört es auf.",
+  "I am glowing as bright as I can. It is just a very big dark.":
+    "Ich leuchte so hell ich kann. Es ist einfach ein sehr großes Dunkel.",
+  "The deeper we go, the warmer my core gets. I hope that is a good thing.":
+    "Je tiefer wir kommen, desto wärmer wird mein Kern. Hoffentlich ist das etwas Gutes.",
+  "Look, a little piece of glass in the rock. Old star-glass, maybe.":
+    "Schau, ein kleines Stück Glas im Fels. Altes Sternglas vielleicht.",
+  "It is so quiet down here, I can hear my own gears thinking.":
+    "Hier unten ist es so still, dass ich meine Zahnräder denken höre.",
+  "Do you smell that? Smoke, like from a small furnace.":
+    "Riechst du das? Rauch, wie von einem kleinen Ofen.",
 
   // the opening film (film/opening.js): the glassmaker, a man, long after, recording in the dark
   'Nobody says my name any more. That is all right. Names do not keep in glass.':

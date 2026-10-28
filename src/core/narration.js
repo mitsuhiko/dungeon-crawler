@@ -125,12 +125,16 @@ export const robotMayTalk = (pri, quiet) => quiet >= (ROBOT_REST[pri] ?? 0);
 // (`cuts`), and so does leaving its place (`where`: game/narrator.js arrived; placeOf). Write a
 // recording so its first line says what matters most.
 //
-// His glass in the depths (core/glass.js GLASS): a chapter of the before time a depth, three
+// His glass in the depths (core/glass.js GLASS): a chapter of his story a depth, three
 // recordings each, of which a world places two (one on the way, one hidden). In the order of the
 // depths: his craft (the road out of town), the star-readers and the stone (1), closing the glass
 // round the pieces (2), the ark's wings and rising (3), tending the glass aboard (4), days on the
-// ark (5), the creature brought on board (6), the comet shower and the fall (13). They tell the
-// before time, never what is where the glass lies; now and then one touches on the depth it rests
+// ark (5), the creature brought on board (6); the voyage with it aboard (7 to 12: it learns to
+// speak, the star-readers' worry, its questions, the smiths and the cold, a glass bird, the last
+// calm night), the comet shower and the fall (13); down at the core, held (14 to 19: waking in the
+// dark, its voice, the others, building it wings, his bubbles, nearly finished). Acts II and III
+// are a first sketch; the core's is the ending's, still to come. They tell his story, never what
+// is where the glass lies; now and then one touches on the depth it rests
 // at, sideways (breath where Gusto breathes, the dark where Totnar makes it, a tide where Squarlo
 // calls his ...). `depth`: where it lies; `where` { depth }: leaving the depth (for the town, the
 // camp or another depth) cuts it short.
@@ -160,9 +164,45 @@ export const RECORDINGS = [
   deep('cloth', msg('Under a cloth')),
   deep('face', msg('A face that watched')),
   deep('jar', msg('What it made')),
+  deep('hum', msg('It hummed back')),
+  deep('words', msg('Its first words')),
+  deep('mountain', msg('The ground, standing up')),
+  deep('charts', msg('Drifting, a little')),
+  deep('lantern', msg('Her lantern')),
+  deep('quarrel', msg('Voices on deck')),
+  deep('why', msg('Why it was kept')),
+  deep('hatch', msg('An inch of sky')),
+  deep('left-open', msg('Left open')),
+  deep('boilers', msg('Brass hearts')),
+  deep('songs', msg('Work songs')),
+  deep('frost', msg('Frost on the feathers')),
+  deep('little-bird', msg('A little bird')),
+  deep('cage', msg('In its cage')),
+  deep('fond', msg('Do not grow fond')),
+  deep('calm', msg('The last calm night')),
+  deep('promise', msg('A promise')),
+  deep('counted', msg('All of them')),
   deep('shower', msg('The comet shower')),
   deep('wings-broke', msg('The wings')),
   deep('bottom', msg('Something soft and dark')),
+  deep('hull', msg('Waking in the hull')),
+  deep('only-light', msg('The only light')),
+  deep('crystals', msg('Walls that glitter')),
+  deep('voice', msg('A voice like mine')),
+  deep('walls', msg('Along the walls')),
+  deep('bargain', msg('A bargain')),
+  deep('lanterns-low', msg('Lanterns in the hull')),
+  deep('bones', msg('Older than us')),
+  deep('names', msg('Their names')),
+  deep('ruins', msg('A town that fell')),
+  deep('wings-again', msg('Wings again')),
+  deep('slowly', msg('Slowly')),
+  deep('first-bubble', msg('The first bubble')),
+  deep('fire-below', msg('Fire below')),
+  deep('who-hears', msg('Who hears them')),
+  deep('nearly', msg('Nearly finished')),
+  deep('afraid', msg('Afraid of the dark')),
+  deep('find-me', msg('Find me')),
 ];
 // a recording's lines, in order
 export const recordingLines = id => LINES.filter(l => l.on === 'recording' && l.when?.part === id);
@@ -461,6 +501,144 @@ export const LINES = [
   recording('jar', 'questions', 'Down here, I have had a long time to think of all the questions I did not ask.',
     'Down here: at the core, held by the creature. Tired.', G_SAD),
 
+  // === act II (depths 7 to 12): the voyage, with the creature aboard (a sketch: one chapter a depth) ===
+  // Between the creature brought on board (depth 6) and the comet shower (13): it learns his words,
+  // the star-readers worry, it asks its questions, the smiths, a glass bird he gives it, the last
+  // calm night. Each touches its depth sideways now and then (the mountain where Monteur pulls them
+  // up, frost where the frozen caves may lie, a forge's anvil); the creature is never named.
+
+  // --- depth 7 (Monteur's, who pulls mountains out of the floor): the creature learns to speak ---
+  recording('hum', 'furnace', 'At night I kept my furnace low, and the thing in the hold hummed along with it.',
+    'The creature\'s first sounds, on the ark. Found at depth 7, the first of act II. Hushed, a little wondering.', G_HUSH),
+  recording('hum', 'answered', 'I hummed back, to see what it would do. It answered, a little higher.',
+    'He hummed to it, and it hummed back. Fond, surprised still.', G_FOND),
+  recording('hum', 'every-night', 'After that we hummed every night. The smiths thought I had gone strange.',
+    'A dry little joke.', G_WRY),
+
+  recording('words', 'hot', 'The first word it learned from me was hot. I said it every time I opened the furnace.',
+    'It learns his language (docs/story.md, "The kidnapping"): the first word. Found at depth 7. Fond.', G_FOND),
+  recording('words', 'more', 'Then glass, and sorry, and night. It learned faster than any apprentice I ever had.',
+    'More words; the last sentence dry.', G_WRY),
+  recording('words', 'my-voice', 'It said them in my voice, almost. That frightened me more than its face had.',
+    'A shiver.', G_HUSH),
+
+  recording('mountain', 'asked', 'One night it asked me what a mountain was. It had never seen the ground from above.',
+    'Its questions about the world below. Found at depth 7 (where Monteur pulls mountains out of the floor; he does not know). Calm.', G_CALM),
+  recording('mountain', 'standing', 'I told it a mountain is the ground, standing up to look at the sky.',
+    'His answer, with a smile.', G_FOND),
+  recording('mountain', 'story', 'It liked that. It asked for the mountain again every night, the way a child asks for a story.',
+    'Tender.', G_FOND),
+
+  // --- depth 8: the star-readers' worry ------------------------------------------------------------
+  recording('charts', 'drift', 'Every night the star-readers marked the pieces on their charts. Every night the marks were a little further apart.',
+    'The pieces begin to drift. Found at depth 8. Grave.', G_CALM),
+  recording('charts', 'thin', 'The lines of light still held them, but they grew thin. I could see the stars through them.',
+    'The lines of light that hold the pieces under the ark (depth 3\'s chapter). Quiet.', G_SAD),
+  recording('charts', 'jar', 'So they went down with their jar more often. The humming in the hold grew quieter.',
+    'They take more of what the creature makes (the jar, depth 6), and it weakens. Hushed.', G_HUSH),
+
+  recording('lantern', 'tired', 'The oldest star-reader grew tired up there. She slept through the nights, and missed the stars.',
+    'The oldest star-reader, the woman who came to his door (depth 1). Found at depth 8. Sad.', G_SAD),
+  recording('lantern', 'gave', 'One evening she gave me her lantern. She said a glassmaker should have one light that is not a fire.',
+    'A gift. Fond.', G_FOND),
+  recording('lantern', 'still', 'I have it still, down here. It is the only light I do not have to feed.',
+    'Down here: at the core. Calm.', G_CALM),
+
+  recording('quarrel', 'smiths', 'The smiths wanted the thing put off the ark. The star-readers said we would fall without what it made.',
+    'A quarrel aboard about the creature. Found at depth 8. Plain.', G_CALM),
+  recording('quarrel', 'loud', 'They quarrelled on deck at night, loud enough to wake the pieces.',
+    'Dry.', G_WRY),
+  recording('quarrel', 'nobody', 'Nobody asked the thing what it wanted. Nobody asked me, either.',
+    'Rueful.', G_SAD),
+
+  // --- depth 9: its questions --------------------------------------------------------------------
+  recording('why', 'asked', 'Once it had words enough, it asked me why it was kept in the dark.',
+    'The creature asks why it is a prisoner. Found at depth 9. Hushed.', G_HUSH),
+  recording('why', 'whom', 'I said it was needed, and it asked: by whom? I had no answer I liked.',
+    'He had no good answer. Sad.', G_SAD),
+  recording('why', 'thinking', 'I thought about that question all night, at the furnace. I am still thinking about it.',
+    'Tired.', G_SAD),
+
+  recording('hatch', 'see', 'It asked to see the stars, just once. It had heard us talk about them every night.',
+    'Found at depth 9. Calm.', G_CALM),
+  recording('hatch', 'inch', 'So I opened the hatch over the hold an inch, no more. Starlight fell in, a thin white line.',
+    'He shows it the stars, secretly. Hushed.', G_HUSH),
+  recording('hatch', 'still', 'It did not move all night. I have never seen anything keep so still.',
+    'Wonder.', G_HUSH, { seed: { de: 1 } }),
+
+  recording('left-open', 'after', 'After that I left the hatch open a little every night. Nobody noticed, or nobody said.',
+    'Found at depth 9. Dry.', G_WRY),
+  recording('left-open', 'eleven', 'It counted the stars it could see. Eleven, through an inch of sky.',
+    'Fond.', G_FOND),
+  recording('left-open', 'wider', 'Sometimes I wonder whether I should have opened it wider. Or not at all.',
+    'Doubt.', G_SAD),
+
+  // --- depth 10: the smiths, and the cold ---------------------------------------------------------
+  recording('boilers', 'hearts', 'The smiths fed the ark\'s boilers day and night. They called them her hearts.',
+    'The smiths aboard. Found at depth 10 (a forge may stand at this depth; he does not know). Fond.', G_FOND),
+  recording('boilers', 'anvil', 'Even up there they had an anvil. You could hear it ring out across the pieces.',
+    'Fond.', G_FOND),
+  recording('boilers', 'harder', 'Brass or glass, which is harder to work? We argued about it every evening, and both of us were wrong.',
+    'A friendly old argument. Wry.', G_WRY),
+
+  recording('songs', 'sang', 'The smiths sang while they worked, slow songs in time with the hammer.',
+    'Found at depth 10. Fond.', G_FOND),
+  recording('songs', 'learned', 'The thing in the hold learned their songs too. It hummed them back, a little out of time.',
+    'Wry, warm.', G_WRY),
+  recording('songs', 'stopped', 'When the smiths heard it, they stopped singing. I never heard those songs again.',
+    'Sad.', G_SAD),
+
+  recording('frost', 'cold', 'High up it was cold, colder than any winter at home. Frost grew on the wings every night.',
+    'The cold of the sky. Found at depth 10 (frozen caves may lie at this depth; he does not know). Calm.', G_CALM),
+  recording('frost', 'scraped', 'Every morning I scraped the feathers clean, one by one, before the sun could crack them.',
+    'His work on the wings. Proud.', G_PROUD),
+  recording('frost', 'sound', 'A thousand feathers, every morning. I knew each one by its sound.',
+    'Fond.', G_FOND),
+
+  // --- depth 11: a bird for the creature --------------------------------------------------------
+  recording('little-bird', 'blew', 'One night I blew a little glass bird for it, like the ones I made for the children at my window.',
+    'A gift to the creature (the birds for the children: depth 0; the glass bird of the game\'s splash is never named). Found at depth 11. Fond.', G_FOND),
+  recording('little-bird', 'bars', 'I passed it through the bars. It held the bird the way you hold something that might fly away.',
+    'Hushed.', G_HUSH),
+  recording('little-bird', 'fly', 'It asked me whether glass could fly. I said only if you make it want to.',
+    'Star-glass wants the sky (depth 0). Fond; a hint of what it will want of him.', G_FOND),
+
+  recording('cage', 'face', 'It kept the bird close to its face, and hummed to it.',
+    'Found at depth 11. Tender.', G_FOND),
+  recording('cage', 'light', 'When the hold was dark, the bird caught the last of my furnace light.',
+    'Hushed.', G_HUSH),
+  recording('cage', 'wings', 'It turned the bird round and round, and looked at its wings for a long time.',
+    'A hint: it will want wings. Hushed, uneasy.', G_HUSH),
+
+  recording('fond', 'saw', 'The oldest star-reader saw the bird. She told me not to grow fond of the thing.',
+    'Found at depth 11. Calm.', G_CALM),
+  recording('fond', 'late', 'I told her it was too late for that. She did not smile.',
+    'Wry.', G_WRY),
+  recording('fond', 'knew', 'I think she knew something I did not. I wish I had asked her what.',
+    'Regret (he never asked enough: depth 6).', G_SAD),
+
+  // --- depth 12: the last calm night --------------------------------------------------------------
+  recording('calm', 'quiet', 'The night before the comets was the calmest of all. No wind, no quarrels, only the boilers breathing.',
+    'The night before the comet shower (depth 13). Found at depth 12, the last before the bottom of act II. Hushed.', G_HUSH),
+  recording('calm', 'deck', 'Everyone was on deck, even the oldest star-reader. Nobody said why.',
+    'Calm, a little uneasy.', G_CALM),
+  recording('calm', 'coming', 'I think we all felt something coming. We just did not know which way to look.',
+    'Sad.', G_SAD),
+
+  recording('promise', 'asked', 'That night it asked me to promise one thing: never to leave it alone in the dark.',
+    'The creature\'s promise (it holds him to it, down at the core). Found at depth 12. Hushed.', G_HUSH),
+  recording('promise', 'easy', 'I promised. It was an easy promise to make, up there, under all those stars.',
+    'Sad.', G_SAD),
+  recording('promise', 'kept', '[sighing]I have kept it. Down here, it has kept me to it.',
+    'Down here: he is its prisoner. Tired, steady.', G_SAD),
+
+  recording('counted', 'pieces', 'Before I slept, I climbed the rigging and counted the pieces. They were all there.',
+    'Found at depth 12. Fond.', G_FOND),
+  recording('counted', 'last', 'It was the last time I saw them all together, hanging in the night like lanterns.',
+    'Sad.', G_SAD),
+  recording('counted', 'number', 'I am glad I counted. I still know the number by heart.',
+    'Calm.', G_CALM),
+
   // --- depth 13 (Slomo's, the bottom of act II, under falling slime): the comet shower, the fall ---
   recording('shower', 'night', 'The comets came at night, a whole shower of small ones. The star-readers had only ever looked for the one stone.',
     'The comet shower that broke the ark (the opening film shows it without a word). Found at depth 13, the bottom of the second act. Grave.', G_CALM),
@@ -489,9 +667,147 @@ export const LINES = [
   recording('bottom', 'name', '[whispers]Then something in the dark said my name. It had learned it from me.',
     'The creature speaks his language now (docs/story.md, "The kidnapping"): the end of act II. He never says the name.', G_HUSH),
 
+  // === act III (depths 14 to 19): down at the core, held (a sketch: one chapter a depth) ==========
+  // After the fall: waking in the hull, its voice in the dark, the others gone, building it wings,
+  // his bubbles of glass, nearly done. Never what lies round the hero; now and then its depth
+  // sideways (crystals, threads like a spider's, old bones, a buried town, rock that runs like
+  // syrup). The ending (the core's last recording, the glass bird) is still to come.
+
+  // --- depth 14: waking in the dark -------------------------------------------------------------
+  recording('hull', 'woke', 'I woke in the hull of the ark, lying on my back. Above me there was no sky at all.',
+    'After the fall, at the core. Found at depth 14, the first of act III, the deep. Hushed.', G_HUSH),
+  recording('hull', 'boilers', 'The boilers had stopped. For the first time in a year, nothing was breathing but me.',
+    'The ark\'s boilers (her hearts, depth 10) silent. Sad.', G_SAD),
+  recording('hull', 'called', 'I called out for the others. Only my own voice came back.',
+    'Sad.', G_SAD),
+
+  recording('only-light', 'lit', 'My little furnace had come down with me. I lit it with shaking hands.',
+    'His furnace from the hold (depth 4). Found at depth 14. Calm.', G_CALM),
+  recording('only-light', 'burning', 'Down here it is the only light there is. Whatever happens, I keep it burning.',
+    'Steady, proud.', G_PROUD),
+  recording('only-light', 'dark', 'Star-glass minds the heat, but I mind the dark more.',
+    'Star-glass minds heat (depth 4). Dry.', G_WRY, { seed: { en: 1 } }),
+
+  recording('crystals', 'glitter', 'In the furnace light the walls glittered. Crystals, everywhere, as tall as doors.',
+    'Found at depth 14 (crystal mines may lie at this depth; he does not know). Hushed wonder.', G_HUSH),
+  recording('crystals', 'grow', 'I think they grow from all the glass that ever fell this far. Some of it may be mine.',
+    'Calm.', G_CALM),
+  recording('crystals', 'company', 'They catch the light and give it back. It is a kind of company.',
+    'Fond, lonely.', G_FOND),
+
+  // --- depth 15: its voice in the dark ------------------------------------------------------------
+  recording('voice', 'sentences', 'It speaks in whole sentences now, slowly, in a voice very like mine.',
+    'The creature, who learned his words on the ark. Found at depth 15. Hushed.', G_HUSH),
+  recording('voice', 'please', 'It is always polite, and it says please. Somehow that is the worst of it.',
+    'Wry, uneasy.', G_WRY),
+  recording('voice', 'hurt', 'It has never once hurt me. It only will not let me go.',
+    'Sad.', G_SAD),
+
+  recording('walls', 'arms', 'It moves along the walls on long, soft arms. I hear it more than I see it.',
+    'Found at depth 15 (spider nests may lie at this depth; he does not know). Hushed.', G_HUSH),
+  recording('walls', 'threads', 'It hangs threads of something from the rock, the way a spider would. I do not know what for.',
+    'Hushed.', G_HUSH),
+  recording('walls', 'lower', 'When it comes near, my furnace burns lower. I have learned to feed it first.',
+    'Calm.', G_CALM),
+
+  recording('bargain', 'build', 'It wants me to build something. In return it brings me food, and sand for my glass.',
+    'What it holds him for (docs/story.md, "The kidnapping"). Found at depth 15. Calm.', G_CALM),
+  recording('bargain', 'wings', 'It wants to leave this place, and it cannot climb. So it wants wings.',
+    'Calm.', G_CALM),
+  recording('bargain', 'yes', 'I said yes too quickly, as I always do. But what else could I have said?',
+    'He was always too quick to say yes (depth 1). Wry.', G_WRY),
+
+  // --- depth 16: the others --------------------------------------------------------------------
+  recording('lanterns-low', 'searched', 'I searched the whole hull for the others. I found their lanterns, still turned down low.',
+    'The smiths and star-readers are gone; what became of them stays open. Found at depth 16. Sad.', G_SAD, { seed: { de: 1 } }),
+  recording('lanterns-low', 'nothing', 'Nothing else. Whether they climbed out or were carried off, I do not know.',
+    'Sad.', G_SAD),
+  recording('lanterns-low', 'choose', 'I choose to think they climbed. A man needs something to choose.',
+    'Quiet resolve.', G_CALM),
+
+  recording('bones', 'old', 'Down here lie the bones of things that fell long before us. Big things, and very old.',
+    'Found at depth 16 (an ossuary may lie at this depth; he does not know). Hushed, not frightening.', G_HUSH),
+  recording('bones', 'first', 'So we were not the first to fall this far. That should not comfort me, but it does.',
+    'Calm.', G_CALM),
+  recording('bones', 'softly', 'I walk softly among them. It seems polite.',
+    'Dry.', G_WRY),
+
+  recording('names', 'furnace', 'Each night, before I sleep, I say the names of the smiths and the star-readers to my furnace.',
+    'He never says them (a recorded line says no name). Found at depth 16. Sad.', G_SAD),
+  recording('names', 'keep', 'I do not blow their names into my glass. Names do not keep in glass.',
+    'As in the opening film: "Names do not keep in glass". Calm.', G_CALM),
+  recording('names', 'fire', 'But the fire remembers them, I think, for as long as it burns.',
+    'Sad, gentle.', G_SAD),
+
+  // --- depth 17: building ------------------------------------------------------------------------
+  recording('ruins', 'town', 'Not far from the hull lie the ruins of a town that fell long ago. A whole piece of the world.',
+    'Found at depth 17 (buried ruins may lie at this depth; he does not know). Hushed.', G_HUSH),
+  recording('ruins', 'windows', 'I take glass from its windows for the thing I must build. I always say sorry to the houses.',
+    'Sad, a little wry.', G_SAD),
+  recording('ruins', 'nobody', 'Nobody lives there any more. I looked, and I was glad, and I was sorry.',
+    'Sad.', G_SAD),
+
+  recording('wings-again', 'again', 'So I am making wings again. Smaller than the ark\'s, but they must carry more.',
+    'Wings for the creature. Found at depth 17. Proud, uneasy.', G_PROUD),
+  recording('wings-again', 'want', 'Every feather has to want the sky. This far from it, that is hard to blow.',
+    'Star-glass wants to rise (depth 0). Calm.', G_CALM),
+  recording('wings-again', 'breath', 'Every glass begins with a breath. I give each feather a little of mine.',
+    'As in depth 0\'s first recording. Tired.', G_SAD),
+
+  recording('slowly', 'work', 'I work slowly. It does not hurry me, but I work slowly all the same.',
+    'Found at depth 17. Hushed.', G_HUSH),
+  recording('slowly', 'after', 'Once it has its wings, I do not know what becomes of me. Or of it, up there.',
+    'Sad.', G_SAD),
+  recording('slowly', 'master', 'My master said there is no shame in a careful glassmaker. I am being very careful.',
+    'His old master (depth 0). Wry.', G_WRY),
+
+  // --- depth 18: his bubbles of glass --------------------------------------------------------------
+  recording('first-bubble', 'accident', 'The first bubble I blew my words into was an accident. I spoke while I blew, and the glass kept it.',
+    'How his recordings began. Found at depth 18. Calm.', G_CALM),
+  recording('first-bubble', 'another', 'I let it go, and it rose into the dark. That night I blew another, on purpose.',
+    'Fond.', G_FOND),
+  recording('first-bubble', 'hundreds', 'I have blown hundreds since. You are listening to one of them.',
+    'Dry, warm.', G_WRY),
+
+  recording('fire-below', 'syrup', 'Below the hull the rock is hot, and in places it runs like syrup.',
+    'Found at depth 18 (volcanic depths may lie here; he does not know). Calm.', G_CALM),
+  recording('fire-below', 'fast', 'My bubbles must rise fast, or the heat makes them forget what they hold.',
+    'Star-glass minds heat (depth 4). Calm.', G_CALM),
+  recording('fire-below', 'quiet', 'So I blow them when the rock is quiet, and let them go straight up.',
+    'Calm.', G_CALM),
+
+  recording('who-hears', 'where', 'I never know where they come to rest. In a field, maybe, or a river, or somebody\'s pocket.',
+    'He does not know where his glass lands. Found at depth 18. Fond.', G_FOND),
+  recording('who-hears', 'talk', 'I talk to whoever finds them as if I knew them. It is easier than talking to the dark.',
+    'Calm.', G_CALM),
+  recording('who-hears', 'thank', '[whispers]If you have heard this many, thank you for listening.',
+    'Quiet thanks.', G_SAD),
+
+  // --- depth 19: nearly finished ------------------------------------------------------------------
+  recording('nearly', 'light', 'The thing I am building is nearly finished. Its wings catch my furnace light like water.',
+    'Found at depth 19, the last before the core. What it is stays open. Proud.', G_PROUD),
+  recording('nearly', 'birds', 'It looks like the little birds I made for the children. I did not mean it to, but my hands did.',
+    'A hint at the glass bird (docs/story.md, "Ideas"): never said. Fond.', G_FOND),
+  recording('nearly', 'watches', 'It watches me work, and holds the little bird I gave it, all the time.',
+    'The bird of depth 11. Hushed.', G_HUSH),
+
+  recording('afraid', 'too', 'Last night it told me it is afraid of the dark too. It always has been.',
+    'The creature is a prisoner too. Found at depth 19. Hushed.', G_HUSH),
+  recording('afraid', 'together', 'I did not know what to say. So I turned my furnace up, and we sat by it together.',
+    'Sad, tender.', G_SAD),
+  recording('afraid', 'prisoners', 'Two old prisoners by one small fire. That is what we are now.',
+    'Sad.', G_SAD),
+
+  recording('find-me', 'close', 'Some of my glass does not rise far. If you found this one deep down, you are close.',
+    'He cannot know where it lands, only that some of it stays deep. Found at depth 19. Calm.', G_CALM),
+  recording('find-me', 'follow', 'Follow the heat and the dark. I will keep my furnace burning.',
+    'Steady.', G_CALM),
+  recording('find-me', 'find', '[whispers]Find me.',
+    'As the opening film ends. Hushed.', G_HUSH),
+
   // === the robot (docs/story.md, "The robot"): what it sees, and says, from its hello on ============
 
-  // --- a depth reached for the first time (the boss depths) ---------------------------------------
+  // --- a depth reached for the first time (every one down to the core; acts II and III a sketch) ---
   says('depth', { depth: 1 }, 'depth.1.sky', 'Down a well, and the sky is still up there! The pieces must hang one under the other.',
     'The robot, the first time the hero comes out at depth 1 (down the first well, after Gusto). Still sky islands.', WONDER),
   says('depth', { depth: 2 }, 'depth.2.voice', 'Every piece has a well, and every well goes down. I think that is where the voice in the glass comes from.',
@@ -508,8 +824,40 @@ export const LINES = [
     'Depth 13, the bottom of the second act. Half proud of its light, half nervous.', UNEASY),
   says('depth', { depth: 13 }, 'depth.13.wet', 'Something lives at the bottom of this piece. It sounds wet.',
     'Right after: it hears Slomo (a slime boss) somewhere ahead without knowing him.', UNEASY),
+  // (act II, the sunlit hollows: caves, marshes and jungles, light through cracks)
+  says('depth', { depth: 7 }, 'depth.7.lantern', 'No more open sky, only cracks of light. It is like being inside a lantern.',
+    'Depth 7, the first of act II (Monteur waits here). The light falls in through cracks now.', WONDER),
+  says('depth', { depth: 8 }, 'depth.8.hum', 'Do you hear that? The walls hum down here, as if something big is asleep.',
+    'Depth 8.', UNEASY),
+  says('depth', { depth: 9 }, 'depth.9.halfway', 'I think we are about halfway. Halfway to what, I do not know.',
+    'Depth 9.', CHATTY),
+  says('depth', { depth: 10 }, 'depth.10.counted', 'Ten wells down! I counted every one of them, I promise.',
+    'Depth 10. Proud (it counted three before, at depth 3).', BRIGHT, { seed: { de: 1 } }),
+  says('depth', { depth: 11 }, 'depth.11.warmer', 'The glassmaker\'s glass comes from below, I am sure of it now. It feels warmer, the deeper we go.',
+    'Depth 11. It guesses where his glass comes from (it said so at depth 2).', SOFT),
+  says('depth', { depth: 12 }, 'depth.12.brighter', 'It is getting darker. I will glow a little brighter, just for you.',
+    'Depth 12, the last before the bottom of act II.', KIND),
+  // (act III, the deep: no light but its own fires and crystals)
+  says('depth', { depth: 14 }, 'depth.14.dark', 'It is really dark now, no cracks, no sky. Stay where my light is.',
+    'Depth 14, the first of act III: from here on only the deep\'s own fires and crystals light it.', UNEASY),
+  says('depth', { depth: 14 }, 'depth.14.braver', 'Good thing you have a lamp too. Two lights are braver than one.',
+    'Right after. Warm.', KIND),
+  says('depth', { depth: 15 }, 'depth.15.hearth', 'The rock is warm down here, like a hearth after the fire went out.',
+    'Depth 15.', WONDER),
+  says('depth', { depth: 16 }, 'depth.16.below', 'If you listen, you can hear something far below. Like breathing, or a furnace.',
+    'Depth 16. Far below: the glassmaker\'s furnace at the core (it does not know).', SOFT),
+  says('depth', { depth: 17 }, 'depth.17.fell', 'Everything down here fell from somewhere. I wonder if I did too.',
+    'Depth 17. Musing about its past.', SOFT),
+  says('depth', { depth: 18 }, 'depth.18.close', 'My gears are ticking faster. I think we are close to something.',
+    'Depth 18.', UNEASY),
+  says('depth', { depth: 19 }, 'depth.19.last', 'One more well, the very last one. I am not ready, but I am coming with you.',
+    'Depth 19, the last before the core.', UNEASY),
+  says('depth', { depth: 20 }, 'depth.20.bottom', 'This is it: the bottom of everything. The core.',
+    'Depth 20, the core of the world. Hushed awe.', WONDER),
+  says('depth', { depth: 20 }, 'depth.20.furnace', 'If the glassmaker is anywhere, he is here. Can you smell a furnace?',
+    'Right after. Hopeful.', SOFT),
 
-  // --- the first place of a theme (the first act's, and the slime marsh) -------------------------
+  // --- the first place of a theme (every theme; acts II and III a sketch) -------------------------
   says('theme', { theme: 'meadow' }, 'theme.meadow', 'Grass and flowers, all the way down! These pieces kept their summer.',
     'The meadow islands, below the town. Delighted.', WONDER),
   says('theme', { theme: 'clouds' }, 'theme.clouds', 'We are walking on clouds! Do not tell them, they might stop holding us.',
@@ -532,6 +880,32 @@ export const LINES = [
     'The dark forest, always at night. Brave, a little nervous.', UNEASY),
   says('theme', { theme: 'slime' }, 'theme.slime', 'Ugh, everything sticks. Do not step in the green, it does not let go.',
     'The slime marsh, the last theme of the second act. Disgusted, a little funny.', CHATTY),
+  says('theme', { theme: 'roots' }, 'theme.roots', 'Roots, hanging from the ceiling! Something enormous is growing right above us.',
+    'The root caves, the first theme of act II.', WONDER),
+  says('theme', { theme: 'grotto' }, 'theme.grotto', 'A grotto full of water, and it glows. The light comes from under the water!',
+    'The sunken grotto.', WONDER),
+  says('theme', { theme: 'forge' }, 'theme.forge', 'Anvils and chimneys! Somebody worked brass here, like the smiths on... something. I forget.',
+    'The dwarven forge, a works yard. A scrap of memory (the ark\'s smiths) slips away.', SOFT),
+  says('theme', { theme: 'hive' }, 'theme.hive', 'Everything here is honey and wax. It smells sweet, and it is very, very sticky.',
+    'The honey hive.', CHATTY),
+  says('theme', { theme: 'swamp' }, 'theme.swamp', 'Mushrooms taller than you! Do not touch the green water, it bites.',
+    'The fungal swamp, with its acid river.', TIP),
+  says('theme', { theme: 'cenote' }, 'theme.cenote', 'A jungle, under the ground! And a round hole of sky, far up there.',
+    'The jungle cenote.', WONDER),
+  says('theme', { theme: 'frozen' }, 'theme.frozen', 'Ice caves, and frost on my feathers! Somebody used to scrape frost off feathers like these, I think.',
+    'The frozen caves. A scrap of memory (the glassmaker scraping the ark\'s wings).', SOFT),
+  says('theme', { theme: 'mines' }, 'theme.mines', 'Crystals as tall as doors! They catch my light and throw it everywhere.',
+    'The crystal mines, the first theme of act III.', WONDER),
+  says('theme', { theme: 'nests' }, 'theme.nests', 'Webs everywhere, big ones. I would like to go home now, please.',
+    'The spider nests.', UNEASY),
+  says('theme', { theme: 'ossuary' }, 'theme.ossuary', 'Bones, lots of old bones. They are very quiet, so let us be quiet too.',
+    'The ossuary. Hushed, not scary.', SOFT),
+  says('theme', { theme: 'ruins' }, 'theme.ruins', 'A whole town, buried down here. Somebody lived in these houses, a long time ago.',
+    'The buried ruins.', SOFT),
+  says('theme', { theme: 'volcanic' }, 'theme.volcanic', 'Lava, and it is so hot my glass tingles! Keep away from the glowing rock.',
+    'The volcanic depths. Star-glass minds heat.', WARN),
+  says('theme', { theme: 'abyss' }, 'theme.abyss', 'Black glass all around. It looks like the night sky fell down here and froze.',
+    'The obsidian abyss, the last theme, round the core.', WONDER),
 
   // --- an enemy of a kind not met before comes after the hero: what it is, and a tip --------------
   says('foe', { species: 'snake' }, 'foe.snake', 'Snakes! They lunge when they bite, so step back when they rear up.',
@@ -562,6 +936,8 @@ export const LINES = [
     'The first Moose, in a herd: it charges with its head lowered (sidestep it), and clubs whoever stands behind it with its tail.', WARN),
   says('foe', { species: 'fireface' }, 'foe.fireface', 'A face made of fire! Its fireballs keep burning for a while.',
     'The first Fire-face (in the dark forest a Lantern-face): its fireball sets you on fire.', WARN),
+  says('foe', { species: 'firecat' }, 'foe.firecat', 'A cat made of fire! It runs in and pounces, so keep moving.',
+    'The first Fire-cat: it runs in fast and pounces.', WARN),
   says('foe', { species: 'slug' }, 'foe.slug', 'A slug that spits! The slime slows you down.',
     'The first Slug, in the slime marsh.', TIP),
   says('foe', { species: 'bolime' }, 'foe.bolime', 'Careful, that blob swallows things! If it gets you, walk and jump until you are out.',
@@ -602,6 +978,14 @@ export const LINES = [
     'Slomo\'s slime bowl, always at night.', CHATTY),
   says('arena', { boss: 'slomo' }, 'arena.slomo.mounds', 'Slime is slow to wade through. Keep to the mounds when you can.',
     'His flood of slime slows; the mounds stay dry.', TIP),
+  says('arena', { boss: 'monteur' }, 'arena.monteur.stone', 'A moose, made of stone! And stones float between its antlers.',
+    'Monteur\'s arena, the first boss of act II: a stone moose with stones floating between his antlers.', WONDER, { seed: { de: 3 } }),
+  says('arena', { boss: 'monteur' }, 'arena.monteur.wall', 'When he lowers his head, jump aside. If he runs into a wall, he gets dizzy!',
+    'His charge: sidestep it; one that hits a wall leaves him dazed, every blow double.', TIP),
+  says('arena', { boss: 'qualmos' }, 'arena.qualmos.grin', 'So many tentacles, and it is grinning at us. This is the bottom of everything, and it lives here.',
+    'Qualmos\'s arena at the core: a blue-green amphibian on six tentacles, grinning. For now the boss at the core (docs/story.md).', UNEASY),
+  says('arena', { boss: 'qualmos' }, 'arena.qualmos.tricks', 'It gets angrier every time it is hurt, and learns a new trick. Be ready for anything!',
+    'Qualmos has five phases, each with new attacks.', TIP),
 
   // --- in a boss's fight: its start, an attack as it starts, a stage changing (short: it is quick) -
   says('boss', { boss: 'gusto', what: 'summon' }, 'boss.gusto.summon', 'Little triangles! Mind your back.',
@@ -724,6 +1108,44 @@ export const LINES = [
   says('boss', { boss: 'slomo', what: 'summon' }, 'boss.slomo.slimes', 'More slime. He is making friends.',
     'Slime slugs and bolimes plop out of his back. Dry.', CHATTY),
 
+  says('boss', { boss: 'monteur', what: 'throw' }, 'boss.monteur.throw', 'He throws the stones from his antlers! Keep moving.',
+    'Monteur throws one of his floating stones.', WARN),
+  says('boss', { boss: 'monteur', what: 'charge' }, 'boss.monteur.charge', 'Head down, here he comes! Jump out of the way!',
+    'His charge (as the sun, he rolls).', WARN),
+  says('boss', { boss: 'monteur', what: 'stuck' }, 'boss.monteur.stuck', 'He crashed! Hit him now, it hurts him double!',
+    'His charge ran into something: dazed, every blow double.', CHEER, { seed: { en: 3 } }),
+  says('boss', { boss: 'monteur', what: 'summon' }, 'boss.monteur.summon', 'Moose, coming up out of the floor!',
+    'Monteur stomps and Moose come up round him.', WARN),
+  says('boss', { boss: 'monteur', what: 'split', stage: 1 }, 'boss.monteur.sun', 'He is crumbling... into a sun made of stone?',
+    'At half health the moose crumbles into a sun of stone.', UNEASY),
+  says('boss', { boss: 'monteur', what: 'rain' }, 'boss.monteur.rain', 'Stones from the sky! Watch for their shadows!',
+    'The sun throws stones up; they come down where shadows grow.', WARN),
+  says('boss', { boss: 'monteur', what: 'spin' }, 'boss.monteur.spin', 'The world is turning! Do not worry, the floor stays under your feet.',
+    'The sun turns the world; gravity stays with the floor.', TIP),
+  says('boss', { boss: 'monteur', what: 'mountain' }, 'boss.monteur.mountain', 'The floor is cracking! Hold on, a mountain is coming up!',
+    'The sun pulls a mountain out of the floor; whoever stands on it rides up.', WARN),
+
+  says('boss', { boss: 'qualmos', what: 'grab' }, 'boss.qualmos.grab', 'An arm! Step back before it grabs you!',
+    'Qualmos reaches out to grab.', WARN),
+  says('boss', { boss: 'qualmos', what: 'rage' }, 'boss.qualmos.rage', 'It is furious! Stay back until it calms down.',
+    'Qualmos rages between his phases; nothing hurts him meanwhile.', WARN),
+  says('boss', { boss: 'qualmos', what: 'waterJet' }, 'boss.qualmos.jet', 'A jet of water! Step out of it sideways.',
+    'His jet pushes you away.', TIP),
+  says('boss', { boss: 'qualmos', what: 'dive' }, 'boss.qualmos.dive', 'It is leaping at you! Move!',
+    'His dive.', WARN),
+  says('boss', { boss: 'qualmos', what: 'inkBurst' }, 'boss.qualmos.ink', 'Ink! It slows you down, so keep out of its way.',
+    'His ink slows.', TIP, { seed: { de: 3 } }),
+  says('boss', { boss: 'qualmos', what: 'tailSpin' }, 'boss.qualmos.spin', 'All its tentacles at once! Get away from it!',
+    'His tentacles sweep all round him.', WARN, { seed: { en: 3 } }),
+  says('boss', { boss: 'qualmos', what: 'undertow' }, 'boss.qualmos.pull', 'It is pulling you in! Run the other way, hard!',
+    'His undertow pulls you towards him.', WARN),
+  says('boss', { boss: 'qualmos', what: 'spikeVolley' }, 'boss.qualmos.spines', 'Spines, three at once! Step between them!',
+    'Three spines fanned out.', TIP, { seed: { de: 1 } }),
+  says('boss', { boss: 'qualmos', what: 'tidalSurge' }, 'boss.qualmos.wave', 'A big wave! It will shove you, so brace yourself.',
+    'A wide wave that shoves.', WARN),
+  says('boss', { boss: 'qualmos', what: 'bellyFlop' }, 'boss.qualmos.flop', 'It is puffing up! Get out from under it, then hit it while it lies there!',
+    'Blown up, he flops onto you; then he lies there a moment, exposed.', TIP, { seed: { en: 3 } }),
+
   // --- a boss beaten: a cheer, and a scrap of what it remembers coming back --------------------
   says('beaten', { boss: 'gusto' }, 'beaten.gusto.open', 'We did it! The well is open!',
     'Gusto beaten, the first boss. Cheering.', CHEER),
@@ -757,6 +1179,14 @@ export const LINES = [
     'Slomo beaten, the bottom of the second act.', CHEER),
   says('beaten', { boss: 'slomo' }, 'beaten.slomo.dark', 'That was the bottom of something, I can feel it in my gears. From here on, it gets dark for real.',
     'Below lies the third act: the deep, only its own fires and crystals for light.', SOFT),
+  says('beaten', { boss: 'monteur' }, 'beaten.monteur.out', 'The stone sun went out! We did it!',
+    'Monteur beaten, the first boss of act II.', CHEER),
+  says('beaten', { boss: 'monteur' }, 'beaten.monteur.hatch', 'I remember a hatch, open just a crack, and starlight falling through. And something very still, watching it.',
+    'A scrap of memory: the hatch the glassmaker opened for the creature (his recordings of depth 9 tell of it). Wistful.', SOFT, { seed: { de: 1 } }),
+  says('beaten', { boss: 'qualmos' }, 'beaten.qualmos.beat', 'We beat it! The thing at the bottom of the world!',
+    'Qualmos beaten, at the core (for now he ends nothing: docs/story.md).', CHEER),
+  says('beaten', { boss: 'qualmos' }, 'beaten.qualmos.where', 'But where is the glassmaker? I was so sure he would be here.',
+    'The glassmaker is not found yet: the ending is still to come. Puzzled, sad.', SOFT),
 
   // --- the hero died (said once they are back where they came into the cube) -------------------
   // the boss whose arena it was first (a tip), then the depth's, then any; a world picks its order
@@ -790,8 +1220,20 @@ export const LINES = [
     'Died to Mansk again.', TIP),
   says('death', { boss: 'slomo' }, 'death.slomo.mound', 'When the slime floods in, get onto a mound. Wading is too slow.',
     'Died fighting Slomo.', TIP),
+  says('death', { boss: 'monteur' }, 'death.monteur.wall', 'Let him charge into a wall. Then he is dazed, and every hit counts double.',
+    'The hero died fighting Monteur. A tip.', KIND),
+  says('death', { boss: 'monteur' }, 'death.monteur.mountain', 'When the floor cracks, a mountain is coming. Ride it up with him, or keep well away.',
+    'Died to Monteur again: his mountains.', TIP),
+  says('death', { boss: 'qualmos' }, 'death.qualmos.flop', 'When it puffs up, run. After its belly flop it lies still a moment, and that is your chance.',
+    'Died fighting Qualmos.', KIND),
+  says('death', { boss: 'qualmos' }, 'death.qualmos.pull', 'When it pulls you in, run away at once. The longer you wait, the harder it pulls.',
+    'Died to Qualmos again.', TIP),
   says('death', { depth: 13 }, 'death.13.together', 'It is dark and sticky down here. Let us be careful together.',
     'Died at depth 13. Gentle.', KIND),
+  says('death', { depth: [7, 12] }, 'death.caves.find', 'Up you get. Even down in the caves, I will always find you.',
+    'Died in act II. Gentle.', KIND),
+  says('death', { depth: [14, 20] }, 'death.deep.scared', 'You scared me. It is far too dark down here to lose you.',
+    'Died in act III, the deep. Shaken.', UNEASY),
   says('death', null, 'death.carried', 'Up you get! I carried you back to where we came in, and you are heavier than you look.',
     'The first time the hero dies with the robot about: it brings them back to where they came into the cube (docs/story.md, "The robot").', KIND, { lead: true }),
   says('death', null, 'death.hurt', 'That looked like it hurt. Shall we try again, a bit more carefully?',
@@ -901,7 +1343,7 @@ export const LINES = [
   says('idle', null, 'idle.name', 'I nearly remembered my name just now. Gone again.',
     'Standing about. Wistful.', SOFT),
 
-  // --- wandering about: what it sees, the first act and the bottom of the second --------------
+  // --- wandering about: what it sees, the sky, the caves of act II, the deep, the core -----------
   says('wander', { depth: [0, 6] }, 'wander.crack', 'If you look hard at the edge of the sky, you can see a crack. It holds; most of them hold.',
     'A place not seen before, under the sky. The pieces are in cracked glass that holds.', WONDER),
   says('wander', { depth: [0, 6] }, 'wander.light', 'There is a light far off, in another piece. Somebody is home.',
@@ -926,6 +1368,24 @@ export const LINES = [
     'Depth 13, dim.', UNEASY),
   says('wander', { depth: [13, 13] }, 'wander.13.drip', 'Drip, drip. Everything down here drips.',
     'Depth 13: slime and water.', CHATTY),
+  says('wander', { depth: [7, 12] }, 'wander.caves.crack', 'Light is coming through a crack up there. Somebody else\'s sky, far away.',
+    'Act II: light falls in through cracks.', SOFT),
+  says('wander', { depth: [7, 12] }, 'wander.caves.music', 'Plink, plonk. The caves are playing music with their drips.',
+    'Act II, chatter.', CHATTY),
+  says('wander', { depth: [7, 12] }, 'wander.caves.cousins', 'Some of these mushrooms glow like me. I think we are cousins.',
+    'Act II: glowing things.', CHATTY),
+  says('wander', { depth: [7, 12] }, 'wander.caves.hum', 'Sometimes I think I can hear humming, far below. Then it stops.',
+    'Act II. The humming: the creature, far below (it does not know).', SOFT),
+  says('wander', { depth: [14, 19] }, 'wander.deep.bright', 'I am glowing as bright as I can. It is just a very big dark.',
+    'Act III, the deep.', KIND),
+  says('wander', { depth: [14, 19] }, 'wander.deep.warm', 'The deeper we go, the warmer my core gets. I hope that is a good thing.',
+    'Act III.', UNEASY),
+  says('wander', { depth: [14, 19] }, 'wander.deep.glass', 'Look, a little piece of glass in the rock. Old star-glass, maybe.',
+    'Act III: glass that fell this far.', WONDER),
+  says('wander', { depth: [14, 19] }, 'wander.deep.thinking', 'It is so quiet down here, I can hear my own gears thinking.',
+    'Act III, chatter.', CHATTY),
+  says('wander', { depth: [20, 20] }, 'wander.core.smoke', 'Do you smell that? Smoke, like from a small furnace.',
+    'The core: the glassmaker\'s furnace somewhere (not found yet).', SOFT, { seed: { de: 2 } }),
 
   // --- guardians (a side guardian, or a boss's stand-in) ---------------------------------------
   says('guardian', { what: 'near' }, 'guardian.big', 'Something big is guarding this place. Watch its friends too.',
