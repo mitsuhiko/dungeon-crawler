@@ -953,6 +953,8 @@ export default {
     'Das Wasser steigt! Hoch, hoch zum Knopf!',
   'The floor is falling away! Run, and do not look back!':
     'Der Boden bricht weg! Lauf, und schau nicht zurück!',
+  'Stepping stones! Each one sinks soon after you land, so keep hopping.':
+    'Trittsteine! Jeder sinkt kurz, nachdem du gelandet bist, also hüpf weiter!',
   'So cold! Light the braziers on the way, they keep you warm.':
     'So kalt! Zünde unterwegs die Feuerschalen an, die halten dich warm.',
   'Wind! Hide behind the rocks when it gusts, and climb when it calms.':

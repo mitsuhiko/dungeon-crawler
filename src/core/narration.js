@@ -1402,6 +1402,8 @@ export const LINES = [
     'A rising water event sealed the room: press the button on the summit.', WARN),
   says('trial', { what: 'sealed', kind: 'collapse' }, 'trial.collapse', 'The floor is falling away! Run, and do not look back!',
     'A crumbling floor event: run for the far side.', WARN),
+  says('trial', { what: 'sealed', kind: 'balance' }, 'trial.balance', 'Stepping stones! Each one sinks soon after you land, so keep hopping.',
+    'Balance: stone slabs over lava or acid, each sinking three seconds after the first landing on it.', WARN),
   says('trial', { what: 'sealed', kind: 'cold' }, 'trial.cold', 'So cold! Light the braziers on the way, they keep you warm.',
     'A cold snap: light the braziers on the way to the great fire.', WARN),
   says('trial', { what: 'sealed', kind: 'storm' }, 'trial.storm', 'Wind! Hide behind the rocks when it gusts, and climb when it calms.',

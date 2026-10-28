@@ -200,6 +200,7 @@ export default {
       line: 'If this reaches you: I am down below, where no light reaches. Find me.',
       note: 'The last words, to whoever finds the recording, wherever it rose to. Urgent but quiet. "Find me" is the point of all of it.',
       instruct: 'Speak low, quiet and urgent, close to the listener, slowing down for the last two words.',
+      seed: { en: 3 },
       worn: true,
       cues: [
         [0, 'crackle', { to: 0.6, for: 2 }],
