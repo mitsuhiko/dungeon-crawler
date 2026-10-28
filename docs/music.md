@@ -68,7 +68,7 @@ plays, at once, if it is at most 150 ms late; a later one is dropped.
 | `src/audio/drumkit.js` | the drum hits a song uses, rendered once and played as samples |
 | `src/audio/sampler.js` | the other notes a song uses, rendered once (held ones looping) and played as samples |
 | `src/game/music.js` | picks the song (`songFor`) and the mood from the game state; `forceMood` holds one (`__game.musicMood`) |
-| `src/core/bossmusic.js` | the bosses with a song of their own, its moods and how his fight picks one (Gusto's: `gustoMusic` in `src/core/gusto.js`) |
+| `src/core/bossmusic.js` | the bosses with a song of their own, its moods and how his fight picks one (Gusto's: `gustoMusic` in `src/core/gusto.js`; Sollmeldon's: `sollmeldonMusic` in `src/core/sollmeldon.js`) |
 
 ## Editing
 
@@ -121,11 +121,22 @@ went home). Once he is dead the place's own song comes back, from `explore`.
 | `phase2` | his proxies stand, or he is below half, or he has split | phase1 without organ, with brass stabs, the theremin, a snare on every beat and sixteenth hats |
 | `gone` | he vanished (`gone`) | choir, theremin, heartbeat, bell, tuba |
 
+| Sollmeldon's mood | When (`sollmeldonMusic`, `src/core/sollmeldon.js`) | Voices |
+|---|---|---|
+| `lurk` | he has not noticed you, unhurt | choir, tuba, a singing bowl tolling, a tom heartbeat |
+| `phase1` | after you, or hurt: three heads | his heads' canon (the motif D Eb F A G one bar apart: a horn, a bassoon an octave under, a glass harmonica over), low strings rocking in three, tuba, choir, timpani, kick, taiko |
+| `sever` | a head being cut off (`split`) | choir, a held cluster, a timpani roll, tuba, bowl |
+| `phase2` | two heads | phase1 without the glass harmonica (its head is gone), with a snare and brass stabs |
+| `phase3` | one head | the horn alone, doubled by the theremin; strings, tuba, timpani, kick, a snare in sixteenths, taiko, hats, brass |
+| `tilt` | the world tipped over a third of the way (his `tilt`) | the horn, strings, tuba, choir, timpani, taiko, the cluster and a theremin sliding down and down |
+
 A **sting** is a pattern a score plays once as a mood begins (`# sting MOOD: PATTERN`), from the
 next sixteenth, over the loop; its voices play in no mood, so their channels stay open
 (`audio/music.js` `playSting`). Gusto's: a brass hit and crash as he comes for you, thunder and
 a dissonant brass chord as he splits, gong, crash and brass as the three of him appear (again
-each time he comes back), a whoosh as he vanishes.
+each time he comes back), a whoosh as he vanishes. Sollmeldon's: a three-throated brass chord and a
+crash as he comes for you, a gong, a splash and a brass cluster as a head comes off, a brass hit
+and a crash as the next phase begins, a boom as the world tips.
 
 Beating a boss (a real one or a Temp Boss) plays a jingle (`src/audio/jingles.js`,
 `music/jingles/victory.scrim`, `docs/sound.md`), and the music is turned down under it, smoothly
@@ -192,6 +203,7 @@ test also checks that every score in `music/` is one of them.
 | `abyss` | obsidian abyss (III) | minor chords a tritone apart over an E pedal, 56 | a theremin singing the toy tune a note a bar, a bell tolling, low choir | far thunder, low tom |
 | `core` | the core (20) | A minor, 67, 6/8 (the title's) | the title's toy tune whole again on crystal, the rocking crystal, harp; its Bb turns to B the second time (mended) | low tom, triangle |
 | `gusto` | Gusto's arena (depth 0's descent), while he lives | D minor with a Phrygian Eb, Bb A Eb Gm and an Ab a tritone off, 150 | horn tune, short low strings in 3+3+2, organ and brass stabs, choir, music box motif, bell, theremin; his fight's own moods and stings (above) | taiko and a tom heartbeat |
+| `sollmeldon` | Sollmeldon's mire (depth 10's descent), while he lives | D minor with the swamp's Phrygian Eb, Dm Eb Dm A Bb Gm Eb A, then up a fourth; 84, 3/4 (three of everything) | his three heads singing the motif as a canon one bar apart (horn, bassoon, glass harmonica), a head's voice gone with each head cut off; low strings in three, tuba, choir, brass stabs, theremin; his fight's own moods and stings (above) | timpani, taiko, kick, snare |
 
 Every song but the title, the town and the bosses' own has all six moods. Combat keeps the exploration tempo and meter,
 but replaces gentle motion with two combat-only voices: `drive` (an accented, short-gated

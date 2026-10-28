@@ -1091,6 +1091,32 @@ export default {
     "Eine große Welle! Sie schubst dich, also mach dich bereit.",
   "It is puffing up! Get out from under it, then hit it while it lies there!":
     "Es bläst sich auf! Raus unter ihm, und dann schlag zu, solange es daliegt!",
+  "Three heads! And all of him is mud. Black, sticky mud.":
+    "Drei Köpfe! Und er ist ganz aus Schlamm. Schwarzer, klebriger Schlamm.",
+  "If the ground tips, get up high. The mud runs downhill, and there it gets deep.":
+    "Wenn der Boden kippt, geh nach oben. Der Schlamm läuft bergab, und dort wird er tief.",
+  "A head is coming! The one that pulls back is the one that bites.":
+    "Da kommt ein Kopf! Der, der sich zurückzieht, beißt.",
+  "Mud balls! They stay where they land, so mind your feet.":
+    "Schlammkugeln! Die bleiben liegen, wo sie landen, also pass auf, wo du hintrittst.",
+  "He is flying! And dropping mud on us from up there!":
+    "Er fliegt! Und lässt von da oben Schlamm auf uns fallen!",
+  "Something is crawling out of the mud!":
+    "Da kriecht etwas aus dem Schlamm!",
+  "His head came off! Only two left.":
+    "Sein Kopf ist ab! Nur noch zwei.",
+  "Another one! Just one head now, and it is angry.":
+    "Noch einer! Jetzt nur noch ein Kopf, und der ist wütend.",
+  "The whole world is tipping! Run uphill, away from the mud!":
+    "Die ganze Welt kippt! Lauf bergauf, weg vom Schlamm!",
+  "He melted! Just a puddle now. A very big puddle.":
+    "Er ist geschmolzen! Nur noch eine Pfütze. Eine sehr große Pfütze.",
+  "I will never get this mud out of my gears.":
+    "Diesen Schlamm kriege ich nie wieder aus meinen Zahnrädern.",
+  "When he lands, the world tips. Go uphill before the mud gets there.":
+    "Wenn er landet, kippt die Welt. Geh bergauf, bevor der Schlamm da ist.",
+  "Watch his heads. The one that pulls back bites next, and never the same one twice.":
+    "Pass auf seine Köpfe auf. Der, der sich zurückzieht, beißt als Nächstes, und nie zweimal derselbe.",
   "The stone sun went out! We did it!":
     "Die Sonne aus Stein ist erloschen! Wir haben es geschafft!",
   "I remember a hatch, open just a crack, and starlight falling through. And something very still, watching it.":

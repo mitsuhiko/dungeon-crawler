@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { N, BASE, LH, DIRS, OPP } from '../core/constants.js';
 import { EDGE_CORNERS, edgePts } from '../core/constants.js';
-import { fluidMaterial, cellMaterial, FLUID_LOOK, solidMaterial, STAND_SLOPE } from './materials.js';
+import { fluidMaterial, cellMaterial, FLUID_LOOK, solidMaterial } from './materials.js';
 import { restY, tideY, stepWet } from './surface.js';
 import { TRIALS } from '../core/trials.js';
 import { GeoBuilder } from './builder.js';
@@ -521,13 +521,10 @@ function standingSurface(m, [x0, z0, x1, z1]) {
   return geo;
 }
 
-// the fluid's surface at y (world units; null: none), the trial's phase (the tide lines show while
-// idle); slope: its lean (Sollmeldon's mud in the tipped world: y is its height at the middle of the
-// cube, materials.js STAND_SLOPE)
-export function setTrialWater(world, y, phase, slope = null) {
+// the fluid's surface at y (world units; null: none), the trial's phase (the tide lines show while idle)
+export function setTrialWater(world, y, phase) {
   const v = world?.trialView;
   setTrialWaterCap(null);
-  STAND_SLOPE.value.set(slope?.[0] ?? 0, slope?.[1] ?? 0);
   if (!v) return;
   v.level = y; v.phase = phase;
   if (v.tide) v.tide.visible = phase === 'idle' || phase === 'armed';
@@ -538,7 +535,7 @@ export function setTrialWater(world, y, phase, slope = null) {
   // the fires under it go out (the props' and the trial's own; render/flames.js)
   douseFlames(world.group, v.water.visible ? y : null, v.water.userData.fluid);
   if (!v.water.visible) { v.wetAt = null; return; }
-  setTrialWaterCap(y, v.water.userData.fluid, v.water.userData.pal, slope);
+  setTrialWaterCap(y, v.water.userData.fluid, v.water.userData.pal);
   // (drawn where every fluid's surface is: render/surface.js)
   if (v.waterTide) v.waterTide.level.value = restY(y);
 }

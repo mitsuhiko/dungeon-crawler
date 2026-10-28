@@ -11,16 +11,19 @@
 // draws it, rising and falling with the tide and the waves: render/surface.js swellGLSL), and foam
 // hugs it where it comes out (lava: a glowing seam): it is the fluid there. The eyes keep their
 // own colours.
-// One program per look (water, sludge, crust), a material per Squirtle (its uniforms: its
+// A Mud squirtle (Sollmeldon's) is of his mud: the goop of it (render/goop.js), streaming up it,
+// its foam the mud's lighter rim, nothing glowing.
+// One program per look (water, sludge, crust, goop), a material per Squirtle (its uniforms: its
 // palette row, its fluid's surface, its fade and flash, whether its eyes show).
 import * as THREE from 'three';
-import { WATER } from '../core/constants.js';
+import { WATER, MUD } from '../core/constants.js';
+import { GOOP_GLSL, GOOP_RIM } from './goop.js';
 import { CELLS, useCells } from './watercells.js';
 import { PAL_TEX, PAL_GLSL } from './fluidpal.js';
 import { FLUID_LOOK, WIND } from './materials.js';
 import { FLUID_MOTION, swellGLSL } from './surface.js';
 
-const STYLE_ID = { water: 0, sludge: 1, crust: 2 };
+const STYLE_ID = { water: 0, sludge: 1, crust: 2, goop: 3 };
 // per look: how much finer its cells are than on its pool, and how fast they run along it
 // (world units a second)
 const FLOW = { water: { fine: 1.15, flow: 0.5 }, sludge: { fine: 1.15, flow: 0.28 }, crust: { fine: 1.2, flow: 0.12 } };
@@ -29,16 +32,17 @@ export const PARTS = 3;
 // fluid: the fluid it lives in (its look); parts: the model's parts (render/enemymodel.js), the
 // one named SquirtleBody drawn as the fluid, the others in their own colours
 export function squirtleMaterial(fluid, parts) {
-  const L = FLUID_LOOK[fluid] ?? FLUID_LOOK[WATER], style = L.style, C = CELLS[style], F = FLOW[style], S = FLUID_MOTION[fluid] ?? FLUID_MOTION[WATER];
+  const L = FLUID_LOOK[fluid] ?? FLUID_LOOK[WATER], goop = fluid === MUD, style = goop ? 'goop' : L.style, C = CELLS[L.style], F = FLOW[L.style];
+  const S = FLUID_MOTION[fluid] ?? FLUID_MOTION[WATER];
   const colors = Array.from({ length: PARTS }, (_, i) => parts[i]?.color.clone() ?? new THREE.Color(1, 1, 1));
   const u = {
     uCellTime: WIND, uCellTex: C.tex, uPalTex: PAL_TEX,
     uPalRow: { value: 0 }, uLevel: { value: -1e4 }, uOff: { value: new THREE.Vector3() }, uFade: { value: 1 }, uEyes: { value: 1 },
     uFlash: { value: new THREE.Color(0, 0, 0) }, uPartColor: { value: colors }, uBodyPart: { value: Math.max(0, parts.findIndex(p => p.name === 'SquirtleBody')) },
   };
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, roughness: style === 'crust' ? 0.6 : 0.4, metalness: 0,
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, roughness: style === 'crust' ? 0.6 : goop ? 0.18 : 0.4, metalness: 0,
     transparent: true, forceSinglePass: true });
-  useCells(mat, style);
+  useCells(mat, L.style);
   const K = (C.perUnit * F.fine / C.tile).toFixed(4), flow = F.flow.toFixed(3);
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, u);
@@ -60,7 +64,7 @@ export function squirtleMaterial(fluid, parts) {
       uniform vec3 uOff, uFlash, uPartColor[${PARTS}];
       uniform int uBodyPart;
       uniform sampler2D uCellTex;
-      ` + PAL_GLSL + swellGLSL(S) + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      ` + PAL_GLSL + swellGLSL(S) + GOOP_GLSL + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       float flowLine = 0.0, flowHeat = 0.0;
       vec2 rows = vec2(uPalRow);
       vec3 pBody = palColor(rows, 0.0, 0), pDark = palColor(rows, 0.0, 1), pLine = palColor(rows, 0.0, 2), pFoam = palColor(rows, 0.0, 3);
@@ -82,7 +86,10 @@ export function squirtleMaterial(fluid, parts) {
         p += 0.012 * vec2(sin(p.y * 1.7 + tm * 0.21) + sin(p.y * 4.3 - p.x * 1.1), sin(p.x * 1.9 - tm * 0.17) + sin(p.x * 3.7 + p.y * 1.3));
         vec4 c = texture2D(uCellTex, p);
         float aa = fwidth(c.r) * 0.7 + 1e-3, aa2 = fwidth(c.g) * 0.7 + 1e-3;
-        #if FLOW_STYLE == 2
+        #if FLOW_STYLE == 3
+          // his mud's goop, streaming up it (its flow coordinates, in world units about)
+          col = goopColor(vec2(vFlowUv.y * 2.4, (vFlowUv.x - tm * ${flow}) * 3.2), tm);
+        #elif FLOW_STYLE == 2
           // molten rock in bands of heat, blotches of crust riding on it
           float t1 = smoothstep(0.3 - aa, 0.3 + aa, c.r), t2 = smoothstep(0.62 - aa, 0.62 + aa, c.r);
           vec3 mid = mix(pBody, pLine, 0.55);
@@ -117,7 +124,9 @@ export function squirtleMaterial(fluid, parts) {
           float hug = 0.05 + 0.018 * sin(vFlowUv.y * 5.0 + tm * 2.3) + 0.012 * sin(vFlowUv.x * 7.0 - tm * 3.1), ad = fwidth(above) + 1e-4;
           foam = max(foam, 1.0 - smoothstep(hug - ad, hug + ad, above));
         }
-        #if FLOW_STYLE == 2
+        #if FLOW_STYLE == 3
+          col = mix(col, ${GOOP_RIM}, foam * 0.8); col = mix(col, vec3(0.01), mouth); flowLine = 0.0;
+        #elif FLOW_STYLE == 2
           col = mix(col, pLine, foam); flowHeat = max(flowHeat, foam); flowLine = max(flowLine, foam * 0.6);
           col = mix(col, mix(pBody, pLine, 0.35), mouth); flowHeat = mix(flowHeat, 1.0, mouth);
           col *= 0.6;   // (lit mostly by itself, below)
@@ -130,7 +139,9 @@ export function squirtleMaterial(fluid, parts) {
       diffuseColor.rgb *= col;
       diffuseColor.a *= alpha * uFade;`).replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       if (vPart == uBodyPart) {
-        #if FLOW_STYLE == 2
+        #if FLOW_STYLE == 3
+          totalEmissiveRadiance = vec3(0.0);
+        #elif FLOW_STYLE == 2
           totalEmissiveRadiance = pEm * 0.25 * flowHeat + diffuseColor.rgb * (0.75 * flowHeat + flowLine);
         #else
           totalEmissiveRadiance = pEm + diffuseColor.rgb * flowLine;

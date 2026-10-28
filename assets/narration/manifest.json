@@ -2087,6 +2087,20 @@
         "dur": 6.61,
         "hash": "4d9408122cad3f00"
       },
+      "robot.arena.sollmeldon.heads": {
+        "text": "Three heads! And all of him is mud. Black, sticky mud.",
+        "source": "Three heads! And all of him is mud. Black, sticky mud.",
+        "seed": 0,
+        "dur": 6.51,
+        "hash": "d7f6b262657fc69a"
+      },
+      "robot.arena.sollmeldon.uphill": {
+        "text": "If the ground tips, get up high. The mud runs downhill, and there it gets deep.",
+        "source": "If the ground tips, get up high. The mud runs downhill, and there it gets deep.",
+        "seed": 0,
+        "dur": 9.66,
+        "hash": "95bb96a9b84a6efe"
+      },
       "robot.arena.qualmos.grin": {
         "text": "So many tentacles, and it is grinning at us. This is the bottom of everything, and it lives here.",
         "source": "So many tentacles, and it is grinning at us. This is the bottom of everything, and it lives here.",
@@ -2549,6 +2563,55 @@
         "dur": 4.53,
         "hash": "7af4933013b08bf6"
       },
+      "robot.boss.sollmeldon.bite": {
+        "text": "A head is coming! The one that pulls back is the one that bites.",
+        "source": "A head is coming! The one that pulls back is the one that bites.",
+        "seed": 0,
+        "dur": 5.01,
+        "hash": "3d2a2ce594bcd4a5"
+      },
+      "robot.boss.sollmeldon.spit": {
+        "text": "Mud balls! They stay where they land, so mind your feet.",
+        "source": "Mud balls! They stay where they land, so mind your feet.",
+        "seed": 0,
+        "dur": 5.07,
+        "hash": "21f08a26bba19984"
+      },
+      "robot.boss.sollmeldon.rain": {
+        "text": "He is flying! And dropping mud on us from up there!",
+        "source": "He is flying! And dropping mud on us from up there!",
+        "seed": 0,
+        "dur": 3.31,
+        "hash": "9ae7d03f031fb913"
+      },
+      "robot.boss.sollmeldon.squirtles": {
+        "text": "Something is crawling out of the mud!",
+        "source": "Something is crawling out of the mud!",
+        "seed": 0,
+        "dur": 2.61,
+        "hash": "9377520ed400ecc2"
+      },
+      "robot.boss.sollmeldon.two": {
+        "text": "His head came off! Only two left.",
+        "source": "His head came off! Only two left.",
+        "seed": 0,
+        "dur": 3.34,
+        "hash": "c715ba0dee131b1c"
+      },
+      "robot.boss.sollmeldon.one": {
+        "text": "Another one! Just one head now, and it is angry.",
+        "source": "Another one! Just one head now, and it is angry.",
+        "seed": 0,
+        "dur": 4.53,
+        "hash": "a5bc6e88b74d0f11"
+      },
+      "robot.boss.sollmeldon.tilt": {
+        "text": "The whole world is tipping! Run uphill, away from the mud!",
+        "source": "The whole world is tipping! Run uphill, away from the mud!",
+        "seed": 0,
+        "dur": 4.36,
+        "hash": "ab4ad204f5561662"
+      },
       "robot.boss.qualmos.grab": {
         "text": "An arm! Step back before it grabs you!",
         "source": "An arm! Step back before it grabs you!",
@@ -2745,6 +2808,20 @@
         "dur": 9.63,
         "hash": "27e9ccafcd38dc3e"
       },
+      "robot.beaten.sollmeldon.puddle": {
+        "text": "He melted! Just a puddle now. A very big puddle.",
+        "source": "He melted! Just a puddle now. A very big puddle.",
+        "seed": 0,
+        "dur": 5.41,
+        "hash": "e8ea8c30fedafffc"
+      },
+      "robot.beaten.sollmeldon.gears": {
+        "text": "I will never get this mud out of my gears.",
+        "source": "I will never get this mud out of my gears.",
+        "seed": 0,
+        "dur": 3.23,
+        "hash": "9a1346528532182b"
+      },
       "robot.beaten.qualmos.beat": {
         "text": "We beat it! The thing at the bottom of the world!",
         "source": "We beat it! The thing at the bottom of the world!",
@@ -2877,6 +2954,20 @@
         "seed": 0,
         "dur": 9.4,
         "hash": "191d98611406db3c"
+      },
+      "robot.death.sollmeldon.uphill": {
+        "text": "When he lands, the world tips. Go uphill before the mud gets there.",
+        "source": "When he lands, the world tips. Go uphill before the mud gets there.",
+        "seed": 0,
+        "dur": 5.59,
+        "hash": "fa4d381f8ae54ea0"
+      },
+      "robot.death.sollmeldon.heads": {
+        "text": "Watch his heads. The one that pulls back bites next, and never the same one twice.",
+        "source": "Watch his heads. The one that pulls back bites next, and never the same one twice.",
+        "seed": 0,
+        "dur": 6.64,
+        "hash": "1ccefff9cb739b72"
       },
       "robot.death.qualmos.flop": {
         "text": "When it puffs up, run. After its belly flop it lies still a moment, and that is your chance.",
@@ -5729,6 +5820,20 @@
         "dur": 6.65,
         "hash": "b5f090e7b4253a74"
       },
+      "robot.arena.sollmeldon.heads": {
+        "text": "Drei Köpfe! Und er ist ganz aus Schlamm. Schwarzer, klebriger Schlamm.",
+        "source": "Drei Köpfe! Und er ist ganz aus Schlamm. Schwarzer, klebriger Schlamm.",
+        "seed": 0,
+        "dur": 9.61,
+        "hash": "ede18c7dd3e2f3d8"
+      },
+      "robot.arena.sollmeldon.uphill": {
+        "text": "Wenn der Boden kippt, geh nach oben. Der Schlamm läuft bergab, und dort wird er tief.",
+        "source": "Wenn der Boden kippt, geh nach oben. Der Schlamm läuft bergab, und dort wird er tief.",
+        "seed": 0,
+        "dur": 7,
+        "hash": "327c47173ca6c4f0"
+      },
       "robot.arena.qualmos.grin": {
         "text": "So viele Tentakel, und es grinst uns an. Das ist der Grund von allem, und es wohnt hier.",
         "source": "So viele Tentakel, und es grinst uns an. Das ist der Grund von allem, und es wohnt hier.",
@@ -6191,6 +6296,55 @@
         "dur": 4.73,
         "hash": "6d0433e439cd590f"
       },
+      "robot.boss.sollmeldon.bite": {
+        "text": "Da kommt ein Kopf! Der, der sich zurückzieht, beißt.",
+        "source": "Da kommt ein Kopf! Der, der sich zurückzieht, beißt.",
+        "seed": 2,
+        "dur": 4.96,
+        "hash": "bff9bb506f95a65a"
+      },
+      "robot.boss.sollmeldon.spit": {
+        "text": "Schlammkugeln! Die bleiben liegen, wo sie landen, also pass auf, wo du hintrittst.",
+        "source": "Schlammkugeln! Die bleiben liegen, wo sie landen, also pass auf, wo du hintrittst.",
+        "seed": 0,
+        "dur": 7.25,
+        "hash": "aa203394f15764e6"
+      },
+      "robot.boss.sollmeldon.rain": {
+        "text": "Er fliegt! Und lässt von da oben Schlamm auf uns fallen!",
+        "source": "Er fliegt! Und lässt von da oben Schlamm auf uns fallen!",
+        "seed": 0,
+        "dur": 3.92,
+        "hash": "241f2b70fe020f17"
+      },
+      "robot.boss.sollmeldon.squirtles": {
+        "text": "Da kriecht etwas aus dem Schlamm!",
+        "source": "Da kriecht etwas aus dem Schlamm!",
+        "seed": 0,
+        "dur": 3.06,
+        "hash": "7c37a18f3a056e41"
+      },
+      "robot.boss.sollmeldon.two": {
+        "text": "Sein Kopf ist ab! Nur noch zwei.",
+        "source": "Sein Kopf ist ab! Nur noch zwei.",
+        "seed": 0,
+        "dur": 2.89,
+        "hash": "018d9f5b4961c33c"
+      },
+      "robot.boss.sollmeldon.one": {
+        "text": "Noch einer! Jetzt nur noch ein Kopf, und der ist wütend.",
+        "source": "Noch einer! Jetzt nur noch ein Kopf, und der ist wütend.",
+        "seed": 0,
+        "dur": 3.91,
+        "hash": "e4af5b2d816008c9"
+      },
+      "robot.boss.sollmeldon.tilt": {
+        "text": "Die ganze Welt kippt! Lauf bergauf, weg vom Schlamm!",
+        "source": "Die ganze Welt kippt! Lauf bergauf, weg vom Schlamm!",
+        "seed": 0,
+        "dur": 4.18,
+        "hash": "b2dec9da4eac9e5f"
+      },
       "robot.boss.qualmos.grab": {
         "text": "Ein Arm! Geh zurück, bevor er dich packt!",
         "source": "Ein Arm! Geh zurück, bevor er dich packt!",
@@ -6387,6 +6541,20 @@
         "dur": 11.78,
         "hash": "e209fb01cca82be8"
       },
+      "robot.beaten.sollmeldon.puddle": {
+        "text": "Er ist geschmolzen! Nur noch eine Pfütze. Eine sehr große Pfütze.",
+        "source": "Er ist geschmolzen! Nur noch eine Pfütze. Eine sehr große Pfütze.",
+        "seed": 0,
+        "dur": 7.3,
+        "hash": "69173c79dd53f650"
+      },
+      "robot.beaten.sollmeldon.gears": {
+        "text": "Diesen Schlamm kriege ich nie wieder aus meinen Zahnrädern.",
+        "source": "Diesen Schlamm kriege ich nie wieder aus meinen Zahnrädern.",
+        "seed": 0,
+        "dur": 3.98,
+        "hash": "5519b13f92d5e5bb"
+      },
       "robot.beaten.qualmos.beat": {
         "text": "Wir haben es besiegt! Das Ding am Grund der Welt!",
         "source": "Wir haben es besiegt! Das Ding am Grund der Welt!",
@@ -6519,6 +6687,20 @@
         "seed": 0,
         "dur": 6.57,
         "hash": "a3f11bb829c3c88c"
+      },
+      "robot.death.sollmeldon.uphill": {
+        "text": "Wenn er landet, kippt die Welt. Geh bergauf, bevor der Schlamm da ist.",
+        "source": "Wenn er landet, kippt die Welt. Geh bergauf, bevor der Schlamm da ist.",
+        "seed": 0,
+        "dur": 6.68,
+        "hash": "0c02fc7411b69497"
+      },
+      "robot.death.sollmeldon.heads": {
+        "text": "Pass auf seine Köpfe auf. Der, der sich zurückzieht, beißt als Nächstes, und nie zweimal derselbe.",
+        "source": "Pass auf seine Köpfe auf. Der, der sich zurückzieht, beißt als Nächstes, und nie zweimal derselbe.",
+        "seed": 0,
+        "dur": 10.57,
+        "hash": "27340e6a631ef278"
       },
       "robot.death.qualmos.flop": {
         "text": "Wenn es sich aufbläst, lauf. Nach dem Bauchklatscher liegt es einen Moment still, und das ist deine Chance.",

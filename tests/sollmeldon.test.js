@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SOLLMELDON_FIGHT as G, HEAD_SIDE, BITES, ALL_HEADS, headsOf, nextHead, headToCut, sideOf, phaseFloor, summonCount, barred,
-  stepLift, flying, groundTime, airTime, newTilt, tiltToward, levelTilt, stepTilt, tipped, slopeOf, newSlosh, stepSlosh,
-  PIVOT, planeY, mudVolume, mudLevel, newPuddle, puddleRadius, mergePuddles, flowPuddle, SOLLMELDON_MUSIC, sollmeldonMusic } from '../src/core/sollmeldon.js';
+  stepLift, flying, groundTime, airTime, newTilt, tiltToward, levelTilt, stepTilt, tipped, slopeOf,
+  PIVOT, planeY, mudVolume, mudLevel, MUD_FLOW, newMudField, fillMud, depositMud, stepMud, drainMud, mudTotal, depthAt, surfaceAt, cellSurfaces,
+  SOLLMELDON_MUSIC, sollmeldonMusic } from '../src/core/sollmeldon.js';
 import { N, LH, HEAD_Y, WATER, MUD } from '../src/core/constants.js';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
@@ -86,71 +87,61 @@ test('the tilt: it tips towards where he lands, holds and levels again', () => {
   const s = slopeOf([1, 0]); close(s[0], Math.tan(G.tilt.angle)); close(s[1], 0);
 });
 
-test('the mud sloshes over: it overshoots a little and settles', () => {
-  const s = newSlosh(), want = slopeOf([1, 0]);
-  let most = 0;
-  for (let t = 0; t < 12; t += 1 / 60) { stepSlosh(s, want, 1 / 60); most = Math.max(most, s.g[0]); }
-  assert.ok(most > want[0] * 1.05 && most < want[0] * 1.6, `overshoots a little: ${most / want[0]}`);
-  close(s.g[0], want[0], want[0] * 0.02, 'settles');
-  // big steps keep it stable
-  const b = newSlosh();
-  for (let i = 0; i < 40; i++) stepSlosh(b, want, 0.25);
-  close(b.g[0], want[0], want[0] * 0.05);
-});
-
-// a flat basin (x, z in 2..14, floor at 0) with a ridge of ground at 1 on its +x side
-const basin = () => {
-  const out = [];
-  for (let z = 2; z < 14; z += 0.5) for (let x = 2; x < 14; x += 0.5) out.push({ x: x + 0.25, z: z + 0.25, h: x >= 12 ? 1 : 0, a: 0.25 });
-  return out;
-};
-test('the mud keeps its volume: a flat pool tipped runs deep to the low side', () => {
-  const ground = basin(), flat = 0.25;
-  const vol = mudVolume(ground, flat);
-  close(vol, 10 * 12 * flat, 1e-9, 'the flat pool');
-  close(mudLevel(ground, vol), flat, 1e-6);
-  assert.ok(mudLevel(ground, 0) < 0, 'no mud: under the ground');
-  // tipped towards -x: the same volume, deep at -x and dry at the far side
-  const g = slopeOf([-1, 0]), y = mudLevel(ground, vol, g);
-  close(mudVolume(ground, y, g), vol, 1e-6, 'its volume kept');
-  const low = planeY(y, g, 2, 8), high = planeY(y, g, 11.9, 8);
-  assert.ok(low > flat * 2.5, `deep at the low side: ${low}`);
-  assert.ok(high < 0, 'dry at the high side');
-  // with a few of his balls of mud in it: over the head (HEAD_Y) there
-  const more = vol + 16 * G.mud.ball, y2 = mudLevel(ground, more, g);
-  assert.ok(planeY(y2, g, 2, 8) > 0.79 && mudLevel(ground, more) < 0.35, 'tipped over the head, level still shallow');
-  // levelled again: back where it was (the same volume, flat)
-  close(mudLevel(ground, vol, [0, 0]), flat, 1e-6);
-  // more mud: higher
-  assert.ok(mudLevel(ground, vol + G.mud.head) > flat + 0.03);
+// a flat basin (x, z in 2..14, floor at 0) with a pit on its -x side and a ledge on its +x side
+const ground = (x, z) => x < 5 ? -0.5 : x > 11 ? 0.5 : 0;
+const settle = (f, g, tip, secs) => { for (let t = 0; t < secs; t += 1 / 60) stepMud(f, g, tip, 1 / 60); };
+test('the mud fills the low ground level, and keeps its volume however it flows', () => {
   assert.equal(PIVOT, N / 2);
+  const f = newMudField([2, 2, 14, 14], ground);
+  fillMud(f, 6);
+  close(mudTotal(f), 6, 1e-3);
+  assert.ok(depthAt(f, 3, 8) > 0.1 && depthAt(f, 8, 8) === 0 && depthAt(f, 12.5, 8) === 0, 'in the pit, the rest dry');
+  close(surfaceAt(f, 3, 8), surfaceAt(f, 4.5, 3), 1e-4, 'level');
+  assert.equal(surfaceAt(f, 8, 8), -Infinity);
+  settle(f, [0, 0], false, 3);
+  close(mudTotal(f), 6, 1e-3, 'it stays as it is');
+  close(depthAt(f, 3, 8), depthAt(f, 4.5, 3), 0.01);
+  // what the physics gets: each wet cell's surface, NaN where dry
+  const cells = cellSurfaces(f);
+  assert.ok(Number.isFinite(cells[8 * N + 3]) && Number.isNaN(cells[8 * N + 8]) && Number.isNaN(cells[0]));
+  // the ground's levels from the plane solve as well (game/mud.js fills the mire so)
+  close(mudLevel([{ x: 0, z: 0, h: 0, a: 4 }], 2), 0.5, 1e-6); close(mudVolume([{ x: 0, z: 0, h: 0, a: 4 }], 0.5), 2, 1e-9);
+  close(planeY(1, [0.1, 0], PIVOT + 2, 0), 1.2, 1e-9);
 });
 
-test('puddles: they stay, run together, and run downhill into the mud on a tilt', () => {
-  const p = newPuddle(5, 0.5, 5);
-  close(p.r, G.mud.radius); close(p.vol, G.mud.ball);
-  assert.ok(puddleRadius(G.mud.ball * 4) > p.r * 1.9 && puddleRadius(1e4) === G.mud.most);
-  // overlapping ones run together, keeping their mud
-  const merged = mergePuddles([newPuddle(5, 0.5, 5), newPuddle(5.4, 0.5, 5), newPuddle(9, 0.5, 9)]);
-  assert.equal(merged.length, 2); close(merged[0].vol, G.mud.ball * 2); assert.ok(merged[0].x > 5 && merged[0].x < 5.4);
-  // one on a ledge over another: not
-  assert.equal(mergePuddles([newPuddle(5, 0.5, 5), newPuddle(5.2, 2, 5)]).length, 2);
-  // level: it stays put
-  const ground = (x, z) => x < 3 ? 0 : 0.5, level = x => x < 3 ? 0.3 : -Infinity;
-  const q = newPuddle(8, 0.5, 5);
-  assert.equal(flowPuddle(q, [0, 0], 1, ground, level), 'still'); assert.equal(q.x, 8);
-  // tipped towards -x: it runs down there and into the mud
+test('a ball of mud lands as a puddle that holds still; tipped, all of it runs downhill, deep at the low side; level again, it levels out', () => {
+  const f = newMudField([2, 2, 14, 14], ground);
+  fillMud(f, 6);
+  assert.ok(depositMud(f, 8, 8, G.mud.ball, G.mud.radius) && depositMud(f, 12.5, 5, G.mud.ball, G.mud.radius));
+  close(mudTotal(f), 6 + 2 * G.mud.ball, 1e-3, 'its mud in it');
+  assert.ok(depthAt(f, 8, 8) > 0.2, 'a dome where it landed');
+  // level: the puddles spread a little and hold (thin mud does not run), on the flat and on the ledge
+  settle(f, [0, 0], false, 6);
+  assert.ok(depthAt(f, 8, 8) > MUD_FLOW.wet && depthAt(f, 8, 8) < MUD_FLOW.film + 0.02, 'a puddle, thin: ' + depthAt(f, 8, 8));
+  assert.ok(depthAt(f, 12.5, 5) > MUD_FLOW.wet, 'on the ledge too');
+  assert.equal(depthAt(f, 8, 12), 0, 'not all over the floor');
+  const pit = depthAt(f, 3, 8);
+  // tipped towards -x: the puddles run down into the pit, and the mud runs deep to its low side
   const g = slopeOf([-1, 0]);
-  let end = null;
-  for (let t = 0; t < 10 && end !== 'in'; t += 0.05) end = flowPuddle(q, g, 0.05, ground, level);
-  assert.equal(end, 'in'); assert.ok(q.x < 3);
-  // a wall in the way: stuck (and along it, where it can)
-  const wall = (x, z) => x < 6 ? 3 : 0.5, r = newPuddle(7, 0.5, 5);
-  for (let t = 0; t < 2; t += 0.05) end = flowPuddle(r, g, 0.05, wall, () => -Infinity);
-  assert.equal(end, 'stuck'); assert.ok(r.x >= 6);
-  const s = newPuddle(7, 0.5, 5);
-  for (let t = 0; t < 0.5; t += 0.05) flowPuddle(s, slopeOf([-0.7, 0.7]), 0.05, wall, () => -Infinity);
-  assert.ok(s.z > 5.5 && s.x >= 6, 'along the wall');
+  settle(f, g, true, 1.5);
+  assert.ok(depthAt(f, 8, 8) < 0.03, 'running off the middle');
+  settle(f, g, true, 8);
+  assert.ok(depthAt(f, 8, 8) < MUD_FLOW.wet && depthAt(f, 12.5, 5) < MUD_FLOW.wet, 'the puddles gone into the mud');
+  assert.ok(depthAt(f, 2.2, 8) > pit * 1.5, `deep at the low side: ${depthAt(f, 2.2, 8).toFixed(2)}`);
+  assert.ok(depthAt(f, 2.2, 8) > depthAt(f, 4.8, 8) + 0.15, 'and shallower up the pit');
+  close(mudTotal(f), 6 + 2 * G.mud.ball, 1e-3, 'no mud lost or made');
+  // level again: the pit's mud levels out (fuller than at first by the puddles)
+  settle(f, [0, 0], false, 10);
+  close(depthAt(f, 2.2, 8), depthAt(f, 4.5, 8), 0.04, 'level again');
+  assert.ok(depthAt(f, 3, 8) > pit, 'fuller than at first');
+  // drained back to what it was (his death)
+  for (let t = 0; t < 20; t += 0.1) drainMud(f, 6, 0.25, 0.1);
+  close(mudTotal(f), 6, 1e-3);
+  // nothing outside the field, nothing on no ground
+  assert.equal(depthAt(f, 0.5, 0.5), 0);
+  const walled = newMudField([2, 2, 4, 4], (x, z) => x < 3 ? 0 : null);
+  assert.ok(!depositMud(walled, 3.5, 3.5, 1, 0.3)); fillMud(walled, 0.5); settle(walled, [1, 0], true, 2);
+  close(mudTotal(walled), 0.5, 1e-3); assert.equal(depthAt(walled, 3.5, 3), 0);
 });
 
 test('his song follows his fight: lurking, the phases, a head cut off, the world tipped', () => {

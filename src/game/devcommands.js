@@ -149,7 +149,7 @@ const TILTS = { '+x': [1, 0], '-x': [-1, 0], '+z': [0, 1], '-z': [0, -1], here: 
 addType(commands, { name: 'tilt', values: () => Object.keys(TILTS).map(v => ({ value: v, label: v, hint: v === 'here' ? 'towards where you stand' : v === 'off' ? 'level again' : `down towards ${v}` })) });
 const tiltSays = () => { const t = tiltNow(), m = mudNow();
   return `The cube is tipped ${Math.hypot(t.x, t.z).toFixed(1)}° (${t.x.toFixed(1)}, ${t.z.toFixed(1)})${t.held ? ', held' : ''}`
-    + (m ? `; the mud: ${m.volume.toFixed(1)} (${m.base.toFixed(1)} at first), at ${m.level.toFixed(2)}, ${m.puddles} puddles` : ''); };
+    + (m ? `; the mud: ${m.volume.toFixed(1)} (${m.base.toFixed(1)} at first), ${m.deepest.toFixed(2)} deep at most, in ${m.cells} cells` : ''); };
 dev({
   name: 'tilt', help: 'tip the cube (Sollmeldon\'s landing) towards +x, -x, +z, -z or where you stand (here), and hold it; off: level again (none: how it is)',
   args: [{ name: 'way', type: 'tilt', optional: true }],

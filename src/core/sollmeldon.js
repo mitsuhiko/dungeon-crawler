@@ -15,15 +15,14 @@
 //                    from him, then down with a thump; where he lands the world tips (`tilt`)
 //   3 (one head)     the last head bites faster; he flies more often, longer
 //
-// His mud (game/mud.js, map.tide `mud`): it has a volume, not a level. Its surface is a plane over
-// the basin (y + g · (p - PIVOT), cells), its height solved so that what stands over the ground
-// under it is its volume (`mudLevel`). While the world is level the plane is flat and the mud
-// shallow; tipped, the plane leans (the mud stays level in the world while the cube tips under it,
-// render/game/tilt.js turns the view) and the low side is deep. The plane's lean follows the
-// tilt on a spring (`stepSlosh`): the mud surges over, overshoots a little and settles. Every ball
-// of mud he spits leaves a puddle that stays where it is (it only slows) until the world tips: then
-// it runs downhill (`flowPuddle`) into the mud, and the mud grows by it. There is no limit to it;
-// his death drains it back to what it was at first.
+// His mud (game/mud.js, map.tide `mud`): mud that flows over the ground of the basin (a field of
+// depths, MUD_RES samples a cell, `stepMud`: each sample passes mud on to its neighbours as the
+// surface stands higher than theirs, with some inertia, so it runs downhill and sloshes). The
+// world's tilt pulls it to the low side (the cube tips, the mud stays level in the world: it runs
+// to where the cube went down, game/tilt.js turns the view), deep there. Every ball of mud he
+// spits lands as a dome of it (`depositMud`): thin mud holds still while the world is level (a
+// puddle, `film`), it all runs when it tips; deep mud always levels out. There is no limit to it;
+// his death drains it back to what it was at first (`drainMud`).
 import { N } from './constants.js';
 import { mulberry32 } from './util.js';
 
@@ -43,16 +42,11 @@ export const SOLLMELDON_FIGHT = Object.freeze({
   land: { reach: 2.6, power: 0.5, knock: 6 },
   // The world's tilt where he lands: `angle` (rad) towards him from the middle of the cube (where he
   // lands within `near` cells of it: the way he faces), tipping over in `tip` s, held `hold` s (or
-  // till he takes off), levelling in `back` s. The mud's lean follows it on a spring (`slosh`:
-  // its frequency, Hz, and damping).
-  tilt: { angle: 6 * Math.PI / 180, near: 1.5, tip: 1.6, hold: [8, 12], back: 2.6, slosh: { freq: 0.42, damp: 0.38 } },
-  // His mud: a ball's worth (cells³ of mud; it lands as a puddle `radius` cells round, bigger the
-  // more it holds, at most `most`), a head's; puddles that overlap by `merge` of their radii run
-  // together; on a tilt they run downhill at up to `flow` cells/s (no step up over `climb`), and
-  // into the mud where its surface reaches them. Wading through his mud slows (`wade`), and a
-  // puddle slows too (`slow`).
-  mud: { ball: 0.5, head: 5, radius: 0.7, most: 1.8, merge: 0.55, flow: 2.6, climb: 0.35,
-    slow: { time: 0.35, slow: 0.7, source: 'mud' }, wade: { time: 0.35, slow: 0.75, source: 'mud' } },
+  // till he takes off), levelling in `back` s.
+  tilt: { angle: 6 * Math.PI / 180, near: 1.5, tip: 1.6, hold: [8, 12], back: 2.6 },
+  // His mud: a ball's worth (cells³ of mud, landing as a dome `radius` cells round), a head's (as
+  // big round); how it flows (MUD_FLOW). Wading through his mud slows (`wade`), and so does a puddle.
+  mud: { ball: 0.5, head: 5, radius: 0.8, headRadius: 1.6, wade: { time: 0.35, slow: 0.72, source: 'mud' } },
   spit: { first: 3, every: [4.5, 7] },   // s into the fight before he first spits mud on the ground, then between (in between he comes to bite)
   minions: [2, 2, 3],         // the most Mud squirtles at once, phase by phase
   summonCool: [12, 11, 9],    // s from one summon to the next
@@ -159,26 +153,15 @@ export const tipped = v => Math.hypot(v[0], v[1]);
 // towards the low side), the cube tipped by v
 export const slopeOf = v => { const k = Math.tan(G.tilt.angle); return [v[0] * k, v[1] * k]; };
 
-// The mud's lean on its spring: s = { g: [x, z], u: [x, z] (how fast it changes) }, towards `want`
-// (slopeOf the tilt), one step of dt
-export const newSlosh = () => ({ g: [0, 0], u: [0, 0] });
-export function stepSlosh(s, want, dt) {
-  const w = 2 * Math.PI * G.tilt.slosh.freq, z = G.tilt.slosh.damp, n = Math.max(1, Math.ceil(dt / 0.02)), h = dt / n;
-  for (let i = 0; i < n; i++) for (const k of [0, 1]) {
-    s.u[k] += (w * w * (want[k] - s.g[k]) - 2 * z * w * s.u[k]) * h;
-    s.g[k] += s.u[k] * h;
-  }
-  return s;
-}
-
 // --- the mud -----------------------------------------------------------------------------------
 
-// the middle of the cube, round which the mud's plane leans
+// the middle of the cube, round which the tilt pulls
 export const PIVOT = N / 2;
-// where the plane of the mud (y: its height at PIVOT, g: its lean) stands over (x, z)
+// where a level surface stands over (x, z) in the cube tipped so (y: its height at PIVOT, g: its
+// lean, slopeOf the tilt)
 export const planeY = (y, g, x, z) => y + g[0] * (x - PIVOT) + g[1] * (z - PIVOT);
 // How much mud stands over the ground `samples` ({ x, z, h, a }: where, the ground's height, the
-// area it stands for; world units), its plane at y (at PIVOT) leaning g
+// area it stands for; world units) up to a plane at y (at PIVOT) leaning g
 export function mudVolume(samples, y, g = [0, 0]) {
   let v = 0;
   for (const s of samples) {
@@ -187,8 +170,8 @@ export function mudVolume(samples, y, g = [0, 0]) {
   }
   return v;
 }
-// The height (at PIVOT) of the plane leaning g over `samples` that holds `volume` of mud (bisected:
-// the volume grows with the height). No mud: under the lowest ground.
+// The height (at PIVOT) of the plane leaning g over `samples` that holds `volume` of mud (bisected).
+// No mud: under the lowest ground.
 export function mudLevel(samples, volume, g = [0, 0]) {
   let lo = Infinity, hi = -Infinity, area = 0;
   for (const s of samples) {
@@ -205,40 +188,124 @@ export function mudLevel(samples, volume, g = [0, 0]) {
   return (lo + hi) / 2;
 }
 
-// A puddle: { x, z, y (the ground under it), vol (cells³), r (how far round, cells) }.
-export const puddleRadius = vol => Math.min(G.mud.most, G.mud.radius * Math.sqrt(Math.max(0, vol) / G.mud.ball));
-export const newPuddle = (x, y, z, vol = G.mud.ball) => ({ x, y, z, vol, r: puddleRadius(vol) });
-// puddles that overlap run together (their mud kept, the bigger one's middle drawn towards the
-// smaller's by what it brings); returns the list
-export function mergePuddles(list) {
-  const out = [...list];
-  for (let i = 0; i < out.length; i++) for (let j = i + 1; j < out.length; j++) {
-    const a = out[i], b = out[j];
-    if (Math.hypot(a.x - b.x, a.z - b.z) > (a.r + b.r) * G.mud.merge || Math.abs(a.y - b.y) > 0.6) continue;
-    const vol = a.vol + b.vol, k = b.vol / vol;
-    Object.assign(a, { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, y: a.vol >= b.vol ? a.y : b.y, vol, r: puddleRadius(vol) });
-    out.splice(j, 1); j = i;
+// How the mud flows (stepMud), every `step` s: each link between two samples carries what it
+// carried (`keep` of it: the mud's weight) and `pull` of the difference of their surfaces (less
+// through mud thinner than `thin`: it drags on the ground); thinner than `film`, it holds still
+// while the world is level (puddles). Where it is under `wet` deep a sample counts as dry.
+export const MUD_RES = 4;
+export const MUD_FLOW = Object.freeze({ step: 1 / 60, most: 6, pull: 0.03, keep: 0.94, thin: 0.12, film: 0.07, wet: 0.012, tipped: 0.15 });
+
+// A field of mud over the cells of `box` ([x0, z0, x1, z1]): groundAt(x, z) is the height of the
+// ground there (null: none, a wall to the mud). { x0, z0, w, h (samples), ground, depth, qx, qz
+// (what each sample passes to its +x and +z neighbour a step), acc }
+export function newMudField(box, groundAt) {
+  const [x0, z0, x1, z1] = box, R = MUD_RES, w = (x1 - x0) * R, h = (z1 - z0) * R, n = w * h;
+  const f = { x0, z0, w, h, ground: new Float32Array(n), depth: new Float32Array(n), qx: new Float32Array(n), qz: new Float32Array(n), acc: 0 };
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const g = groundAt(x0 + (i + 0.5) / R, z0 + (j + 0.5) / R);
+    f.ground[j * w + i] = g == null ? Infinity : g;
+  }
+  return f;
+}
+const AREA = 1 / (MUD_RES * MUD_RES);
+// where sample k is (cube coordinates)
+export const sampleX = (f, k) => f.x0 + ((k % f.w) + 0.5) / MUD_RES;
+export const sampleZ = (f, k) => f.z0 + (Math.floor(k / f.w) + 0.5) / MUD_RES;
+// how much mud there is (cells³)
+export function mudTotal(f) {
+  let v = 0;
+  for (let k = 0; k < f.depth.length; k++) v += f.depth[k];
+  return v * AREA;
+}
+// the samples as mudLevel wants them
+const samplesOf = f => Array.from(f.ground, (h, k) => ({ x: sampleX(f, k), z: sampleZ(f, k), h, a: AREA })).filter(s => Number.isFinite(s.h));
+// filled level with `volume` of mud (its first mud: game/mud.js)
+export function fillMud(f, volume) {
+  const y = mudLevel(samplesOf(f), volume);
+  for (let k = 0; k < f.depth.length; k++) f.depth[k] = Number.isFinite(f.ground[k]) ? Math.max(0, y - f.ground[k]) : 0;
+  f.qx.fill(0); f.qz.fill(0);
+}
+// `vol` of mud landing at (x, z), a dome `r` cells round (on what ground there is under it)
+export function depositMud(f, x, z, vol, r) {
+  const R = MUD_RES, ks = [], ws = [];
+  const i0 = Math.max(0, Math.floor((x - r - f.x0) * R)), i1 = Math.min(f.w - 1, Math.ceil((x + r - f.x0) * R));
+  const j0 = Math.max(0, Math.floor((z - r - f.z0) * R)), j1 = Math.min(f.h - 1, Math.ceil((z + r - f.z0) * R));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+    const k = j * f.w + i, d = Math.hypot(sampleX(f, k) - x, sampleZ(f, k) - z);
+    if (d < r && Number.isFinite(f.ground[k])) { ks.push(k); ws.push(1 - (d / r) ** 2); }
+  }
+  const sum = ws.reduce((a, b) => a + b, 0);
+  if (!sum) return false;
+  ks.forEach((k, n) => { f.depth[k] += vol / AREA * ws[n] / sum; });
+  return true;
+}
+// One step of dt (in fixed steps of MUD_FLOW.step, at most `most` of them a call): g the pull of the
+// tilt (slopeOf it: the surface it settles to rises towards the low side by g a cell), tipped:
+// whether the world is tipped enough that even thin mud runs
+export function stepMud(f, g, tipped, dt) {
+  const F = MUD_FLOW;
+  f.acc = Math.min(f.acc + dt, F.step * F.most);
+  while (f.acc >= F.step) { f.acc -= F.step; flow(f, g, tipped); }
+}
+function flow(f, g, tipped) {
+  const F = MUD_FLOW, { w, h, ground: G, depth: D, qx, qz } = f, n = w * h;
+  const gx = g[0] / MUD_RES, gz = g[1] / MUD_RES;   // (the pull across one sample)
+  // a link's flow, from a to b (their surfaces less the tilt's pull)
+  const link = (q, a, b, slope) => {
+    if (!Number.isFinite(G[a]) || !Number.isFinite(G[b])) return 0;
+    const drop = G[a] + D[a] - G[b] - D[b] + slope, up = drop > 0 ? D[a] : D[b];
+    let v = q * F.keep + F.pull * drop * Math.min(1, up / F.thin);
+    if (!tipped && ((v > 0 && D[a] < F.film) || (v < 0 && D[b] < F.film))) v = 0;
+    return v;
+  };
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i;
+    qx[k] = i + 1 < w ? link(qx[k], k, k + 1, gx) : 0;
+    qz[k] = j + 1 < h ? link(qz[k], k, k + w, gz) : 0;
+  }
+  // no sample gives more than it has
+  for (let k = 0; k < n; k++) {
+    const i = k % w, out = Math.max(0, qx[k]) + Math.max(0, qz[k]) + (i > 0 ? Math.max(0, -qx[k - 1]) : 0) + (k >= w ? Math.max(0, -qz[k - w]) : 0);
+    if (out <= D[k] || out <= 0) continue;
+    const s = D[k] / out;
+    if (qx[k] > 0) qx[k] *= s;
+    if (qz[k] > 0) qz[k] *= s;
+    if (i > 0 && qx[k - 1] < 0) qx[k - 1] *= s;
+    if (k >= w && qz[k - w] < 0) qz[k - w] *= s;
+  }
+  for (let k = 0; k < n; k++) {
+    const i = k % w;
+    D[k] = Math.max(0, D[k] - qx[k] - qz[k] + (i > 0 ? qx[k - 1] : 0) + (k >= w ? qz[k - w] : 0));
+  }
+}
+// Down to `volume` of mud (his death: what it was at first), `rate` of what is too much a second
+export function drainMud(f, volume, rate, dt) {
+  const total = mudTotal(f);
+  if (total <= volume + 1e-6) return false;
+  const k = Math.max(volume / total, 1 - rate * dt);
+  for (let i = 0; i < f.depth.length; i++) f.depth[i] *= k;
+  return true;
+}
+// how deep it stands at (x, z) (0 outside the field), and its surface there (-Infinity: dry)
+const sampleAt = (f, x, z) => {
+  const i = Math.floor((x - f.x0) * MUD_RES), j = Math.floor((z - f.z0) * MUD_RES);
+  return i < 0 || j < 0 || i >= f.w || j >= f.h ? -1 : j * f.w + i;
+};
+export const depthAt = (f, x, z) => { const k = sampleAt(f, x, z); return k < 0 ? 0 : f.depth[k]; };
+export const surfaceAt = (f, x, z) => { const k = sampleAt(f, x, z); return k >= 0 && f.depth[k] > MUD_FLOW.wet ? f.ground[k] + f.depth[k] : -Infinity; };
+// Its surface in each cell of the cube (N × N, NaN: dry): where a quarter of the cell's samples or
+// more are wet, the mean of their surfaces (physics/fluid.js: wading, drowning, the Mud squirtles)
+export function cellSurfaces(f) {
+  const out = new Float32Array(N * N).fill(NaN), R = MUD_RES;
+  for (let cz = 0; cz < f.h / R; cz++) for (let cx = 0; cx < f.w / R; cx++) {
+    let wet = 0, sum = 0;
+    for (let j = 0; j < R; j++) for (let i = 0; i < R; i++) {
+      const k = (cz * R + j) * f.w + cx * R + i;
+      if (f.depth[k] > MUD_FLOW.wet) { wet++; sum += f.ground[k] + f.depth[k]; }
+    }
+    if (wet >= R * R / 4) out[(f.z0 + cz) * N + f.x0 + cx] = sum / wet;
   }
   return out;
-}
-// One step of a puddle running downhill on the tipped world (g: the mud's lean, the way the cube
-// tips; ground(x, z, y): the height of the ground there for something at y, null: none; level(x,
-// z): the mud's surface there, or -Infinity): it runs along g, as fast as the tilt is steep, never
-// up a step higher than `climb` (then along whatever way of it is open). Returns 'still' (level),
-// 'stuck', 'flow' or 'in' (it reached the mud).
-export function flowPuddle(p, g, dt, ground, level) {
-  const l = Math.hypot(g[0], g[1]);
-  if (level(p.x, p.z) >= p.y - 0.02) return 'in';
-  if (l < 1e-3) return 'still';
-  const speed = G.mud.flow * Math.min(1, l / Math.tan(G.tilt.angle)), dx = g[0] / l * speed * dt, dz = g[1] / l * speed * dt;
-  for (const [mx, mz] of [[dx, dz], [dx, 0], [0, dz]]) {
-    if (Math.hypot(mx, mz) < 1e-6) continue;
-    const h = ground(p.x + mx, p.z + mz, p.y);
-    if (h == null || h - p.y > G.mud.climb) continue;
-    p.x += mx; p.z += mz; p.y = h;
-    return level(p.x, p.z) >= p.y - 0.02 ? 'in' : 'flow';
-  }
-  return 'stuck';
 }
 
 // --- his music (music/sollmeldon.scrim, core/bossmusic.js) -------------------------------------

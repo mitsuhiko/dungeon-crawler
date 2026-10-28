@@ -172,8 +172,21 @@ unturned at once.
   may turn to (a circle through its corners), the haze is mirrored past its edges.
 - **The minimap** turns with it.
 
+## The world's tilt (`game/tilt.js`)
+
+Where Sollmeldon lands the cube tips a little (6°) down towards him ([bosses.md](bosses.md#the-worlds-tilt)):
+his `tilt` (the way it tips down and how far, 0 to 1) comes with his row, and every game tips its own
+view after it (`followTilt`, eased a little more: `updateTilt`). Only the view tips (`view.tilt`):
+the camera goes round the middle of the cube, at the hero's height, the other way (`game/camera.js`,
+before the roll and the shaking), so the world is drawn tipped where it is: gravity stays with the
+floor, the hero keeps their footing, the keys and the mouse go as they did (a few degrees: nothing to
+latch). His mud runs to the low side (`game/mud.js`). Level again once he is beaten or gone; level at
+once in another cube and out of play. `/tilt` ([console.md](console.md)) tips it without him and
+holds it until `/tilt off`.
+
 ## Not yet
 
+- The world's tilt tips the sky along with the cube (it is drawn on the screen, like the roll's).
 - The world's roll: reduced motion does nothing to it yet; labels and damage numbers stay
   upright on the screen.
 - The backdrop (sky, stars) is fixed to the screen; turning the close view leaves it in place.

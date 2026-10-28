@@ -378,7 +378,8 @@ function notice(dt) {
   else if ((seen.still += dt) > IDLE) { seen.still = 0; narrate('idle'); }
 }
 
-// a boss's fight, read off him: it starting, each attack as it starts, his change at a stage
+// a boss's fight, read off him: it starting, each attack as it starts, his change at a stage, the
+// world he tips
 function bossFight(e) {
   const was = seen.boss.get(e.id) ?? { started: false, attacks: -1, mode: '' };
   if (!was.started && (e.mode === 'chase' || e.mode === 'attack')) { was.started = true; narrate('boss', { boss: e.boss, what: 'start' }); }
@@ -387,6 +388,10 @@ function bossFight(e) {
     narrate('boss', { boss: e.boss, what: attackOf(e).name });
   }
   if (e.mode === 'split' && was.mode !== 'split') narrate('boss', { boss: e.boss, what: 'split', stage: e.stage });
+  // the world tipped (Sollmeldon's landing, game/tilt.js), once until it is level again
+  const tipped = e.tilt ? Math.hypot(e.tilt[0], e.tilt[1]) : 0;
+  if (tipped > 0.8 && !was.tipped) { was.tipped = true; narrate('boss', { boss: e.boss, what: 'tilt' }); }
+  else if (tipped < 0.2) was.tipped = false;
   was.mode = e.mode;
   seen.boss.set(e.id, was);
 }

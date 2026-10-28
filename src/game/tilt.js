@@ -3,8 +3,7 @@
 // 1 at TILT.angle; it comes to friends with his row, so every game tips its own view after him).
 // Only the view tips (`view.tilt`: the way, radians; game/camera.js turns the camera about the
 // middle of the cube the other way); gravity stays with the floor, the hero keeps their footing and
-// the keys go as they did. His mud stays level in the world, so in the cube it leans and runs to
-// the low side (game/mud.js). Back level once he is beaten or gone; level at once in another cube
+// the keys go as they did. His mud is pulled to the low side and runs there (game/mud.js). Back level once he is beaten or gone; level at once in another cube
 // and out of play. The developer's /tilt tips it without him (game/devcommands.js) and holds it.
 import { state, view } from './state.js';
 import { SOLLMELDON_FIGHT, newTilt, tiltToward, levelTilt, stepTilt } from '../core/sollmeldon.js';

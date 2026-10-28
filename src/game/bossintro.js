@@ -99,7 +99,7 @@ function wait() {
 }
 function unwait() {
   if (!waiting) return;
-  waiting.e.veil = undefined;
+  Object.assign(waiting.e, { veil: undefined, flood: 0 });   // (and Sollmeldon's mud drains: game/mud.js)
   hideIntroFx();
   waiting = null;
 }
@@ -119,7 +119,7 @@ function start(e, full) {
   Object.assign(run, { def, at: def.at, reveal });
   if (reveal?.fits && !reveal.fits(run)) { def = INTROS.drop; reveal = REVEALS.drop; Object.assign(run, { def, at: def.at, reveal, data: {} }); }
   // (what waiting set his arena for: his reveal takes it over, else it goes)
-  if (set && (set.e !== e || set.reveal !== reveal)) { set.e.veil = undefined; hideIntroFx(); }
+  if (set && (set.e !== e || set.reveal !== reveal)) { Object.assign(set.e, { veil: undefined, flood: 0 }); hideIntroFx(); }
   state.intro = { full, bar: false };
   $('boss-intro-name').textContent = enemyName(e.profile);
   $('boss-intro-title').textContent = tr(epithetOf(e));

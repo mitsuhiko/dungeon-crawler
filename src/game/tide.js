@@ -61,7 +61,7 @@ export const resetTide = () => { if (shown !== null || state.tide != null) dry()
 // enemies a standing fluid goes over drown (no reward: the water took them)
 export function drownEnemies(list) {
   for (const e of list) {
-    if (e.mode === 'dead' || e.hp <= 0 || !enemyUnder(e)) continue;
+    if (e.mode === 'dead' || e.hp <= 0 || e.staged || !enemyUnder(e)) continue;   // (not a boss coming up in his intro)
     e.noReward = true; e.hp = 0; e.mode = 'dead'; e.deadT = 0; e.path = null; e.speed = 0;
   }
 }

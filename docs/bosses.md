@@ -6,10 +6,10 @@ boss placeholders ([guardians.md](guardians.md)): the game calls them **Temp Bos
 depth has which: so far the first descent, on the road out of town (depth 0), has **Gusto**, the
 second (depth 1) **Totnar**, the third (depth 2) **Squarlo**, the fourth (depth 3) **Flip**, the
 fifth (depth 4) **Foggery**, the sixth (depth 5) **Renew** and the seventh (depth 6, the last of
-act I) **Mansk**; the first of act II (depth 7) **Monteur**; at the bottom of act II (depth 13) **Slomo**; and at the core (depth 20), where
+act I) **Mansk**; the first of act II (depth 7) **Monteur**; in the middle of act II (depth 10) **Sollmeldon**; at the bottom of act II (depth 13) **Slomo**; and at the core (depth 20), where
 there is no descent, **Qualmos** guards the last cube (a prototype for now, see [Qualmos](#qualmos)).
 A boss may bring an arena of its own (`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's
-caldera, Mansk's museum, Slomo's slime bowl), or only braziers lit round the one his depth has
+caldera, Mansk's museum, Sollmeldon's mire, Slomo's slime bowl), or only braziers lit round the one his depth has
 (Totnar, Renew, Qualmos).
 
 The layout marks that arena's guardian with `boss` (`world/layout.js`, `cubegen/guardian.js`;
@@ -19,8 +19,8 @@ way: the descent guardian's level, id, gate, seal, boss bar and drops; its death
 the well, for good. Its health shows in the boss bar along the top of the screen, not over its
 head, under its name (`♛ Gusto · Lv 1`; [ui.md](ui.md#the-boss-bar)), the locked well says
 "Defeat Gusto to unlock this descent", and the music turns to the boss mood like for any
-guardian, unless the boss has a song of his own (Gusto: `music/gusto.scrim`, its moods his
-fight's phases, `docs/music.md`). Beating any boss plays a jingle (`src/audio/jingles.js`,
+guardian, unless the boss has a song of his own (Gusto: `music/gusto.scrim`, Sollmeldon:
+`music/sollmeldon.scrim`; their moods their fights' phases, `docs/music.md`). Beating any boss plays a jingle (`src/audio/jingles.js`,
 `docs/sound.md`). Once hurt, or once it has struck, it no longer keeps to its post
 (`game/defence.js`); out of his arena (a dev spawn, the boss test room) he fights on the same (`relentless`,
 `game/enemyai.js decide`).
@@ -28,8 +28,8 @@ Like every guardian's arena, leaving it while the boss lives asks first, and bei
 the entrance never takes you out ([guardians.md](guardians.md#encounter-and-persistence)).
 
 Each boss runs its own fight (`game/gusto.js`, `game/totnar.js`, `game/squarlo.js`, `game/flip.js`,
-`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/slomo.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
-`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/slomo.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
+`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/sollmeldon.js`, `game/slomo.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
+`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/sollmeldon.js`, `core/slomo.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
 body into it, the floors a body fits on, putting minions down round their boss and letting
 bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they pay a little XP
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
@@ -133,6 +133,13 @@ anybody's head.
   up out of it antlers first, stone falling off him; his stones float up between his antlers one
   after the other, and he rears up and stomps down (his summon's clip). The camera low on the
   ground, looking up at him.
+- **Sollmeldon:** his mire lies flooded with his black mud as the hero comes in, a little over
+  the doorways' level (his `flood`, set while his intro is due: `waiting`), him under it. The mud
+  over his spot bubbles, more and more, and he rises out of it, the mud pouring off him (what is
+  under its surface not drawn); his heads come up out of his necks one after the other, each
+  growling, and he rears up, wings spread, all three roaring, and stomps down (his summon's clip).
+  Then the mud drains away down to what lies in his mire (2.8 s). The camera low over the mud,
+  looking up at him as he rises.
 - **Slomo:** a pool of goo spreads bubbling on his spot and he oozes up out of it, flat at first,
   wobbling as he settles, his eye stalks popping up; he squashes down and heaves up tall,
   spitting gloop into the sky (his meteorites' clip). The camera low by the pool, craning up.
@@ -1393,6 +1400,137 @@ get to him, climbing and jumping too. A mountain he only cracked is gone at once
 |---|---|---|---|
 | Moose (`MONT_MOOSE`) | Moose | 1× | plain, ×0.6 health, ×0.55 damage |
 
+## Sollmeldon
+
+![Sollmeldon's clips](img/model-sollmeldon.jpg)
+
+A dinosaur of black mud (`blender/sollmeldon.py`, `assets/sollmeldon.glb`): a heavy body and a
+short tail, **three heads** on long necks (cat's eyes of beige-yellow with slit pupils, the only
+colour on him), **bat wings** folded along his sides and **three legs**, two behind and one in the
+middle in front; mud lumps on his back and drips under his belly, glossy. About 3.3 cells to his
+middle head. Built like Qualmos (`blender/creature.py Parts`); each neck five bones, each head hung
+from his chest and put at its neck's tip every frame (so a head can come off and fly in its clip),
+his legs posed by IK from where their toes stand (`blender/ik.py`): his walk lifts one leg after the
+other, two always down. Mud drips off him all the time (`render/sollmeldonview.js`).
+
+Profiles: `SOLLMELDON`, `SOLLMELDON_TWO` and `SOLLMELDON_ONE` (`STAGE_PROFILES.sollmeldon`, one a
+phase: by the heads he has left) in `src/core/enemies.js`; the fight's rules in
+`src/core/sollmeldon.js` (`SOLLMELDON_FIGHT`), the fight in `src/game/sollmeldon.js`, his mud in
+`src/game/mud.js` (drawn by `src/render/mud.js` in the look of `src/render/goop.js`), the world's
+tilt in `src/game/tilt.js`, what the game does to his model in `src/render/sollmeldonview.js`.
+
+| | Level 12 |
+|---|---|
+| Health | 4305 (`hp` 1500 grown), a third a phase |
+| Damage | 50 (a bite ×1; a ball of mud ×0.55 and a slowing, bursting round where it lands; his landing ×0.5, knocking back) |
+| XP | 800 grown; coins 210–360 at level 1; two weapons and two potions like a descent guardian |
+| Poise | 2 s |
+
+The mud is his own (`mudborn`, `slimeborn`): it does not slow him, and no depth of it drowns him.
+He comes for you (`style: 'brute'`): between spits (every 4.5 to 7 s, `spit`) he closes in to bite.
+
+### His arena: the mire
+
+His descent arena is always a mire (`BOSS_ARENAS.sollmeldon.type`, `cubegen/arenashapes.js` `mire`,
+`MIRE`): a wide basin two levels under the doorways, flat, with four round islands at the doorways'
+level spread over it (whichever way the world tips there is dry ground on its high side), a bank of
+scenery round the cube; dressed with the swamp's moss, reeds and vents and the theme's things,
+nothing that blocks (`cubegen/arenaprops.js` `mire`). His mud stands in its low middle (`map.tide`
+with `mud`: 0.6 levels over the basin's floor at first, `rest`).
+
+### His mud
+
+His mud is mud that flows, a field of depths over the basin (`core/sollmeldon.js newMudField`, four
+samples a cell, `MUD_RES`). Each step (60 a second, `stepMud`) every sample passes mud on to its
+neighbours by how much higher its surface stands than theirs, with some inertia (a virtual pipe
+between each two, `MUD_FLOW`: `pull`, `keep`), less through thin mud (it drags on the ground,
+`thin`): it runs downhill, gathers in the low places, sloshes and levels out. While the world is
+level mud thinner than `film` holds still: a ball of mud he spits lands as a dome (`depositMud`)
+that spreads into a puddle and stays, slowing whoever wades through it. When the world tips, all
+of it runs: the tilt pulls it to the low side (`slopeOf` the tilt: the surface it settles to rises
+that way by 0.1 a cell), the puddles run down into the rest and the low side gets deep, over the
+head where enough of his mud has come together. Level again, the deep mud levels out; what the
+puddles brought stays in it. There is no limit to it: every ball adds to it, every head cut off
+lands as a big dome of it (`head`), and the more there is, the deeper the low side gets when the
+world tips. His death drains it back to what it was at first (`drainMud`) and the world levels.
+
+It goes to the physics as a tide with a height of its own in each cell (`physics/fluid.js setTide`
+`ys`: the mean surface of the wet samples of a cell, `cellSurfaces`): waded through as water,
+slowing (`mud.wade`), and over the head it drowns, where magic pulls you out onto dry ground well
+over all of the mud for a quarter of your health (`game/fluidrescue.js`, "Nearly drowned in
+Sollmeldon's mud!"). Every game runs its own field from what it is shown of him (his tilt and his
+`drops`, below).
+
+It is drawn as one sheet over the basin (`render/mud.js`): the field goes to the GPU as a texture
+(each sample's surface, depth and ground), and a fine sheet reads it through a cubic B-spline, its
+vertices at the surface (never closer to the ground than 0.03, drawn a little towards the camera:
+thin mud on a ramp does not fight with it), its pixels cut where the smoothed depth thins out:
+every edge a smooth round curve. One look for all of his mud, the pool, the puddles and his Mud
+squirtles (`render/goop.js`): glossy near-black goop with broad brown swirls marbled through it and
+a pale core here and there, like the goop of Isle Delfino, a lighter rim where it thins out; its
+swirls drift the way it runs.
+
+### The world's tilt
+
+Where he lands from a flight the world tips towards him (`core/sollmeldon.js tiltToward`: the way
+from the middle of the cube to where he landed; landing in its middle, the way he faces): 6°
+(`tilt.angle`) over 1.6 s, held 8 to 12 s or until he takes off again, then level again in 2.6 s.
+A new landing while it is tipped turns it smoothly towards the new side. Only the view tips (the
+camera goes round the middle of the cube, `game/camera.js`, `view.tilt`; [camera.md](camera.md),
+"The world's tilt"): gravity stays with the floor, the hero keeps their footing, the keys go as
+they did. His mud is pulled to the low side.
+
+### Phase 1: three heads (full health to two thirds)
+
+- **The bite** (`biteL`, `biteM`, `biteR`, clips `SollmeldonBiteL` and so on, 1.6 s, the bite at
+  0.9 s, 3.9 cells): one head draws back up (the tell: the head that pulls back is the one that
+  bites, its eyes flaring) and lunges forward on its stretching neck and snaps; the others lean out
+  of its way. Never the same head twice running (`nextHead`: of the heads he has, another than the
+  one that bit last).
+- **Mud** (`spit`, clip `SollmeldonSpit`, 1.4 s, within 11 cells, every 4.5 to 7 s): his heads rear
+  back and spit, a ball of mud from each head he has (from its mouth, `SOLLMELDON_AT.mouths`),
+  lobbed at you, bursting where it lands (1.05 cells round: hurt and slowed) and leaving its mud
+  there (`mud.ball`).
+- **Mud squirtles** (`summon`, clip `SollmeldonSummon`, 1.8 s): he rears up on his hind legs and
+  stomps his front foot, and Mud squirtles come up out of his mud (the nearest of it deep enough),
+  up to two (three in phase 3), every 12, 11, 9 s.
+
+### A head cut off
+
+At two thirds and at a third of his health (no blow takes him below, `hpFloor`) a head comes off:
+the one nearest whoever struck the blow (`headToCut`: across him, left, middle or right). Nothing
+hurts him meanwhile (2.6 s and 0.5 s more, mode `split`, "Sollmeldon's head comes off!"): he
+rears and shakes, the head thrashes, tears off at 1.1 s (clips `SollmeldonCutL` ...), flies and
+lands beside him at 1.73 s (`SOLLMELDON_AT.cut`) as a big dome of mud, melting into it; its neck
+shrinks back to a stump. The heads he no longer has are gone but for their stumps (`heads`, a bit
+each; `render/sollmeldonview.js` scales their bones away). Each phase is a profile of its own, by
+the heads he has left.
+
+### Phase 2: two heads (two thirds to a third)
+
+As before with two heads, and he **flies**: 5 s into the phase, then every 12 to 16 s, he takes off
+(a gust of mud under his wings; the world levels as he leaves the ground) and flies 3.5 to 4.5 s up
+out of a blade's reach (2.4 cells, `lift`: only shots reach him, `core/enemies.js airborne`),
+his wings beating (`SollmeldonFly`, blended in by how high he is), and rains mud (`rain`, clip
+`SollmeldonAirSpit`, 1.1 s: a ball from each head at your feet, give or take a little). Then down
+with a thump (`land`): whoever is within 2.6 cells is knocked back, and **the world tips** where he
+landed (above).
+
+### Phase 3: one head (a third to death)
+
+The last head bites alone and faster (its bite's clip played 4/3 as fast, `clipSpeed`: 1.2 s); he
+flies more often (every 8 to 11 s) and longer (4 to 5.5 s); up to three Mud squirtles.
+
+His death (`SollmeldonDeath`, 2.6 s): he staggers, his legs buckle and he sinks, melting into a
+flat heap of mud, his wings spread over the floor. His Mud squirtles go with him, the world levels
+and his mud drains back to what it was.
+
+## Sollmeldon's minions
+
+| | Kind of | Size | Notes |
+|---|---|---|---|
+| Mud squirtle (`MUD_SQUIRTLE`) | Squirtle | 1.15× | of his mud: lives in it (`dwells` its look, `MUD`), drawn as its goop (`render/squirtlelook.js`), his cat's eyes; spits mud that slows |
+
 ## Slomo
 
 ![Slomo's clips](img/model-slomo.jpg)
@@ -1651,7 +1789,11 @@ come down. Mansk's stage swaps his profile likewise, and his row carries five mo
 four unused): how high he flies, his horns, how far his ribbons are out and how long time stays slow;
 every game simulates his ribbons itself (`render/manskview.js`) and slows its own player when it sees
 him slow time (`game/mansk.js manskSeen`). A grab of his (in his mouth, in his ribbons) is a blow
-like Gusto's; his balls of light are only sent to the others once he lets them go. Monteur's stage
+like Gusto's; his balls of light are only sent to the others once he lets them go. Sollmeldon's
+stage swaps his profile likewise, and his row carries seven more slots (the first six unused): his
+heads, the head being cut off, how high he flies, the world's tilt and his last drops of mud
+(`[n, x, z, vol, r]` each, numbered); every game tips its own view after his tilt (`game/tilt.js
+followTilt`) and runs its own mud, pouring each drop into it once (`game/mud.js`). Monteur's stage
 swaps his profile likewise, and his row carries six more slots (the first five unused): how many
 stones float between his antlers, how far round he has turned the world (`quarter`) and his
 mountain (`[n, seed, x, z, shape, a, phase, t, life]`, `net/protocol.js`); every game turns its own
@@ -1679,7 +1821,9 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 `/spawn oozeslug`, `/spawn oozebolime`, `/spawn slimesquirtle`; `/arena bowl`, `/boss slomo`.
 `/spawn mansk` (`addMansks`: his whole fight anywhere), `/spawn stagetornado`; `/arena stage`,
 `/boss mansk`. `/spawn monteur` (`addMonteurs`: his whole fight anywhere), `/spawn montmoose`;
-`/boss monteur`; `/roll` and `/rollkeys` turn the world without him, `/mountain` pulls one of his
+`/boss monteur`; `/spawn sollmeldon` (`addSollmeldons`: his whole fight anywhere; out of his mire
+there is no mud, the world still tips), `/spawn mudsquirtle`, `/arena mire`, `/boss sollmeldon`;
+`/tilt` tips the world without him and `/mud` pours mud into his mire. `/roll` and `/rollkeys` turn the world without him, `/mountain` pulls one of his
 mountains out of the floor anywhere ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`; with no water near he never dives), `/boss qualmos`.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
@@ -1703,7 +1847,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/sollmeldon.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1715,6 +1859,7 @@ await (await import('./tests/browser/renew.js')).runRenewChecks()      // Renew'
 await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk's, in his museum: breathing in and the spit, the balls of light, flying and landing, slowed time, the horns breaking, the ribbons catching and squeezing
 await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the blob bursting, the flood from a side, his slimes
 await (await import('./tests/browser/qualmos.js')).runQualmosChecks()  // Qualmos's, at the core: the grab's glow, catch, lift and slam; phase 2 harder, the belly flop's rhythm; into his lagoon, under it, up and out at you
+await (await import('./tests/browser/sollmeldon.js')).runSollmeldonChecks() // Sollmeldon's, in his mire: bites by turns, mud and its puddles, Mud squirtles, a head cut off, flying and landing, the world tipping and the mud running downhill, his death draining it
 await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
 await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
@@ -1763,6 +1908,13 @@ blender/previews/monteur-preview.png`, then `node tools/compress-assets.mjs asse
 summon and rain points it prints must match `MONTEUR_AT` (`tests/assets.test.js`), his clips last as
 long as his attacks, his charge's run ends where the roll does (`charge_end`), and his mountain
 rises as he heaves (`MonteurRaise`'s `heave_frame`: its hit frame and `MOUNTAIN.crack` later).
+
+Sollmeldon: `Blender -b --python blender/sollmeldon.py -- assets/sollmeldon.glb blender/sollmeldon.blend
+blender/previews/sollmeldon-preview.png [blender/previews/sollmeldon-clips]`, then
+`node tools/compress-assets.mjs assets/sollmeldon.glb`. His clips must last as long as his attacks,
+the cut clips come off and land at `SOLLMELDON_FIGHT.cutAt` and `cutLand`, and the mouths, the
+summon's point and where the heads land that it prints must match `SOLLMELDON_AT`
+(`tests/assets.test.js`).
 
 Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb blender/qualmos.blend
 blender/previews/qualmos-preview.png [blender/previews/qualmos-clips]` (the last: the clips as videos), then

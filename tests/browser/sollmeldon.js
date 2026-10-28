@@ -1,10 +1,10 @@
 // In devtools (?dev=1): await (await import('./tests/browser/sollmeldon.js')).runSollmeldonChecks()
 // Sollmeldon's whole fight in his mire (docs/bosses.md): phase 1 a head lunges and bites (never the
-// same head twice running), every head spits a ball of mud that leaves a puddle, Mud squirtles come
-// up out of his mud; at two thirds a head is cut off (it lands as a big puddle); phase 2 he flies,
-// rains mud and lands, and the world tips where he lands: his mud runs to the low side, deep there,
-// and his puddles run downhill into it, so it grows; at a third the next head comes off, the last
-// bites alone; his death levels the world, drains his mud back to what it was and opens the well.
+// same head twice running), every head spits a ball of mud that lands in his mud as a puddle, Mud
+// squirtles come up out of it; at two thirds a head is cut off (it lands as a big puddle); phase 2
+// he flies, rains mud and lands, and the world tips where he lands: his mud runs downhill to the low
+// side, deep there; at a third the next head comes off, the last bites alone; his death levels the
+// world, drains his mud back to what it was and opens the well.
 import { paused } from './combat.js';
 import { state, player, view } from '../../src/game/state.js';
 import { damageEnemy } from '../../src/core/combat.js';
@@ -49,7 +49,7 @@ export async function runSollmeldonChecks() {
     check(map.arena.type === 'mire' && map.tide?.mud && b, 'his mire, and him in it');
     run(0.2, tough);
     const first = mudNow();
-    check(first && first.slope[0] === 0 && first.slope[1] === 0 && first.volume > 1, 'his mud lies level in the basin');
+    check(first && first.volume > 1 && first.cells > 4, 'his mud lies in the basin');
     tough(); state.enemyGrace = 0;
     standNear(b, 3);
     check(until(4, () => b.mode === 'chase' || b.mode === 'attack', tough) < 4, 'he wakes as the player comes close');
@@ -67,50 +67,40 @@ export async function runSollmeldonChecks() {
     check(bites.length >= 3, 'his heads bite: ' + bites);
     check(bites.every((h, i) => !i || h !== bites[i - 1]), 'never the same head twice running: ' + bites);
     check(new Set(bites).size === 3, 'all three take turns: ' + bites);
-    check(spat && b.puddles.length > 0, 'he spits mud, and it lies where it lands: ' + b.puddles.length);
+    check(spat && b.drops.length > 0, 'he spits mud: ' + b.drops.length);
+    check(mudNow().volume > first.volume + G.mud.ball * 0.9, 'it lands in his mud: ' + mudNow().volume.toFixed(2));
     check(squirtles > 0 && squirtles <= G.minions[0], 'Mud squirtles come up out of his mud: ' + squirtles);
     check(!flew, 'he does not fly yet');
-    out.push(`phase 1: bites ${bites.join('')}, ${b.puddles.length} puddles, ${squirtles} squirtles`);
+    out.push(`phase 1: bites ${bites.join('')}, ${b.drops.length} drops of mud, ${squirtles} squirtles`);
     // two thirds: a head comes off (nothing hurts him meanwhile), and lands as a big puddle
     standNear(b, 2.5);
     damageEnemy(b, b.hp);
     check(b.hp === b.hpFloor && b.hp === Math.ceil(b.profile.hp * 2 / 3), 'no blow takes him below two thirds');
     check(until(3, () => b.mode === 'split', tough) < 3, 'his head is being cut off');
-    const cut = b.cutting, hp = b.hp, mudBefore = b.mud + b.puddles.reduce((n, p) => n + p.vol, 0);
+    const cut = b.cutting, hp = b.hp, mudBefore = mudNow().volume;
     damageEnemy(b, 50);
     check(b.hp === hp, 'nothing hurts him meanwhile');
     until(G.cut + 1, () => b.stage === 2, tough);
     check(b.stage === 2 && headsOf(b.heads).length === 2 && !(b.heads & (1 << cut)), 'two heads left: ' + b.heads);
-    check(b.mud + b.puddles.reduce((n, p) => n + p.vol, 0) >= mudBefore + G.mud.head - 0.01, 'the head lands as mud');
+    run(0.1, tough);
+    check(mudNow().volume >= mudBefore + G.mud.head - 0.01, 'the head lands as mud');
     out.push(`cut: head ${cut}`);
     // phase 2: he flies, rains mud, lands, and the world tips where he lands
-    let up = false, rained = false, tipped = 0, deep = 0, low = null;
+    let up = false, rained = false, tipped = 0, was = null;
     const flown = until(40, () => up && b.lift < 0.05 && Math.hypot(...b.tilt) > 0.9, () => {
       keepNear(b)();
-      if (b.lift > 1) up = true;
+      if (b.lift > 1) { up = true; was = mudNow(); }   // (his mud as it lies level, the last of it before he lands)
       if (up && projectiles.some(p => p.kind === 'mudball')) rained = true;
     });
     check(flown < 40, 'he flies up and lands');
     check(rained, 'up there he rains mud');
-    run(3, () => {
-      keepNear(b)();
-      const m = mudNow(), v = Math.hypot(...b.tilt);
-      tipped = Math.max(tipped, Math.hypot(view.tilt[0], view.tilt[1]) * 180 / Math.PI);
-      if (v > 0.9) {
-        const g = m.slope, k = Math.hypot(...g);
-        // the low side of the basin and the high one
-        const at = s => [8 + s * 5.5 * g[0] / k, 8 + s * 5.5 * g[1] / k];
-        const lo = at(1), hi = at(-1);
-        low = { lo: mudAt(...lo), hi: mudAt(...hi) };
-        deep = Math.max(deep, low.lo - low.hi);
-      }
-    });
+    const way = [...b.tilt];
+    run(4, () => { keepNear(b)(); tipped = Math.max(tipped, Math.hypot(view.tilt[0], view.tilt[1]) * 180 / Math.PI); });
     check(tipped > 4, 'the world is tipped on the screen: ' + tipped.toFixed(1));
-    check(deep > 0.8, `his mud runs to the low side: ${deep.toFixed(2)} higher there`);
-    const mud = b.mud;
-    run(6, keepNear(b));
-    check(b.mud > mud || b.puddles.length === 0, `his puddles run into his mud on the tilt: ${mud.toFixed(1)} -> ${b.mud.toFixed(1)}`);
-    out.push(`phase 2: flew, tipped ${tipped.toFixed(1)}°, mud ${deep.toFixed(2)} deeper on the low side, ${b.mud.toFixed(1)} added`);
+    const now = mudNow(), moved = (now.centre[0] - was.centre[0]) * way[0] + (now.centre[1] - was.centre[1]) * way[1];
+    check(moved > 0.25, `his mud runs downhill, to the low side: ${moved.toFixed(2)} cells`);
+    check(now.deepest > was.deepest, `deeper there: ${was.deepest.toFixed(2)} -> ${now.deepest.toFixed(2)}`);
+    out.push(`phase 2: flew, tipped ${tipped.toFixed(1)}°, the mud ran ${moved.toFixed(1)} cells downhill, ${now.deepest.toFixed(2)} deep`);
     // a third: the next head, the last bites alone
     standNear(b, 2.5);
     until(8, () => b.mode !== 'attack' && b.lift < 0.05, tough);
@@ -132,7 +122,7 @@ export async function runSollmeldonChecks() {
     run(12, tough);
     const end = mudNow();
     check(Math.abs(end.volume - first.volume) < 0.2, `his mud drains back: ${end.volume.toFixed(2)} (${first.volume.toFixed(2)} at first)`);
-    check(Math.hypot(...end.slope) < 0.01 && Math.hypot(...view.tilt) < 0.01, 'the world levels again');
+    check(Math.hypot(...view.tilt) < 0.01, 'the world levels again');
     check(!allEnemies().some(e => e !== b && e.mode !== 'dead' && e.mode !== 'gone'), 'his squirtles go with him');
     check(!gateLocked(map, state.run), 'the well is open');
     out.push('dead: level, mud drained, well open');

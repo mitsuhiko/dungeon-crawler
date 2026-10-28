@@ -6,20 +6,19 @@
 // (Foggery, his Fire-cats) is not burned by lava.
 // Standing fluids fill a cube up to one level, everything under it is in it, any floor or
 // structure: a trial's rising fluid (core/trials.js, game/trials.js) over the whole cube, and a
-// boss's tide (game/tide.js) inside its box of cells. A tide may lean (`slope`: Sollmeldon's mud
-// while the world is tipped, game/mud.js): its surface is then a plane, y at the middle of the
-// cube (core/sollmeldon.js PIVOT) rising by slope [x, z] a cell, and each cell has it at its middle.
-import { LH, N, WATER, LAVA, HEAD_Y } from '../core/constants.js';
-import { planeY } from '../core/sollmeldon.js';
+// boss's tide (game/tide.js) inside its box of cells. A tide may stand at a height of its own in
+// each cell (`ys`: Sollmeldon's mud, game/mud.js, which runs over the ground as it flows: NaN where
+// a cell is dry).
+import { LH, N, WATER, LAVA, HEAD_Y, MUD } from '../core/constants.js';
 
 let trial = null;   // { y (its surface), fluid } or null
-let tide = null;    // { y, fluid, box: [x0, z0, x1, z1] (cells, x1 / z1 past the last), slope? } or null
-let cells = null;   // a leaning tide's, per cell: { ...tide, y: its surface at the cell's middle }
+let tide = null;    // { y, fluid, box: [x0, z0, x1, z1] (cells, x1 / z1 past the last), ys? } or null
+let cells = null;   // a tide with `ys`, per cell: { ...tide, y: its surface there } or null (dry)
 export const setTrialFluid = f => { trial = f; };
 export const trialFluid = () => trial;
 export function setTide(f) {
   tide = f;
-  cells = f?.slope && (f.slope[0] || f.slope[1]) ? Array.from({ length: N * N }, (_, i) => ({ ...f, y: planeY(f.y, f.slope, i % N + 0.5, ((i / N) | 0) + 0.5) })) : null;
+  cells = f?.ys ? Array.from({ length: N * N }, (_, i) => Number.isFinite(f.ys[i]) ? { ...f, y: f.ys[i] } : null) : null;
 }
 export const tideFluid = () => tide;
 
@@ -30,6 +29,7 @@ function standing(i) {
   const inBox = i >= 0 && x >= x0 && z >= z0 && x < x1 && z < z1;
   if (!inBox) return trial;
   const t = cells ? cells[i] : tide;
+  if (!t) return trial;
   return !trial || t.y > trial.y ? t : trial;
 }
 export const standingAt = (x, z) => standing(x >= 0 && z >= 0 && x < N && z < N ? Math.floor(z) * N + Math.floor(x) : -1);
@@ -89,9 +89,11 @@ export function wadeable(gr) {
 
 // how high an enemy's head stands over its feet: its body
 export const headOf = profile => profile.bodyHeight;
-// the standing fluid enemy e is lost in (0: none, it wades, or it swims)
+// the standing fluid enemy e is lost in (0: none, it wades, or it swims; one `mudborn` is lost in
+// no mud)
 export function enemyUnder(e) {
   if (e.profile.swims) return 0;
+  if (e.profile.mudborn && tide?.look === MUD) return 0;   // (Sollmeldon in his own mud, however deep)
   const s = standingAt(e.x, e.z);
   if (!s || (s.fluid === LAVA && e.profile.lavaproof)) return 0;   // (Foggery and his Fire-cats wade through his lava)
   return deep(s.fluid, s.y - e.y, headOf(e.profile)) ? s.fluid : 0;

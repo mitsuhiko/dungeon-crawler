@@ -9,31 +9,27 @@
 // On him, sent to friends with his row (net/protocol.js): `stage` (1 .. 3: his profile,
 // core/enemies.js STAGE_PROFILES), `heads` (a bit each, core/sollmeldon.js HEAD_SIDE), `cutting`
 // (the head being cut off, -1: none), `lift` (how high he flies), `tilt` (the way the world is
-// tipped and how far: game/tilt.js tips the view, game/mud.js leans the mud), `mud` (what his fight
-// added to his mud) and `puddles` (where his balls of mud lie: { x, y, z, vol, r }).
+// tipped and how far: game/tilt.js tips the view, game/mud.js pulls the mud) and `drops` (his mud
+// landing: [n, x, z, vol, r] each, the last few, numbered: every game pours each into its mud once).
 // Movement and attacks are the shared enemy AI's (game/enemyai.js): the fight says which attacks
 // may start (`barred`: the bite of the head that is next, the mud he rains while up), throws the
 // balls of mud (`cast` 'spit': one from each head he has, lobbed at the player, bursting where they
-// land, game/projectiles.js) and leaves their puddles where they land (`landed`), runs the puddles
-// downhill on the tipped world into his mud (which grows by them), carries out the summons, lifts
-// him and lands him (the world tips where he lands), and cuts his heads off. While a head is cut off
+// land, game/projectiles.js) and drops their mud where they land (`landed`: game/mud.js), carries
+// out the summons, lifts him and lands him (the world tips where he lands), and cuts his heads off. While a head is cut off
 // (mode 'split') the AI leaves him be.
 import { player, state, setStatus } from './state.js';
 import { STAGE_PROFILES, ENEMY_KINDS, SOLLMELDON, makeEnemy, enemyProfile, attackOf, enemyName, blowOf } from '../core/enemies.js';
 import { SOLLMELDON_FIGHT as G, ALL_HEADS, BITES, headsOf, nextHead, headToCut, sideOf, phaseFloor, summonCount, barred, stepLift,
-  flying, groundTime, airTime, newTilt, tiltToward, levelTilt, stepTilt, slopeOf, PIVOT, newPuddle, mergePuddles, flowPuddle,
-  dropOf } from '../core/sollmeldon.js';
+  flying, groundTime, airTime, newTilt, tiltToward, levelTilt, stepTilt, PIVOT, dropOf } from '../core/sollmeldon.js';
 import { muzzleAt } from '../core/beams.js';
 import { launch } from '../core/projectiles.js';
 import { enemySpots } from './enemyspawn.js';
 import { stepEnemies } from './enemyai.js';
-import { groundAt } from '../physics/collide.js';
 import { removeEnemyViews } from '../render/enemies.js';
 import { living, engage, leave, minionFloors, minion, sweep, players, nearest } from './bossfight.js';
 import { hitBody, attacker } from './enemycombat.js';
 import { addProjectile } from './projectiles.js';
 import { summonFx, tremor } from './juice.js';
-import { mudAt } from './mud.js';
 import { relay } from '../net/online.js';
 import { sfx } from '../audio/sfx.js';
 import { tr, msg } from '../i18n/i18n.js';
@@ -41,8 +37,8 @@ import { tr, msg } from '../i18n/i18n.js';
 export let sollmeldons = [];
 let fights = [];
 const between = ([a, b]) => a + (b - a) * Math.random();
-// the most puddles he keeps (more run together with the nearest: their mud is kept)
-const MOST_PUDDLES = 40;
+// how many of his last drops of mud go along with him (every game pours each in once: game/mud.js)
+const DROPS = 24;
 
 export function resetSollmeldons() {
   removeEnemyViews(sollmeldons);
@@ -52,9 +48,9 @@ export function resetSollmeldons() {
 // Sollmeldons to fight: this cube's, or spawned with the dev tools
 export function addSollmeldons(list) {
   for (const e of list) {
-    Object.assign(e, { stage: 1, heads: ALL_HEADS, cutting: -1, lift: 0, tilt: [0, 0], mud: 0, puddles: [], hpFloor: phaseFloor(e.profile.hp, 1) });
+    Object.assign(e, { stage: 1, heads: ALL_HEADS, cutting: -1, lift: 0, tilt: [0, 0], drops: [], hpFloor: phaseFloor(e.profile.hp, 1) });
     const f = { e, tilt: newTilt(), up: false, flight: groundTime(1), cool: G.firstSummon[0], spitIn: G.spit.first, spat: -1, next: nextHead(ALL_HEADS, -1), bit: -1, cut: -1,
-      minions: [], n: 0, nonce: Math.random().toString(36).slice(2, 7), over: false, seed: (Math.random() * 1e9) >>> 0 };
+      minions: [], n: 0, dropped: 0, nonce: Math.random().toString(36).slice(2, 7), over: false, seed: (Math.random() * 1e9) >>> 0 };
     e.barred = barred({ phase: 1, next: f.next });
     e.summon = a => summon(f, a);
     e.cast = a => cast(f, a);
@@ -68,7 +64,6 @@ export function updateSollmeldons(dt) {
   for (const f of fights) run(f, dt);
   for (const e of sollmeldons) if (e.shield > 0) e.shield = Math.max(0, e.shield - dt);
   stepEnemies(sollmeldons.filter(e => e.mode !== 'gone' && e.mode !== 'split'), dt);
-  for (const f of fights) puddles(f, dt);
   sollmeldons = sweep(sollmeldons, dt);
   fights = fights.filter(f => sollmeldons.includes(f.e));
 }
@@ -82,7 +77,7 @@ function run(f, dt) {
     e.lift = stepLift(e.lift, 0, dt);
     if (!f.over) {
       f.over = true; levelTilt(f.tilt);
-      Object.assign(e, { mud: 0, puddles: [], cutting: -1 });
+      Object.assign(e, { drops: [], cutting: -1 });
       f.minions.forEach(m => leave(m, G.leave)); f.minions = [];
     }
     return;
@@ -157,8 +152,7 @@ function severed(f) {
   const e = f.e, at = muzzleAt(e, e.profile.cut[e.cutting]);
   f.cut = e.cutting;
   e.heads &= ~(1 << e.cutting);
-  const g = groundAt(at.x, at.z, e.y + 1.5, 0);
-  addPuddle(f, at.x, Number.isFinite(g.h) ? g.h : e.y, at.z, G.mud.head);
+  drop(f, at.x, at.z, G.mud.head, G.mud.headRadius);
   sfx('splorch', { at, pitch: 0.5, volume: 1 });
 }
 function changed(f) {
@@ -178,7 +172,7 @@ function cast(f, a) {
   const e = f.e, p = e.target?.here ? e.target : nearest(e);
   for (const i of headsOf(e.heads)) {
     // (up in the air: from where his head is, his lift on top)
-    const [mx, my, mz] = a.mud.muzzles[i], spec = { ...a.mud, muzzle: [mx, my + (e.lift ?? 0), mz], becomes: 'puddle' };
+    const [mx, my, mz] = a.mud.muzzles[i], spec = { ...a.mud, muzzle: [mx, my + (e.lift ?? 0), mz], becomes: 'mud' };
     const d = a.name === 'rain' ? dropOf(f.seed + e.attacks * 3 + i) : { dx: 0, dz: 0 };
     const pr = launch(e, spec, { x: p.x + d.dx, y: p.y + 0.2, z: p.z + d.dz });
     Object.assign(pr, { blow: { ...blowOf(e.profile, a), by: attacker(e) }, profile: e.profile, thrower: e });
@@ -186,39 +180,16 @@ function cast(f, a) {
     relay.launch?.(pr, e);
   }
 }
-// a ball of mud landed (on a player, the level, or flew its range out): a puddle where it ended,
-// on the ground under it
+// a ball of mud landed (on a player, the level, or flew its range out): its mud drops there
 function mudLanded(f, pr) {
   if (f.e.mode === 'dead') return;
-  const l = Math.hypot(pr.vx, pr.vz) || 1, x = pr.x - pr.vx / l * 0.15, z = pr.z - pr.vz / l * 0.15;
-  const g = groundAt(x, z, pr.y + 0.4, 0);
-  if (Number.isFinite(g.h)) addPuddle(f, x, g.h, z, G.mud.ball);
+  const l = Math.hypot(pr.vx, pr.vz) || 1;
+  drop(f, pr.x - pr.vx / l * 0.15, pr.z - pr.vz / l * 0.15, G.mud.ball, G.mud.radius);
 }
-function addPuddle(f, x, y, z, vol) {
+// mud dropped at (x, z): into his mud (game/mud.js), in every game
+function drop(f, x, z, vol, r) {
   const e = f.e;
-  let list = mergePuddles([...e.puddles, newPuddle(x, y, z, vol)]);
-  while (list.length > MOST_PUDDLES) {   // (the smallest into the one nearest it)
-    const s = list.reduce((m, q) => q.vol < m.vol ? q : m, list[0]), rest = list.filter(q => q !== s);
-    const n = rest.reduce((m, q) => Math.hypot(q.x - s.x, q.z - s.z) < Math.hypot(m.x - s.x, m.z - s.z) ? q : m, rest[0]);
-    Object.assign(n, newPuddle(n.x, n.y, n.z, n.vol + s.vol));
-    list = rest;
-  }
-  e.puddles = list;
-}
-// His puddles: on the tipped world they run downhill, and into his mud where it reaches them (and
-// one that lands in it is in it at once): the mud grows by them
-function puddles(f, dt) {
-  const e = f.e;
-  if (e.mode === 'dead' || !e.puddles.length) return;
-  const g = slopeOf(e.tilt), ground = (x, z, y) => { const h = groundAt(x, z, y + G.mud.climb, 0).h; return Number.isFinite(h) ? h : null; };
-  let moved = false;
-  const keep = e.puddles.filter(p => {
-    const end = flowPuddle(p, g, dt, ground, mudAt);
-    if (end === 'in') { e.mud += p.vol; return false; }
-    moved ||= end === 'flow';
-    return true;
-  });
-  e.puddles = moved ? mergePuddles(keep) : keep;
+  e.drops = [...e.drops, [++f.dropped, Math.round(x * 100) / 100, Math.round(z * 100) / 100, vol, r]].slice(-DROPS);
 }
 
 // a summon's hit frame: Mud squirtles come up out of his mud (the nearest of it deep enough: game/

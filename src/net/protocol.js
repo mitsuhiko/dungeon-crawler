@@ -320,11 +320,10 @@ const manskRow = e => [r2(e.lift ?? 0), e.horns ?? 1, r2(e.grow ?? 0), r2(e.slow
 const mountainRow = m => m ? [m.n, m.seed, m.x, m.z, SHAPES.indexOf(m.shape), m.a ?? 0, PHASES.indexOf(m.phase), r2(m.t), m.life] : 0;
 const monteurRow = e => [r2(e.stones ?? 5), e.quarter ?? 0, mountainRow(e.mountain)];
 // Sollmeldon's: [heads (a bit each), cutting (the head being cut off, -1: none), lift (how high he
-// flies), tilt ([x, z]: the way the world is tipped, how far), mud (what his fight added to his
-// mud), puddles ([x, y, z, vol] each)] (game/sollmeldon.js; every game tips its own view after
-// it, game/tilt.js, and leans and fills its own mud, game/mud.js)
-const sollmeldonRow = e => [e.heads ?? 7, e.cutting ?? -1, r2(e.lift ?? 0), (e.tilt ?? [0, 0]).map(v => Math.round(v * 1000) / 1000), r2(e.mud ?? 0),
-  (e.puddles ?? []).map(p => [r2(p.x), r2(p.y), r2(p.z), r2(p.vol)])];
+// flies), tilt ([x, z]: the way the world is tipped, how far), drops (his last drops of mud: [n, x,
+// z, vol, r] each)] (game/sollmeldon.js; every game tips its own view after it, game/tilt.js, and
+// runs its own mud, pouring each drop in once, game/mud.js)
+const sollmeldonRow = e => [e.heads ?? 7, e.cutting ?? -1, r2(e.lift ?? 0), (e.tilt ?? [0, 0]).map(v => Math.round(v * 1000) / 1000), e.drops ?? []];
 export function rowOf(e, i, runner = 0) {
   const b = e.beam;
   return [i, r2(e.x), r2(e.y), r2(e.z), r2(e.yaw), Math.max(0, MODES.indexOf(e.mode)), r2(e.mode === 'dead' ? e.deadT : e.t),

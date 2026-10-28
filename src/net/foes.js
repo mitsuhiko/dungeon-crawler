@@ -20,7 +20,6 @@ import { guardianId } from '../core/guardians.js';
 import { STAGE_PROFILES, enemyProfile } from '../core/enemies.js';
 import { followMovers } from '../game/movers.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
-import { newPuddle } from '../core/sollmeldon.js';
 import { Timeline, lerpAngle, PREDICT } from './sync.js';
 import { MODES, BURNING, TOXIC, CHILLED, ZAPPED, rosterOf, rowOf } from './protocol.js';
 
@@ -204,19 +203,18 @@ export class Viewer {
         e.quarter = Number.isInteger(quarter) && quarter >= 0 && quarter < 4 ? quarter : 0;
         e.mountain = mountainOf(mountain, e.mountain);
       }
-      // Sollmeldon's heads, how high he flies, the world's tilt, his mud and his puddles (game/sollmeldon.js;
-      // game/tilt.js tips our view after it, game/mud.js leans and fills our mud)
+      // Sollmeldon's heads, how high he flies, the world's tilt and his drops of mud (game/sollmeldon.js;
+      // game/tilt.js tips our view after it, game/mud.js pours his drops into our mud)
       if (Array.isArray(b[25])) {
-        const [heads, cutting, lift, tilt, mud, puddles] = b[25], before = Array.isArray(a[25]) ? a[25] : b[25];
+        const [heads, cutting, lift, tilt, drops] = b[25], before = Array.isArray(a[25]) ? a[25] : b[25];
         e.heads = Number.isInteger(heads) ? heads & 7 : 7;
         e.cutting = Number.isInteger(cutting) && cutting >= -1 && cutting < 3 ? cutting : -1;
         if (Number.isFinite(lift) && Number.isFinite(before[2])) e.lift = Math.max(0, Math.min(4, before[2] + (lift - before[2]) * k));
         const was = Array.isArray(before[3]) ? before[3] : tilt;
         if (Array.isArray(tilt) && tilt.every(Number.isFinite) && was.every(Number.isFinite))
           e.tilt = tilt.map((v, j) => Math.max(-1, Math.min(1, was[j] + (v - was[j]) * k)));
-        e.mud = Number.isFinite(mud) ? Math.max(0, Math.min(1e4, mud)) : 0;
-        e.puddles = (Array.isArray(puddles) ? puddles : []).filter(p => Array.isArray(p) && p.every(Number.isFinite)).slice(0, 64)
-          .map(([x, y, z, vol]) => puddleOf(e.puddles, x, y, z, vol));
+        e.drops = (Array.isArray(drops) ? drops : []).filter(d => Array.isArray(d) && d.length === 5 && d.every(Number.isFinite)
+          && d[3] > 0 && d[3] <= 20 && d[4] > 0 && d[4] <= 4).slice(-32);
       }
       if (e.mode === 'dead') { e.hp = 0; e.deadT = b[6]; e.dark = 0; (e.beam || e.bolts) && mirrorBeam(e, null); return; }
       mirrorBeam(e, Array.isArray(b[12]) ? b[12] : null, Array.isArray(b[16]) ? b[16] : null);
@@ -235,12 +233,6 @@ export class Viewer {
 // is the player able to take a blow from the runner's enemies now?
 export const canBeHit = () => player.hp > 0 && !player.ragdoll && !state.transitioning;
 
-// one of Sollmeldon's puddles from his row: the one we show already where it is the same (its view
-// stays: render/mud.js), else a new one
-function puddleOf(had, x, y, z, vol) {
-  const p = (had ?? []).find(q => Math.hypot(q.x - x, q.z - z) < 0.5 && Math.abs(q.vol - vol) < 0.6) ?? {};
-  return Object.assign(p, newPuddle(x, y, z, Math.max(0, vol)));
-}
 // Monteur's mountain from his row ([n, seed, x, z, shape, a, phase, t, life], net/protocol.js), the
 // one he had kept if it is the same (game/mountains.js runs its clock on between rows); null: none
 function mountainOf(row, had) {

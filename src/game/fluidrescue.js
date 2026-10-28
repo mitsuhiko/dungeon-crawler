@@ -9,9 +9,8 @@
 // out of the water: where one last stood if even the high tide stays under the head there, else
 // onto the nearest such floor of the fight (a hill).
 // Drowning in Sollmeldon's mud (his mire: map.tide `mud`, game/mud.js) likewise
-// (core/sollmeldon.js SOLLMELDON_FIGHT.rescue): out onto where one last stood, if the mud stays
-// under the head there however the world is tipped (its surface, tipped all the way either way, or
-// now), else the nearest such floor of the fight, else the highest one.
+// (core/sollmeldon.js SOLLMELDON_FIGHT.rescue): out onto where one last stood, if it is dry and well
+// over all of the mud, else the nearest such floor of the fight, else the highest one.
 // Only if that quarter is all one has left does it kill, as everywhere else (game/ragdoll.js
 // dieInFluid).
 import { LH, LAVA, WATER, HEAD_Y } from '../core/constants.js';
@@ -22,7 +21,7 @@ import { takeDamage } from '../core/progression.js';
 import { FOGGERY_FIGHT } from '../core/foggery.js';
 import { SQUARLO_FIGHT } from '../core/squarlo.js';
 import { SOLLMELDON_FIGHT } from '../core/sollmeldon.js';
-import { mudNow, mudTips } from './mud.js';
+import { mudAt } from './mud.js';
 import { floorY } from '../core/surfaces.js';
 import { supportedPoint } from '../physics/respawn.js';
 import { moversNow } from '../physics/collide.js';
@@ -107,16 +106,15 @@ function burst(x, y, z, colors, up) {
   }
 }
 
-// out of Sollmeldon's mud: where one last stood, or the nearest floor of the fight, if the mud stays
-// under the head there now and however far the world may tip (its surface now, and tipped all the
-// way each way with what it holds now); with none, the highest floor of the fight
+// out of Sollmeldon's mud: where one last stood, if it is dry there and well over all of the mud
+// (it may run there when the world tips), else the nearest such floor of the fight, else the highest
 function mudSpot(x, y, z) {
-  if (!mudNow()) return null;
-  const tips = mudTips(), ok = s => s && s.y + HEAD_Y > Math.max(...tips.map(f => f(s.x, s.z))) + DRY;
+  const m = state.map, top = (state.tide ?? -Infinity) * LH;
+  const ok = s => s && mudAt(s.x, s.z) === -Infinity && s.y > top + 0.3;
   const safe = player.safe;
   if (ok(safe) && supportedPoint(safe.x, safe.y, safe.z)) return safe;
   const near = s => Math.hypot(s.x - x, (s.y - y) * 2, s.z - z);
-  const floors = state.map.floors.filter(f => f.encounter && !f.fluid).map(f => ({ x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5 }));
+  const floors = m.floors.filter(f => f.encounter && !f.fluid).map(f => ({ x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5 }));
   for (const o of [...floors.filter(ok).sort((a, b) => near(a) - near(b)), ...floors.sort((a, b) => b.y - a.y)]) {
     const p = supportedPoint(o.x, o.y, o.z);
     if (p) return p;

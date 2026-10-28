@@ -13,6 +13,7 @@ import { showShadow, showEyes, showPool, showBeam, showSpotLight, burstConfetti,
 import { showCurtain, hideCurtain } from '../render/stagecurtain.js';
 import { MANSK_FIGHT, MANSK_DANCE, danceAt, curtainLine, curtainOpen } from '../core/mansk.js';
 import { muzzleAt } from '../core/beams.js';
+import { mudAt } from './mud.js';
 import { sfx } from '../audio/sfx.js';
 import { quake, cameraKick } from './juice.js';
 import { clamp01, smooth, facing, faceCamera, warp, once, roar, landFx, splashFx, rippleFx, bubbleFx, fluidTop,
@@ -775,9 +776,10 @@ const qualmos = {
   },
 };
 
-// --- Sollmeldon: a pool of black mud on his spot, him rising out of it, his heads one by one ------
+// --- Sollmeldon: the mire under his mud, him rising out of it, his heads one by one -------------
 
 const MUD = ['#2a231d', '#17130f', '#3a3129', '#5a4e43'], HEADS = ['L', 'M', 'R'];
+// how high he stands at t: from deep under his mud up onto his spot
 const sollY = (r, t) => {
   const { at, spot } = r, deep = r.e.profile.height + 0.3;
   return spot.y - deep * (1 - smooth((t - at.rise[0]) / (at.rise[1] - at.rise[0])) ** 0.7);
@@ -791,30 +793,35 @@ function headsView(v, r) {
     for (const b of [...m.necks[i], m.heads[i]]) if (b) b.scale.copy(rest(D, b)).multiplyScalar(k);
   });
 }
+// The mire is flooded to the brim as the hero comes in (his `flood`, game/mud.js), him under it
+// (not seen); it drains down to his mud once he has risen out of it and roared
 const sollmeldon = {
+  waiting(e) { Object.assign(e, { flood: 1, veil: 0 }); },
   seen: r => ({ x: r.spot.x, y: Math.max(r.e.y, r.spot.y), z: r.spot.z }),
   start(r) {
     const { e, spot } = r;
-    Object.assign(e, { y: sollY(r, 0), yaw: facing(spot, player), dressView: v => headsView(v, r) });
+    Object.assign(e, { flood: 1, veil: undefined, y: sollY(r, 0), yaw: facing(spot, player), dressView: v => headsView(v, r) });
   },
   step(r, t, dt) {
-    const { e, spot, at } = r, D = r.data, R = e.profile.radius * 1.5;
+    const { e, spot, at } = r, D = r.data, R = e.profile.radius * 1.5, top = Math.max(spot.y, mudAt(spot.x, spot.z));
     faceCamera(r, dt, 2);
-    // a pool of black mud spreading on his spot, bubbling, swelling as he comes
-    const k = smooth((t - at.pool) / 1.2), fade = 1 - smooth((t - at.roar) / 1.4);
-    showPool(spot.x, spot.y, spot.z, R * (0.3 + 1.1 * k), 0.95 * k * fade, '#15110d');
-    if (t >= at.pool && t < at.roar) {
-      bubbleFx(spot.x, spot.y, spot.z, R * 0.9 * k + 0.1, dt, 20 + 30 * k * clamp01((t - at.rise[0]) / 0.5), MUD);
-      if (Math.random() < dt * 3 * k) sfx('drip', { at: spot, pitch: rand(0.35, 0.6), volume: 0.5 });
+    // the mud over his spot bubbling, more and more, before he comes up out of it
+    if (t >= at.pool && t < at.rise[1]) {
+      const k = smooth((t - at.pool) / (at.rise[0] - at.pool));
+      bubbleFx(spot.x, top, spot.z, R * (0.4 + 0.6 * k), dt, 10 + 40 * k, MUD);
+      if (Math.random() < dt * 4 * k) sfx('drip', { at: spot, pitch: rand(0.35, 0.6), volume: 0.5 });
     }
-    if (once(D, 'pool', t, at.pool)) sfx('splorch', { at: spot, pitch: 0.4, volume: 0.7 });
+    if (once(D, 'pool', t, at.pool)) sfx('gulp', { at: spot, pitch: 0.3, volume: 0.7 });
     // rising out of it, the mud pouring off him (what is still under it not drawn)
     e.y = sollY(r, t);
-    e.clipBelow = t < at.rise[1] ? spot.y - 0.02 : undefined;
-    if (once(D, 'rise', t, at.rise[0])) { sfx('gulp', { at: spot, pitch: 0.35, volume: 1 }); sfx('rumble', { at: spot, pitch: 0.4, volume: 0.8 }); }
+    e.clipBelow = e.flood > 0 || t < at.rise[1] ? top - 0.01 : undefined;
+    if (once(D, 'rise', t, at.rise[0])) {
+      sfx('splorch', { at: spot, pitch: 0.35, volume: 1 }); sfx('rumble', { at: spot, pitch: 0.4, volume: 0.8 });
+      splashFx(spot.x, top, spot.z, { colors: MUD, n: 40, up: 3, wide: 2, size: [0.08, 0.18] });
+    }
     if (t >= at.rise[0] && t < at.rise[1] + 0.4) for (let i = Math.floor(40 * dt + Math.random()); i > 0; i--) {
       const a = rand(0, Math.PI * 2), d = R * rand(0.4, 0.8);
-      emit(soft, e.x + Math.cos(a) * d, Math.max(spot.y, e.y) + rand(0.4, e.profile.height * 0.8), e.z + Math.sin(a) * d,
+      emit(soft, e.x + Math.cos(a) * d, Math.max(top, e.y) + rand(0.4, e.profile.height * 0.8), e.z + Math.sin(a) * d,
         { v: [Math.cos(a) * rand(0.2, 0.7), rand(-1, 0.3), Math.sin(a) * rand(0.2, 0.7)], life: rand(0.5, 0.8), size: rand(0.07, 0.16), color: MUD[i % 4], alpha: 0.95, gravity: 9 });
     }
     // his heads, one after the other, each with a growl
@@ -823,12 +830,14 @@ const sollmeldon = {
     e.pose = t >= at.rear && t < at.release ? { clip: 'summon', t: Math.min(1.75, t - at.rear) } : null;
     if (once(D, 'stomp', t, at.stomp)) {
       roar(e, 0.55); quake(0.035); landFx(e, MUD, 1.3);
-      splashFx(e.x, spot.y, e.z, { colors: MUD, n: 50, up: 4, wide: 3, size: [0.08, 0.18] });
+      splashFx(e.x, top, e.z, { colors: MUD, n: 50, up: 4, wide: 3, size: [0.08, 0.18] });
     }
+    // and his mud drains away, down to what lies in the mire
+    if (t >= at.drain) e.flood = 0;
   },
   end(r) {
     const { e } = r, v = e.view;
-    Object.assign(e, { pose: null, dressView: null, clipBelow: undefined, x: r.spot.x, y: r.spot.y, z: r.spot.z });
+    Object.assign(e, { pose: null, dressView: null, clipBelow: undefined, flood: 0, x: r.spot.x, y: r.spot.y, z: r.spot.z });
     if (v) for (const [b, s] of r.data.rest ?? []) b.scale.copy(s);
     hideIntroFx();
   },

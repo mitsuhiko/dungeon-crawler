@@ -1,62 +1,155 @@
-// Sollmeldon's puddles of mud (game/mud.js draws them, game/sollmeldon.js makes and moves them): a
-// glossy black blob lying on the ground where a ball of mud landed (render/meteors.js groundPatch:
-// on its level only), a bubble rising in it now and then. They do not dry up; on the tipped world
-// they run downhill, the patch laid anew under them as they go, and into his mud. In the cube's
-// coordinates, with its offset. One that is gone (it ran into the mud, or he was beaten) sinks away.
+// Sollmeldon's mud (game/mud.js runs it, core/sollmeldon.js has how it flows): glossy goop lying on
+// the ground of his mire. One look for all of it, his pool and the balls of mud he throws alike: it
+// is all one field of mud (core/sollmeldon.js MUD_RES samples a cell), drawn as one sheet.
+// The field goes to the GPU as a small texture (per sample: the mud's surface, how deep it is); a
+// fine sheet over it reads both smoothed (a cubic B-spline over the samples round each point), its
+// vertices at the surface (it runs downhill as it flows, swells where it gathers), its pixels cut
+// where the smoothed depth falls under the edge: every edge a smooth curve, round blobs, never the
+// samples' corners; never quite down on the ground (it would fight with it where it is thin: the
+// smoothed ground is in the texture too). Where a dry sample lies by wet ones its surface is
+// carried on level with them (under the ground there), so the sheet meets a bank or a step where
+// the ground does.
+// Marbled like the goop of Isle Delfino: near-black mud with broad brown swirls through it that
+// drift the way it runs, a lighter rim where it thins out to its edge. In the cube's coordinates,
+// with its offset; cut away above the cut like the cube's fluids.
 import * as THREE from 'three';
 import { scene } from './scene.js';
-import { soft, emit, rand } from './particles.js';
-import { groundPatch, painted } from './meteors.js';
+import { inject } from './cutshader.js';
+import { MUD_RES, MUD_FLOW } from '../core/sollmeldon.js';
+import { GOOP_GLSL, GOOP_RIM } from './goop.js';
 
-const SHAPES = Array.from({ length: 4 }, (_, s) => painted((g, h) => {
-  g.beginPath();
-  for (let i = 0; i < 22; i++) {
-    const a = Math.PI * 2 * i / 22, k = (1 + 0.16 * Math.sin(3 * a + s * 1.7) + 0.1 * Math.sin(5 * a + s * 2.9) + 0.05 * Math.sin(11 * a + s)) / 1.3;
-    g.lineTo(h + Math.cos(a) * k * h, h + Math.sin(a) * k * h);
-  }
-  g.closePath(); g.fill();
-}));
-const SIZE = 1.3;   // the patch is this times the puddle's radius (its blob reaches out to about its radius)
-const material = shape => new THREE.MeshStandardMaterial({ color: '#15110d', roughness: 0.12, metalness: 0.05, alphaMap: shape,
-  transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-const BUBBLE = ['#3a3129', '#4a4036', '#2a231d'];
+const SUB = 3;   // sheet vertices a sample, each way
+const LIFT = '0.03';   // world units it stays over the (smoothed) ground at least
+let mesh = null, field = null, tex = null, data = null, time = 0;
+const drift = new THREE.Vector2();
+const uniforms = { uMudTex: { value: null }, uMudSize: { value: new THREE.Vector2(1, 1) }, uMudOrigin: { value: new THREE.Vector2() },
+  uMudTime: { value: 0 }, uMudDrift: { value: drift }, uMudEdge: { value: MUD_FLOW.wet * 1.4 } };
 
-const views = new Map();   // puddle -> { mesh, at: [x, y, z, r] the patch was laid for, gone (s sinking away) }
-let made = 0;
-function lay(v, p) {
-  v.mesh.geometry.dispose();
-  v.mesh.geometry = groundPatch(p.x, p.y, p.z, p.r * SIZE, v.turn);
-  v.at = [p.x, p.y, p.z, p.r];
-}
-function drop(v) { scene.remove(v.mesh); v.mesh.geometry.dispose(); v.mesh.material.dispose(); }
-export function drawPuddles(list, dt, off = { x: 0, y: 0, z: 0 }) {
-  for (const [p, v] of views) if (!list.includes(p)) {
-    v.gone = (v.gone ?? 0) + dt;
-    v.mesh.material.opacity = Math.max(0, 1 - v.gone / 0.8);
-    v.mesh.position.y -= dt * 0.05;
-    if (v.gone > 0.8) { drop(v); views.delete(p); }
+// (the field, smoothed: a cubic B-spline over the 4 × 4 samples round p, cube coordinates)
+const FIELD = `
+  uniform highp sampler2D uMudTex;
+  uniform vec2 uMudSize, uMudOrigin;
+  vec3 mudFetch(ivec2 c) { return texelFetch(uMudTex, clamp(c, ivec2(0), ivec2(uMudSize) - 1), 0).rgb; }
+  vec4 mudWeights(float f) {
+    float f2 = f * f, f3 = f2 * f;
+    return vec4((1.0 - 3.0 * f + 3.0 * f2 - f3), (4.0 - 6.0 * f2 + 3.0 * f3), (1.0 + 3.0 * f + 3.0 * f2 - 3.0 * f3), f3) / 6.0;
   }
-  for (const p of list) {
-    let v = views.get(p);
-    if (!v) {
-      v = { mesh: new THREE.Mesh(new THREE.BufferGeometry(), material(SHAPES[made++ % SHAPES.length])), turn: Math.random() * Math.PI * 2, grow: 0 };
-      v.mesh.renderOrder = 1;
-      scene.add(v.mesh); views.set(p, v);
-      lay(v, p);
-    }
-    const [x, y, z, r] = v.at;
-    if (Math.hypot(p.x - x, p.z - z) > 0.2 || Math.abs(p.y - y) > 0.05 || Math.abs(p.r - r) > 0.08) lay(v, p);
-    v.grow = Math.min(1, v.grow + dt * 5);
-    // (the patch lies where it was laid, till it is laid anew under the puddle)
-    v.mesh.position.set(v.at[0] + off.x, v.at[1] + off.y + 0.012, v.at[2] + off.z);
-    v.mesh.scale.setScalar(0.55 + 0.45 * v.grow);
-    v.mesh.material.opacity = 1;
-    const spots = v.mesh.geometry.userData.spots;
-    if (spots?.length && Math.random() < dt * 0.8) {
-      const [bx, by, bz] = spots[Math.floor(Math.random() * spots.length)];
-      emit(soft, p.x + off.x + bx, p.y + off.y + by + 0.04, p.z + off.z + bz,
-        { v: [0, rand(0.1, 0.25), 0], life: rand(0.3, 0.5), size: rand(0.05, 0.09), color: BUBBLE[made % 3], alpha: 0.9, drag: 1 });
-    }
+  vec3 mudField(vec2 p) {
+    vec2 t = (p - uMudOrigin) * ${MUD_RES.toFixed(1)} - 0.5, i = floor(t), f = t - i;
+    vec4 wx = mudWeights(f.x), wy = mudWeights(f.y);
+    ivec2 c = ivec2(i);
+    vec3 s = vec3(0.0);
+    for (int b = 0; b < 4; b++) for (int a = 0; a < 4; a++) s += wx[a] * wy[b] * mudFetch(c + ivec2(a - 1, b - 1));
+    return s;
   }
+`;
+function material() {
+  // (and drawn a little towards the camera, like a decal: where it is thin it lies close on the ground)
+  const mat = inject(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.18, metalness: 0, transparent: true, depthWrite: true,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
+    fs => fs.replace('#include <clipping_planes_fragment>', 'if (cutRegion(true) > 0.5) discard;\n#include <clipping_planes_fragment>'), 'cut-mud');
+  const cut = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, r) => {
+    cut(sh, r);
+    Object.assign(sh.uniforms, uniforms);
+    // the surface, and its slope (for the light) from the smoothed surface a little to each side
+    sh.vertexShader = 'varying vec2 vMudP;\n' + FIELD + sh.vertexShader.replace('#include <beginnormal_vertex>', `
+      vMudP = position.xz;
+      // (never closer to the ground under it than LIFT: no fighting with it where it is thin)
+      vec3 mudAt = mudField(position.xz);
+      float mudY = max(mudAt.r, mudAt.b + ${LIFT}), e = 0.5 / ${MUD_RES.toFixed(1)};
+      float mudDx = mudField(position.xz + vec2(e, 0.0)).r - mudField(position.xz - vec2(e, 0.0)).r;
+      float mudDz = mudField(position.xz + vec2(0.0, e)).r - mudField(position.xz - vec2(0.0, e)).r;
+      vec3 objectNormal = normalize(vec3(-mudDx, 2.0 * e, -mudDz));
+      #ifdef USE_TANGENT
+        vec3 objectTangent = vec3(1.0, 0.0, 0.0);
+      #endif`).replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.y = mudY;');
+    sh.fragmentShader = 'uniform float uMudTime, uMudEdge;\nuniform vec2 uMudDrift;\nvarying vec2 vMudP;\n'
+      + FIELD + GOOP_GLSL + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      {
+        // its edge: where the smoothed depth thins out under the edge (a smooth curve, a little
+        // wobbly), antialiased
+        float d = mudField(vMudP).g + (goopNoise(vMudP * 2.3 + 4.0) - 0.5) * 0.008;
+        float aa = fwidth(d) * 0.75 + 1e-4;
+        float inside = smoothstep(uMudEdge - aa, uMudEdge + aa, d);
+        if (inside < 0.01) discard;
+        // the goop (render/goop.js), drifting the way it runs, a lighter rim where it thins out
+        vec3 col = goopColor(vMudP + uMudDrift, uMudTime);
+        col = mix(col, ${GOOP_RIM}, (1.0 - smoothstep(uMudEdge, uMudEdge + 0.04, d)) * 0.7);
+        diffuseColor.rgb = col;
+        diffuseColor.a = inside;
+      }`);
+  };
+  mat.customProgramCacheKey = () => 'cut-mud-goop';
+  return mat;
 }
-export function clearPuddles() { views.forEach(drop); views.clear(); }
+
+// the sheet over a field's box: SUB vertices a sample each way (only where they are: the shader
+// puts them at the surface)
+function build(f) {
+  const nx = f.w * SUB + 1, nz = f.h * SUB + 1, pos = new Float32Array(nx * nz * 3), idx = [];
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const k = j * nx + i;
+    pos[k * 3] = f.x0 + i / (SUB * MUD_RES); pos[k * 3 + 2] = f.z0 + j / (SUB * MUD_RES);
+  }
+  for (let j = 0; j + 1 < nz; j++) for (let i = 0; i + 1 < nx; i++) {
+    const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+    idx.push(a, c, b, b, c, d);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  data = new Float32Array(f.w * f.h * 4);
+  tex = new THREE.DataTexture(data, f.w, f.h, THREE.RGBAFormat, THREE.FloatType);
+  tex.magFilter = tex.minFilter = THREE.NearestFilter;
+  uniforms.uMudTex.value = tex;
+  uniforms.uMudSize.value.set(f.w, f.h);
+  uniforms.uMudOrigin.value.set(f.x0, f.z0);
+  const m = new THREE.Mesh(geo, material());
+  m.frustumCulled = false; m.renderOrder = 4; m.receiveShadow = true;
+  return m;
+}
+// The texture: per sample its surface (a dry one: carried on from the wet ones round it, a few
+// rings out, else well under its ground), how deep it is and the ground
+const surf = [];
+function upload(f) {
+  const { w, h, ground: G, depth: D } = f, n = w * h, wet = MUD_FLOW.wet;
+  if (surf.length !== n) surf.length = n;
+  for (let k = 0; k < n; k++) surf[k] = D[k] > wet && Number.isFinite(G[k]) ? G[k] + D[k] : NaN;
+  for (let ring = 0; ring < 3; ring++) {
+    const add = [];
+    for (let k = 0; k < n; k++) {
+      if (!Number.isNaN(surf[k])) continue;
+      const i = k % w, j = Math.floor(k / w);
+      let sum = 0, c = 0;
+      for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) {
+        const ii = i + a, jj = j + b;
+        if ((a || b) && ii >= 0 && jj >= 0 && ii < w && jj < h && !Number.isNaN(surf[jj * w + ii])) { sum += surf[jj * w + ii]; c++; }
+      }
+      if (c) add.push([k, sum / c]);
+    }
+    for (const [k, y] of add) surf[k] = y;
+  }
+  for (let k = 0; k < n; k++) {
+    const g = Number.isFinite(G[k]) ? G[k] : 0;
+    data[k * 4] = Number.isNaN(surf[k]) ? g - 0.3 : surf[k];
+    data[k * 4 + 1] = Number.isFinite(G[k]) ? D[k] : 0;
+    data[k * 4 + 2] = Number.isFinite(G[k]) ? G[k] : data[k * 4] - 1;
+  }
+  tex.needsUpdate = true;
+}
+// every frame: the field's mud now (none: gone), how it is tipped (its swirls drift downhill)
+export function drawMudField(f, map, dt, off = { x: 0, y: 0, z: 0 }, tilt = [0, 0]) {
+  if (f !== field) { clearMudField(); field = f; if (f) { mesh = build(f); scene.add(mesh); } }
+  if (!mesh) return;
+  time += dt;
+  drift.x -= tilt[0] * dt * 0.2; drift.y -= tilt[1] * dt * 0.2;   // (the pattern moves the way the mud runs)
+  uniforms.uMudTime.value = time;
+  upload(f);
+  mesh.position.set(off.x, off.y, off.z);
+}
+export function clearMudField() {
+  if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
+  tex?.dispose();
+  mesh = null; field = null; tex = null;
+}

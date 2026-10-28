@@ -170,14 +170,15 @@ export const INTROS = Object.freeze({
       { t: 5.6, cam: ['spot', -5.0, 0.8, 0.45], look: ['boss', 0, 0, 1.05], fov: 54 },
       { t: 6.2, cam: ['spot', -5.6, 0.4, 0.5], look: ['boss', 0, 0, 0.95], fov: 52, ease: 'out' },
       { t: 7.7, cam: ['spot', -6.0, -0.6, 0.6], look: ['boss', 0, 0, 0.9], fov: 48 }] },
-  // Sollmeldon: the light goes; a pool of black mud spreads bubbling on his spot, and he rises up
-  // out of it, the mud pouring off him; his heads come up out of his necks one after the other,
-  // each growling, and he rears up, wings spread, all three roaring, and stomps down (his summon's
-  // clip) as the light comes back. The camera low by the pool, looking up as he rises, back and
-  // round for the roar
+  // Sollmeldon: his mire lies flooded with his black mud as the hero comes in, him under it. The
+  // light goes; the mud over his spot bubbles, more and more, and he rises up out of it, the mud
+  // pouring off him; his heads come up out of his necks one after the other, each growling, and he
+  // rears up, wings spread, all three roaring, and stomps down (his summon's clip) as the light comes
+  // back; then his mud drains away (`drain`), down to what lies in the mire. The camera low over
+  // the mud, looking up as he rises, back and round for the roar
   sollmeldon: { reveal: 'sollmeldon', length: 8.6, hold: 8.3, walk: 1.4, letterbox: [0.3, 8.3], name: [5.9, 8.0], bar: 8.2,
     blend: [0.6, 2.0, 8.1], shake: 0.015, dim: { at: [0.3, 2.0, 6.2, 7.4], to: 0.55 }, fires: { out: 0.4, back: 6.4 },
-    at: { pool: 1.6, rise: [2.6, 4.2], heads: [4.3, 4.75, 5.2], rear: 5.4, stomp: 6.5, roar: 6.6, release: 7.6 },
+    at: { pool: 1.4, rise: [2.6, 4.2], heads: [4.3, 4.75, 5.2], rear: 5.4, stomp: 6.5, roar: 6.6, drain: 6.9, release: 7.6 },
     shots: [{ ...OPEN, look: ['spot', 0, 0, 0.3] },
       { t: 2.0, cam: ['spot', -4.8, 1.8, 0.7], look: ['spot', 0, 0, 0.15], fov: 44 },
       { t: 4.2, cam: ['spot', -4.6, 1.5, 0.45], look: ['spot', 0, 0, 0.7], fov: 50, ease: 'linear' },

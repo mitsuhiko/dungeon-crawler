@@ -1,0 +1,110 @@
+# Before writing or changing music, read music/README.md (style, moods, format).
+title    Sollmeldon
+composer Claude
+about    The three-headed mud boss of the middle of act II, in 3/4: three of everything. While he waits under his mud, a low choir and a tuba drone over a bubbling singing bowl and a heartbeat. When he comes for you, his three heads sing the motif (D Eb F A G, the swamp's Phrygian Eb) as a canon, one bar apart: a horn, a bassoon an octave under it and a glass harmonica over it, over low strings rocking in three, a tuba, timpani, taiko and a kick. Each head cut off takes its voice from the canon: two heads with a snare and brass stabs, the last one alone, doubled by a theremin, over driving drums and sixteenth hats. When he cuts off a head everything falls to a held cluster and a timpani roll; when the world tips, a theremin slides down and down over the canon's leader.
+tempo    84
+beats    3
+steps    4
+reverb   0.45
+
+# His fight's phases, not the usual moods (core/bossmusic.js, core/sollmeldon.js sollmeldonMusic):
+# lurk before he fights, phase1 three heads, sever while a head is cut off, phase2 two heads,
+# phase3 one head, tilt while the world is tipped (it may come in either of the later phases).
+# The canon's voices are his heads (headL, headM, headR): one goes with each head cut off.
+# moods: lurk phase1 sever phase2 phase3 tilt
+# mood lurk:   choir tuba bowl heart
+# mood phase1: headL headM headR ost tuba choir timp kick taiko
+# mood sever:  choir cluster roll tuba bowl
+# mood phase2: phase1 -headR snare brass
+# mood phase3: headL ghost ost tuba timp kick dsnare taiko hat brass
+# mood tilt:   headL ost tuba choir timp taiko slide cluster
+# Played once as the phase begins, over the loop:
+# sting phase1: engage
+# sting sever:  sever
+# sting phase2: onward
+# sting phase3: onward
+# sting tilt:   tip
+
+voice headL    horn      vol=0.55 pan=-0.35 att=0.03 rel=0.15 rev=0.3
+voice headM    bassoon   vol=0.62 pan=0.05 rev=0.3
+voice headR    glassharp vol=0.3  pan=0.4  att=0.08 rel=0.4 rev=0.5
+voice ghost    theremin  vol=0.3  pan=-0.2 glide=0.28 rev=0.55
+voice ost      strings   vol=0.3  pan=0.25 gate=0.45 att=0.01 rel=0.06 rev=0.2
+voice tuba     tuba      vol=0.6  gate=0.85
+voice choir    choir     vol=0.26 center=D4 att=0.5 rel=0.8
+voice bowl     bowl      vol=0.3  pan=0.15 rev=0.6
+voice heart    tomlo     vol=0.45 rev=0.4
+voice cluster  strings   vol=0.2  pan=0.2 att=0.6 rel=0.6
+voice roll     timpani   vol=0.28 pan=-0.15
+voice brass    brass     vol=0.38 pan=-0.2 gate=0.5 center=A3 att=0.015 rel=0.08 rev=0.22
+voice timp     timpani   vol=0.42 pan=-0.1
+voice kick     kick      vol=0.42
+voice snare    snare     vol=0.34 pan=0.1
+voice dsnare   snare     vol=0.34 pan=0.1
+voice taiko    tomlo     vol=0.45 pan=-0.25
+voice hat      hat       vol=0.3  pan=0.3
+voice slide    theremin  vol=0.28 pan=0.35 glide=0.32 rev=0.5
+
+# the stings' voices (in no mood)
+voice hitbrass brass     vol=0.5  center=A3 gate=0.9 att=0.01 rel=0.25
+voice hitcrash crash     vol=0.35 pan=-0.2
+voice hitgong  gong      vol=0.45
+voice splash   surf      vol=0.45
+voice boom     thunder   vol=0.4
+
+# Dm Eb Dm A | Bb Gm Eb A: the canon, one bar apart (the leader, then an octave under, then over)
+pattern A
+headL   | D4--- Eb4--- F4--- | A4------- G4--- | F4--- Eb4--- D4--- | C#4----------- | Bb3--- C4--- D4--- | G4------- F4--- | Eb4--- D4--- C4--- | C#4------- E4--- |
+headM   | C#3------- E3--- | D3--- Eb3--- F3--- | A3------- G3--- | F3--- Eb3--- D3--- | C#3----------- | Bb2--- C3--- D3--- | G3------- F3--- | Eb3--- D3--- C3--- |
+headR   | Eb5--- D5--- C5--- | C#5------- E5--- | D5--- Eb5--- F5--- | A5------- G5--- | F5--- Eb5--- D5--- | C#5----------- | Bb4--- C5--- D5--- | G5------- F5--- |
+ghost   | ~D5--- ~Eb5--- ~F5--- | ~A5------- ~G5--- | ~F5--- ~Eb5--- ~D5--- | ~C#5----------- | ~Bb4--- ~C5--- ~D5--- | ~G5------- ~F5--- | ~Eb5--- ~D5--- ~C5--- | ~C#5------- ~E5--- |
+ost     | D3!- A3- D3- Eb3!- D3- A3- | Eb3!- Bb3- Eb3- F3!- Eb3- Bb3- | D3!- A3- D3- Eb3!- D3- A3- | A2!- E3- A2- Bb2!- A2- E3- | Bb2!- F3- Bb2- C3!- Bb2- F3- | G2!- D3- G2- A2!- G2- D3- | Eb3!- Bb3- Eb3- F3!- Eb3- Bb3- | A2!- E3- A2- Bb2!- A2- C#3- |
+tuba    | D2!--- A1--- D2--- | Eb2!--- Bb1--- Eb2--- | D2!--- A1--- D2--- | A1!--- E1--- A1--- | Bb1!--- F1--- Bb1--- | G1!--- D2--- G1--- | Eb2!--- Bb1--- Eb2--- | A1!--- E1--- C#2--- |
+choir   | [Dm]----------- | [Eb]----------- | [Dm]----------- | [A]----------- | [Bb]----------- | [Gm]----------- | [Eb]----------- | [A7]----------- |
+bowl    | D4----------- | Eb4----------- | D4----------- | A3----------- | Bb3----------- | G3----------- | Eb4----------- | A3----------- |
+heart   | X.o. .... .... | % | % | % | % | % | % | % |
+cluster | D4+Eb4+A4----------- | % | % | % | % | % | % | % |
+roll    | D2? D2? D2? D2 D2 D2 D2 D2 D2! D2! D2! D2! | % | % | % | % | % | % | % |
+brass   | [Dm]!--- .--- [Dm]!--- | [Eb]!--- .--- [Eb]!--- | [Dm]!--- .--- [Dm]!--- | [A]!--- .--- [A]!--- | [Bb]!--- .--- [Bb]!--- | [Gm]!--- .--- [Gm]!--- | [Eb]!--- .--- [Eb]!--- | [A7]!--- [A7]!--- [A7]!--- |
+timp    | D2!--- .--- A1--- | Eb2!--- .--- Bb1--- | D2!--- .--- A1--- | A1!--- .--- E2--- | Bb1!--- .--- F1--- | G1!--- .--- D2--- | Eb2!--- .--- Bb1--- | A1- A1- A1- A1- A1!- A1!- |
+kick    | X... .... x... | % | % | % | % | % | % | X... X.X. X.X. |
+snare   | .... X..o X... | % | % | % | % | % | % | .... X.xx XXXX |
+dsnare  | x.oo X.oo X.oo | % | % | % | % | % | % | x.oo XxXx XXXX |
+taiko   | X.x. ..X. x... | % | % | % | % | % | % | X.x. XXXX XXXX |
+hat     | Xoxo xoxo xoxo | % | % | % | % | % | % | Xoxo XxXx XxXx |
+slide   | ~A5----------- | ~Eb5----------- | ~D5----------- | ~C#5----------- | ~Bb5----------- | ~F5----------- | ~Eb5----------- | ~C#5----------- |
+
+# Gm Ab Gm D | Eb Cm Eb A: up a fourth; its last two bars as A's, so the canon runs on into it
+pattern B from A
+headL   | G4--- Ab4--- Bb4--- | D5------- C5--- | Bb4--- Ab4--- G4--- | F#4----------- | Eb4--- F4--- G4--- | C5------- Bb4--- | Eb4--- D4--- C4--- | C#4------- E4--- |
+headM   | C#3------- E3--- | G3--- Ab3--- Bb3--- | D4------- C4--- | Bb3--- Ab3--- G3--- | F#3----------- | Eb3--- F3--- G3--- | C4------- Bb3--- | Eb3--- D3--- C3--- |
+headR   | Eb5--- D5--- C5--- | C#5------- E5--- | G5--- Ab5--- Bb5--- | D6------- C6--- | Bb5--- Ab5--- G5--- | F#5----------- | Eb5--- F5--- G5--- | C6------- Bb5--- |
+ghost   | ~G5--- ~Ab5--- ~Bb5--- | ~D6------- ~C6--- | ~Bb5--- ~Ab5--- ~G5--- | ~F#5----------- | ~Eb5--- ~F5--- ~G5--- | ~C6------- ~Bb5--- | ~Eb5--- ~D5--- ~C5--- | ~C#5------- ~E5--- |
+ost     | G2!- D3- G2- Ab2!- G2- D3- | Ab2!- Eb3- Ab2- Bb2!- Ab2- Eb3- | G2!- D3- G2- Ab2!- G2- D3- | D3!- A3- D3- Eb3!- D3- F#3- | Eb3!- Bb3- Eb3- F3!- Eb3- Bb3- | C3!- G3- C3- D3!- C3- G3- | Eb3!- Bb3- Eb3- F3!- Eb3- Bb3- | A2!- E3- A2- Bb2!- A2- C#3- |
+tuba    | G1!--- D2--- G1--- | Ab1!--- Eb2--- Ab1--- | G1!--- D2--- G1--- | D2!--- A1--- D2--- | Eb2!--- Bb1--- Eb2--- | C2!--- G1--- C2--- | Eb2!--- Bb1--- Eb2--- | A1!--- E1--- C#2--- |
+choir   | [Gm]----------- | [Ab]----------- | [Gm]----------- | [D]----------- | [Eb]----------- | [Cm]----------- | [Eb]----------- | [A7]----------- |
+bowl    | G3----------- | Ab3----------- | G3----------- | D4----------- | Eb4----------- | C4----------- | Eb4----------- | A3----------- |
+cluster | G3+Ab3+D4----------- | % | % | % | % | % | % | % |
+roll    | G1? G1? G1? G1 G1 G1 G1 G1 G1! G1! G1! G1! | % | % | % | % | % | % | % |
+brass   | [Gm]!--- .--- [Gm]!--- | [Ab]!--- .--- [Ab]!--- | [Gm]!--- .--- [Gm]!--- | [D]!--- .--- [D]!--- | [Eb]!--- .--- [Eb]!--- | [Cm]!--- .--- [Cm]!--- | [Eb]!--- .--- [Eb]!--- | [A7]!--- [A7]!--- [A7]!--- |
+timp    | G1!--- .--- D2--- | Ab1!--- .--- Eb2--- | G1!--- .--- D2--- | D2!--- .--- A1--- | Eb2!--- .--- Bb1--- | C2!--- .--- G1--- | Eb2!--- .--- Bb1--- | A1- A1- A1- A1- A1!- A1!- |
+slide   | ~D6----------- | ~Ab5----------- | ~G5----------- | ~F#5----------- | ~Eb6----------- | ~Bb5----------- | ~Eb5----------- | ~C#5----------- |
+
+# the stings, a bar each
+pattern engage
+hitbrass | D2+A2+D3!--- .--- D2+A2+D3!--- |
+hitcrash | X... .... .... |
+
+pattern sever
+hitgong  | X... .... .... |
+splash   | X... .... .... |
+hitbrass | D3+Eb3+A3!----------- |
+
+pattern onward
+hitbrass | D3+A3+D4!--- .--- .--- |
+hitcrash | X... .... .... |
+
+pattern tip
+boom     | X... .... .... |
+
+loop A B

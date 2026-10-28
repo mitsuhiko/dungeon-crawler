@@ -449,9 +449,9 @@ function bowl(fr) {
 // 12. Mire (Sollmeldon's): a wide basin `low` levels under the doorways, its floor flat, with a few
 // round islands standing out of it to the doorways' level (their tops `r` cells round, slopes down
 // round them) and a bank of scenery all round the cube just inside its edge. His mud (game/mud.js,
-// core/sollmeldon.js) stands `mud` levels deep over its floor at first, shallow; it leans when the
-// world tips, deep on the low side, so the islands are spread over the basin (`apart`): wherever it
-// tips, there is dry ground on the high side. The basin stays wide and flat: room for a big body to
+// core/sollmeldon.js) stands `mud` levels deep over its floor at first, shallow; it runs to the low
+// side when the world tips, deep there, so the islands are spread over the basin (`apart`): wherever
+// it tips, there is dry ground on the high side. The basin stays wide and flat: room for a big body to
 // walk and land on.
 export const MIRE = { low: -2, mud: 0.6, islands: 4, r: [1, 1.5], apart: 4.5, clear: 3 };
 function mire(fr) {
