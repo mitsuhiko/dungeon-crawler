@@ -56,7 +56,7 @@ export function tickHeld() {
   h.bites ??= 0;
   while (h.bites < bites.length && e.t >= bites[h.bites]) {
     h.bites++;
-    bitePlayer(e, h.blow);
+    bitePlayer(e, { ...h.blow, damage: h.blow.damage * (g.bitePower ?? 1) }, g.choke);
     if (!player.held) return;   // (a deadly bite: dropped)
   }
   if (e.t >= g.throwAt) { if (a.knockDown) throwPlayer(e, g, h.blow); else releasePlayer(e, g); return; }
@@ -80,9 +80,9 @@ function throwPlayer(e, g, blow) {
 }
 
 // a bite while held: the blow through the armor alone, and its poison
-function bitePlayer(e, blow) {
+function bitePlayer(e, blow, choke = false) {
   const b = armorOnly(blow), p = player, damage = Math.min(b.damage, p.hp);
-  sfx('chomp', { at: p });
+  sfx(choke ? 'grab' : 'chomp', { at: p });
   playerHurtFx(damage, e.x, e.z);
   if (p.hp <= b.damage) { knockDown({ damage: b.damage, hop: 1, reason: b.reason, by: b.by }); return; }
   if (b.damage > 0) p.lastHurt = { reason: b.reason, by: b.by ?? null };

@@ -4,8 +4,9 @@
 // get-up clip (GetUpBack / GetUpFront), morphing from the ragdoll pose into it.
 import * as THREE from 'three';
 import { clamp } from '../core/util.js';
-import { DIRS } from '../core/constants.js';
-import { player } from '../game/state.js';
+import { DIRS, CHAR_SCALE } from '../core/constants.js';
+import { player, state } from '../game/state.js';
+import { attackOf } from '../core/enemies.js';
 import { FLAT } from '../game/juice.js';
 import { SWORD, swingClipTime, swingClipFrom } from '../core/combat.js';
 import { character } from './character.js';
@@ -71,6 +72,7 @@ function squash(group, p, dt) {
 export function animateCharacter(dt, time) {
   const ch = character, p = player;
   if (!ch.ready) return;
+  ch.model.scale.setScalar(CHAR_SCALE*(state.map?.qualmos?.kind==='planet'?1.18:1));
   clean ??= Object.values(ch.bones).map(b => [b, b.quaternion.clone(), b.position.clone()]);
   if (p.ragdoll) { p.flat = 0; ch.group.scale.set(1, 1, 1); applyRagdollPose(p.ragdoll.p); getUp = upAction = morph = null; ch.getUpWeight = 0; return; }
   if (p.getUp !== getUp) {
@@ -125,6 +127,17 @@ export function animateCharacter(dt, time) {
   ch.bones.spine.rotateX(Math.sin(time * 2.2) * 0.025 * W.idle * rest);
   holdWeapon(dt, shown && !getUp, rest);
   if (morph) applyMorph(dt);
+  const caught=p.held?.e,grip=caught&&attackOf(caught).grab;
+  if(grip?.choke){
+    if(ch.sword)ch.sword.visible=false;
+    p.yaw=caught.yaw+Math.PI;ch.group.rotation.y=p.yaw;
+    ch.bones.head.rotateX(-.2);
+    for(const side of ['L','R']){
+      ch.bones[`upper_arm.${side}`].rotateX(-1.3);
+      ch.bones[`forearm.${side}`].rotateX(-1.15);
+      ch.bones[`thigh.${side}`].rotateX(Math.sin(time*12)*.16);
+    }
+  }
   if (ch.held && ch.sword?.visible) {
     ch.group.updateMatrixWorld(true);
     updateHeld(ch.held, p, { L: ch.bones['hand.L'], R: ch.bones['hand.R'] }, dt);

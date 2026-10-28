@@ -24,6 +24,7 @@ import { buildTrialView, tickTrialView } from './trials.js';
 import { flipPivot, tickFlipView } from './flipview.js';
 import { buildMoverView, tickMoverView } from './movers.js';
 import { newBake, disposeBake, keepFixedOutOfSun, bakeMaterials } from './bake.js';
+import { buildVoyageView, tickVoyageView } from './qualmos-voyage.js';
 
 export function disposeWorld(world) {
   if (!world) return;
@@ -62,15 +63,16 @@ export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = []
   const trialView = buildTrialView(m, group, water);   // a trial room's parts and rising fluid (render/trials.js)
   const movers = m.movers ? buildMoverView(m, group) : null;   // the platforms round Foggery's tower (render/movers.js)
   const glass = makeGlass(1, open);
-  glass.visible = !m.interior;   // inside a house: walls, no glass box
+  glass.visible = !m.interior && m.qualmos?.kind !== 'planet';   // inside a house: walls, no glass box
   group.add(glass);
+  const voyageView = buildVoyageView(m, group);
   adoptLights(group, bake);
   makeFadable(group);
   ownShadowDepth(group);   // the props' instanced meshes
   if (!flip) keepFixedOutOfSun(group);
   bakeMaterials(group, bake);
   scene.add(group);
-  const world = { group, glass, fluidMeshes, splashes, crowns, lights, villagers, missingSets, trialView, flip, movers, bake, ...markers };
+  const world = { group, glass, fluidMeshes, splashes, crowns, lights, villagers, missingSets, trialView, flip, movers, bake, voyageView, map: m, ...markers };
   setTownPortal(world, townPad);
   return world;
 }
@@ -119,6 +121,7 @@ export function setPortalSeals(world, dirs, immediate = false) {
 
 // per-frame animation of fluids, waterfalls, lights and the portal
 export function animateWorld(world, dt, time) {
+  tickVoyageView(world.voyageView, world.map, time);
   for (const m of world.fluidMeshes) {
     const t = m.userData.fluid;
     if (FLUID_LOOK[t].motion.pulse) m.material.emissiveIntensity = fluidGlow(t, time);

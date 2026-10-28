@@ -41,6 +41,7 @@ import { spiderModel } from './spidermodel.js';
 import { stunderModel } from './stundermodel.js';
 import { snakeModel } from './snakemodel.js';
 import { octonautModel } from './octonautmodel.js';
+import { amphibianModel } from './amphibianmodel.js';
 import { fireFaceModel } from './firefacemodel.js';
 import { triangleModel } from './trianglemodel.js';
 import { fireCatModel } from './firecatmodel.js';
@@ -97,7 +98,7 @@ import { uiScale } from '../game/uiscale.js';
 import { cameraKick, footfallFx } from '../game/juice.js';
 import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
-const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
+const prefabs = { amphibian: amphibianModel, spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
   totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, qualmos: qualmosModel, moose: mooseModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
@@ -106,6 +107,7 @@ export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.l
 // clip's beat (twice per hover loop); embers: per second, rising from `from` (a bone, or
 // a height above the body); flicker: extra flame motion
 const GLOW = {
+  amphibian: { light: [0x73ffe0, 4, 5.5, 2.1], flare: .6 },
   fireface: { light: [0xff6a20, 4, 4.5, 0.75], flicker: 1, embers: { rate: 7, from: 0.95, spread: 0.25 } },
   triangle: { light: [0xa45cff, 2.6, 3.5, 0.85], pulse: 0.7 },
   firecat: { light: [0xff7a2a, 1.6, 2.6, 0.75], flicker: 1, embers: { rate: 5, from: 'flame_tail', spread: 0.06 } },
@@ -617,6 +619,8 @@ function ghostLook(v, e) {
 }
 function makeView(e, prefab) {
   const group = new THREE.Group(), { model, mesh, material, parts, shell } = dressEnemy(prefab, e.profile), size = e.profile.size ?? 1;
+  // Qualmos is a large skinned prototype: do not render it into six lamp shadow faces too.
+  if (e.profile.species === 'amphibian') model.traverse(o => { if (o.isMesh) o.castShadow = false; });
   model.scale.multiplyScalar(size);
   group.add(model); scene.add(group);
   group.userData.figure = true;   // (casts into the realtime shadow maps as the quality level asks: render/shadows.js)
@@ -636,6 +640,7 @@ function makeView(e, prefab) {
   silhouette.bind(mesh.skeleton, mesh.bindMatrix);
   silhouette.renderOrder = -1; silhouette.boundingSphere = mesh.boundingSphere;
   silhouette.userData.sharedGeo = true;
+  if (e.profile.species === 'amphibian') silhouette.visible = false;
   mesh.add(silhouette);   // same world transform as the body
   // actions: walk, fast?, death and one per attack clip (keyed like attack.clip, else 'attack')
   const mixer = new THREE.AnimationMixer(model), actions = {}, weights = {};
@@ -664,9 +669,15 @@ function makeView(e, prefab) {
     trackLight(light, group);
   }
   const embers = typeof fx?.embers?.from === 'string' ? model.getObjectByName(fx.embers.from) : null;
+  let grabWarning=null;
+  if(e.profile.species==='amphibian'){
+    grabWarning=new THREE.Mesh(new THREE.RingGeometry(.8,2.9,40,1,-Math.PI/2-.65,1.3),
+      new THREE.MeshBasicMaterial({color:0xff9a45,transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide}));
+    grabWarning.rotation.x=-Math.PI/2;grabWarning.position.y=.045;grabWarning.visible=false;group.add(grabWarning);
+  }
   const tentacles = e.profile.flail ? findTentacles(model) : [];
   if (e.proxy || e.summoned) poof(e, puffOf(e));   // it turns up
-  return { tentacles, was: { mode: e.mode, x: e.x, z: e.z }, group, model, mixer, actions, prefab, material, shell, parts, body: mesh, silhouette, colors: material.userData.parts.color, ghost, reach, tag, bar, hpBar, label, mark, markT: 0, yaw: e.yaw, phase: e.phase,
+  return { grabWarning, tentacles, was: { mode: e.mode, x: e.x, z: e.z }, group, model, mixer, actions, prefab, material, shell, parts, body: mesh, silhouette, colors: material.userData.parts.color, ghost, reach, tag, bar, hpBar, label, mark, markT: 0, yaw: e.yaw, phase: e.phase,
     attacks: -1, dead: false, weights, fx, flames, light, embers, size, wheels: findWheels(model), roll: 0, spin: 0, rolled: null, waves: findWaves(model), whirl: 1, rings: findRings(model), ringSpeed: 0, flash: null, trail: null, sparks: e.profile.sparks ?? EMBERS, seed: Math.random() * 100,
     gloomColor: gloom ? new THREE.Color(...toLinear(gloom.color)) : null, gloom: 0, glimmer: 0,
     shed: findShed(model, e.profile.shed), stage: e.stage ?? 1, dark: e.dark ?? 0, ball: findBall(model, e.profile.tumble), tumble: 0, turned: 0, flash2: 0,
@@ -761,6 +772,10 @@ export function animateEnemies(list, dt, off = ZERO) {
       e.view = makeView(e, prefab); made++;
     }
     const v = e.view, A = v.actions;
+    if(v.grabWarning){
+      const a=attackOf(e);v.grabWarning.visible=e.mode==='attack'&&a.name==='grab'&&e.t<a.hitAt;
+      v.grabWarning.material.opacity=.12+.28*Math.min(1,e.t/a.hitAt);
+    }
     unflicker(v);
     // A ram commits to its direction before contact; visuals must match the hit cone.
     v.yaw = e.mode === 'attack' ? e.yaw : angleTo(v.yaw, e.yaw, Math.min(1, dt * 14));
@@ -769,7 +784,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     placeFloor(v, e, dt, off);
     if (e.mode === 'dead') { dying(v, e, dt, off); if (e.ghost) ghostLook(v, e); continue; }
     if (!e.ghost) clouds(v, e);
-    v.group.visible = e.mode !== 'gone';
+    v.group.visible = e.mode !== 'gone' && !(e.waterRetreat && e.under);
     if (e.mode === 'gone') { if (v.light) v.light.intensity = 0; continue; }
     if (e.mode === 'split' && e.profile.latches) onHead(v, e);
     else {
@@ -805,6 +820,8 @@ export function animateEnemies(list, dt, off = ZERO) {
       const target = name === gait ? (attack ? 0 : 1 - fast) : name === 'fast' ? (attack ? 0 : fast)
         : name === 'walk' || prefab.gaits?.[name] ? 0 : +(attack && A[name] === strike);
       v.weights[name] += (target - v.weights[name]) * Math.min(1, dt * 18);
+      // Stop evaluating attack clips after their blend has actually ended.
+      if (!target && v.weights[name] < .001) v.weights[name] = 0;
       A[name].setEffectiveWeight(v.weights[name]);
     }
     const flash = Math.min(0.6, e.hurtT / 0.22 * 0.6);

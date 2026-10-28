@@ -15,7 +15,8 @@ import { floatText } from '../render/floattext.js';
 import { itemName, defName } from './itemnames.js';
 import { together } from '../net/online.js';
 import { rarityOf } from '../core/gear/rarities.js';
-import { equipOwnedWeapon, readyFlask } from './equipment.js';
+import { equipOwnedWeapon, readyFlask, wearArmor } from './equipment.js';
+import { playVoyageRecording } from './qualmos-voyage.js';
 import { useTownPortal } from './townportal.js';
 import { useRoomPortal } from './roomportal.js';
 import { assignSelectedToBar, toggleInventory, setInventoryOpen, barReady } from './inventory.js';
@@ -59,6 +60,8 @@ export function useItem(instanceId) {
     equipOwnedWeapon(instanceId);
     return true;
   }
+  if (def.use === 'holdBird') return wearArmor(instanceId);
+  if (def.use === 'glassRecording') return playVoyageRecording(def.voyageChapter);
   if (def.use === 'townPortal') return useTownPortal();
   if (def.use === 'roomPortal') return useRoomPortal();
   if (def.use === 'drink') return drink(slot, def);

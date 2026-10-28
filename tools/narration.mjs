@@ -432,4 +432,4 @@ async function main(argv) {
   console.log(`Rendered ${todo.length} clip${todo.length === 1 ? '' : 's'}${dropping.length ? `, dropped ${dropping.length}` : ''} (${relative(ROOT, resolve(assets, 'narration'))}/).`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) await main(process.argv.slice(2));
+if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) await main(process.argv.slice(2));

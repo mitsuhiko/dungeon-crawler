@@ -1,6 +1,12 @@
 // Items: their names (nouns, with their gender: quests say them in sentences), descriptions,
 // rarities, affixes, enchantments, and what the traders say.
 export default {
+  'Glass breathing helmet': { text: 'Glashelm zum Atmen', g: 'm', pl: 'Glashelme zum Atmen' },
+  'Glass bird': { text: 'Glasvogel', g: 'm', pl: 'Glasvögel' },
+  "Glassmaker's recording": { text: 'Aufnahme des Glasmachers', g: 'f', pl: 'Aufnahmen des Glasmachers' },
+  'A helmet of star-glass that keeps air around your head. Wear it like a hat before flying.': 'Ein Helm aus Sternglas, der Luft um deinen Kopf hält. Setze ihn vor dem Fliegen wie einen Hut auf.',
+  'A rare glass bird with two flights. Hold it in your off hand to fly: once to Qualmos, once onward.': 'Ein seltener Glasvogel mit zwei Flügen. Halte ihn zum Fliegen in deiner Nebenhand: einmal zu Qualmos und einmal weiter.',
+  'The glassmaker left his voice in this glass. Use it to listen again.': 'Der Glasmacher hat seine Stimme in diesem Glas hinterlassen. Benutze es, um die Nachricht erneut anzuhören.',
   // weapons (core/items.js WEAPONS)
   "Glassmaker's Old Sword": { text: 'Altes Schwert des Glasmachers', g: 'n', adj: 'Alt' },
   'Short Sword': { text: 'Kurzschwert', g: 'n' },

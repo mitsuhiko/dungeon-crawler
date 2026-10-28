@@ -18,7 +18,7 @@
 // While the game is paused (the Esc menu, the inventory: state.js worldPaused) the narrator pauses
 // too, mid-word, and goes on where it stopped. Not in the guide's game window, nor with
 // ?narration=0.
-import { MOMENTS, LINES, linesFor, clipKey, formOf, lineById, lineText, outOfPlace, robotMayTalk } from '../core/narration.js';
+import { MOMENTS, LINES, recordingLines, linesFor, clipKey, formOf, lineById, lineText, outOfPlace, robotMayTalk } from '../core/narration.js';
 import { robotMet } from '../core/robot.js';
 import { TRIALS } from '../core/trials.js';
 import { attackOf } from '../core/enemies.js';
@@ -303,6 +303,21 @@ export function devNarrate(id) {
   const form = formOf(line, sibling()), key = clipKey(line, form);
   queue.push({ line, form, key, pri: 9, ttl: Infinity, at: clock, n: -1 - n++ });
   return `Narrating ${key}`;
+}
+
+// A carried recording used from the bag: use the same glassmaker clips, voice bus and subtitles.
+// Replaying never forgets other story progress or switches to a browser TTS voice.
+export function playRecording(part) {
+  const lines = recordingLines(part);
+  if (!state.run || !lines.length || state.mode !== 'play') return false;
+  for (const line of lines) state.run.told.add(line.id);
+  if (!enabled) return true;
+  cut(line => line.on === 'recording');
+  for (const line of lines) {
+    const form = formOf(line, sibling()), key = clipKey(line, form);
+    queue.push({ line, form, key, pri: 3, ttl: Infinity, at: clock, n: n++ });
+  }
+  return true;
 }
 
 // The memories (game/memorypanel.js): a recording's `lines` played again from the start, while the

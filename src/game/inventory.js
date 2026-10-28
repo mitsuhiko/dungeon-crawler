@@ -57,6 +57,7 @@ import { talkQuests, questLog, rescue, questTalk } from './quests.js';
 import { openQuests, closeQuests, drawQuests, onQuestChange } from './questpanel.js';
 import { drawMemories, memoriesOpen, stopMemories } from './memorypanel.js';
 import { tr, msg, num, say, noun, onLanguageChange } from '../i18n/i18n.js';
+import { birdFlights } from '../core/qualmos-voyage.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -273,6 +274,8 @@ function armorText(item) {
     : tr('Blocks {v}% of blows (not with a bow in hand)', { v: s.block }));
   if (s.moveSpeed && ITEMS[item.itemId].armor.speed) lines.push(tr('{v}% faster on your feet', { v: ITEMS[item.itemId].armor.speed }));
   for (const [k, v] of Object.entries(ITEMS[item.itemId].armor.perks ?? {})) lines.push(tr(PERKS[k], { v }));   // (a hat's own)
+  if (def.voyagePart === 'bird') lines.push(tr('Flights left: {n}', { n: birdFlights(state.run?.told, def.voyageChapter) }));
+  if (def.description) lines.push(defDescription(def));
   if (selected?.from === 'bag' && isWorn(player.inventory, item.instanceId)) lines.push(tr('Worn'));
   return lines.join('\n');
 }
@@ -483,7 +486,7 @@ function draw(next, inv, equipped, allowed, floor, item) {
   equip.hidden = !inBag || !(def?.weapon || def?.armor);
   if (def?.armor) {   // armor goes on and off at any time
     const on = isWorn(inv, item.instanceId);
-    equip.disabled = false; equip.textContent = on ? tr('Take off') : tr('Wear');
+    equip.disabled = false; equip.textContent = def.voyagePart === 'bird' ? (on ? tr('Put away') : tr('Hold in hand')) : on ? tr('Take off') : tr('Wear');
     equip.title = on ? '' : wornItem(inv, def.armor.slot) ? tr('Instead of {item}', { item: itemName(wornItem(inv, def.armor.slot)) }) : '';
   } else {
     equip.disabled = !allowed || isEquipped;

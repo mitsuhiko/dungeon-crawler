@@ -265,7 +265,7 @@ export async function goBoss(kind) {
     const c = await whenReady(cubes.get(key));
     if (state.cubes !== cubes) return;
     enterCube(c, c.map.portals[0].dir);
-    setStatus(`${ENEMY_KINDS[kind].label} · depth ${depth} · ${c.map.arena.type} arena`);
+    setStatus(`${ENEMY_KINDS[kind].label} · depth ${depth} · ${c.map.arena?.type ?? 'glass-bird antechamber'} arena`);
   } finally { if (state.cubes === cubes) state.transitioning = false; }
 }
 

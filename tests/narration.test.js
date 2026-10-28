@@ -175,13 +175,23 @@ test('the glassmaker\'s recordings: each has lines, in his voice, worn, and is h
   }
   assert.deepEqual(recordingsHeard(new Set()), []);
   assert.deepEqual(recordingsHeard(new Set([recordingLines('camp')[1].id])).map(r => r.id), ['camp']);
-  // every line is one of his recordings' or the robot's (the old narrator's lines went with the old story)
-  assert.deepEqual(LINES.filter(l => l.on === 'recording' ? l.voice !== 'glassmaker' : l.voice !== 'robot').map(l => l.id), []);
+  // The glassmaker speaks in recordings and in person after rescue; all other lines are the robot's.
+  assert.deepEqual(LINES.filter(l => ['recording', 'glassmaker'].includes(l.on) ? l.voice !== 'glassmaker' : l.voice !== 'robot').map(l => l.id), []);
   // the memories are his: the robot's lines are in none of them
   const robot = LINES.filter(l => l.on === 'robot');
   assert.ok(robot.length > 0);
   assert.deepEqual(recordingsHeard(new Set(robot.map(l => l.id))), []);
   assert.ok(RECORDINGS.every(r => recordingLines(r.id).every(l => l.voice === 'glassmaker')));
+});
+
+test('the rescued glassmaker speaks live, with a different ending after the last rescue', () => {
+  for(const chapter of [1,2,3]){
+    const lines=linesFor('glassmaker',{what:'rescued',chapter});
+    assert.equal(lines.length,3);
+    assert.ok(lines.every(l=>l.voice==='glassmaker'&&!l.worn));
+    assert.equal(lines.at(-1).id,chapter===3?'glassmaker.rescued.home':'glassmaker.rescued.others');
+    assert.deepEqual(recordingsHeard(new Set(lines.map(l=>l.id))),[]);
+  }
 });
 
 test('the robot says hello in its own voice, live, and the world keeps that it came', () => {

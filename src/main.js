@@ -49,6 +49,7 @@ import './game/nozoom.js';   // the page never zooms, only the game's view
 import './game/uiscale.js';  // the HUD and the menus at the UI scale of the settings
 import { updateLoot } from './game/loot.js';
 import { updateLootLabels } from './game/lootlabels.js';
+import { updateVoyage } from './game/qualmos-voyage.js';
 import { tickFloatText } from './render/floattext.js';
 import { tickParticles, setParticleShare } from './render/particles.js';
 import { tickPortalCloud } from './render/portalcloud.js';
@@ -198,6 +199,7 @@ function frame(now = performance.now()) {
   updateCamera(pace.paused ? elapsed : dt);   // paused by the Teacher (game/pace.js): the view still turns
   if (!state.transitioning) updateCut(dt);   // after the camera: the cut depends on what the camera can see
   updateLootLabels();   // after the camera too: labels sit over their items
+  updateVoyage();
   updateLockMarker();   // and the lock-on's ring over its enemy
   updateTrialTip();   // after the camera too: the name of a trial over its portal (game/trials.js)
   drawMinimap();   // after the camera too: the map turns with it

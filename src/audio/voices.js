@@ -50,6 +50,11 @@ export function voices({ amp, noise, filter, tone, sweep }) {
       windup: (t, out, p) => { tone('sine', 300 * p, 700 * p, t, 0.2, amp(t, 0.02, 0.25, 0.18, out)); gloops(t + 0.1, 2, 600 * p, 900 * p, 0.05, 0.15, out); },
       death: (t, out, p) => gloops(t, 8, 300 * p, 800 * p, 0.07, 0.2, out, false),
     },
+    amphibian: { // Qualmos: a low wet growl, swelling bubbles, then a fading gurgle
+      alert: (t, out, p) => { bend(t, .55, 95*p, 140*p, 80*p, 480*p, .3, out); gloops(t+.12, 3, 180*p, 420*p, .07, .12, out); },
+      windup: (t, out, p) => { bend(t, .4, 90*p, 180*p, 125*p, 600*p, .3, out); gloops(t+.08, 4, 250*p, 650*p, .055, .14, out); },
+      death: (t, out, p) => { bend(t, .8, 130*p, 75*p, 40*p, 350*p, .35, out); gloops(t+.2, 6, 140*p, 420*p, .08, .12, out, false); },
+    },
     fireface: { // flames: a whoomph, a swelling roar, sputtering out
       alert: (t, out, p) => { sweep(t, 0.4, 300 * p, 1200 * p, 400 * p, 1, 0.6, out, 0.05, 'lowpass'); clicks(t + 0.05, 5, 0.05, 2500 * p, 0.3, out); },
       windup: (t, out, p) => sweep(t, 0.45, 300 * p, 900 * p, 2000 * p, 1, 0.4, out, 0.25, 'lowpass'),
