@@ -34,7 +34,7 @@ export const player = {
   ragdollThen: null, climb: null, climbV: 0,
   safe: { x: 0, y: 0, z: 0 }, safeTimer: 0,
   autoDir: null,   // overrides the movement keys (used by test bots)
-  god: false,      // dev: invincible, no damage takes any health (/god, core/progression.js takeDamage)
+  god: dev,        // dev starts invincible; /god off disables it (core/progression.js takeDamage)
 };
 
 // learn: architecture.html#notebook (see learn/README.md)

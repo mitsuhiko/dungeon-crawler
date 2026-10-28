@@ -42,6 +42,19 @@ test("a new player has the glassmaker's old sword equipped, the scrolls and a fe
   assert.equal(equippedItem(bare.inventory), null);
   assert.deepEqual(bare.inventory.slots.filter(Boolean).map(s => s.itemId), [TOWN_PORTAL.id, ROOM_PORTAL.id, HEALTH_POTION.id]);
 });
+test('developer heroes start invincible with an equipped OMG level-99 staff, normal heroes do not', () => {
+  for(const armed of [true,false]){
+    const dev=createPlayerStats(true,{armed}),staff=equippedItem(dev.inventory);
+    assert.equal(dev.god,true);
+    assert.equal(ITEMS[staff.itemId].weapon.kind,'staff');
+    assert.equal(staff.gen.rarity,'omg');assert.equal(staff.gen.ilvl,99);
+    const hp=dev.hp;takeDamage(dev,1e9,10);assert.equal(dev.hp,hp);
+    dev.god=false;takeDamage(dev,1,11);assert.equal(dev.hp,hp-1);
+  }
+  const normal=createPlayerStats();assert.equal(normal.god,false);
+  assert.equal(equippedItem(normal.inventory).itemId,OLD_SWORD.id);
+});
+
 test('the portal scrolls are bound: they never leave the bag and never stack', () => {
   for (const [def, name] of [[TOWN_PORTAL, 'item_town_portal'], [ROOM_PORTAL, 'item_room_portal']]) {
     const inv = createPlayerStats().inventory, scroll = inv.slots.find(s => s?.itemId === def.id);
