@@ -47,6 +47,8 @@ import { LIGHT_VIEWS, lightview } from './teach.js';
 import { showPerf, runBench } from './perf.js';
 import { setRoll, spinRoll, rollNow, setRollKeys, holdRoll } from './roll.js';
 import { KEY_MODES } from '../core/roll.js';
+import { holdTilt, tiltNow } from './tilt.js';
+import { devMud, mudNow } from './mud.js';
 import { SHAPES, placeMountain, freeCells } from '../core/mountains.js';
 import { devMountain, downMountain, mountainNow } from './mountains.js';
 
@@ -136,6 +138,33 @@ dev({
   run({ mode }) {
     if (mode !== undefined) setRollKeys(mode);
     return rollSays();
+  },
+});
+
+// The world's tilt (game/tilt.js) and Sollmeldon's mud (game/mud.js) to try out, without him:
+// /tilt tips the cube towards a side (or towards where the hero stands, from its middle) and holds
+// it there, off levels it; /mud adds balls' worth of mud to his mire (negative: takes it away, 0:
+// back to his)
+const TILTS = { '+x': [1, 0], '-x': [-1, 0], '+z': [0, 1], '-z': [0, -1], here: null, off: [0, 0] };
+addType(commands, { name: 'tilt', values: () => Object.keys(TILTS).map(v => ({ value: v, label: v, hint: v === 'here' ? 'towards where you stand' : v === 'off' ? 'level again' : `down towards ${v}` })) });
+const tiltSays = () => { const t = tiltNow(), m = mudNow();
+  return `The cube is tipped ${Math.hypot(t.x, t.z).toFixed(1)}° (${t.x.toFixed(1)}, ${t.z.toFixed(1)})${t.held ? ', held' : ''}`
+    + (m ? `; the mud: ${m.volume.toFixed(1)} (${m.base.toFixed(1)} at first), at ${m.level.toFixed(2)}, ${m.puddles} puddles` : ''); };
+dev({
+  name: 'tilt', help: 'tip the cube (Sollmeldon\'s landing) towards +x, -x, +z, -z or where you stand (here), and hold it; off: level again (none: how it is)',
+  args: [{ name: 'way', type: 'tilt', optional: true }],
+  run({ way }) {
+    if (way !== undefined) { const v = TILTS[way] ?? [player.x - N / 2, player.z - N / 2]; holdTilt(v[0] * 5, v[1] * 5); }
+    return tiltSays();
+  },
+});
+addType(commands, { name: 'mudballs', values: () => [], read: t => /^-?\d+$/.test(t) ? Number(t) : undefined });
+dev({
+  name: 'mud', help: 'add balls\' worth of mud to Sollmeldon\'s mire (negative: take some away; 0: only his again)',
+  args: [{ name: 'balls', type: 'mudballs', optional: true }],
+  run({ balls }) {
+    if (balls !== undefined && !devMud(balls)) return 'There is no mud here (only in Sollmeldon\'s mire)';
+    return tiltSays();
   },
 });
 

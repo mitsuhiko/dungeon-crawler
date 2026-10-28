@@ -446,6 +446,37 @@ function bowl(fr) {
   s.min = 0;   // (the basin may sink lower than other arenas' floors)
   return s;
 }
+// 12. Mire (Sollmeldon's): a wide basin `low` levels under the doorways, its floor flat, with a few
+// round islands standing out of it to the doorways' level (their tops `r` cells round, slopes down
+// round them) and a bank of scenery all round the cube just inside its edge. His mud (game/mud.js,
+// core/sollmeldon.js) stands `mud` levels deep over its floor at first, shallow; it leans when the
+// world tips, deep on the low side, so the islands are spread over the basin (`apart`): wherever it
+// tips, there is dry ground on the high side. The basin stays wide and flat: room for a big body to
+// walk and land on.
+export const MIRE = { low: -2, mud: 0.6, islands: 4, r: [1, 1.5], apart: 4.5, clear: 3 };
+function mire(fr) {
+  const { R } = fr, s = blank(), islands = [];
+  const bank = (x, z) => x === 1 || z === 1 || x === N - 2 || z === N - 2;
+  const far = (x, z, [px, pz], d) => Math.hypot(x - px - 0.5, z - pz - 0.5) >= d;
+  for (let i = 0; i < 400 && islands.length < MIRE.islands; i++) {
+    const x = 3.5 + R() * (N - 7), z = 3.5 + R() * (N - 7), r = MIRE.r[0] + R() * (MIRE.r[1] - MIRE.r[0]);
+    if (islands.some(m => Math.hypot(m.x - x, m.z - z) < MIRE.apart) || ![fr.E, fr.U, fr.G].every(p => far(x, z, p, MIRE.clear))) continue;
+    islands.push({ x, z, r });
+  }
+  const active = new Uint8Array(N * N), fixed = new Uint8Array(N * N);
+  each((x, z, c) => {
+    if (bank(x, z) && !fr.flat[c]) { s.rel[c] = 2; s.crisp[c] = 1; return; }
+    s.zone[c] = 1; active[c] = 1; s.rel[c] = MIRE.low;
+    if (islands.some(m => Math.hypot(x + 0.5 - m.x, z + 0.5 - m.z) <= m.r)) { s.rel[c] = 0; fixed[c] = 1; }
+  });
+  finish(s, fr, MIRE.low, 2);
+  each((x, z, c) => { if (fr.flat[c]) fixed[c] = 1; });
+  relax(s.rel, active, fixed);
+  s.marks.peaks = islands.map(m => idx(Math.floor(m.x), Math.floor(m.z)));
+  s.marks.islands = islands;
+  s.min = 0;   // (the basin may sink lower than other arenas' floors)
+  return s;
+}
 // 11. Museum stage (Mansk's): a hall paved in a checker `hall` levels under the doorways, walled
 // all round `wall` levels high (masonry: the paintings and the curtain hang on it), a landing at
 // the entrance with steps down its middle, and at the far end a stage at the doorways' level round
@@ -482,4 +513,4 @@ function stage(fr) {
   s.marks = { axis: [dx, dz], U: fr.U, E: fr.E, center: lerp(fr.E, fr.U, 0.5) };
   return settle(s, fr);
 }
-export const BOSS_SHAPES = { tidal, bowl, stage };
+export const BOSS_SHAPES = { tidal, bowl, stage, mire };

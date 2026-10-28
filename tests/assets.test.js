@@ -9,7 +9,8 @@ import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
   SQUARLO, SQUARLO_GIANT, MECKED, MOOSE, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, MONTEUR, MONTEUR_SUN, QUALMOS,
-  SQUIRTLE, fireAt } from '../src/core/enemies.js';
+  SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE, SQUIRTLE, fireAt } from '../src/core/enemies.js';
+import { SOLLMELDON_FIGHT } from '../src/core/sollmeldon.js';
 import { MANSK_FIGHT, MANSK_DANCE } from '../src/core/mansk.js';
 import { MONTEUR_FIGHT } from '../src/core/monteur.js';
 import { MOUNTAIN } from '../src/core/mountains.js';
@@ -40,7 +41,7 @@ const BUDGETS = {
   gusto: { Gusto: 8000 }, totnar: { Totnar: 10000, TotnarSkull: 1500 }, snapskull: { SnapSkull: 3000 },
   squarlo: { Squarlo: 8000 }, squirtle: { Squirtle: 6000 }, flip: { Flip: 10000, FlipBall: 1200 },
   foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, moose: { Moose: 8000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
-  slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, monteur: { Monteur: 12000, MonteurStone: 600 }, qualmos: { Qualmos: 12000 }, robot: { Robot: 3000 },
+  slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, monteur: { Monteur: 12000, MonteurStone: 600 }, sollmeldon: { Sollmeldon: 12000 }, qualmos: { Qualmos: 12000 }, robot: { Robot: 3000 },
 };
 test('characters and enemies keep to their triangle budgets', () => {
   for (const [file, budget] of Object.entries(BUDGETS)) {
@@ -661,6 +662,41 @@ test('Monteur: a moose and a sun in one model, his clips match his attacks, his 
   // the bones the game scales (his stones) and those of both his forms
   for (const n of ['moose', 'sun', 'body', 'neck', 'head', 'ball', 'ray.0', 'ray.10', 'upper.fore.L', 'lower.hind.R', 'supper.L', 'slower.R',
     'stone.0', 'stone.4', 'MonteurStone']) assert.ok(j.nodes.some(o => o.name === n), n);
+});
+test('Sollmeldon: three heads, wings and three legs, his clips match his attacks, his mouths and his heads\' landings where the game takes them', () => {
+  const { json: j, duration } = glb('sollmeldon'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
+  const clip = name => 'Sollmeldon' + name[0].toUpperCase() + name.slice(1);
+  assert.deepEqual(Object.keys(a).sort(), ['SollmeldonAirSpit', 'SollmeldonBiteL', 'SollmeldonBiteM', 'SollmeldonBiteR', 'SollmeldonCutL', 'SollmeldonCutM',
+    'SollmeldonCutR', 'SollmeldonDeath', 'SollmeldonFly', 'SollmeldonIdle', 'SollmeldonSpit', 'SollmeldonSummon', 'SollmeldonWalk']);
+  for (const n of ['SollmeldonWalk', 'SollmeldonIdle', 'SollmeldonFly']) assert.equal(a[n].extras.loop, true, n);
+  assert.ok(Math.abs(duration(a.SollmeldonDeath) - SOLLMELDON.deathTime) < 1e-5); assert.equal(a.SollmeldonDeath.extras.hold_last_frame, true);
+  assert.ok(Math.abs(a.SollmeldonWalk.extras.speed - SOLLMELDON.chase) < 0.5);
+  for (const p of [SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE]) for (const at of p.attacks) {
+    const c = a[clip(at.clip)];
+    assert.ok(c, at.clip);
+    // (the last head's bites: its clips played faster, `clipSpeed`)
+    const speed = at.clipSpeed ?? 1;
+    assert.ok(Math.abs(duration(c) / speed - at.attackTime) < 1e-5, at.clip);
+    if (c.extras.hit_frame !== undefined) assert.ok(Math.abs(c.extras.hit_frame / 30 / speed - at.hitAt) < 1e-9, at.clip);
+    if (at.mud) assert.deepEqual(c.extras.muzzles, at.mud.muzzles, at.clip);
+    if (at.summon) assert.deepEqual(c.extras.muzzle, at.summon.muzzle, at.clip);
+  }
+  // a head cut off: as long as it takes, coming off and landing when the game says, where it says
+  for (const [i, s] of ['L', 'M', 'R'].entries()) {
+    const c = a['SollmeldonCut' + s];
+    assert.ok(Math.abs(duration(c) - SOLLMELDON_FIGHT.cut) < 1e-5);
+    assert.equal(c.extras.cut_frame / 30, SOLLMELDON_FIGHT.cutAt); assert.equal(c.extras.land_frame / 30, SOLLMELDON_FIGHT.cutLand);
+    assert.deepEqual(c.extras.land, SOLLMELDON.cut[i]);
+  }
+  const names = new Set(j.materials.map(m => m.name));
+  for (const m of [...Object.values(SOLLMELDON.parts).flat(), 'SollmeldonPupils', 'SollmeldonMouth', 'SollmeldonTeeth']) assert.ok(names.has(m), m);
+  const [r, g, b] = j.materials.find(m => m.name === 'SollmeldonMud').pbrMetallicRoughness.baseColorFactor;
+  assert.ok(r < 0.02 && g < 0.02 && b < 0.02, 'black mud');
+  const [er, eg, eb] = j.materials.find(m => m.name === 'SollmeldonEyes_glow').pbrMetallicRoughness.baseColorFactor;
+  assert.ok(er > eb * 1.5 && eg > eb * 1.2, 'beige-yellow eyes');
+  // the bones the game scales (his heads, render/sollmeldonview.js), looks with and stands on (render/rigs.js)
+  for (const s of ['L', 'M', 'R']) for (const n of [`neck.${s}.0`, `neck.${s}.4`, `head.${s}`, `jaw.${s}`]) assert.ok(j.nodes.some(o => o.name === n), n);
+  for (const s of ['L', 'R', 'F']) for (const n of [`thigh.${s}`, `shin.${s}`, `foot.${s}`]) assert.ok(j.nodes.some(o => o.name === n), n);
 });
 test('Qualmos: one skinned body, a clip for each of his attacks as long as it, his death held, his grab\'s grip read off his hand', () => {
   const { json: j, duration } = glb('qualmos'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));

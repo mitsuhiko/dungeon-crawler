@@ -139,6 +139,7 @@ export function projectileFx(pr, what) {
   if (pr.kind === 'eye') { eyeFx(pr, what); return; }
   if (pr.kind === 'orb') { orbFx(pr, what); return; }
   if (pr.kind === 'hornorb') { hornOrbFx(pr, what); return; }
+  if (pr.kind === 'mudball') { mudFx(pr, what); return; }
   if (pr.kind === 'arrow') { arrowFx(pr, what); return; }
   const ball = pr.kind === 'ball';   // Flip's ball of light
   if (what === 'launch') { sfx(fire ? 'fireball' : ice || ball ? 'frost' : 'zap', { at: pr, pitch: ball ? 1.3 : 1 }); return; }
@@ -187,6 +188,20 @@ function hornOrbFx(pr, what) {
     emit(soft, x + rand(-0.4, 0.4), y + 0.1, z + rand(-0.4, 0.4), { v: [rand(-0.5, 0.5), rand(0.3, 0.9), rand(-0.5, 0.5)], life: rand(0.6, 1),
       size: rand(0.3, 0.5), grow: 1.2, color: '#dceeff', alpha: 0.35, drag: 1 });
   sfx('boom', { at: pr, volume: 0.9, pitch: 1.3 });
+}
+
+// A ball of Sollmeldon's mud: a wet gob as it leaves, and where it lands a splat of black mud
+// thrown up round it as wide as its burst
+function mudFx(pr, what) {
+  if (what === 'launch') { sfx('spit', { at: pr, pitch: 0.6 }); return; }
+  const { x, y, z } = pr, r = pr.spec.blast ?? 1;
+  if (Math.hypot(x - player.x, z - player.z) > 30) return;
+  for (let i = 0; i < 28; i++) {
+    const a = rand(0, Math.PI * 2), s = r * rand(1, 3.2);
+    emit(soft, x, y + 0.05, z, { v: [Math.cos(a) * s, rand(1, 3.5), Math.sin(a) * s], life: rand(0.4, 0.8), size: rand(0.07, 0.16),
+      color: ['#2a231d', '#17130f', '#3a3129'][i % 3], alpha: 0.95, gravity: 10, drag: 0.4 });
+  }
+  sfx('splorch', { at: pr, pitch: 0.55, volume: 0.9 });
 }
 
 // Renew's arrow: the twang as it leaves, and a knock where it strikes (a few splinters)
@@ -712,7 +727,8 @@ const SUMMONS = { triangles: { sound: 'summon', flash: '#9fdcff', colors: ['#e0f
   time: { sound: 'summon', flash: '#e8fbff', colors: ['#ffffff', '#bdf3ff', '#ffe9a8'], streak: 12 },
   slime: { sound: 'splorch', flash: '#c8ff7a', colors: ['#d8ff9a', '#9ae048', '#5a9a2a'], streak: 9 },
   wind: { sound: 'whirl', flash: '#f0ecff', colors: ['#ffffff', '#e6dcff', '#c8b8ff'], streak: 10 },
-  dust: { sound: 'rustle', flash: '#e8e0cf', colors: ['#e0dacd', '#b8b0a0', '#8d877c'], streak: 7 } };
+  dust: { sound: 'rustle', flash: '#e8e0cf', colors: ['#e0dacd', '#b8b0a0', '#8d877c'], streak: 7 },
+  mud: { sound: 'splorch', flash: '#5a4e43', colors: ['#3a3129', '#17130f', '#5a4e43'], streak: 8 } };
 export function summonFx(mouth, list, look = 'triangles') {
   const s = SUMMONS[look];
   sfx(s.sound, { at: mouth });

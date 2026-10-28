@@ -8,17 +8,19 @@
 //   fixed: per cell the cube's own fluid (its surface's rest height, its bed, its kind, its
 //     palette row; none: rest -1e4), stand / standKind: the standing fluid now (its rest height,
 //     its tide now, its wet line over its rest height, 1 while it stands; its kind, its palette
-//     row): what the structures stand in (wetMaterial).
+//     row): what the structures stand in (wetMaterial); its lean (materials.js STAND_SLOPE: the
+//     stand's rest height is at the middle of the cube).
+// Sollmeldon's mud (MUD) leaves them darker still, nearly black.
 // The terrain's shores are wet by bands in the fluids' own meshes (render/floors.js wetWall,
 // wetSlope: the proxies show them too); the structures (stairs, bridges, ladders, fences, posts)
 // darken themselves where the water has just been (wetMaterial), by the same wet line.
 import * as THREE from 'three';
-import { N, LH, WATER, LAVA, ACID } from '../core/constants.js';
+import { N, LH, WATER, LAVA, ACID, MUD } from '../core/constants.js';
 import { BOXES, waterBoxes } from './shore.js';
 import { restY, FLUID_MOTION } from './surface.js';
 import { PAL_TEX, PAL_GLSL } from './fluidpal.js';
 import { palRow } from '../themes/fluids.js';
-import { WIND, FIXED_TIDE, FIXED_WET } from './materials.js';
+import { WIND, FIXED_TIDE, FIXED_WET, STAND_SLOPE, STAND_GLSL } from './materials.js';
 
 const texture = (w, h, data) => {
   const t = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.FloatType);
@@ -50,10 +52,10 @@ export function wetMaterial(mat, water) {
   mat.onBeforeCompile = (sh, r) => {
     compile?.call(mat, sh, r);
     Object.assign(sh.uniforms, { uWetFixed: water.fixed, uWetStand: water.stand, uWetStandKind: water.standKind, uWetBox: water.box,
-      uFixedTide: FIXED_TIDE, uFixedWet: FIXED_WET, uPalTex: PAL_TEX, uCellTime: WIND });
+      uFixedTide: FIXED_TIDE, uFixedWet: FIXED_WET, uPalTex: PAL_TEX, uCellTime: WIND, uStandSlope: STAND_SLOPE });
     sh.vertexShader = 'varying vec3 vWetP, vWetN;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       vWetP = position * length(modelMatrix[0].xyz); vWetN = normal;`);
-    sh.fragmentShader = 'varying vec3 vWetP, vWetN;\nuniform highp sampler2D uWetFixed;\nuniform vec4 uWetStand, uWetBox;\nuniform vec2 uWetStandKind;\nuniform vec3 uFixedTide, uFixedWet;\nuniform float uCellTime;\n' + PAL_GLSL
+    sh.fragmentShader = 'varying vec3 vWetP, vWetN;\nuniform highp sampler2D uWetFixed;\nuniform vec4 uWetStand, uWetBox;\nuniform vec2 uWetStandKind;\nuniform vec3 uFixedTide, uFixedWet;\nuniform float uCellTime;\n' + STAND_GLSL + PAL_GLSL
       + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       vec3 wetGlow = vec3(0.0);
       {
@@ -66,8 +68,9 @@ export function wetMaterial(mat, water) {
           int t = int(fx.z + 0.5) - 1;
           water = fx.x + uFixedTide[t]; wet = fx.x + uFixedWet[t]; kind = fx.z; row = fx.w;
         }
-        if (uWetStand.w > 0.5 && all(greaterThan(q, uWetBox.xy)) && all(lessThan(q, uWetBox.zw)) && uWetStand.x + uWetStand.y > water) {
-          water = uWetStand.x + uWetStand.y; wet = uWetStand.x + uWetStand.z; kind = uWetStandKind.x; row = uWetStandKind.y;
+        float stand = standAt(uWetStand.x, q);
+        if (uWetStand.w > 0.5 && all(greaterThan(q, uWetBox.xy)) && all(lessThan(q, uWetBox.zw)) && stand + uWetStand.y > water) {
+          water = stand + uWetStand.y; wet = stand + uWetStand.z; kind = uWetStandKind.x; row = uWetStandKind.y;
         }
         float bw = vWetP.x + vWetP.z, y = vWetP.y;
         if (kind > 0.5 && y > water - 0.003) {
@@ -78,8 +81,9 @@ export function wetMaterial(mat, water) {
           } else {
             float edge = wet + 0.008 * sin(bw * 7.3) + 0.005 * sin(bw * 17.0 + 1.3);
             if (y < edge) {
-              float k = clamp((y - water) / max(edge - water, 1e-3), 0.0, 1.0), a = (abs(kind - ${ACID}.0) < 0.5 ? ${FLUID_MOTION[ACID].wet.toFixed(3)} : ${FLUID_MOTION[WATER].wet.toFixed(3)}) * mix(1.0, 0.6, k);
-              vec3 stain = abs(kind - ${ACID}.0) < 0.5 ? palColor(vec2(row), 0.0, 1) * 0.3 : vec3(0.02, 0.035, 0.045);
+              bool mud = abs(kind - ${MUD}.0) < 0.5;
+              float k = clamp((y - water) / max(edge - water, 1e-3), 0.0, 1.0), a = (mud ? ${FLUID_MOTION[MUD].wet.toFixed(3)} : abs(kind - ${ACID}.0) < 0.5 ? ${FLUID_MOTION[ACID].wet.toFixed(3)} : ${FLUID_MOTION[WATER].wet.toFixed(3)}) * mix(1.0, 0.6, k);
+              vec3 stain = mud ? vec3(0.012, 0.01, 0.008) : abs(kind - ${ACID}.0) < 0.5 ? palColor(vec2(row), 0.0, 1) * 0.3 : vec3(0.02, 0.035, 0.045);
               diffuseColor.rgb = mix(diffuseColor.rgb, stain, a);
             }
           }

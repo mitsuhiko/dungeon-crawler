@@ -775,4 +775,63 @@ const qualmos = {
   },
 };
 
-export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, qualmos };
+// --- Sollmeldon: a pool of black mud on his spot, him rising out of it, his heads one by one ------
+
+const MUD = ['#2a231d', '#17130f', '#3a3129', '#5a4e43'], HEADS = ['L', 'M', 'R'];
+const sollY = (r, t) => {
+  const { at, spot } = r, deep = r.e.profile.height + 0.3;
+  return spot.y - deep * (1 - smooth((t - at.rise[0]) / (at.rise[1] - at.rise[0])) ** 0.7);
+};
+// his heads coming up out of his necks one after the other (render/sollmeldonview.js has the bones)
+function headsView(v, r) {
+  const m = v.sollmeldon, D = r.data;
+  if (!m) return;
+  HEADS.forEach((_, i) => {
+    const k = Math.max(1e-4, popped(clamp01((r.t - r.at.heads[i]) / 0.35)));
+    for (const b of [...m.necks[i], m.heads[i]]) if (b) b.scale.copy(rest(D, b)).multiplyScalar(k);
+  });
+}
+const sollmeldon = {
+  seen: r => ({ x: r.spot.x, y: Math.max(r.e.y, r.spot.y), z: r.spot.z }),
+  start(r) {
+    const { e, spot } = r;
+    Object.assign(e, { y: sollY(r, 0), yaw: facing(spot, player), dressView: v => headsView(v, r) });
+  },
+  step(r, t, dt) {
+    const { e, spot, at } = r, D = r.data, R = e.profile.radius * 1.5;
+    faceCamera(r, dt, 2);
+    // a pool of black mud spreading on his spot, bubbling, swelling as he comes
+    const k = smooth((t - at.pool) / 1.2), fade = 1 - smooth((t - at.roar) / 1.4);
+    showPool(spot.x, spot.y, spot.z, R * (0.3 + 1.1 * k), 0.95 * k * fade, '#15110d');
+    if (t >= at.pool && t < at.roar) {
+      bubbleFx(spot.x, spot.y, spot.z, R * 0.9 * k + 0.1, dt, 20 + 30 * k * clamp01((t - at.rise[0]) / 0.5), MUD);
+      if (Math.random() < dt * 3 * k) sfx('drip', { at: spot, pitch: rand(0.35, 0.6), volume: 0.5 });
+    }
+    if (once(D, 'pool', t, at.pool)) sfx('splorch', { at: spot, pitch: 0.4, volume: 0.7 });
+    // rising out of it, the mud pouring off him (what is still under it not drawn)
+    e.y = sollY(r, t);
+    e.clipBelow = t < at.rise[1] ? spot.y - 0.02 : undefined;
+    if (once(D, 'rise', t, at.rise[0])) { sfx('gulp', { at: spot, pitch: 0.35, volume: 1 }); sfx('rumble', { at: spot, pitch: 0.4, volume: 0.8 }); }
+    if (t >= at.rise[0] && t < at.rise[1] + 0.4) for (let i = Math.floor(40 * dt + Math.random()); i > 0; i--) {
+      const a = rand(0, Math.PI * 2), d = R * rand(0.4, 0.8);
+      emit(soft, e.x + Math.cos(a) * d, Math.max(spot.y, e.y) + rand(0.4, e.profile.height * 0.8), e.z + Math.sin(a) * d,
+        { v: [Math.cos(a) * rand(0.2, 0.7), rand(-1, 0.3), Math.sin(a) * rand(0.2, 0.7)], life: rand(0.5, 0.8), size: rand(0.07, 0.16), color: MUD[i % 4], alpha: 0.95, gravity: 9 });
+    }
+    // his heads, one after the other, each with a growl
+    at.heads.forEach((h, i) => { if (once(D, `head${i}`, t, h)) { sfx('splorch', { at: e, pitch: 0.6 + 0.15 * i, volume: 0.8 }); roar(e, 0.7 + 0.15 * i); } });
+    // rearing up, his wings spread, all three roaring; down with a stomp (his summon's clip)
+    e.pose = t >= at.rear && t < at.release ? { clip: 'summon', t: Math.min(1.75, t - at.rear) } : null;
+    if (once(D, 'stomp', t, at.stomp)) {
+      roar(e, 0.55); quake(0.035); landFx(e, MUD, 1.3);
+      splashFx(e.x, spot.y, e.z, { colors: MUD, n: 50, up: 4, wide: 3, size: [0.08, 0.18] });
+    }
+  },
+  end(r) {
+    const { e } = r, v = e.view;
+    Object.assign(e, { pose: null, dressView: null, clipBelow: undefined, x: r.spot.x, y: r.spot.y, z: r.spot.z });
+    if (v) for (const [b, s] of r.data.rest ?? []) b.scale.copy(s);
+    hideIntroFx();
+  },
+};
+
+export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, sollmeldon, qualmos };

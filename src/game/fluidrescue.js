@@ -8,6 +8,10 @@
 // quarter of one's most health too (core/squarlo.js SQUARLO_FIGHT.rescue), and magic takes one up
 // out of the water: where one last stood if even the high tide stays under the head there, else
 // onto the nearest such floor of the fight (a hill).
+// Drowning in Sollmeldon's mud (his mire: map.tide `mud`, game/mud.js) likewise
+// (core/sollmeldon.js SOLLMELDON_FIGHT.rescue): out onto where one last stood, if the mud stays
+// under the head there however the world is tipped (its surface, tipped all the way either way, or
+// now), else the nearest such floor of the fight, else the highest one.
 // Only if that quarter is all one has left does it kill, as everywhere else (game/ragdoll.js
 // dieInFluid).
 import { LH, LAVA, WATER, HEAD_Y } from '../core/constants.js';
@@ -17,6 +21,8 @@ import { flash } from './hud.js';
 import { takeDamage } from '../core/progression.js';
 import { FOGGERY_FIGHT } from '../core/foggery.js';
 import { SQUARLO_FIGHT } from '../core/squarlo.js';
+import { SOLLMELDON_FIGHT } from '../core/sollmeldon.js';
+import { mudNow, mudTips } from './mud.js';
 import { floorY } from '../core/surfaces.js';
 import { supportedPoint } from '../physics/respawn.js';
 import { moversNow } from '../physics/collide.js';
@@ -33,8 +39,11 @@ const LAVA_RESCUE = { share: FOGGERY_FIGHT.rescue, reason: msg("Burned by Fogger
   sound: 'burn', colors: ['#ffd25a', '#ff8a2a', '#ff4a17'], spot: lavaSpot };
 const TIDE_RESCUE = { share: SQUARLO_FIGHT.rescue, reason: msg("Nearly drowned in Squarlo's tide!"), status: msg('Nearly drowned! Magic pulls you out of the water'),
   sound: 'splash', colors: ['#ffffff', '#c8f0ff', '#7fcaf0'], spot: tideSpot };
+const MUD_RESCUE = { share: SOLLMELDON_FIGHT.rescue, reason: msg("Nearly drowned in Sollmeldon's mud!"), status: msg('Nearly drowned! Magic pulls you out of the mud'),
+  sound: 'splash', colors: ['#3a3129', '#17130f', '#5a4e43'], spot: mudSpot };
 function rescueOf(fluid) {
   if (fluid === LAVA && state.map?.tower) return LAVA_RESCUE;
+  if (fluid === WATER && state.map?.tide?.mud) return MUD_RESCUE;
   if (fluid === WATER && state.map?.tide?.fluid === WATER) return TIDE_RESCUE;
   return null;
 }
@@ -96,4 +105,21 @@ function burst(x, y, z, colors, up) {
     emit(i % 3 ? glow : soft, x + Math.cos(a) * 0.3, y + rand(0, 1.1), z + Math.sin(a) * 0.3, { v: [Math.cos(a) * s, rand(1, 3.5) * (up ? 1.2 : 0.6), Math.sin(a) * s],
       life: rand(0.4, 0.9), size: rand(0.06, 0.14), color: colors[i % 3], alpha: 0.95, gravity: up ? 6 : -0.5, drag: 1.5 });
   }
+}
+
+// out of Sollmeldon's mud: where one last stood, or the nearest floor of the fight, if the mud stays
+// under the head there now and however far the world may tip (its surface now, and tipped all the
+// way each way with what it holds now); with none, the highest floor of the fight
+function mudSpot(x, y, z) {
+  if (!mudNow()) return null;
+  const tips = mudTips(), ok = s => s && s.y + HEAD_Y > Math.max(...tips.map(f => f(s.x, s.z))) + DRY;
+  const safe = player.safe;
+  if (ok(safe) && supportedPoint(safe.x, safe.y, safe.z)) return safe;
+  const near = s => Math.hypot(s.x - x, (s.y - y) * 2, s.z - z);
+  const floors = state.map.floors.filter(f => f.encounter && !f.fluid).map(f => ({ x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5 }));
+  for (const o of [...floors.filter(ok).sort((a, b) => near(a) - near(b)), ...floors.sort((a, b) => b.y - a.y)]) {
+    const p = supportedPoint(o.x, o.y, o.z);
+    if (p) return p;
+  }
+  return null;
 }

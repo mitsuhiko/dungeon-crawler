@@ -384,6 +384,21 @@ export function dressArena(arena) {
       faces(.25, .35, [...slime.wall, ...pal.wall], [...slime.lip, ...pal.lip]);
       break;
     }
+    case 'mire': {
+      // Sollmeldon's mire: nothing that blocks (a big body walks and lands on it, his mud comes and
+      // goes): moss and puddles over the basin, the theme's cover and small things on the islands
+      // and the slopes, reeds and vents of the swamp (the sets he brings, BOSS_ARENAS `props`) all
+      // over, roots or a vent on each island
+      const dry = f => f.top >= fr.level - 1, basin = zone.filter(f => !dry(f)), swamp = PALETTES.swamp;
+      const loose2 = list => list.filter(n => variantsOf(n).every(v => !propMetadata.get(v).blocking));
+      cover(basin, .5, [...swamp.cover, ...pal.cover]);
+      cover(zone.filter(dry), .8, [...pal.cover, ...swamp.cover]);
+      scatter(open.filter(dry), loose(6), loose2(pal.small));
+      scatter(open, loose(8), [...loose2(swamp.small), ...smallProps(arena.props ?? [], 0.6)]);
+      for (const m of (shape.marks.peaks || []).slice(0, 4)) put(floors[m], loose2([...swamp.small, ...pal.small]), { center: true });
+      faces(.25, .35, [...swamp.wall, ...pal.wall], [...swamp.lip, ...pal.lip]);
+      break;
+    }
     case 'stage': {
       // Mansk's museum: nothing on the stage but footlights along its edge and a spotlight at
       // each front corner turned on it; things on show round the hall's walls on pedestals and in

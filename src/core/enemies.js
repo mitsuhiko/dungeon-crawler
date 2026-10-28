@@ -17,7 +17,7 @@
 // recovers; 'brute' (the default) holds its ground. `charge`: how much faster it runs the last
 // few cells at a player it sees.
 import { hash32, mulberry32 } from './util.js';
-import { WATER, LAVA, ACID } from './constants.js';
+import { WATER, LAVA, ACID, MUD } from './constants.js';
 import { toxinOf } from './status.js';
 import { paint } from './palette.js';
 import { noun, msg, say, form } from '../i18n/i18n.js';
@@ -1192,6 +1192,77 @@ export const MONTEUR_SUN = {
   ...MONTEUR, type: 'monteursun', height: 3.3, bodyHeight: 2.4, chase: 1.3, cooldown: 1.1, gait: 'sun',
   ...SUN_THROW, attacks: [SUN_THROW, SUN_VOLLEY, SUN_ROLL, SUN_STUCK, SUN_SUMMON, MONTEUR_RAIN, MONTEUR_SPIN, MONTEUR_MOUNTAIN], phase: 2,
 };
+// Sollmeldon, the boss of depth 10 (core/bosses.js; blender/sollmeldon.py): a dinosaur of black mud
+// with three heads on long necks (cat's eyes, beige-yellow), bat wings and three legs (two behind,
+// one in front). He fights in his mire (cubegen/arenashapes.js `mire`), where his mud stands
+// (game/mud.js); game/sollmeldon.js runs his fight, core/sollmeldon.js holds its rules. The mud is
+// his own (`mudborn`: it does not slow him, and he stands in it however deep). Three phases, a third
+// of his health each, a head cut off at the end of each (STAGE_PROFILES.sollmeldon, by how many
+// heads he has left: SOLLMELDON three, SOLLMELDON_TWO, SOLLMELDON_ONE).
+// A head lunges forward on its neck and bites (one bite a head, `head`; never the same head twice
+// running: core/sollmeldon.js nextHead); every head he still has spits a ball of mud (a cast,
+// `mud`: lobbed, bursting where it lands and leaving a puddle there, game/sollmeldon.js); Mud
+// squirtles come up out of his mud. From phase 2 on he flies now and then (game/sollmeldon.js
+// lifts him: up there only shots reach him), raining mud (`rain`), and lands with a thump that tips
+// the world (game/tilt.js). In phase 3 the last head bites faster (`clipSpeed`: its clip played
+// faster, render/enemies.js).
+// Where things are on him (model space: x, up, forward), read off his clips (blender/sollmeldon.py):
+// each head's mouth as it spits (left, middle, right), and as it spits flying; where the Mud
+// squirtles are called from
+const SOLLMELDON_AT = Object.freeze({
+  mouths: [[1.21, 1.442, 2.502], [-0.065, 1.773, 2.833], [-1.147, 1.487, 2.531]],
+  air: [[0.994, 1.373, 2.175], [0.008, 1.603, 2.43], [-1.104, 1.337, 2.106]],
+  summon: [0, 0.125, 1.359],
+  // where each head lands as it is cut off (blender/sollmeldon.py: its SollmeldonCut clip's landing)
+  cut: [[2.2, 0, 1.6], [0.4, 0, 3.0], [-2.2, 0, 1.6]],
+});
+const MUD_BALL = { kind: 'mudball', speed: 7, radius: 0.28, range: 20, lob: 11, blast: 1.05, spin: 4,
+  slow: { time: 2, slow: 0.6, source: 'mud' } };
+const sollmeldonBite = (head, more = {}) => ({
+  name: ['biteL', 'biteM', 'biteR'][head], clip: ['biteL', 'biteM', 'biteR'][head], weight: 3, reach: 3.3, hitAt: 27 / 30, trackUntil: 20 / 30,
+  attackTime: 48 / 30, hitReach: 3.9, arc: 0.35, power: 1, knock: 4.5, knockDown: false, hop: 3, reason: 'Bitten by Sollmeldon!', head, ...more,
+});
+const SOLLMELDON_BITES = [0, 1, 2].map(h => sollmeldonBite(h));
+// (every head he has spits one: SOLLMELDON_AT.mouths, game/sollmeldon.js)
+const SOLLMELDON_SPIT = {
+  name: 'spit', clip: 'spit', weight: 2, reach: 11, minReach: 2.5, hitAt: 24 / 30, trackUntil: 0.6, attackTime: 42 / 30, hitReach: 0,
+  arc: -1, power: 0.55, knock: 2.5, knockDown: false, hop: 2, reason: "Hit by Sollmeldon's mud!", cast: 'spit',
+  mud: { ...MUD_BALL, muzzles: SOLLMELDON_AT.mouths },
+};
+// ... up in the air: the mud rains from his heads onto the player
+const SOLLMELDON_RAIN = {
+  ...SOLLMELDON_SPIT, name: 'rain', clip: 'airSpit', weight: 3, reach: 22, minReach: 0, hitAt: 15 / 30, attackTime: 33 / 30, trackUntil: 0.4,
+  mud: { ...MUD_BALL, lob: 9, muzzles: SOLLMELDON_AT.air },
+};
+const SOLLMELDON_SUMMON = {
+  name: 'summon', clip: 'summon', weight: 2, reach: 14, hitAt: 33 / 30, trackUntil: 0.5, attackTime: 54 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Sollmeldon',
+  summon: { kind: 'mudsquirtle', muzzle: SOLLMELDON_AT.summon },
+};
+export const SOLLMELDON = {
+  type: 'sollmeldon', species: 'sollmeldon', label: 'Sollmeldon', hp: 1500, damage: 24, knock: 4,
+  xp: 800, coins: [210, 360],
+  radius: 1.05, height: 3.3, bodyHeight: 2.4, mass: 14, mudborn: true, slimeborn: true, turnSpeed: 2.2, turnStride: 1,
+  aggro: 9, giveUp: 18, chase: 1.2, wander: 0.5, homeSpeed: 0.8,
+  ...SOLLMELDON_BITES[1], cooldown: 1.3, ichor: ['#3a3129', '#0b0907'], pitch: 0.5,
+  attacks: [...SOLLMELDON_BITES, SOLLMELDON_SPIT, SOLLMELDON_SUMMON], phase: 1,
+  poise: 2, hitStun: 0.2, deathTime: 2.6, corpseTime: 5,
+  parts: { mud: ['SollmeldonMud'], wings: ['SollmeldonWings'], eyes: ['SollmeldonEyes_glow'] },
+  light: '#e8d49a', sparks: ['#5a4e43', '#2a231d', '#e8d49a'],
+  cut: SOLLMELDON_AT.cut, style: 'brute', guardian: true, guardianRole: 'descent', boss: 'sollmeldon',
+  seedSalt: 0x5011d0, spacing: 6,
+};
+// ... two heads left (phase 2): he flies now and then, raining mud
+export const SOLLMELDON_TWO = {
+  ...SOLLMELDON, type: 'sollmeldontwo', chase: 1.3, cooldown: 1.2,
+  attacks: [...SOLLMELDON_BITES, SOLLMELDON_SPIT, SOLLMELDON_SUMMON, SOLLMELDON_RAIN], phase: 2,
+};
+// ... one head left (phase 3): it bites faster
+const FAST = 4 / 3, FAST_BITES = [0, 1, 2].map(h => sollmeldonBite(h, { hitAt: 27 / 30 / FAST, trackUntil: 20 / 30 / FAST, attackTime: 48 / 30 / FAST, clipSpeed: FAST }));
+export const SOLLMELDON_ONE = {
+  ...SOLLMELDON, type: 'sollmeldonone', chase: 1.4, cooldown: 1,
+  ...FAST_BITES[1], attacks: [...FAST_BITES, SOLLMELDON_SPIT, SOLLMELDON_SUMMON, SOLLMELDON_RAIN], phase: 3,
+};
 // Qualmos, the boss at the core of the world (depth 20, core/bosses.js; after a child's drawing,
 // built, animated and exported by blender/qualmos.py): a slender blue-green
 // amphibian on six tentacles, with spines and a toothy grin. He waits alone in the core's last cube,
@@ -1268,7 +1339,7 @@ export const QUALMOS_STAGES = Object.freeze([1, 2, 3, 4, 5].map(phase => {
   return phase === 1 ? QUALMOS : { ...QUALMOS, phase, damage: QUALMOS.damage * (1 + P.damage * k), chase: QUALMOS.chase * (1 + P.chase * k),
     cooldown: QUALMOS.cooldown * rest, attacks: QUALMOS.attacks.map(a => a.recover ? { ...a, recover: a.recover * rest } : a) };
 }));
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, QUALMOS];
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, SOLLMELDON, QUALMOS];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp
@@ -1630,7 +1701,7 @@ export const SQUARLO_GIANT = enemyKind(SQUARLO, {
 // the runner sends, net/foes.js)
 export const STAGE_PROFILES = { squarlo: [SQUARLO, SQUARLO_GIANT], foggery: [FOGGERY, FOGGERY_BALL, FOGGERY_BALL],
   renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS],
-  monteur: [MONTEUR, MONTEUR_SUN], qualmos: QUALMOS_STAGES };
+  monteur: [MONTEUR, MONTEUR_SUN], sollmeldon: [SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE], qualmos: QUALMOS_STAGES };
 // One full attack and recovery, averaged over a species' attacks (s), and what it deals per
 // second at level 1 (a projectile's burn included): how dangerous it is to stand next to.
 export function attackCycle(profile) {
@@ -1814,6 +1885,18 @@ export const SLIME_SQUIRTLE = enemyKind(SQUIRTLE, {
   aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05), puff: SLIME_PUFF,
   mods: { hp: 1.1, damage: 0.8, size: 1.3, xp: 0.2 },
 });
+// Sollmeldon's Mud squirtles (game/sollmeldon.js): Squirtles of his black mud, coming up out of it
+// (they live in it alone: `dwells` its look, game/mud.js), with his cat's eyes; their spit is a
+// ball of mud that slows
+const MUD_SPIT = { kind: 'water', radius: 0.21, push: 0, pushTime: 0, slow: { time: 1.8, slow: 0.65, source: 'mud' } };
+export const MUD_SQUIRTLE = enemyKind(SQUIRTLE, {
+  type: 'mudsquirtle', label: 'Mud squirtle', reason: 'Splattered by a Mud squirtle!', minion: true, dwells: [MUD],
+  projectile: { ...SQUIRTLE.projectile, muzzle: SQUIRTLE.projectile.muzzle.map(v => v * 1.15), ...MUD_SPIT },
+  attacks: squirtleAttacks('Splattered by a Mud squirtle!', { projectile: { ...SQUIRTLE.projectile, ...MUD_SPIT } }), trail: '#2a231d',
+  colors: paints({ body: 'stone.dark', eyes: 'ochre.pale' }), ichor: ['#5a4e43', '#17130f'],
+  aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05), puff: { colors: ['#5a4e43', '#2a231d', '#17130f'], size: 0.5 },
+  mods: { hp: 1.1, damage: 0.8, size: 1.15, xp: 0.2 },
+});
 // Mansk's Tornados (game/mansk.js): plain ones, weaker, going for the player at once; they turn up
 // (and go) in a puff of wind
 export const STAGE_TORNADO = enemyKind(TORNADO, {
@@ -1824,7 +1907,7 @@ export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.valu
   GLOOM_SPIDER, REDBACK, FROST_STUNDER, STONE_STUNDER, MAGMA_STUNDER, BOG_OCTONAUT, CORAL_OCTONAUT, EMERALD_TRIANGLE, CRIMSON_TRIANGLE, FIRE_SHRAPS,
   BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, LAVA_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
   NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, FROST_MOOSE, BOG_MOOSE, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
-  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE].map(k => [k.type, k]));
+  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE, MUD_SQUIRTLE].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
 // like the dead

@@ -295,7 +295,7 @@ export function rosterOf(list, cube, seed) {
 // holes: [n, x, y, z, t, life] each, game/flip.js), and for Foggery two more: 0 and foggeryRow, and
 // for Renew three more: 0, 0 and renewRow, and for Slomo four more: 0, 0, 0 and slomoRow (his flood
 // is his tide), and for Mansk five more: 0, 0, 0, 0 and manskRow, and for Monteur six more: 0, 0, 0,
-// 0, 0 and monteurRow
+// 0, 0 and monteurRow, and for Sollmeldon seven more: 0, 0, 0, 0, 0, 0 and sollmeldonRow
 const beamRow = b => [r2(b.t), r2(b.ex), r2(b.ey), r2(b.ez)];
 const flipRow = e => [e.orient ?? 0, e.turns ?? 0, (e.holes ?? []).map(h => [h.n, r2(h.x), r2(h.y), r2(h.z), r2(h.t), h.life])];
 // Foggery's: [eyes ([left, right]: 0 thrown .. 1 grown back), guard (1 while his shield holds), the
@@ -319,6 +319,12 @@ const manskRow = e => [r2(e.lift ?? 0), e.horns ?? 1, r2(e.grow ?? 0), r2(e.slow
 // mountain after it, game/mountains.js)
 const mountainRow = m => m ? [m.n, m.seed, m.x, m.z, SHAPES.indexOf(m.shape), m.a ?? 0, PHASES.indexOf(m.phase), r2(m.t), m.life] : 0;
 const monteurRow = e => [r2(e.stones ?? 5), e.quarter ?? 0, mountainRow(e.mountain)];
+// Sollmeldon's: [heads (a bit each), cutting (the head being cut off, -1: none), lift (how high he
+// flies), tilt ([x, z]: the way the world is tipped, how far), mud (what his fight added to his
+// mud), puddles ([x, y, z, vol] each)] (game/sollmeldon.js; every game tips its own view after
+// it, game/tilt.js, and leans and fills its own mud, game/mud.js)
+const sollmeldonRow = e => [e.heads ?? 7, e.cutting ?? -1, r2(e.lift ?? 0), (e.tilt ?? [0, 0]).map(v => Math.round(v * 1000) / 1000), r2(e.mud ?? 0),
+  (e.puddles ?? []).map(p => [r2(p.x), r2(p.y), r2(p.z), r2(p.vol)])];
 export function rowOf(e, i, runner = 0) {
   const b = e.beam;
   return [i, r2(e.x), r2(e.y), r2(e.z), r2(e.yaw), Math.max(0, MODES.indexOf(e.mode)), r2(e.mode === 'dead' ? e.deadT : e.t),
@@ -327,6 +333,7 @@ export function rowOf(e, i, runner = 0) {
     e.tide ? r2(e.tide) : 0, e.under ? 1 : 0, ...e.turns !== undefined ? [flipRow(e)] : e.eyes !== undefined ? [0, foggeryRow(e)]
       : e.boss === 'renew' && e.clock !== undefined ? [0, 0, renewRow(e)] : e.boss === 'slomo' && e.arms !== undefined ? [0, 0, 0, slomoRow(e)]
       : e.boss === 'mansk' && e.lift !== undefined ? [0, 0, 0, 0, manskRow(e)]
-      : e.boss === 'monteur' && e.stones !== undefined ? [0, 0, 0, 0, 0, monteurRow(e)] : []];
+      : e.boss === 'monteur' && e.stones !== undefined ? [0, 0, 0, 0, 0, monteurRow(e)]
+      : e.boss === 'sollmeldon' && e.heads !== undefined ? [0, 0, 0, 0, 0, 0, sollmeldonRow(e)] : []];
 }
 

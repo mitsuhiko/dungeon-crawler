@@ -14,6 +14,10 @@ export const WATER = 1, LAVA = 2, ACID = 3;
 // learn: code.html#lists (see learn/README.md)
 export const FLUIDS = [WATER, LAVA, ACID];
 export const FLUID_NAME = { 1: 'water', 2: 'lava', 3: 'acid' };
+// a look a standing fluid may have, not a fluid of its own (no cube is made of it): Sollmeldon's
+// black mud (game/mud.js), waded through as water, drawn as mud (render/materials.js FLUID_LOOK,
+// its palette themes/fluids.js MUD_ROW), lived in by his Mud squirtles (physics/dwell.js)
+export const MUD = 4;
 
 // grid directions: +x, -x, +z, -z
 // learn: code.html#lists (see learn/README.md)

@@ -1,7 +1,8 @@
 // Statuses that show (core/status.js): enemies on fire lick with flames, poisoned ones (and the
 // poisoned player) seep green bubbles and a sickly mist, chilled ones glitter with frost and
 // zapped ones crackle with sparks (enchanted weapons, game/enchants.js); slowed ones (and the
-// slowed player: slime, core/status.js) drip with green goo; what Mansk's slowed time holds (his
+// slowed player: slime, core/status.js) drip with green goo (Sollmeldon's mud: black, `source`
+// 'mud'); what Mansk's slowed time holds (his
 // Tornados, the player: game/mansk.js) has slow sparkles of light circling round it, like the
 // hands of a clock. The player's own burning is
 // render/burning.js, its chill render/chilled.js, its shock render/shocked.js.
@@ -11,7 +12,7 @@ import { FIRE_COLORS } from './flames.js';
 import { chillFactor } from '../core/projectiles.js';
 
 const FLAMES = FIRE_COLORS, GREENS = ['#c8ff7a', '#8fdc3c', '#5f9f2a'], FROST = ['#ffffff', '#d8f4ff', '#9fdcff'],
-  SPARKS = ['#ffffff', '#fff3a0', '#9fd0ff'], GOO = ['#8ae048', '#6cc23a', '#b8ff5a'], TIME = ['#ffffff', '#bfe0ff', '#ffe9a8'];
+  SPARKS = ['#ffffff', '#fff3a0', '#9fd0ff'], GOO = ['#8ae048', '#6cc23a', '#b8ff5a'], MUD = ['#2a231d', '#17130f', '#3a3129'], TIME = ['#ffffff', '#bfe0ff', '#ffe9a8'];
 
 function flames(x, y, z, r, h, dt) {
   for (let i = Math.floor(70 * dt + Math.random()); i > 0; i--) {
@@ -49,11 +50,11 @@ function sparks(x, y, z, r, h, dt) {
 }
 
 // slime: goo dripping off the body, the more the slower it still is (k: 0..1)
-function goo(x, y, z, r, h, dt, k = 1) {
+function goo(x, y, z, r, h, dt, k = 1, colors = GOO) {
   for (let i = Math.floor(14 * k * dt + Math.random() * k); i > 0; i--) {
     const [dx, dz] = ring(r);
     emit(soft, x + dx, y + rand(0.2, h), z + dz, { v: [dx * 0.2, rand(-0.4, 0), dz * 0.2], life: rand(0.5, 0.8), size: rand(0.06, 0.11),
-      color: GOO[i % 3], alpha: 0.85, gravity: 5 });
+      color: colors[i % 3], alpha: 0.85, gravity: 5 });
   }
 }
 
@@ -78,9 +79,10 @@ export function tickStatuses(enemies, dt) {
     if (e.toxic) poison(e.x, e.y, e.z, r, h, dt);
     if (e.chilled) frost(e.x, e.y, e.z, r, h, dt);
     if (e.zapped > 0) sparks(e.x, e.y, e.z, r, h, dt);
-    if (e.slowed) goo(e.x, e.y, e.z, r, h, dt);
+    if (e.slowed) goo(e.x, e.y, e.z, r, h, dt, 1, e.slowed.source === 'mud' ? MUD : GOO);
   }
   if (player.toxic && !player.ragdoll) poison(player.x, player.visY, player.z, 0.25, 1, dt);
   const s = player.slowed;
-  if (s && !player.ragdoll) (s.source === 'time' ? clockwork : goo)(player.x, player.visY, player.z, 0.25, 1.1, dt, (1 - chillFactor(s)) / (1 - s.slow || 1));
+  if (s && !player.ragdoll) (s.source === 'time' ? clockwork : goo)(player.x, player.visY, player.z, 0.25, 1.1, dt, (1 - chillFactor(s)) / (1 - s.slow || 1),
+    s.source === 'mud' ? MUD : GOO);
 }

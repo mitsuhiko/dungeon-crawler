@@ -3,7 +3,7 @@
 // Lambert, darker, batched) are both made, so the two cannot disagree about what a part is.
 // Also the fluids' surface motion (world.js); their colours are their palettes' (fluidpal.js).
 import * as THREE from 'three';
-import { N, WATER, LAVA, ACID } from '../core/constants.js';
+import { N, WATER, LAVA, ACID, MUD } from '../core/constants.js';
 import { CELLS, useCells } from './watercells.js';
 import { PAL_TEX, PAL_GLSL } from './fluidpal.js';
 import { FALL_WIDTH } from './parts.js';
@@ -32,7 +32,24 @@ export const FLUID_LOOK = {
   [ACID]: { style: 'sludge', clear: true, emissiveIntensity: 0.8, roughness: 0.3, metalness: 0, motion: {}, rides: true,
     cells: FLUID_MOTION[ACID],
     fall: { emissiveIntensity: 1, cells: { glow: 0.35, flow: 3.2 } } },
+  // Sollmeldon's mud (a look of a standing fluid only, core/constants.js MUD): black and glossy,
+  // bubbling, not see-through; it never falls
+  [MUD]: { style: 'sludge', clear: false, emissiveIntensity: 0.2, roughness: 0.18, metalness: 0, motion: {}, rides: true,
+    cells: FLUID_MOTION[MUD], fall: { emissiveIntensity: 0.2, cells: null } },
 };
+
+// The lean of the standing fluid (render/trials.js setTrialWater: Sollmeldon's mud while the world
+// is tipped, game/mud.js): its surface rises by x, z a cell from its level at the middle of the
+// cube (core/sollmeldon.js PIVOT). Every shader that knows its level knows this (STAND_GLSL).
+export const STAND_SLOPE = { value: new THREE.Vector2() };
+// (guarded: the wet and the underwater edits of one material both bring it)
+export const STAND_GLSL = `
+  #ifndef STAND_AT
+  #define STAND_AT
+  uniform vec2 uStandSlope;
+  float standAt(float level, vec2 p) { return level + dot(uStandSlope, p - vec2(${(N / 2).toFixed(1)})); }
+  #endif
+`;
 
 // The surroundings are drawn darker than the cube you are in: solids (and props) take this
 // tint, fluids and glows this share of their colour and light.
@@ -113,7 +130,7 @@ export function tickTides() {
   for (const [t, u] of Object.entries(WET_LINE)) {
     const S = FLUID_LOOK[t].cells;
     u.value = u.wet = stepWet(S, u.wet, tideY(S, WIND.value), dt);
-    FIXED_TIDE.value.setComponent(t - 1, tideY(S, WIND.value)); FIXED_WET.value.setComponent(t - 1, u.value);
+    if (t <= ACID) { FIXED_TIDE.value.setComponent(t - 1, tideY(S, WIND.value)); FIXED_WET.value.setComponent(t - 1, u.value); }   // (the mud is no cube's own)
   }
 }
 // GLSL: how far p is from the boxes round its cell where they stand out of the water (at
@@ -173,7 +190,7 @@ const TRIAL_SHORES = `
             int kx = k & 1, kz = k >> 1;
             if ((i == 0 || kx == (i > 0 ? 0 : 1)) && (j == 0 || kz == (j > 0 ? 0 : 1))) lo = min(lo, s[k]);
           }
-          if (lo >= uTrialLevel) {
+          if (lo >= standAt(uTrialLevel, p)) {
             vec2 o = vec2(float(i), float(j));
             d = shoreMin(d, length(max(o - l, 0.0) + max(l - o - 1.0, 0.0)));
           }
@@ -215,7 +232,8 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
   const C = CELLS[L.style];
   useCells(mat, L.style);
   const uniforms = { uCellTime: WIND, uCellTex: C.tex, uPalTex: PAL_TEX, uWetLine: trial ? trial.wet : WET_LINE[t],
-    ...trial && { uTrialLevel: trial.level, uShoreGround: trial.shore }, ...over && { uOverLevel: cube.level, uOverBox: cube.box },
+    ...trial && { uTrialLevel: trial.level, uShoreGround: trial.shore, uStandSlope: STAND_SLOPE },
+    ...over && { uOverLevel: cube.level, uOverBox: cube.box, uStandSlope: STAND_SLOPE },
     ...cube && { uWaterBoxes: cube.boxes } };
   const compile = mat.onBeforeCompile, key = mat.customProgramCacheKey();
   mat.onBeforeCompile = (sh, r) => {
@@ -228,7 +246,7 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
     // upper corners (render/trials.js standingSurface: shore w 2) stand at its rest height and
     // move with it, its sides' no higher than their ceiling nor lower than their ground (it is
     // drawn unscaled, in the cube's coordinates)
-    sh.vertexShader = 'uniform float uCellTime;\nattribute vec4 pal, shore;\nflat varying vec2 vPalRows;\n' + (trial ? 'uniform float uTrialLevel;\n' : '') + 'varying vec2 vCellP, vCellW, vCellUv;\nvarying vec3 vCellN;\nvarying float vCellWave, vCellY;\nvarying vec4 vShore;\n' + swellGLSL(S) + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+    sh.vertexShader = 'uniform float uCellTime;\nattribute vec4 pal, shore;\nflat varying vec2 vPalRows;\n' + (trial ? 'uniform float uTrialLevel;\n' + STAND_GLSL : '') + 'varying vec2 vCellP, vCellW, vCellUv;\nvarying vec3 vCellN;\nvarying float vCellWave, vCellY;\nvarying vec4 vShore;\n' + swellGLSL(S) + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       {
         #if defined(USE_BATCHING)
           mat4 cellM = modelMatrix * batchingMatrix;
@@ -239,15 +257,15 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
         float cy = position.y * length(cellM[1].xyz);
         bool band = uv.x < -0.5 && uv.x > -1.5, upper = uv.x > -0.5 || abs(cy - uv.y) < 0.004;
         vCellWave = swellW(cw, uCellTime);
-        ${trial ? `if (uv.x > -0.5) transformed.y = uTrialLevel + swellY(cw, uCellTime);
-        else if (shore.w > 1.5 && shore.w < 2.5) transformed.y = clamp(uTrialLevel + swellY(cw, uCellTime), shore.x, shore.z > 0.0 ? shore.z : 1e4);`
+        ${trial ? `if (uv.x > -0.5) transformed.y = standAt(uTrialLevel, cw) + swellY(cw, uCellTime);
+        else if (shore.w > 1.5 && shore.w < 2.5) transformed.y = clamp(standAt(uTrialLevel, cw) + swellY(cw, uCellTime), shore.x, shore.z > 0.0 ? shore.z : 1e4);`
         : 'if (!band && upper) transformed.y += swellY(cw, uCellTime) / length(cellM[1].xyz);'}
         // (a wet band on sloping ground, shore w 3: by the ground's height under it, render/floors.js wetSlope)
-        vCellP = cw / ${tile}; vCellW = cw; vCellUv = uv; vCellY = cy - (shore.w > 2.5 ? ${WET_LIFT.toFixed(4)} : 0.0) - ${trial ? 'uTrialLevel' : 'uv.y'};
+        vCellP = cw / ${tile}; vCellW = cw; vCellUv = uv; vCellY = cy - (shore.w > 2.5 ? ${WET_LIFT.toFixed(4)} : 0.0) - ${trial ? 'standAt(uTrialLevel, cw)' : 'uv.y'};
         vCellN = normal; vPalRows = pal.xy; vShore = shore;
       }`);
     sh.fragmentShader = '#define CELL_STYLE ' + STYLE_ID[L.style] + '\nflat varying vec2 vPalRows;\nvarying vec2 vCellP, vCellW, vCellUv;\nvarying vec3 vCellN;\nvarying float vCellWave, vCellY;\nvarying vec4 vShore;\nuniform float uCellTime, uWetLine;\nuniform sampler2D uCellTex;\n'
-      + PAL_GLSL + (trial ? 'uniform float uTrialLevel;\nuniform sampler2D uShoreGround;\n' : '') + (over ? 'uniform float uOverLevel;\nuniform vec4 uOverBox;\n' : '') + (cube ? BOXES_GLSL : '') + swellGLSL(S) + `
+      + PAL_GLSL + (trial ? 'uniform float uTrialLevel;\nuniform sampler2D uShoreGround;\n' : '') + (over ? 'uniform float uOverLevel;\nuniform vec4 uOverBox;\n' : '') + (trial || over ? STAND_GLSL : '') + (cube ? BOXES_GLSL : '') + swellGLSL(S) + `
       float shoreMin(float a, float b) { float h = max(0.14 - abs(a - b), 0.0) / 0.14; return min(a, b) - h * h * 0.035; }
       // how far p is from the walls round its cell, 9 if none near
       float wallDist(vec2 p, float code) {
@@ -266,7 +284,7 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
       float cellLine = 0.0, cellBand = 0.0, cellHeat = 0.0;
       vec3 cellEmissive = palColor(vPalRows, 0.0, 4);
       ${over ? `// (under the standing fluid: it is drawn instead)
-      if (all(greaterThan(vCellW, uOverBox.xy)) && all(lessThan(vCellW, uOverBox.zw)) && vCellUv.y + ${SINK.toFixed(4)} < uOverLevel - 0.001) discard;` : ''}
+      if (all(greaterThan(vCellW, uOverBox.xy)) && all(lessThan(vCellW, uOverBox.zw)) && vCellUv.y + ${SINK.toFixed(4)} < standAt(uOverLevel, vCellW) - 0.001) discard;` : ''}
       {
         vec3 pBody = palColor(vPalRows, 0.0, 0), pDark = palColor(vPalRows, 0.0, 1), pLine = palColor(vPalRows, 0.0, 2), pFoam = palColor(vPalRows, 0.0, 3);
         vec4 pNum = palParams(vPalRows, 0.0);
@@ -286,7 +304,7 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
         // how far the shore is (wobbling); sides and bands: far
         vec2 w = vCellW;
         // (no further than the foam reaches: a cell further out knows no shores, so it must not jump there)
-        float water = ${trial ? 'uTrialLevel' : 'vCellUv.y'} + swellY(w, tm);
+        float water = ${trial ? 'standAt(uTrialLevel, w)' : 'vCellUv.y'} + swellY(w, tm);
         // (nothing where the ground stands over it, nor over its ceiling (the next floor up: a
         // standing fluid's, render/trials.js): hidden by the ground anyway, but shown where the
         // ground is cut open)
@@ -361,7 +379,7 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
             cellLine = 1.0; cellHeat = 1.0;
           #else
             // dark (acid: a green stain), paler higher up
-            diffuseColor.rgb = ${L.style === 'sludge' ? 'diffuse * pDark * 0.3' : 'vec3(0.02, 0.035, 0.045)'};
+            diffuseColor.rgb = ${t == MUD ? 'vec3(0.06, 0.045, 0.035)' : L.style === 'sludge' ? 'diffuse * pDark * 0.3' : 'vec3(0.02, 0.035, 0.045)'};
             diffuseColor.a = ${S.wet.toFixed(3)} * mix(1.0, 0.6, k);
             cellLine = 0.0; cellBand = 1.0;
           #endif
@@ -375,7 +393,7 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
         totalEmissiveRadiance = totalEmissiveRadiance * cellEmissive * (1.0 - cellBand) + diffuseColor.rgb * cellLine;
       #endif`);
   };
-  mat.customProgramCacheKey = () => key + '-cells-' + L.style + (trial ? '-trial' : '') + (cube ? '-cube' : '');
+  mat.customProgramCacheKey = () => key + '-cells-' + L.style + '-' + t + (trial ? '-trial' : '') + (cube ? '-cube' : '');
   return mat;
 }
 

@@ -288,6 +288,17 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         for (let i = 0; i < 6; i++) noise(t + 0.3 + i * 0.22, 0.12, filter('bandpass', (300 + 120 * i) * p, 3, amp(t + 0.3 + i * 0.22, 0.005, 0.3, 0.1, out)));
       },
     },
+    sollmeldon: {   // the three-headed mud dinosaur: three throats roaring at once (a low chord), a wet hiss and growl, three groans sinking into gurgling mud
+      alert: (t, out, p) => {
+        for (const [k, at] of [[1, 0], [1.26, 0.06], [1.5, 0.12]]) bend(t + at, 0.8, 75 * p * k, 125 * p * k, 70 * p * k, 450 * p, 0.32, out);
+        gloops(t + 0.25, 6, 80 * p, 220 * p, 0.07, 0.22, out, false);
+      },
+      windup: (t, out, p) => { noise(t, 0.3, filter('bandpass', 1800 * p, 2, amp(t, 0.04, 0.3, 0.25, out))); bend(t + 0.05, 0.35, 85 * p, 115 * p, 95 * p, 420 * p, 0.3, out); },
+      death: (t, out, p) => {
+        for (const [k, at] of [[1, 0], [1.26, 0.3], [1.5, 0.6]]) bend(t + at, 1.3, 130 * p * k, 85 * p * k, 35 * p * k, 420 * p, 0.35, out);
+        gloops(t + 0.8, 16, 60 * p, 200 * p, 0.1, 0.3, out, false);
+      },
+    },
     qualmos: {   // the core's amphibian: a deep gurgling croak, a wet hiss through his teeth, a long bubbling sinking groan
       alert: (t, out, p) => {
         bend(t, 0.6, 90 * p, 150 * p, 80 * p, 520 * p, 0.5, out);

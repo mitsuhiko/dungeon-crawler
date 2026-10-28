@@ -13,7 +13,7 @@
 // SINK - lift + tide + ripple (lava 0.09, acid 0.13 world units) under where physics has it.
 //
 // Pure (no three.js): the world worker builds the cube's fluids with it.
-import { N, LH, WATER, LAVA, ACID } from '../core/constants.js';
+import { N, LH, WATER, LAVA, ACID, MUD } from '../core/constants.js';
 
 // How each fluid's surface moves: the whole of it rises and falls with the tide, `tide` from high
 // to low water (world units) every `period` seconds, a minor pattern of waves `ripple` high
@@ -24,6 +24,8 @@ export const FLUID_MOTION = {
   [WATER]: { tide: 0.2, period: 7, ripple: 0.02, lift: 0.02, wet: 0.55, dry: 0.012 },
   [LAVA]: { tide: 0.035, period: 11, ripple: 0.008, lift: 0.012, wet: 0, dry: 0.01 },
   [ACID]: { tide: 0.07, period: 5, ripple: 0.016, lift: 0.016, wet: 0.45, dry: 0.01 },
+  // (Sollmeldon's mud, a look only: heavy, hardly moving, leaving the banks dark a long while)
+  [MUD]: { tide: 0.025, period: 9, ripple: 0.008, lift: 0.008, wet: 0.5, dry: 0.02 },
 };
 
 export const SINK = 0.06;

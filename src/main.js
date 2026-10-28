@@ -17,6 +17,7 @@ import { updateArmor } from './game/armor.js';
 import { updateMovers } from './game/movers.js';
 import { updateCamera, closeView, cineView, cameraFocus } from './game/camera.js';
 import { updateRoll } from './game/roll.js';
+import { updateTilt } from './game/tilt.js';
 import { updateCut } from './game/cut.js';
 import { updateHud, curtained } from './game/hud.js';
 import { updateConsole, openChat, closeChat, say } from './game/console.js';
@@ -199,6 +200,7 @@ function frame(now = performance.now()) {
   updateQuickbar(); updateTeleportMenu(); updateEffects(); updateTouch();
   updateLockOn(pace.paused ? elapsed : dt);   // a lock-on swings the close view round (game/lockon.js)
   updateRoll(pace.paused ? elapsed : dt);   // the world rolled on the screen (game/roll.js)
+  updateTilt(pace.paused ? elapsed : dt);   // the cube tipped (Sollmeldon's landings, game/tilt.js)
   updateCamera(pace.paused ? elapsed : dt);   // paused by the Teacher (game/pace.js): the view still turns
   if (!state.transitioning) updateCut(dt);   // after the camera: the cut depends on what the camera can see
   updateLootLabels();   // after the camera too: labels sit over their items
@@ -287,6 +289,7 @@ function menuFrame(dt, start) {
   tickFlames(dt, state.time, menuFocus);
   if (state.world) animateWorld(state.world, dt, state.time);
   updateRoll(dt);   // (out of play: unturned)
+  updateTilt(dt);   // (and level)
   updateCamera(dt);
   applyLook(state.lookDepth, camera.position.distanceTo(menuFocus), state.cubes?.layout.themes);
   followHero();   // (off: the hero is not in the world here)

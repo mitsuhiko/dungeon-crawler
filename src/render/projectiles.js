@@ -41,6 +41,9 @@ const LOOKS = {
   slugarm: { model: slomoModel, prop: () => slomoModel.props?.SlomoArmSlug, light: [0x9aff5a, 1, 2.4], trail: ['#d8ff9a', '#8ae048', '#3e7a2a'], rate: 30, gravity: 6 },
   // one of Monteur's stones, tumbling, its cracks glowing, dust streaming off it
   stone: { model: monteurModel, prop: () => monteurModel.props?.MonteurStone, light: [0xffb347, 1, 2.4], trail: ['#e0dacd', '#b8b0a0', '#ffb347'], rate: 30, gravity: 3 },
+  // a ball of Sollmeldon's mud (game/sollmeldon.js), lobbed: a black glossy drop, not his colour
+  // lightened (`color`), mud dripping off it
+  mudball: { drop: true, color: '#15110d', light: [0xe8d49a, 0.25, 1.5], trail: ['#3a3129', '#5a4e43'], rate: 30, gravity: 6 },
   // a spell of Renew's staff, or an echo's shot (game/rewind.js): no model, a glowing orb in its
   // `color` (the spec's), like the player's spells (render/shots.js)
   orb: { orb: true, light: [0xbdf3ff, 2.2, 3], trail: ['#ffffff'], rate: 60 },
@@ -89,14 +92,14 @@ const dropGeometry = (() => {
 })();
 function dropView(pr, look) {
   const group = new THREE.Group(), body = pr.profile?.colors?.body;
-  const color = new THREE.Color(body ? new THREE.Color(...toLinear(body)) : 0x5aaee8).lerp(new THREE.Color(1, 1, 1), 0.35);
-  const material = new THREE.MeshStandardMaterial({ color, roughness: 0.12, metalness: 0, transparent: true, opacity: 0.85 });
+  const color = look.color ? new THREE.Color(look.color) : new THREE.Color(body ? new THREE.Color(...toLinear(body)) : 0x5aaee8).lerp(new THREE.Color(1, 1, 1), 0.35);
+  const material = new THREE.MeshStandardMaterial({ color, roughness: 0.12, metalness: 0, transparent: !look.color, opacity: look.color ? 1 : 0.85 });
   const mesh = new THREE.Mesh(dropGeometry, material);
   mesh.scale.setScalar((pr.spec.radius ?? DROP) / DROP * 0.8);
   group.add(mesh);
   const light = new THREE.PointLight(look.light[0], look.light[1], look.light[2], 2);
   scene.add(group); trackLight(light, group, group, 2);
-  return { group, light, look, trail: pr.profile?.sparks ?? look.trail, owned: [material], base: look.light[1] };
+  return { group, light, look, trail: look.color ? look.trail : pr.profile?.sparks ?? look.trail, owned: [material], base: look.light[1] };
 }
 const ahead = new THREE.Vector3();
 
@@ -131,6 +134,7 @@ export function drawProjectiles(list, dt, off = { x: 0, y: 0, z: 0 }) {
       markBurst(v, pr, off);
     }
     if (pr.kind === 'slugarm') g.scale.set(1 + 0.12 * Math.sin(pr.t * 23), 1, 1 - 0.1 * Math.sin(pr.t * 23));
+    if (pr.kind === 'mudball') g.scale.set(1 + 0.15 * Math.sin(pr.t * 19), 1 - 0.12 * Math.sin(pr.t * 19), 1 + 0.2 * Math.sin(pr.t * 11));
     if (pr.kind === 'water') g.scale.set(1 + 0.12 * Math.sin(pr.t * 31), 1 - 0.1 * Math.sin(pr.t * 31), 1 + 0.15 * Math.sin(pr.t * 17));
     v.light.intensity = v.base * (0.8 + 0.2 * Math.sin(pr.t * 31) * Math.sin(pr.t * 13));
     const colors = v.trail, n = Math.floor(v.look.rate * dt + Math.random());

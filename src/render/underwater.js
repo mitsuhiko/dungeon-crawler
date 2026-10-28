@@ -21,7 +21,7 @@
 import { N, WATER, ACID } from '../core/constants.js';
 import { CELLS } from './watercells.js';
 import { PAL_GLSL, PAL_TEX } from './fluidpal.js';
-import { FIXED_TIDE, WIND } from './materials.js';
+import { FIXED_TIDE, WIND, STAND_SLOPE, STAND_GLSL } from './materials.js';
 import { WAVES_GLSL, FLUID_MOTION, BELOW } from './surface.js';
 
 // SHIFT: how far the waves push what lies a world unit under the low-water line (per unit of
@@ -45,6 +45,7 @@ const COMMON = `
   uniform vec2 uUwStandKind;
   uniform vec3 uUwTide;
   uniform float uUwTime, uUwShift, uUwGlow;
+  ${STAND_GLSL}
   bool uwClear(float kind) { return abs(kind - ${WATER}.0) < 0.5 || abs(kind - ${ACID}.0) < 0.5; }
   vec4 uwCell(vec2 q) { return texelFetch(uUwFixed, clamp(ivec2(floor(q)), ivec2(0), ivec2(${N - 1})), 0); }
 `;
@@ -69,8 +70,9 @@ const LEVEL = `
     row = 0.0;
     vec4 fx = uwCell(q);
     if (fx.x > -1e3 && y > fx.y - 0.01 && uwClear(fx.z)) { water = fx.x + uUwTide[int(fx.z + 0.5) - 1]; row = fx.w; }
-    if (uUwStand.w > 0.5 && uwClear(uUwStandKind.x) && all(greaterThan(q, uUwBox.xy)) && all(lessThan(q, uUwBox.zw)) && uUwStand.x + uUwStand.y > water) {
-      water = uUwStand.x + uUwStand.y; row = uUwStandKind.y;
+    float stand = standAt(uUwStand.x, q) + uUwStand.y;
+    if (uUwStand.w > 0.5 && uwClear(uUwStandKind.x) && all(greaterThan(q, uUwBox.xy)) && all(lessThan(q, uUwBox.zw)) && stand > water) {
+      water = stand; row = uUwStandKind.y;
     }
     return water;
   }
@@ -80,7 +82,7 @@ export function underwaterMaterial(mat, water, top = null) {
   const compile = mat.onBeforeCompile, key = mat.customProgramCacheKey();
   const uniforms = { uUwFixed: water.fixed, uUwStand: water.stand, uUwBox: water.box, uUwStandKind: water.standKind,
     uUwTide: FIXED_TIDE, uUwTime: WIND, uUwShift: UNDERWATER.shift, uUwGlow: UNDERWATER.glow, uUwCells: CELLS.water.tex, uPalTex: PAL_TEX,
-    uUwTop: { value: top ?? 0 } };
+    uUwTop: { value: top ?? 0 }, uStandSlope: STAND_SLOPE };
   const tile = (CELLS.water.tile / CELLS.water.perUnit / CAUSTIC.scale).toFixed(4);
   mat.onBeforeCompile = (sh, r) => {
     compile?.call(mat, sh, r);

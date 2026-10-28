@@ -12,16 +12,18 @@
 // falls' colours) follow from the body colour in OKLCH. Dark water is duller and its pattern
 // fainter, its lines lean towards teal; water stays teal to blue and acid green, far enough
 // apart in hue that the two are never mistaken for each other (HUE), lava orange to red.
-import { WATER, LAVA, ACID } from '../core/constants.js';
+import { WATER, LAVA, ACID, MUD } from '../core/constants.js';
 import { mulberry32, hash32 } from '../core/util.js';
 import { MAX_DEPTH, themeAt } from './depth.js';
 
 export const PAL_SLOTS = 6;
 const FLUID_COUNT = 3;
 export const PAL_ROWS = (MAX_DEPTH + 1) * FLUID_COUNT * PAL_SLOTS;
-// the palette row of a depth's fluid (WATER, LAVA, ACID) in a slot
-export const palRow = (depth, fluid, slot = 0) =>
-  ((Math.max(0, Math.min(MAX_DEPTH, depth | 0)) * FLUID_COUNT + (fluid - 1)) * PAL_SLOTS + slot);
+// the palette row of a depth's fluid (WATER, LAVA, ACID) in a slot; Sollmeldon's mud (MUD, a look)
+// has one row of its own, after all of theirs (MUD_ROW)
+export const MUD_ROW = PAL_ROWS;
+export const palRow = (depth, fluid, slot = 0) => fluid === MUD ? MUD_ROW
+  : ((Math.max(0, Math.min(MAX_DEPTH, depth | 0)) * FLUID_COUNT + (fluid - 1)) * PAL_SLOTS + slot);
 export const rowDepth = row => Math.floor(row / (FLUID_COUNT * PAL_SLOTS));
 export const rowFluid = row => Math.floor(row / PAL_SLOTS) % FLUID_COUNT + 1;
 export const rowSlot = row => row % PAL_SLOTS;
@@ -173,6 +175,15 @@ const CLASSIC = {
   [ACID]: { body: '#7dff3a', dark: '#4fd024', line: '#d8ff9a', foam: '#d8ff9a', emissive: '#3a9a10', cap: '#4f9a24',
     fallBase: '#66e030', fallLine: '#eaffc8', fallLight: '#a0ff70', opacity: 0.82, glow: 0.35, lineOpacity: 0.9, fallOpacity: 0.85 },
 };
+// Sollmeldon's mud: black, a little warm, glossy lines between its cells, no glow; not see-through
+const MUD_COLORS = { body: '#17130f', dark: '#0b0907', line: '#4a4036', foam: '#5a4e43', emissive: '#000000', cap: '#110e0b',
+  fallBase: '#1c1712', fallLine: '#4a4036', fallLight: '#2a231d', opacity: 1, glow: 0, lineOpacity: 0.9, fallOpacity: 1 };
+export function mudPalette() {
+  const c = MUD_COLORS, out = { fluid: MUD, name: 'mud', opacity: c.opacity, glow: c.glow, lineOpacity: c.lineOpacity, fallOpacity: c.fallOpacity,
+    lch: hexToOklch(c.body), hex: {} };
+  for (const k of COLORS) { out[k] = hexToLinear(c[k]); out.hex[k] = c[k]; }
+  return out;
+}
 export function classicPalette(fluid) {
   const c = CLASSIC[fluid], out = { fluid, name: 'classic', opacity: c.opacity, glow: c.glow, lineOpacity: c.lineOpacity, fallOpacity: c.fallOpacity,
     lch: hexToOklch(c.body), hex: {} };

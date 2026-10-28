@@ -4,7 +4,7 @@
 // guardian's spot stay flat. Every free zone floor connects without jumps, and the zone
 // holds the doubled population; an arena that cannot falls back to a plainer one. Its fluid
 // dwellers (the Squirtles, physics/dwell.js) get a pond of their fluid dug into it (`digPonds`).
-import { N, LH, DIRS, OPP, MAX_L, WATER, ACID, FLUID_NAME } from '../core/constants.js';
+import { N, LH, DIRS, OPP, MAX_L, WATER, ACID, MUD, FLUID_NAME } from '../core/constants.js';
 import { idx, edgeKey, clamp, mulberry32, hash32, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { population } from '../core/spawns.js';
@@ -14,7 +14,7 @@ import { rockTint } from '../themes/surfaces.js';
 import { createContext } from './context.js';
 import { groundHeights } from './ground.js';
 import { placePortals } from './portals.js';
-import { SHAPES, BOSS_SHAPES, TIDAL, BOWL, STAGE } from './arenashapes.js';
+import { SHAPES, BOSS_SHAPES, TIDAL, BOWL, STAGE, MIRE } from './arenashapes.js';
 import { dressArena } from './arenaprops.js';
 import { BOSS_ARENAS } from '../core/bosses.js';
 import { flipArena } from './fliparena.js';
@@ -288,6 +288,11 @@ export function generateGuardian(spec) {
       // over the head), drawn as slime (`look`: the depth's acid colours); it comes in from a side
       // (`flood`: its front, game/tide.js) and follows his level fast
       : arena.type === 'bowl' ? { rest: level + BOWL.low - 0.5, gone: level + BOWL.low - 0.5, high: level + BOWL.low + BOWL.flood,
-        fluid: WATER, look: ACID, box: [2, 2, N - 2, N - 2], flood: true, follow: 4 } : null,
+        fluid: WATER, look: ACID, box: [2, 2, N - 2, N - 2], flood: true, follow: 4 }
+      // Sollmeldon's mud (game/mud.js, core/sollmeldon.js): over the basin of his mire, inside the
+      // bank; `rest`: how high it stands at first (its volume: what that holds, level); waded
+      // through as water, drawn as mud (`look`); his fight adds to it and the world's tilt leans it
+      : arena.type === 'mire' ? { rest: level + MIRE.low + MIRE.mud, high: level + MIRE.low + MIRE.mud, fluid: WATER, look: MUD,
+        box: [2, 2, N - 2, N - 2], mud: true } : null,
     fences, fenceList, placements: dress.placements, blockers: dress.blockers });
 }

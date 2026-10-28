@@ -8,6 +8,7 @@
 // `floodSide` and `front` (core/slomo.js floodBox) say how far across it has come; only that part of
 // its box is in it (the physics) and shown (render/trials.js setFloodFront), its front a wall of
 // slime rolling on (render/slomofx.js). It is drawn as slime (`look`), waded through as water.
+// Sollmeldon's mud (his mire, map.tide `mud`) is a volume, not a level: game/mud.js runs it.
 import { LH, WATER, LAVA } from '../core/constants.js';
 import { tideLevel } from '../core/squarlo.js';
 import { setTide, standingAt, enemyUnder } from '../physics/fluid.js';
@@ -18,6 +19,7 @@ import { state, player } from './state.js';
 import { slowPlayer } from './enemycombat.js';
 import { SLOMO_FIGHT, floodBox } from '../core/slomo.js';
 import { guardianId } from '../core/guardians.js';
+import { updateMud, resetMud } from './mud.js';
 
 // how fast a shown level follows the boss's (levels/s): it moves smoothly between rows (a tide's
 // own `follow`, else this)
@@ -30,9 +32,10 @@ const beaten = m => m.tide.gone !== undefined && !!m.guardian && state.run.defea
 export function updateTide(list, dt) {
   const t = state.map?.tide;
   if (!t) {
-    if (shown !== null) { shown = null; dry(); }
+    if (shown !== null) { shown = null; dry(); resetMud(); }
     return;
   }
+  if (t.mud) { shown = 0; return updateMud(list, dt); }
   let k = 0, own = false, by = null;
   for (const e of list) if (e.boss && Number.isFinite(e.tide) && (!own || e.tide > k)) { k = e.tide; own = true; by = e; }
   if (beaten(state.map) && (!own || k > 0)) k = (t.gone - t.rest) / (t.high - t.rest);
@@ -53,7 +56,7 @@ export function updateTide(list, dt) {
   }
 }
 // (and a boss's water or lava still standing from the cube before goes: it would drown what is here)
-export const resetTide = () => { if (shown !== null || state.tide != null) dry(); shown = null; };
+export const resetTide = () => { if (shown !== null || state.tide != null) dry(); shown = null; resetMud(); };
 
 // enemies a standing fluid goes over drown (no reward: the water took them)
 export function drownEnemies(list) {

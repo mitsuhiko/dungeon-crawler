@@ -3,13 +3,15 @@
 // its vertices carry (render/parts.js `pal`), so the active cube and the batched proxies agree,
 // and a cube can hold differently coloured bodies of fluid. One row per palette, one texel per
 // colour (PAL_COLUMNS, linear), the last its numbers: opacity, glow, lineOpacity, fallOpacity.
+// After the fluids' rows, Sollmeldon's mud's (themes/fluids.js MUD_ROW).
 import * as THREE from 'three';
-import { PAL_ROWS, worldPalettes } from '../themes/fluids.js';
+import { PAL_ROWS, worldPalettes, mudPalette } from '../themes/fluids.js';
 
 export const PAL_COLUMNS = ['body', 'dark', 'line', 'foam', 'emissive', 'fallBase', 'fallLine', 'fallLight'];
 const W = PAL_COLUMNS.length + 1;
-const data = new Float32Array(W * PAL_ROWS * 4);
-const tex = new THREE.DataTexture(data, W, PAL_ROWS, THREE.RGBAFormat, THREE.FloatType);
+const ROWS = PAL_ROWS + 1;
+const data = new Float32Array(W * ROWS * 4);
+const tex = new THREE.DataTexture(data, W, ROWS, THREE.RGBAFormat, THREE.FloatType);
 tex.magFilter = tex.minFilter = THREE.NearestFilter;
 export const PAL_TEX = { value: tex };
 
@@ -27,7 +29,7 @@ export function setFluidPalettes(seed = null, themes = null) {
   const k = seed == null ? 'classic' : seed + '|' + themes.map(s => s.at + ':' + s.theme.props).join(',');
   if (k === key) return;
   key = k;
-  rows = worldPalettes(seed, themes);
+  rows = [...worldPalettes(seed, themes), mudPalette()];
   fill();
 }
 setFluidPalettes();

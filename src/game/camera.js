@@ -27,6 +27,7 @@ const overPos = new THREE.Vector3(), overQuat = new THREE.Quaternion();
 const closePos = new THREE.Vector3(), closeQuat = new THREE.Quaternion(), look = new THREE.Vector3();
 const m4 = new THREE.Matrix4();
 const rollQuat = new THREE.Quaternion(), VIEW_AXIS = new THREE.Vector3(0, 0, 1);   // (the camera's own: it looks down -Z)
+const tiltQuat = new THREE.Quaternion(), tiltAxis = new THREE.Vector3(), pivot = new THREE.Vector3();
 
 let blend = 0;      // 0: the overview, 1: the close view
 let arm = null;     // the close view's arm as it is now (null: not out)
@@ -232,6 +233,15 @@ export function updateCamera(dt) {
   else if (t >= 1) { camera.position.copy(closePos); camera.quaternion.copy(closeQuat); }
   else { camera.position.lerpVectors(overPos, closePos, t); camera.quaternion.slerpQuaternions(overQuat, closeQuat, t); }
   if (cine?.w > 0) intro(t);
+  // the cube tipped (game/tilt.js): it tips down towards view.tilt about its middle, at the hero's
+  // height; the camera goes round that the other way, so the world is drawn tipped where it is
+  const tl = Math.hypot(view.tilt[0], view.tilt[1]);
+  if (tl > 1e-5) {
+    tiltQuat.setFromAxisAngle(tiltAxis.set(view.tilt[1] / tl, 0, -view.tilt[0] / tl), -tl);
+    pivot.set(N / 2, player.y, N / 2);
+    camera.position.sub(pivot).applyQuaternion(tiltQuat).add(pivot);
+    camera.quaternion.premultiply(tiltQuat);
+  }
   // the world rolled on the screen (game/roll.js): the camera turns about where it looks
   if (view.roll) camera.quaternion.multiply(rollQuat.setFromAxisAngle(VIEW_AXIS, view.roll));
   setSkyRoll(view.roll);   // (the sky is drawn on the screen: it rolls along)

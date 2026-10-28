@@ -187,7 +187,7 @@ test('boss: each boss alone in the very arena of his depth, made a test room; no
     assert.deepEqual(m.arena, real.arena);
     if (BOSS_ARENAS[boss]?.type) assert.equal(m.arena.type, BOSS_ARENAS[boss].type);
     assert.deepEqual(m.tide, real.tide);
-    assert.equal(!!m.tide, ['tidal', 'tower', 'bowl'].includes(BOSS_ARENAS[boss]?.type));
+    assert.equal(!!m.tide, ['tidal', 'tower', 'bowl', 'mire'].includes(BOSS_ARENAS[boss]?.type));
     assert.deepEqual(m.floors.map(f => [f.top, f.encounter]), real.floors.map(f => [f.top, f.encounter]));
     assert.equal(m.arenaPlacements.length, real.arenaPlacements.length);
     // nothing leads out, no gate, no guardian of its own, nobody else

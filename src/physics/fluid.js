@@ -6,14 +6,21 @@
 // (Foggery, his Fire-cats) is not burned by lava.
 // Standing fluids fill a cube up to one level, everything under it is in it, any floor or
 // structure: a trial's rising fluid (core/trials.js, game/trials.js) over the whole cube, and a
-// boss's tide (game/tide.js) inside its box of cells.
+// boss's tide (game/tide.js) inside its box of cells. A tide may lean (`slope`: Sollmeldon's mud
+// while the world is tipped, game/mud.js): its surface is then a plane, y at the middle of the
+// cube (core/sollmeldon.js PIVOT) rising by slope [x, z] a cell, and each cell has it at its middle.
 import { LH, N, WATER, LAVA, HEAD_Y } from '../core/constants.js';
+import { planeY } from '../core/sollmeldon.js';
 
 let trial = null;   // { y (its surface), fluid } or null
-let tide = null;    // { y, fluid, box: [x0, z0, x1, z1] (cells, x1 / z1 past the last) } or null
+let tide = null;    // { y, fluid, box: [x0, z0, x1, z1] (cells, x1 / z1 past the last), slope? } or null
+let cells = null;   // a leaning tide's, per cell: { ...tide, y: its surface at the cell's middle }
 export const setTrialFluid = f => { trial = f; };
 export const trialFluid = () => trial;
-export const setTide = f => { tide = f; };
+export function setTide(f) {
+  tide = f;
+  cells = f?.slope && (f.slope[0] || f.slope[1]) ? Array.from({ length: N * N }, (_, i) => ({ ...f, y: planeY(f.y, f.slope, i % N + 0.5, ((i / N) | 0) + 0.5) })) : null;
+}
 export const tideFluid = () => tide;
 
 // the standing fluid at cell i (or the point x, z): { y, fluid } or null
@@ -22,7 +29,8 @@ function standing(i) {
   const x = i % N, z = (i / N) | 0, [x0, z0, x1, z1] = tide.box;
   const inBox = i >= 0 && x >= x0 && z >= z0 && x < x1 && z < z1;
   if (!inBox) return trial;
-  return !trial || tide.y > trial.y ? tide : trial;
+  const t = cells ? cells[i] : tide;
+  return !trial || t.y > trial.y ? t : trial;
 }
 export const standingAt = (x, z) => standing(x >= 0 && z >= 0 && x < N && z < N ? Math.floor(z) * N + Math.floor(x) : -1);
 

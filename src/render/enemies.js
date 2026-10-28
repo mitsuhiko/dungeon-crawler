@@ -68,6 +68,8 @@ import { slomoModel } from './slomomodel.js';
 import { makeSlomoLook, slomoLook } from './slomoview.js';
 import { manskModel } from './manskmodel.js';
 import { monteurModel } from './monteurmodel.js';
+import { sollmeldonModel } from './sollmeldonmodel.js';
+import { makeSollmeldonLook, sollmeldonClips, sollmeldonLook } from './sollmeldonview.js';
 import { makeMonteurLook, monteurLook } from './monteurview.js';
 import { qualmosModel } from './qualmosmodel.js';
 import { mooseModel } from './moosemodel.js';
@@ -107,7 +109,7 @@ import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
 const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
-  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, qualmos: qualmosModel, moose: mooseModel };
+  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, sollmeldon: sollmeldonModel, qualmos: qualmosModel, moose: mooseModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
 export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.load()));
 // light: [color, intensity, distance, height]; pulse: emissive / light swing with the
@@ -135,6 +137,8 @@ const GLOW = {
   mansk: { light: [0x6fb4ff, 1.6, 4.5, 1.95], flare: 0.6 },
   // Monteur's red eyes and the cracks in his stones glow warm; his eyes flare up to a throw
   monteur: { light: [0xff8a3a, 1.2, 4, 2.3], flare: 0.8 },
+  // Sollmeldon's cat's eyes glow beige-yellow out of his black mud; they flare up to a bite
+  sollmeldon: { light: [0xe8d49a, 1.3, 4.5, 2.6], flare: 0.9 },
 };
 const EMBERS = ['#ffd25a', '#ff8a2a', '#ff5a14'];
 const GHOST = 0xff6a5a, GHOST_OPACITY = 0.4;
@@ -685,6 +689,7 @@ function makeView(e, prefab) {
     sink: e.under ? 1 : 0, underWas: e.under ? 1 : 0, height: e.profile.height / size, morphing: false, swim: false,
     fog: e.profile.species === 'foggery' ? makeFoggeryLook(model, group) : null, slomo: e.profile.species === 'slomo' ? makeSlomoLook(model) : null,
     mansk: e.profile.species === 'mansk' ? makeManskLook(model) : null, monteur: e.profile.species === 'monteur' ? makeMonteurLook(model) : null, moose: e.profile.species === 'moose',
+    sollmeldon: e.profile.species === 'sollmeldon' ? makeSollmeldonLook(model) : null,
     qualmos: e.profile.species === 'qualmos' ? makeQualmosLook(group) : null, rig: makeRig(model, RIGS[e.profile.species]) };
 }
 // IK over the clips (render/ik.js): looking at the hero, feet on the ground, a reach round the hit.
@@ -709,7 +714,7 @@ function poseEnemy(v, e, dt, off, alive) {
   if (sees) {
     if (character.ready) character.bones.head.getWorldPosition(heroAt); else heroAt.set(player.x, player.visY + 0.7, player.z);
   }
-  const stands = alive && near && !e.profile.hover && !v.swim && !e.under && !e.falling && e.mode !== 'split';
+  const stands = alive && near && !e.profile.hover && !v.swim && !e.under && !e.falling && e.mode !== 'split' && !(e.lift > 0.05);
   const r = alive && near ? strikeReach(e) * REACH : 0;
   poseRig(rig, dt, { look: sees ? heroAt : null, ground: stands ? groundUnder : null, base: e.y,
     reach: r > 0 ? { at: clawAt.set(player.x, player.visY + 0.45, player.z), w: r } : null, weight: near ? 1 : 0 });
@@ -774,6 +779,7 @@ function dying(v, e, dt, off) {
   v.group.visible = fade > 0;
   restoreRig(v.rig);
   v.mixer.update(0);
+  if (v.sollmeldon) sollmeldonLook(v, e, dt, off);
   spinWheels(v, e, dt); turnWaves(v, e, dt); spinRings(v, e, dt); thunder(v, e); wetTrail(v, e, dt, off);
   shedParts(v, e); tumble(v, e, dt);
   if (v.fog) foggeryLook(v, e, dt);
@@ -849,7 +855,8 @@ export function animateEnemies(list, dt, off = ZERO) {
     if (gait === 'idle') v.idleT = ((v.idleT ?? v.seed) + dt) % W.getClip().duration;
     W.time = gait === 'idle' ? v.idleT : v.phase * W.getClip().duration;
     if (A.fast) A.fast.time = v.phase * A.fast.getClip().duration;
-    if (attack) strike.time = Math.min(posed ? posed.t : e.t, strike.getClip().duration);
+    // (an attack's `clipSpeed`: its clip played that much faster, Sollmeldon's last head biting)
+    if (attack) strike.time = Math.min(posed ? posed.t : e.t * (attackOf(e).clipSpeed ?? 1), strike.getClip().duration);
     for (const name in A) {
       const target = name === gait ? (attack ? 0 : 1 - fast) : name === 'fast' ? (attack ? 0 : fast)
         : name === 'walk' || prefab.gaits?.[name] ? 0 : +(attack && A[name] === strike);
@@ -873,8 +880,10 @@ export function animateEnemies(list, dt, off = ZERO) {
     v.markT = e.mode === 'alert' ? Math.min(v.markT + dt * 8, 1) : Math.max(v.markT - dt * 2, 0);
     v.mark.visible = v.markT > 0;
     v.mark.scale.setScalar(0.5 * (e.mode === 'alert' ? 1 + 0.35 * Math.sin(Math.PI * v.markT) : v.markT));
+    if (v.sollmeldon) sollmeldonClips(v, e, dt);   // (flying, a head cut off: render/sollmeldonview.js)
     restoreRig(v.rig);
     v.mixer.update(0);
+    if (v.sollmeldon) sollmeldonLook(v, e, dt, off);
     spinWheels(v, e, dt); turnWaves(v, e, dt); spinRings(v, e, dt); thunder(v, e); wetTrail(v, e, dt, off); flail(v, e, 1);
     poseEnemy(v, e, dt, off, true);
     prints(e, off);

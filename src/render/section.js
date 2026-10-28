@@ -22,6 +22,7 @@ import { WALL_CUT, CUT_HEIGHT } from './interior.js';
 import { showGhosts } from './ghosts.js';
 import { restY, ownTakes } from './surface.js';
 import { waterSolids } from './shore.js';
+import { planeY } from '../core/sollmeldon.js';
 
 const RADIUS = 2.8;   // world units around the character
 
@@ -126,22 +127,26 @@ const capColor = row => C(paletteOf(row).hex.cap);
 // per cell the corners of the floor (or structure: render/shore.js waterSolids) it meets there,
 // the highest under its surface (WATER_SHORE;
 // none: far under). The cutaway drops it above the cut, and its cap covers only the cells open
-// at the cut height. level: its level (world units; null: none)
+// at the cut height. level: its level (world units; null: none), slope: its lean (Sollmeldon's mud
+// in the tipped world: the level is at the middle of the cube, core/sollmeldon.js planeY)
 let trialWater = null, solidKey = '', solidMap = null;
-export function setTrialWaterCap(level, fluid, pal = palRow(0, fluid, 0)) {
-  trialWater = level == null ? null : { level, fluid, pal };
+export function setTrialWaterCap(level, fluid, pal = palRow(0, fluid, 0), slope = null) {
+  trialWater = level == null ? null : { level, fluid, pal, slope: slope ?? [0, 0] };
 }
+// its level over cell i
+const levelAt = i => planeY(trialWater.level, trialWater.slope, i % N + 0.5, Math.floor(i / N) + 0.5);
 const cellTexture = () => ({ value: new THREE.DataTexture(new Float32Array(N * N * 4), N, N, THREE.RGBAFormat, THREE.FloatType) });
 export const WATER_OWN = cellTexture(), WATER_SHORE = cellTexture();
 function standingCells(map) {
-  const level = trialWater?.level, k = map && level != null ? level.toFixed(3) : '';
+  const level = trialWater?.level, k = map && level != null ? level.toFixed(3) + ':' + trialWater.slope.map(v => v.toFixed(4)).join(',') : '';
   if (k === solidKey && map === solidMap) return;
   solidKey = k; solidMap = map;
   const own = WATER_OWN.value.image.data, shore = WATER_SHORE.value.image.data;
   own.fill(0); shore.fill(-1e3);
   if (k) for (let i = 0; i < N * N; i++) {
-    own[i * 4] = ownTakes(map.cols[i], level) ? 1 : 0;
-    const meets = waterSolids(map, i).filter(f => f.bottom * LH < restY(level)).sort((p, q) => q.top - p.top)[0];
+    const here = levelAt(i);
+    own[i * 4] = ownTakes(map.cols[i], here) ? 1 : 0;
+    const meets = waterSolids(map, i).filter(f => f.bottom * LH < restY(here)).sort((p, q) => q.top - p.top)[0];
     if (meets) for (let c = 0; c < 4; c++) shore[i * 4 + c] = meets.cs[c];
   }
   WATER_OWN.value.needsUpdate = true; WATER_SHORE.value.needsUpdate = true;
@@ -235,8 +240,9 @@ export function setCut(y, map, px, py, pz, walls = true) {
   capColors(map, on ? y : py + 1);
 
   standingCells(map);
-  const water = on && trialWater && restY(trialWater.level) > y ? trialWater.pal : null;
-  const k = on ? y.toFixed(3) + ':' + (water ?? '') : 'off';
+  const lean = trialWater && (trialWater.slope[0] || trialWater.slope[1]);
+  const water = on && trialWater && (lean || restY(trialWater.level) > y) ? trialWater.pal : null;
+  const k = on ? y.toFixed(3) + ':' + (water ?? '') + (lean && water != null ? ':' + solidKey : '') : 'off';
   if (k === key && map === fluidCaps.userData.map) return;
   key = k; fluidCaps.userData.map = map;
   const b = new GeoBuilder(), capped = new Set();
@@ -247,7 +253,7 @@ export function setCut(y, map, px, py, pz, walls = true) {
   }
   if (water != null && map) for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
     const i = z * N + x;
-    if (capped.has(i) || solidAt(map, i, y)) continue;
+    if (capped.has(i) || solidAt(map, i, y) || restY(levelAt(i)) <= y) continue;
     b.quad([x, y, z], [x + 1, y, z], [x + 1, y, z + 1], [x, y, z + 1], [0, 1, 0], capColor(water));
   }
   fluidCaps.geometry.dispose();

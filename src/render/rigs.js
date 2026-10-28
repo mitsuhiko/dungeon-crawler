@@ -41,6 +41,9 @@ export const RIGS = {
   mansk: { look: [['body', 1]], limits: { yaw: 0.45, pitch: 0.3 } },
   monteur: { look: [['neck', 0.4], ['head', 0.6]], legs: hoofs },
   moose: { look: [['neck', 0.4], ['head', 0.6]], eyes: EYES, legs: hoofs },
+  // (each of his heads looks at the hero; his three legs stand, two behind and one in front)
+  sollmeldon: { look: [['head.L', 1], ['head.M', 1], ['head.R', 1]], limits: { yaw: 0.6, pitch: 0.4 },
+    legs: ['L', 'R', 'F'].map(s => [`thigh.${s}`, `shin.${s}`, `foot.${s}`]) },
   // (his tentacles stand where their contacts are, the joint between their third and fourth bone
   // from the hips: blender/qualmos.py REACH; the curling tip keeps its turn)
   qualmos: { look: [['chest', 0.3], ['head', 0.7]], arms: arms('arm', 'forearm', 'hand'),

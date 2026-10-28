@@ -20,6 +20,7 @@ import { addFoggerys } from './foggery.js';
 import { addRenews } from './renew.js';
 import { addSlomos } from './slomo.js';
 import { addMansks } from './mansk.js';
+import { addSollmeldons } from './sollmeldon.js';
 import { addMonteurs } from './monteur.js';
 import { addQualmoses } from './qualmos.js';
 import { pickFloor, pointer } from './pointer.js';
@@ -75,7 +76,7 @@ function spawned(kind, f, x, y, z, yaw, level, i) {
 // a boss fights its own fight (game/gusto.js, game/totnar.js, game/squarlo.js, game/flip.js, game/foggery.js,
 // game/renew.js, game/slomo.js, game/mansk.js, game/monteur.js, game/qualmos.js)
 function enlist(kind, list) {
-  if (kind.boss) ({ gusto: addGustos, totnar: addTotnars, squarlo: addSquarlos, flip: addFlips, foggery: addFoggerys, renew: addRenews, slomo: addSlomos, mansk: addMansks, monteur: addMonteurs, qualmos: addQualmoses })[kind.boss](list);
+  if (kind.boss) ({ gusto: addGustos, totnar: addTotnars, squarlo: addSquarlos, flip: addFlips, foggery: addFoggerys, renew: addRenews, slomo: addSlomos, mansk: addMansks, monteur: addMonteurs, sollmeldon: addSollmeldons, qualmos: addQualmoses })[kind.boss](list);
   else addEnemies(list);
 }
 
