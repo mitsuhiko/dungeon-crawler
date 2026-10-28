@@ -13,18 +13,19 @@ const names = (p, d) => attacksInReach(p, d, 0).map(i => p.attacks[i].name);
 
 test('up close it tosses, from further off it charges, and its tail is for whoever stands behind it', () => {
   const toss = named(MOOSE, 'toss'), charge = named(MOOSE, 'charge'), dazed = named(MOOSE, 'dazed'), tail = named(MOOSE, 'tail');
-  assert.deepEqual(names(MOOSE, 0.6), ['toss', 'tail']);
-  assert.deepEqual(names(MOOSE, 0.9), ['tail']);
-  assert.deepEqual(names(MOOSE, 1.3), [], 'too far for a blow, too close for a charge');
-  assert.deepEqual(names(MOOSE, 4), ['charge']);
+  assert.deepEqual(names(MOOSE, 1.2), ['toss', 'tail']);
+  assert.deepEqual(names(MOOSE, 1.8), ['tail']);
+  assert.deepEqual(names(MOOSE, 2.6), [], 'too far for a blow, too close for a charge');
+  assert.deepEqual(names(MOOSE, 5), ['charge']);
+  assert.ok(MOOSE.height > 1.5, 'twice the player\'s height');
   assert.ok(MOOSE.reach === charge.reach && MOOSE.style === 'brute');
   // its tail lands behind it, and only a player behind it draws it
   assert.ok(tail.back && !toss.back && !charge.back);
   assert.ok(tail.hitReach > toss.hitReach, 'the tail is long');
   const e = makeEnemy({ id: 'm', level: 3, x: 0, y: 0, z: 0 }, MOOSE);
   e.yaw = 0;   // facing +z
-  assert.ok(behind(e, 0, -1.5) && behind(e, 0.6, -1.2), 'behind it');
-  assert.ok(!behind(e, 0, 1.5) && !behind(e, 1.5, 0), 'not ahead of it, nor at its side');
+  assert.ok(behind(e, 0, -3) && behind(e, 1.2, -2.4), 'behind it');
+  assert.ok(!behind(e, 0, 3) && !behind(e, 3, 0), 'not ahead of it, nor at its side');
   assert.ok(BACK < 0);
   // it turns slowly: its sides are where to stand
   assert.ok(MOOSE.turnSpeed < 3);

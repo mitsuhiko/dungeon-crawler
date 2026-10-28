@@ -492,16 +492,16 @@ export const FLIMMER = {
 // every blow hurting it more). Behind it, it sweeps its tail round: an attack that is `back` is only
 // started with the player behind it, without turning round to them, turns its back to them while it
 // winds up, and lands behind it (its arc is about its back: game/enemyai.js, game/enemycombat.js).
-// It is drawn at a third of its model's size (`size`: about 0.8 cells to the tips of its antlers,
-// the player's height), its body and reaches with it.
+// It is drawn at two thirds of its model's size (`size`: about 1.6 cells to the tips of its
+// antlers, twice the player's height), its body and reaches with it.
 const MOOSE_TOSS = {
-  name: 'toss', clip: 'toss', weight: 2, reach: 0.8, hitAt: 14 / 30, trackUntil: 0.3, attackTime: 33 / 30, hitReach: 1.05,
+  name: 'toss', clip: 'toss', weight: 2, reach: 1.6, hitAt: 14 / 30, trackUntil: 0.3, attackTime: 33 / 30, hitReach: 2.1,
   arc: 0.5, power: 1, knock: 6, knockDown: false, hop: 4, reason: 'Tossed by a Moose!',
 };
 const MOOSE_CHARGE = {
-  name: 'charge', clip: 'charge', weight: 2, reach: 6, minReach: 1.6, hitAt: 21 / 30, trackUntil: 21 / 30, attackTime: 69 / 30, hitReach: 0,
+  name: 'charge', clip: 'charge', weight: 2, reach: 8, minReach: 3.2, hitAt: 21 / 30, trackUntil: 21 / 30, attackTime: 69 / 30, hitReach: 0,
   arc: 0.5, power: 1.3, knock: 7, knockDown: true, hop: 4, reason: 'Trampled by a Moose!',
-  roll: { from: 21 / 30, to: 51 / 30, speed: 6.5, steer: 0.35, bounces: 0, reach: 0.12, crash: 'dazed' }, steady: { from: 21 / 30, to: 51 / 30 },
+  roll: { from: 21 / 30, to: 51 / 30, speed: 6.5, steer: 0.35, bounces: 0, reach: 0.24, crash: 'dazed' }, steady: { from: 21 / 30, to: 51 / 30 },
 };
 // (only a charge that runs into something starts it)
 const MOOSE_DAZED = {
@@ -510,13 +510,13 @@ const MOOSE_DAZED = {
   exposed: { from: 0.1, until: 1.6, damage: 1.5, thud: true },
 };
 const MOOSE_TAIL = {
-  name: 'tail', clip: 'tail', weight: 1, reach: 1, hitAt: 16 / 30, trackUntil: 0.3, attackTime: 36 / 30, hitReach: 1.2,
+  name: 'tail', clip: 'tail', weight: 1, reach: 2, hitAt: 16 / 30, trackUntil: 0.3, attackTime: 36 / 30, hitReach: 2.4,
   arc: 0.2, back: true, power: 0.9, knock: 6.5, knockDown: false, hop: 4, reason: 'Clubbed by a Moose\'s tail!',
 };
 export const MOOSE = {
   type: 'moose', species: 'moose', label: 'Moose', hp: 100, damage: 20, knock: 6,
   xp: 64, coins: [12, 24],
-  size: 1 / 3, radius: 0.24, height: 0.8, bodyHeight: 0.5, mass: 1.6, turnSpeed: 2.2, turnStride: 0.15,
+  size: 2 / 3, radius: 0.48, height: 1.6, bodyHeight: 1, mass: 1.6, turnSpeed: 2.2, turnStride: 0.15,
   aggro: 4.5, giveUp: 9, chase: 1.7, wander: 0.65, homeSpeed: 0.9,
   ...MOOSE_TOSS, reach: MOOSE_CHARGE.reach, cooldown: 1.5, ichor: ['#d0503a', '#7a2418'], pitch: 0.75,
   attacks: [MOOSE_TOSS, MOOSE_CHARGE, MOOSE_DAZED, MOOSE_TAIL],
@@ -524,7 +524,7 @@ export const MOOSE = {
   parts: { fur: ['MooseFur', 'MooseMuzzle', 'MooseBrows'], antlers: ['MooseAntlers'], ball: ['MooseTailBall'], eyes: ['MooseEyes_glow'] },
   colors: paints({ fur: 'ember.deep@+6', antlers: 'stone.pale', ball: 'ember.dark@+6', eyes: 'eyes.sun' }),
   style: 'brute', charge: 1.3,
-  seedSalt: 0x3005e1, spacing: 2.5,
+  seedSalt: 0x3005e1, spacing: 4,
 };
 export const ENEMY_PROFILES = [SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, SPICY, WOLLA, WOLK, SQUIRTLE, MECKED, TORNADO, SLUG, BOLIME, FLIMMER, MOOSE];
 

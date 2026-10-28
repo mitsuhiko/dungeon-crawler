@@ -45,7 +45,7 @@ export async function runMooseChecks() {
       const attacking = e => () => e.mode === 'attack';
 
       // behind it: its tail, as it stands
-      let e = fresh(0, 0.8, Math.PI), yaw0 = e.yaw, hp = player.hp;
+      let e = fresh(0, 1.6, Math.PI), yaw0 = e.yaw, hp = player.hp;
       check(run(1, 1 / 30, attacking(e)), 'it strikes at a player behind it');
       check(attackOf(e).name === 'tail', `its tail (not ${attackOf(e).name})`);
       check(turned(e.yaw, yaw0) < 0.3, 'without turning round first');
@@ -54,21 +54,21 @@ export async function runMooseChecks() {
       out.tail = hp - player.hp;
 
       // at its side: neither its tail nor its antlers, until it has turned to face the player
-      e = fresh(0, 0.7, Math.PI / 2);
+      e = fresh(0, 1.4, Math.PI / 2);
       run(1, 1 / 30, attacking(e));
       check(e.mode !== 'attack' || attackOf(e).name === 'toss', 'no tail at its side');
       if (e.mode === 'attack') check(turned(e.yaw, Math.atan2(player.x - e.x, player.z - e.z)) < 0.8, 'tosses only once it faces the player');
       out.sideTurn = +turned(e.yaw, 0).toFixed(2);
 
       // in front, close: its antlers
-      e = fresh(0, 0.6, 0); hp = player.hp;
+      e = fresh(0, 1.2, 0); hp = player.hp;
       check(run(1, 1 / 30, attacking(e)) && attackOf(e).name === 'toss', 'tosses a player in front of it');
       run(attackOf(e).hitAt - e.t + 0.05);
       check(player.hp < hp, 'tossed');
       out.toss = hp - player.hp;
 
       // further off: it charges, and tramples a player who stands still
-      e = fresh(0, 3.5, 0); hp = player.hp;
+      e = fresh(0, 4.5, 0); hp = player.hp;
       check(run(1, 1 / 30, attacking(e)) && attackOf(e).name === 'charge', 'charges from further off');
       run(attackOf(e).roll.to - e.t, 1 / 30, () => player.hp < hp);
       check(player.hp < hp && player.ragdoll, 'trampled and knocked down');
