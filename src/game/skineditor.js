@@ -8,7 +8,7 @@ import { setSkinMap, createSkinPicker } from '../render/skin.js';
 import { SkinPainter } from '../render/skinpaint.js';
 import { SkinPreview } from '../render/skinpreview.js';
 import { writeSkinFile, deleteSkinFile, skinImage, readNamedSkin, writeNamedSkin, rollbackNamedSkin, SkinLibraryFull } from './skinfiles.js';
-import { cleanSkinName, skinNameKey, SKIN_NAME_MAX, MAX_SKINS, isNinjaSkinCode, NINJA_SKIN_CODE } from '../core/skin.js';
+import { cleanSkinName, skinNameKey, SKIN_NAME_MAX, MAX_SKINS, isSecretSkinCode } from '../core/skin.js';
 import { tr } from '../i18n/i18n.js';
 
 let active = false;
@@ -130,24 +130,27 @@ export async function openSkinEditor({ hero, name = '', save, onClose }) {
     $('#skin-name').addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       e.preventDefault();
-      if (isNinjaSkinCode($('#skin-name').value)) void loadSecret();
+      if (isSecretSkinCode($('#skin-name').value)) void loadSecret();
       else $('#skin-save').click();
     });
     $('#skin-name').addEventListener('input', () => {
-      if (isNinjaSkinCode($('#skin-name').value)) void loadSecret();
+      if (isSecretSkinCode($('#skin-name').value)) void loadSecret();
     });
     async function loadSecret() {
       if (busy) return;
       if (dirty && !confirm(tr('Loading a skin will replace your unsaved painting. Continue?'))) return;
+      const code=$('#skin-name').value;
       busy = true; status.textContent = tr('Loading secret skin …');
       try {
-        const record = await readNamedSkin(NINJA_SKIN_CODE);
+        const record = await readNamedSkin(code);
         const image = await skinImage(record.blob);
         const texture = new THREE.CanvasTexture(image); texture.colorSpace = THREE.SRGBColorSpace;
         strokes.length = 0; pointer = null; last = null;
         painter.copy(texture, true); texture.dispose();
         $('#skin-name').value = record.name; dirty = true; requestDraw();
-        status.textContent = tr('Easter egg unlocked: Ninjajavamc! Choose Save Skin to keep it.');
+        status.textContent = record.name==='Technoblade'
+          ?tr('Easter egg unlocked: Technoblade! Choose Save Skin to keep it.')
+          :tr('Easter egg unlocked: Ninjajavamc! Choose Save Skin to keep it.');
       } catch (e) { console.error(e); status.textContent = tr('Could not load the secret skin. Try again with Enter.'); }
       finally { busy = false; }
     }

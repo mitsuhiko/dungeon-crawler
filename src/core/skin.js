@@ -10,6 +10,16 @@ export function cleanSkinName(value) {
 export const skinNameKey = value => cleanSkinName(value).toLowerCase();
 export const NINJA_SKIN_CODE = ':ninjajavamc';
 export const isNinjaSkinCode = value => skinNameKey(value) === NINJA_SKIN_CODE;
+export const TECHNOBLADE_SKIN_CODE = ':technoblade';
+const SECRET_SKINS = Object.freeze({
+  [NINJA_SKIN_CODE]: Object.freeze({ id:'ninjajavamc',name:'Ninjajavamc',file:'ninjajavamc.png' }),
+  [TECHNOBLADE_SKIN_CODE]: Object.freeze({ id:'technoblade',name:'Technoblade',file:'technoblade.png' }),
+});
+export function secretSkinOf(value) {
+  const key=skinNameKey(value);
+  return Object.hasOwn(SECRET_SKINS,key)?SECRET_SKINS[key]:null;
+}
+export const isSecretSkinCode = value => secretSkinOf(value) !== null;
 export function checkSkin(value) {
   if (!value || value.v !== 2 || value.uv !== SKIN_UV || typeof value.id !== 'string'
       || !/^skin-[a-zA-Z0-9-]{1,80}$/.test(value.id)) return null;
