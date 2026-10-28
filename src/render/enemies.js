@@ -259,7 +259,8 @@ function spinRings(v, e, dt) {
   v.ringClock = (v.ringClock ?? 0) + dt;
   // turning for 2.5 s out of every 6 (each its own phase), more while attacking
   const idle = Math.sin(v.ringClock * Math.PI / 3 + v.seed) > 0.2 ? 1.6 : 0;
-  const want = e.mode === 'dead' ? 0 : e.mode === 'split' ? 9 : a ? (a.cast ? 6 : 3.5) : idle;
+  // (a boss's intro may set how fast: `ringSpin`, game/reveals.js)
+  const want = e.ringSpin ?? (e.mode === 'dead' ? 0 : e.mode === 'split' ? 9 : a ? (a.cast ? 6 : 3.5) : idle);
   v.ringSpeed += (want - v.ringSpeed) * Math.min(1, dt * (e.mode === 'dead' ? 1.2 : 3));
   for (const r of v.rings) {
     r.angle = (r.angle + r.dir * r.rate * v.ringSpeed * (e.profile.rings ?? 1) * dt) % (2 * Math.PI);
@@ -899,6 +900,14 @@ function introLook(v, e, dt) {
     v.veiled = true;
   } else if (v.veiled) { v.veiled = false; v.material.opacity = 1; v.material.depthWrite = true; }
   if (state.intro?.full) v.bar.visible = v.label.visible = v.mark.visible = false;   // (nothing over anybody's head meanwhile)
+  // `clipBelow` (a height): nothing of him under it is drawn (Foggery under his lava, which is
+  // see-through; Monteur coming up out of the floor, Qualmos out of his lagoon)
+  const clip = e.clipBelow ?? null;
+  if ((clip !== null) !== !!v.clip) {
+    v.clip = clip !== null ? new THREE.Plane(new THREE.Vector3(0, 1, 0), 0) : null;
+    for (const m of [v.material, v.ghost, v.shell?.material]) if (m) { m.clippingPlanes = v.clip ? [v.clip] : null; m.needsUpdate = true; }
+  }
+  if (v.clip) { v.clip.constant = -(clip + shift.y); v.ghost.opacity = 0; }   // (nor a silhouette of him through the floor meanwhile)
   e.dressView?.(v, dt);
 }
 // An enemy of each of these kinds made once off-screen, for the shaders it is drawn with

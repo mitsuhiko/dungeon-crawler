@@ -8,12 +8,13 @@ const near = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
 const anchors = { hero: { x: 2, y: 1, z: 8 }, spot: { x: 12, y: 1, z: 8 }, boss: { x: 12, y: 1, z: 8 } };
 const frame = shotFrame(anchors.hero, anchors.spot);
 
-test('every boss has an epithet, a Temp Boss the shared one; the intro is his own, else the drop, met before: again', () => {
-  for (const boss of Object.values(BOSSES)) assert.ok(EPITHETS[boss], boss);
+test('every boss has an epithet and an intro of his own; a Temp Boss the shared epithet and the drop; met before: again', () => {
+  for (const boss of Object.values(BOSSES)) {
+    assert.ok(EPITHETS[boss], boss);
+    assert.equal(introOf({ boss }, false), INTROS[boss], boss);
+    assert.equal(INTROS[boss].reveal, boss, `${boss}: his own reveal`);
+  }
   assert.equal(epithetOf({ bossPlaceholder: true }), EPITHETS.temp);
-  assert.equal(introOf({ boss: 'gusto' }, false), INTROS.gusto);
-  assert.equal(introOf({ boss: 'totnar' }, false), INTROS.totnar);
-  assert.equal(introOf({ boss: 'squarlo' }, false), INTROS.drop);
   assert.equal(introOf({ bossPlaceholder: true }, false), INTROS.drop);
   assert.equal(introOf({ boss: 'gusto' }, true), INTROS.again);
 });
@@ -29,7 +30,30 @@ test('an intro\'s moments come in order: his name before the camera cuts back, c
     assert.ok(d.name[1] - d.name[0] >= 2, `${name}: the name long enough to read`);
     assert.ok(d.length >= 7, `${name}: slow enough to see`);
     assert.ok(d.shots.every((k, i) => !i || k.t > d.shots[i - 1].t), `${name}: keys in order`);
+    assert.ok(d.shots.at(-1).t <= d.blend[2], `${name}: the last key before the cut back`);
+    if (d.dim) assert.ok(d.dim.at.every((a, i) => !i || a >= d.dim.at[i - 1]) && d.dim.at[3] <= d.length, `${name}: the light goes and comes back in order`);
+    if (d.fires) assert.ok(d.fires.out < d.fires.back && d.fires.back <= d.blend[2], `${name}: the fires back before the cut`);
   }
+});
+
+test('an intro\'s camera turns back the right way up; its anchors are the shared ones or its reveal\'s', () => {
+  const ANCHORS = new Set(['hero', 'spot', 'boss', 'start', 'behind', 'shore', 'aside']);
+  for (const [name, d] of Object.entries(INTROS)) {
+    const rolls = [];
+    for (const k of d.shots) {
+      rolls.push(k.roll ?? rolls.at(-1) ?? 0);
+      assert.ok(ANCHORS.has(k.cam[0]) && ANCHORS.has(k.look[0]), `${name} at ${k.t}: ${k.cam[0]}, ${k.look[0]}`);
+    }
+    if (rolls.length) assert.ok(Math.abs(rolls.at(-1) % 360) < 3, `${name}: upright at the end (${rolls.at(-1)})`);
+  }
+});
+
+test('Flip\'s camera turns once round with his cartwheel', () => {
+  const d = INTROS.flip, [a, b] = d.at.turn, keys = d.shots;
+  const at = t => keys.find(k => Math.abs(k.t - t) < 1e-9);
+  assert.ok(at(a) && at(b), 'keys where the turn starts and ends');
+  assert.equal(Math.abs(at(b).roll - at(a).roll), 360);
+  assert.ok(a >= d.at.flip && d.name[0] >= b, 'his name once the world is still again');
 });
 
 test('the free camera comes in smoothly and cuts back behind the black bars', () => {

@@ -13,7 +13,7 @@ import { player, state } from './state.js';
 import { allEnemies, mirroring, resetEnemies } from './enemies.js';
 import { bossOf } from '../core/bossbar.js';
 import { enemyName } from '../core/enemies.js';
-import { introOf, shotAt, shotFrame, shotPoint, shotScale, blendAt, blinking, BLINK, dimAt, within, epithetOf } from '../core/bossintro.js';
+import { INTROS, introOf, shotAt, shotFrame, shotPoint, shotScale, blendAt, blinking, BLINK, dimAt, within, epithetOf } from '../core/bossintro.js';
 import { N, LH } from '../core/constants.js';
 import { viewBlockedAt } from '../core/blockers.js';
 import { REVEALS } from './reveals.js';
@@ -40,6 +40,7 @@ const SKIP_FROM = 1;   // s into it before a click skips it (not the one that br
 const STEP = 0.7;      // cells ahead the walk looks for the ground going on
 let run = null;        // the intro under way
 let visit = null, waited = 0;   // the visit (state.visit) the boss was looked for in
+let voidVisit = null;  // the visit an intro took the world round the arena away in (state.introVoid)
 
 export const introPlaying = () => !!run;
 export const introFull = () => !!run?.full;
@@ -56,6 +57,8 @@ export function introSteer() {
 
 // main.js, every frame (after the enemies)
 export function updateBossIntro(dt) {
+  // (the world round his arena his intro took away stays away till his fight takes over: Flip's)
+  if (state.introVoid && !run && (voidVisit !== state.visit || state.void || state.mode !== 'play')) state.introVoid = 0;
   if (state.mode !== 'play' || !state.map) { if (run) stop(); visit = null; return; }
   if (run && (run.visit !== state.visit || state.transitioning || run.e.mode === 'dead')) stop();
   if (!run) look(dt);
@@ -78,13 +81,16 @@ function look(dt) {
 
 function start(e, full) {
   state.run.met.add(e.id);
-  const def = introOf(e, !full), reveal = full ? REVEALS[def.reveal] : null;
   const spot = { x: e.x, y: e.y, z: e.z, yaw: e.yaw };
   let wx = spot.x - player.x, wz = spot.z - player.z;
   const l = Math.hypot(wx, wz) || 1;
-  run = { e, def, at: def.at, t: 0, full, reveal, spot, visit: state.visit, data: {}, side: 1, walk: [wx / l, wz / l],
+  run = { e, t: 0, full, spot, visit: state.visit, data: {}, side: 1, walk: [wx / l, wz / l],
     anchors: { hero: { x: player.x, y: player.visY, z: player.z }, spot, boss: e }, k: shotScale(e.profile.height * (e.profile.size ?? 1)),
     named: false, done: false };
+  // his own intro, or the drop where his cannot be played here (Qualmos without his lagoon)
+  let def = introOf(e, !full), reveal = full ? REVEALS[def.reveal] : null;
+  Object.assign(run, { def, at: def.at, reveal });
+  if (reveal?.fits && !reveal.fits(run)) { def = INTROS.drop; reveal = REVEALS.drop; Object.assign(run, { def, at: def.at, reveal, data: {} }); }
   state.intro = { full, bar: false };
   $('boss-intro-name').textContent = enemyName(e.profile);
   $('boss-intro-title').textContent = tr(epithetOf(e));
@@ -238,6 +244,7 @@ function stop() {
     finishReveal(r);
     for (const f of r.fires) f.set.power(f.i, 1);
     state.introDim = 0;
+    if (state.introVoid) voidVisit = r.visit;
     setCine(null);
     $('letterbox').classList.remove('on', 'shut');
     document.body.classList.remove('cinematic');

@@ -161,6 +161,9 @@ function animate(e, dt, off) {
   if (dead) {
     T.sit = 1;
     A.sit.time = Math.min(e.deadT, kit.defs.sit.duration);
+  } else if (e.pose && A[e.pose.clip]) {   // (held in a clip: his intro, game/reveals.js)
+    T[e.pose.clip] = 1;
+    A[e.pose.clip].time = clamp(e.pose.t, 0, kit.defs[e.pose.clip].duration);
   } else if (a) {
     // (each new blow on the other of two Slash actions: a chained one cross-fades from the last)
     if (v.attacks !== e.attacks) { v.attacks = e.attacks; if (a.clip === 'slash') v.swing = v.swing === 'slash' ? 'slash2' : 'slash'; }
@@ -208,16 +211,19 @@ function animate(e, dt, off) {
   const fade = dead ? clamp(1 - (e.deadT - e.profile.deathTime + 0.8) / 0.8, 0, 1) : 1, flash = clamp(e.hurtT / 0.22, 0, 1) * 0.6;
   // (a ghost of a phase gone by, game/rewind.js: pale blue, see-through, no bar, no name)
   // (and beaten, rising away into the sky: a ghost too, fading out as he goes up)
-  const ghost = !!e.ghost || !!e.rising, rise = e.rising ? 1 - smooth(0.45, 1, e.rising.u) : 1;
-  const seen = fade * (e.ghost ? 0.45 * (e.ghostAlpha ?? 1) : e.rising ? 0.6 * rise : 1);
+  // (and in his intro, game/reveals.js: `veil` fades him in, `spectral` draws him as a ghost)
+  const ghost = !!e.ghost || !!e.rising || !!e.spectral, rise = e.rising ? 1 - smooth(0.45, 1, e.rising.u) : 1;
+  const seen = fade * (e.ghost ? 0.45 * (e.ghostAlpha ?? 1) : e.rising ? 0.6 * rise : e.spectral ? 0.55 : 1) * clamp(e.veil ?? 1, 0, 1);
   for (const o of v.clay) {
     o.material.color.copy(o.userData.base).lerp(WHITE, e.hovered ? Math.max(flash, 0.22) : flash);
     if (ghost) o.material.color.lerp(ECHO, 0.55);
     o.material.opacity = seen; o.material.depthWrite = !ghost;
   }
-  if (dead || ghost) for (const obj of [v.weapon.object, ...Object.values(v.f.worn).flatMap(w => w.objects)]) obj?.traverse(o => {
+  const dressed = dead || ghost || e.veil !== undefined;
+  if (dressed || v.dressed) for (const obj of [v.weapon.object, ...Object.values(v.f.worn).flatMap(w => w.objects)]) obj?.traverse(o => {
     if (o.isMesh) for (const m of [].concat(o.material)) { m.transparent = seen < 1; m.opacity = seen; m.depthWrite = !ghost; }
   });
+  v.dressed = dressed;   // (once more after: back as he was)
   v.ghost.opacity = ghost ? 0 : GHOST_OPACITY * fade;
   if (dead && e.deadT > e.profile.deathTime - 1 && fade > 0 && Math.random() < dt * 60) sparkle(e, 1, off);
   if (e.rising) { if (Math.random() < dt * 50 * rise) sparkle(e, 1.4, off); }

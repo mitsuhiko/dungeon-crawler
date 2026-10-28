@@ -218,7 +218,9 @@ function frame(now = performance.now()) {
   state.lookMist += (state.mist - state.lookMist) * Math.min(1, dt * (state.mist ? 1.2 : 0.8));
   // and the world round Flip's box goes while his fight is on (game/flipworld.js): the sky black,
   // the neighbours gone
-  state.lookVoid += (state.void - state.lookVoid) * Math.min(1, dt * (state.void ? 1.5 : 1));
+  // (and in his intro, before the fight starts: game/reveals.js)
+  const voided = Math.max(state.void, state.introVoid);
+  state.lookVoid += (voided - state.lookVoid) * Math.min(1, dt * (voided ? 1.5 : 1));
   if (state.lookVoid < 0.002) state.lookVoid = 0;
   setNeighborVeil(state.lookVoid);
   // and the dusk of Renew's fight falls slowly, and lifts as slowly once he is beaten (game/rewind.js)

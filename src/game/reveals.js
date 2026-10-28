@@ -1,72 +1,24 @@
 // How a boss appears in his intro (game/bossintro.js runs it, core/bossintro.js has its moments in
-// `at`; docs/bosses.md "The intro"). Each reveal is { start(r), step(r, t, dt), end(r) } on the
-// intro `r` ({ e (him), spot (where he stands: { x, y, z, yaw }), at, data (the reveal's own),
-// anchors (what the camera's shots go by: a reveal may add its own), side (1, or -1: the shots
-// mirrored) }). `seen(r)`, if it has one: where the camera's shots take him to be. start puts him where he is to be at first, step moves him and shows what goes
-// with it, end (at the end, or skipped) leaves him on his spot as the fight wants him. Meanwhile
-// he is `staged` (game/enemyai.js leaves him be); `veil` (0 .. 1) fades him in, `pose` ({ clip,
-// t }) holds him in one of his clips, `dressView` changes his view (render/enemies.js).
+// `at`; docs/bosses.md "The intro"): here the drop, Gusto's and Totnar's; the other real bosses'
+// in game/bossreveals.js, what they share in game/revealkit.js. Each reveal is { start(r),
+// step(r, t, dt), end(r) } on the intro `r` ({ e (him), spot (where he stands: { x, y, z, yaw }),
+// at, data (the reveal's own), anchors (what the camera's shots go by: a reveal may add its own),
+// side (1, or -1: the shots mirrored) }). `seen(r)`, if it has one: where the camera's shots take
+// him to be; `where(r, t)`: where he will be at t (the shots are made clear for it); `fits(r)`:
+// false where it cannot be played (then the drop is). start puts him where he is to be at first,
+// step moves him and shows what goes with it, end (at the end, or skipped) leaves him on his spot
+// as the fight wants him. Meanwhile he is `staged` (game/enemyai.js leaves him be); `veil` (0 .. 1)
+// fades him in, `pose` ({ clip, t }) holds him in one of his clips, `clipBelow` leaves out what of
+// him is under a height, `dressView` changes his view (render/enemies.js).
 import * as THREE from 'three';
 import { player, state } from './state.js';
-import { fitting } from './bossfight.js';
-import { groundY } from '../physics/enemynav.js';
-import { standY } from '../physics/dwell.js';
-import { cellAt } from '../physics/collide.js';
 import { emit, glow, soft, rand } from '../render/particles.js';
 import { firesUnder } from '../render/flames.js';
 import { showShadow, showEyes, hideIntroFx } from '../render/introfx.js';
-import { sfx, SOUND_NAMES } from '../audio/sfx.js';
-import { quake, cameraKick, hitstop } from './juice.js';
-import { together } from '../net/online.js';
-
-const clamp01 = u => u <= 0 ? 0 : u >= 1 ? 1 : u;
-const facing = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
-// he turns to where the intro's camera is (r.view: [x, y, z]; before it has one, the hero), so
-// it sees his face: at `rate` (1/s), or at once
-function faceCamera(r, dt, rate = 3) {
-  const e = r.e, p = r.view ?? [player.x, player.y, player.z], want = Math.atan2(p[0] - e.x, p[2] - e.z);
-  e.yaw += Math.atan2(Math.sin(want - e.yaw), Math.cos(want - e.yaw)) * (rate === Infinity ? 1 : Math.min(1, dt * rate));
-}
-const sizeOf = e => e.profile.size ?? 1;
-
-// --- what goes with any of them -------------------------------------------------------------------
-
-// his voice (his kind's alert, deeper) and the ground trembling a little
-function roar(e) {
-  const voice = `${e.profile.species}_alert`;
-  if (SOUND_NAMES.includes(voice)) sfx(voice, { at: e, pitch: (e.profile.pitch ?? 1) * 0.8, volume: 1 });
-  sfx('rumble', { at: e, pitch: 1.4, volume: 0.5 });
-  quake(0.012);
-}
-// down on his spot: a crash, a ring of dust running out, the view jolting and the moment held
-function landFx(e) {
-  const s = Math.sqrt(sizeOf(e)) * Math.max(0.6, Math.min(1.6, e.profile.height / 1.8)), r = e.profile.radius;
-  sfx('stomp', { at: e, pitch: 0.9 / Math.sqrt(s) });
-  sfx('boom', { at: e, pitch: 0.55, volume: 0.7 });
-  for (let i = 0; i < 46; i++) {
-    const a = rand(0, Math.PI * 2), v = rand(2.5, 5.5) * s;
-    emit(soft, e.x + Math.cos(a) * r, e.y + 0.1, e.z + Math.sin(a) * r, { v: [Math.cos(a) * v, rand(0.2, 1.2), Math.sin(a) * v],
-      life: rand(0.6, 1.1), size: rand(0.3, 0.55) * s, grow: 1.4, color: i % 3 ? '#c9c0ae' : '#e8e2d6', alpha: 0.55, drag: 2.6 });
-  }
-  for (let i = 0; i < 14; i++)
-    emit(soft, e.x + rand(-r, r), e.y + 0.05, e.z + rand(-r, r), { v: [rand(-1, 1), rand(2, 4.5), rand(-1, 1)], life: rand(0.6, 0.9),
-      size: rand(0.04, 0.08), color: '#8a7a62', alpha: 0.9, gravity: 9 });
-  quake(0.04);
-  cameraKick(0, 0, 0, 0.09);
-  if (!together()) hitstop(0.07);   // (playing together the world runs on for the others)
-}
-// a puff of cloud round him as he comes (Gusto out of thin air)
-function cloudFx(e, colors = ['#ffffff', '#e4e8f0', '#c8ccd6']) {
-  const y = e.y + e.profile.height * 0.55, s = Math.sqrt(sizeOf(e));
-  emit(glow, e.x, y, e.z, { life: 0.25, size: 1.2 * s, grow: 1.4, color: '#ffffff', alpha: 0.25 });
-  for (let i = 0; i < 44; i++) {
-    const a = rand(0, Math.PI * 2), r = rand(0.3, 1.1), up = rand(-0.6, 1);
-    emit(soft, e.x + Math.cos(a) * r * 0.5, y + up * 0.8, e.z + Math.sin(a) * r * 0.5, { v: [Math.cos(a) * rand(1.2, 3), rand(0.2, 1.4), Math.sin(a) * rand(1.2, 3)],
-      life: rand(0.6, 1.1), size: rand(0.35, 0.6) * s, grow: 1.5, color: colors[i % colors.length], alpha: 0.7, drag: 2.4 });
-  }
-  sfx('poof', { at: e, pitch: 0.7 });
-  sfx('whirl', { at: e, pitch: 0.8, volume: 0.6 });
-}
+import { sfx } from '../audio/sfx.js';
+import { quake, cameraKick } from './juice.js';
+import { clamp01, facing, sizeOf, faceCamera, roar, landFx, cloudFx, wayIn, wayY } from './revealkit.js';
+import { BOSS_REVEALS } from './bossreveals.js';
 
 // --- the drop: out of the sky onto his spot (any boss without one of his own) --------------------
 
@@ -138,57 +90,9 @@ const gusto = {
 
 // --- Totnar: out of the dark, rolling in, lighting the braziers as he passes ------------------------
 
-// where he rolls in from (exported for the checks): a floor he fits on, reach[0] to reach[1]
-// cells from his spot, not too near the hero, with floors of the fight all the way to it, none
-// more than a step above or below the one before (he bumps up and down them); the longest such
-// way, best on one level, from the side (across the camera's view), then from the right:
-// { x, y, z, side, heights (the ground along it from there to his spot, every STRIDE cells) }.
-// null: none (he waits on his spot in the dark)
-const STRIDE = 0.25;
-export function rollStart(r) {
-  const { e, spot, at } = r, [lo, hi] = at.reach, home = e.home ?? e.f;
-  let fx = spot.x - player.x, fz = spot.z - player.z;
-  const l = Math.hypot(fx, fz) || 1;
-  fx /= l; fz /= l;
-  const base = home ? groundY(home, spot.x, spot.z) : spot.y, lift = spot.y - base;
-  // the ground of the fight at (x, z) nearest to height y (null: none)
-  const ground = (x, z, y) => {
-    const i = cellAt(x, z);
-    let best = null;
-    for (const g of state.map.floors) if (g.c === i && (!state.map.arena || g.encounter)) {
-      const h = groundY(g, x, z);
-      if (best === null || Math.abs(h - y) < Math.abs(best - y)) best = h;
-    }
-    return best;
-  };
-  let best = null, score = -Infinity;
-  for (const g of fitting(e.profile)) {
-    const x = g.x + 0.5, z = g.z + 0.5, dx = x - spot.x, dz = z - spot.z, d = Math.hypot(dx, dz);
-    if (d < lo || d > hi || Math.hypot(x - player.x, z - player.z) < 3) continue;
-    const u = Math.max(0, Math.min(1, ((player.x - spot.x) * dx + (player.z - spot.z) * dz) / (d * d)));
-    if (Math.hypot(spot.x + dx * u - player.x, spot.z + dz * u - player.z) < 1.8) continue;   // (not over the hero)
-    const heights = [];
-    let y = base, ok = true;
-    for (let s = 0; s <= d + 1e-6 && ok; s += STRIDE) {   // (from his spot outwards)
-      const h = ground(spot.x + dx * s / d, spot.z + dz * s / d, y);
-      ok = h !== null && Math.abs(h - y) < 1.1;
-      y = h; heights.push(h);
-    }
-    if (!ok) continue;
-    const along = (dx * fx + dz * fz) / d, side = Math.sign(-fz * dx + fx * dz) || 1;
-    const flat = heights.every(h => Math.abs(h - base) < 0.3);
-    const value = Math.min(d, 6) + 2.5 * (1 - Math.abs(along)) + (flat ? 1.5 : 0) + (side > 0 ? 0.4 : 0);
-    if (value > score) { score = value; best = { x, y: heights.at(-1) + lift, z, side, heights: heights.reverse().map(h => h + lift), len: d }; }
-  }
-  return best;
-}
-// his height at `k` of the way from where he rolled in to his spot (1: on it; past it: as on it)
-function rollY(from, spot, k) {
-  const H = from.heights;
-  if (!H || k >= 1) return spot.y;
-  const u = Math.max(0, k) * from.len / STRIDE, i = Math.min(H.length - 1, Math.floor(u)), j = Math.min(H.length - 1, i + 1);
-  return H[i] + (H[j] - H[i]) * Math.min(1, (u - i) * 1.6);
-}
+// where he rolls in from (game/revealkit.js wayIn): `reach` cells from his spot; null: none (he
+// waits on his spot in the dark)
+export const rollStart = r => wayIn(r, r.at.reach);
 // how far he has rolled at t (cells from where he started, `len` from there to his spot): faster
 // and faster up to `over` past his spot, then back onto it
 function rolled(at, t, len) {
@@ -221,7 +125,7 @@ const totnar = {
     const { spot, at } = r, from = r.data.from, dx = spot.x - from.x, dz = spot.z - from.z, len = Math.hypot(dx, dz);
     if (len <= 0.5) return spot;
     const k = rolled(at, t, len) / len;
-    return { x: from.x + dx * k, y: rollY(from, spot, k), z: from.z + dz * k };
+    return { x: from.x + dx * k, y: wayY(from, spot, k), z: from.z + dz * k };
   },
   step(r, t, dt) {
     const { e, spot, at } = r, D = r.data, from = D.from;
@@ -230,7 +134,7 @@ const totnar = {
     const dx = spot.x - from.x, dz = spot.z - from.z, len = Math.hypot(dx, dz);
     if (len > 0.5) {
       const k = rolled(at, t, len) / len;
-      e.x = from.x + dx * k; e.z = from.z + dz * k; e.y = rollY(from, spot, k);
+      e.x = from.x + dx * k; e.z = from.z + dz * k; e.y = wayY(from, spot, k);
     }
     // crouched, spinning up; rolling; then (his gloom's clip) arms up and the skulls gaping as the light comes back
     e.pose = t < at.roll ? { clip: 'roll', t: 0.8 * clamp01(t / at.roll) } : t < at.stop ? { clip: 'roll', t: Math.min(2.5, 0.8 + t - at.roll) }
@@ -285,4 +189,4 @@ function skulls(v, r) {
   });
 }
 
-export const REVEALS = { drop, gusto, totnar };
+export const REVEALS = { drop, gusto, totnar, ...BOSS_REVEALS };

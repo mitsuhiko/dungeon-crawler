@@ -39,7 +39,9 @@ dies.
 
 Coming into a boss's arena (a real boss's or a Temp Boss's) while he stands, the first time in
 a world, plays his intro (`game/bossintro.js`; its timings and shots in `core/bossintro.js`,
-how each boss appears in `game/reveals.js`). Once the curtain is up the hero walks on a few
+how each boss appears in `game/reveals.js`: the drop, Gusto's and Totnar's, and
+`game/bossreveals.js`: the other real bosses', with what they share in `game/revealkit.js`).
+Every real boss has an intro of his own; Temp Bosses drop in. Once the curtain is up the hero walks on a few
 steps (towards him, while the ground goes on) and stops, turned to him, with no control; black
 bars slide in and the HUD fades out. The light of the arena goes, to the night's dark or most
 of it (`dim`, `render/look.js`), and its fires sink low. The camera leaves the hero (the free
@@ -48,7 +50,7 @@ intro's shots while he appears, turning to the camera so it sees his face; his n
 big under his feet with a line of what he is (his epithet: `EPITHETS`, "The Hungry Grin"; a
 Temp Boss's "Keeper of the Well") and a deep sting (`reveal`, `audio/sfx.js`); the light and the
 fires come back. Then the bars shut a moment, the camera cuts back to the game's, the bars go and
-his bar fades in, and the hero is free. About 7½ s (`length`); a click, Space or Enter skips to
+his bar fades in, and the hero is free. About 7½ to 8½ s (`length`); a click, Space or Enter skips to
 the cut back (after the first second). Meanwhile he is `staged` (the AI and his fight leave him
 be: nothing wakes him, not even Foggery's ramp), every enemy holds its attacks, the narrator
 and the robot stop (their subtitle goes) and wait till it is over, and nothing shows over
@@ -61,7 +63,15 @@ anybody's head.
   cube (or in a cave's walls) or not see what it looks at is moved round it (a little round,
   further or closer, higher: the nearest clear place, `clearShots`), and where the way from one
   key to the next would go into something, or lose sight of him for a while, it cuts instead.
-- **The default, the drop** (every boss without an intro of his own, Temp Bosses too): a
+- **What a reveal may do to him** (`render/enemies.js introLook`, `render/renewview.js`): fade
+  him in (`veil`), hold him in one of his clips (`pose`), leave out what of him is under a height
+  (`clipBelow`: under see-through lava, the floor or his lagoon; his silhouette goes meanwhile),
+  turn Flip's rings at a speed of its own (`ringSpin`), draw Renew as a ghost (`spectral`) and
+  change his view (`dressView`). Besides him it shows a shadow, glowing eyes, a pool on the floor
+  and a spotlight's beam (`render/introfx.js`), and may take the world round the arena away
+  (`state.introVoid`, as Flip's fight does: it stays away till his fight takes over).
+- **The default, the drop** (Temp Bosses, and a boss whose own cannot be played here: a
+  reveal's `fits`): a
   shadow grows on his empty spot, he falls out of the sky onto it with a crash (dust, the ground
   shaking, the moment held; the fires flare up) and roars (his kind's alert, deeper). The camera
   low and wide on his spot, a little in as he lands, then slowly round him.
@@ -75,6 +85,39 @@ anybody's head.
   rolls by, bounces to a stop on his spot and turns to the camera; his skulls pop up one by one,
   he spreads his arms (the gloom's clip) and his heart flares as the light comes back. The camera
   runs alongside him, then rises for the skulls.
+- **Squarlo:** water starts to swirl on his spot and a spout bursts up out of it with him on
+  top, spinning (a giant's jump, quicker), falls away and drops him with a plop; he throws his
+  arms up and wiggles, calling the tide (his tide's clip) as water spirals up round him. He is
+  small: the camera starts wide and high, as for somebody big, and finds him low and close,
+  looking up at him on the spout.
+- **Flip:** the world round the box goes (only the stars, as in his fight); his three rings come
+  flying in out of the dark from three sides, spinning wildly and trailing light, and lock
+  together into him; he cartwheels right round (his flip's clip) and the camera turns once round
+  with him (`turn`), so he stays upright and the box turns round him.
+- **Foggery:** the lava bubbles over his spot, and two burning eyes come up out of it and look at
+  the camera, a frog in his pond (what of him is under the lava is not drawn); he bursts up out
+  of it with a splash of lava, lands and croaks, puffed up (his summon's clip), flames bursting
+  out of his mouth. The camera low over the lava, creeping in on the eyes, high as he bursts up.
+- **Renew:** clocks of light turn on his empty spot, their hands racing back, while the braziers
+  sink low; his ghost walks backwards out of the dark onto it (time running back: a floor 2½ to
+  4½ cells away, `wayIn` like Totnar's roll), and there he is whole again in a flash and holds
+  his weapon up as the light comes back. The camera runs round him as he comes.
+- **Mansk:** it goes all but black; a spotlight clunks on over his empty stage, and his mask
+  comes down into its beam out of the dark above, the diamond glowing, and roars (his rise's
+  clip) as the light comes back. The camera from the hall like the audience, pushing in.
+- **Monteur:** the ground on his spot rumbles, dust and pebbles jumping, cracks open, and he rises
+  up out of it antlers first, stone falling off him; his stones float up between his antlers one
+  after the other, and he rears up and stomps down (his summon's clip). The camera low on the
+  ground, looking up at him.
+- **Slomo:** a pool of goo spreads bubbling on his spot and he oozes up out of it, flat at first,
+  wobbling as he settles, his eye stalks popping up; he squashes down and heaves up tall,
+  spitting gloop into the sky (his meteorites' clip). The camera low by the pool, craning up.
+- **Qualmos:** bubbles come up in his lagoon (`lagoonSpot`: deep water 2½ to 9 cells from his
+  spot) and two sea-green eyes light up at its surface; he bursts up out of it in a leap (his
+  dive's clip, stretched over it), lands on his spot and rages (beating his chest, roaring, arms
+  wide). The camera over his spot looking out over the water (`behind`), creeping in towards the
+  eyes (`shore`), cutting to the side of the leap (`aside`) as he comes up. No water near (a dev
+  spawn): the drop.
 - **After the first time** (`state.run.met`, saved with the world), or when someone else is in
   the arena, or he is already fighting, or the enemies are another player's (playing together),
   only his name shows a moment while his bar fades in; nothing is taken away. With reduce motion
@@ -657,7 +700,8 @@ hides the fight and the cutaway has little to do. The physics goes without those
 till the walls are put back: when he winds up his next flip (or a black hole has the player) the
 pieces fly back together, before the world turns. Once he is dead they fly back together and stay.
 
-**The world round the box goes** while the fight is on (from when he first engages till he dies):
+**The world round the box goes** while the fight is on (from when he first engages till he dies;
+his intro takes it away already, [The intro](#the-intro)):
 the neighbouring cubes fade out and the sky turns as dark as it goes, only the stars
 (`state.void`, eased in `main.js`; `render/look.js` VOID, `render/neighbors.js setNeighborVeil`),
 so the box turning hangs in nothing. The box itself stays lit as before. Beaten (or the fight
@@ -1628,7 +1672,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/bossbar.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1644,6 +1688,7 @@ await (await import('./tests/browser/roll.js')).runRollChecks()       // the wor
 await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
 await (await import('./tests/browser/bossbar.js')).runBossBarChecks()   // the boss bar: up on coming in, the damage strip, Gusto's proxies, Renew's rewind, a Temp Boss
+await (await import('./tests/browser/intros.js')).runIntroChecks()     // every boss's intro in his arena: his own reveal, on his spot for his name, nothing left of it after (whole and skipped)
 ```
 
 Re-export the model with `Blender -b --python blender/gusto.py -- assets/gusto.glb

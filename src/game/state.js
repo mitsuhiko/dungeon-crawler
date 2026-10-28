@@ -47,6 +47,7 @@ export const state = {
   deathAsk: null,   // "You died" asks what next: { back } (game/deathask.js)
   film: false,      // a film plays over everything (film/player.js): the world waits
   intro: null,      // a boss's intro plays (game/bossintro.js): { full (the whole of it), bar (his bar may show) }
+  introVoid: 0,     // how far a boss's intro takes the world round his arena (0 .. 1, like `void`: Flip's, game/reveals.js)
   introDim: 0,      // how far a boss's intro has taken the light (0 .. 1, like `dark`: main.js, render/look.js)
   run: createRun(),
   statusMsg: '', statusUntil: 0,
