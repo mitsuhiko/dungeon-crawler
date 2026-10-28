@@ -13,6 +13,10 @@
 Run by tools/narration.mjs, which decides what to render; not meant to be run by hand:
 
     uv run tools/narration.py jobs.json results.json
+    uv run tools/narration.py --setup     (npm run setup: the environment, and the models downloaded)
+
+Its packages are locked in tools/narration.py.lock (`uv lock --script tools/narration.py` after
+changing the dependencies above): the same torch and transformers say the same takes.
 
 jobs.json is {"jobs": [{"model", "language", "voice", "clone", "ref_audio", "ref_text",
 "temperature", "seed", "prepare"?, "filter"?, "text", "out"}, ...]}: each job is said by the Qwen3-TTS base model `model`
@@ -406,8 +410,10 @@ FILTERS = {
 }
 
 
-# how ffmpeg encodes a clip
-OPUS = ["-c:a", "libopus", "-b:a", f"{BITRATE}k", "-vbr", "on", "-application", "audio", "-f", "ogg"]
+# how ffmpeg encodes a clip: bit-exact (no random Ogg stream serial, no ffmpeg version in the
+# tags), so the same take is the same file again, whoever renders it (the clips are committed)
+OPUS = ["-c:a", "libopus", "-b:a", f"{BITRATE}k", "-vbr", "on", "-application", "audio",
+        "-fflags", "+bitexact", "-flags:a", "+bitexact", "-f", "ogg"]
 
 
 def opus(audio, rate):
@@ -686,5 +692,17 @@ def main(jobs_path, results_path):
     print(f"narration: {len(jobs)} clips in {time.time() - started:.0f}s", file=sys.stderr)
 
 
+def setup():
+    """npm run setup (tools/setup.mjs): the models of REVISIONS downloaded into the Hugging Face
+    cache, if they are not there yet; and the device the clips would be said on."""
+    quiet_setup()
+    for name in REVISIONS:
+        print(f"narration: {name} in {snapshot(name)}", file=sys.stderr, flush=True)
+    print(f"narration: the clips are said on {device()}", file=sys.stderr, flush=True)
+
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    if sys.argv[1:] == ["--setup"]:
+        setup()
+    else:
+        main(sys.argv[1], sys.argv[2])

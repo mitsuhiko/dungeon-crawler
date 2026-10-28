@@ -2,6 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "setup": "node tools/setup.mjs",
     "test": "node --test tests/*.test.js",
     "serve": "uv run --no-project tools/serve.py",
     "prop-metadata": "node tools/prop-metadata.mjs",

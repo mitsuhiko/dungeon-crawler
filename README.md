@@ -26,5 +26,6 @@ questions (with your own API key, entered in its settings):
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md) covers how the repository is laid out, how to run the game
-and the tests, and how to work on the models.
+`npm run setup` gets a fresh checkout going (and says what to install). [CONTRIBUTING.md](CONTRIBUTING.md)
+covers how the repository is laid out, how to run the game and the tests, and how to work on the
+models.

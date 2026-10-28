@@ -56,8 +56,8 @@ let ctx = null, bus = null;
 onAudioStart((ac, sounds, music, voice) => { ctx = ac; bus = voice; });
 
 // the clips there are (assets/narration/manifest.json: per language and clip, its length); null
-// until fetched, {} if there is none. The clips are not in the repository yet (docs/narration.md):
-// without them, or without one of them, she is only read.
+// until fetched, {} if there is none. Without it, or without a clip, the line is only read
+// (its subtitles).
 let manifest = null, asked = null;
 function fetchManifest() {
   asked ??= fetch(new URL('../../assets/narration/manifest.json', import.meta.url))

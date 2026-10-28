@@ -14,10 +14,13 @@ doing something. He does not know where his glass comes to rest, so he never say
 narrator's lines (a grandmother remembering, for the town and the first three depths) went with the
 old story; the moments they were said at stay, for the companion to come.
 
-**The clips are not committed yet.** `assets/narration/` is in `.gitignore`: render them locally
-(`node tools/narration.mjs`). Without them (no manifest, or a
-clip missing) the game only shows the subtitles, each up as long as reading it takes, and the test
-that the clips are current is skipped.
+**The clips are committed** (`assets/narration/`, with its manifest), each with the line it says:
+at 10 kbit/s Opus a clip is a few kilobytes, and only a line changed (or a take asked for) is
+rendered again, encoded bit-exact, so the same take is the same file whoever renders it. A line
+may be committed without its clip (rendering needs the models: `npm run setup`): without one the
+game only shows its subtitles, each up as long as reading it takes, until someone renders it.
+What `npm test` holds to is that a clip there says its line as it is now, and that none is left
+over.
 
 ## Why ahead, not in the browser
 
@@ -383,10 +386,14 @@ and a line with tags makes the same clip as without.
 ## Running it
 
 Needs Node, [uv](https://docs.astral.sh/uv/), [ffmpeg](https://ffmpeg.org/) with libopus (it
-encodes the clips) and the voice's recording (above). The first run
-downloads the model (about 4.5 GB into the Hugging Face cache; no account needed). The model's
-revision is pinned (`REVISIONS` in `tools/narration.py`), so after that it is loaded from the
-cache without asking the hub, and an update upstream does not change the takes. A run starts in
+encodes the clips) and the voice's recording (above). `npm run setup` (`tools/setup.mjs`,
+CONTRIBUTING.md "Getting set up") checks them, says how to install what is missing, installs the
+Python packages and downloads the models (`uv run tools/narration.py --setup`): the base model and
+CustomVoice, about 4.5 GB each, into the Hugging Face cache, no account needed (without it, the
+first run downloads them). The models' revisions are pinned (`REVISIONS` in `tools/narration.py`),
+so after that they are loaded from the cache without asking the hub, and an update upstream does
+not change the takes; so are the Python packages (`tools/narration.py.lock`; after changing the
+script's dependencies, `uv lock --script tools/narration.py`). A run starts in
 about 8 seconds (imports and loading the model); after that a line takes about as long as it is
 spoken on an Apple Silicon GPU (MPS) or with CUDA. On the CPU it works, slowly.
 `NARRATION_DEVICE=cpu` (or `mps`, `cuda:0`) overrides the pick.
@@ -402,6 +409,7 @@ would no longer be the clip's own: a take would depend on the lines said with it
 ```sh
 node tools/narration.mjs --check            # what is missing, changed or gone (exit 1 if any); counts the stale
 node tools/narration.mjs --dry-run          # what a run would render and drop
+node tools/narration.mjs --drop             # no models: drop the clips of changed lines (and gone), render nothing
 node tools/narration.mjs                    # render it, drop clips of lines that are gone
 node tools/narration.mjs --lang de --only boss.   # some languages / ids only (prefixes)
 node tools/narration.mjs --force --only boss.gusto  # again, even if current
@@ -441,9 +449,9 @@ cannot need, and the tool says "ran to the limit: try another seed".
    the wrong place) gets another take (`--takes`), or a rewording; punctuation steers the pauses.
    To check a clip without listening, transcribe it, in its language (a Whisper model that knows
    German for the German).
-4. Once the clips are committed (not yet, above): commit them and the manifest with the
-   line. `npm test` fails while a clip rendered here is missing, changed or left over (not while
-   it is stale).
+4. Commit the clips and the manifest with the line. `npm test` fails while a clip says a line
+   that changed, or is left over (not while it is missing or stale). Without the models, `--drop`
+   takes the changed line's clip out and leaves it to be rendered later.
 
 ## In the game
 

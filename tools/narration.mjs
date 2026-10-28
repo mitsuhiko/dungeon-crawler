@@ -18,6 +18,9 @@
 //   node tools/narration.mjs                 render what is missing or changed, drop what is gone
 //   node tools/narration.mjs --check         list what is missing, changed or gone (exit 1 if any)
 //   node tools/narration.mjs --dry-run       list what would be rendered
+//   node tools/narration.mjs --drop          render nothing (no models needed): drop the clips whose
+//                                            line changed, and those of lines gone; until rendered
+//                                            the game shows those lines' subtitles only
 //   node tools/narration.mjs --lang de       only German (a comma-separated list)
 //   node tools/narration.mjs --only boss.    only the lines whose id starts so (comma-separated)
 //   node tools/narration.mjs --force         render the chosen clips again, even if current
@@ -359,7 +362,7 @@ function preview(opt) {
 }
 
 async function main(argv) {
-  const opt = { langs: null, only: null, force: false, stale: false, check: false, dry: false, takes: 0, firstSeed: 0, say: null, voice: null, filter: undefined, seed: 0, bake: null, instruct: null };
+  const opt = { langs: null, only: null, force: false, stale: false, check: false, dry: false, drop: false, takes: 0, firstSeed: 0, say: null, voice: null, filter: undefined, seed: 0, bake: null, instruct: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--lang') opt.langs = argv[++i].split(',');
@@ -368,6 +371,7 @@ async function main(argv) {
     else if (a === '--stale') opt.stale = true;
     else if (a === '--check') opt.check = true;
     else if (a === '--dry-run') opt.dry = true;
+    else if (a === '--drop') opt.drop = true;
     else if (a === '--takes') opt.takes = Number(argv[++i]);
     else if (a === '--first-seed') opt.firstSeed = Number(argv[++i]);
     else if (a === '--say') opt.say = argv[++i];
@@ -419,6 +423,18 @@ async function main(argv) {
     return;
   }
 
+  if (opt.drop) {
+    // no rendering: a clip that no longer says its line goes (and its entry), as do the gone
+    const changed = p.changed.filter(chosen), files = [...changed.map(c => clipFile(c.lang, c.key)), ...(opt.langs || opt.only ? [] : p.gone)];
+    for (const f of files) console.log(`drop    ${f}`);
+    if (opt.dry) return;
+    for (const f of files) rmSync(resolve(assets, 'narration', f), { force: true });
+    mkdirSync(resolve(assets, 'narration'), { recursive: true });
+    writeManifest(p.clips.filter(c => !changed.includes(c)), {}, p.manifest, assets);
+    const silent = p.missing.length + changed.length;
+    console.log(`Dropped ${files.length} clip${files.length === 1 ? '' : 's'}; ${silent} clip${silent === 1 ? '' : 's'} to render (node tools/narration.mjs).`);
+    return;
+  }
   const todo = [...p.missing, ...p.changed, ...(opt.stale ? p.stale : []), ...(opt.force ? p.clips.filter(c => !p.missing.includes(c) && !p.changed.includes(c) && !(opt.stale && p.stale.includes(c))) : [])].filter(chosen);
   const dropping = opt.langs || opt.only ? [] : p.gone;
   if (opt.dry) {

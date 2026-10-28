@@ -17,17 +17,18 @@ translated.
 
 The narrator's lines (`src/core/narration.js`, German in `src/i18n/de/story.js`) are pre-rendered
 with Qwen3-TTS (1.7B CustomVoice, in the speaker embedding of a voice cloned from a reference
-recording, `tools/voices/`), into `assets/narration/` (`docs/narration.md`). When you add or change a
-line, its text or its German, also run `node tools/narration.mjs` (needs `uv` and the voice's
-recording; the first run downloads about 9 GB of models): `npm test` fails while a clip rendered
-here is missing or its text changed. A change to a voice, a filter, an instruction or `PIPELINE`
-does not render anything again by itself: only `--stale` (or `--force`) does, and only when asked
-(it takes long). `node tools/narration.mjs --check` lists what is out of date. For now the clips and the
-manifest are not committed (`assets/narration/` is in `.gitignore`); the game only shows the
-subtitles without them. Every line is said in `glassmaker` (`tools/voices/`, committed, with
-`child`, which the robot's voice `robot` is made from: `docs/narration.md`, "Made voices"); the
-ones tried out are `tools/voices/experiment_<voice>` (ignored). Do not commit the clips or an
-experiment unless asked.
+recording, `tools/voices/`), into `assets/narration/` (`docs/narration.md`). When you add or change
+a line, its text or its German, also run `node tools/narration.mjs` (needs what `npm run setup`
+checks and gets: `uv`, ffmpeg, about 9 GB of models): `npm test` fails while a clip says a line that
+changed (a line without a clip is fine: the game shows its subtitles). Where the models cannot run,
+`node tools/narration.mjs --drop` takes the changed lines' clips out instead. A change to a voice, a
+filter, an instruction or `PIPELINE` does not render anything again by itself: only `--stale` (or
+`--force`) does, and only when asked (it takes long). `node tools/narration.mjs --check` lists what
+is out of date. The clips and the manifest (`assets/narration/`) are committed: commit what a line's
+change rendered with the line. Every line is said in `glassmaker` (`tools/voices/`, committed, with
+`child`, which the robot's voice `robot` is made from: `docs/narration.md`, "Made voices"); the ones
+tried out are `tools/voices/experiment_<voice>` (ignored). Do not commit an experiment, or clips
+rendered again with `--stale` or `--force`, unless asked.
 
 - Check what you rendered. The `transcribe_file` tool only understands English; for German use the
   `audio-transcription` skill with `--language de`. If a clip says the text wrong, try other takes

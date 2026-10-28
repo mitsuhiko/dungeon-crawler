@@ -56,17 +56,17 @@ test('every language kept with every change has a voice', () => {
   for (const lang of EVERY_CHANGE) assert.ok(VOICES[lang], `no voice for ${lang} (tools/narration.mjs VOICES)`);
 });
 
-// The clips are not committed yet (assets/narration/ is ignored, docs/narration.md): without them
-// the game only shows the subtitles. Where they were rendered, they must be current.
-const rendered = existsSync(resolve(assets, 'narration/manifest.json'));
-test('the narration is rendered and current (node tools/narration.mjs)', { skip: !rendered && 'no clips rendered here' }, async () => {
+// The clips are committed with their lines (docs/narration.md). A line may come without its clip
+// for a while (the game shows its subtitles: rendering needs the models), but a clip there says
+// its line as it is now, and none is left over.
+test('the narration there is current (node tools/narration.mjs)', async () => {
+  assert.ok(existsSync(resolve(assets, 'narration/manifest.json')), 'no narration manifest: run node tools/narration.mjs');
   const p = await plan(assets);
   const list = xs => xs.map(c => (typeof c === 'string' ? c : clipFile(c.lang, c.key)));
   assert.deepEqual(p.unvoiced, [], 'the voice cloned is missing (docs/narration.md, "The voice")');
-  assert.deepEqual(list(p.missing), [], 'missing clips: run node tools/narration.mjs');
-  assert.deepEqual(list(p.changed), [], 'changed lines: run node tools/narration.mjs');
+  assert.deepEqual(list(p.changed), [], 'changed lines: run node tools/narration.mjs (without the models: --drop)');
   assert.deepEqual(p.gone, [], 'clips of lines that are gone: run node tools/narration.mjs');
-  for (const c of p.clips) {
+  for (const c of p.clips.filter(c => !p.missing.includes(c))) {
     const head = readFileSync(resolve(assets, 'narration', clipFile(c.lang, c.key))).subarray(0, 36).toString('latin1');
     assert.ok(head.startsWith('OggS') && head.slice(28, 36) === 'OpusHead', `${c.key} is not Ogg Opus`);
     assert.ok(p.manifest.clips[c.lang][c.key].dur > 0.5);

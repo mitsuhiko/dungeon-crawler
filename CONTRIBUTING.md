@@ -68,8 +68,8 @@ The game is plain ES modules and a vendored three.js; there is no build step.
     voice cloned from a reference recording, following instructions and the lines' tags) into
     `assets/narration/` by `node tools/narration.mjs`; `src/game/narrator.js` plays them as things
     happen, one after the other, with subtitles. The inventory's Memories tab
-    (`src/game/memorypanel.js`) plays the ones heard again. The clips are not committed yet
-    (`assets/narration/` is ignored): without them the game shows only the subtitles.
+    (`src/game/memorypanel.js`) plays the ones heard again. The clips and their manifest are committed with
+    their lines: change a line, render it (or `--drop` its clip), commit what changed.
   - Skins (main menu: **Choose Skin**, like Choose World; the painter in `src/game/skineditor.js`):
     up to ten named skins in the browser's IndexedDB, each with a thumbnail of the hero wearing
     it; choose one (or none), paint on one, delete one, or paint a new one. The painter has a
@@ -151,6 +151,27 @@ The game is plain ES modules and a vendored three.js; there is no build step.
   by `node tools/vendor-fonts.mjs` (`fonts.css` sets `--font-display`, Cinzel, for buttons, headings
   and labels; `--font-body`, Crimson Text, for the rest; `--font-mono`, IBM Plex Mono, only for code
   and the dev panel; canvas text takes the same faces from `src/render/fonts.js`).
+
+## Getting set up
+
+```sh
+npm run setup                 # checks and gets everything below; run it again any time
+npm run setup -- --no-models  # the same without the narrator's models (about 9 GB)
+```
+
+The game is plain files: Node (20.11 or newer) runs the tests and the tools, and
+[uv](https://docs.astral.sh/uv/) the dev server and the Python tools (it brings its own Python).
+The narrator's voice (`docs/narration.md`) also needs ffmpeg with libopus, and Qwen3-TTS:
+`npm run setup` installs its Python packages as locked in `tools/narration.py.lock` and downloads
+the two models at their pinned revisions into the Hugging Face cache (no account needed). It says
+how to install what is missing (uv, ffmpeg) on macOS, Linux and Windows. Rendering runs on an
+Apple Silicon GPU or with CUDA; on the CPU it works, slowly. Blender is needed only to work on the
+models (`blender/`, below).
+
+The narrator's clips are committed, so the game speaks without any of this; a line may come
+without its clip for a while (it shows its subtitles). Without the models,
+`node tools/narration.mjs --drop` takes out the clips of the lines you changed, and someone with
+them renders those later.
 
 ## Running
 
