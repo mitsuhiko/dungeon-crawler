@@ -1,6 +1,7 @@
 // The world: a lazily grown set of cubes. Preparing a cube collapses its whole depth (WFC, once
 // per depth), decides its faces, and then generates its map from a spec built out of those faces.
 import { hash32 } from '../core/util.js';
+import { WATER, LAVA } from '../core/constants.js';
 import { worldNoise } from '../core/wnoise.js';
 import { generate } from '../cubegen/index.js';
 import { WFC } from './wfc.js';
@@ -99,7 +100,7 @@ export class World {
       roomRole: this.layout(-Y).roles.get(k), rewardSites: this.layout(-Y).sitePlans.get(k) || [],
       spots: L.spots.get(k) || [],   // places kept free for the quests (world/spots.js, cubegen/spots.js)
       annexRoom: L.annex?.key === k,   // a quest's room behind a sealed portal (world/layout.js)
-      fluid: theme.river, fluidMix: theme.fluids, voidOK: !annex && voidAllowed(this, k), fallIn: fallMask(this, k),
+      fluid: trial?.kind === 'sinking' && theme.river === WATER ? LAVA : theme.river, fluidMix: theme.fluids, voidOK: !annex && voidAllowed(this, k), fallIn: fallMask(this, k),
       outflow, inflow, relief: theme.relief, height, pinnacle, tunnel, shaftBottom: special ? null : shaftAbove(this, k),
       area, peak, lake, sparse: !!(peak || lake),   // sparse: mostly empty (few props, render/propplace.js)
       // islands without pillars: lakes, the sky islands near the top and the abyss

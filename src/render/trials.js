@@ -242,8 +242,9 @@ function barrier(p) {
 // a crust cell of the crumbling floor (cubegen/trials/collapse.js): its column of rock, drawn
 // on its own (render/floors.js leaves it out) round its centre, so it can shake and fall
 function crustCell(m, f, theme) {
-  const b = new GeoBuilder(), cs = f.cs, y0 = f.bottom * LH, cx = f.x + 0.5, cz = f.z + 0.5;
-  const avg = (cs[0] + cs[1] + cs[2] + cs[3]) / 4, top = gradient(theme.top, avg / LH).multiplyScalar(0.92);
+  const b = new GeoBuilder(), cs = f.cs, slab = m.trial?.kind === 'sinking',
+    y0 = slab ? Math.min(...cs) - 0.35 : f.bottom * LH, cx = f.x + 0.5, cz = f.z + 0.5;
+  const avg = (cs[0] + cs[1] + cs[2] + cs[3]) / 4, top = (slab ? new THREE.Color('#827d76') : gradient(theme.top, avg / LH)).multiplyScalar(0.92);
   const P = [[-0.5, cs[0], -0.5], [0.5, cs[1], -0.5], [-0.5, cs[2], 0.5], [0.5, cs[3], 0.5]];
   b.tri(P[0], P[1], P[3], top, [0, 1, 0]); b.tri(P[0], P[3], P[2], top, [0, 1, 0]);
   for (let d = 0; d < 4; d++) {
@@ -351,7 +352,7 @@ export function buildTrialView(m, group, over = null) {
     group.add(fog);
     view.fog = fog; view.fogTop = (t.timeline.top + 8) * LH;
   }
-  if (t.kind === 'flood' || t.kind === 'sunken') {
+  if (t.kind === 'flood' || t.kind === 'sunken' || t.kind === 'sinking') {
     standingWater(m, t.fluid, view, group, [0, 0, N, N], over);
     if (t.timeline) { view.tide = tideLines(t.timeline); group.add(view.tide); }
   }
@@ -558,7 +559,8 @@ export function setCrust(world, states, dt, resolved = false) {
       m.material.color.copy(cell.base).multiplyScalar(1 - 0.35 * k);
       if (Math.random() < dt * 6) dust(m, 1);
     } else if (cell.state === 'falling') {
-      p.y = -6 * cell.t * cell.t; m.rotation.x = cell.t * 0.6; m.rotation.z = cell.t * 0.4;
+      p.y = -6 * cell.t * cell.t;
+      if (v.kind !== 'sinking') { m.rotation.x = cell.t * 0.6; m.rotation.z = cell.t * 0.4; }
       if (cell.t > 1.4) { cell.state = 'gone'; m.visible = false; }
     } else if (cell.state === 'rising') {
       m.visible = true; m.rotation.set(0, 0, 0);

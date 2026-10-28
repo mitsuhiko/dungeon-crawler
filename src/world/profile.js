@@ -96,7 +96,7 @@ function spanProfile(world, fk, out) {
 // the shared vertex), so the four faces meeting at a corner agree.
 // (a trial room that has to be walled in, world/trials.js: the crumbling floor's and the timed
 // gate's, where the causeway is the only way, gets rock walls along its faces even under the sky)
-const WALLED = new Set(['collapse', 'timedgate']);
+const WALLED = new Set(['collapse', 'timedgate', 'sinking']);
 const walledTrial = (world, k) => { const d = -parse(k)[1]; return d >= 0 && d <= MAX_DEPTH && WALLED.has(world.layout(d).trialCells?.get(k)?.kind); };
 export function caveWall(world, fk, f) {
   const [k, d] = fk.split('/'), [X, Y, Z] = parse(k);

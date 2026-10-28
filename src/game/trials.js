@@ -8,7 +8,7 @@ import { step } from '../world/coords.js';
 import { camera } from '../render/scene.js';
 import { pointer } from './pointer.js';
 import { TRIALS, ARM_DISTANCE, ARM_TIME, PART_REACH, fogY, fogLevel, fogHurt, COLD, coldStep, STORM, stormPhase, newTrial, stepTrial, resolveTrial, resetTrial, trialFluidLevel,
-  nextPulse, floodEnd, trialSealed, trialGate, crustState, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
+  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, STONE_TIME, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
   traceBeam, beamDone, allLit, pressBrazier, pushTarget, clueMark } from '../core/trials.js';
 import { groundAt } from '../physics/collide.js';
 import { setTrialFluid } from '../physics/fluid.js';
@@ -49,6 +49,7 @@ const PUZZLE_HINT = {
 const HOW = {
   flood: msg('The water is coming. Climb to the summit and press the button.'),
   collapse: msg('The floor crumbles behind you. Run for the far side!'),
+  sinking: msg('Jump from stone to stone! Each sinks three seconds after you land on it.'),
   miasma: msg('Poison fog sinks from above. Get down to the vent valve!'),
   cold: msg('The cold sets in. Light the braziers on your way to the great fire!'),
   storm: msg('Gusts tear off the hill. Climb in the lulls, wait out the gusts behind the boulders, pull the lightning rod on top!'),
@@ -63,17 +64,25 @@ const resolvedIn = (map, run) => !!map?.trial && run.unlockedGates.has(map.trial
 export function enterTrial(map) {
   state.trial = map?.trial ? newTrial(map.trial, resolvedIn(map, state.run)) : null;
   if (state.trial && map.trial.kind === 'sunken') state.trial.stage = state.run.trials.get(map.trial.key) ?? 0;   // (drained for the run)
-  gone.clear(); crust.clear(); ice = null; player.skidding = false; cold = 0; exposedOf = null; resetEvents();
+  gone.clear(); crust.clear(); stoneAsked.clear(); ice = null; player.skidding = false; cold = 0; exposedOf = null; resetEvents();
   partBlockers(map?.trial);
   showTrial(true);
 }
 
 // the crumbling floor (collapse): which crust cells are gone (their floors are not there for the
 // physics, physics/collide.js) and how each looks
-const gone = new Set(), crust = new Map();
+const gone = new Set(), crust = new Map(), stoneAsked = new Set();
 setGoneFloors(f => gone.has(f.id));
 function stepCrust(m, s, dt) {
   if (!m.crust) return;
+  if (m.kind === 'sinking' && player.hp > 0 && player.grounded && player.support) {
+    const q = m.crust.find(q => q.f === player.support.id);
+    if (q && s.stones?.[q.stone] == null) {
+      if (mirroring()) {
+        if (!stoneAsked.has(q.stone)) { stoneAsked.add(q.stone); relay.trialAct?.({ key: s.key, act: 'part', id: `stone:${q.stone}` }); }
+      } else touchStone(m, s, q.stone);
+    }
+  }
   let fell = 0;
   for (const q of m.crust) {
     const now = crustState(m, s, q);
@@ -177,6 +186,7 @@ export function beforeTrialSpot() {
 export function restartTrial() {
   if (!state.trial || state.trial.phase === 'resolved') return;
   resetTrial(state.trial, mapTrial()?.start);
+  stoneAsked.clear();
   resetEvents();
   showTrial();
 }
@@ -250,6 +260,7 @@ export function takeTrialWord(m) {
   if (!s || m.key !== s.key || m.seed !== state.cubes?.seed) return;
   if (m.phase === 'resolved') { resolve(false); return; }   // (its gate, the banner, the water draining)
   const happened = followTrial(s, m);
+  if (happened === 'idle') stoneAsked.clear();
   announce(s, happened);
   showTrial();
 }
@@ -258,6 +269,7 @@ export function trialActFrom(m) {
   const s = state.trial;
   if (!s || m.key !== s.key || mirroring()) return;
   if (m.act === 'away') awayFrom = true;
+  if (m.act === 'part' && /^stone:\d+$/.test(m.id)) { touchStone(mapTrial(), s, Number(m.id.slice(6))); return; }
   if (m.act === 'part' && m.id === 'keystone') { resolve(); return; }
   if (m.act === 'part' && m.id.startsWith('solve:')) { solvePuzzle(+m.id.slice(6)); return; }
   if (m.act === 'part' && m.id === 'timed:reach') { if (timedOpen(mapTrial(), s) || timed.t < (mapTrial()?.puzzles?.[0]?.T ?? 0) + 1) resolve(); return; }
@@ -374,6 +386,7 @@ export function resolve(tell = true) {
   setStatus(tr('{trial}: done! The way on is open', { trial: tr(TRIALS[m.kind].name) }));
   const done = { flood: msg('The water drains away.'), miasma: msg('The vents open: the fog lifts.'), cold: msg('The great fire burns: the cold lifts.'),
     storm: msg('Lightning strikes the rod: the storm ends.'), ...EVENT_DONE, collapse: msg('The keystone holds: the floor is whole again.'),
+    sinking: msg('You made it across: the stones rise and hold.'),
     sunken: msg('The room is drained: the way on is clear.'), timedgate: msg('You made it through: the gate stays open.'),
     slide: m.role === 'branch' ? msg('The gate is open, and the vault with it.') : msg('The gate is open: the way on too.') }[m.kind];
   banner(isPuzzle(m.kind) ? tr('Solved!') : tr('Well done!'), done ? tr(done) : '');
@@ -456,6 +469,11 @@ function hud() {
   if (s.kind === 'collapse') {
     line = s.phase === 'armed' ? tr('The floor shakes…') : tr('Run! Reach the far side');
     fill = m.crust.length ? gone.size / m.crust.length : 0;
+  }
+  if (s.kind === 'sinking') {
+    const q = player.grounded && m.crust.find(q => q.f === player.support?.id), at = q && s.stones?.[q.stone];
+    line = at == null ? tr('Jump from stone to stone!') : tr('Jump! This stone sinks in {n} s', { n: Math.max(0, Math.ceil(STONE_TIME - s.t + at)) });
+    fill = at == null ? 0 : Math.min(1, (s.t - at) / STONE_TIME);
   }
   $('trial-line').textContent = line;
   $('trial-bar').style.width = `${Math.round(fill * 100)}%`;
