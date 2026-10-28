@@ -662,14 +662,25 @@ test('Monteur: a moose and a sun in one model, his clips match his attacks, his 
   for (const n of ['moose', 'sun', 'body', 'neck', 'head', 'ball', 'ray.0', 'ray.10', 'upper.fore.L', 'lower.hind.R', 'supper.L', 'slower.R',
     'stone.0', 'stone.4', 'MonteurStone']) assert.ok(j.nodes.some(o => o.name === n), n);
 });
-test('Qualmos: one skinned body, a clip for each of his attacks as long as it, his death held', () => {
+test('Qualmos: one skinned body, a clip for each of his attacks as long as it, his death held, his grab\'s grip read off his hand', () => {
   const { json: j, duration } = glb('qualmos'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
   const clip = name => 'Qualmos' + name[0].toUpperCase() + name.slice(1);
-  assert.deepEqual(Object.keys(a).sort(), ['QualmosDeath', 'QualmosWalk', ...QUALMOS.attacks.map(at => clip(at.clip))].sort());
+  assert.deepEqual(Object.keys(a).sort(), ['QualmosDeath', 'QualmosIdle', 'QualmosWalk', ...QUALMOS.attacks.map(at => clip(at.clip))].sort());
+  assert.equal(a.QualmosIdle.extras.loop, true);
   assert.equal(j.skins.length, 1);
   assert.equal(a.QualmosWalk.extras.loop, true);
   assert.ok(Math.abs(duration(a.QualmosDeath) - QUALMOS.deathTime) < 1e-5); assert.equal(a.QualmosDeath.extras.hold_last_frame, true);
   for (const at of QUALMOS.attacks) assert.ok(Math.abs(duration(a[clip(at.clip)]) - at.attackTime) < 1e-5, at.clip);
+  // (blender/qualmos.py: his right hand from the catch to the throw, every second frame)
+  const grab = QUALMOS.attacks.find(at => at.grab), g = a.QualmosGrab.extras;
+  assert.deepEqual(g.grip, grab.grab.grip);
+  assert.equal(g.hit_frame / 30, grab.hitAt); assert.equal(g.throw_frame / 30, grab.grab.throwAt); assert.equal(grab.grab.step, 2 / 30);
+  assert.equal(grab.grab.grip.length, (g.throw_frame - g.hit_frame) / 2 + 1);
+  // his mouth as the jet starts and as he spits, the top of his head as his spines fly
+  const at = name => QUALMOS.attacks.find(t => t.name === name);
+  assert.deepEqual(a.QualmosWaterJet.extras.muzzle, [...at('waterJet').gust.muzzle]);
+  assert.deepEqual(a.QualmosInkBurst.extras.muzzle, [...at('inkBurst').projectile.muzzle]);
+  assert.deepEqual(a.QualmosSpikeVolley.extras.muzzle, [...at('spikeVolley').projectile.muzzle]);
 });
 test('Mansk: a mask with horns, his clips match his attacks, his mouth, horns and ribbons\' stumps where the game takes them', () => {
   const { json: j, duration } = glb('mansk'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));

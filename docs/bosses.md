@@ -515,7 +515,8 @@ set): each kind of Squirtle lives only in its own fluid there. A guardian arena 
 has Squirtles gets a pond of their fluid dug into its fight zone (`cubegen/guardian.js
 digPonds`: 3.5 cells for each of them, 8 to 28, a level under the floor round it and too deep to
 wade; an arena with no room for one falls back to a plainer one); they are placed in it, and its
-guardian, if it is one of them (any fluid is its), guards from it.
+guardian, if it is one of them (any fluid is its), guards from it. Qualmos's arena gets one too, of
+water, his lagoon (`BOSS_ARENAS.qualmos.lagoon`: up to 24 cells; see [Qualmos](#qualmos)).
 
 ## Water: wading and drowning
 
@@ -1390,45 +1391,108 @@ there is no descent there, so the layout makes the core's last cube (`0,-20,0`) 
 its own with `final` set (`world/layout.js`). `cubegen/guardian.js` builds it like any descent arena
 (the boss stands before where its well would be), but gives it its entrance alone: no well, no
 `exit`, no `portalId`, and its route ends at him (`cubegen/arenamap.js finishArena`). The core is
-dark, so braziers burn round the fight zone (`BOSS_ARENAS.qualmos`).
+dark, so braziers burn round the fight zone (`BOSS_ARENAS.qualmos`). In the fight zone lies his
+**lagoon**: a pond of deep water dug like a Squirtle arena's (`BOSS_ARENAS.qualmos.lagoon`, up to 24
+cells, `cubegen/guardian.js digPonds`), a level under the floor round it, too deep to wade. The
+arena is still the cube it is: no dome or globe round it.
 
-He is a **prototype**: the fight is all there, but it reuses what the game has. The arena is the
-ordinary dry one (no water to swim in yet), his blows are plain hits, his jet, wave and undertow
-are Squarlo's and Mansk's kinds of gust and pull, his ink and spines fly as slime and ice balls; he
-has no grab that holds you, no lines of his own for the narrator, and nothing happens once he is
-beaten (`docs/story.md` "The ending" is still to come).
+He is a **prototype**: the fight is all there, but it reuses what the game has. His blows are plain
+hits, his jet, wave and undertow are Squarlo's and Mansk's kinds of gust and pull, his ink and
+spines fly as slime and ice balls; he has no lines of his own for the narrator, and nothing happens
+once he is beaten (`docs/story.md` "The ending" is still to come).
 
-Unlike the other bosses he is modelled and animated **by hand**, in `blender/qualmos.blend` (its
-NLA track shows his clips one after the other). `blender/qualmos.py` exports him: it joins the
-parts into one skinned mesh (`Qualmos`, its materials renamed `Qualmos*`), names the clips
-`Qualmos*`, adds his death and collapses the mesh to its triangle budget (`blender/figure.py
-TRIANGLE_BUDGET`: 12000 of about 196000).
+He is built like the other bosses, all of him in `blender/qualmos.py` (`blender/qualmos.blend` is its
+output, like `gusto.blend`): every part a signed distance field meshed with OpenVDB (`blender/creature.py
+Parts`), after the first, hand-made model: a slender torso with a raised green belly plate and a
+row of spines down his back, round shoulders, thin arms ending in green palms with three clawed
+fingers, a round head ringed with spines, big glowing eyes with slit pupils in spine-coloured
+sockets under angry brows, a green muzzle with a dark grin and eleven teeth above and eight below,
+and six thick tapering tentacles curling up at the tips, each with a row of eleven pale suckers
+(a ring with a darker hollow). The rig and the skin weights are computed there too (along each arm
+and tentacle by arc length, smoothed over the surface; the neck blends body into head). His mesh
+is collapsed to its triangle budget (`blender/figure.py TRIANGLE_BUDGET`: 12000) in two shares, the
+big parts 8500 and the small things 3500 (teeth, pupils, claws, suckers: rigid, each following its
+bones as one), else the collapse would spend the budget on the little rings and leave the head in
+shards. His rig: the root (at the floor), the body and the chest (his trunk, curling in two), the
+head and a jaw (hinged at the back of his muzzle: the grin below it and his lower teeth go with it,
+so he opens his mouth to roar, blast and spit), three bones an arm, six a tentacle.
 
-Profile: `QUALMOS` in `src/core/enemies.js`; the fight's rules in `src/core/qualmos.js`
-(`QUALMOS_PHASES`, `phaseFloor`, `barred`, `enterPhase`); the fight in `src/game/qualmos.js`.
+Every clip is posed frame by frame, keyed like a hand animation (each a function of time): every
+move winds up, lands on the attack's hit time and follows through. His trunk, head and jaw are
+turned by angles. His **tentacles are posed by IK** (`blender/ik.py`, [combat.md](combat.md#posing-by-ik)):
+each has a contact, where it meets the floor, that stays where the clip puts it (or rides with
+him, in the air), and is laid along an arc from his hips to it, the slack bowing its middle up and
+out, its tip curling off it. So his walk does not skate: two threes of contacts step in turn, the
+planted ones sliding back under him exactly as fast as he walks (`ik.step`; the script checks it,
+`check_walk`), the lifted ones swinging forward in an arc; a slam puts the tips on a spot; nothing
+sinks into the floor. His **arms** reach for points where a hand must be somewhere (the grab's path
+and the slam, hands planted on the floor as he gets up, rubbing his hands before his belly when he
+stands about, cupping his mouth, beating his chest, hauling hand over hand), and they **have
+weight**: each of their bones turns after where the clip points it on a damped spring, so they lag
+when he lurches, swing on after he stops and overshoot a blow a little (a clip holds an arm exact
+where it must be: `loose`). Every clip starts and ends in his stance (hunched a little, arms hanging
+loose, elbows bent); the floor is kept under him (`blender/creature.py ground_clip`, his contacts
+lifted with him). Besides his walk and his attacks he has an **idle**, `QualmosIdle`, which the game
+plays while he stands (`render/enemies.js`: a model with an idle gait plays it on its own clock,
+standing still; any other stands on its walk's first frame): breathing, looking about, his jaw
+working, rubbing his hands, his tentacles curling and shifting. The script also reads off his clips
+what the game needs: where his right hand is over his grab, from the catch to the throw (the `grip`,
+below), and his mouth as the jet starts and as he spits, and the top of his head as his spines fly
+(the attacks' `muzzle`s, `QUALMOS_AT`). Given a fourth path it renders every clip as a video there,
+from the front and the side, to look at them in motion (`creature.py clip_videos`).
+
+Profile: `QUALMOS` in `src/core/enemies.js` (his phases' profiles `QUALMOS_STAGES`); the fight's
+rules in `src/core/qualmos.js` (`QUALMOS_PHASES`, `phaseFloor`, `barred`, `enterPhase`, the belly
+flop's rhythm `choices`, the dive `QUALMOS_DIVE`); the fight in `src/game/qualmos.js`; the warning
+before his grab in `src/render/qualmosview.js`.
 
 | | Level 22 |
 |---|---|
 | Health | 6760: twice Slomo's at his level (3380 at 15), a fifth a phase |
-| Damage | 59 (×1 a plain blow, ×1.1 the grab, ×1.2 the double slam, ×1.15 the dive and the tail spin, ×1.5 the belly flop; the jet ×0.7, the wave ×0.9, ink ×0.6 and slowing, a spine ×0.5) |
+| Damage | 59 in phase 1, then 10% more a phase (82 in the fifth) (×1 a plain blow, ×1.1 the grab, ×1.2 the double slam, ×1.15 the dive and the tail spin, ×1.5 the belly flop; the jet ×0.7, the wave ×0.9, ink ×0.6 and slowing, a spine ×0.5) |
+| Speed, rest | chase 1.3, 12% more a phase (1.92 in the fifth); cooldown 1.5 s and every attack's recovery, 8% less a phase |
 | XP | 1000 grown; coins 250–450 at level 1; two weapons and two potions like a descent guardian |
 | Poise | 2 s; nothing staggers him (`steadfast`) |
 
 Five phases, a fifth of his health each. No blow takes him below the next phase's share
 (`phaseFloor`); once he is down to it and not in the middle of an attack, he **rages**
 (`QualmosRage`, 2.5 s, `ward`ed: nothing hurts him) and fights on with that phase's attacks on top
-of the ones before (`barred`):
+of the ones before (`barred`), and harder: each phase is a profile of its own (`QUALMOS_STAGES`,
+his health the same), his blows 10% stronger, his steps 12% faster and his rests 8% shorter than
+the phase before (`QUALMOS_PRESSURE`):
 
 | Phase | New attacks |
 |---|---|
-| 1 | tentacle whip, a reaching grab (knocks down), double slam (knocks down) |
-| 2 | water jet (pushes you away), a diving leap at you (`lunge`), ink that slows |
+| 1 | tentacle whip, a grab that holds you (below), double slam (knocks down) |
+| 2 | water jet (pushes you away), a diving leap at you (`lunge`), ink that slows, a belly flop; and he dives into his lagoon (below) |
 | 3 | tail spin all round him, undertow (pulls you to him) |
 | 4 | a volley of three spines, fanned |
-| 5 | a wide tidal surge, a belly flop |
+| 5 | a wide tidal surge |
 
-After the belly flop he lies there a moment, **exposed** (2.65–3.7 s into it): blows hurt him
-×1.5, and he takes a while to get up (`recover`).
+**His grab.** As he winds up, the floor before him where his hand will catch glows orange, over
+the blow's reach and arc, brighter and pulsing faster as the catch comes (`render/qualmosview.js`).
+He leans in (`lunge`), and his right hand catches you (`grab`, `game/grab.js`): it lifts you up high
+before him and shakes you (the `grip`, his hand's place every second frame, read off his clip by
+`blender/qualmos.py`), then at 1.8 s slams you down in front of him (`knockDown`: the blow lands
+then). As with Gusto's, only a stagger or his death makes him let go early.
+
+**His belly flop** is the opening: after it he lies there a moment, **exposed** (2.65–3.7 s into
+it): blows hurt him ×1.5, and he takes a while to get up (`recover`). So it comes in a rhythm
+(`choices`, `FLOP_EVERY`): from phase 2 on, the first attack he starts with you in its reach is a
+flop, and then again once he has started two other attacks since (his rages do not count), never
+in between. Out of its reach he fights on as ever, with his jets, his ink and his spines.
+
+**His dive** (`QUALMOS_DIVE`). He `wades`: he walks on land and into the water of his lagoon and out
+again over its bank, floating in it (`physics/dwell.js`: an amphibian's walker). From phase 2 on,
+every 12 to 16 s of the fight he heads for the nearest of its water (a way of his own, `route`:
+on the way he strikes whoever is in reach), and in it slips under its surface (`under`, as a
+burrowing Squirtle does: nothing sees, hits or touches him, he heals nothing; "Qualmos slips
+under the water!"). Under it he keeps to the water and swims fast to where his leap out of it
+lands him nearest you (his leap tried out from each spot: over a bank low enough to climb; with
+none, to where the water comes nearest you). After 2.5 to 3.5 s (and once there, or after 7 s
+anyway) he comes up, and if you are in his leap's reach and it takes him out of the water, leaps
+out at you (his `dive`); else he walks out. If no water is near enough (a dev spawn elsewhere) he
+does not dive.
 
 ## Playing together
 
@@ -1441,7 +1505,8 @@ keeps it dark go along with his row (`stage`, `dark`, `net/protocol.js rowOf`), 
 other bolts of his storm (`bolts`, shown like his beam, `game/beams.js mirrorBeam`); his thrown
 skulls fly there like any projectile, but only the runner brings them to life. A game that takes
 over running his cube (`adoptEnemies`) starts him at the stage his health gives: he loses the
-skulls he has lost again at once. Squarlo's stage (2: a giant), how high he has the water
+skulls he has lost again at once. Qualmos's phase swaps his profile (`QUALMOS_STAGES`: of one type, told apart by their `phase`),
+and his row's `under` hides him in his lagoon. Squarlo's stage (2: a giant), how high he has the water
 (`tide`, 0 to 1) and whether a Squirtle is under the surface (`under`) go along with their rows
 (`net/protocol.js rowOf`): a friend's game swaps his profile by his stage (`STAGE_PROFILES`,
 `net/foes.js`) and raises its own water by his tide (`game/tide.js`). Flip's row carries one more
@@ -1489,7 +1554,7 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 `/spawn mansk` (`addMansks`: his whole fight anywhere), `/spawn stagetornado`; `/arena stage`,
 `/boss mansk`. `/spawn monteur` (`addMonteurs`: his whole fight anywhere), `/spawn montmoose`;
 `/boss monteur`; `/roll` and `/rollkeys` turn the world without him, `/mountain` pulls one of his
-mountains out of the floor anywhere ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`), `/boss qualmos`.
+mountains out of the floor anywhere ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`; with no water near he never dives), `/boss qualmos`.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
 becomes the boss's level, takes a Long Sword of it and goes into his arena (`goBoss`).
@@ -1523,6 +1588,7 @@ await (await import('./tests/browser/foggery.js')).runFoggeryChecks()  // Fogger
 await (await import('./tests/browser/renew.js')).runRenewChecks()      // Renew's, in his arena: the rewinds, the echoes and ghosts, his minions, the bow and keeping away, the morning stars, the end and his flail, the dusk
 await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk's, in his museum: breathing in and the spit, the balls of light, flying and landing, slowed time, the horns breaking, the ribbons catching and squeezing
 await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the blob bursting, the flood from a side, his slimes
+await (await import('./tests/browser/qualmos.js')).runQualmosChecks()  // Qualmos's, at the core: the grab's glow, catch, lift and slam; phase 2 harder, the belly flop's rhythm; into his lagoon, under it, up and out at you
 await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
 await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
@@ -1570,7 +1636,7 @@ summon and rain points it prints must match `MONTEUR_AT` (`tests/assets.test.js`
 long as his attacks, his charge's run ends where the roll does (`charge_end`), and his mountain
 rises as he heaves (`MonteurRaise`'s `heave_frame`: its hit frame and `MOUNTAIN.crack` later).
 
-Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb
-blender/previews/qualmos-preview.png` (it reads `blender/qualmos.blend` and never writes it), then
-`node tools/compress-assets.mjs assets/qualmos.glb`. His clips must last as long as his attacks
-(`tests/assets.test.js`).
+Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb blender/qualmos.blend
+blender/previews/qualmos-preview.png [blender/previews/qualmos-clips]` (the last: the clips as videos), then
+`node tools/compress-assets.mjs assets/qualmos.glb`. His clips must last as long as his attacks,
+and the grip and the muzzles it prints must match `QUALMOS_GRAB` and `QUALMOS_AT` (`tests/assets.test.js`).

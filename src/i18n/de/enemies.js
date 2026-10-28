@@ -238,6 +238,7 @@ export default {
   'Run over by Monteur!': 'Von Monteur überrollt!',
   "Hit by Monteur's falling stone!": 'Von Monteurs herabfallendem Stein getroffen!',
   'Hit by Qualmos!': 'Von Qualmos getroffen!',
+  'Slammed down by Qualmos!': 'Von Qualmos zu Boden geschleudert!',
   'Soaked by Qualmos!': 'Von Qualmos durchnässt!',
   'Inked by Qualmos!': 'Von Qualmos mit Tinte bespritzt!',
   "Hit by Qualmos's spine!": "Von Qualmos' Stachel getroffen!",
@@ -329,6 +330,7 @@ export default {
   '{name} brings the mountain down!': '{name} lässt den Berg einstürzen!',
   'The mountain crumbles!': 'Der Berg zerfällt!',
   '{name} enters phase {phase}!': '{name} beginnt Phase {phase}!',
+  '{name} slips under the water!': '{name} taucht unter!',
 
   // guardians (core/guardians.js)
   'Temp Boss': { text: 'Temp-Boss', g: 'm' },

@@ -104,8 +104,16 @@ function dwellers(spec) {
   }
   return out;
 }
+// The ponds an arena wants: [fluid, how many live in it, its cells at most] each. Its dwellers'
+// (POND.per cells for each), or a boss's lagoon (core/bosses.js BOSS_ARENAS `lagoon`: Qualmos's,
+// deep water he dives into, its cells; nobody lives in it).
+function pondsWanted(spec) {
+  const boss = (spec.guardian?.role ?? 'descent') === 'descent' ? spec.guardian?.boss : null, lagoon = boss && BOSS_ARENAS[boss]?.lagoon;
+  if (lagoon) return [[WATER, 0, lagoon]];
+  return [...dwellers(spec)].map(([fluid, n]) => [fluid, n, clamp(Math.round(n * POND.per), POND.least, POND.most)]);
+}
 // A pond for an arena's fluid dwellers, one per fluid they live in: `per` cells for each of them
-// (`least`..`most`; smaller where that does not fit), round, on about one level of the fight zone,
+// (`least`..`most`; smaller where that does not fit), or a boss's lagoon (pondsWanted), round, on about one level of the fight zone,
 // away from the doorways, the guardian's spot, the props that block and the ramps. Its surface lies
 // a level under the lowest floor round it and under its own, its bed two levels under that (too deep
 // to wade, as a pool's: cubegen/pools.js); what was put on it that does not block goes. What is
@@ -117,7 +125,7 @@ function digPonds(ctx, { floors, dress, shape }, frame, ends, need) {
   const [start, gate] = ends, at = (x, z) => x >= 0 && z >= 0 && x < N && z < N ? floors[idx(x, z)] : null;
   let blocked = new Set(dress.blocked), left = need;
   const ponds = [], taken = new Set(), before = reachFrom(start, blocked);
-  for (const [fluid, n] of dwellers(ctx.spec)) {
+  for (const [fluid, n, most] of pondsWanted(ctx.spec)) {
     const R = frame.R, far = (f, [x, z], d) => Math.hypot(f.x - x, f.z - z) >= d;
     const ok = f => f.encounter && !f.prot && !taken.has(f) && !frame.flat[f.c] && !blocked.has(f.c) && !shape.ramp[f.c]
       && far(f, frame.E, 4) && far(f, frame.U, 2.5) && far(f, frame.G, 2.5);
@@ -146,7 +154,7 @@ function digPonds(ctx, { floors, dress, shape }, frame, ends, need) {
       return null;
     };
     let pond = null;
-    for (let size = clamp(Math.round(n * POND.per), POND.least, POND.most); !pond && size >= POND.least; size = Math.floor(size * 0.8)) pond = dig(size);
+    for (let size = most; !pond && size >= POND.least; size = Math.floor(size * 0.8)) pond = dig(size);
     if (!pond) return false;
     ponds.push(pond); blocked = pond.out; left -= n;
     for (const f of pond.cells) taken.add(f);

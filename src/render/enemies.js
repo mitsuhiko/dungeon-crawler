@@ -68,6 +68,7 @@ import { makeMonteurLook, monteurLook } from './monteurview.js';
 import { qualmosModel } from './qualmosmodel.js';
 import { mooseModel } from './moosemodel.js';
 import { mooseLook } from './mooseview.js';
+import { makeQualmosLook, qualmosLook, disposeQualmosLook } from './qualmosview.js';
 import { makeManskLook, manskLook, disposeManskLook } from './manskview.js';
 import { isFigure, animateFigures, removeFigureViews } from './renewview.js';
 import { isFlimmer, animateFlimmers, removeFlimmerViews, flimmerWarmup } from './flimmerview.js';
@@ -435,10 +436,13 @@ function growLook(v, e, dt) {
       life: rand(1.2, 2.2), size: rand(0.6, 1.2), grow: 1.2, color: FOG[i % 3], alpha: 0.3, drag: 0.4 });
   }
 }
-// in deep water a swimmer floats (game/tide.js): ripples spread round it as it swims
+// in deep water a swimmer floats (game/tide.js; an amphibian in its pond, physics/dwell.js): ripples
+// spread round it as it swims
 const swimming = e => {
+  if (!e.profile.swims) return false;
   const s = standingAt(e.x, e.z);
-  return !!e.profile.swims && s?.fluid === WATER && s.y - e.y > e.profile.bodyHeight * 0.3;
+  if (s?.fluid === WATER && s.y - e.y > e.profile.bodyHeight * 0.3) return true;
+  return !!e.profile.wades && fluidAround(e.profile, e.x, e.y, e.z)?.fluid === WATER;
 };
 function ripples(v, e, dt) {
   if (!v.swim || Math.hypot(e.x - player.x, e.z - player.z) > 14 || e.under) return;
@@ -672,7 +676,8 @@ function makeView(e, prefab) {
     shed: findShed(model, e.profile.shed), stage: e.stage ?? 1, dark: e.dark ?? 0, ball: findBall(model, e.profile.tumble), tumble: 0, turned: 0, flash2: 0,
     sink: e.under ? 1 : 0, underWas: e.under ? 1 : 0, height: e.profile.height / size, morphing: false, swim: false,
     fog: e.profile.species === 'foggery' ? makeFoggeryLook(model, group) : null, slomo: e.profile.species === 'slomo' ? makeSlomoLook(model) : null,
-    mansk: e.profile.species === 'mansk' ? makeManskLook(model) : null, monteur: e.profile.species === 'monteur' ? makeMonteurLook(model) : null, moose: e.profile.species === 'moose' };
+    mansk: e.profile.species === 'mansk' ? makeManskLook(model) : null, monteur: e.profile.species === 'monteur' ? makeMonteurLook(model) : null, moose: e.profile.species === 'moose',
+    qualmos: e.profile.species === 'qualmos' ? makeQualmosLook(group) : null };
 }
 // the hover clip's beat (matches blender/triangle.py): sharp, twice per loop
 const beat = phase => (0.5 + 0.5 * Math.cos(2 * Math.PI * 2 * phase)) ** 6;
@@ -740,6 +745,7 @@ function dying(v, e, dt, off) {
   glowFx(v, e, 0, Math.max(0, 1 - e.deadT / e.profile.deathTime) * fade);   // the glow dies with it
   if (v.mansk) manskLook(v, e, dt, off);
   if (v.monteur) monteurLook(v, e, dt, off);
+  if (v.qualmos) qualmosLook(v, e);
 }
 // Enemy views are made a few a frame: a cube's whole lineup at once (a horde's two dozen) held
 // its first frame up. An enemy without one yet is not drawn; entering, they are all made while
@@ -781,16 +787,18 @@ export function animateEnemies(list, dt, off = ZERO) {
     if (attack && v.attacks !== e.attacks) {
       v.attacks = e.attacks; strike.reset().play(); strike.timeScale = 0;
     }
-    // the gait: walking, or swimming in deep water, or a giant's stride (each with its own pace)
-    v.swim = swimming(e);
-    const gait = v.swim && A.swim ? 'swim' : e.profile.gait && A[e.profile.gait] ? e.profile.gait : 'walk', W = A[gait];
-    // a bigger body takes longer strides
-    const walkSpeed = (gait === 'walk' ? prefab.walkSpeed : prefab.gaitSpeeds[gait]) * v.size, fastSpeed = prefab.fastSpeed * v.size;
-    const fast = A.fast && gait === 'walk' ? THREE.MathUtils.clamp((e.speed - walkSpeed) / (fastSpeed - walkSpeed), 0, 1) : 0;
     // turning on the spot it steps round too: its feet go round as far as the turn takes them
     // (`turnStride`: cells from its middle to its feet, else its radius)
     const turning = v.turnedYaw === undefined ? 0 : Math.abs(Math.atan2(Math.sin(v.yaw - v.turnedYaw), Math.cos(v.yaw - v.turnedYaw))) * (e.profile.turnStride ?? e.profile.radius);
     v.turnedYaw = v.yaw;
+    // the gait: walking, or swimming in deep water, or a giant's stride (each with its own pace);
+    // standing still, a model with an idle of its own (Qualmos's) plays it, on its own clock
+    v.swim = swimming(e);
+    const still = A.idle && !attack && !(e.speed > 0.01) && !(turning > 0.01 * dt);
+    const gait = v.swim && A.swim ? 'swim' : still ? 'idle' : e.profile.gait && A[e.profile.gait] ? e.profile.gait : 'walk', W = A[gait];
+    // a bigger body takes longer strides
+    const walkSpeed = (gait === 'walk' || gait === 'idle' ? prefab.walkSpeed : prefab.gaitSpeeds[gait]) * v.size, fastSpeed = prefab.fastSpeed * v.size;
+    const fast = A.fast && gait === 'walk' ? THREE.MathUtils.clamp((e.speed - walkSpeed) / (fastSpeed - walkSpeed), 0, 1) : 0;
     const stride = walkSpeed * W.getClip().duration * (1 - fast)
       + (A.fast ? fastSpeed * A.fast.getClip().duration * fast : 0);
     if (e.profile.hover || gait === 'swim') v.phase = (v.phase + dt / W.getClip().duration * (gait === 'swim' ? 0.6 + 0.4 * Math.min(1, e.speed / walkSpeed) : 1)) % 1;   // keeps hovering (paddling)
@@ -798,7 +806,8 @@ export function animateEnemies(list, dt, off = ZERO) {
     else if (!attack) v.phase = 0; // idle on both planted feet, not frozen mid-step
     hops(v, e, v.stepPhase ?? v.phase);
     footfalls(v, e, gait);
-    W.time = v.phase * W.getClip().duration;
+    if (gait === 'idle') v.idleT = ((v.idleT ?? v.seed) + dt) % W.getClip().duration;
+    W.time = gait === 'idle' ? v.idleT : v.phase * W.getClip().duration;
     if (A.fast) A.fast.time = v.phase * A.fast.getClip().duration;
     if (attack) strike.time = Math.min(e.t, strike.getClip().duration);
     for (const name in A) {
@@ -832,6 +841,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     if (v.slomo) slomoLook(v, e, dt);
     if (v.monteur) monteurLook(v, e, dt, off);
     if (v.moose) mooseLook(v, e, dt, off);
+    if (v.qualmos) qualmosLook(v, e);
     glowFx(v, e, dt, 1); glints(v, e, dt);
     if (v.mansk) manskLook(v, e, dt, off);   // (after the glow: it brightens his diamond)
     if (e.ghost) ghostLook(v, e);
@@ -872,6 +882,7 @@ export function removeEnemyViews(list) {
     removeTrail(v); forgetWalker(e);
     if (v.fog) disposeFoggeryLook(v.fog);
     if (v.mansk) disposeManskLook(v.mansk);
+    if (v.qualmos) disposeQualmosLook(v.qualmos);
     v.mixer.stopAllAction(); v.mixer.uncacheRoot(v.model);
     v.material.dispose(); v.shell?.material.dispose();
     v.ghost.dispose();

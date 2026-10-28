@@ -11,6 +11,10 @@
 // Inside its fluid only wet floors are ok; ashore every floor it fits on is too. No link joins a
 // fluid floor to its bank (cubegen/smooth.js), so a step out of one or into one goes to the floor
 // next to it whose edge meets the fluid's surface within BANK.
+//
+// An amphibian (a profile's `wades`: Qualmos, in his lagoon) lives on land and in those fluids alike:
+// it walks on land, goes into them and out again over a bank as a dweller does, and floats in them
+// as a dweller does; under their surface (`under`: his dive, game/qualmos.js) it keeps to them.
 import { LH, N, DIRS, OPP } from '../core/constants.js';
 import { topOf } from '../core/surfaces.js';
 import { state } from '../game/state.js';
@@ -22,10 +26,12 @@ export const SUNK = 0.3;       // the share of its body under the surface where 
 export const BANK = 1;         // units: the most a bank stands over (or under) a fluid's surface to climb out
 const EDGE = [[1, .5], [0, .5], [.5, 1], [.5, 0]];
 
+// the fluids `profile` lives (or wades) in, or undefined
+export const fluidsOf = profile => profile?.dwells ?? profile?.wades;
 // the surface (units) of the fluid `profile` lives in over floor f (a structure piece never),
 // or null: f is dry for it
 export function wetAt(profile, f) {
-  const fluids = profile?.dwells;
+  const fluids = fluidsOf(profile);
   if (!fluids || !f || f.kind) return null;
   let y = null;
   if (f.fluid && !f.crust && fluids.includes(f.fluid)) y = f.surf * LH;
@@ -34,7 +40,7 @@ export function wetAt(profile, f) {
   return y;
 }
 // ... in a fluid floor alone (where a cube puts its dwellers down: no standing fluid has risen yet)
-export const fixedWet = (profile, f) => !!f && !f.kind && !!f.fluid && !f.crust && !!profile?.dwells?.includes(f.fluid);
+export const fixedWet = (profile, f) => !!f && !f.kind && !!f.fluid && !f.crust && !!fluidsOf(profile)?.includes(f.fluid);
 
 // The fluid round a body whose feet are at (x, y, z), by where it is alone (for the looks, also of
 // one a friend's game runs, net/foes.js): { fluid (a standing one's look), y (its surface) } or
@@ -42,7 +48,7 @@ export const fixedWet = (profile, f) => !!f && !f.kind && !!f.fluid && !f.crust 
 // its feet.
 export function fluidAround(profile, x, y, z) {
   const cell = Math.floor(z) * N + Math.floor(x), up = (profile?.bodyHeight ?? 0) * SUNK;
-  if (profile?.dwells && x >= 0 && z >= 0 && x < N && z < N)
+  if (fluidsOf(profile) && x >= 0 && z >= 0 && x < N && z < N)
     for (const g of state.map?.cols[cell] ?? []) if (fixedWet(profile, g) && Math.abs(g.surf * LH - y - up) < 0.35) return { fluid: g.fluid, y: g.surf * LH };
   const s = standingAt(x, z);
   return s && s.y > y + 0.05 ? { fluid: s.look ?? s.fluid, y: s.y } : null;
@@ -51,7 +57,7 @@ export function fluidAround(profile, x, y, z) {
 // where the feet of a body of `profile` on floor f at (x, z) are: on the ground, or floating in
 // its fluid
 export function standY(profile, f, x, z) {
-  const ground = topOf(f, x - f.x, z - f.z), wet = profile?.dwells ? wetAt(profile, f) : null;
+  const ground = topOf(f, x - f.x, z - f.z), wet = fluidsOf(profile) ? wetAt(profile, f) : null;
   return wet === null ? ground : Math.max(ground, wet - profile.bodyHeight * SUNK);
 }
 
@@ -101,5 +107,10 @@ function make(profile, ashore) {
 }
 // the walker of enemy e as it is now: a dweller's, ashore when it stands on dry ground or is out
 // of its fluid's hold (`ashore`: the way of its leap, its puddle's way back in, game/enemyai.js);
-// anyone else's height
-export const walkerOf = e => e.profile.dwells ? walker(e.profile, !!e.ashore || wetAt(e.profile, e.f) === null) : e.profile.height;
+// an amphibian's, on land and in its fluids alike (under their surface, in them alone); anyone
+// else's height
+export function walkerOf(e) {
+  if (e.profile.dwells) return walker(e.profile, !!e.ashore || wetAt(e.profile, e.f) === null);
+  if (e.profile.wades) return walker(e.profile, !e.under);
+  return e.profile.height;
+}

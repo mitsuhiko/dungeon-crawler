@@ -167,7 +167,7 @@ TRIANGLE_BUDGET = {
     "Mansk": 9000,                                                       # (a head, two long wavy horns, a mouth to suck you in)
     "Moose": 8000,                                                       # (antlers, a grin of teeth, a tail with a ball, stars)
     "Monteur": 12000,                                                    # (a stone moose and a stone sun, both antlered, five stones)
-    "Qualmos": 12000,                                                    # (six tentacles with suckers, spines, teeth: hand-made, blender/qualmos.blend)
+    "Qualmos": 12000,                                                    # (six tentacles with suckers, spines, teeth; qualmos.py splits it)
     "FireFaceBall": 1500, "ShrapsIceBall": 1500, "TrianglePunch": 1500, "TotnarSkull": 1500, "FlipBall": 1200, "FoggeryEye": 1500, "SlomoArmSlug": 1500,   # projectiles
     "MonteurStone": 600,
     "TornadoTwister": 1500,                                              # (its twisters)

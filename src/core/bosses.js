@@ -25,10 +25,12 @@ export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[d
 // arena is always at night, whatever the time of day (game/daycycle.js: Slomo's meteorites fall).
 // Mansk's `stage`: a museum hall with a stage at its end (cubegen/arenashapes.js), dressed with the
 // museum's things (`props`: paintings, pedestals, glass cases, a curtain, footlights).
+// Qualmos's `lagoon`: a pond of deep water in his fight zone, of that many cells at most (cubegen/
+// guardian.js digPonds), which he walks into and dives under (game/qualmos.js).
 // `days`: his arena has the world's days and nights under its theme's sky like any cube (Gusto's);
 // the others stay at noon, the light being their fight's (Totnar's darkness, Squarlo's mist,
 // Flip's void, Renew's dusk).
 export const BOSS_ARENAS = Object.freeze({ gusto: { days: true }, totnar: { braziers: 5 }, squarlo: { type: 'tidal' }, flip: { type: 'flip' },
   foggery: { type: 'tower', door: 8, centre: 7, props: ['volcanic'] }, renew: { braziers: 4 },
   slomo: { type: 'bowl', props: ['slime'], night: true }, mansk: { type: 'stage', props: ['museum'] },
-  qualmos: { braziers: 6 } });
+  qualmos: { braziers: 6, lagoon: 24 } });

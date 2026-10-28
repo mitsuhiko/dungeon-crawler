@@ -93,7 +93,8 @@ The controls are the same for all.
   shrink away as they die).
 - Fire-face, Triangle and Fire-cat are much stronger than the rest (120 / 170 / 130 HP,
   22 / 28 / 26 damage, 90–110 XP at level 1). Fire-face and Triangle hover: their idle loop runs
-  on time, not on ground speed.
+  on time, not on ground speed. Any other enemy standing still stands on its walk's first frame,
+  unless its model has an idle of its own (a gait `idle`: Qualmos's), played on its own clock.
 - Fire-face (`blender/fireface.py`): a floating, glowing red and orange flame with an
   angry face whose tongues flicker. From up to 4.5 cells away, with a clear line to the
   player, it rears back, grows a fireball in front of its mouth and spits it (frame
@@ -552,6 +553,30 @@ the grip. Regenerate via the Blender commands in
 and can also be rebuilt from a Blender MCP session; previews land in `blender/previews/`, not committed; the pictures here are copies in `docs/img/`, `node tools/preview-images.mjs`). Tests check balance, hit timing,
 direction / reach / height, cancellations, deterministic spawns, clearance,
 navigation and the exported asset/clip contract.
+
+### Posing by IK
+
+The clips are posed in code and baked. Where a limb touches something (a foot on the floor, a hand
+on what it holds, a tentacle's tip on a spot it slams), turning bones by angles never quite keeps
+it there: the foot skates, the tip sinks into the floor. Such a limb is posed backwards from the
+point it must reach, with `blender/ik.py`, shared by every script:
+
+- `two_bone`: a leg or an arm reaching a point, its knee (elbow) bending towards a pole; `pole_from`
+  picks the pole the way the joint already bends, so it never flips (most creature scripts call it
+  as `character.two_bone_ik`).
+- `chain` (FABRIK, any number of bones) and `arc`: a chain laid along a smooth arc from its root to
+  a point, its slack bowing out one way (a tentacle, a tail, a neck), never folding into a zigzag;
+  `soften` keeps it from snapping as its target nears full stretch (soft IK).
+- `step`: a planted contact's walk loop: on the floor, sliding back as fast as the body walks (in a
+  clip played in place, the floor slides under it), then lifted and swung forward.
+- `aim`, `aim_chain`: the bases that put bones along the joints a solver gave; `blend` eases an IK
+  reach in and out of the pose by angles without a jump; `frame_turn`, `curl`: a shape hung off a
+  chain's end (a tentacle's curling tip) following it.
+
+Qualmos is its first user ([bosses.md](bosses.md#qualmos)): his tentacles and his arms' reaches, and
+a check that his walk does not skate. The others may move over to it as they are worked on. To look
+at clips in motion (a still frame hides a foot skating or a limb snapping), `creature.py
+clip_videos` renders each as a little video (`blender/previews/` is not committed).
 
 For browser integration checks, load the game, wait for the assets, then run
 in the browser console:

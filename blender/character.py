@@ -67,6 +67,7 @@ import numpy as np
 from mathutils import Matrix, Quaternion, Vector
 
 import figure
+import ik
 
 FPS = 30
 G = 9.81
@@ -354,17 +355,8 @@ class Skeleton:
         return base.inverted() @ desired
 
 
-def two_bone_ik(hip, target, a, b, pole):
-    d_vec = target - hip
-    d = min(d_vec.length, (a + b) * 0.9995)
-    n = d_vec.normalized()
-    cos_a = max(-1.0, min(1.0, (a * a + d * d - b * b) / (2 * a * d)))
-    sin_a = math.sqrt(1 - cos_a * cos_a)
-    perp = pole - n * pole.dot(n)
-    perp.normalize()
-    knee = hip + n * (a * cos_a) + perp * (a * sin_a)
-    foot = hip + n * d
-    return knee, foot
+# (the two-bone solver lives with the other IK, ik.py; the scripts call it by this name too)
+two_bone_ik = ik.two_bone
 
 
 # ============================================================================

@@ -28,6 +28,8 @@
 // little ahead of a running player.
 // A burrowing one (a `burrow`: the Squirtle) keeps diving under the floor in the fight, moving
 // about fast down there where nothing sees, hits or touches it, and coming up again to throw.
+// (One whose `burrow` has no rhythm, `up`, goes under only when its fight sends it: Qualmos into
+// his lagoon, game/qualmos.js.)
 // A fluid dweller (a `dwells`: the Squirtle, physics/dwell.js) does all of that in its fluid alone:
 // its hunts, posts and cover are all in it, it dives under its surface and never on land, and it
 // leaps out of it only to crash down on a player near it. Out of it (it leapt, its tide fell, its
@@ -667,7 +669,7 @@ export function stepEnemies(list, realDt) {
     if (state.devPassive || e.dormant || e.waiting) { e.speed = 0; e.path = null; if (e.mode !== 'idle') { e.mode = 'idle'; e.t = 1; } continue; }
     if (e.profile.dwells && e.f && ashore(e, dt)) { if (slow < 1) e.speed *= slow; continue; }
     if ((e.think -= dt) <= 0) { e.think = THINK * (0.8 + Math.random() * 0.4); decide(e); }
-    if (e.profile.burrow) burrow(e, dt);
+    if (e.profile.burrow?.up) burrow(e, dt);   // (one without a rhythm of its own dives when its fight says: game/qualmos.js)
     act(e, dt);
     if (slow < 1) e.speed *= slow;   // (its speed over its own slower time: how fast it really goes)
   }

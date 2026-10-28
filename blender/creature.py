@@ -449,6 +449,62 @@ def render_still(scene, rig, action, frame, path):
     bpy.ops.render.render(write_still=True, scene=scene.name)
 
 
+def clip_videos(scene, rig, clips, out_dir, target, views, size=420, fps=FPS):
+    """Each clip as a little video (out_dir/<clip>.mp4: the views side by side, flat-shaded, on a
+    floor), to look at a clip in motion, which still frames do not show (a foot skating, a tentacle
+    snapping, timing that drags). views: (camera location, ortho scale) each, looking at `target`.
+    Needs ffmpeg. Writes nothing into the repository unless out_dir is in it (blender/previews/ is
+    ignored)."""
+    import shutil
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ffmpeg = shutil.which("ffmpeg")
+    assert ffmpeg, "clip_videos needs ffmpeg"
+    engine, light, color = scene.render.engine, scene.display.shading.light, scene.display.shading.color_type
+    cam_saved = scene.camera
+    scene.render.engine = "BLENDER_WORKBENCH"
+    scene.display.shading.light, scene.display.shading.color_type = "STUDIO", "MATERIAL"
+    cam = bpy.data.objects.new("ClipVideoCamera", bpy.data.cameras.new("ClipVideoCamera"))
+    scene.collection.objects.link(cam)
+    cam.data.type, cam.data.ortho_scale = "ORTHO", views[0][1]
+    scene.camera = cam
+    scene.render.resolution_x = scene.render.resolution_y = size
+    written = []
+    try:
+        for clip in clips:
+            act = bpy.data.actions[clip]
+            rig.animation_data.action = act
+            with tempfile.TemporaryDirectory(prefix="clip-") as directory:
+                for f in range(int(act.frame_start), int(act.frame_end) + 1):
+                    scene.frame_set(f)
+                    tiles = []
+                    for v, (location, ortho) in enumerate(views):
+                        cam.location, cam.data.ortho_scale = location, ortho
+                        cam.rotation_euler = (Vector(target) - cam.location).to_track_quat("-Z", "Y").to_euler()
+                        scene.render.filepath = str(Path(directory) / f"v{v}.png")
+                        bpy.ops.render.render(write_still=True, scene=scene.name)
+                        img = bpy.data.images.load(scene.render.filepath)
+                        tiles.append(np.array(img.pixels[:], np.float32).reshape(size, size, 4))
+                        bpy.data.images.remove(img)
+                    frame = bpy.data.images.new("ClipFrame", size * len(views), size, alpha=True)
+                    frame.pixels = np.concatenate(tiles, axis=1).ravel()
+                    frame.filepath_raw = str(Path(directory) / f"f{f:04d}.png")
+                    frame.file_format = "PNG"
+                    frame.save()
+                    bpy.data.images.remove(frame)
+                path = out_dir / f"{clip}.mp4"
+                subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-framerate", str(fps), "-pattern_type", "glob",
+                                "-i", str(Path(directory) / "f*.png"), "-pix_fmt", "yuv420p", "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+                                str(path)], check=True)
+                written.append(str(path))
+    finally:
+        bpy.data.objects.remove(cam, do_unlink=True)
+        scene.camera = cam_saved
+        scene.render.engine = engine
+        scene.display.shading.light, scene.display.shading.color_type = light, color
+    return written
+
+
 def contact_sheet(scene, rig, shots, path, target, size=360, cols=4):
     """Render (action, frame, camera location) shots into one tiled preview PNG."""
     cam = scene.camera

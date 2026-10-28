@@ -150,10 +150,11 @@ export class Viewer {
       e.zapped = b[11] & ZAPPED ? 1 : 0;
       if (Number.isInteger(b[14]) && b[14] > 0) e.stage = b[14];   // a boss's stage and light (game/totnar.js)
       e.dark = b[15] === 1 ? 1 : 0;
-      // a boss whose stages are profiles of their own (Squarlo a giant, game/squarlo.js), his tide
-      // and a Squirtle under the floor (game/enemyai.js)
+      // a boss whose stages are profiles of their own (Squarlo a giant, game/squarlo.js; Qualmos ever
+      // harder, of one type: told apart by their `phase`), his tide and a Squirtle under the floor
+      // (game/enemyai.js; Qualmos in his lagoon, game/qualmos.js)
       const stages = STAGE_PROFILES[e.boss], want = stages?.[(e.stage ?? 1) - 1];
-      if (want && e.profile.type !== want.type) e.profile = enemyProfile(want, e.level);
+      if (want && (e.profile.type !== want.type || (e.profile.phase ?? 1) !== (want.phase ?? 1))) e.profile = enemyProfile(want, e.level);
       e.tide = Number.isFinite(b[17]) ? Math.max(-2, Math.min(2, b[17])) : 0;   // (Foggery's lava goes over 1 and drains under 0)
       e.under = b[18] === 1 ? 1 : 0;
       // Flip's world and black holes (game/flipworld.js turns ours after them)
