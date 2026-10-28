@@ -37,9 +37,12 @@ function withBounds(glb) {
 
 async function compress(file, scratch) {
   const glb = readGlb(file), before = roots(glb.json).map(i => glb.json.nodes[i].name);
-  const staged = join(scratch, relative(ASSETS, file).replaceAll('/', '__'));
+  const staged = join(scratch, relative(ASSETS, file).replaceAll(/[\\/]/g, '__'));
   writeFileSync(staged, writeGlb(withBounds(glb)));
-  await run('npx', ['-y', GLTF_TRANSFORM, 'meshopt', staged, staged + '.out.glb', '--quantization-volume', 'scene']);
+  const args = ['-y', GLTF_TRANSFORM, 'meshopt', staged, staged + '.out.glb', '--quantization-volume', 'scene'];
+  // Windows launches npx.cmd through its shell; quote paths that may contain spaces.
+  const windows = process.platform === 'win32';
+  await run('npx', windows ? args.map(a => `"${a}"`) : args, { shell: windows, windowsHide: true });
   const out = readGlb(staged + '.out.glb');
   if (!isCompressed(out.json)) throw Error('not compressed: ' + file);
   const after = roots(out.json).map(i => out.json.nodes[i].name);
