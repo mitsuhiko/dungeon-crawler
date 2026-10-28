@@ -9,6 +9,10 @@ or add English text, translate it in the same change into the languages kept wit
 (English and German: game and guide). The ones that catch up later (Indonesian, game only) are
 left for their own changes: do not translate into them unless asked.
 
+The design notes (`docs/`, `README.md`, `CONTRIBUTING.md`) are in English only: never add a German
+("Deutsch") section or paragraph to them. Only the game's text and the guide (`learn/`) are
+translated.
+
 ## Narration
 
 The narrator's lines (`src/core/narration.js`, German in `src/i18n/de/story.js`) are pre-rendered

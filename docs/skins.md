@@ -59,10 +59,6 @@ nostrils, jeweled gold crown, red royal coat, white trim, gold buttons, dark cha
 trousers and black boots. The crown is painted, not an extra mesh. The private screenshot is
 not shipped or loaded by the game; the authored PNG is lazy-loaded only when the code is used.
 
-Im Skin-Editor bei **Skin-Name** den vollständigen Code `:technoblade` mit Doppelpunkt
-eingeben. Der rosa Schweinekönig mit Krone und rotem Mantel wird geladen. Anschließend
-**Skin speichern** wählen. Ohne Doppelpunkt ist Technoblade nur ein normaler Skin-Name.
-
 ```sh
 Blender -b blender/character.blend --python blender/skin_technoblade.py
 node --test tests/technoblade.test.js tests/skinsecret.test.js
