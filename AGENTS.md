@@ -1,6 +1,6 @@
 # Notes for agents
 
-See `README.md` for the layout and how to run things.
+See `CONTRIBUTING.md` for the layout and how to run things.
 
 ## Translations
 

@@ -24,7 +24,7 @@ const deck = () => import('../deck.js').then(m => m.controls);   // not imported
 const PAGES = [...DECKS.map(d => d.file), 'index.html', 'words.html'];
 
 // the folders of the game the tutor may read, and which files in them are text
-const READABLE = /^(src|docs|music|blender|tools|tests|learn|vendor\/scrimshaw)\/|^(README\.md|index\.html|style\.css|TODO\.txt)$/;
+const READABLE = /^(src|docs|music|blender|tools|tests|learn|vendor\/scrimshaw)\/|^(README\.md|CONTRIBUTING\.md|index\.html|style\.css|TODO\.txt)$/;
 const TEXT = /\.(js|mjs|py|md|html|css|json|txt|scrim)$/;
 const cleanPath = p => String(p).trim().replace(/^\.?\//, '').replace(/^\/+/, '');
 
@@ -97,7 +97,7 @@ export function createTools({ addNote, lang = page.pageLang() }) {
     execute: async args => {
       const ref = cleanPath(args.ref);
       const [path] = ref.split('#');
-      if (!READABLE.test(path)) return text(`Only the game's own files can be read: src/, docs/, music/, blender/, tools/, tests/, learn/ and README.md.`);
+      if (!READABLE.test(path)) return text(`Only the game's own files can be read: src/, docs/, music/, blender/, tools/, tests/, learn/, README.md and CONTRIBUTING.md.`);
       if (path.endsWith('/')) {
         const names = await listFolder(path).catch(() => null);
         if (!names) return text(`There is no folder ${path}.`);

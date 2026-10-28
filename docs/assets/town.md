@@ -81,7 +81,7 @@ From the repository root (replace `Blender` with your executable):
 Blender --background --python blender/town.py
 Blender --background --python blender/town_clutter.py
 Blender --background --python blender/tests/test_town.py
-npm run compress-assets                        # then compress (README.md)
+npm run compress-assets                        # then compress (CONTRIBUTING.md)
 ```
 
 The build exports before laying out the showroom. Tests check all seven meshes,

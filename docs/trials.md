@@ -964,7 +964,7 @@ Trials stay off in real worlds until the last phase: the planner's chance is 0 u
 
 - The planner's chance from 0 to the event slot's 45% (only `flood` so far, depths 1–19).
 - The rule in `docs/generation-plan.md` updated (trials may gate the route); `docs/world.md`
-  (trial rooms among the layout's pieces), `docs/console.md` (`/trial`), the README's layout
+  (trial rooms among the layout's pieces), `docs/console.md` (`/trial`), CONTRIBUTING.md's layout
   line; this file's status.
 - The balance simulation (`tools/balance.mjs`) counts a flood room's time.
 - **Done when** `npm test` is green with trials on, and a few seeds are played through a flood

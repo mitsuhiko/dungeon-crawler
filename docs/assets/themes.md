@@ -194,7 +194,7 @@ Still to do:
 ```sh
 Blender --background --python blender/themes.py                 # build, export, previews
 Blender --background --python blender/themes.py -- --no-render
-npm run compress-assets                                          # then compress (README.md)
+npm run compress-assets                                          # then compress (CONTRIBUTING.md)
 ```
 
 MCP: see the `themes.py` docstring for the reload order.

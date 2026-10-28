@@ -111,7 +111,7 @@ Blender --background --python blender/clutter.py            # build, export, pre
 Blender --background --python blender/clutter.py -- --no-render
 Blender --background --python blender/tests/test_clutter.py
 Blender --background --python blender/props.py    # unchanged library
-npm run compress-assets                            # then compress (README.md)
+npm run compress-assets                            # then compress (CONTRIBUTING.md)
 ```
 
 MCP: `import clutter; clutter.main()` (see the `clutter.py` docstring for the reload order).

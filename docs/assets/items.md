@@ -132,7 +132,7 @@ items too (`core/items.js WEARABLES`), worn for now only by the villagers (`docs
 ```sh
 Blender --background --python blender/items.py
 Blender --background --python blender/tests/test_items.py
-npm run compress-assets                        # then compress (README.md)
+npm run compress-assets                        # then compress (CONTRIBUTING.md)
 ```
 
 Via the interactive Blender MCP execute tool:
