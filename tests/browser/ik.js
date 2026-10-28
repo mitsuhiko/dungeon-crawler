@@ -46,6 +46,7 @@ function check(name, spec, model, play) {
       return +(v.y - rest[i] - ground(v.x)).toFixed(3);
     }).filter(x => x !== null);
     out.worst = Math.max(0, ...out.off.map(Math.abs));
+    out.legState = rig.legs.map(l => (l.locked ? 'L' : l.step ? 'S' : '-') + (l.slip ?? 0).toFixed(2));
     out.ok = out.worst < 0.25 * step + 0.01;
   }
   if (rig.look.length || rig.eyes.length) {

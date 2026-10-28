@@ -57,6 +57,7 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import character as C
 import creature as K
+import ik as IK
 import figure as F
 
 NAME, RIG_NAME, PROP = "Tornado", "TornadoRig", "TornadoTwister"
@@ -94,6 +95,8 @@ CHEST_BASE, CHEST_TOP = V((0, 0, 0.66)), V((0, 0, 0.98))
 LEGS = {"FL": V((0.068, -0.075, 0)), "FR": V((-0.068, -0.075, 0)), "BL": V((0.155, 0.06, 0)), "BR": V((-0.155, 0.06, 0))}
 LEG_TOP = {k: V((p.x * 0.55, p.y * 0.55, 0.26)) for k, p in LEGS.items()}
 ANKLE = {k: V((p.x, p.y, 0.065)) for k, p in LEGS.items()}
+# (each leg bends at a knee halfway down, a little forward: thigh leg.*, shin shin.*)
+KNEE = {k: (LEG_TOP[k] + ANKLE[k]) / 2 + V((0, -0.03, 0)) for k in LEGS}
 FOOT_C = {k: V((p.x, p.y - 0.022, 0.042)) for k, p in LEGS.items()}
 FOOT_SIZE = (0.05, 0.066, 0.042)
 LEG_R = (0.042, 0.035)
@@ -164,8 +167,18 @@ def swirl_mats(base, turns, n):
     return mats
 
 
+def straight_frame(k):
+    """The frame of a straight bone from the leg's top to its ankle, rolled to face -Y (as the leg's
+    one bone was: its clips swing, splay and draw it up in it)."""
+    y = (ANKLE[k] - LEG_TOP[k]).normalized()
+    z = V((0, -1, 0)) - y * y.dot(V((0, -1, 0)))
+    z.normalize()
+    return Matrix((y.cross(z), y, z)).transposed()
+
+
 def leg_sdf(P, k):
-    d = K.round_cone(P, LEG_TOP[k], ANKLE[k], *LEG_R)
+    mid = (LEG_R[0] + LEG_R[1]) / 2
+    d = K.smin(K.round_cone(P, LEG_TOP[k], KNEE[k], LEG_R[0], mid), K.round_cone(P, KNEE[k], ANKLE[k], mid, LEG_R[1]), 0.01)
     return K.smin(d, K.ellipsoid(P, FOOT_C[k], FOOT_SIZE), 0.03)
 
 
@@ -263,7 +276,8 @@ def build_rig(coll):
                   (f"hand.{s}", WRIST[s], HAND[s][2], f"arm_lower.{s}", True, fwd),
                   (f"tip.{s}", TIP[s], TIP[s] + V((sign * 0.03, 0, 0.05)), f"hand.{s}", False, fwd)]
     for k in LEGS:
-        bones.append((f"leg.{k}", LEG_TOP[k], ANKLE[k], "hips", True, fwd))
+        bones.append((f"leg.{k}", LEG_TOP[k], KNEE[k], "hips", True, fwd))
+        bones.append((f"shin.{k}", KNEE[k], ANKLE[k], f"leg.{k}", True, fwd))
     return K.armature(RIG_NAME, coll, bones, {
         "enemy": "tornado", "forward": "-Y", "attack_style": "twisters", "normal_speed": WALK_SPEED,
         "root_motion": False})
@@ -297,6 +311,12 @@ def compute_weights(obj, owners):
             own = C.np_smoothstep(0.0, 0.04, along)
             W[lo:hi, names.index(f"hand.{s}")] = own
             W[lo:hi, names.index(f"arm_lower.{s}")] = 1 - own
+        elif part == "leg":   # the thigh to the knee, the shin (and the foot) from it
+            _, along = C._polyline_closest(Q, [LEG_TOP[s], KNEE[s], ANKLE[s]])
+            a = (KNEE[s] - LEG_TOP[s]).length
+            knee = C.np_smoothstep(a - 0.02, a + 0.02, along)
+            W[lo:hi, names.index(f"leg.{s}")] = 1 - knee
+            W[lo:hi, names.index(f"shin.{s}")] = knee
         else:
             W[lo:hi, names.index(kind)] = 1
     K.write_weights(obj, names, W)
@@ -361,10 +381,18 @@ def solver(rig, fn):
         e = max(0.06, p["eyes"])
         for s, _ in SIDES:
             bases[f"eye.{s}"] = K.pose_local(skel, f"eye.{s}", poses, Matrix.Diagonal((1, 1, e, 1)))
+        # each foot where a straight leg from its top, swung, splayed and drawn up so, would put it; the
+        # knee bends to reach it (ik.py limb)
+        carry = poses["hips"] @ skel.rest["hips"].inverted()
         for k, sign in (("FL", 1), ("FR", -1), ("BL", 1), ("BR", -1)):
             swing, splay, up = p["legs"][k]
-            bases[f"leg.{k}"] = K.pose_local(skel, f"leg.{k}", poses, Matrix.Translation((0, -up, 0))
-                                             @ Matrix.Rotation(swing, 4, "X") @ Matrix.Rotation(sign * splay, 4, "Z"))
+            F = straight_frame(k)
+            turn = F @ (Matrix.Rotation(swing, 3, "X") @ Matrix.Rotation(sign * splay, 3, "Z")) @ F.transposed()
+            foot = LEG_TOP[k] + F @ V((0, -up, 0)) + turn @ (ANKLE[k] - LEG_TOP[k])
+            rest = (LEG_TOP[k], KNEE[k], ANKLE[k])
+            (thigh, shank), _ = IK.limb(rest, foot, turn @ (KNEE[k] - LEG_TOP[k]))
+            bases[f"leg.{k}"] = skel.set(f"leg.{k}", poses, carry @ thigh @ skel.rest[f"leg.{k}"])
+            bases[f"shin.{k}"] = skel.set(f"shin.{k}", poses, carry @ shank @ skel.rest[f"shin.{k}"])
         Cm = poses["chest"] @ skel.rest["chest"].inverted()
         c3 = Cm.to_3x3()
         for s, _ in SIDES:

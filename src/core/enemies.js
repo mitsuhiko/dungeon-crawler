@@ -372,7 +372,7 @@ const TWISTER = { speed: 2.6, range: 6.5, radius: 0.3, height: 1.1, bend: 0.5, l
 const TORNADO_TWIN = {
   name: 'twin', clip: 'cast', weight: 4, reach: 4.6, minReach: 1.6, hitAt: 27 / 30, trackUntil: 0.7, attackTime: 48 / 30, hitReach: 0,
   arc: 0.5, power: 1, knock: 3.5, knockDown: true, hop: 3, reason: 'Caught in a Tornado\'s twister!',
-  twister: { ...TWISTER, form: 6 / 30, hands: [[0.367, 1.158, 0.343], [-0.367, 1.158, 0.343]], muzzle: [0, 1.158, 0.343] },
+  twister: { ...TWISTER, form: 6 / 30, hands: [[0.367, 1.162, 0.343], [-0.367, 1.162, 0.343]], muzzle: [0, 1.162, 0.343] },
 };
 const TORNADO_HOP = {
   name: 'hop', clip: 'hop', weight: 1, reach: 1.6, hitAt: 33 / 30, trackUntil: 0.25, attackTime: 42 / 30, hitReach: 0,
@@ -406,7 +406,7 @@ export const TORNADO = {
 // (core/status.js: how fast the body moves, not the weapon). It is the slime's own (`slimeborn`:
 // the marsh's slime does not hold it, core/footing.js).
 const SLUG_BALL = { kind: 'slimeball', speed: 6, radius: 0.17, range: 7, spin: 3,
-  muzzle: [0, 0.228, 0.651], slow: { time: 2.5, slow: 0.55, source: 'slime' } };
+  muzzle: [0, 0.204, 0.651], slow: { time: 2.5, slow: 0.55, source: 'slime' } };
 export const SLUG = {
   type: 'slug', species: 'slug', label: 'Slug', hp: 120, damage: 18, knock: 2,
   xp: 62, coins: [12, 24],
@@ -958,9 +958,9 @@ const SLOMO_ARM = {
   name: 'armL', clip: 'armL', weight: 3, reach: 10, hitAt: 27 / 30, trackUntil: 0.75, attackTime: 45 / 30, hitReach: 0,
   arc: 0.5, power: 0.7, knock: 2.5, knockDown: false, hop: 2.5, reason: "Hit by Slomo's slug!",
   projectile: { kind: 'slugarm', speed: 7, radius: 0.3, range: 16, spin: 5, lob: 11, arm: 0, becomes: 'armslug',
-    slow: { time: 2, slow: 0.6, source: 'slime' }, muzzle: [1.09, 1.024, 1.465] },
+    slow: { time: 2, slow: 0.6, source: 'slime' }, muzzle: [1.09, 1.03, 1.465] },
 };
-const SLOMO_ARM_R = { ...SLOMO_ARM, name: 'armR', clip: 'armR', projectile: { ...SLOMO_ARM.projectile, arm: 1, muzzle: [-1.09, 1.024, 1.465] } };
+const SLOMO_ARM_R = { ...SLOMO_ARM, name: 'armR', clip: 'armR', projectile: { ...SLOMO_ARM.projectile, arm: 1, muzzle: [-1.09, 1.03, 1.465] } };
 // (meteorites: `count` of them, the first on the player and the rest `spread` cells round them,
 // `stagger` s apart, each hitting with `power` of his damage, game/meteors.js)
 const SLOMO_METEOR = {

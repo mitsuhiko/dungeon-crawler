@@ -17,7 +17,10 @@ Rig: root; blob (the blob and its arms ride it: placed and sized per shape) with
 half: squash and stretch), top (the upper half), core (the stuff inside), stalk.L, stalk.R,
 arm.L.1-3 and hand.L (the slug on its end), arm.R.1-3 and hand.R; slug (the slug and its legs ride
 it: hidden, in place behind the blob, or turned round to the front) with slug.front, slug.mid,
-slug.head (its body, front to head), antenna.L, antenna.R and leg.1L .. leg.3R.
+slug.head (its body, front to head), antenna.L, antenna.R, and its legs: leg.1L .. leg.3R (from the
+hip to the knee, which stands out and up from it, like a beetle's) and shin.1L .. shin.3R (from the
+knee down to the foot). The clips say where each foot goes (as a straight leg from the hip would
+put it: swung and splayed); the knees bend to reach it (ik.py limb).
 
 Clips, 30 fps, in place:
     SlomoOoze        the blob's gait, 40-frame loop: squashing and swaying along, arms swinging.
@@ -53,6 +56,7 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import character as C
 import creature as K
+import ik as IK
 
 NAME, RIG_NAME, PROP = "Slomo", "SlomoRig", "SlomoArmSlug"
 SCENE, COLLECTION, STAGE = "Slomo", "SlomoAsset", "SlomoStage"
@@ -114,18 +118,24 @@ SLUG_HEAD = V((0, 2.12, 1.34))
 MOUTH = V((0, 2.42, 1.26))
 ANTENNAE = {s: [V((s * 0.13, 2.18, 1.6)), V((s * 0.2, 2.32, 1.86)), V((s * 0.28, 2.42, 2.1))] for s in (-1, 1)}
 SEYE_R = 0.085
-LEGS = {f"leg.{i + 1}{SIDE[s]}": (s, y) for i, y in enumerate((0.55, 1.1, 1.6)) for s in (1, -1)}
+# (s: side, y: the hip along the body, fan: the foot set forward (-) or back (+) of it: an insect's
+# legs fan out, so neighbours never cross as they swing)
+LEGS = {f"leg.{i + 1}{SIDE[s]}": (s, y, fan) for i, (y, fan) in enumerate(((0.55, -0.3), (1.1, 0.0), (1.6, 0.3))) for s in (1, -1)}
 HIP_Z = 1.18
 
 
-def leg_points(s, y):
-    """A long leg: down from under the body, a little out, to a round foot."""
-    return [V((s * 0.36, y, HIP_Z)), V((s * 0.58, y - 0.02, 0.62)), V((s * 0.64, y - 0.06, 0.08))]
+def leg_points(s, y, fan=0.0):
+    """A long leg: out from under the body to a knee higher than the hip, well out to the side (a
+    beetle's), and down from it to a round foot."""
+    return [V((s * 0.36, y, HIP_Z)), V((s * 1.12, y - 0.03 + 0.5 * fan, 1.45)), V((s * 0.7, y - 0.06 + fan, 0.08))]
+
+
+def shin(name):
+    return "shin." + name[4:]
 
 
 def hip(name):
-    s, y = LEGS[name]
-    return leg_points(s, y)[0]
+    return leg_points(*LEGS[name])[0]
 
 
 # --- a slug (the arms' ends, the thrown prop) ------------------------------------------------
@@ -226,8 +236,8 @@ def build_mesh(coll):
         parts.add(side, lambda P, c=eye: K.ellipsoid(P, c, (SEYE_R, SEYE_R, SEYE_R)), eye - V((0.12,) * 3), eye + V((0.12,) * 3), FINE, mat=SEYE_M)
         pupil = eye + V((0, SEYE_R * 0.82, 0.005))
         parts.add(side, lambda P, c=pupil: K.ellipsoid(P, c, (0.036, 0.02, 0.04)), pupil - V((0.06,) * 3), pupil + V((0.06,) * 3), FINE, mat=PUPIL_M)
-    for name, (s, y) in LEGS.items():
-        pts = leg_points(s, y)
+    for name, leg_at in LEGS.items():
+        pts = leg_points(*leg_at)
         lo, hi = K.bounds(pts, 0.2)
 
         def leg(P, p=pts):
@@ -276,9 +286,10 @@ def build_rig(coll):
         bones.append((name, CHAIN_PTS[i], CHAIN_PTS[i + 1], CHAIN[i - 1] if i else "slug", True, up))
     for s, pts in ANTENNAE.items():
         bones.append(("antenna.L" if s > 0 else "antenna.R", pts[0], pts[-1], "slug.head", True, (0, 1, 0)))
-    for name, (s, y) in LEGS.items():
-        pts = leg_points(s, y)
-        bones.append((name, pts[0], pts[-1], "slug", True, fwd))
+    for name, leg_at in LEGS.items():
+        pts = leg_points(*leg_at)
+        bones.append((name, pts[0], pts[1], "slug", True, fwd))
+        bones.append((shin(name), pts[1], pts[2], name, True, fwd))
     return K.armature(RIG_NAME, coll, bones, {"enemy": "slomo", "forward": "-Y", "attack_style": "throw",
                                               "normal_speed": OOZE_SPEED, "root_motion": False})
 
@@ -318,6 +329,12 @@ def compute_weights(obj, owners):
             WB[:, col("slug.mid")] = past[0] - past[1]
             WB[:, col("slug.head")] = past[1]
             W[lo:hi] = K.diffuse(obj, lo, hi, WB, 6)
+        elif kind.startswith("leg."):   # the thigh to the knee, the shin from it (and the foot)
+            pts = leg_points(*LEGS[kind])
+            _, along = C._polyline_closest(Q, pts)
+            knee = C.np_smoothstep((pts[1] - pts[0]).length - 0.1, (pts[1] - pts[0]).length + 0.1, along)
+            W[lo:hi, col(kind)] = 1 - knee
+            W[lo:hi, col(shin(kind))] = knee
         else:
             W[lo:hi, col(kind)] = 1
     K.write_weights(obj, names, W)
@@ -415,10 +432,17 @@ def solver(rig, fn):
             bases[name] = K.pose_local(skel, name, poses, Matrix.Rotation(p["bend"][i], 4, "X") @ Matrix.Diagonal((sw, 1, sw * (p["flat"] if i < 2 else 1), 1)))
         for k, name in enumerate(("antenna.L", "antenna.R")):
             bases[name] = K.pose_local(skel, name, poses, Matrix.Rotation(p["ant"][k], 4, "X"))
+        # each leg reaches for where a straight leg from its hip, swung and splayed so, would have its
+        # foot (what the clips are made of: the feet that are down stay on the floor), fanned out
+        # forward or back as it rests; its knee bending out and up as it does at rest
         for k, name in enumerate(LEG_NAMES):
-            s = LEGS[name][0]
+            s, y, fan = LEGS[name]
             rot = Matrix.Rotation(-s * p["splay"][k], 3, "Y") @ Matrix.Rotation(-p["legs"][k], 3, "X")
-            put(name, Ds @ K.about(hip(name), rot))
+            rest, straight = leg_points(s, y, fan), leg_points(s, y)
+            foot = straight[0] + rot @ (straight[2] - straight[0]) + (rest[2] - straight[2])
+            (thigh, shank), _ = IK.limb(rest, foot, rot @ (rest[1] - rest[0]))
+            put(name, Ds @ thigh)
+            put(shin(name), Ds @ shank)
         return bases
     return solve
 

@@ -8,7 +8,9 @@ spits balls of slime that slow whatever they hit.
 Faces -Y in Blender, +Z up; one unit = one game cell, about 0.9 cells tall to its eyes.
 
 Rig: root, tail, mid, front, head (the body, tail to head), stalk.L, stalk.R (the eye stalks, the
-eyes on their tips), leg.FL, leg.FR, leg.BL, leg.BR.
+eyes on their tips), and its legs: leg.FL, leg.FR, leg.BL, leg.BR (hip to knee, the knee out to the
+side) and shin.FL .. shin.BR (knee to ankle, the curly foot on it). The clips swing each leg as if
+straight from the hip; its knee bends to put the foot there (ik.py limb).
 
 Clips, 30 fps, in place:
     SlugCrawl   36-frame loop: the body ripples front to back, the legs shuffle, the stalks bob.
@@ -32,6 +34,7 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import character as C
 import creature as K
+import ik as IK
 
 NAME, RIG_NAME, PROP = "Slug", "SlugRig", "SlugBall"
 SCENE, COLLECTION, STAGE = "Slug", "SlugAsset", "SlugStage"
@@ -63,9 +66,14 @@ LEGS = {name: (sx, y) for name, sx, y in (("leg.FL", -1, -0.26), ("leg.FR", 1, -
 
 
 def leg_points(sx, y):
-    """A short curly leg: down from the body, out, and curling up at the foot."""
-    return [V((sx * 0.1, y, 0.16)), V((sx * 0.15, y, 0.07)), V((sx * 0.17, y - 0.05, 0.025)), V((sx * 0.15, y - 0.1, 0.035)),
+    """A short curly leg: out from the body to a knee at the side, down to the ankle, and the foot
+    curling up from it."""
+    return [V((sx * 0.1, y, 0.16)), V((sx * 0.25, y - 0.01, 0.15)), V((sx * 0.19, y - 0.04, 0.025)), V((sx * 0.15, y - 0.1, 0.035)),
             V((sx * 0.12, y - 0.1, 0.06))]
+
+
+def shin(name):
+    return "shin." + name[4:]
 
 
 def body_sdf(P):
@@ -137,7 +145,8 @@ def build_rig(coll):
         bones.append(("stalk.L" if s < 0 else "stalk.R", pts[0], pts[-1], "head", True, (0, -1, 0)))
     for name, (sx, y) in LEGS.items():
         pts = leg_points(sx, y)
-        bones.append((name, pts[0], pts[2], "front" if y < 0 else "mid", True, (0, -1, 0)))
+        bones.append((name, pts[0], pts[1], "front" if y < 0 else "mid", True, (0, -1, 0)))
+        bones.append((shin(name), pts[1], pts[2], name, True, (0, -1, 0)))
     return K.armature(RIG_NAME, coll, bones, {"enemy": "slug", "forward": "-Y", "attack_style": "spit",
                                               "normal_speed": CRAWL_SPEED, "root_motion": False})
 
@@ -149,6 +158,14 @@ def compute_weights(obj, owners):
     along_of = np.cumsum([0] + [(b - a).length for a, b in zip(CHAIN_PTS, CHAIN_PTS[1:])])
     for o in owners:
         lo, hi, kind = o["lo"], o["hi"], o["kind"]
+        if kind in LEGS:   # the thigh to the knee, the shin (and the foot) from it
+            pts = leg_points(*LEGS[kind])
+            _, along = C._polyline_closest(P[lo:hi], pts)
+            a = (pts[1] - pts[0]).length
+            knee = C.np_smoothstep(a - 0.03, a + 0.03, along)
+            W[lo:hi, names.index(kind)] = 1 - knee
+            W[lo:hi, names.index(shin(kind))] = knee
+            continue
         if kind != "body":
             W[lo:hi, names.index(kind)] = 1
             continue
@@ -191,8 +208,17 @@ def params(**kw):
 LEG_NAMES = ("leg.FL", "leg.FR", "leg.BL", "leg.BR")
 
 
+def swing_axis(pts):
+    """The axis a leg swings about: the x of a bone from its hip to its ankle rolled to face -Y (as
+    the straight leg's bone was)."""
+    y = (pts[2] - pts[0]).normalized()
+    z = V((0, -1, 0)) - y * y.dot(V((0, -1, 0)))
+    return y.cross(z.normalized())
+
+
 def solver(rig, fn):
     skel = C.Skeleton(rig)
+    skel_parent = {name: rig.data.bones[name].parent.name for name in LEG_NAMES}
 
     def solve(f, lift):
         p = fn(f)
@@ -207,8 +233,17 @@ def solver(rig, fn):
             sgn = -1 if k == 0 else 1
             R = Matrix.Rotation(p["stalk"][k], 4, "X") @ Matrix.Rotation(sgn * p["spread"][k], 4, "Z")
             bases[name] = K.pose_local(skel, name, poses, R)
+        # each leg swung about its hip (as a straight leg from hip to ankle would be: forward +), carried
+        # with the body where its hip sits; the knee bends to put the foot there
         for k, name in enumerate(LEG_NAMES):
-            bases[name] = K.pose_local(skel, name, poses, Matrix.Rotation(p["legs"][k], 4, "X"))
+            pts = leg_points(*LEGS[name])
+            par = skel_parent[name]
+            carry = poses[par] @ skel.rest[par].inverted()
+            turn = carry.to_quaternion().to_matrix() @ Matrix.Rotation(p["legs"][k], 3, swing_axis(pts))
+            hip = carry @ pts[0]
+            (thigh, shank), _ = IK.limb(pts[:3], hip + turn @ (pts[2] - pts[0]), turn @ (pts[1] - pts[0]), root=hip)
+            bases[name] = skel.set(name, poses, thigh @ skel.rest[name])
+            bases[shin(name)] = skel.set(shin(name), poses, shank @ skel.rest[shin(name)])
         return bases
     return solve
 

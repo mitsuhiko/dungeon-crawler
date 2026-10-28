@@ -9,6 +9,8 @@ the point it must reach:
 
     two_bone(root, target, a, b, pole)      a leg or an arm: hip (shoulder) -> knee (elbow) ->
                                             foot (hand), the knee bending towards `pole`
+    limb(rest, target, pole)                the same for a limb's two bones: how to carry each
+                                            from its rest (no twist)
     pole_from(root, target, hint, fallback) the way a knee keeps bending, without flipping
     soften(root, target, reach)             a target pulled in as it nears full stretch (soft IK:
                                             no knee shooting out as it comes back into reach)
@@ -51,6 +53,30 @@ def two_bone(root, target, a, b, pole):
     knee = root + n * (a * cos_a) + perp * (a * sin_a)
     end = root + n * d
     return knee, end
+
+
+def _frame(y, n):
+    y = y.normalized()
+    x = y.cross(n).normalized()
+    return Matrix((x, y, x.cross(y))).transposed()
+
+
+def limb(rest, target, pole, root=None):
+    """A two-bone limb by its rest joints (root, knee, end: armature space) put in reach of `target`
+    (its root moved to `root`, else where it rests), bent towards `pole` -> the deltas that carry
+    each bone from its rest there (armature space: delta @ the bone's rest matrix; turned so the
+    plane the knee bends in turns with it: no twist), and the joints (root, knee, end)."""
+    r0, k0, e0 = rest
+    root = r0.copy() if root is None else root
+    knee, end = two_bone(root, target, (k0 - r0).length, (e0 - k0).length, pole)
+    n0, n = (k0 - r0).cross(e0 - r0), (knee - root).cross(end - root)
+    if n.length < 1e-9 * max(1e-9, n0.length):   # (straight: the plane as the limb turned whole)
+        n = (e0 - r0).rotation_difference(end - root) @ n0
+    deltas = []
+    for (a0, b0), (a, b) in (((r0, k0), (root, knee)), ((k0, e0), (knee, end))):
+        turn = _frame(b - a, n) @ _frame(b0 - a0, n0).transposed()
+        deltas.append(Matrix.Translation(a) @ turn.to_4x4() @ Matrix.Translation(-a0))
+    return deltas, (root, knee, end)
 
 
 def pole_from(root, target, hint, fallback, sure=0.25):

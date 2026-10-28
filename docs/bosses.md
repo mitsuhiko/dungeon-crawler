@@ -1284,7 +1284,8 @@ clips (`SlomoStride`, `SlomoJump`, `SlomoFlood`, `SlomoMeteorLegs`); the game le
   on top with a V of slime between them, and two long slime arms out of his sides, each ending in a
   Slug (the slime marsh's: striped, curly legs, eye stalks).
 - **The slug** (phase 2): the slug that was inside him, striped dark across its back, turned round
-  (its head in front), on six long legs, leaving a trail of slime.
+  (its head in front), on six long legs (each bending at a knee out and up from its hip, like a
+  beetle's, the feet fanned forward and back so they never cross), leaving a trail of slime.
 
 Profiles: `SLOMO` and `SLOMO_SLUG` (`STAGE_PROFILES.slomo`, one a phase) in `src/core/enemies.js`;
 the fight's rules in `src/core/slomo.js` (`SLOMO_FIGHT`); the fight in `src/game/slomo.js`, his

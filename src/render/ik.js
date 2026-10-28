@@ -276,8 +276,10 @@ function holdFeet(rig, dt) {
     }
     if (leg.step) stepping++;
     leg.slip = Math.hypot(leg.lock.x - leg.want.x, leg.lock.z - leg.want.z) / leg.len;
-    // (a held foot the leg no longer reaches is dragged: it steps as if it had slipped far)
-    if (leg.hip.distanceTo(leg.lock) > 0.99 * leg.len) leg.slip = Math.max(leg.slip, SLIP + 1);
+    // (a held foot the leg no longer reaches, farther than the clip has it, is dragged: it steps as
+    // if it had slipped far; a leg the clip holds straight anyway is not)
+    const far = leg.hip.distanceTo(leg.lock);
+    if (far > 0.99 * leg.len && far > leg.hip.distanceTo(leg.want) + 0.03 * leg.len) leg.slip = Math.max(leg.slip, SLIP + 1);
     if (leg.locked && leg.slip > LOST) leg.lock.copy(leg.want);
   }
   // the farthest behind step first, as long as enough of them stand (a foot bone is held turned as it
@@ -294,7 +296,13 @@ function holdFeet(rig, dt) {
       leg.goal.y += Math.sin(Math.PI * u) * ARC * leg.len;
       if (leg.end) leg.goalQ.copy(st.fromQ).slerp(leg.wantQ, k);
       if (u >= 1) { leg.step = null; leg.locked = true; leg.lock.copy(leg.want); if (leg.end) leg.lockQ.copy(leg.wantQ); }
-    } else if (leg.locked) { leg.goal.copy(leg.lock); if (leg.end) leg.goalQ.copy(leg.lockQ); }
+    } else if (leg.locked) {
+      // (held where it came down, but as high as the clip and the ground under it say: easing onto a
+      // step, the hips going down)
+      leg.lock.y = leg.want.y;
+      leg.goal.copy(leg.lock);
+      if (leg.end) leg.goalQ.copy(leg.lockQ);
+    }
     // (fading in or out: between the clip's and the held)
     if (rig.w.feet < 1) { leg.goal.lerp(leg.want, 1 - rig.w.feet); if (leg.end) leg.goalQ.slerp(leg.wantQ, 1 - rig.w.feet); }
   }

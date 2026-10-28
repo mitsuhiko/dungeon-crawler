@@ -277,7 +277,8 @@ The controls are the same for all.
     it (the arc about its back). It cocks its tail and sweeps the ball round behind it at frame 16.
   It dies staggering and falling onto its side.
 - Slug (`blender/slug.py`, after the kids' sketch; the Slime marsh only): a big dark green slug, a
-  long, low body striped across its back on four short curly legs, two eye stalks with a round
+  long, low body striped across its back on four short curly legs (bending at a knee out to the
+  side: two bones each, so they stand on the ground in the game, `render/ik.js`), two eye stalks with a round
   eye on each tip. It crawls very slowly (0.7 cells/s at most), rippling, and leaves a trail of
   slime (`trail`); the marsh's slime does not hold it (`slimeborn`). It fights from afar
   (`style: 'ranged'`, 2.2–4.5 cells, reach 5.5): it rears up and swells, then lunges and spits a
@@ -303,7 +304,7 @@ The controls are the same for all.
 - Tornado (`blender/tornado.py`, after the kids' sketch): a little wind spirit, light purple, a
   floating face with angry V brows over a thin body whose two arms rise up either side of it
   like a U, a round, scalloped overskirt over a long A-line skirt, both swirl-striped, and four
-  stubby feet pattering under the hem. The game turns its two skirts about their axes, the other
+  stubby feet pattering under the hem (each with a knee, so they stand on the ground in the game). The game turns its two skirts about their axes, the other
   way each (`waves`, `render/enemies.js`), faster while it spins up twisters or rides one. It fights
   from afar (`style: 'ranged'`, 2.2–4.2 cells) with twisters (`core/twisters.js`,
   `game/twisters.js`, drawn with its `TornadoTwister` prop by `render/twisters.js`):
