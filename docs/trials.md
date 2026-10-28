@@ -1,11 +1,12 @@
 # Trials: events and puzzles in a cube
 
-Status: steps 1 to 10 are done: every kind (`flood`, `collapse`, `miasma`, `cold`, `storm`,
-`siege`, `chase`, `sunken`, and the puzzles `slide`, `mirror`, `braziers`, `crates`, `timedgate`,
-`runes`) is planned, built, checked, playable (alone and together) and on in every world (an event on 45% of the depths from 1 to 19, a puzzle on 60%, a
-second on 25%). The rest is the list of what to build, kind by kind, until done (see
-"Implementation order" at the end). `drift`, `channels`, `stones`, `sluices` and `plates` were
-built once and taken out again: they did not play well.
+Status: steps 1 to 10 are done: every kind (`flood`, `collapse`, `balance`, `miasma`, `cold`,
+`storm`, `siege`, `chase`, `sunken`, and the puzzles `slide`, `mirror`, `braziers`, `crates`,
+`timedgate`, `runes`) is planned, built, checked, playable (alone and together) and on in every
+world (an event on 45% of the depths from 1 to 19, a puzzle on 60%, a second on 25%). The rest is
+the list of what to build, kind by kind, until done (see "Implementation order" at the end).
+`drift`, `channels`, `stones`, `sluices` and `plates` were built once and taken out again: they did
+not play well (`balance`'s stones are not the old `stones` puzzle).
 
 Steps 12 and 13 ("Retiming and combiners" at the end) followed play: the events were far too easy
 (timed for a walker given half again as long, but the hero always runs), and the sunken room built
@@ -35,6 +36,7 @@ above, and every puzzle you solve drains it one stage further.
 | `flood` | event | yes | yes | press the button on the summit | drowning (the fluid) | 1–19, any (the depth's fluid) |
 | `sunken` | event + puzzles | no | no | solve 2–3 puzzles, each drains a stage | (ordinary death) | 2–19, any |
 | `collapse` | event | yes | yes | reach the exit apron | falling in | 1–19, any |
+| `balance` | event | yes | per stone | jump from stone to stone to the exit apron | (a miss: back to the start) | 1–19, lava and acid themes, forge |
 | `cold` | event | yes | meter | light the great fire | freezing | peaks, frozen caves (1–13) |
 | `storm` | event | yes | gusts | pull the lightning rod on top of the hill | (blown off: a fall) | sky and surface themes (1–6) |
 | `siege` | event | yes | yes | hold the beacon long enough | death | 2–19, any |
@@ -133,7 +135,7 @@ through it). The generator builds the room in its "after" state; the trial is dr
 that while it is not resolved:
 
 - `flood`, `miasma`: the room as built; the hazard is gone.
-- `collapse`: the crust is whole and holds (cracked, but it no longer falls).
+- `collapse`, `balance`: the crust or the stones are whole and hold (they no longer fall).
 - `sunken`: drained to the stage reached; fully drained once done.
 - `cold`, `storm`, `siege`, `chase`: the room as built, braziers lit, the beacon
   burning, the portcullis up.
@@ -325,6 +327,39 @@ The floor breaks up behind you in a wave from the entry; outrun it to the exit.
   whole crust is gone and nobody is across, the trial fails. The crust floors are drawn on their
   own (`render/trials.js`) and are not there for the physics once gone (`physics/collide.js
   setGoneFloors`); the basin's fluid stands over every hole while it runs.
+
+### `balance`: Balance
+
+Stones float over lava or acid, and each sinks three seconds after you first land on it. Jump
+from stone to stone to the far side.
+
+- **Room:** the crumbling floor's (walled in, its two 3×3 aprons), but no causeway: 3–10
+  separate stone slabs at one level over a basin of the depth's fluid (lava where the depth's is
+  water, `world/world.js spec`). Each slab is a 2×2 core grown into a rectangle, an L or a 3×3
+  square, with two cells of basin between slabs and round the aprons, so every step is a running
+  jump. A room has at least two shapes and two sizes.
+- **Stones:** a stone's first grounded landing starts its clock (`STONE_TIME`, 3 s, all its cells
+  on one clock). It shakes and darkens, then sinks and is not there for the physics any more.
+  Leaving it, coming back or a friend landing on it never buys more time; a stone nobody has
+  stood on waits. The HUD counts down the stone underfoot.
+- **Rules:** a miss is no death. Under the basin's surface (`balanceFallen`) the hero is put back
+  on the entry apron, without losing HP (in god mode too), and the trial starts over with every
+  stone back up (`game/trials.js retryBalance`, before any other hazard in `physics/hazards.js`).
+- **Goal:** stepping onto the exit apron (the keystone) opens the seals.
+- **Check:** the jumps are the reach graph's own (after smoothing). Along the checked path the slow
+  player's stay on each stone, from its first landing to the take-off off it (with the jump's
+  run-up, `RUN_UP`), times `SLACK`, is under `STONE_TIME` (`check.stones`); the flight may outlast
+  the stone it left.
+- **After:** the stones rise and hold.
+- **Population:** none.
+- **As built** (`cubegen/trials/balance.js`, `index.js finishBalance`; `core/trials.js
+  touchStone`, `crustState`): a depth-first search over 2×2 cores three cells apart (sideways by
+  up to a cell, so the portals need not sit on one grid), from one beside the entry apron to one
+  beside the exit apron; then each slab grows a shape where it stays two cells from everything
+  else. The stones are the collapse's crust, drawn and taken away the same way, in one grey. The
+  stones' clocks (`state.trial.stones`, on the trial's clock) go with the trial's state; a guest's
+  landing goes to the owner as the part press `stone:<n>`, a miss as `balance:retry`, which
+  starts the trial over for everyone in the room.
 
 ### `cold`: Cold snap
 
@@ -694,6 +729,10 @@ volcanic fire shrine; candles stay as they are, too small for it).
   room reset; `sunken` stages reachable at every level.
 - `tests/browser/trials.js`: each kind entered through its portal, run, failed and resolved;
   seals; town portal refused while running; two players (one failing, the event going on).
+- `tests/balance.test.js`, `tests/browser/balance.js` (`?dev=1&trial=balance`, then
+  `await (await import('./tests/browser/balance.js')).runBalanceChecks()`): the stones' clocks,
+  the retry, the generated rooms and the real character jumping the checked way; in the browser,
+  `/trial balance`, a stone sinking, a miss back to the start and the exit apron.
 
 ## Implementation order
 
@@ -721,6 +760,8 @@ Each step is done when its kind is planned, generated, checked, playable, reacha
     both sides ("Step 12" below).
 13. [x] **Combiners:** the sunken room as the first combiner: two puzzles of the rotation, each
     built exactly as in its own room, mounted on its platforms ("Step 13" below).
+14. [x] **`balance`:** the crumbling floor's room with stones that sink under a landing, and a
+    miss back to the start instead of a fail.
 
 ## Retiming and combiners
 

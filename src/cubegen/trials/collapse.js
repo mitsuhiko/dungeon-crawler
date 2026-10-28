@@ -16,7 +16,7 @@ const AX = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 // a portal's pad (2 deep), apron (3x3 in front of it; inner: its row towards the room) and the
 // ground beside the pad on the face, where the wall leaves the portal room (the ears)
-function apron(spec, dir) {
+export function apron(spec, dir) {
   const p = spec.portals.find(q => q.dir === dir);
   if (!p) return null;
   const pad = [], cells = [], inner = [], rows = [];

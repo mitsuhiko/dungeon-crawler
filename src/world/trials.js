@@ -29,7 +29,9 @@ import { cornerOf, fromCorner, COURT } from '../cubegen/trials/chase.js';
 // (world/faces.js sideFace), known now already; but a sunken room's (sunkenPads)
 export const portalPos = (seed, k, d) => 3 + Math.floor(mulberry32(hash32(seed ^ hashKey(faceKey(k, d)) ^ 0x51de))() * 10);
 // a kind's room needs room between its two portals: the collapse's aprons in front of them
-// (cubegen/trials/collapse.js) must stand well apart where the way turns
+// (cubegen/trials/collapse.js; the timed gate's and the balance's too) must stand well apart where
+// the way turns
+const APRONS = new Set(['collapse', 'timedgate', 'balance']);
 // (a sunken room: its portals moved where its shape wants them, sunkenPads)
 function roomFits(kind, seed, k, entry, exit, depth) {
   const at = (d, j) => { const t = portalPos(seed, k, d); return [[N - 1 - j, t], [j, t], [t, N - 1 - j], [t, j]][d]; };
@@ -41,7 +43,7 @@ function roomFits(kind, seed, k, entry, exit, depth) {
   }
   // (the cold: its ridges across the way, from one face to the opposite one)
   if (kind === 'cold') return exit != null && (entry ^ 1) === exit;
-  if ((kind !== 'collapse' && kind !== 'timedgate') || exit == null || (entry ^ 1) === exit || entry === (exit ^ 1)) return true;
+  if (!APRONS.has(kind) || exit == null || (entry ^ 1) === exit || entry === (exit ^ 1)) return true;
   const [a, b] = [at(entry, 3), at(exit, 3)];
   return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])) >= 7;
 }

@@ -22,7 +22,9 @@ export function trialMessage(m) {
   if (m.stage != null && (!Number.isInteger(m.stage) || m.stage < 0 || m.stage > 9)) return null;
   const bits = m.bits && typeof m.bits === 'object' && !Array.isArray(m.bits) && Object.keys(m.bits).length < 200
     && Object.values(m.bits).every(v => Number.isInteger(v) && v >= 0 && v < 1000) ? m.bits : null;
-  return { key: m.key, seed: m.seed, phase: m.phase, time: m.time, gate: m.gate ?? null, ...m.stage != null && { stage: m.stage }, ...bits && { bits } };
+  const stones = m.stones && typeof m.stones === 'object' && !Array.isArray(m.stones) && Object.keys(m.stones).length <= 64
+    && Object.entries(m.stones).every(([k, v]) => /^\d+$/.test(k) && Number.isFinite(v) && v >= 0 && v <= m.time) ? m.stones : null;
+  return { key: m.key, seed: m.seed, phase: m.phase, time: m.time, gate: m.gate ?? null, ...m.stage != null && { stage: m.stage }, ...bits && { bits }, ...stones && { stones } };
 }
 // a `trialAct` message as it may be used, or null
 export function trialAct(m) {
@@ -39,8 +41,8 @@ export class TrialOwner {
     if (!s) { this.key = null; this.told.clear(); return []; }
     if (s.key !== this.key) { this.key = s.key; this.phase = null; this.told.clear(); }
     for (const v of this.told) if (!viewers.includes(v)) this.told.delete(v);
-    const bits = JSON.stringify(s.bits ?? {});
-    const m = { t: 'trial', key: s.key, seed, phase: s.phase, time: Math.round(s.t * 100) / 100, bits: s.bits ?? {}, ...s.stage != null && { stage: s.stage } };
+    const bits = JSON.stringify([s.bits ?? {}, s.stones ?? {}]);
+    const m = { t: 'trial', key: s.key, seed, phase: s.phase, time: Math.round(s.t * 100) / 100, bits: s.bits ?? {}, ...s.stage != null && { stage: s.stage }, ...s.stones && { stones: Object.fromEntries(Object.entries(s.stones).map(([id, t]) => [id, Math.round(t * 100) / 100])) } };
     const live = s.phase === 'armed' || s.phase === 'running';
     if (s.phase !== this.phase || bits !== this.bits || (live && now - this.last >= TRIAL_EVERY)) {
       this.phase = s.phase; this.bits = bits; this.last = now;
@@ -61,6 +63,7 @@ export function followTrial(s, m) {
   if (before === 'resolved') return null;   // resolved stays resolved
   if (m.phase === 'resolved') { s.phase = 'resolved'; s.done = 0; return 'resolved'; }
   if (m.bits) s.bits = { ...m.bits };
+  if (s.kind === 'balance' && m.stones) s.stones = { ...m.stones };
   s.phase = m.phase; s.t = m.time;
   // the clock is the owner's: between its words it runs on here (arming turns to running by itself)
   if (s.phase === 'armed' && s.t >= ARM_TIME && TRIALS[s.kind]) s.phase = 'running';

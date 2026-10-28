@@ -11,6 +11,7 @@ import { poisonPlayer } from '../game/enemycombat.js';
 import { toxinOf, ACID_TOXIN } from '../core/status.js';
 import { holeFallDamage } from '../game/flipworld.js';
 import { allEnemies } from '../game/enemies.js';
+import { retryBalance } from '../game/trials.js';
 import { msg, tr } from '../i18n/i18n.js';
 
 // returns false when the player got respawned. Lava and acid are fatal, and water over the
@@ -46,6 +47,7 @@ function falls(dt, ci) {
 }
 
 export function applyHazards(dt, gr) {
+  if (retryBalance()) return false;
   // below the cube: through the void into the cube below, or out of the world
   if (player.y < -1.5 && startFall()) return false;
   if (player.y < -3) {
