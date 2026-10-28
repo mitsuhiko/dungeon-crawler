@@ -47,10 +47,11 @@ test('his doorway is in the middle of its face, high up, and you come in onto th
     // past the doorway the bridge, over the lava at rest
     const bridge = door.floor.link.find(f => f?.tower === 'bridge');
     assert.ok(bridge && bridge.top * LH > tideLevel(map.tide, LAVA.rest) * LH + 2, 'the bridge well over the lava');
-    // he waits at the foot of the ramp, down in the lava, a way off along the ramp from the bridge
+    // he waits at the foot of the ramp, just out of the lava, a way off along the ramp from the bridge
     const g = map.guardian;
     assert.equal(g.floor.tower, 'ramp');
     assert.ok(g.floor.ramp < 0.15 && g.floor.top * LH < tideLevel(map.tide, LAVA.rest) * LH + 0.5);
+    assert.ok(g.y > tideLevel(map.tide, LAVA.rest) * LH, 'on dry land');
     assert.ok(findPath(bridge, g.floor, 200, FOGGERY.height).length > 8);
     // no parapets up the ramp
     assert.ok(map.fenceList.every(r => r.pts.every(([x, , z]) => map.cols[Math.floor(z) * 16 + Math.floor(x)].some(f => f.tower === 'bridge'))));

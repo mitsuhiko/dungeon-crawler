@@ -25,7 +25,7 @@ test('an intro\'s moments come in order: his name before the camera cuts back, c
     assert.ok(d.name[0] < d.name[1] && d.name[1] <= d.length, name);
     assert.ok(d.bar <= d.length, name);
     if (!d.blend) continue;
-    assert.ok(d.blend[0] < d.blend[1] && d.blend[1] < d.blend[2] && d.blend[2] <= d.hold, name);
+    assert.ok(d.blend[0] <= d.blend[1] && d.blend[1] < d.blend[2] && d.blend[2] <= d.hold, name);
     assert.ok(d.name[1] <= d.blend[2], `${name}: the name gone before the cut back`);
     assert.ok(d.name[1] - d.name[0] >= 2, `${name}: the name long enough to read`);
     assert.ok(d.length >= 7, `${name}: slow enough to see`);
@@ -33,11 +33,12 @@ test('an intro\'s moments come in order: his name before the camera cuts back, c
     assert.ok(d.shots.at(-1).t <= d.blend[2], `${name}: the last key before the cut back`);
     if (d.dim) assert.ok(d.dim.at.every((a, i) => !i || a >= d.dim.at[i - 1]) && d.dim.at[3] <= d.length, `${name}: the light goes and comes back in order`);
     if (d.fires) assert.ok(d.fires.out < d.fires.back && d.fires.back <= d.blend[2], `${name}: the fires back before the cut`);
+    if (d.blend[0] === d.blend[1]) assert.ok(d.shots[0].t <= d.blend[0], `${name}: cutting in, a shot to cut to`);
   }
 });
 
 test('an intro\'s camera turns back the right way up; its anchors are the shared ones or its reveal\'s', () => {
-  const ANCHORS = new Set(['hero', 'spot', 'boss', 'start', 'behind', 'shore', 'aside']);
+  const ANCHORS = new Set(['hero', 'spot', 'boss', 'start', 'behind', 'shore', 'bank', 'aside', 'wide', 'near', 'front', 'front2']);
   for (const [name, d] of Object.entries(INTROS)) {
     const rolls = [];
     for (const k of d.shots) {
@@ -64,6 +65,12 @@ test('the free camera comes in smoothly and cuts back behind the black bars', ()
   assert.equal(blendAt(d, c + 0.01), 0);
   assert.ok(!blinking(d, c - BLINK - 0.01) && blinking(d, c - BLINK / 2) && blinking(d, c + 0.05) && !blinking(d, c + 0.2));
   assert.equal(blendAt(INTROS.again, 1), 0);
+  // one that cuts in: there at once, behind the bars shut a moment
+  const cut = { blend: [1, 1, 6] };
+  assert.equal(blendAt(cut, 0.99), 0);
+  assert.equal(blendAt(cut, 1), 1);
+  assert.ok(!blinking(cut, 1 - BLINK - 0.01) && blinking(cut, 1 - BLINK / 2) && blinking(cut, 1.05) && !blinking(cut, 1.2));
+  assert.ok(!blinking(d, a), 'one that comes in smoothly does not shut them then');
 });
 
 test('the light goes and comes back', () => {

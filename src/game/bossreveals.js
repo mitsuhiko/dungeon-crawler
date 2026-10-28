@@ -7,12 +7,13 @@ import * as THREE from 'three';
 import { player, state } from './state.js';
 import { LH, N } from '../core/constants.js';
 import { cellAt } from '../physics/collide.js';
+import { TOWER } from '../core/foggery.js';
 import { emit, glow, soft, rand } from '../render/particles.js';
 import { showShadow, showEyes, showPool, showBeam, hideIntroFx } from '../render/introfx.js';
 import { sfx } from '../audio/sfx.js';
 import { quake, cameraKick } from './juice.js';
 import { clamp01, smooth, facing, faceCamera, warp, once, roar, landFx, splashFx, rippleFx, bubbleFx, fluidTop,
-  wayIn, wayY } from './revealkit.js';
+  wayIn, wayY, viewFrom } from './revealkit.js';
 
 // a little too big, then back (0 .. 1 of the way)
 const popped = u => u <= 0 ? 1e-4 : 1 + 2.70158 * (u - 1) ** 3 + 1.70158 * (u - 1) ** 2;
@@ -164,64 +165,149 @@ const flip = {
   },
 };
 
-// --- Foggery: his eyes coming up out of the lava, then the rest of him in a burst of it ------------
+// --- Foggery: his eyes coming up out of the lava out in his caldera, then the rest of him in a
+// burst of it, leaping in an arc onto the land at the foot of his tower --------------------------
 
 const LAVA = ['#fff0a0', '#ffd25a', '#ff8a2a', '#ff5a1a'], CRUST = ['#2a1a14', '#4a2a1c', '#6a3a22'];
+const ASH = ['#3a2a24', '#5a463a', '#7a6a5e'];
 const EYES_UP = 1.45;   // (his feet this far under the lava, his eyes are over it)
-function foggeryY(r, t) {
-  const { at, spot } = r, lava = r.data.lava, low = lava - r.e.profile.height - 0.3, peek = lava - EYES_UP;
-  if (t < at.eyes) return low;
-  if (t < at.burst) return low + (peek - low) * smooth((t - at.eyes) / (at.peek - at.eyes)) + 0.03 * Math.sin(t * 3);
-  if (t < at.top) { const u = (t - at.burst) / (at.top - at.burst); return peek + (spot.y + at.height - peek) * (1 - (1 - u) ** 2); }
-  if (t < at.land) { const u = (t - at.top) / (at.land - at.top); return spot.y + at.height * (1 - u * u); }
-  return spot.y;
+// how far along a leap he is at u (0 .. 1 of its time): quick off, hanging at the top a long
+// moment, quick down (Foggery's, Qualmos's)
+const hang = (u, k = 0.55) => u + k / (2 * Math.PI) * Math.sin(2 * Math.PI * u);
+// how far over its floor the lava must stand where he comes up (cells)
+const SUNK = 0.2;
+// Where in his lava he comes up (exported for the checks): the middle of a cell of lava standing
+// over its floor (and round it: off the foot of the tower, not under the bridge), pool[0] ..
+// pool[1] cells from his spot, best across the camera's view, out away from his tower and about
+// in the middle of that span: { x, y (its surface), z }. None (out of his caldera): null, and he
+// comes up on his spot
+export function lavaSpot(r) {
+  const { spot, at } = r, [lo, hi] = at.pool, m = state.map, tower = m.tower ? { x: TOWER.mid, z: TOWER.mid } : null;
+  let fx = spot.x - player.x, fz = spot.z - player.z;
+  const l = Math.hypot(fx, fz) || 1;
+  fx /= l; fz /= l;
+  const sunk = (x, z) => {
+    const i = cellAt(x, z);
+    if (i < 0 || m.cols[i].some(f => f.tower === 'bridge') || m.portals.some(o => Math.hypot(x - o.x - 0.5, z - o.z - 0.5) < 3.6)) return null;
+    const top = Math.max(...m.cols[i].filter(f => !f.fluid).map(f => f.top * LH));
+    const s = fluidTop(x, z, top);
+    return s !== null && s > top + SUNK ? s : null;
+  };
+  let best = null, score = -Infinity;
+  for (let i = 0; i < N * N; i++) {
+    const x = i % N + 0.5, z = Math.floor(i / N) + 0.5, d = Math.hypot(x - spot.x, z - spot.z);
+    if (d < lo || d > hi || x < 1.2 || z < 1.2 || x > N - 1.2 || z > N - 1.2) continue;
+    const y = sunk(x, z);
+    if (y === null || [[0.9, 0], [-0.9, 0], [0, 0.9], [0, -0.9]].some(([a, b]) => sunk(x + a, z + b) === null)) continue;
+    const across = Math.abs(-fz * (x - spot.x) + fx * (z - spot.z)) / d;
+    const out = tower ? Math.hypot(x - tower.x, z - tower.z) - Math.hypot(spot.x - tower.x, spot.z - tower.z) : 0;
+    const value = across * 0.8 + out - Math.abs(d - (lo + hi) / 2) * 0.5;
+    if (value > score) { score = value; best = { x, y, z }; }
+  }
+  return best;
+}
+// where he is at t: under the lava where he comes up, his eyes over it, then leaping in an arc
+// onto his spot
+function foggeryAt(r, t) {
+  const { at, spot } = r, from = r.data.from, low = from.y - r.e.profile.height - 0.3, peek = from.y - EYES_UP;
+  if (t < at.eyes) return { x: from.x, y: low, z: from.z };
+  if (t < at.burst) return { x: from.x, y: low + (peek - low) * smooth((t - at.eyes) / (at.peek - at.eyes)) + 0.03 * Math.sin(t * 3), z: from.z };
+  if (t >= at.land) return { x: spot.x, y: spot.y, z: spot.z };
+  const k = hang((t - at.burst) / (at.land - at.burst), 0.4), y = peek + (spot.y - peek) * k + 4 * (at.height + (from.y - peek) / 2) * k * (1 - k);
+  return { x: from.x + (spot.x - from.x) * k, y, z: from.z + (spot.z - from.z) * k };
+}
+// a place for the camera when there is none clear: d cells from `at` back towards the hero, `up` over it
+function towardHero(at, d, up) {
+  const dx = player.x - at.x, dz = player.z - at.z, l = Math.hypot(dx, dz) || 1;
+  return { x: at.x + dx / l * d, y: at.y + up, z: at.z + dz / l * d };
+}
+const unit = (a, b) => { const x = b.x - a.x, z = b.z - a.z, l = Math.hypot(x, z) || 1; return [x / l, z / l]; };
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1];
+// The camera's places (the shots' anchors, core/bossintro.js): `wide`, well back and up from the
+// way he leaps, out over the lava looking in at his tower (across the way if it can, the hero's
+// side if it can); `near`, low over the lava on that side, a way off his eyes; `front` and
+// `front2`, low before his spot out over the lava, a little round from each other
+function foggeryViews(r) {
+  const { spot, data: { from } } = r, A = r.anchors, m = state.map;
+  const core = m.tower ? { x: TOWER.mid, z: TOWER.mid } : { x: player.x, z: player.z };
+  const mid = { x: (from.x + spot.x) / 2, y: (from.y + spot.y) / 2 + 0.6, z: (from.z + spot.z) / 2 }, way = unit(from, spot);
+  const top = { ...foggeryAt(r, (r.at.burst + r.at.land) / 2) }, eyes = { ...from, y: from.y + 0.3 }, him = { ...spot, y: spot.y + 1 };
+  const hero = unit(mid, player), out = p => Math.hypot(p.x - core.x, p.z - core.z);
+  A.wide = viewFrom(mid, { far: [5.5, 9], up: [2.5, 5.5], see: [eyes, him, { ...top, y: top.y + 0.8 }], room: 1.1,
+    score: (p, a) => { const u = [Math.cos(a), Math.sin(a)], d = Math.hypot(p.x - mid.x, p.z - mid.z);
+      return -Math.abs(dot(u, way)) * 0.5 - dot(u, way) * 0.6 + dot(u, hero) * 0.3 + (out(p) - out(mid)) * 0.3 - Math.abs(d - 7.5) * 0.4
+        - Math.abs(p.y - mid.y - 4) * 0.3; } })
+    ?? towardHero(mid, 6, 3);
+  const side = unit(from, A.wide);
+  A.near = viewFrom(from, { far: [2.8, 3.8], up: [0.55, 1.2], see: [eyes], room: 0.7,
+    score: (p, a) => dot([Math.cos(a), Math.sin(a)], side) * 2 - (p.y - from.y) * 0.6 }) ?? towardHero(from, 3.2, 0.8);
+  const face = Math.atan2(spot.z - core.z, spot.x - core.x), toWide = Math.atan2(A.wide.z - spot.z, A.wide.x - spot.x);
+  const turn = Math.atan2(Math.sin(toWide - face), Math.cos(toWide - face)) > 0 ? 1 : -1;   // (round towards where the wide shot was)
+  const front = (aim, far) => viewFrom(spot, { far, up: [0.4, 1.8], see: [him], room: 0.7,
+    score: (p, a) => Math.cos(a - aim) * 2 - (p.y - spot.y) * 0.4 });
+  A.front = front(face + 0.35 * turn, [4.2, 5.6]) ?? towardHero(spot, 4.5, 0.8);
+  const at = Math.atan2(A.front.z - spot.z, A.front.x - spot.x);
+  A.front2 = front(at - 0.3 * turn, [4.6, 6.2]) ?? A.front;
 }
 const foggery = {
-  seen: r => ({ x: r.e.x, y: Math.max(r.e.y, r.spot.y), z: r.e.z }),
-  where: (r, t) => ({ ...r.spot, y: Math.max(r.spot.y, foggeryY(r, t)) }),
+  seen: r => ({ x: r.e.x, y: Math.max(r.e.y, r.data.from.y), z: r.e.z }),
+  where: (r, t) => { const p = foggeryAt(r, t); return { ...p, y: Math.max(p.y, r.data.from.y) }; },
   start(r) {
-    const { e, spot } = r;
-    r.data.lava = fluidTop(spot.x, spot.z, spot.y) ?? spot.y + 0.3;
-    Object.assign(e, { x: spot.x, z: spot.z, y: foggeryY(r, 0), yaw: facing(spot, player) });
+    const { e, spot } = r, D = r.data;
+    D.from = lavaSpot(r) ?? { x: spot.x, z: spot.z, y: fluidTop(spot.x, spot.z, spot.y - 1) ?? spot.y + 0.3 };
+    r.anchors.start = { ...D.from };
+    foggeryViews(r);
+    Object.assign(e, { ...foggeryAt(r, 0), yaw: facing(D.from, player) });
   },
   step(r, t, dt) {
-    const { e, spot, at } = r, D = r.data, lava = D.lava;
-    e.y = foggeryY(r, t);
-    e.clipBelow = t < at.top ? lava : undefined;   // (the lava is see-through: what is under it is not drawn)
-    faceCamera(r, dt, t < at.burst ? 6 : 3);
-    // the lava bubbling over him, more as he comes up
+    const { e, spot, at } = r, D = r.data, from = D.from, lava = from.y;
+    Object.assign(e, foggeryAt(r, t));
+    e.clipBelow = t < at.burst + 0.35 ? lava : undefined;   // (the lava is see-through: what is under it is not drawn)
+    if (t < at.burst) faceCamera(r, dt, 6); else if (t < at.land) e.yaw = facing(from, spot); else faceCamera(r, dt, 3);
+    // the caldera rumbling, more and more, the lava bubbling and glowing where he comes up
+    if (t >= at.rumble && t < at.burst) {
+      const k = clamp01((t - at.rumble) / (at.burst - at.rumble));
+      quake(0.003 + 0.012 * k * k);
+      if (Math.random() < dt * (2 + 10 * k))   // (spurts of lava)
+        emit(glow, from.x + rand(-0.4, 0.4), lava, from.z + rand(-0.4, 0.4), { v: [rand(-0.4, 0.4), rand(1.5, 3.5) * (0.5 + k), rand(-0.4, 0.4)],
+          life: rand(0.4, 0.7), size: rand(0.05, 0.1), color: LAVA[Math.floor(Math.random() * 4)], gravity: 9 });
+    }
+    if (once(D, 'rumble', t, at.rumble)) sfx('rumble', { at: from, pitch: 0.45, volume: 0.9 });
     if (t >= at.bubble && t < at.burst) {
       const k = clamp01((t - at.bubble) / 1.6);
-      bubbleFx(spot.x, lava, spot.z, 0.5, dt, 10 + 30 * k, LAVA, glow);
-      if (Math.random() < dt * (1 + 3 * k)) rippleFx(spot.x + rand(-0.3, 0.3), lava, spot.z + rand(-0.3, 0.3), 0.15, CRUST, 0.8);
+      bubbleFx(from.x, lava, from.z, 0.5 + 0.2 * k, dt, 10 + 40 * k, LAVA, glow);
+      if (Math.random() < dt * (1 + 3 * k)) rippleFx(from.x + rand(-0.3, 0.3), lava, from.z + rand(-0.3, 0.3), 0.15, CRUST, 0.8);
+      if (Math.random() < dt * 8 * k) emit(glow, from.x, lava + 0.05, from.z, { life: 0.3, size: 1.2 + k, color: '#ff8a2a', alpha: 0.25 * k });
     }
-    if (once(D, 'bubble', t, at.bubble)) { sfx('hiss', { at: spot, pitch: 0.5, volume: 0.7 }); sfx('sizzle', { at: spot, pitch: 0.6 }); }
-    if (once(D, 'eyes', t, at.eyes + 0.6)) sfx('foggery_windup', { at: spot, pitch: 0.6, volume: 0.6 });
-    // bursting up out of it, a splash of lava, and down again onto his spot
+    if (once(D, 'bubble', t, at.bubble)) { sfx('hiss', { at: from, pitch: 0.5, volume: 0.7 }); sfx('sizzle', { at: from, pitch: 0.6 }); }
+    if (once(D, 'eyes', t, at.eyes + 0.6)) sfx('foggery_windup', { at: from, pitch: 0.6, volume: 0.6 });
+    // bursting up out of it, a fountain of lava, and leaping onto his spot
     if (once(D, 'burst', t, at.burst)) {
-      sfx('fireball', { at: spot, pitch: 0.5, volume: 1 }); sfx('splash', { at: spot, pitch: 0.5, volume: 0.9 }); sfx('boom', { at: spot, pitch: 0.6, volume: 0.6 });
-      splashFx(spot.x, lava, spot.z, { colors: LAVA, n: 50, up: 7, wide: 2.2, layer: glow, size: [0.06, 0.14] });
-      splashFx(spot.x, lava, spot.z, { colors: CRUST, n: 18, up: 6, wide: 2, size: [0.08, 0.16] });
-      quake(0.025);
+      sfx('fireball', { at: from, pitch: 0.5, volume: 1 }); sfx('splash', { at: from, pitch: 0.5, volume: 0.9 }); sfx('boom', { at: from, pitch: 0.5, volume: 0.8 });
+      emit(glow, from.x, lava + 0.4, from.z, { life: 0.3, size: 2.6, grow: 1.6, color: '#ffd25a', alpha: 0.6 });
+      splashFx(from.x, lava, from.z, { colors: LAVA, n: 80, up: 9, wide: 2.6, layer: glow, size: [0.06, 0.15], life: [0.7, 1.4] });
+      splashFx(from.x, lava, from.z, { colors: CRUST, n: 26, up: 7, wide: 2.4, size: [0.08, 0.18] });
+      rippleFx(from.x, lava, from.z, 0.4, LAVA, 2.4);
+      quake(0.04); cameraKick(0, 0, 0, 0.08);
     }
-    if (t >= at.burst && t < at.land) for (let i = Math.floor(40 * dt + Math.random()); i > 0; i--)   // (lava dripping off him)
-      emit(glow, e.x + rand(-0.35, 0.35), e.y + rand(0.2, 1.4), e.z + rand(-0.35, 0.35), { v: [0, rand(-1, 0), 0], life: rand(0.3, 0.6),
-        size: rand(0.05, 0.1), color: LAVA[i % LAVA.length], gravity: 6 });
+    if (t >= at.burst && t < at.land) for (let i = Math.floor(60 * dt + Math.random()); i > 0; i--)   // (lava streaming off him)
+      emit(glow, e.x + rand(-0.35, 0.35), e.y + rand(0.2, 1.4), e.z + rand(-0.35, 0.35), { v: [0, rand(-1, 0), 0], life: rand(0.3, 0.7),
+        size: rand(0.05, 0.11), color: LAVA[i % LAVA.length], gravity: 6 });
     if (once(D, 'land', t, at.land)) {
-      sfx('stomp', { at: e, pitch: 0.8 }); sfx('splash', { at: e, pitch: 0.7, volume: 0.8 });
-      splashFx(spot.x, lava, spot.z, { colors: LAVA, n: 30, up: 3.5, wide: 2.6, layer: glow });
-      rippleFx(spot.x, lava, spot.z, 0.4, LAVA, 2.2);
-      quake(0.03); cameraKick(0, 0, 0, 0.06);
+      landFx(e, ASH, 1.2);
+      sfx('sizzle', { at: e, pitch: 0.8, volume: 0.8 });
+      splashFx(e.x, e.y, e.z, { colors: LAVA, n: 34, up: 4, wide: 3, layer: glow, size: [0.05, 0.1] });
+      quake(0.05);
     }
     // tucked in the air, then croaking, puffed up, flames out of his mouth
-    e.pose = t >= at.burst && t < at.land ? { clip: 'summon', t: warp([[at.burst, 0.2], [at.top, 0.45], [at.land, 0.3]], t) }
+    e.pose = t >= at.burst && t < at.land ? { clip: 'summon', t: warp([[at.burst, 0.2], [(at.burst + at.land) / 2, 0.45], [at.land, 0.3]], t) }
       : t >= at.croak && t < at.release ? { clip: 'summon', t: Math.min(1.5, (t - at.croak) * 0.95) } : null;
     if (once(D, 'croak', t, at.croak + 0.9 / 0.95)) {
-      roar(e, 0.8);
+      roar(e, 0.8); quake(0.025);
       const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
-      for (let i = 0; i < 36; i++)
-        emit(glow, e.x + fx * 0.4, e.y + 1.2, e.z + fz * 0.4, { v: [fx * rand(2, 4.5) + rand(-1, 1), rand(0.5, 2.5), fz * rand(2, 4.5) + rand(-1, 1)],
-          life: rand(0.4, 0.8), size: rand(0.06, 0.14), color: LAVA[i % LAVA.length], drag: 1.2, gravity: -1 });
+      for (let i = 0; i < 48; i++)
+        emit(glow, e.x + fx * 0.4, e.y + 1.2, e.z + fz * 0.4, { v: [fx * rand(2, 5) + rand(-1, 1), rand(0.5, 2.5), fz * rand(2, 5) + rand(-1, 1)],
+          life: rand(0.4, 0.9), size: rand(0.06, 0.15), color: LAVA[i % LAVA.length], drag: 1.2, gravity: -1 });
     }
   },
   end(r) {
@@ -468,10 +554,11 @@ const slomo = {
   },
 };
 
-// --- Qualmos: up out of his lagoon, at the end of the world -----------------------------------------
+// --- Qualmos: rising out of his lagoon at the end of the world, a leap, a slam, the roar ----------
 
-const DEEP = ['#ffffff', '#d8f4ff', '#8fd6e8', '#4aa8c0'];
-const BEHIND = 3, ASIDE = 6.5;
+const DEEP = ['#ffffff', '#d8f4ff', '#8fd6e8', '#4aa8c0'], ABYSS = ['#73ffe0', '#2fd6b0', '#e0fff6'];
+const ROCK = ['#8a8070', '#6e665a', '#a39a8a'];
+const BEHIND = 3, ASIDE = 5.2, BANK = 4.6;
 // where in his lagoon he comes up (exported for the checks): the middle of a cell of deep water,
 // reach[0] .. reach[1] cells from his spot, away from the hero, nearest the middle of that span,
 // best from the side: { x, z, y (its surface) }; null: no water near enough
@@ -494,12 +581,37 @@ export function lagoonSpot(r) {
   }
   return best;
 }
+// where he is at t: under his lagoon, rising up out of it till he stands on its water, leaping
+// onto his spot
 function qualmosAt(r, t) {
-  const { at, spot } = r, from = r.data.from;
-  if (t < at.leap) return { x: from.x, y: from.y - r.e.profile.height - 0.6, z: from.z };
+  const { at, spot } = r, from = r.data.from, deep = from.y - r.e.profile.height - 0.6, up = from.y + at.lift;
+  if (t < at.rise[0]) return { x: from.x, y: deep, z: from.z };
+  if (t < at.leap) {
+    const k = smooth((t - at.rise[0]) / (at.rise[1] - at.rise[0]));
+    return { x: from.x, y: deep + (up - deep) * k + (k >= 1 ? 0.06 * Math.sin((t - at.rise[1]) * 4) : 0), z: from.z };
+  }
   if (t >= at.land) return { x: spot.x, y: spot.y, z: spot.z };
-  const k = (t - at.leap) / (at.land - at.leap), y0 = from.y - 1.4;
-  return { x: from.x + (spot.x - from.x) * k, y: y0 + (spot.y - y0) * k + at.height * 4 * k * (1 - k), z: from.z + (spot.z - from.z) * k };
+  const k = hang((t - at.leap) / (at.land - at.leap));
+  return { x: from.x + (spot.x - from.x) * k, y: up + (spot.y - up) * k + at.height * 4 * k * (1 - k), z: from.z + (spot.z - from.z) * k };
+}
+// a whirlpool on the water at (x, y, z): drops going round, `r` cells out, and in
+function whirl(x, y, z, r, t, dt, rate) {
+  for (let i = Math.floor(rate * dt + Math.random()); i > 0; i--) {
+    const a = t * 3 + rand(0, Math.PI * 2), d = r * rand(0.35, 1);
+    emit(soft, x + Math.cos(a) * d, y + 0.04, z + Math.sin(a) * d, { v: [-Math.sin(a) * 2.4 * d - Math.cos(a) * 0.6, rand(0, 0.2), Math.cos(a) * 2.4 * d - Math.sin(a) * 0.6],
+      life: rand(0.5, 0.9), size: rand(0.04, 0.09), color: DEEP[i % DEEP.length], alpha: 0.7, drag: 0.8 });
+  }
+}
+// a ring of dust and stones running out over the floor from (x, y, z), fast
+function shockwave(x, y, z, speed, colors) {
+  for (let i = 0; i < 64; i++) {
+    const a = i / 64 * Math.PI * 2 + rand(-0.05, 0.05), v = speed * rand(0.85, 1.15);
+    emit(soft, x + Math.cos(a) * 0.6, y + 0.12, z + Math.sin(a) * 0.6, { v: [Math.cos(a) * v, rand(0.1, 0.6), Math.sin(a) * v],
+      life: rand(0.6, 1), size: rand(0.22, 0.4), grow: 1.5, color: colors[i % colors.length], alpha: 0.35, drag: 1.4 });
+  }
+  for (let i = 0; i < 30; i++)
+    emit(soft, x + rand(-0.6, 0.6), y + 0.1, z + rand(-0.6, 0.6), { v: [rand(-3, 3), rand(3, 7), rand(-3, 3)], life: rand(0.8, 1.2),
+      size: rand(0.05, 0.12), color: '#7a6a58', alpha: 0.95, gravity: 10 });
 }
 const qualmos = {
   fits: r => !!(r.data.from ??= lagoonSpot(r)),
@@ -513,46 +625,95 @@ const qualmos = {
     r.anchors.behind = { x: spot.x + bx / bl * BEHIND, y: spot.y, z: spot.z + bz / bl * BEHIND };
     // (and on the way, nearer the water: `shore`; and off to the side of his leap, the hero's: `aside`)
     r.anchors.shore = { x: from.x + bx * 0.45, y: spot.y, z: from.z + bz * 0.45 };
+    // (and back from the water on that way, far enough to see all of him standing on it: `bank`)
+    const back = Math.min(BANK, bl - 0.5);
+    r.anchors.bank = { x: from.x + bx / bl * back, y: spot.y, z: from.z + bz / bl * back };
     const mx = (from.x + spot.x) / 2, mz = (from.z + spot.z) / 2, px = -bz / bl, pz = bx / bl, out = (player.x - mx) * px + (player.z - mz) * pz < 0 ? -ASIDE : ASIDE;
     r.anchors.aside = { x: mx + px * out, y: spot.y, z: mz + pz * out };
     r.side = Math.sign(-(spot.z - player.z) * (from.x - spot.x) + (spot.x - player.x) * (from.z - spot.z)) || 1;
-    Object.assign(e, { veil: 0, ...qualmosAt(r, 0), yaw: facing(from, spot) });
+    Object.assign(e, { veil: 0, ...qualmosAt(r, 0), yaw: facing(from, player) });
   },
   step(r, t, dt) {
-    const { e, spot, at } = r, D = r.data, from = D.from;
+    const { e, spot, at } = r, D = r.data, from = D.from, w = from.y;
     Object.assign(e, qualmosAt(r, t));
-    e.veil = t >= at.leap - 0.05 ? 1 : 0;
-    e.clipBelow = t < at.leap + 0.4 ? from.y : undefined;   // (nothing of him under the water, nor through the bank)
-    // bubbles coming up in the lagoon, more and more, and rings on it
-    if (t >= at.bubbles && t < at.leap) {
+    e.veil = t >= at.rise[0] - 0.05 ? 1 : 0;
+    e.clipBelow = t < at.leap + 0.3 ? w : undefined;   // (nothing of him under the water, nor through the bank)
+    // the ground rumbling, more and more, till he leaps
+    if (t >= at.rumble && t < at.leap) quake(0.004 + 0.018 * smooth((t - at.rumble) / (at.leap - at.rumble)));
+    if (once(D, 'rumble', t, at.rumble)) { sfx('rumble', { at: from, pitch: 0.4, volume: 1 }); sfx('gulp', { at: from, pitch: 0.4, volume: 0.7 }); }
+    if (once(D, 'rumble2', t, at.rise[0])) sfx('rumble', { at: from, pitch: 0.35, volume: 1 });
+    // bubbles coming up in the lagoon, more and more, then a whirlpool turning, faster and faster
+    if (t >= at.bubbles && t < at.rise[1]) {
       const k = clamp01((t - at.bubbles) / 1.8);
-      bubbleFx(from.x, from.y, from.z, 0.6, dt, 8 + 30 * k, DEEP);
-      if (Math.random() < dt * (0.8 + 2 * k)) rippleFx(from.x + rand(-0.4, 0.4), from.y, from.z + rand(-0.4, 0.4), 0.2, DEEP, 1);
+      bubbleFx(from.x, w, from.z, 0.7, dt, 8 + 40 * k, DEEP);
+      if (Math.random() < dt * (0.8 + 2 * k)) rippleFx(from.x + rand(-0.4, 0.4), w, from.z + rand(-0.4, 0.4), 0.2, DEEP, 1);
     }
-    if (once(D, 'bubbles', t, at.bubbles)) { sfx('gulp', { at: from, pitch: 0.4, volume: 0.7 }); sfx('rumble', { at: from, pitch: 0.5, volume: 0.6 }); }
-    // his eyes lighting up at its surface, looking at the camera
-    const lit = clamp01((t - at.eyes) / 1) * (t < at.leap ? 1 : 0);
+    if (t >= at.swirl && t < at.rise[1]) whirl(from.x, w, from.z, 1.7, t * (1 + clamp01((t - at.swirl) / 2)), dt, 60 + 80 * clamp01((t - at.swirl) / 1.5));
+    if (once(D, 'swirl', t, at.swirl)) sfx('whirl', { at: from, pitch: 0.5, volume: 0.8 });
+    // his eyes lighting up under its surface, looking at the camera, till he comes up
+    const lit = clamp01((t - at.eyes) / 0.8) * (t < at.rise[0] + 0.5 ? 1 : 0);
     if (lit > 0) {
       const p = r.view ?? [player.x, player.y, player.z], dx = p[0] - from.x, dz = p[2] - from.z, l = Math.hypot(dx, dz) || 1, s = 0.28;
-      showEyes([[from.x - dz / l * s, from.y + 0.04, from.z + dx / l * s], [from.x + dz / l * s, from.y + 0.04, from.z - dx / l * s]],
+      showEyes([[from.x - dz / l * s, w + 0.04, from.z + dx / l * s], [from.x + dz / l * s, w + 0.04, from.z - dx / l * s]],
         0.5, lit * (0.75 + 0.25 * Math.sin(t * 23) * Math.sin(t * 7)), '#5fffd0');
     } else showEyes([[0, 0, 0], [0, 0, 0]], 0, 0);
-    if (once(D, 'eyes', t, at.eyes)) sfx('qualmos_windup', { at: from, pitch: 0.6, volume: 0.6 });
-    // bursting up out of it in a leap, landing on his spot
-    if (once(D, 'leap', t, at.leap)) {
-      sfx('splash', { at: from, pitch: 0.5, volume: 1 }); sfx('spray', { at: from, pitch: 0.6, volume: 0.9 }); sfx('gust', { at: from, pitch: 0.6, volume: 0.6 });
-      splashFx(from.x, from.y, from.z, { colors: DEEP, n: 60, up: 8, wide: 2.6, size: [0.07, 0.16] });
-      rippleFx(from.x, from.y, from.z, 0.6, DEEP, 2.4);
+    if (once(D, 'eyes', t, at.eyes)) sfx('qualmos_windup', { at: from, pitch: 0.55, volume: 0.7 });
+    // rising up out of it, the water pouring off him, calling it up round him in a spout
+    const rising = t >= at.rise[0] && t < at.leap;
+    if (once(D, 'rise', t, at.rise[0])) {
+      sfx('splash', { at: from, pitch: 0.4, volume: 1 }); sfx('spray', { at: from, pitch: 0.5, volume: 0.8 });
+      splashFx(from.x, w, from.z, { colors: DEEP, n: 50, up: 5, wide: 2.2, size: [0.07, 0.15] });
+      rippleFx(from.x, w, from.z, 0.6, DEEP, 2);
     }
-    if (t >= at.leap && t < at.land) for (let i = Math.floor(50 * dt + Math.random()); i > 0; i--)   // (water streaming off him)
-      emit(soft, e.x + rand(-0.4, 0.4), e.y + rand(0.3, 2), e.z + rand(-0.4, 0.4), { v: [0, rand(-1, 0.5), 0], life: rand(0.3, 0.6),
-        size: rand(0.06, 0.12), color: DEEP[i % DEEP.length], alpha: 0.8, gravity: 8 });
-    if (t < at.land) e.yaw = facing(from, spot); else faceCamera(r, dt, 2.5);
-    if (once(D, 'land', t, at.land)) landFx(e, ['#c9c0ae', '#9fc9d6', '#e8e2d6']);
-    // the leap (his dive's clip, stretched over it), getting up, and raging
-    e.pose = t < at.rage ? { clip: 'dive', t: warp([[at.leap - 0.4, 0.5], [at.leap, 0.82], [at.land, 1.5], [at.rage, 2.5]], t) }
+    if (rising) {
+      const top = e.y + e.profile.height * 0.9;
+      for (let i = Math.floor(90 * dt + Math.random()); i > 0; i--)   // (pouring off him)
+        emit(soft, e.x + rand(-0.55, 0.55), rand(Math.max(w, e.y), top), e.z + rand(-0.55, 0.55), { v: [rand(-0.3, 0.3), rand(-1.5, 0), rand(-0.3, 0.3)],
+          life: rand(0.3, 0.6), size: rand(0.05, 0.11), color: DEEP[i % DEEP.length], alpha: 0.8, gravity: 9 });
+      if (Math.random() < dt * 3) rippleFx(from.x, w, from.z, 0.7, DEEP, 1.8);
+      if (t >= at.rise[1] - 0.6) swirl(from.x, w, from.z, 1.2, t, dt, 70, 3);
+    }
+    if (once(D, 'call', t, at.rise[1] - 0.4)) { roar(e, 0.55); sfx('tidecall', { at: e, pitch: 0.6, volume: 0.9 }); }
+    // crashing his arms down: the lagoon bursts up round him and throws him up into a leap
+    if (once(D, 'leap', t, at.leap)) {
+      sfx('splash', { at: from, pitch: 0.4, volume: 1 }); sfx('spray', { at: from, pitch: 0.45, volume: 1 }); sfx('boom', { at: from, pitch: 0.45, volume: 0.8 });
+      splashFx(from.x, w, from.z, { colors: DEEP, n: 110, up: 10, wide: 3.5, size: [0.08, 0.18], life: [0.8, 1.5] });
+      for (const s of [0.6, 1.1]) rippleFx(from.x, w, from.z, s, DEEP, 3.2);
+      quake(0.045); cameraKick(0, 0, 0, 0.1);
+    }
+    if (t >= at.leap && t < at.land) for (let i = Math.floor(70 * dt + Math.random()); i > 0; i--)   // (water streaming off him)
+      emit(soft, e.x + rand(-0.5, 0.5), e.y + rand(0.3, 2.2), e.z + rand(-0.5, 0.5), { v: [0, rand(-1, 0.5), 0], life: rand(0.3, 0.7),
+        size: rand(0.06, 0.13), color: DEEP[i % DEEP.length], alpha: 0.8, gravity: 8 });
+    if (t < at.rise[0]) e.yaw = facing(from, r.view ? { x: r.view[0], z: r.view[2] } : player);
+    else if (t < at.leap) faceCamera(r, dt, 1.5);
+    else if (t < at.land) e.yaw += Math.atan2(Math.sin(facing(from, spot) - e.yaw), Math.cos(facing(from, spot) - e.yaw)) * Math.min(1, dt * 10);
+    else faceCamera(r, dt, 2.5);
+    // down on his spot with both fists and his tentacles: the floor shakes, a ring of dust runs out
+    // (and the braziers flare up as it reaches them: core/bossintro.js `fires.wave`)
+    if (once(D, 'land', t, at.land)) {
+      landFx(e, ROCK, 1.3);
+      shockwave(e.x, e.y, e.z, 7, ROCK);
+      emit(glow, e.x, e.y + 0.3, e.z, { life: 0.4, size: 3.4, grow: 1.6, color: '#bff6ea', alpha: 0.45 });
+      sfx('shatter', { at: e, pitch: 0.4, volume: 0.7 });
+      quake(0.05);
+    }
+    // rising out of the water arms up, calling (his surge's clip), crashing them down for the leap;
+    // rearing up in the air and slamming down (his double slam's); then raging, roaring arms wide
+    const apex = at.leap + (at.land - at.leap) / 2;
+    e.pose = t < at.leap ? { clip: 'tidalSurge', t: warp([[at.rise[0], 0], [at.rise[1], 1.2], [at.leap - 0.2, 1.4], [at.leap, 1.7]], t) }
+      : t < at.rage ? { clip: 'doubleSlam', t: warp([[at.leap, 0.45], [apex, 0.95], [at.land, 1.2], [at.rage, 2.2]], t) }
       : t < at.release ? { clip: 'rage', t: Math.min(2.5, t - at.rage) } : null;
-    if (once(D, 'roar', t, at.rage + 0.6)) { roar(e, 0.7); quake(0.03); }
+    if (once(D, 'roar', t, at.roar)) {
+      roar(e, 0.6); quake(0.04);
+      sfx('gust', { at: e, pitch: 0.5, volume: 0.7 });
+      const h = e.profile.height;
+      emit(glow, e.x, e.y + h * 0.6, e.z, { life: 0.5, size: 4, grow: 1.5, color: '#73ffe0', alpha: 0.35 });
+      for (let i = 0; i < 60; i++) {
+        const a = rand(0, Math.PI * 2), s = rand(2, 5);
+        emit(glow, e.x, e.y + h * rand(0.3, 0.9), e.z, { v: [Math.cos(a) * s, rand(-0.5, 2), Math.sin(a) * s], life: rand(0.5, 1), size: rand(0.05, 0.12),
+          color: ABYSS[i % ABYSS.length], drag: 1.6 });
+      }
+    }
   },
   end(r) {
     Object.assign(r.e, { veil: undefined, clipBelow: undefined, pose: null, x: r.spot.x, y: r.spot.y, z: r.spot.z });

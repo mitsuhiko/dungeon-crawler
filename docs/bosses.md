@@ -50,14 +50,15 @@ intro's shots while he appears, turning to the camera so it sees his face; his n
 big under his feet with a line of what he is (his epithet: `EPITHETS`, "The Hungry Grin"; a
 Temp Boss's "Keeper of the Well") and a deep sting (`reveal`, `audio/sfx.js`); the light and the
 fires come back. Then the bars shut a moment, the camera cuts back to the game's, the bars go and
-his bar fades in, and the hero is free. About 7½ to 8½ s (`length`); a click, Space or Enter skips to
+his bar fades in, and the hero is free. About 7½ to 8½ s (`length`; Qualmos's, the last, 11 s); a click, Space or Enter skips to
 the cut back (after the first second). Meanwhile he is `staged` (the AI and his fight leave him
 be: nothing wakes him, not even Foggery's ramp), every enemy holds its attacks, the narrator
 and the robot stop (their subtitle goes) and wait till it is over, and nothing shows over
 anybody's head.
 
 - **The shots** are keys of the camera and what it looks at, round anchors (the hero, his spot,
-  where he is now, what the reveal adds), in the frame from the hero to his spot and scaled by
+  where he is now, what the reveal adds: Foggery's are places found clear for the camera round
+  where he comes up and lands, `revealkit.js viewFrom`), in the frame from the hero to his spot and scaled by
   his height (`shotFrame`, `shotScale`); the camera goes through them on curves, a key may cut.
   Before it starts, each key whose camera would stand in something, under a fluid, outside the
   cube (or in a cave's walls) or not see what it looks at is moved round it (a little round,
@@ -94,10 +95,17 @@ anybody's head.
   flying in out of the dark from three sides, spinning wildly and trailing light, and lock
   together into him; he cartwheels right round (his flip's clip) and the camera turns once round
   with him (`turn`), so he stays upright and the box turns round him.
-- **Foggery:** the lava bubbles over his spot, and two burning eyes come up out of it and look at
-  the camera, a frog in his pond (what of him is under the lava is not drawn); he bursts up out
-  of it with a splash of lava, lands and croaks, puffed up (his summon's clip), flames bursting
-  out of his mouth. The camera low over the lava, creeping in on the eyes, high as he bursts up.
+- **Foggery:** his tower stands between the hero and him, so the bars shut a moment and open
+  on the caldera (a cut in: `blend` from and full the same). The caldera rumbles, more and more
+  (the view shaking); out in the lava (`lavaSpot`: lava over the floor 2.6 to 4.8 cells from his
+  spot, off the tower's foot, the bridge and the well, best out away from the tower) it bubbles
+  and glows, and two burning eyes come up out of it and look at the camera, a frog in his pond
+  (what of him is under the lava is not drawn); he bursts up out of it in a fountain of lava and
+  leaps in an arc (hanging at its top a moment) onto the land at the foot of his tower, lands
+  with a crash and croaks, puffed up (his summon's clip), flames bursting out of his mouth. The
+  camera high and well back (`wide`), creeping down low over the lava towards the eyes (`near`),
+  cutting back wide as he bursts up, then to before his spot as he comes down (`front`), drifting
+  round for the croak (`front2`).
 - **Renew:** clocks of light turn on his empty spot, their hands racing back, while the braziers
   sink low; his ghost walks backwards out of the dark onto it (time running back: a floor 2½ to
   4½ cells away, `wayIn` like Totnar's roll), and there he is whole again in a flash and holds
@@ -112,12 +120,18 @@ anybody's head.
 - **Slomo:** a pool of goo spreads bubbling on his spot and he oozes up out of it, flat at first,
   wobbling as he settles, his eye stalks popping up; he squashes down and heaves up tall,
   spitting gloop into the sky (his meteorites' clip). The camera low by the pool, craning up.
-- **Qualmos:** bubbles come up in his lagoon (`lagoonSpot`: deep water 2½ to 9 cells from his
-  spot) and two sea-green eyes light up at its surface; he bursts up out of it in a leap (his
-  dive's clip, stretched over it), lands on his spot and rages (beating his chest, roaring, arms
-  wide). The camera over his spot looking out over the water (`behind`), creeping in towards the
-  eyes (`shore`), cutting to the side of the leap (`aside`) as he comes up. No water near (a dev
-  spawn): the drop.
+- **Qualmos**, the last and the longest: the ground rumbles, more and more (the view shaking);
+  bubbles come up in his lagoon (`lagoonSpot`: deep water 2½ to 9 cells from his spot), it
+  starts to turn, a whirlpool, and two sea-green eyes light up under it. He rises up out of it,
+  slow, the water pouring off him, his arms going up as he calls it up round him in a spout (his
+  surge's clip), and crashes them down: the lagoon bursts up and throws him into a great leap,
+  hanging at its top a moment, rearing up, and he slams down onto his spot with both fists and
+  his tentacles (his double slam's clip): the floor shakes, a ring of dust runs out over it and
+  each brazier flares up as it gets there (`fires.wave`); and he rages, roaring arms wide (his
+  rage's clip). The camera over his spot looking out over the water (`behind`), creeping in low
+  towards the whirlpool (`shore`), backing away low as he rises, looking up at him (`bank`); off
+  to the side of the leap (`aside`), then low and close before him for the rage, pulling back
+  as its lens narrows (a dolly zoom). No water near (a dev spawn): the drop.
 - **After the first time** (`state.run.met`, saved with the world), or when someone else is in
   the arena, or he is already fighting, or the enemies are another player's (playing together),
   only his name shows a moment while his bar fades in; nothing is taken away. With reduce motion
@@ -873,7 +887,7 @@ all you have left does it kill you, like any lava.
 
 ### Phase 1 (full health to a third)
 
-- He waits at the foot of the ramp, down in the lava (it does not burn him), facing the doorway
+- He waits at the foot of the ramp, on its first floor out of the lava at rest, facing the doorway
   (`waiting`: the AI leaves him be). A player setting foot on the ramp (or coming within 2.4 cells
   of him, or a hit) starts the fight (`wake`): "Foggery croaks: the lava is rising! Up the
   tower!". The lava rises from rest to its highest in **60 s**; three Fire-faces wait spread up the

@@ -125,7 +125,7 @@ function step(dt) {
       setCine({ cam: shot.cam.map((v, i) => v + n(i)), look: shot.look.map((v, i) => v + n(i + 3) * 0.5), fov: shot.fov, roll: shot.roll, w, avoid });
     } else setCine(null);
     $('letterbox').classList.toggle('on', within(d.letterbox, t));
-    $('letterbox').classList.toggle('shut', !reduceMotion() && blinking(d, t));   // (the cut back to the game's camera)
+    $('letterbox').classList.toggle('shut', !reduceMotion() && blinking(d, t));   // (a cut: back to the game's camera, or in to the free one)
   }
   const named = within(d.name, t);
   if (named && !r.named && r.full) sfx('reveal');
@@ -136,20 +136,26 @@ function step(dt) {
   if (t >= d.length) stop();
 }
 
-// the arena's fires sinking low as the light goes, and flaring up again (with a burst of sparks)
+// the arena's fires sinking low as the light goes, and flaring up again (with a burst of sparks);
+// with a `wave` (cells/s) one after the other, from his spot outwards
 function fires(r, t) {
   const f = r.def.fires;
   if (!f || !r.fires.length) return;
-  const low = t >= f.out && t < f.back;
-  if (low === r.firesLow) return;
-  r.firesLow = low;
+  r.lowFires ??= new Set();
+  let flared = 0;
   for (const x of r.fires) {
+    const back = f.back + (f.wave ? Math.hypot(x.x - r.spot.x, x.z - r.spot.z) / f.wave : 0), low = t >= f.out && t < back;
+    if (low === r.lowFires.has(x)) continue;
+    if (low) r.lowFires.add(x); else r.lowFires.delete(x);
     x.set.power(x.i, low ? 0.25 : 1);
-    if (!low) for (let i = 0; i < 10; i++)
+    if (low) continue;
+    flared++;
+    for (let i = 0; i < 10; i++)
       emit(glow, x.x + rand(-0.1, 0.1), x.y + rand(0, 0.3), x.z + rand(-0.1, 0.1), { v: [rand(-0.7, 0.7), rand(1.5, 3.5), rand(-0.7, 0.7)],
         life: rand(0.4, 0.8), size: rand(0.04, 0.08), color: ['#fff0a0', '#ffd25a', '#ff8a2a'][i % 3], gravity: -0.5, drag: 1 });
+    if (f.wave) sfx('fireball', { at: x, pitch: rand(0.55, 0.7), volume: 0.4 });
   }
-  if (!low) sfx('fireball', { at: r.e, pitch: 0.5, volume: 0.7 });
+  if (flared && !f.wave) sfx('fireball', { at: r.e, pitch: 0.5, volume: 0.7 });
 }
 
 // The intro's shots, each key's camera out of the way: where it is (at the key's moment: the boss

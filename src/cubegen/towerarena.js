@@ -7,7 +7,7 @@
 // climbs: flat where the bridge joins it, a wall on its inner side up to the turn above. One floor
 // to a column (but the bridge over the caldera's floor). The bridge has low stone parapets; the
 // ramp and the top have none (the platforms float round the top, core/foggery.js PLATFORMS). He
-// waits at the foot of the ramp. The well
+// waits at the foot of the ramp, just out of the lava. The well
 // lies on the caldera's floor in a far corner, under the lava until he is beaten (game/tide.js
 // drains it). Loose stones and rubble lie about the tower and the caldera's floor, and on the floor
 // the small things his arena brings (core/bosses.js BOSS_ARENAS.foggery `props`: volcanic rocks).
@@ -130,8 +130,10 @@ export function towerArena({ spec, ctx, entry, role, own }) {
   const wellFloor = cols[wellC].find(f => f.ground);
   const down = { id: wellId, kind: 'down', dir: 4, layer: 0, cells: well, x: wellC % N, z: Math.floor(wellC / N), y: T.ground * LH, floor: wellFloor };
   const portals = [entrance, down];
-  // he waits at the foot of the ramp (in the lava: it does not burn him), facing the doorway
-  const guardFloor = floors.filter(f => f.tower === 'ramp' && f.link.filter(Boolean).length >= 2).sort((a, b) => a.ramp - b.ramp)[0];
+  // he waits at the foot of the ramp, on its first floor out of the lava at rest (his intro has
+  // him leap out of it onto there), facing the doorway
+  const dry = f => floorY(f, .5, .5) > T.lava.rest * LH + 0.02;
+  const guardFloor = floors.filter(f => f.tower === 'ramp' && f.link.filter(Boolean).length >= 2 && dry(f)).sort((a, b) => a.ramp - b.ramp)[0];
   const goal = cols[idx(T.mid, T.mid)].at(-1);
   const boss = role === 'descent' ? spec.guardian.boss ?? null : null;
   const guardian = { role, bossPlaceholder: !boss, boss, exit: 4, floor: guardFloor, x: guardFloor.x + .5, z: guardFloor.z + .5,

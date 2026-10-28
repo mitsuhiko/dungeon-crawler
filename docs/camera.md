@@ -123,8 +123,9 @@ A boss's intro ([bosses.md](bosses.md#the-intro), `game/bossintro.js`) takes the
 a few seconds, in either view: it hands `setCine` where the camera is to be, what it looks at, its
 lens and roll and how far it has taken over (`w`). Coming in, the point looked at goes from the
 game's to the intro's while the camera swings round it, from the game camera's direction and
-distance to the intro's (so it never passes through what it looks at); going back it cuts, behind
-black bars shut for a moment. Wherever it is, it never goes into anything: kept off the boss's
+distance to the intro's (so it never passes through what it looks at), or (where something big
+stands between, Foggery's tower) it cuts in; going back it cuts, behind black bars shut for a
+moment, as does a cut in. Wherever it is, it never goes into anything: kept off the boss's
 body, inside the cube (off the walls of a cave or a canyon, `WALLED`), up out of what it would
 pass through, in front of what stands between it and what it looks at (`reach`, like the close
 view's arm) and over fluids. Past halfway it counts as there (`cineView()`): no cutaway, the

@@ -22,15 +22,18 @@ export const epithetOf = e => EPITHETS[e?.boss] ?? EPITHETS.temp;
 //   length     when it is over; hold: until when the hero has no control; walk: how long they walk on
 //   letterbox  [in, out] of the black bars; name: [in, out] of his name and epithet; bar: the bar fades in
 //   blend      [from, full, back]: the free camera takes over from the game's, and at `back` cuts
-//              back to it (the black bars shut over it a moment before, BLINK, and open again)
+//              back to it (the black bars shut over it a moment before, BLINK, and open again);
+//              `from` and `full` the same: it cuts to the free camera too, behind the bars
 //   dim        { at: [from, full, back, gone], to }: the arena's light going (to `to` of the
 //              night's dark, render/look.js) and coming back; null: the reveal does the light
-//   fires      { out, back }: the arena's fires sinking low, and flaring up again
+//   fires      { out, back, wave }: the arena's fires sinking low, and flaring up again (with a
+//              `wave`, cells/s: one after the other, from his spot outwards)
 //   at         the reveal's own moments (game/reveals.js, game/bossreveals.js)
 //   shake      how far the camera drifts as if held in a hand (cells)
 //   shots      the camera's keys (shotAt), each point [anchor, ahead, right, up] in the frame of
 //              shotFrame: anchors 'hero', 'spot' (where he stands), 'boss' (where he is now) and
-//              what the reveal adds (Totnar's and Qualmos's 'start', Qualmos's 'behind', 'shore' and 'aside'). game/bossintro.js moves a key's camera
+//              what the reveal adds (Totnar's, Foggery's and Qualmos's 'start', Foggery's 'wide',
+//              'near', 'front' and 'front2', Qualmos's 'behind', 'shore', 'bank' and 'aside'). game/bossintro.js moves a key's camera
 //              out of what is in the way (or what hides him) before the intro starts.
 // over the hero's shoulder, towards where the boss will be
 const OPEN = { t: 0.6, cam: ['hero', -2.2, 0.9, 2.0], look: ['spot', 0, 0, 1.0], fov: 50 };
@@ -97,20 +100,26 @@ export const INTROS = Object.freeze({
       { t: 4.5, cam: ['spot', -4.4, 0, 0.8], look: ['boss', 0, 0, 1.0], fov: 44, roll: 0 },
       { t: 5.35, cam: ['spot', -4.4, 0, 0.8], look: ['boss', 0, 0, 1.0], fov: 44, roll: -360 },
       { t: 7.2, cam: ['spot', -5.2, -1.4, 1.2], look: ['boss', 0, 0, 1.0], fov: 38, roll: -360 }] },
-  // Foggery: the light goes; the lava starts to bubble over his spot and two burning eyes come up
-  // out of it and look at the camera (a frog in his pond); then he bursts up out of it with a
-  // splash of lava, lands and croaks, puffed up (his summon's clip), flames bursting out of his
-  // mouth. The camera from the bridge down onto the lava, low over it, creeping in on the eyes, and
-  // pulling back as he bursts up
-  foggery: { reveal: 'foggery', length: 8.1, hold: 7.8, walk: 1.2, letterbox: [0.3, 7.8], name: [5.4, 7.5], bar: 7.7,
-    blend: [0.6, 2.0, 7.6], shake: 0.015, dim: { at: [0.3, 2.0, 5.2, 6.8], to: 0.55 }, fires: null,
-    at: { bubble: 1.8, eyes: 2.6, peek: 3.7, burst: 4.2, top: 4.65, land: 5.05, croak: 5.2, release: 6.9, height: 2.4 },
-    shots: [{ ...OPEN, look: ['spot', 0, 0, 0.4] },
-      { t: 2.0, cam: ['spot', -6.0, 2.2, 1.4], look: ['spot', 0, 0, 0.4], fov: 40 },
-      { t: 4.1, cam: ['spot', -3.6, 1.2, 1.0], look: ['spot', 0, 0, 0.5], fov: 30, ease: 'inOut' },
-      { t: 4.65, cam: ['spot', -5.0, 1.8, 2.4], look: ['boss', 0, 0, 0.8], fov: 50, roll: -4, ease: 'out' },
-      { t: 5.2, cam: ['spot', -4.8, 1.4, 1.1], look: ['boss', 0, 0, 1.15], fov: 46, roll: 0 },
-      { t: 7.4, cam: ['spot', -5.0, -0.9, 1.0], look: ['boss', 0, 0, 1.15], fov: 42 }] },
+  // Foggery: the bars shut and open on the caldera, from well away (a cut, his tower between the
+  // hero and him); the light goes and the caldera rumbles, more and more; out in his lava
+  // (`start`: `pool` cells from his spot) it bubbles and glows, and two burning eyes come up out
+  // of it and look at the camera (a frog in his pond); then he bursts up out of it in a fountain
+  // of lava and leaps in an arc onto the land at the foot of his tower, lands with a crash and
+  // croaks, puffed up (his summon's clip), flames bursting out of his mouth. The camera high and
+  // well back (`wide`), creeping down and in low over the lava towards the eyes (`near`), cutting
+  // back wide as he bursts up, then to before his spot as he comes down (`front`), drifting round
+  // (`front2`) for the croak
+  foggery: { reveal: 'foggery', length: 8.4, hold: 8.1, walk: 1.2, letterbox: [0.3, 8.1], name: [5.9, 7.9], bar: 8.0,
+    blend: [0.8, 0.8, 7.9], shake: 0.03, dim: { at: [0.3, 2.0, 5.3, 6.9], to: 0.55 }, fires: null,
+    at: { rumble: 1.3, bubble: 1.8, eyes: 2.7, peek: 3.7, burst: 4.3, land: 5.4, croak: 5.6, release: 7.5, height: 2.6, pool: [2.6, 4.8] },
+    shots: [{ t: 0.8, cam: ['wide', 0, 0, 1.2], look: ['start', 0, 0, 0], fov: 50 },
+      { t: 2.6, cam: ['wide', 0, 0, 0], look: ['start', 0, 0, 0.3], fov: 44, ease: 'linear' },
+      { t: 4.25, cam: ['near', 0, 0, 0], look: ['start', 0, 0, 0.45], fov: 38 },
+      { t: 4.3, cam: ['wide', 0, 0, 0.2], look: ['boss', 0, 0, 0.6], fov: 50, roll: -3, cut: true },
+      { t: 5.2, cam: ['wide', 0.4, 0, 0], look: ['boss', 0, 0, 0.6], fov: 46, roll: 1, ease: 'linear' },
+      { t: 5.23, cam: ['front', 0, 0, 0.3], look: ['spot', 0, 0, 0.9], fov: 50, roll: 0, cut: true },
+      { t: 6.4, cam: ['front', 0, 0, 0], look: ['boss', 0, 0, 1.0], fov: 44 },
+      { t: 7.9, cam: ['front2', 0, 0, 0], look: ['boss', 0, 0, 1.05], fov: 40 }] },
   // Renew: the light goes and the braziers sink low; clocks of light turn on his empty spot, their
   // hands racing back, and a ghost of him walks backwards out of the dark onto it (time running
   // back: `reach` cells, along the floors, game/revealkit.js wayIn); there he is whole again in a
@@ -164,22 +173,34 @@ export const INTROS = Object.freeze({
       { t: 4.9, cam: ['spot', -5.2, 0.7, 0.55], look: ['boss', 0, 0, 0.7], fov: 44 },
       { t: 6.0, cam: ['spot', -5.6, -0.4, 0.35], look: ['boss', 0, 0, 0.85], fov: 46, roll: 3, ease: 'out' },
       { t: 7.4, cam: ['spot', -5.8, -1.2, 0.5], look: ['boss', 0, 0, 0.75], fov: 40, roll: 0 }] },
-  // Qualmos: it goes darker still; bubbles come up in his lagoon, and two sea-green eyes light up
-  // under its surface; he bursts up out of it in a leap (his dive's clip) and lands on his spot,
-  // and rages, beating his chest and roaring with his arms wide, as the light comes back. The
-  // camera over his empty spot (`behind`) looking out over the water to where he comes up
-  // (`start`), creeping in towards the eyes (`shore`); as he leaps out it cuts to the side of his
-  // leap (`aside`), and comes round to the front as he lands, low and close for the rage. No
-  // water near: the drop (`fits`)
-  qualmos: { reveal: 'qualmos', length: 8.4, hold: 8.1, walk: 1.4, letterbox: [0.3, 8.1], name: [5.7, 7.8], bar: 8.0,
-    blend: [0.6, 2.0, 7.9], shake: 0.015, dim: { at: [0.3, 2.0, 5.9, 7.2], to: 0.3 }, fires: { out: 0.4, back: 5.9 },
-    at: { bubbles: 1.6, eyes: 2.5, leap: 3.9, land: 4.8, rage: 5.3, release: 7.8, height: 2.4, reach: [2.5, 9] },
+  // Qualmos, the last of them: it goes dark and the braziers die down, and the ground starts to
+  // rumble, more and more; bubbles come up in his lagoon (`start`), it starts to turn, a
+  // whirlpool, and two sea-green eyes light up under it. He rises up out of it, slow, the water
+  // pouring off him, his arms going up as he calls it up round him in a spout (his surge's clip),
+  // and crashes them down: the lagoon bursts up and throws him into a great leap, hanging at its
+  // top a long moment, rearing up, and he slams down onto his spot with both fists and his
+  // tentacles (his double slam's clip): the floor shakes, a ring of dust runs out over it and
+  // each brazier flares up as it gets there (`fires.wave`); and he rages, roaring arms wide (his
+  // rage's clip), the light coming back from his leap on. The camera over his empty spot
+  // (`behind`) looking out over the water, creeping in low towards the whirlpool (`shore`),
+  // backing away low as he rises (`bank`), looking up at him; off to the side of his leap as it
+  // throws him up (`aside`), cutting low and close before him for the rage and pulling back as
+  // its lens narrows (a dolly zoom: he stays as big, the arena closes in behind him). No water
+  // near: the drop (`fits`)
+  qualmos: { reveal: 'qualmos', length: 11.2, hold: 10.9, walk: 1.4, letterbox: [0.3, 10.9], name: [8.7, 10.7], bar: 10.8,
+    blend: [0.6, 2.0, 10.7], shake: 0.025, dim: { at: [0.3, 2.0, 6.4, 8.8], to: 0.4 }, fires: { out: 0.4, back: 7.5, wave: 6 },
+    at: { rumble: 1.2, bubbles: 1.6, swirl: 2.3, eyes: 2.8, rise: [3.8, 5.8], leap: 6.4, land: 7.5, rage: 8.3, roar: 8.9, release: 10.6,
+      height: 3.6, lift: 0.35, reach: [2.5, 9] },
     shots: [{ ...OPEN, look: ['start', 0, 0, 0.3] },
-      { t: 2.0, cam: ['behind', 0, 0, 1.25], look: ['start', 0, 0, 0.1], fov: 42 },
-      { t: 3.85, cam: ['shore', 0, 0, 0.8], look: ['start', 0, 0, 0.05], fov: 34 },
-      { t: 3.9, cam: ['aside', 0, 0, 1.0], look: ['boss', 0, 0, 0.5], fov: 50, cut: true },
-      { t: 5.0, cam: ['spot', -5.0, 1.6, 0.7], look: ['boss', 0, 0, 0.6], fov: 46 },
-      { t: 7.6, cam: ['spot', -4.8, -0.5, 0.5], look: ['boss', 0, 0, 0.95], fov: 44 }] },
+      { t: 2.0, cam: ['behind', 0, 0, 1.5], look: ['start', 0, 0, 0], fov: 46 },
+      { t: 3.8, cam: ['shore', 0, 0, 0.45], look: ['start', 0, 0, 0.15], fov: 38 },
+      { t: 5.8, cam: ['bank', 0, 0, 0.15], look: ['boss', 0, 0, 1.0], fov: 54, roll: -4 },
+      { t: 6.38, cam: ['bank', 0, 0, 0.18], look: ['boss', 0, 0, 1.05], fov: 56, roll: -5, ease: 'linear' },
+      { t: 6.4, cam: ['aside', 0, 0, 1.0], look: ['boss', 0, 0, 0.5], fov: 54, roll: 0, cut: true },
+      { t: 7.5, cam: ['aside', 0.3, 0, 0.7], look: ['boss', 0, 0, 0.4], fov: 50, ease: 'linear' },
+      { t: 8.25, cam: ['aside', 0.4, 0, 0.65], look: ['boss', 0, 0, 0.5], fov: 48, ease: 'out' },
+      { t: 8.3, cam: ['spot', -3.0, 0.9, 0.2], look: ['boss', 0, 0, 0.75], fov: 52, roll: 3, cut: true },
+      { t: 10.6, cam: ['spot', -5.0, 2.0, 0.4], look: ['boss', 0, 0, 0.7], fov: 30, roll: 0, ease: 'inOut' }] },
   // met before: his name a moment, the bar; nothing taken away
   again: { reveal: null, length: 3.2, hold: 0, walk: 0, letterbox: null, name: [0.2, 2.8], bar: 0.5, blend: null, dim: null, fires: null,
     shake: 0, shots: [] },
@@ -197,13 +218,16 @@ export const introOf = (e, met) => met ? INTROS.again : INTROS[e?.boss] ?? INTRO
 const clamp01 = u => u <= 0 ? 0 : u >= 1 ? 1 : u;
 const smooth = u => (u = clamp01(u)) * u * (3 - 2 * u);
 // how far the free camera has taken over at t (0: the game's, 1: the intro's)
+// (`from` and `full` the same: it cuts to it, behind the black bars)
 export function blendAt(intro, t) {
   const b = intro.blend;
-  return b && t < b[2] ? smooth((t - b[0]) / (b[1] - b[0])) : 0;
+  if (!b || t >= b[2]) return 0;
+  return b[1] > b[0] ? smooth((t - b[0]) / (b[1] - b[0])) : t >= b[0] ? 1 : 0;
 }
-// s the black bars take to shut before the camera cuts back, and whether they are shut at t
+// s the black bars take to shut before the camera cuts (back), and whether they are shut at t
 export const BLINK = 0.3;
-export const blinking = (intro, t) => !!intro.blend && t >= intro.blend[2] - BLINK && t < intro.blend[2] + 0.1;
+const shutAt = (at, t) => t >= at - BLINK && t < at + 0.1;
+export const blinking = (intro, t) => !!intro.blend && (shutAt(intro.blend[2], t) || intro.blend[1] <= intro.blend[0] && shutAt(intro.blend[0], t));
 export const within = (span, t) => !!span && t >= span[0] && t < span[1];
 
 // how much bigger a boss's shots are than Gusto's: by his height (a little Squarlo closer, Qualmos further)

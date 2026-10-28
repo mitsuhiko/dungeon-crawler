@@ -5,9 +5,11 @@
 import { player, state } from './state.js';
 import { fitting } from './bossfight.js';
 import { groundY } from '../physics/enemynav.js';
-import { cellAt } from '../physics/collide.js';
+import { cellAt, insideSolid } from '../physics/collide.js';
 import { standingAt } from '../physics/fluid.js';
-import { LH } from '../core/constants.js';
+import { LH, N } from '../core/constants.js';
+import { viewBlockedAt } from '../core/blockers.js';
+import { WALLED } from './camera.js';
 import { emit, glow, soft, rand } from '../render/particles.js';
 import { sfx, SOUND_NAMES } from '../audio/sfx.js';
 import { quake, cameraKick, hitstop } from './juice.js';
@@ -104,6 +106,37 @@ export function fluidTop(x, z, y) {
   let top = null;
   for (const f of state.map.cols[i]) if (f.fluid && f.surf * LH > y - 0.05) top = Math.max(top ?? -Infinity, f.surf * LH);
   return top;
+}
+
+// A place for the intro's camera: round `at` ({ x, y, z }), `far` cells away ([nearest,
+// furthest]) and `up` cells over it ([lowest, highest]), in the cube (off its walls), out of every
+// solid (and `room` cells off it all round) and over every fluid, with nothing between it and any
+// of `see` (points { x, y, z }); of those the one `score` (the place, its angle round `at`) likes
+// best: { x, y, z }. None clear: null.
+export function viewFrom(at, { far, up, see, score = () => 0, room = 0.3 }) {
+  const m = state.map, edge = m.walled ? WALLED : 0.6;
+  const solid = (x, y, z) => insideSolid(x, z, y) || viewBlockedAt(m, x, y, z);
+  const clear = (p, q) => {
+    const len = Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z);
+    for (let s = 0.4; s < len - 0.3; s += 0.15) {
+      const k = s / len;
+      if (solid(p.x + (q.x - p.x) * k, p.y + (q.y - p.y) * k, p.z + (q.z - p.z) * k)) return false;
+    }
+    return true;
+  };
+  let best = null, value = -Infinity;
+  for (let i = 0; i < 36; i++) for (let j = 0; j <= 4; j++) for (let h = 0; h <= 3; h++) {
+    const a = i / 36 * Math.PI * 2, d = far[0] + (far[1] - far[0]) * j / 4;
+    const p = { x: at.x + Math.cos(a) * d, y: at.y + up[0] + (up[1] - up[0]) * h / 3, z: at.z + Math.sin(a) * d };
+    if (p.x < edge || p.z < edge || p.x > N - edge || p.z > N - edge) continue;
+    const v = score(p, a);
+    if (v <= value || fluidTop(p.x, p.z, p.y - 0.45) !== null) continue;
+    if ([[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0], [0.7, 0, 0.7], [-0.7, 0, 0.7], [0.7, 0, -0.7], [-0.7, 0, -0.7]]
+      .some(([x, y, z]) => solid(p.x + x * room, p.y + y * room, p.z + z * room))) continue;
+    if (!see.every(q => clear(p, q))) continue;
+    best = p; value = v;
+  }
+  return best;
 }
 
 // Where he comes in from along the floors of the fight (exported for the checks): a floor he fits
