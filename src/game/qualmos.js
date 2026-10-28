@@ -8,8 +8,9 @@
 // down to his phase's floor and he is not in the middle of an attack, he starts the next phase:
 // he rages (his `rage` attack, warded) and fights on with its attacks too.
 import { QUALMOS, makeEnemy, enemyName } from '../core/enemies.js';
-import { phaseDue, enterPhase } from '../core/qualmos.js';
-import { state, setStatus } from './state.js';
+import { phaseDue, enterPhase, barred } from '../core/qualmos.js';
+import { prioritizeBellyFlop } from '../core/qualmos-attacks.js';
+import { player, state, setStatus } from './state.js';
 import { enemySpots } from './enemyspawn.js';
 import { stepEnemies } from './enemyai.js';
 import { removeEnemyViews } from '../render/enemies.js';
@@ -26,7 +27,7 @@ export function resetQualmoses() {
 // Qualmoses to fight: this cube's, or spawned with the dev tools
 export function addQualmoses(list) {
   for (const e of list) {
-    enterPhase(e, 1);
+    enterPhase(e, 1);e.lastBellyFlopAttack=null;
     qualmoses.push(e);
   }
 }
@@ -36,6 +37,10 @@ export function updateQualmoses(dt) {
   for (const e of qualmoses) if (phaseDue(e)) {   // on into his next phase: his rage, then its attacks on top
     enterPhase(e, e.stage + 1);
     setStatus(tr('{name} enters phase {phase}!', { name: enemyName(e.profile), phase: e.stage }));
+  }
+  for(const e of qualmoses){
+    const target=e.target?.here?e.target:player;
+    e.barred=prioritizeBellyFlop(e,barred(e.stage),Math.hypot(target.x-e.x,target.z-e.z),Math.abs(target.y-e.y));
   }
   stepEnemies(qualmoses, dt);
   qualmoses = sweep(qualmoses, dt);

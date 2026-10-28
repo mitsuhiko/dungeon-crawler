@@ -1221,7 +1221,7 @@ const QUALMOS_ATTACKS = [
     projectile: { kind: 'iceball', speed: 8, radius: 0.15, range: 11, volley: 3, fan: 0.22, muzzle: [0, 2.9, 0.2] } }),
   qualmosBlow('tidalSurge', 3.2, 1.7, { reach: 8, hitReach: 0, power: 0.9, reason: 'Soaked by Qualmos!',
     gust: { kind: 'jet', thunder: [], time: 0.8, range: 9, width: 1.1, spread: 0.22, push: 9, pushTime: 0.5, muzzle: [0, 1.2, 0.5] } }),
-  qualmosBlow('bellyFlop', 4.5, 2.3, { reach: 4.5, hitReach: 4.6, arc: -1, power: 1.5, knockDown: true,
+  qualmosBlow('bellyFlop', 4.5, 2.3, { weight: 3, reach: 4.5, hitReach: 4.6, arc: -1, power: 1.5, knockDown: true,
     exposed: { from: 2.65, until: 3.7, damage: 1.5 }, recover: 2.2 }),
   // between phases (`weight` 0: only game/qualmos.js starts it), nothing hurting him (`ward`)
   qualmosBlow('rage', 2.5, 2, { weight: 0, reach: 0, hitReach: 0, power: 0, ward: true }),
