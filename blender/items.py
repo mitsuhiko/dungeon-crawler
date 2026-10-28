@@ -2081,9 +2081,15 @@ def render_previews(scene, objects, preview, directory, overview=True, previews=
     floor = next(o for o in preview.objects if o.name == 'ItemsFloor_NOT_EXPORTED')
     floor_location = floor.location.copy()
     report = validate(objects)
+    before = (scene.render.film_transparent, scene.render.image_settings.color_mode)
     try:
-        # Replace the hidden plinths with a contact plane for individual renders.
+        # Replace the hidden plinths with a contact plane for individual renders. The icons are cut
+        # out: no background, the floor only catching the item's shadow (the guide shows them on
+        # its own glass, learn/kids.css).
         floor.location.z = .125
+        floor.is_shadow_catcher = True
+        scene.render.film_transparent = True
+        scene.render.image_settings.color_mode = 'RGBA'
         for obj in decorations:
             obj.hide_render = True
         scene.render.resolution_x = scene.render.resolution_y = ICON
@@ -2104,6 +2110,8 @@ def render_previews(scene, objects, preview, directory, overview=True, previews=
         for obj in objects + decorations + [c for o in objects for c in o.children]:
             obj.hide_render = False
         floor.location = floor_location
+        floor.is_shadow_catcher = False
+        scene.render.film_transparent, scene.render.image_settings.color_mode = before
         cam.location, cam.rotation_euler, cam.data.ortho_scale = saved
         scene.render.resolution_x, scene.render.resolution_y = OVERVIEW
         scene.render.filepath = str(overview_path)
