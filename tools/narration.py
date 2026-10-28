@@ -73,6 +73,7 @@ PEAK_DB = -1.0  # never louder than this
 SILENCE_DB = -40.0  # below this (from the peak) counts as quiet, for the trims
 CODEC_HZ = 12  # the model's speech tokens a second
 # the pause after a sentence, by how it ends, in seconds ("..." trails off)
+# learn: sound.html#line-to-file (see learn/README.md)
 PAUSE = {".": 0.55, "!": 0.5, "?": 0.6, "...": 0.8, ",": 0.2}
 # where a sentence ends: after . ! ? or … (a closing quote may follow), before the next word
 SENTENCE_END = re.compile(r"(?:(?<=[.!?…])|(?<=[.!?…][\"'»«“”‘’]))\s+(?=\S)")
@@ -289,6 +290,7 @@ def metal_monotone(voice, rate, rng):
     delay, g = int(0.0016 * rate), 0.7
     return 0.5 * y + 0.5 * (1 - g) * signal.lfilter([1.0], np.r_[1.0, np.zeros(delay - 1), -g], y)
 
+# learn: sound.html#line-to-file (see learn/README.md)
 def stepped_vocoder(voice, rate, rng):
     """The robot's voice (FILTERS "stepped-vocoder"): a clockwork toy, and easy to understand.
     Its melody kept whole but snapped to semitones and a semitone up (retune, as if sung by a
@@ -521,6 +523,7 @@ def clone_prompt(model, job):
     raise ValueError(f"clone is 'embedding' or 'context', not {job['clone']!r}")
 
 
+# learn: sound.html#fingerprint (see learn/README.md)
 def mixed_prompt(model, job):
     """A voice between voices (a mix): their speaker embeddings, weighted, averaged (and as long
     as their weighted lengths); embedding cloning only."""
@@ -534,6 +537,7 @@ def mixed_prompt(model, job):
     return prompts[0][0]
 
 
+# learn: sound.html#pipeline #tts-code (see learn/README.md)
 def instructed(model, xvec, text, language, instruct, **kwargs):
     """One sentence said by a CustomVoice model in a cloned voice (its speaker embedding, `xvec`),
     following `instruct` (none: as it comes): CustomVoice's own generation, with the embedding
@@ -548,6 +552,7 @@ def instructed(model, xvec, text, language, instruct, **kwargs):
     return model.model.speech_tokenizer.decode([{"audio_codes": codes[0]}])
 
 
+# learn: sound.html#line-to-file #pipeline #speech-tokens #tts-code (see learn/README.md)
 def say(model, prompt, job):
     """The job's line, sentence by sentence, with the pauses between; and whether a sentence
     ran to its limit. `prompt` is the voice's clone prompt, or for a job that `speaks` its

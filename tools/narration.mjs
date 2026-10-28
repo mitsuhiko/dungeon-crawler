@@ -74,6 +74,7 @@ export const VOICE_DIR = resolve(ROOT, 'tools/voices');
 const MODEL = 'Qwen/Qwen3-TTS-12Hz-1.7B-Base';
 const SPEAKER = 'Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice';
 const NARRATOR = { model: MODEL, speaks: SPEAKER, voice: 'glassmaker', clone: 'embedding', temperature: 0.7 };
+// learn: sound.html#qwen (see learn/README.md)
 export const VOICES = {
   en: { ...NARRATOR, language: 'English' },
   de: { ...NARRATOR, language: 'German' },
@@ -82,6 +83,7 @@ export const VOICES = {
 // before the voice is taken from it, and what the voice says goes through `filter` (FILTERS)
 // unless VOICES or --filter say another. Or made from several (`mix`: voices and their weights):
 // a voice between them (their speaker embeddings averaged; 'embedding' cloning only)
+// learn: sound.html#fingerprint #qwen (see learn/README.md)
 export const MADE = {
   // the Glassmaker's recording halfway to the narrator's voice, in the narrator's tone
   'glassmaker-mix': { mix: { experiment_glassmaker: 0.5, 'experiment_lost-hearing': 0.5 }, filter: 'tone:experiment_lost-hearing' },
@@ -98,6 +100,7 @@ const settingsOf = voice => {
 // is: from the tag on, the line is said so (until the next tag); an event tag (POINT) is said in
 // the one sentence after it only. Vivid plain English works best: CustomVoice takes it as a mood,
 // not as settings (a "Tempo: +20%" does nothing, or the opposite).
+// learn: sound.html#instructions (see learn/README.md)
 export const TAGS = {
   sad: 'Speak in a sad, sorrowful tone, voice low and heavy, on the verge of tears.',
   happy: 'Speak with bright, warm joy, smiling through every word.',
@@ -121,6 +124,7 @@ export const TAGS = {
   'very slowly': 'Speak very slowly, drawing out every word.',
   'very fast': 'Speak very fast, rushing the words.',
 };
+// learn: sound.html#instructions (see learn/README.md)
 export const POINT = {
   sighing: 'Begin with a weary sigh, then speak softly.',
   laughing: 'Speak while laughing, amused.',
@@ -136,6 +140,7 @@ const TAG_SPLIT = /\s*(\[[a-z][a-z ]*\])\s*/;
 // [[instruction or null, sentence], ...]. `instruct` is what is said without a tag (the line's,
 // or the voice's); an event tag goes before the mood of the moment. A tag in the middle of a
 // sentence cuts it there.
+// learn: sound.html#instructions (see learn/README.md)
 export function sentencesOf(text, instruct = null) {
   const out = [];
   let mood = instruct || null, once = null;

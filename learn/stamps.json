@@ -259,7 +259,17 @@
     "src/world/worker.js": "50695a04",
     "src/world/world.js#archetype": "7f631674",
     "src/world/world.js#prepare": "a88aec54",
-    "src/world/world.js#spec": "593722eb"
+    "src/world/world.js#spec": "593722eb",
+    "tools/narration.mjs#MADE": "1fd7596b",
+    "tools/narration.mjs#POINT": "431604f5",
+    "tools/narration.mjs#sentencesOf": "d4e5eb22",
+    "tools/narration.mjs#TAGS": "0e35ca65",
+    "tools/narration.mjs#VOICES": "ae0bd035",
+    "tools/narration.py#instructed": "d0f91073",
+    "tools/narration.py#mixed_prompt": "d40fc3f1",
+    "tools/narration.py#PAUSE": "c5a4d9f0",
+    "tools/narration.py#say": "aa28752f",
+    "tools/narration.py#stepped_vocoder": "b7d241f6"
   },
   "outdated": {}
 }

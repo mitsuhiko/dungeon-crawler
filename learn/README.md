@@ -62,6 +62,7 @@ Plain HTML, CSS and ES modules, no build step, like the game.
 | `words.html` | the glossary; `<a class="w" href="words.html#seed">` anywhere shows its entry on hover |
 | `demos/*.js` | interactive demos, loaded when they scroll into view |
 | `img/` | screenshots of the game, and `model-*.jpg`: copies of Blender previews (`node tools/preview-images.mjs`) |
+| `audio/` | the voices the sound room plays and shows: samples and lines said by the game's TTS models, and `samples.json`, what the models made on the way (`uv run tools/learn-voices.py`; docs/narration.md, "In the kids' guide") |
 | `tutor/` | the Teacher: an AI tutor in a side panel (see below) |
 | `../tools/learn.mjs` | the check / `--stamp` / `--defer` tool |
 

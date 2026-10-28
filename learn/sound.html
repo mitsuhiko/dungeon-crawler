@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title data-de="Geräusche &amp; Musik · Rundgang durch den Glasvogel">Sounds &amp; Music · Kids' Guide to The Glass Bird</title>
+<title data-de="Geräusche, Musik &amp; Stimmen · Rundgang durch den Glasvogel">Sounds, Music &amp; Voices · Kids' Guide to The Glass Bird</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="../vendor/fonts/fonts.css">
 <link rel="stylesheet" href="kids.css">
@@ -13,18 +13,20 @@
 <main class="deck">
 
 <section class="slide" id="no-files" data-lv="1">
-  <h2 lang="en">Not a single sound file</h2>
-  <h2 lang="de">Keine einzige Sounddatei</h2>
+  <h2 lang="en">Sounds without sound files</h2>
+  <h2 lang="de">Geräusche ohne Sounddateien</h2>
   <div class="cols">
     <div>
-      <p class="lead" lang="en">Most games record sounds with a microphone and play them back. The Glass Bird has <b>no sound files at all</b>.</p>
-      <p class="lead" lang="de">Die meisten Spiele nehmen Geräusche mit einem Mikrofon auf und spielen sie ab. Der Glasvogel hat <b>überhaupt keine Sounddateien</b>.</p>
+      <p class="lead" lang="en">Most games record sounds with a microphone and play them back. The Glass Bird has <b>no sound files</b> for its sounds and its music.</p>
+      <p class="lead" lang="de">Die meisten Spiele nehmen Geräusche mit einem Mikrofon auf und spielen sie ab. Der Glasvogel hat für seine Geräusche und seine Musik <b>keine Sounddateien</b>.</p>
       <p lang="en">Every swoosh, thump, coin, footstep, monster growl and splash is <b>calculated</b>, right when you hear it, by your browser's built-in synthesizer.</p>
       <p lang="de">Jedes Wusch, Wumms, Münzklimpern, jeder Schritt, jedes Monsterknurren und jedes Platschen wird <b>berechnet</b>, genau in dem Moment, in dem du es hörst, vom eingebauten Synthesizer deines Browsers.</p>
       <p lang="en">A sound is a wave: air pushed back and forth, very fast. The game describes each sound as a <b>recipe</b>: which waves to mix, how they change, how loud they are at each moment.</p>
       <p lang="de">Ein Geräusch ist eine Welle: Luft, die sehr schnell hin und her geschubst wird. Das Spiel beschreibt jedes Geräusch als <b>Rezept</b>: welche Wellen gemischt werden, wie sie sich ändern, wie laut sie in jedem Moment sind.</p>
       <p lang="en">Press the buttons and watch the wave. Change the pitch: the same recipe can make a small spider's hit or a big Stunder's thud.</p>
       <p lang="de">Drück die Knöpfe und schau dir die Welle an. Ändere die Tonhöhe: Dasselbe Rezept kann den Treffer einer kleinen Spinne oder den Rums eines großen Stunders machen.</p>
+      <p class="small muted" lang="en">Only the voices are files. And no microphone recorded those either: <a href="#voices">an AI reads them aloud</a>.</p>
+      <p class="small muted" lang="de">Nur die Stimmen sind Dateien. Und auch die hat kein Mikrofon aufgenommen: <a href="#voices">eine KI liest sie vor</a>.</p>
     </div>
     <div class="demo" data-demo="sound"></div>
   </div>
@@ -143,6 +145,152 @@ bird   | _ | _ | _ | A6 D6+E6---------- |</code></pre>
   </div>
 </section>
 
+<section class="slide" id="voices" data-lv="1">
+  <h2 lang="en">Voices, read by an AI</h2>
+  <h2 lang="de">Stimmen, von einer KI vorgelesen</h2>
+  <div class="cols">
+    <div>
+      <p class="lead" lang="en">Two characters talk: the <b>glassmaker</b>, whose old recordings you find in bubbles of his glass, and the little <b>robot</b> that flies along with you.</p>
+      <p class="lead" lang="de">Zwei Figuren sprechen: der <b>Glasmacher</b>, dessen alte Aufnahmen du in Blasen aus seinem Glas findest, und der kleine <b>Roboter</b>, der mit dir mitfliegt.</p>
+      <p lang="en">No actor spoke their lines. An <a class="w" href="words.html#ai-model">AI model</a> reads them aloud: a program that learned from many, many hours of people talking how written words sound when they are spoken. It is called <b>Qwen3-TTS</b>. TTS stands for "text to speech".</p>
+      <p lang="de">Kein Schauspieler hat ihre Sätze gesprochen. Ein <a class="w" href="words.html#ai-model">KI-Modell</a> liest sie vor: ein Programm, das aus vielen, vielen Stunden sprechender Menschen gelernt hat, wie geschriebene Worte klingen, wenn man sie ausspricht. Es heißt <b>Qwen3-TTS</b>. TTS steht für "text to speech", Text zu Sprache.</p>
+      <p lang="en">This model does not run in your browser: it is several gigabytes big, much bigger than the whole game. So the people who build the game run it on their own computer, <b>once</b>, and keep what it says as small sound files. The game only plays those files, and shows the words as subtitles.</p>
+      <p lang="de">Dieses Modell läuft nicht in deinem Browser: Es ist mehrere Gigabyte groß, viel größer als das ganze Spiel. Darum lassen es die Leute, die das Spiel bauen, auf ihrem eigenen Computer laufen, <b>einmal</b>, und heben auf, was es sagt, als kleine Sounddateien. Das Spiel spielt nur diese Dateien ab und zeigt die Worte als Untertitel.</p>
+    </div>
+    <div class="card">
+      <h3 lang="en">Why ahead of time?</h3>
+      <h3 lang="de">Warum im Voraus?</h3>
+      <ul>
+        <li lang="en"><b>Small:</b> a line is a few kilobytes. The model is a million times bigger.</li>
+        <li lang="de"><b>Klein:</b> Eine Zeile ist ein paar Kilobyte. Das Modell ist eine Million Mal größer.</li>
+        <li lang="en"><b>Fast:</b> while you play, nothing has to be worked out.</li>
+        <li lang="de"><b>Schnell:</b> Während du spielst, muss nichts ausgerechnet werden.</li>
+        <li lang="en"><b>Checked:</b> a person can listen to every line first. If the AI mumbles a word, they pick another try.</li>
+        <li lang="de"><b>Geprüft:</b> Ein Mensch kann sich jede Zeile vorher anhören. Nuschelt die KI ein Wort, nimmt er einen anderen Versuch.</li>
+      </ul>
+      <p class="small" lang="en">The price: a recorded line can never say <i>your</i> name, because nobody knew it when the line was made. Listen: the glassmaker and the robot never call you by name.</p>
+      <p class="small" lang="de">Der Preis: Eine aufgenommene Zeile kann nie <i>deinen</i> Namen sagen, denn den kannte niemand, als die Zeile gemacht wurde. Hör mal hin: Der Glasmacher und der Roboter nennen dich nie beim Namen.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="hear" data-lv="1">
+  <h2 lang="en">Listen: a voice sample, and a line said with it</h2>
+  <h2 lang="de">Hör zu: eine Stimmprobe und ein Satz damit</h2>
+  <p lang="en">To learn a voice, the AI needs half a minute of it talking: a <b>voice sample</b>. Then it can say <i>anything</i> in that voice, in English and in German. On the left, each voice's sample; on the right, a line from the game said with it.</p>
+  <p lang="de">Um eine Stimme zu lernen, braucht die KI eine halbe Minute davon, wie sie spricht: eine <b>Stimmprobe</b>. Dann kann sie <i>alles</i> mit dieser Stimme sagen, auf Englisch und auf Deutsch. Links die Probe jeder Stimme, rechts ein Satz aus dem Spiel, damit gesagt.</p>
+  <div class="note" lang="en"><b>Careful</b> The samples on the left are not recordings of anyone. Each is a voice the AI mixed from real voices, reading a story aloud: so they are AI too. <a href="#fingerprint">How that works</a> comes in a moment.</div>
+  <div class="note" lang="de"><b>Achtung</b> Die Proben links sind keine Aufnahmen von irgendwem. Jede ist eine Stimme, die die KI aus echten Stimmen gemischt hat, beim Vorlesen einer Geschichte: Sie sind also auch KI. <a href="#fingerprint">Wie das geht</a>, kommt gleich.</div>
+  <div class="demo" data-demo="voices" data-mode="voices"></div>
+  <p class="small muted" lang="en">The pictures show the sound: time goes to the right, low notes are at the bottom, high ones at the top, and the brighter, the louder. Click one to hear it.</p>
+  <p class="small muted" lang="de">Die Bilder zeigen den Klang: Die Zeit läuft nach rechts, tiefe Töne sind unten, hohe oben, und je heller, desto lauter. Klick eins an, um es zu hören.</p>
+</section>
+
+<section class="slide" id="qwen" data-lv="2" data-src="tools/narration.mjs#VOICES,MADE">
+  <h2 lang="en">Three models, three jobs</h2>
+  <h2 lang="de">Drei Modelle, drei Aufgaben</h2>
+  <div class="cols">
+    <div>
+      <p lang="en">Qwen3-TTS is not one model but a small family. The game uses three of them:</p>
+      <p lang="de">Qwen3-TTS ist nicht ein Modell, sondern eine kleine Familie. Das Spiel benutzt drei davon:</p>
+      <ol class="steps">
+        <li lang="en"><b>VoiceDesign invents a voice.</b> Describe it in words ("a young boy, about nine years old, reading a story aloud") and it makes one up. It helped to make the robot's voice.</li>
+        <li lang="de"><b>VoiceDesign erfindet eine Stimme.</b> Beschreib sie in Worten ("ein Junge, etwa neun Jahre alt, der eine Geschichte vorliest"), und es denkt sich eine aus. Es hat geholfen, die Stimme des Roboters zu machen.</li>
+        <li lang="en"><b>Base listens.</b> Give it half a minute of a voice talking, and it writes down the voice's <b>fingerprint</b>: 2048 numbers. Base can talk in that voice, but you can't tell it <i>how</i>: no "sad", no "whisper".</li>
+        <li lang="de"><b>Base hört zu.</b> Gib ihm eine halbe Minute einer Stimme, die spricht, und es schreibt den <b>Fingerabdruck</b> der Stimme auf: 2048 Zahlen. Base kann mit dieser Stimme sprechen, aber du kannst ihm nicht sagen, <i>wie</i>: kein "traurig", kein "flüstern".</li>
+        <li lang="en"><b>CustomVoice acts.</b> It follows instructions like "Speak in a sad tone, on the verge of tears." But it only has nine voices of its own.</li>
+        <li lang="de"><b>CustomVoice schauspielert.</b> Es folgt Anweisungen wie "Sprich traurig, den Tränen nah." Aber es hat nur neun eigene Stimmen.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3 lang="en">The trick</h3>
+      <h3 lang="de">Der Trick</h3>
+      <p lang="en">CustomVoice keeps each of its nine voices as a fingerprint too, and its order has a slot for it: "say this, in this language, in <i>this</i> voice". Base and CustomVoice grew from the same start and share almost everything they learned, so their fingerprints mean the same.</p>
+      <p lang="de">CustomVoice hat jede seiner neun Stimmen auch als Fingerabdruck, und sein Auftrag hat einen Platz dafür: "Sag das, in dieser Sprache, mit <i>dieser</i> Stimme". Base und CustomVoice sind aus demselben Anfang gewachsen und teilen fast alles, was sie gelernt haben, darum bedeuten ihre Fingerabdrücke dasselbe.</p>
+      <p lang="en">So the game lets Base listen, and puts its fingerprint into CustomVoice's slot. Now CustomVoice speaks in the new voice <b>and</b> follows instructions. Nobody built it for that: it just works, because the two models are so alike.</p>
+      <p lang="de">Darum lässt das Spiel Base zuhören und steckt dessen Fingerabdruck in den Platz von CustomVoice. Jetzt spricht CustomVoice mit der neuen Stimme <b>und</b> folgt Anweisungen. Niemand hat es dafür gebaut: Es klappt einfach, weil sich die beiden Modelle so ähnlich sind.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="pipeline" data-lv="2" data-src="tools/narration.py#instructed,say">
+  <h2 lang="en">Inside the machine, step by step</h2>
+  <h2 lang="de">In der Maschine, Schritt für Schritt</h2>
+  <p lang="en">From a voice sample and a line of text to the sound the game plays, in seven steps. Everything you see here is real: the numbers the models wrote down when they made these lines.</p>
+  <p lang="de">Von einer Stimmprobe und einer Zeile Text bis zum Klang, den das Spiel abspielt, in sieben Schritten. Alles, was du hier siehst, ist echt: die Zahlen, die die Modelle aufgeschrieben haben, als sie diese Zeilen gemacht haben.</p>
+  <div class="demo" data-demo="voices" data-mode="pipeline"></div>
+</section>
+
+<section class="slide" id="fingerprint" data-lv="2" data-src="tools/narration.py#mixed_prompt tools/narration.mjs#MADE">
+  <h2 lang="en">A voice as 2048 numbers</h2>
+  <h2 lang="de">Eine Stimme als 2048 Zahlen</h2>
+  <div class="cols">
+    <div>
+      <p lang="en">The fingerprint is a list of 2048 numbers. Nobody decided what each number means: the speaker encoder learned it by listening to thousands of people, with one goal: <b>the same voice gets similar numbers, different voices get different ones</b>.</p>
+      <p lang="de">Der Fingerabdruck ist eine Liste aus 2048 Zahlen. Niemand hat festgelegt, was jede Zahl bedeutet: Der Sprecher-Encoder hat es gelernt, indem er Tausenden Menschen zugehört hat, mit einem Ziel: <b>Dieselbe Stimme bekommt ähnliche Zahlen, verschiedene Stimmen bekommen verschiedene</b>.</p>
+      <p lang="en">Because it's only numbers, you can do maths with voices. Take 75% of one fingerprint and 25% of another, add them up, and you get somebody in between who never existed. Try the slider!</p>
+      <p lang="de">Weil es nur Zahlen sind, kann man mit Stimmen rechnen. Nimm 75% von einem Fingerabdruck und 25% von einem anderen, zähl sie zusammen, und du bekommst jemanden dazwischen, den es nie gab. Probier den Schieber!</p>
+      <p lang="en">That's how the game's two voices were made. The glassmaker is a mix of two real recordings. The robot is a real child's recording, mixed with a voice VoiceDesign invented. Then the AI read a story aloud in each mix, and that reading became the voice's <b>sample</b>: the mix <a class="w" href="words.html#bake">baked</a> into a voice of its own, which Base can listen to like any other.</p>
+      <p lang="de">So sind die beiden Stimmen des Spiels entstanden. Der Glasmacher ist eine Mischung aus zwei echten Aufnahmen. Der Roboter ist die Aufnahme eines echten Kindes, gemischt mit einer Stimme, die VoiceDesign erfunden hat. Dann hat die KI mit jeder Mischung eine Geschichte vorgelesen, und diese Lesung wurde die <b>Probe</b> der Stimme: die Mischung, zu einer eigenen Stimme <a class="w" href="words.html#bake">gebacken</a>, die sich Base anhören kann wie jede andere.</p>
+      <p class="small" lang="en">So the voice samples you heard are AI already. The real recordings they started from are not part of the game.</p>
+      <p class="small" lang="de">Die Stimmproben, die du gehört hast, sind also schon KI. Die echten Aufnahmen, mit denen alles anfing, gehören nicht zum Spiel.</p>
+    </div>
+    <div class="demo" data-demo="voices" data-mode="mix"></div>
+  </div>
+</section>
+
+<section class="slide" id="speech-tokens" data-lv="2" data-src="tools/narration.py#say">
+  <h2 lang="en">Sound, written as numbers</h2>
+  <h2 lang="de">Klang, als Zahlen geschrieben</h2>
+  <div class="cols">
+    <div>
+      <p lang="en">A chat AI writes text one <a class="w" href="words.html#token">token</a> at a time: it looks at everything so far and guesses what comes next. The Talker does the same, but its tokens are <b>sounds</b>. It knows 2048 of them, and each one stands for 80 milliseconds of voice.</p>
+      <p lang="de">Eine Chat-KI schreibt Text ein <a class="w" href="words.html#token">Token</a> nach dem anderen: Sie schaut sich alles bisher an und rät, was als Nächstes kommt. Der Talker macht dasselbe, aber seine Tokens sind <b>Klänge</b>. Er kennt 2048 davon, und jedes steht für 80 Millisekunden Stimme.</p>
+      <p lang="en">Where do those 2048 sounds come from? Another network, the <b>speech tokenizer</b>, learned them from hours of speech: it learned to squeeze any 80 milliseconds of voice into 16 numbers (one rough, fifteen finer and finer), and the <b>decoder</b> learned to turn them back into sound.</p>
+      <p lang="de">Woher kommen diese 2048 Klänge? Ein anderes Netz, der <b>Sprach-Tokenizer</b>, hat sie aus Stunden von Sprache gelernt: Er hat gelernt, jede 80 Millisekunden Stimme in 16 Zahlen zu pressen (eine grobe, fünfzehn immer feinere), und der <b>Decoder</b> hat gelernt, daraus wieder Klang zu machen.</p>
+      <p lang="en">The Talker doesn't always take its first guess: it rolls dice among the likely ones. The dice come from a <a class="w" href="words.html#seed">seed</a>. The same seed gives the same take, so when a take mumbles, the game's makers listen to a few seeds and write the best one into the line.</p>
+      <p lang="de">Der Talker nimmt nicht immer seinen ersten Tipp: Er würfelt unter den wahrscheinlichen. Die Würfel kommen von einem <a class="w" href="words.html#seed">Seed</a>. Derselbe Seed gibt denselben Versuch, darum hören sich die Macher des Spiels ein paar Seeds an, wenn ein Versuch nuschelt, und schreiben den besten in die Zeile.</p>
+    </div>
+    <div class="demo" data-demo="voices" data-mode="takes"></div>
+  </div>
+</section>
+
+<section class="slide" id="instructions" data-lv="2" data-src="tools/narration.mjs#TAGS,POINT,sentencesOf">
+  <h2 lang="en">Telling the voice how</h2>
+  <h2 lang="de">Der Stimme sagen, wie</h2>
+  <div class="cols">
+    <div>
+      <p lang="en">The instruction goes into CustomVoice's order next to the words, as plain English. The model learned what "sad" or "whisper" sounds like from people speaking that way, and the dice now land on other sounds.</p>
+      <p lang="de">Die Anweisung kommt neben den Worten in den Auftrag von CustomVoice, als einfaches Englisch. Das Modell hat von Menschen, die so sprechen, gelernt, wie "traurig" oder "flüstern" klingt, und die Würfel landen jetzt auf anderen Klängen.</p>
+      <p lang="en">Every line in the game has its own instruction, like "Speak low and calm, quietly glad, like an old man in the dark." Inside a line, a tag like <code>[sad]</code> or <code>[sighing]</code> changes it from there on. You never see the tags: they are only for the voice.</p>
+      <p lang="de">Jede Zeile im Spiel hat ihre eigene Anweisung, wie "Speak low and calm, quietly glad, like an old man in the dark." (Sprich tief und ruhig, still froh, wie ein alter Mann im Dunkeln.) Mitten in einer Zeile ändert eine Markierung wie <code>[sad]</code> oder <code>[sighing]</code> sie ab da. Die Markierungen siehst du nie: Sie sind nur für die Stimme.</p>
+      <p class="small" lang="en">Gentle instructions work best. A strong one pulls the voice away from its fingerprint: a whisper sounds a bit less like the glassmaker.</p>
+      <p class="small" lang="de">Sanfte Anweisungen klappen am besten. Eine starke zieht die Stimme von ihrem Fingerabdruck weg: Ein Flüstern klingt ein bisschen weniger nach dem Glasmacher.</p>
+    </div>
+    <div class="demo" data-demo="voices" data-mode="instruct"></div>
+  </div>
+</section>
+
+<section class="slide" id="line-to-file" data-lv="2" data-src="tools/narration.py#say,PAUSE,stepped_vocoder">
+  <h2 lang="en">The game's finishing touches</h2>
+  <h2 lang="de">Der Feinschliff des Spiels</h2>
+  <div class="cols">
+    <ol class="steps">
+      <li lang="en"><b>One sentence at a time.</b> Spoken in one go, the model hardly stops between sentences. Spoken alone, each one ends like a real ending.</li>
+      <li lang="de"><b>Ein Satz nach dem anderen.</b> In einem Rutsch gesprochen, hält das Modell zwischen den Sätzen kaum an. Allein gesprochen, endet jeder, wie ein Satz endet.</li>
+      <li lang="en"><b>Tidied.</b> The quiet at both ends is cut off, and every sentence is made equally loud: a whisper and a shout come out of the model at very different volumes.</li>
+      <li lang="de"><b>Aufgeräumt.</b> Die Stille an beiden Enden wird abgeschnitten, und jeder Satz wird gleich laut gemacht: Ein Flüstern und ein Ruf kommen sehr verschieden laut aus dem Modell.</li>
+      <li lang="en"><b>Glued together</b>, with a pause after each sentence: a little longer after a question, longest after "...".</li>
+      <li lang="de"><b>Zusammengeklebt</b>, mit einer Pause nach jedem Satz: nach einer Frage etwas länger, nach "..." am längsten.</li>
+      <li lang="en"><b>Filtered.</b> The robot's lines go through a clockwork filter: its tune is snapped to whole notes, and it sounds through a tiny tinny speaker.</li>
+      <li lang="de"><b>Gefiltert.</b> Die Zeilen des Roboters gehen durch einen Uhrwerk-Filter: Seine Melodie rastet auf ganzen Tönen ein, und sie klingt durch einen winzigen, blechernen Lautsprecher.</li>
+      <li lang="en"><b>Checked.</b> To check a file without listening, another AI writes down what it hears. If that's not what the line says, the line gets another seed.</li>
+      <li lang="de"><b>Geprüft.</b> Um eine Datei ohne Zuhören zu prüfen, schreibt eine andere KI auf, was sie hört. Ist das nicht, was in der Zeile steht, bekommt die Zeile einen anderen Seed.</li>
+    </ol>
+    <div class="demo" data-demo="voices" data-mode="filter"></div>
+  </div>
+</section>
+
 <section class="slide" id="coin-code" data-lv="3">
   <h2 lang="en">The real code: the coin sound</h2>
   <h2 lang="de">Der echte Code: das Münzgeräusch</h2>
@@ -175,6 +323,34 @@ bird   | _ | _ | _ | A6 D6+E6---------- |</code></pre>
       <p lang="de">Eine Ausnahme kommt zuerst: ein Boss mit einem eigenen Lied (bis jetzt Gusto). Solange er im Würfel lebt, findet ihn <code>bossHere</code>, sein Lied spielt, sobald du hereinkommst, und seine Stimmungen sind die Phasen seines Kampfs (warten, kämpfen, sich teilen, dreimal er, verschwinden) statt der üblichen.</p>
     </div>
   </div>
+</section>
+
+<section class="slide" id="tts-code" data-lv="3">
+  <h2 lang="en">The real code: a fingerprint in CustomVoice's slot</h2>
+  <h2 lang="de">Der echte Code: ein Fingerabdruck im Platz von CustomVoice</h2>
+  <div class="cols wide-left">
+    <pre data-code="tools/narration.py#instructed,say"></pre>
+    <div>
+      <p lang="en">This is not game code, and not JavaScript: it is Python, from the tool the game's makers run on their computer, <code>tools/narration.py</code>.</p>
+      <p lang="de">Das ist kein Spielcode und kein JavaScript: Es ist Python, aus dem Werkzeug, das die Macher des Spiels auf ihrem Computer laufen lassen, <code>tools/narration.py</code>.</p>
+      <p lang="en"><code>instructed</code> builds CustomVoice's order by hand: the words (<code>ids</code>), the instruction (<code>told</code>), and <code>voice</code>, where <code>ref_spk_embedding</code> is the fingerprint Base wrote down. <code>generate</code> runs the Talker and the code predictor and returns the speech tokens (<code>codes</code>), and <code>decode</code> turns them into sound.</p>
+      <p lang="de"><code>instructed</code> baut den Auftrag für CustomVoice von Hand: die Worte (<code>ids</code>), die Anweisung (<code>told</code>) und <code>voice</code>, wo <code>ref_spk_embedding</code> der Fingerabdruck ist, den Base aufgeschrieben hat. <code>generate</code> lässt den Talker und den Code-Prädiktor laufen und gibt die Sprach-Tokens zurück (<code>codes</code>), und <code>decode</code> macht daraus Klang.</p>
+      <p lang="en"><code>say</code> does it for each sentence: it sets the seed once, gives every sentence a limit (<code>limit</code>: a take that never stops is cut off), then trims, levels and glues the sentences together with their pauses.</p>
+      <p lang="de"><code>say</code> macht das für jeden Satz: Es setzt einmal den Seed, gibt jedem Satz eine Grenze (<code>limit</code>: Ein Versuch, der nie aufhört, wird abgeschnitten), dann schneidet es zurecht, gleicht die Lautstärke an und klebt die Sätze mit ihren Pausen zusammen.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="listen" data-lv="1">
+  <h2 lang="en">Three ways to make a sound</h2>
+  <h2 lang="de">Drei Arten, ein Geräusch zu machen</h2>
+  <div class="cols3" style="margin-bottom:16px">
+    <div class="card"><h3 lang="en">Sounds</h3> <h3 lang="de">Geräusche</h3><p lang="en">Recipes of waves and noise, calculated the moment you hear them.</p> <p lang="de">Rezepte aus Wellen und Rauschen, berechnet in dem Moment, in dem du sie hörst.</p></div>
+    <div class="card"><h3 lang="en">Music</h3> <h3 lang="de">Musik</h3><p lang="en">Notes written as text, played by a tiny synthesizer, with a mood that follows the danger.</p> <p lang="de">Noten als Text, gespielt von einem winzigen Synthesizer, mit einer Stimmung, die der Gefahr folgt.</p></div>
+    <div class="card"><h3 lang="en">Voices</h3> <h3 lang="de">Stimmen</h3><p lang="en">A voice turned into 2048 numbers, sounds written as tokens, spoken once by AI models ahead of time and kept as small files.</p> <p lang="de">Eine Stimme als 2048 Zahlen, Klänge als Tokens geschrieben, einmal von KI-Modellen im Voraus gesprochen und als kleine Dateien aufgehoben.</p></div>
+  </div>
+  <p lang="en">Work out what you can while you play, and do ahead what is too big for that.</p>
+  <p lang="de">Rechne beim Spielen aus, was geht, und mach im Voraus, was dafür zu groß ist.</p>
 </section>
 
 

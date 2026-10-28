@@ -45,8 +45,11 @@ it. The cost: a recorded line cannot say a player's name (below).
 Portuguese, Russian, Chinese, Japanese and Korean, not Indonesian.
 
 A voice is a recording and its words: `tools/voices/<voice>.flac` (mono, 24 kHz; 10 to 30
-seconds of one person talking, nothing else) and `tools/voices/<voice>.txt`, exactly what is
-said in it (transcribe it, then check it by ear). To make a voice deeper, change the recording,
+seconds of one voice talking, nothing else) and `tools/voices/<voice>.txt`, exactly what is
+said in it (transcribe it, then check it by ear). The two committed voices' recordings are not of a
+person: `glassmaker` and `child` are both mixes, baked ("Made voices"), so the model said their
+recordings too, in the mixed voice; the people's recordings they were mixed from are experiments,
+not in Git. To make a voice deeper, change the recording,
 not the clips: the clone follows it, and says it without the artifacts a pitch shift leaves.
 `experiment_glassmaker-low` is `experiment_glassmaker` 12% down
 (`ffmpeg -i in -af "aresample=24000,asetrate=21120,aresample=24000,atempo=1.136364" -ac 1 -ar 24000 -sample_fmt s16 out.flac`),
@@ -250,6 +253,17 @@ films'), and `child`, which the robot's voice is made from (`robot`). The ones t
 the two `glassmaker` was baked from (`experiment_glassmaker`, `experiment_lost-hearing`). Without a
 voice's recording the tool cannot render or check its clips, and says so. Whose voice each is, and that we may use it, has to be
 settled before it ships, and then credited where the game credits things.
+
+### In the kids' guide
+
+The guide's sound room (`learn/sound.html`) plays and shows how the voices are made, from files of
+its own in `learn/audio/` (committed, unlike the clips): a piece of each committed voice's
+recording (called its "voice sample" there, and said to be AI-made: see above), a few lines said
+in it (with other instructions, seeds, mixes, the robot's filter) and `samples.json`, what the
+models made on the way (the voices' speaker embeddings, the words as tokens, the speech tokens,
+how alike Base finds each line to each voice). `uv run tools/learn-voices.py` makes them, as
+`tools/narration.py` says the game's lines; run it again when a voice or the way lines are said
+changes. Its `SAMPLES` pins a seed by language where a take said a word wrong.
 
 ### Instructions
 
