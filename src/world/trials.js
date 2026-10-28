@@ -41,7 +41,7 @@ function roomFits(kind, seed, k, entry, exit, depth) {
   }
   // (the cold: its ridges across the way, from one face to the opposite one)
   if (kind === 'cold') return exit != null && (entry ^ 1) === exit;
-  if ((kind !== 'collapse' && kind !== 'timedgate' && kind !== 'sinking') || exit == null || (entry ^ 1) === exit || entry === (exit ^ 1)) return true;
+  if ((kind !== 'collapse' && kind !== 'timedgate' && kind !== 'balance') || exit == null || (entry ^ 1) === exit || entry === (exit ^ 1)) return true;
   const [a, b] = [at(entry, 3), at(exit, 3)];
   return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])) >= 7;
 }

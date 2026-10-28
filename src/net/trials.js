@@ -63,7 +63,7 @@ export function followTrial(s, m) {
   if (before === 'resolved') return null;   // resolved stays resolved
   if (m.phase === 'resolved') { s.phase = 'resolved'; s.done = 0; return 'resolved'; }
   if (m.bits) s.bits = { ...m.bits };
-  if (s.kind === 'sinking' && m.stones) s.stones = { ...m.stones };
+  if (s.kind === 'balance' && m.stones) s.stones = { ...m.stones };
   s.phase = m.phase; s.t = m.time;
   // the clock is the owner's: between its words it runs on here (arming turns to running by itself)
   if (s.phase === 'armed' && s.t >= ARM_TIME && TRIALS[s.kind]) s.phase = 'running';

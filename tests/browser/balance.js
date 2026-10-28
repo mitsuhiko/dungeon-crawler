@@ -1,4 +1,4 @@
-// In the developer game: await (await import('./tests/browser/sinking.js')).runSinkingChecks()
+// With ?dev=1&trial=balance: await (await import('./tests/browser/balance.js')).runBalanceChecks()
 // The ordinary command path, warning portal, live landing timer, lost collision and exit apron.
 import { state, player } from '../../src/game/state.js';
 import { goTrial, takePortal } from '../../src/game/dev.js';
@@ -10,13 +10,13 @@ const wait = async (test, text, ms = 15000) => {
   while (!test() && performance.now() < until) await new Promise(r => setTimeout(r, 25));
   check(test(), text);
 };
-export async function runSinkingChecks() {
+export async function runBalanceChecks() {
   check(state.dev, 'requires ?dev=1');
-  await goTrial('sinking');
-  await wait(() => !state.transitioning && state.map.trialFaces.includes('sinking'), 'warning portal', 90000);
-  const dir = state.map.trialFaces.indexOf('sinking');
+  await goTrial('balance');
+  await wait(() => !state.transitioning && state.map.trialFaces.includes('balance'), 'warning portal', 90000);
+  const dir = state.map.trialFaces.indexOf('balance');
   takePortal(state.map.portals.find(p => p.dir === dir));
-  await wait(() => !state.transitioning && state.map.trial?.kind === 'sinking', 'inside', 90000);
+  await wait(() => !state.transitioning && state.map.trial?.kind === 'balance', 'inside', 90000);
   const m = state.map, tr = m.trial, q = tr.crust[0], f = m.floors[q.f];
   const place = f => Object.assign(player, { x: f.x + .5, y: Math.max(...f.cs), z: f.z + .5,
     vx: 0, vy: 0, vz: 0, grounded: true, support: f });
@@ -31,5 +31,5 @@ export async function runSinkingChecks() {
   place(m.floors[tr.goalFloor]);
   await wait(() => state.trial.phase === 'resolved', 'the exit apron resolves');
   check(state.run.unlockedGates.has(tr.gate), 'the way on stays open');
-  return ['sinking', `${tr.crust.length / 4} slabs, three seconds per landing`];
+  return ['balance', `${tr.crust.length / 4} slabs, three seconds per landing`];
 }

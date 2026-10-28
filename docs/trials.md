@@ -1,6 +1,6 @@
 # Trials: events and puzzles in a cube
 
-Status: steps 1 to 10 are done: every kind (`flood`, `collapse`, `sinking`, `miasma`, `cold`, `storm`,
+Status: steps 1 to 10 are done: every kind (`flood`, `collapse`, `balance`, `miasma`, `cold`, `storm`,
 `siege`, `chase`, `sunken`, and the puzzles `slide`, `mirror`, `braziers`, `crates`, `timedgate`,
 `runes`) is planned, built, checked, playable (alone and together) and on in every world (an event on 45% of the depths from 1 to 19, a puzzle on 60%, a
 second on 25%). The rest is the list of what to build, kind by kind, until done (see
@@ -35,7 +35,7 @@ above, and every puzzle you solve drains it one stage further.
 | `flood` | event | yes | yes | press the button on the summit | drowning (the fluid) | 1–19, any (the depth's fluid) |
 | `sunken` | event + puzzles | no | no | solve 2–3 puzzles, each drains a stage | (ordinary death) | 2–19, any |
 | `collapse` | event | yes | yes | reach the exit apron | falling in | 1–19, any |
-| `sinking` | event | yes | per slab | jump between sinking stones to the exit apron | lava or acid | 1–19, hazardous themes |
+| `balance` | event | yes | per slab | jump between sinking stones to the exit apron | lava or acid | 1–19, hazardous themes |
 | `cold` | event | yes | meter | light the great fire | freezing | peaks, frozen caves (1–13) |
 | `storm` | event | yes | gusts | pull the lightning rod on top of the hill | (blown off: a fall) | sky and surface themes (1–6) |
 | `siege` | event | yes | yes | hold the beacon long enough | death | 2–19, any |
@@ -50,12 +50,12 @@ above, and every puzzle you solve drains it one stage further.
 
 All numbers below are starting values, to be tuned in play.
 
-## Sinking stones (`sinking`)
+## Balance (`balance`)
 
-Developer command: **`/trial sinking`** (requires `?dev=1`). It uses the existing trial command:
+Developer command: **`/trial balance`** (requires `?dev=1`). It uses the existing trial command:
 stand beside the warning portal, then enter it. `/trial reset` restarts the current attempt.
-The direct developer link is `?dev=1&seed=123&trial=sinking&at=trial`.
-Browser check: `await (await import('./tests/browser/sinking.js')).runSinkingChecks()`.
+The direct developer link is `?dev=1&seed=123&trial=balance&at=trial`.
+Browser check: `await (await import('./tests/browser/balance.js')).runBalanceChecks()`.
 
 Two small safe 3×3 aprons, at the entrance and exit, stand above a basin of lava or acid.
 Separate 2×2 stone slabs float between them, with gaps that require the normal running jump.
@@ -71,9 +71,9 @@ need not finish before that slab sinks. Tests also run the actual character and 
 Landing on the exit apron resolves the trial, restores the stones and opens the way back.
 Failure/retry and the owner's clock/state sharing use the ordinary trial systems.
 
-### Deutsch: Sinkende Steinplatten
+### Deutsch: Balance
 
-Im Entwicklermodus bringt **`/trial sinking`** dich vor das markierte Portal des Rätsels.
+Im Entwicklermodus bringt **`/trial balance`** dich vor das markierte Portal des Rätsels.
 Geh hindurch. Zwischen der kleinen Start- und Zielplattform liegt nur Lava oder Gift mit
 getrennten Steinplatten. Spring mit Anlauf von Platte zu Platte: **Drei Sekunden nach der
 ersten Landung** versinkt jede betretene Platte. Der Countdown läuft auch weiter, wenn du sie
@@ -164,7 +164,7 @@ through it). The generator builds the room in its "after" state; the trial is dr
 that while it is not resolved:
 
 - `flood`, `miasma`: the room as built; the hazard is gone.
-- `collapse`, `sinking`: the crust/slabs are whole and hold (they no longer fall).
+- `collapse`, `balance`: the crust/slabs are whole and hold (they no longer fall).
 - `sunken`: drained to the stage reached; fully drained once done.
 - `cold`, `storm`, `siege`, `chase`: the room as built, braziers lit, the beacon
   burning, the portcullis up.

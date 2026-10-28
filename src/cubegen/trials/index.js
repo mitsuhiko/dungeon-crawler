@@ -14,7 +14,7 @@ import { search, take } from '../route.js';
 import { reachFrom, reachTo, graph } from '../reach.js';
 import { shapeFlood, floodGoal, floodRoute } from './flood.js';
 import { shapeCollapse, collapseGoal, collapseRoute } from './collapse.js';
-import { shapeSinking, sinkingGoal, sinkingRoute } from './sinking.js';
+import { shapeBalance, balanceGoal, balanceRoute } from './balance.js';
 import { puzzleGoal, slideRoute } from './slide.js';
 import { shapeSunken, sunkenGoal } from './sunken.js';
 import { gridRecord } from './grid.js';
@@ -32,7 +32,7 @@ import { ARM_TIME, SLACK, REACT, slowTime, fitFlood, floodTime, FLOOD, WAVE, cru
 const KINDS = {
   flood: { shape: shapeFlood, goal: floodGoal, costs: floodRoute, finish: finishFlood },
   collapse: { shape: shapeCollapse, goal: collapseGoal, costs: collapseRoute, finish: finishCollapse },
-  sinking: { shape: shapeSinking, goal: sinkingGoal, costs: sinkingRoute, finish: finishSinking },
+  balance: { shape: shapeBalance, goal: balanceGoal, costs: balanceRoute, finish: finishBalance },
   miasma: { shape: shapeMiasma, goal: miasmaGoal, costs: null, finish: finishMiasma },
   cold: { shape: shapeCold, goal: coldGoal, costs: coldRoute, finish: finishCold },
   storm: { shape: shapeStorm, goal: stormGoal, costs: stormRoute, finish: finishStorm },
@@ -391,7 +391,7 @@ function finishCollapse(ctx, t, out) {
 // The ordinary reach graph must prove the jumps, not an assumed distance between drawings.
 // Check the slow player's stay up to take-off, including the full standard run-up. The stone
 // can sink during the flight: the next stone's clock does not start until the landing.
-function finishSinking(ctx, t) {
+function finishBalance(ctx, t) {
   const arr = arrivals(ctx, t.entry), path = pathOf(arr, t.goal);
   if (!path) return null;
   const first = new Map(), cells = [], checks = [];

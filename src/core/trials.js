@@ -20,7 +20,7 @@ export const TRIALS = {
     population: 0.3, combines: 2 },
   collapse: { name: msg('Crumbling floor'), family: 'event', sealed: true, timed: true, depths: [1, 19], themes: null, weight: 1, color: '#e0a050', built: true,
     population: 0.3 },
-  sinking: { name: msg('Sinking stones'), family: 'event', sealed: true, timed: true, depths: [1, 19],
+  balance: { name: msg('Balance'), family: 'event', sealed: true, timed: true, depths: [1, 19],
     themes: ['swamp', 'nests', 'ruins', 'volcanic', 'abyss', 'ossuary', 'forge'], weight: 1, color: '#e09050', built: true, population: 0 },
   cold: { name: msg('Cold snap'), family: 'event', sealed: true, timed: true, depths: [1, 13], themes: ['peaks', 'frozen'], weight: 1.5, color: '#9fe8ff', built: true,
     population: 0.5 },
@@ -231,7 +231,7 @@ export const ARM_DISTANCE = 1.2;   // cells off the arrival pad that arm an even
 // bits: a puzzle's state, part id -> a small number (a lever's 0/1, a plate held ...); start: the
 // puzzle's own start (its parts as the generator left them, map.trial.start)
 export const newTrial = (trial, resolved = false) => ({ key: trial.key, kind: trial.kind, phase: resolved ? 'resolved' : 'idle', t: 0,
-  done: resolved ? Infinity : 0, at: null, bits: { ...trial.start }, ...trial.kind === 'sinking' && { stones: {} } });
+  done: resolved ? Infinity : 0, at: null, bits: { ...trial.start }, ...trial.kind === 'balance' && { stones: {} } });
 
 // One step of dt s. input: { away (a player stepped off the arrival pad) }. Returns what happened:
 // 'armed', 'running' (the phase it came into), or nothing.
@@ -258,7 +258,7 @@ export function resolveTrial(s, level = null) {
   return true;
 }
 // back as built (a fail, a death, nobody left in the room)
-export function resetTrial(s, start = {}) { Object.assign(s, { phase: 'idle', t: 0, done: 0, at: null, bits: { ...start }, ...s.kind === 'sinking' && { stones: {} } }); }
+export function resetTrial(s, start = {}) { Object.assign(s, { phase: 'idle', t: 0, done: 0, at: null, bits: { ...start }, ...s.kind === 'balance' && { stones: {} } }); }
 
 // what a part does when used (F): the puzzle's bits after it (a lever flips, a button stays down);
 // a reset lever puts every bit back to the start
@@ -276,7 +276,7 @@ export const BASIN = 2;   // the collapse's basin: its fluid's surface (cubegen/
 export function trialFluidLevel(m, s) {
   if (!m || !s) return null;
   if (m.kind === 'sunken') return sunkenLevel(m, s);
-  if (m.kind === 'sinking') return s.phase === 'resolved' ? null : m.basin;
+  if (m.kind === 'balance') return s.phase === 'resolved' ? null : m.basin;
   // the collapse: what falls through the crust is in the basin's fluid (its surface over every hole)
   if (m.kind === 'collapse') return s.phase === 'armed' || s.phase === 'running' ? BASIN : null;
   if (m.kind !== 'flood') return null;
@@ -291,7 +291,7 @@ export const PART_REACH = 1.1;   // how near a part (a button, a lever ...) has 
 // About how long a trial room takes a player who knows what to do (s): the balance simulation's
 // estimate (tools/balance.mjs). An event: its clock to the goal (about the slow player's, the
 // hazard fitted to it); a puzzle: walking it through.
-export const TRIAL_TIME = { sinking: 25, flood: 18, collapse: 16, slide: 60, sunken: 150, mirror: 60, braziers: 50, crates: 120, timedgate: 40,
+export const TRIAL_TIME = { balance: 25, flood: 18, collapse: 16, slide: 60, sunken: 150, mirror: 60, braziers: 50, crates: 120, timedgate: 40,
   miasma: 10, cold: 20, storm: 25, siege: 75, chase: 20, runes: 45 };
 export const trialTime = kind => TRIAL_TIME[kind] ?? 60;
 
@@ -307,7 +307,7 @@ export const crumbleTime = (wave, d) => ARM_TIME + wave.delay + d / wave.speed;
 // is crust cell q ({ d }) of trial m gone at state s? (shaking: the SHAKE s before)
 export function crustState(m, s, q) {
   if (!s || s.phase === 'idle' || s.phase === 'resolved') return 'whole';
-  if (m.kind === 'sinking') {
+  if (m.kind === 'balance') {
     const at = s.stones?.[q.stone];
     return at == null ? 'whole' : s.t >= at + STONE_TIME ? 'gone' : 'shaking';
   }
@@ -319,7 +319,7 @@ export function crustState(m, s, q) {
 // landing again or another player arriving never buys more time. The clock runs while airborne.
 export const STONE_TIME = 3;
 export function touchStone(m, s, stone) {
-  if (m?.kind !== 'sinking' || !s || (s.phase !== 'armed' && s.phase !== 'running')
+  if (m?.kind !== 'balance' || !s || (s.phase !== 'armed' && s.phase !== 'running')
     || !Number.isInteger(stone) || !m.crust.some(q => q.stone === stone) || s.stones?.[stone] != null) return false;
   (s.stones ??= {})[stone] = s.t;
   return true;

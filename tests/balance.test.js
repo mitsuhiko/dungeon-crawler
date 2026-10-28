@@ -10,7 +10,7 @@ import { movePlayer } from '../src/physics/move.js';
 import { groundAt, setGoneFloors } from '../src/physics/collide.js';
 import { inFluid, setTrialFluid } from '../src/physics/fluid.js';
 
-const model = () => ({ key: 'k', kind: 'sinking', basin: 4.5, crust: [{ c: 1, f: 1, stone: 0 }, { c: 2, f: 2, stone: 0 }, { c: 7, f: 7, stone: 1 }] });
+const model = () => ({ key: 'k', kind: 'balance', basin: 4.5, crust: [{ c: 1, f: 1, stone: 0 }, { c: 2, f: 2, stone: 0 }, { c: 7, f: 7, stone: 1 }] });
 test('a whole slab sinks exactly three seconds after first contact, independently of other slabs', () => {
   const m = model(), s = newTrial(m);
   assert.equal(touchStone(m, s, 0), false, 'idle does not start a clock');
@@ -58,9 +58,9 @@ test('slab clocks are sent immediately to friends and late joiners, including lo
 
 function* rooms() {
   for (const seed of [0, 1, 2, 3, 123, 456]) {
-    const w = new World(seed, { trial: 'sinking' });
+    const w = new World(seed, { trial: 'balance' });
     for (const d of [2, 8, 15, 19]) {
-      const t = w.layout(d).trials.find(t => t.kind === 'sinking');
+      const t = w.layout(d).trials.find(t => t.kind === 'balance');
       if (t) yield { seed, d, m: w.cube(t.key).map };
     }
   }
@@ -70,9 +70,9 @@ test('generated rooms have small safe aprons, separate four-cell slabs, harmful 
   let n = 0;
   for (const { seed, d, m } of rooms()) {
     const tr = m.trial;
-    assert.equal(tr?.kind, 'sinking', `${seed}/${d}: generation must not fall back`);
+    assert.equal(tr?.kind, 'balance', `${seed}/${d}: generation must not fall back`);
     assert.ok([LAVA, ACID].includes(tr.fluid));
-    assert.equal(TRIALS.sinking.population, 0);
+    assert.equal(TRIALS.balance.population, 0);
     assert.equal(tr.entryApron.length, 9); assert.equal(tr.exitApron.length, 9);
     const groups = new Map();
     for (const q of tr.crust) {

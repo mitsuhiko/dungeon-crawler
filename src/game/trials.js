@@ -49,7 +49,7 @@ const PUZZLE_HINT = {
 const HOW = {
   flood: msg('The water is coming. Climb to the summit and press the button.'),
   collapse: msg('The floor crumbles behind you. Run for the far side!'),
-  sinking: msg('Jump from stone to stone! Each sinks three seconds after you land on it.'),
+  balance: msg('Jump from stone to stone! Each sinks three seconds after you land on it.'),
   miasma: msg('Poison fog sinks from above. Get down to the vent valve!'),
   cold: msg('The cold sets in. Light the braziers on your way to the great fire!'),
   storm: msg('Gusts tear off the hill. Climb in the lulls, wait out the gusts behind the boulders, pull the lightning rod on top!'),
@@ -75,7 +75,7 @@ const gone = new Set(), crust = new Map(), stoneAsked = new Set();
 setGoneFloors(f => gone.has(f.id));
 function stepCrust(m, s, dt) {
   if (!m.crust) return;
-  if (m.kind === 'sinking' && player.hp > 0 && player.grounded && player.support) {
+  if (m.kind === 'balance' && player.hp > 0 && player.grounded && player.support) {
     const q = m.crust.find(q => q.f === player.support.id);
     if (q && s.stones?.[q.stone] == null) {
       if (mirroring()) {
@@ -386,7 +386,7 @@ export function resolve(tell = true) {
   setStatus(tr('{trial}: done! The way on is open', { trial: tr(TRIALS[m.kind].name) }));
   const done = { flood: msg('The water drains away.'), miasma: msg('The vents open: the fog lifts.'), cold: msg('The great fire burns: the cold lifts.'),
     storm: msg('Lightning strikes the rod: the storm ends.'), ...EVENT_DONE, collapse: msg('The keystone holds: the floor is whole again.'),
-    sinking: msg('You made it across: the stones rise and hold.'),
+    balance: msg('You made it across: the stones rise and hold.'),
     sunken: msg('The room is drained: the way on is clear.'), timedgate: msg('You made it through: the gate stays open.'),
     slide: m.role === 'branch' ? msg('The gate is open, and the vault with it.') : msg('The gate is open: the way on too.') }[m.kind];
   banner(isPuzzle(m.kind) ? tr('Solved!') : tr('Well done!'), done ? tr(done) : '');
@@ -470,7 +470,7 @@ function hud() {
     line = s.phase === 'armed' ? tr('The floor shakes…') : tr('Run! Reach the far side');
     fill = m.crust.length ? gone.size / m.crust.length : 0;
   }
-  if (s.kind === 'sinking') {
+  if (s.kind === 'balance') {
     const q = player.grounded && m.crust.find(q => q.f === player.support?.id), at = q && s.stones?.[q.stone];
     line = at == null ? tr('Jump from stone to stone!') : tr('Jump! This stone sinks in {n} s', { n: Math.max(0, Math.ceil(STONE_TIME - s.t + at)) });
     fill = at == null ? 0 : Math.min(1, (s.t - at) / STONE_TIME);

@@ -4,7 +4,7 @@ export default {
   'Rising water': 'Steigendes Wasser',
   'The sunken room': 'Der versunkene Raum',
   'Crumbling floor': 'Bröckelnder Boden',
-  'Sinking stones': 'Sinkende Steinplatten',
+  'Balance': 'Balance',
   'Jump from stone to stone! Each sinks three seconds after you land on it.': 'Spring von Platte zu Platte! Jede sinkt drei Sekunden nach deiner Landung.',
   'Jump from stone to stone!': 'Spring von Platte zu Platte!',
   'Jump! This stone sinks in {n} s': 'Spring! Diese Platte sinkt in {n} s',

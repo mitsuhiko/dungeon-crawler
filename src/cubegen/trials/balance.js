@@ -1,4 +1,4 @@
-// Sinking stones: the collapse room's small safe aprons, but no causeway. Each 2x2 slab is
+// Balance: the collapse room's small safe aprons, but no causeway. Each 2x2 slab is
 // separated by a one-cell jump. The room is checked by the ordinary reach graph after smoothing;
 // only a grounded landing starts a slab's three-second clock (core/trials.js touchStone).
 import { N } from '../../core/constants.js';
@@ -9,11 +9,11 @@ const cellsAt = (x, z) => [idx(x, z), idx(x + 1, z), idx(x, z + 1), idx(x + 1, z
 const distance = (a, b) => Math.min(...a.flatMap(c => b.map(d => Math.abs(c % N - d % N) + Math.abs((c / N | 0) - (d / N | 0)))));
 const shuffle = (a, R) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-export function shapeSinking(ctx) {
+export function shapeBalance(ctx) {
   const { spec, lvl0, void0, R } = ctx;
   const entry = apron(spec, spec.trial.entry), exit = apron(spec, spec.trial.exit);
-  ctx.trialBuild = { kind: 'sinking', failed: true, keep: [] };
-  ctx.stats.mode = `${spec.kind} / sinking stones`;
+  ctx.trialBuild = { kind: 'balance', failed: true, keep: [] };
+  ctx.stats.mode = `${spec.kind} / balance`;
   if (!entry || !exit || Math.abs(entry.level - exit.level) > 6) return;
   const level = Math.min(entry.level, exit.level);
   if (level < 3) return;
@@ -64,5 +64,5 @@ export function shapeSinking(ctx) {
     exitApron: exit.cells, entryCentre: entry.centre, exitCentre: exit.centre, keep: [...ctx.trialKeep] });
 }
 
-export const sinkingRoute = collapseRoute;
-export const sinkingGoal = collapseGoal;
+export const balanceRoute = collapseRoute;
+export const balanceGoal = collapseGoal;

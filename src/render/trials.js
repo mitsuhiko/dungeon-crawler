@@ -242,7 +242,7 @@ function barrier(p) {
 // a crust cell of the crumbling floor (cubegen/trials/collapse.js): its column of rock, drawn
 // on its own (render/floors.js leaves it out) round its centre, so it can shake and fall
 function crustCell(m, f, theme) {
-  const b = new GeoBuilder(), cs = f.cs, slab = m.trial?.kind === 'sinking',
+  const b = new GeoBuilder(), cs = f.cs, slab = m.trial?.kind === 'balance',
     y0 = slab ? Math.min(...cs) - 0.35 : f.bottom * LH, cx = f.x + 0.5, cz = f.z + 0.5;
   const avg = (cs[0] + cs[1] + cs[2] + cs[3]) / 4, top = (slab ? new THREE.Color('#827d76') : gradient(theme.top, avg / LH)).multiplyScalar(0.92);
   const P = [[-0.5, cs[0], -0.5], [0.5, cs[1], -0.5], [-0.5, cs[2], 0.5], [0.5, cs[3], 0.5]];
@@ -352,7 +352,7 @@ export function buildTrialView(m, group, over = null) {
     group.add(fog);
     view.fog = fog; view.fogTop = (t.timeline.top + 8) * LH;
   }
-  if (t.kind === 'flood' || t.kind === 'sunken' || t.kind === 'sinking') {
+  if (t.kind === 'flood' || t.kind === 'sunken' || t.kind === 'balance') {
     standingWater(m, t.fluid, view, group, [0, 0, N, N], over);
     if (t.timeline) { view.tide = tideLines(t.timeline); group.add(view.tide); }
   }
@@ -560,7 +560,7 @@ export function setCrust(world, states, dt, resolved = false) {
       if (Math.random() < dt * 6) dust(m, 1);
     } else if (cell.state === 'falling') {
       p.y = -6 * cell.t * cell.t;
-      if (v.kind !== 'sinking') { m.rotation.x = cell.t * 0.6; m.rotation.z = cell.t * 0.4; }
+      if (v.kind !== 'balance') { m.rotation.x = cell.t * 0.6; m.rotation.z = cell.t * 0.4; }
       if (cell.t > 1.4) { cell.state = 'gone'; m.visible = false; }
     } else if (cell.state === 'rising') {
       m.visible = true; m.rotation.set(0, 0, 0);
