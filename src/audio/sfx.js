@@ -510,6 +510,43 @@ const SOUNDS = {
     for (const hz of [55, 82.4, 116.5]) tone('sawtooth', hz * p, hz * p * 0.985, t, 2.2, filter('lowpass', 500 * p, 1.5, amp(t, 0.25, 0.14, 1.9, out)));
     for (const [i, hz] of [1245, 1661, 1760].entries()) { const at = t + 0.12 + i * 0.07; tone('triangle', hz * p, hz * p, at, 1.2, amp(at, 0.05, 0.035, 1.1, out)); }
   },
+  // Mansk's intro (game/bossreveals.js): the curtain going up on his stage, his dance, his roar
+  drumroll(t, out, p) {  // a snare roll swelling for a second, and its last stroke
+    for (let i = 0; i < 36; i++) {
+      const at = t + i * 0.028, l = 0.1 + 0.35 * i / 35;
+      noise(at, 0.035, filter('bandpass', 1900 * p, 0.9, amp(at, 0.002, l, 0.035, out)));
+      tone('triangle', 200 * p, 170 * p, at, 0.03, amp(at, 0.002, l * 0.3, 0.03, out));
+    }
+    noise(t + 1.0, 0.25, filter('bandpass', 1500 * p, 0.7, amp(t + 1.0, 0.002, 0.65, 0.25, out)));
+    tone('sine', 130 * p, 70 * p, t + 1.0, 0.25, amp(t + 1.0, 0.003, 0.6, 0.25, out));
+  },
+  swish(t, out, p) {     // a heavy velvet curtain drawn open: a long soft rush of cloth, its rings rattling along the rail
+    sweep(t, 1.4, 380 * p, 900 * p, 300 * p, 0.7, 0.4, out, 0.3, 'lowpass');
+    sweep(t + 0.1, 1.2, 1200 * p, 2400 * p, 900 * p, 1.2, 0.12, out, 0.3);
+    for (let i = 0; i < 14; i++) {
+      const at = t + 0.1 + i * 0.075 + Math.random() * 0.03, hz = (2400 + Math.random() * 900) * p;
+      tone('triangle', hz, hz * 0.97, at, 0.04, amp(at, 0.001, 0.05, 0.04, out));
+    }
+  },
+  castanet(t, out, p) {  // castanets: two quick wooden clicks
+    for (const k of [0, 0.045]) {
+      noise(t + k, 0.02, filter('bandpass', 2600 * p, 3, amp(t + k, 0.001, 0.7, 0.025, out)));
+      tone('sine', 1500 * p, 1250 * p, t + k, 0.03, amp(t + k, 0.001, 0.25, 0.03, out));
+    }
+  },
+  clap(t, out, p) {      // a hand clap: a few slaps at once and the room after them
+    for (const k of [0, 0.011, 0.022]) noise(t + k, 0.012, filter('bandpass', 1200 * p, 1.2, amp(t + k, 0.001, 0.55, 0.012, out)));
+    noise(t + 0.03, 0.14, filter('bandpass', 1100 * p, 1, amp(t + 0.03, 0.002, 0.45, 0.13, out)));
+  },
+  tom(t, out, p) {       // a floor tom: a deep round drum, its pitch dropping
+    tone('sine', 150 * p, 85 * p, t, 0.35, amp(t, 0.003, 0.9, 0.35, out));
+    noise(t, 0.06, filter('lowpass', 1200 * p, 0.8, amp(t, 0.002, 0.35, 0.06, out)));
+  },
+  cymbal(t, out, p) {    // a crash cymbal: a bright splash of noise ringing out, a metallic shimmer in it
+    noise(t, 1.8, filter('highpass', 5000 * p, 0.6, amp(t, 0.003, 0.45, 1.8, out)));
+    noise(t, 0.4, filter('bandpass', 3200 * p, 1, amp(t, 0.002, 0.45, 0.4, out)));
+    for (const hz of [587, 845, 1243, 1660]) tone('square', hz * p, hz * p * 0.99, t, 1.3, filter('highpass', 2500, 0.8, amp(t, 0.002, 0.05, 1.3, out)));
+  },
   morph(t, out, p) {     // Squarlo growing in the fog: a long, rising, wobbling groan of stretching
     const g = amp(t, 0.4, 0.5, 2.6, out);
     tone('sawtooth', 60 * p, 160 * p, t, 3, filter('lowpass', 400 * p, 2, g));

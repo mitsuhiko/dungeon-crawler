@@ -65,7 +65,7 @@ description there.
 | `equip`, `bagOpen`, `bagClose`, `use` | equipping, the inventory, quick bar slots |
 | `drink`, `buff`, `chest` | drinking a potion and a buff or cure taking hold (`game/quickbar.js`), opening a treasure chest (`game/chests.js`) |
 | `lob`, `glass`, `boom`, `hiss`, `poison` | a flask thrown, breaking, a blast, a toxic cloud, a poison tick (`game/juice.js`) |
-| `reveal`, `stomp`, `boom` | a boss's intro: his name coming up under him; a boss dropping onto his spot (with his kind's `_alert`, deeper: his roar; `game/bossintro.js`, `game/reveals.js`); each real boss's own intro puts together sounds the game has for what he does (Squarlo's spout `spray` and `tidecall`, Mansk's spotlight `thunk`, Renew's `clockwind`, `rewind` and `rewound`, Monteur's `rumble` and `dig` ...: `game/bossreveals.js`) |
+| `reveal`, `stomp`, `boom` | a boss's intro: his name coming up under him; a boss dropping onto his spot (with his kind's `_alert`, deeper: his roar; `game/bossintro.js`, `game/reveals.js`); each real boss's own intro puts together sounds the game has for what he does (Squarlo's spout `spray` and `tidecall`, Mansk's spotlight `thunk` and, his own, the `drumroll` before his curtain goes up, its `swish`, the `castanet`, `clap` and `tom` of his dance and the `cymbal` of his confetti, Renew's `clockwind`, `rewind` and `rewound`, Monteur's `rumble` and `dig` ...: `game/bossreveals.js`) |
 | `<species>_alert/_windup/_death` | an enemy starts chasing you (at most every 0.3 s), winds up an attack, dies |
 
 ## Jingles

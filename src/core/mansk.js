@@ -20,7 +20,10 @@
 //                   them and let them go (`lash`), and he whirls round, the ribbons sweeping all
 //                   round him (`whirl`); he breathes in, calls Tornados and slows time, more
 //                   often; the balls are gone with the horns
-// His death takes his Tornados along.
+// His death takes his Tornados along. Before all that, in his intro, the curtain goes up on his
+// stage and he dances (below).
+import { N } from './constants.js';
+
 export const MANSK_FIGHT = Object.freeze({
   splits: [2 / 3, 1 / 3],     // the shares of his health phase 2 and phase 3 start at
   change: [2.2, 2.8],         // s he changes into phase 2 (a roar, up into the air) and 3 (the horns break)
@@ -79,4 +82,55 @@ export const lowEnough = lift => lift < 0.6;
 export function orbSpot(tips, diamond, i, t) {
   const at = i < 2 ? tips[i] : [diamond[0], diamond[1] + 0.45, diamond[2] + 0.2], b = MANSK_FIGHT.orbs.bob;
   return [at[0], at[1] + b * Math.sin(t * 7 + i * 2.1), at[2]];
+}
+
+// --- his intro (core/bossintro.js INTROS.mansk, game/bossreveals.js; docs/bosses.md "The intro") ---
+
+// His dance (the clip ManskDance, blender/mansk.py): `length` s, up out of a bow onto six beats
+// (`beats`: s into the clip, its extras.beats, 120 bpm): a sway to one side and to the other, a
+// twirl over two, a crouch, and up and down into a ta-da on the last. The clip dances in place;
+// the game carries him: across the stage on the sways (`glide`: [s, cells to the side], smoothly
+// between), dipping on each (`dip` cells) and up into the air between the crouch and the ta-da
+// (`hop`: [from, to, cells high]).
+export const MANSK_DANCE = Object.freeze({
+  length: 102 / 30, beats: [0.4, 0.9, 1.4, 1.9, 2.4, 2.9],
+  glide: [[0.1, 0], [0.4, 0.9], [0.9, -0.9], [1.4, 0]], dip: 0.12, hop: [2.45, 2.9, 0.75],
+});
+// where the dance has him s into it: { side: cells to the side, up: cells over his lift }
+export function danceAt(s) {
+  const D = MANSK_DANCE, G = D.glide;
+  let side = s <= G[0][0] ? G[0][1] : G.at(-1)[1];
+  for (let i = 1; i < G.length; i++) if (s > G[i - 1][0] && s <= G[i][0]) {
+    const u = (s - G[i - 1][0]) / (G[i][0] - G[i - 1][0]);
+    side = G[i - 1][1] + (G[i][1] - G[i - 1][1]) * u * u * (3 - 2 * u);
+    break;
+  }
+  const [a, b, high] = D.hop, k = (s - a) / (b - a);
+  const dip = D.beats.slice(0, 2).reduce((sum, at) => sum + Math.exp(-(((s - at) / 0.08) ** 2)), 0);
+  return { side, up: -D.dip * dip + (k > 0 && k < 1 ? high * Math.sin(Math.PI * k) : 0) };
+}
+
+// Where his intro's curtain hangs: across the stage of his museum (`map.arena.stage`, the way it
+// looks out over the hall and how big it is: cubegen/guardian.js) between his row and the front
+// one (where the footlights stand, in front of it), from wall to wall (the stage's ends, inside
+// the cube's walls): { x, y, z: the middle, in line with his spot, on the stage's floor; n: the
+// way to the hall; t: along it ([n.z, -n.x]); from, to: how far it reaches each way along t (from
+// < 0 < to) }. null: no stage (he was spawned somewhere else).
+export function curtainLine(map, inside = [2, N - 2]) {
+  const st = map?.arena?.stage, g = map?.guardian;
+  if (!st || !g) return null;
+  const [nx, nz] = st.axis, t = [nz, -nx], out = st.depth - 0.5;
+  const x = g.x + nx * out, z = g.z + nz * out;
+  // (along t the cube's walls are where its cells' coordinate leaves `inside`)
+  const at = t[0] ? x : z, dir = t[0] || t[1];
+  const [lo, hi] = [(inside[0] - at) / dir, (inside[1] - at) / dir].sort((p, q) => p - q);
+  const half = st.half + 0.5;
+  return { x, y: g.y, z, n: [nx, nz], t, from: Math.max(lo, -half), to: Math.min(hi, half) };
+}
+// how far open the curtain is at t, `span` [s it starts to open, s it is all open], at `v` of its
+// height (0: its hem, 1: its top): drawn by its top, the hem trailing behind and swinging past a
+// little as it stops (0: shut, 1: open)
+export function curtainOpen([a, b], t, v = 1) {
+  const lag = 0.25 * (1 - v), u = Math.min(1, Math.max(0, (t - a - lag) / (b - a))), after = t - b - lag;
+  return u * u * (3 - 2 * u) + (after > 0 ? 0.04 * (1 - v) * Math.sin(after * 9) * Math.exp(-after * 4) : 0);
 }

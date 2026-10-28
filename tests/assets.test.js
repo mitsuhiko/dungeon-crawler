@@ -10,7 +10,7 @@ import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js'
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
   SQUARLO, SQUARLO_GIANT, MECKED, MOOSE, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, MONTEUR, MONTEUR_SUN, QUALMOS,
   SQUIRTLE, fireAt } from '../src/core/enemies.js';
-import { MANSK_FIGHT } from '../src/core/mansk.js';
+import { MANSK_FIGHT, MANSK_DANCE } from '../src/core/mansk.js';
 import { MONTEUR_FIGHT } from '../src/core/monteur.js';
 import { MOUNTAIN } from '../src/core/mountains.js';
 import { CHAR_SCALE } from '../src/core/constants.js';
@@ -684,8 +684,10 @@ test('Qualmos: one skinned body, a clip for each of his attacks as long as it, h
 });
 test('Mansk: a mask with horns, his clips match his attacks, his mouth, horns and ribbons\' stumps where the game takes them', () => {
   const { json: j, duration } = glb('mansk'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
-  assert.deepEqual(Object.keys(a).sort(), ['ManskBreak', 'ManskDeath', 'ManskHover', 'ManskInhale', 'ManskLash', 'ManskOrbs', 'ManskRise',
+  assert.deepEqual(Object.keys(a).sort(), ['ManskBreak', 'ManskDance', 'ManskDeath', 'ManskHover', 'ManskInhale', 'ManskLash', 'ManskOrbs', 'ManskRise',
     'ManskSlow', 'ManskSpit', 'ManskSummon', 'ManskWhirl']);
+  // his intro's dance: its beats where the game plays the percussion and moves him (core/mansk.js MANSK_DANCE)
+  assert.ok(Math.abs(duration(a.ManskDance) - MANSK_DANCE.length) < 1e-5); assert.deepEqual(a.ManskDance.extras.beats, MANSK_DANCE.beats);
   assert.equal(a.ManskHover.extras.loop, true);
   assert.ok(Math.abs(duration(a.ManskDeath) - MANSK.deathTime) < 1e-5); assert.equal(a.ManskDeath.extras.hold_last_frame, true);
   const clip = { inhale: 'ManskInhale', spit: 'ManskSpit', orbs: 'ManskOrbs', summon: 'ManskSummon', slow: 'ManskSlow', lash: 'ManskLash', whirl: 'ManskWhirl' };

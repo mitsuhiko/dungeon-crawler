@@ -6,10 +6,13 @@
 import * as THREE from 'three';
 import { player, state } from './state.js';
 import { LH, N } from '../core/constants.js';
-import { cellAt } from '../physics/collide.js';
+import { cellAt, groundAt } from '../physics/collide.js';
 import { TOWER } from '../core/foggery.js';
 import { emit, glow, soft, rand } from '../render/particles.js';
-import { showShadow, showEyes, showPool, showBeam, hideIntroFx } from '../render/introfx.js';
+import { showShadow, showEyes, showPool, showBeam, showSpotLight, burstConfetti, stepConfetti, hideConfetti, hideIntroFx } from '../render/introfx.js';
+import { showCurtain, hideCurtain } from '../render/stagecurtain.js';
+import { MANSK_FIGHT, MANSK_DANCE, danceAt, curtainLine, curtainOpen } from '../core/mansk.js';
+import { muzzleAt } from '../core/beams.js';
 import { sfx } from '../audio/sfx.js';
 import { quake, cameraKick } from './juice.js';
 import { clamp01, smooth, facing, faceCamera, warp, once, roar, landFx, splashFx, rippleFx, bubbleFx, fluidTop,
@@ -379,45 +382,96 @@ const renew = {
   },
 };
 
-// --- Mansk: a spotlight on the empty stage, the mask coming down into it out of the dark ----------
+// --- Mansk: the curtain going up on his stage, a dance in the spotlight, a roar of confetti -------
 
-const HIGH = 4.6;   // cells over his floating height he comes from
-const BEAM = 9;     // cells up the spotlight shines from
-function liftAt(r, t) {
-  const { at } = r, low = r.data.low;
-  return low + HIGH * (1 - smooth((t - at.down[0]) / (at.down[1] - at.down[0])));
+const BEAM = 9;                          // cells up the spotlight shines from
+const HOUSE = 6.8, STALLS = 5.2;         // cells out into the hall the camera watches from (`house`, `stalls`)
+const MOUTH = [0, 1.0, 0.45];            // (his mouth, model space: core/enemies.js MANSK_AT.mouth)
+// what the percussion plays on each beat of his dance: castanets, claps, the twirl's whoosh, a tom
+const BEATS = [['castanet', 'clap'], ['castanet', 'clap'], ['castanet', 'twirl'], ['castanet'], ['castanet', 'tom'], ['castanet', 'clap', 'pop']];
+const BEAT_SOUND = { castanet: [1, 0.8], clap: [1, 0.7], twirl: [1.5, 0.35], tom: [1, 0.8], pop: [0.8, 0.6] };
+// the curtain shut and him behind it (out of sight, `veil`), till his intro opens it
+function shut(e) {
+  const line = curtainLine(state.map);
+  e.veil = 0;
+  if (line) showCurtain(line, () => 0, { footA: 1 });
+  else hideCurtain();
 }
 const mansk = {
+  // coming in, before his intro starts (the screen still coming up): the curtain is already shut
+  waiting: shut,
   seen: r => ({ x: r.e.x, y: r.e.y + (r.e.lift ?? 0), z: r.e.z }),
-  where: (r, t) => ({ ...r.spot, y: r.spot.y + liftAt(r, t) }),
+  where: (r, t) => {
+    const m = danceAt(t - r.at.dance), [sx, sz] = r.data.side;
+    return { x: r.spot.x + sx * m.side, y: r.spot.y + r.data.low + m.up, z: r.spot.z + sz * m.side };
+  },
   start(r) {
-    const { e, spot } = r;
-    r.data.low = e.lift ?? 0.35;
-    Object.assign(e, { veil: 0, lift: liftAt(r, 0), yaw: facing(spot, player) });
+    const { e, spot } = r, D = r.data;
+    D.low = e.lift ?? MANSK_FIGHT.lift.low;
+    D.line = curtainLine(state.map);
+    // the hall: off the front of his stage (none: towards the hero); his dance goes across it
+    let [nx, nz] = D.line?.n ?? [player.x - spot.x, player.z - spot.z];
+    const l = Math.hypot(nx, nz) || 1;
+    nx /= l; nz /= l;
+    D.n = [nx, nz]; D.side = [nz, -nx];
+    r.anchors.house = { x: spot.x + nx * HOUSE, y: spot.y, z: spot.z + nz * HOUSE };
+    r.anchors.stalls = { x: spot.x + nx * STALLS, y: spot.y, z: spot.z + nz * STALLS };
+    Object.assign(e, { lift: D.low, yaw: Math.atan2(nx, nz) });
+    shut(e);
   },
   step(r, t, dt) {
-    const { e, spot, at } = r, D = r.data;
-    faceCamera(r, dt, 3);
-    // the spotlight: clunking on (a flicker), on till the light comes back
+    const { e, spot, at, def } = r, D = r.data, line = D.line, s = t - at.dance;
+    // his dance carries him across the stage and up (core/mansk.js danceAt); facing the camera
+    const m = danceAt(s);
+    e.x = spot.x + D.side[0] * m.side; e.z = spot.z + D.side[1] * m.side; e.y = spot.y;
+    e.lift = D.low + m.up;
+    if (t >= at.open[0]) faceCamera(r, dt, 3);
+    // the curtain: shut, then drawn open, the hem trailing; gone once the bars are shut for the
+    // cut back (game/bossintro.js)
+    const gone = t >= def.blend[2];
+    // the spotlight: clunking on (a flicker) onto the curtain where it meets, following him once
+    // it opens, out as the light comes back
     const on = t < at.click ? 0 : t < at.click + 0.25 ? (Math.sin((t - at.click) * 80) > 0 ? 1 : 0.2) : 1;
-    const a = on * (1 - smooth((t - at.lights) / 0.9));
-    showBeam(spot.x, spot.y, spot.z, BEAM, 1.25, a);
-    showPool(spot.x, spot.y, spot.z, 1.5, 0.55 * a, '#ffe6b0', true);
-    if (once(D, 'click', t, at.click)) { sfx('thunk', { at: spot, pitch: 0.5, volume: 1 }); sfx('knock', { at: spot, pitch: 0.6, volume: 0.6 }); }
+    const a = gone ? 0 : on * (1 - smooth((t - at.lights) / 0.9));
+    const seam = line ? { x: line.x + line.n[0] * 0.4, z: line.z + line.n[1] * 0.4 } : spot, k = smooth((t - at.open[0]) / (at.open[1] - at.open[0]));
+    const px = seam.x + (e.x - seam.x) * k, pz = seam.z + (e.z - seam.z) * k;
+    showBeam(px, spot.y, pz, BEAM, 1.25, a);
+    showPool(px, spot.y, pz, 1.5, 0.55 * a, '#ffe6b0', true);
+    showSpotLight(px + D.n[0] * 1.2, spot.y + 2.6, pz + D.n[1] * 1.2, a);
+    if (line && !gone) showCurtain(line, v => curtainOpen(at.open, t, v),
+      { spot: [line.x, spot.y + 1.7, line.z, 1.6], spotA: a, footA: 1 - 0.5 * smooth((t - at.lights) / 0.9) });
+    else hideCurtain();
     if (a > 0.5 && Math.random() < dt * 14)   // (dust in the beam)
-      emit(glow, spot.x + rand(-0.8, 0.8), spot.y + rand(0.3, 4), spot.z + rand(-0.8, 0.8), { v: [rand(-0.05, 0.05), rand(-0.1, 0.05), rand(-0.05, 0.05)],
+      emit(glow, px + rand(-0.8, 0.8), spot.y + rand(0.3, 4), pz + rand(-0.8, 0.8), { v: [rand(-0.05, 0.05), rand(-0.1, 0.05), rand(-0.05, 0.05)],
         life: rand(1, 1.6), size: rand(0.03, 0.05), color: '#fff6dc', alpha: 0.5 });
-    // the mask coming down out of the dark into the beam, the diamond glowing
-    e.veil = clamp01((t - at.appear) / 0.9);
-    e.lift = liftAt(r, t);
-    e.slowing = t >= at.appear && t < at.roar + 1.5 ? 1 : 0;   // (render/manskview.js: his diamond glows)
-    if (once(D, 'appear', t, at.appear)) sfx('whirl', { at: e, pitch: 0.5, volume: 0.5 });
-    // and roaring, his mouth wide (his rise's clip)
-    e.pose = t >= at.roar && t < at.release ? { clip: 'rise', t: Math.min(2.2, (t - at.roar) * at.rate) } : null;
-    if (once(D, 'roar', t, at.roar + 0.3)) { roar(e, 0.75); sfx('gust', { at: e, pitch: 0.6, volume: 0.6 }); }
+    if (once(D, 'roll', t, at.roll)) sfx('drumroll', { at: spot, volume: 0.9 });
+    if (once(D, 'click', t, at.click)) { sfx('thunk', { at: spot, pitch: 0.5, volume: 1 }); sfx('knock', { at: spot, pitch: 0.6, volume: 0.6 }); }
+    if (once(D, 'open', t, at.open[0])) sfx('swish', { at: spot, volume: 0.9 });
+    // him: behind the shut curtain out of sight; bowing as it opens, then dancing, the diamond
+    // glowing (render/manskview.js)
+    e.veil = line ? (t >= at.open[0] ? 1 : 0) : clamp01((t - at.open[0]) / 0.9);
+    e.unseen = !!line && t < at.open[1] + 0.3;   // (no silhouette of him through the curtain: render/enemies.js)
+    e.slowing = t >= at.open[0] && t < at.roar + 1.5 ? 1 : 0;
+    e.pose = t < at.roar ? { clip: 'dance', t: Math.min(MANSK_DANCE.length, Math.max(0, s)) }
+      : t < at.release ? { clip: 'rise', t: Math.min(2.2, (t - at.roar) * at.rate) } : null;
+    MANSK_DANCE.beats.forEach((b, i) => {
+      if (once(D, `beat${i}`, t, at.dance + b)) for (const name of BEATS[i]) sfx(name, { at: e, pitch: BEAT_SOUND[name][0], volume: BEAT_SOUND[name][1] });
+    });
+    // a beat still, then the roar, his mouth wide (his rise's clip), and out of it the confetti
+    if (once(D, 'roar', t, at.roar + 0.3)) { roar(e, 0.75); sfx('gust', { at: e, pitch: 0.6, volume: 0.5 }); }
+    if (once(D, 'burst', t, at.burst)) {
+      const mouth = muzzleAt(e, MOUTH), cam = r.view ?? [player.x, player.y + 1.5, player.z];
+      const dx = cam[0] - mouth.x, dy = cam[1] - mouth.y, dz = cam[2] - mouth.z;
+      const d = Math.hypot(dx, dy, dz) || 1;
+      burstConfetti(mouth.x, mouth.y, mouth.z, [dx / d, dy / d + 0.25, dz / d]);
+      sfx('cymbal', { at: e, volume: 0.9 }); sfx('pop', { at: e, pitch: 0.6, volume: 0.8 });
+      cameraKick(0, 0, 0, 0.06);
+    }
+    if (gone) hideConfetti();
+    else stepConfetti(dt, (x, z, y) => groundAt(x, z, y, 0.5).h);
   },
   end(r) {
-    Object.assign(r.e, { veil: undefined, pose: null, lift: r.data.low ?? 0.35, slowing: 0, x: r.spot.x, y: r.spot.y, z: r.spot.z });
+    Object.assign(r.e, { veil: undefined, unseen: undefined, pose: null, lift: r.data.low ?? MANSK_FIGHT.lift.low, slowing: 0, x: r.spot.x, y: r.spot.y, z: r.spot.z });
     hideIntroFx();
   },
 };

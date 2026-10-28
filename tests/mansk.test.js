@@ -6,7 +6,7 @@ import { World } from '../src/world/world.js';
 import { BOSSES, bossAt, BOSS_ARENAS } from '../src/core/bosses.js';
 import { MANSK, MANSK_SKY, MANSK_RIBBONS, STAGE_TORNADO, TORNADO, ENEMY_KINDS, STAGE_PROFILES, makeEnemy, blowOf, airborne, baseY,
   attacksInReach } from '../src/core/enemies.js';
-import { MANSK_FIGHT, phaseFloor, summonCount, barred, liftFor, stepLift, lowEnough, orbSpot } from '../src/core/mansk.js';
+import { MANSK_FIGHT, MANSK_DANCE, phaseFloor, summonCount, barred, liftFor, stepLift, lowEnough, orbSpot, curtainLine, curtainOpen, danceAt } from '../src/core/mansk.js';
 import { damageEnemy, inSwordArc, inReachBand } from '../src/core/combat.js';
 import { inBlast } from '../src/core/projectiles.js';
 import { aimPoint, touchesEnemy } from '../src/core/shots.js';
@@ -15,7 +15,7 @@ import { enemySlow } from '../src/core/status.js';
 import { kindsIn, speciesIn } from '../src/core/spawns.js';
 import { guardianLockMessage } from '../src/core/guardians.js';
 import { STAGE } from '../src/cubegen/arenashapes.js';
-import { RUN_SPEED } from '../src/core/constants.js';
+import { RUN_SPEED, LH, N } from '../src/core/constants.js';
 import { propMetadata } from '../src/core/propcatalog.js';
 
 const stageOf = seed => { const w = new World(seed), L = w.layout(6); return state.map = w.cube(L.down).map; };
@@ -138,4 +138,45 @@ test('slowed time slows his Tornados, not him; the ribbons catch, squeeze and le
   const whirl = named(MANSK_RIBBONS, 'whirl');
   assert.equal(whirl.arc, -1); assert.ok(whirl.hitReach >= 3.5);
   assert.ok(MANSK_FIGHT.breakAt < MANSK_FIGHT.change[1] && MANSK_FIGHT.grow > 0);
+});
+
+test('his intro\'s curtain hangs across his stage before him, from wall to wall, the footlights in front of it', () => {
+  for (const seed of [1, 3, 4, 5, 8]) {
+    const map = stageOf(seed), line = curtainLine(map), g = map.guardian;
+    assert.ok(line, `${seed}: a stage, a curtain`);
+    const [nx, nz] = line.n;
+    assert.ok(Math.abs((line.x - g.x) * nx + (line.z - g.z) * nz - (STAGE.depth - 0.5)) < 1e-9, `${seed}: before him, behind the front row`);
+    assert.ok(Math.abs((line.x - g.x) * line.t[0] + (line.z - g.z) * line.t[1]) < 1e-9, `${seed}: its middle in line with him`);
+    assert.ok(line.from < -2 && line.to > 2 && line.to - line.from <= 2 * STAGE.half + 1 + 1e-9, `${seed}: ${line.from} .. ${line.to}`);
+    const floorAt = (x, z) => map.floors.find(f => f.x === Math.floor(x) && f.z === Math.floor(z));
+    for (let s = line.from + 0.25; s < line.to; s += 0.5) for (const off of [-0.5, 0.5]) {   // (his row and the front one)
+      const f = floorAt(line.x + line.t[0] * s + nx * off, line.z + line.t[1] * s + nz * off);
+      assert.ok(f && Math.abs(f.top * LH - g.y) < 0.3, `${seed}: the stage under it at ${s}`);
+    }
+    for (const s of [line.from - 0.25, line.to + 0.25]) {   // (past its ends: the walls, or the stage's ends)
+      const x = line.x + line.t[0] * s, z = line.z + line.t[1] * s, f = floorAt(x, z);
+      assert.ok(x < 2 || z < 2 || x > N - 2 || z > N - 2 || Math.abs(s) > STAGE.half || f.top * LH > g.y + 1, `${seed}: a wall past ${s}`);
+    }
+  }
+  assert.equal(curtainLine({ arena: { type: 'hills' }, guardian: { x: 8, y: 0, z: 8 } }), null, 'no stage, no curtain');
+});
+
+test('the curtain opens drawn by its top, the hem trailing, and stays open', () => {
+  const span = [2, 3.4];
+  assert.equal(curtainOpen(span, 1.9, 1), 0); assert.equal(curtainOpen(span, 1.9, 0), 0);
+  assert.ok(curtainOpen(span, 2.7, 1) > curtainOpen(span, 2.7, 0), 'the hem behind');
+  assert.equal(curtainOpen(span, 3.4, 1), 1);
+  assert.ok(Math.abs(curtainOpen(span, 6, 0) - 1) < 1e-3, 'open, the hem still');
+});
+
+test('his dance takes him across the stage and up, and back onto his spot by its end', () => {
+  const D = MANSK_DANCE;
+  assert.ok(D.beats.every((b, i) => b > 0 && b < D.length && (!i || b > D.beats[i - 1])), 'beats in order, in the clip');
+  assert.ok(Math.abs(danceAt(D.beats[0]).side) > 0.5 && Math.sign(danceAt(D.beats[0]).side) === -Math.sign(danceAt(D.beats[1]).side), 'to one side, then the other');
+  assert.ok(danceAt((D.hop[0] + D.hop[1]) / 2).up > 0.5, 'a hop');
+  for (const s of [-1, 0, D.length, D.length + 3]) {
+    const m = danceAt(s);
+    assert.ok(Math.abs(m.side) < 1e-3 && Math.abs(m.up) < 1e-3, `on his spot at ${s}`);
+  }
+  for (let s = 0; s < D.length; s += 0.05) assert.ok(MANSK_FIGHT.lift.low + danceAt(s).up > 0.1, 'never down on the floor');
 });

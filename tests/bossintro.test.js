@@ -38,7 +38,7 @@ test('an intro\'s moments come in order: his name before the camera cuts back, c
 });
 
 test('an intro\'s camera turns back the right way up; its anchors are the shared ones or its reveal\'s', () => {
-  const ANCHORS = new Set(['hero', 'spot', 'boss', 'start', 'behind', 'shore', 'bank', 'aside', 'wide', 'near', 'front', 'front2']);
+  const ANCHORS = new Set(['hero', 'spot', 'boss', 'start', 'behind', 'shore', 'bank', 'aside', 'wide', 'near', 'front', 'front2', 'house', 'stalls']);
   for (const [name, d] of Object.entries(INTROS)) {
     const rolls = [];
     for (const k of d.shots) {

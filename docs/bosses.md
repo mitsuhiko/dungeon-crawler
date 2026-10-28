@@ -50,7 +50,7 @@ intro's shots while he appears, turning to the camera so it sees his face; his n
 big under his feet with a line of what he is (his epithet: `EPITHETS`, "The Hungry Grin"; a
 Temp Boss's "Keeper of the Well") and a deep sting (`reveal`, `audio/sfx.js`); the light and the
 fires come back. Then the bars shut a moment, the camera cuts back to the game's, the bars go and
-his bar fades in, and the hero is free. About 7½ to 8½ s (`length`; Qualmos's, the last, 11 s); a click, Space or Enter skips to
+his bar fades in, and the hero is free. About 7½ to 8½ s (`length`; Mansk's and Qualmos's, the last, 11 s); a click, Space or Enter skips to
 the cut back (after the first second). Meanwhile he is `staged` (the AI and his fight leave him
 be: nothing wakes him, not even Foggery's ramp), every enemy holds its attacks, the narrator
 and the robot stop (their subtitle goes) and wait till it is over, and nothing shows over
@@ -67,10 +67,14 @@ anybody's head.
 - **What a reveal may do to him** (`render/enemies.js introLook`, `render/renewview.js`): fade
   him in (`veil`), hold him in one of his clips (`pose`), leave out what of him is under a height
   (`clipBelow`: under see-through lava, the floor or his lagoon; his silhouette goes meanwhile),
-  turn Flip's rings at a speed of its own (`ringSpin`), draw Renew as a ghost (`spectral`) and
-  change his view (`dressView`). Besides him it shows a shadow, glowing eyes, a pool on the floor
-  and a spotlight's beam (`render/introfx.js`), and may take the world round the arena away
-  (`state.introVoid`, as Flip's fight does: it stays away till his fight takes over).
+  draw no silhouette of him through what hides him (`unseen`), turn Flip's rings at a speed of
+  its own (`ringSpin`), draw Renew as a ghost (`spectral`) and change his view (`dressView`).
+  Besides him it shows a shadow, glowing eyes, a pool on the floor, a spotlight's beam and its
+  light, confetti (`render/introfx.js`) and Mansk's curtain (`render/stagecurtain.js`), and may
+  take the world round the arena away (`state.introVoid`, as Flip's fight does: it stays away
+  till his fight takes over). A reveal may also set his arena before the intro starts (`waiting`:
+  every frame while his whole intro is due, the screen still coming up as the hero comes in;
+  Mansk's curtain is shut by then), and the intro takes it over.
 - **The default, the drop** (Temp Bosses, and a boss whose own cannot be played here: a
   reveal's `fits`): a
   shadow grows on his empty spot, he falls out of the sky onto it with a crash (dust, the ground
@@ -110,9 +114,21 @@ anybody's head.
   sink low; his ghost walks backwards out of the dark onto it (time running back: a floor 2½ to
   4½ cells away, `wayIn` like Totnar's roll), and there he is whole again in a flash and holds
   his weapon up as the light comes back. The camera runs round him as he comes.
-- **Mansk:** it goes all but black; a spotlight clunks on over his empty stage, and his mask
-  comes down into its beam out of the dark above, the diamond glowing, and roars (his rise's
-  clip) as the light comes back. The camera from the hall like the audience, pushing in.
+- **Mansk:** a theatre's red curtain hangs shut across his stage as the hero comes in, from
+  wall to wall under a pelmet of swags between two gilded posts, taller than he is
+  (`core/mansk.js curtainLine`, `render/stagecurtain.js`). The house lights go down, only the
+  footlights still burning, glowing up the curtain; a drumroll, and a spotlight clunks on,
+  laying a circle of light on the curtain where its halves meet. The curtain opens, each half
+  drawn to its wall, gathering into deeper folds, the hem trailing (`curtainOpen`), on him in the
+  beam, bowing; and he dances (ManskDance, `MANSK_DANCE`: six beats at 120 bpm, castanets and
+  claps on them): a sway to one side and to the other, gliding across the stage, a twirl right
+  round, a crouch, a hop and a ta-da, his horns spread, the spotlight following him. A beat
+  still, then he roars, his mouth wide (his rise's clip), and confetti bursts out of it at the
+  camera with a cymbal's crash as the light comes back, fluttering down and lying on the floor.
+  The curtain and the confetti go while the bars are shut for the cut back. The camera from the
+  hall like the audience (`house`), its lens slowly narrowing on the curtain; from the front
+  rows for the dance (`stalls`), drifting with it; in close for the roar. Spawned without his
+  stage (`/spawn mansk`): no curtain, he fades in in the beam.
 - **Monteur:** the ground on his spot rumbles, dust and pebbles jumping, cracks open, and he rises
   up out of it antlers first, stone falling off him; his stones float up between his antlers one
   after the other, and he rears up and stomps down (his summon's clip). The camera low on the
@@ -1160,7 +1176,8 @@ colours are the theme's (`themes/surfaces.js`); the checker is the paving's two 
 (`render/floors.js`). It is dressed with the museum's things (`props: ['museum']`, made by
 `blender/themes_museum.py`, [assets/themes.md](assets/themes.md); `cubegen/arenaprops.js` `stage`):
 a red **curtain** all along the walls round the stage, **footlights** along its front edge and a
-**spotlight** at each front corner turned on it; round the hall's walls things on show (vases and
+**spotlight** at each front corner turned on it (and for his intro a theatre's curtain across
+the stage, between his row and the footlights, `arena.stage` on the map: see the intro above); round the hall's walls things on show (vases and
 busts on pedestals, glass cases with a crown or a little horned mask, statues), velvet ropes and
 little signs before some of them, and **paintings** on the walls. The hall's middle stays open.
 
@@ -1702,7 +1719,7 @@ await (await import('./tests/browser/roll.js')).runRollChecks()       // the wor
 await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
 await (await import('./tests/browser/bossbar.js')).runBossBarChecks()   // the boss bar: up on coming in, the damage strip, Gusto's proxies, Renew's rewind, a Temp Boss
-await (await import('./tests/browser/intros.js')).runIntroChecks()     // every boss's intro in his arena: his own reveal, on his spot for his name, nothing left of it after (whole and skipped)
+await (await import('./tests/browser/intros.js')).runIntroChecks()     // every boss's intro in his arena: his own reveal, on his spot for his name, nothing left of it after (whole and skipped); Mansk's curtain shut, then open, then gone
 ```
 
 Re-export the model with `Blender -b --python blender/gusto.py -- assets/gusto.glb

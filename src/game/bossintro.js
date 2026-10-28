@@ -9,6 +9,8 @@
 // and the robot keeps quiet (game/narrator.js). Met before (or shown another player's enemies, or
 // someone else is here: their world must not stop for us, nor their boss jump about), only his
 // name shows a moment while his bar fades in. Reducing motion: no camera, the rest as always.
+// Before the whole intro starts, while the screen comes up, his reveal may set his arena for it
+// (`waiting`: Mansk's curtain shut over his stage).
 import { player, state } from './state.js';
 import { allEnemies, mirroring, resetEnemies } from './enemies.js';
 import { bossOf } from '../core/bossbar.js';
@@ -41,6 +43,7 @@ const STEP = 0.7;      // cells ahead the walk looks for the ground going on
 let run = null;        // the intro under way
 let visit = null, waited = 0;   // the visit (state.visit) the boss was looked for in
 let voidVisit = null;  // the visit an intro took the world round the arena away in (state.introVoid)
+let waiting = null;    // { e, reveal }: the boss whose intro is due, his arena set for it (wait)
 
 export const introPlaying = () => !!run;
 export const introFull = () => !!run?.full;
@@ -59,9 +62,10 @@ export function introSteer() {
 export function updateBossIntro(dt) {
   // (the world round his arena his intro took away stays away till his fight takes over: Flip's)
   if (state.introVoid && !run && (voidVisit !== state.visit || state.void || state.mode !== 'play')) state.introVoid = 0;
-  if (state.mode !== 'play' || !state.map) { if (run) stop(); visit = null; return; }
+  if (state.mode !== 'play' || !state.map) { if (run) stop(); unwait(); visit = null; return; }
   if (run && (run.visit !== state.visit || state.transitioning || run.e.mode === 'dead')) stop();
   if (!run) look(dt);
+  if (!run) wait();
   if (!run || dt <= 0) return;
   if (!run.held) run.t += dt;
   step(run.held ? 1 / 60 : dt);   // (held: what turns still turns)
@@ -74,12 +78,35 @@ function look(dt) {
   const e = bossOf(allEnemies(), player);
   if (!e) { if ((waited += dt) > WAIT) visit = state.visit; return; }
   visit = state.visit; waited = 0;
+  start(e, due(e));
+}
+// is boss e's whole intro due: the first time in this world, alone, him not yet in a fight
+function due(e) {
   const alone = !mirroring() && !online.buddies.some(b => b.here);
   const fresh = !['chase', 'attack', 'alert', 'split', 'gone'].includes(e.mode) && e.hp >= e.profile.hp;
-  start(e, alone && fresh && !state.run.met.has(e.id));
+  return alone && fresh && !state.run.met.has(e.id);
+}
+// Before it starts (the screen still coming up as the hero comes in, look waits for it): a reveal
+// with a `waiting` sets his arena for it (Mansk's curtain shut over his stage), every frame while
+// it is due. No longer due without it starting (someone came, he woke): back as it was.
+function wait() {
+  const e = visit !== state.visit && !state.map.testRoom && !state.map.interior ? bossOf(allEnemies(), player) : null;
+  const reveal = e && REVEALS[introOf(e, false).reveal];
+  const w = reveal?.waiting && due(e) ? { e, reveal } : null;
+  if (waiting && waiting.e !== w?.e) unwait();
+  waiting = w;
+  w?.reveal.waiting(w.e);
+}
+function unwait() {
+  if (!waiting) return;
+  waiting.e.veil = undefined;
+  hideIntroFx();
+  waiting = null;
 }
 
 function start(e, full) {
+  const set = waiting;
+  waiting = null;
   state.run.met.add(e.id);
   const spot = { x: e.x, y: e.y, z: e.z, yaw: e.yaw };
   let wx = spot.x - player.x, wz = spot.z - player.z;
@@ -91,6 +118,8 @@ function start(e, full) {
   let def = introOf(e, !full), reveal = full ? REVEALS[def.reveal] : null;
   Object.assign(run, { def, at: def.at, reveal });
   if (reveal?.fits && !reveal.fits(run)) { def = INTROS.drop; reveal = REVEALS.drop; Object.assign(run, { def, at: def.at, reveal, data: {} }); }
+  // (what waiting set his arena for: his reveal takes it over, else it goes)
+  if (set && (set.e !== e || set.reveal !== reveal)) { set.e.veil = undefined; hideIntroFx(); }
   state.intro = { full, bar: false };
   $('boss-intro-name').textContent = enemyName(e.profile);
   $('boss-intro-title').textContent = tr(epithetOf(e));

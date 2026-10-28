@@ -42,6 +42,10 @@ Clips, 30 fps, in place (the game supplies root motion and how high he floats):
     ManskDeath    2.4 s: shudders, tips over backwards and falls flat on the floor, face up, like a
                   mask dropped: slaps down (extras.flat_frame), bounces a little and lies still,
                   the horns limp along the floor. Held.
+    ManskDance    3.4 s: (his intro, game/bossreveals.js) comes up out of a bow and dances on six
+                  beats (extras.beats, s): sways right, sways left, twirls right round over two
+                  beats, crouches, springs up and lands in a ta-da, horns spread, mouth open,
+                  held to the end. In place: the game glides him across the stage and lifts him.
 
 Headless:
     Blender -b --python blender/mansk.py -- assets/mansk.glb blender/mansk.blend \
@@ -66,7 +70,7 @@ FPS, D, TAU = K.FPS, K.D, K.TAU
 V = Vector
 SIDES = (("L", 1), ("R", -1))
 CLIPS = ("ManskHover", "ManskInhale", "ManskSpit", "ManskOrbs", "ManskSummon", "ManskSlow", "ManskLash",
-         "ManskWhirl", "ManskRise", "ManskBreak", "ManskDeath")
+         "ManskWhirl", "ManskRise", "ManskBreak", "ManskDeath", "ManskDance")
 
 HEAD_HEX, HORN_HEX, EYE_HEX, MOUTH_HEX, DIAMOND_HEX = "#f3f1ec", "#d9c49c", "#1c1c26", "#3a0d1c", "#3d8bff"
 # (name, colour, emission); indices are the parts' `mat`
@@ -86,6 +90,7 @@ WHIRL_FRAMES, WHIRL_HIT = 72, 36
 RISE_FRAMES = 66
 BREAK_FRAMES, BREAK_AT = 84, 36
 DEATH_FRAMES = 72
+DANCE_FRAMES, DANCE_LEAD, DANCE_BEAT, DANCE_BEATS = 102, 12, 15, 6   # (120 bpm: a beat every 15 frames)
 LOOP_T = HOVER_FRAMES / FPS
 
 # --- body plan -----------------------------------------------------------------
@@ -488,6 +493,32 @@ def death(f):
                   droop=C.smoothstep(0.4, 1.3, t))
 
 
+def dance(f):
+    """Up out of a bow, then six beats: a sway to his right and one to his left, a twirl right
+    round over the next two, a crouch on the fifth, and up and down into a ta-da on the sixth."""
+    k, t = C.keyframes, f / FPS
+    b = [(DANCE_LEAD + DANCE_BEAT * i) / FPS for i in range(DANCE_BEATS)]
+    pulse = lambda at, w=0.07: math.exp(-((t - at) / w) ** 2)
+    bow = k((0, 1), (b[0] - 0.04, 0))(t)
+    sway = k((0, 0), (b[0], 1), (b[1], -1), (b[2], 0))(t)
+    spin = C.smoothstep(b[2], b[4] - 0.04, t)
+    twirl = math.sin(math.pi * spin)
+    crouch = pulse(b[4], 0.09)
+    up = k((0, 0), (b[4] + 0.05, 0), (b[4] + 0.28, 1), (b[5], 0))(t)
+    land = pulse(b[5] + 0.02, 0.07)
+    ta = C.smoothstep(b[5] - 0.02, b[5] + 0.16, t)
+    accent = pulse(b[0]) + pulse(b[1]) + 0.6 * pulse(b[2]) + crouch + land
+    shimmy = math.sin(TAU * 4 * t) * (1 - ta) * (1 - spin * (1 - spin) * 4)
+    return with_hover(f, pos=V((0.02 * shimmy, 0.06 * bow, -0.08 * bow - 0.07 * accent + 0.1 * up + 0.06 * ta)),
+                      pitch=D(24) * bow + D(6) * crouch - D(8) * up - D(12) * ta,
+                      roll=D(13) * sway + D(9) * twirl + D(7) * ta + D(1.5) * shimmy,
+                      yaw=TAU * spin + D(10) * sway,
+                      squash=(1 + 0.06 * accent - 0.03 * up, 1 - 0.07 * accent + 0.05 * up),
+                      mouth=(1 + 0.18 * accent + 0.35 * ta, 1 + 0.3 * accent + 0.5 * ta),
+                      wave=(t * 1.6, (1 + 0.8 * twirl) * (1 - 0.55 * ta)), spread=-D(8) * abs(sway) - D(20) * twirl - D(24) * ta,   # (< 0: out wide)
+                      back=D(-14) * bow + D(6) * abs(sway) + D(14) * ta)
+
+
 # --- the points the game uses, read off the baked clips -------------------------------
 def game(v):
     return [round(v.x, 3), round(v.z, 3), round(-v.y, 3)]
@@ -547,6 +578,10 @@ def animate(rig, obj):
     b.pose_markers.new("Break").frame = BREAK_AT
     K.ground_clip(rig, obj, "ManskDeath", solver(rig, death), DEATH_FRAMES,
                   extras={"hold_last_frame": True, "hold_from": 2.0, "flat_frame": round(1.15 * FPS)}, settle_from=round(1.6 * FPS))
+    da = K.ground_clip(rig, obj, "ManskDance", solver(rig, dance), DANCE_FRAMES,
+                       extras={"beats": [round((DANCE_LEAD + DANCE_BEAT * i) / FPS, 4) for i in range(DANCE_BEATS)]})
+    for n in range(DANCE_BEATS):
+        da.pose_markers.new(f"Beat{n + 1}").frame = DANCE_LEAD + DANCE_BEAT * n
     K.register(rig, CLIPS)
     # the points the game needs, read off the baked clips
     at_frame(rig, "ManskInhale", (INHALE_HIT + PULL_END) // 2)
@@ -573,7 +608,7 @@ def animate(rig, obj):
 # --- previews ----------------------------------------------------------------
 def preview(scene, rig, path):
     scene.view_settings.view_transform = "Standard"
-    shots = [("ManskHover", 0, (1.6, -7.5, 2.6)), ("ManskHover", 20, (-6.0, -4.5, 3.2)),
+    shots = [("ManskHover", 0, (1.6, -7.5, 2.6)), ("ManskDance", DANCE_LEAD + DANCE_BEAT * 5 + 8, (-4.0, -6.5, 3.0)),
              ("ManskInhale", 50, (3.5, -6.5, 2.4)), ("ManskSpit", 12, (4.5, -5.5, 2.4)),
              ("ManskOrbs", ORBS_HIT + 6, (2.5, -7.0, 2.6)), ("ManskSummon", 18, (-3.0, -7.0, 2.6)),
              ("ManskLash", LASH_HIT + 10, (5.5, -4.5, 2.6)), ("ManskBreak", BREAK_AT - 6, (2.0, -7.0, 2.6)),

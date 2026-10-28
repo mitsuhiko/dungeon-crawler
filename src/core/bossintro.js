@@ -33,7 +33,8 @@ export const epithetOf = e => EPITHETS[e?.boss] ?? EPITHETS.temp;
 //   shots      the camera's keys (shotAt), each point [anchor, ahead, right, up] in the frame of
 //              shotFrame: anchors 'hero', 'spot' (where he stands), 'boss' (where he is now) and
 //              what the reveal adds (Totnar's, Foggery's and Qualmos's 'start', Foggery's 'wide',
-//              'near', 'front' and 'front2', Qualmos's 'behind', 'shore', 'bank' and 'aside'). game/bossintro.js moves a key's camera
+//              'near', 'front' and 'front2', Qualmos's 'behind', 'shore', 'bank' and 'aside',
+//              Mansk's 'house' and 'stalls'). game/bossintro.js moves a key's camera
 //              out of what is in the way (or what hides him) before the intro starts.
 // over the hero's shoulder, towards where the boss will be
 const OPEN = { t: 0.6, cam: ['hero', -2.2, 0.9, 2.0], look: ['spot', 0, 0, 1.0], fov: 50 };
@@ -134,18 +135,27 @@ export const INTROS = Object.freeze({
       { t: 4.3, cam: ['boss', -4.4, -2.0, 2.6], look: ['boss', 0, 0, 1.1], fov: 40, ease: 'linear' },
       { t: 4.8, cam: ['spot', -5.0, -1.0, 0.8], look: ['boss', 0, 0, 1.2], fov: 40, ease: 'out' },
       { t: 7.0, cam: ['spot', -6.6, 0.5, 1.3], look: ['boss', 0, 0, 0.9], fov: 32 }] },
-  // Mansk: it goes all but black and the fires go out; a spotlight clunks on over his empty
-  // stage; out of the dark above, his mask comes down into its beam, the diamond glowing, and
-  // roars (his rise's clip) as the light comes back. The camera from the hall like the audience,
-  // pushing in as he comes down, then close, low, for the roar
-  mansk: { reveal: 'mansk', length: 8.1, hold: 7.8, walk: 1.4, letterbox: [0.3, 7.8], name: [5.3, 7.4], bar: 7.7,
-    blend: [0.6, 1.8, 7.6], shake: 0.012, dim: { at: [0.3, 1.8, 4.9, 6.3], to: 0.92 }, fires: { out: 0.4, back: 4.9 },
-    at: { click: 2.1, appear: 2.7, down: [2.7, 4.5], high: 4.2, roar: 4.6, rate: 0.9, lights: 4.9, release: 7.0 },
+  // Mansk: the curtain across his stage is shut as the hero comes in (game/bossreveals.js
+  // `waiting`); the house lights go down, only the footlights still burning; a drumroll
+  // (`roll`), and a spotlight clunks on onto the curtain (`click`); the curtain opens (`open`)
+  // on him in its beam, bowing, and he dances (`dance`: the clip ManskDance, core/mansk.js
+  // MANSK_DANCE, to castanets and claps on its beats); a beat still, then he roars (his rise's
+  // clip, `roar`) and confetti bursts out of his mouth (`burst`) as the light comes back. The
+  // camera from the hall like the audience (`house`, in the middle of it), the lens slowly
+  // narrowing on the curtain, then from the front rows (`stalls`), drifting with the dance, and
+  // in close for the roar, the confetti flying at it
+  mansk: { reveal: 'mansk', length: 10.9, hold: 10.6, walk: 1.4, letterbox: [0.3, 10.6], name: [8.4, 10.4], bar: 10.5,
+    blend: [0.6, 1.6, 10.6], shake: 0.012, dim: { at: [0.3, 1.6, 7.9, 8.9], to: 0.88 }, fires: null,
+    at: { roll: 1.3, click: 2.3, open: [2.6, 4.0], dance: 4.0, roar: 7.6, burst: 8.0, lights: 7.9, release: 10.0, rate: 0.9 },
     shots: [{ ...OPEN, look: ['spot', 0, 0, 1.0] },
-      { t: 1.8, cam: ['spot', -6.4, 0, 0.7], look: ['spot', 0, 0, 1.2], fov: 40 },
-      { t: 4.5, cam: ['spot', -5.0, 0.2, 0.6], look: ['boss', 0, 0, 0.75], fov: 40, ease: 'linear' },
-      { t: 4.9, cam: ['spot', -3.4, 0.5, 0.3], look: ['boss', 0, 0, 0.85], fov: 46, roll: -3, ease: 'out' },
-      { t: 7.2, cam: ['spot', -3.9, 1.3, 0.45], look: ['boss', 0, 0, 0.8], fov: 40, roll: 0 }] },
+      { t: 1.6, cam: ['house', 0, 0, 1.3], look: ['spot', 0, 0, 1.6], fov: 66 },
+      { t: 3.9, cam: ['house', 0, 0, 1.1], look: ['spot', 0, 0, 1.25], fov: 48, ease: 'linear' },
+      { t: 4.4, cam: ['stalls', 0, 0, 0.6], look: ['boss', 0, 0, 1.1], fov: 56 },
+      { t: 5.8, cam: ['stalls', 0, 0.6, 0.55], look: ['boss', 0, 0, 1.1], fov: 56, ease: 'linear' },
+      { t: 7.0, cam: ['stalls', 0, -0.4, 0.5], look: ['boss', 0, 0, 1.0], fov: 54 },
+      { t: 7.6, cam: ['spot', -2.8, 0.25, 0.45], look: ['boss', 0, 0, 0.9], fov: 54, ease: 'out' },
+      { t: 8.2, cam: ['spot', -3.3, 0.6, 0.5], look: ['boss', 0, 0, 0.95], fov: 52, ease: 'out' },
+      { t: 10.4, cam: ['spot', -3.8, 1.2, 0.55], look: ['boss', 0, 0, 0.95], fov: 46 }] },
   // Monteur: the light goes; the ground on his spot rumbles and shakes, dust and pebbles jumping,
   // it cracks open and he rises up out of it, antlers first, stone and dust falling off him; his
   // stones float up one after the other between his antlers, and he rears up and stomps down

@@ -14,7 +14,7 @@ import { rockTint } from '../themes/surfaces.js';
 import { createContext } from './context.js';
 import { groundHeights } from './ground.js';
 import { placePortals } from './portals.js';
-import { SHAPES, BOSS_SHAPES, TIDAL, BOWL } from './arenashapes.js';
+import { SHAPES, BOSS_SHAPES, TIDAL, BOWL, STAGE } from './arenashapes.js';
 import { dressArena } from './arenaprops.js';
 import { BOSS_ARENAS } from '../core/bosses.js';
 import { flipArena } from './fliparena.js';
@@ -277,7 +277,9 @@ export function generateGuardian(spec) {
   });
   ctx.stats.layers = 1; ctx.stats.mode = `guardian arena (${arena.type})`; ctx.stats.fences = fenceList.length;
   return finishArena({ spec, ctx, role, cols: ctx.cols, floors, portals: final ? [entrance] : portals, exit: final ? null : exit, guardian, reached,
-    arena: { type: arena.type, requested },
+    // (Mansk's museum: which way its stage looks, out over the hall, and how big it is: where his
+    // intro hangs its curtain, core/mansk.js curtainLine)
+    arena: { type: arena.type, requested, ...arena.type === 'stage' && { stage: { axis: [...arena.shape.marks.axis], depth: STAGE.depth, half: STAGE.half } } },
     // the tidal hills' water (game/tide.js): its levels at rest and at high tide, and the box of
     // cells it stands in (inside the bank)
     tide: arena.type === 'tidal' ? { rest: level + TIDAL.low + TIDAL.rest, high: level + TIDAL.high, fluid: WATER, box: [1, 1, N - 1, N - 1] }

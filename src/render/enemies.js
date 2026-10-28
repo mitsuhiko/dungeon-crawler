@@ -891,7 +891,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     introLook(v, e, dt);
   }
 }
-// A boss's intro (game/bossintro.js): no bars or names over anybody's head. A boss in his intro (game/reveals.js): `veil` fades him in (0: not there, his light out too),
+// A boss's intro (game/bossintro.js): no bars or names over anybody's head. A boss in his intro (game/reveals.js): `veil` fades him in (0: not there, his light out too), `unseen` draws no silhouette of him through what is in front of him,
 // and `dressView(v, dt)` does what his reveal does to the view (Totnar's skulls popping up)
 function introLook(v, e, dt) {
   if (e.veil !== undefined) {
@@ -910,6 +910,7 @@ function introLook(v, e, dt) {
     for (const m of [v.material, v.ghost, v.shell?.material]) if (m) { m.clippingPlanes = v.clip ? [v.clip] : null; m.needsUpdate = true; }
   }
   if (v.clip) { v.clip.constant = -(clip + shift.y); v.ghost.opacity = 0; }   // (nor a silhouette of him through the floor meanwhile)
+  if (e.unseen) v.ghost.opacity = 0;   // (`unseen`: nor through what hides him, Mansk behind his curtain)
   e.dressView?.(v, dt);
 }
 // An enemy of each of these kinds made once off-screen, for the shaders it is drawn with
