@@ -10,7 +10,10 @@ import { noun, msg } from '../i18n/i18n.js';
 
 export const BOUNTY = { hp: 4, damage: 1.3, xp: 4, size: 1.2, poise: 1.2 };
 export const BOUNTY_NAMES = ['Grimfang', 'Old Snapjaw', 'Bristleback', 'Nightcrawler', 'Big Bertha', 'Thornback', 'Ironhide',
-  'Mossmaw', 'Shadowtail', 'Rumbletooth', 'Scarface', 'Ashcoat', 'Sneaky Pete', 'Grumble', 'Wartnose', 'Longshanks'];
+  'Mossmaw', 'Shadowtail', 'Rumbletooth', 'Scarface', 'Ashcoat', 'Sneaky Pete', 'Grumble', 'Wartnose', 'Longshanks',
+  'Old Greyback', 'Muddleclaw', 'Biscuit', 'Lady Gnash', 'Stinkwhisker', 'Tumbleguts', 'Crookhorn', 'Snorebelly', 'Hollowgrin',
+  'Gristle', 'Baron Bramble', 'Sootsnout', 'Wobblejaw', 'Pickles', 'Gloomtooth', 'Rattlebones', 'Fuzzy Ned', 'Mother Murk',
+  'Cinderpaw', 'Knucklenose', 'Twitchtail', 'Granny Grit', 'Spike', 'Old Rumpus'];
 
 const kinds = new Map();
 // the bounty kind of enemy kind `type`, called `name`
@@ -32,8 +35,9 @@ export function bountyKind(type, name) {
 export const bountyLevel = d => depthLevel(d) + 1;
 
 // which enemy a bounty at depth d is (one of the depth's kinds, as likely as they are there) and
-// its name, from the seed
-export function pickBounty(depth, seed) {
+// its name, from the seed; used: the names the world's bounties have already (each comes once,
+// while there are names left)
+export function pickBounty(depth, seed, used = new Set()) {
   const R = mulberry32(hash32(seed ^ 0xb0b7));
   const roster = DEPTH_SPAWNS[Math.min(depth, DEPTH_SPAWNS.length - 1)].roster.filter(r => ENEMY_KINDS[r.type] && !ENEMY_KINDS[r.type].boss);
   let r = R() * roster.reduce((n, x) => n + x.chance, 0), row = roster.at(-1);
@@ -41,5 +45,6 @@ export function pickBounty(depth, seed) {
   const list = Object.entries(row.kinds);
   let w = R() * list.reduce((n, [, k]) => n + k, 0), type = list.at(-1)[0];
   for (const [t, k] of list) if ((w -= k) < 0) { type = t; break; }
-  return { enemy: ENEMY_KINDS[type] ? type : row.type, name: BOUNTY_NAMES[Math.floor(R() * BOUNTY_NAMES.length)] };
+  const free = BOUNTY_NAMES.filter(n => !used.has(n)), names = free.length ? free : BOUNTY_NAMES;
+  return { enemy: ENEMY_KINDS[type] ? type : row.type, name: names[Math.floor(R() * names.length)] };
 }

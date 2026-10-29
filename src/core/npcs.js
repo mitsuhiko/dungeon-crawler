@@ -31,7 +31,12 @@ export const NAMES = ['Ada', 'Alma', 'Bodo', 'Bram', 'Clara', 'Cora', 'Dov', 'Ed
   'Otto', 'Pip', 'Quinn', 'Rosa', 'Sven', 'Tilda', 'Ulf', 'Vera', 'Wim', 'Yara', 'Zeno', 'Esme'];
 // who of them is a woman: other languages say it ('die Einsiedlerin Ada', 'der Bergmann Bodo')
 const SHE = new Set(['Ada', 'Alma', 'Clara', 'Cora', 'Edda', 'Frida', 'Greta', 'Hanna', 'Ilse', 'Juna', 'Kira', 'Lotte', 'Mila', 'Nora',
-  'Olga', 'Rosa', 'Tilda', 'Vera', 'Yara', 'Esme']);
+  'Olga', 'Rosa', 'Tilda', 'Vera', 'Yara', 'Esme', 'Agnes', 'Dora', 'Fenna', 'Ida', 'Liesl', 'Nele', 'Paula', 'Smilla', 'Ute', 'Wanda',
+  'Zora', 'Marta', 'Leni']);
+// more names, for the people the quests are about (somebody's family: core/questplan.js kinName);
+// the residents keep to NAMES, so who lives where stays as it was
+export const KIN_NAMES = [...NAMES, 'Agnes', 'Benno', 'Dora', 'Elio', 'Fenna', 'Gerd', 'Ida', 'Jakob', 'Liesl', 'Malte', 'Nele', 'Oskar',
+  'Paula', 'Ruben', 'Smilla', 'Theo', 'Ute', 'Wanda', 'Xaver', 'Zora', 'Anton', 'Marta', 'Leni', 'Bruno'];
 export const isShe = name => SHE.has(name);
 // somebody by their name, as words (src/i18n/i18n.js: a name with its gender)
 export const personWords = name => person(name, isShe(name) ? 'f' : 'm');

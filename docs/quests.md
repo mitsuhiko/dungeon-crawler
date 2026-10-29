@@ -17,7 +17,9 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
   slots), each with its kind and giver, from the seed and the layouts. Kinds not built yet stand
   in as built ones (`BUILT`, `STAND_IN`: scattered pieces as a gathering or a treasure map,
   freeing prisoners as a scouting kind). Somebody lost is always asked for by whoever lives at a
-  camp at or up to two above the depth (they will wait there together); the rest by the villagers
+  camp at or up to two above the depth (they will wait there together), the camp that asked least
+  first and none more than `CAMP_RESCUES` (two: the places beside its resident's; else the slot is
+  a find); the rest by the villagers
   (a share falling with depth) or the people of the depth and the one above.
 - **Twelve kinds:**
   - the scouting kinds, about what the world has anyway: `reach` (get down to a depth nobody has
@@ -32,11 +34,13 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
     different cubes where it can be); each picked up counts (`got`, shown as 1/3), all of them:
     back to the giver;
   - `rescue`: somebody lost stands on a hiding place; talking to them ends it there and pays
-    (`spot`); they go to live at the giver's camp (`log.living`);
+    (`spot`); they go to live at the giver's camp (`log.living`). A giver who lost somebody before
+    says so ("First Paula, and now ...");
   - `treasure`: a map scrap; a chest stands on a hiding place, opened like a reward site's, its
     loot the reward (`self`: the quest only adds XP). It stays, open.
   - `bounty` (`core/bounties.js`): a named enemy of one of the depth's kinds (as likely as they
-    are there) waits on a hiding place, golden, four times the health, a third more damage, a
+    are there), named as no other bounty of the world is while there are names left
+    (`BOUNTY_NAMES`), waits on a hiding place, golden, four times the health, a third more damage, a
     level over the depth's, worth four times the XP and coins. Its id is `q:<quest id>`, so its
     death is remembered like any other (`run.defeated`, and it comes back with a death in its
     cube); the quest is done once it is defeated, paid back at the giver. Whoever runs the
@@ -63,6 +67,11 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
     the depth (else a villager) and opens the annex's sealed portal when taken (`opens`).
 
   The scouting kinds and `find` are paid back at the giver (`return`).
+- **Families** (`kinOf`, `namesTaken`): somebody a giver speaks of (whose thing is lost, who is
+  lost) is of the giver's family and kept with the quest (`kin`); the giver speaks of the same
+  people again, related the same way. A new one gets a name (`KIN_NAMES`) nobody of the quests has
+  yet: not the giver's own, nor the families', the people found, or those living two depths up or
+  down.
 - **Quest things** (`core/items.js QUEST_THINGS`): what is lost, gathered and carried, any of
   them for any of these: the first quest items (locket, ring, compass, journal, toy rabbit) and 44
   made from the world's props (backpack, wagon wheel, jar of thunder, honey pot, jade idol, rune

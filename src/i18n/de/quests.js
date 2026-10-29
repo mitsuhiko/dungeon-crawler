@@ -96,7 +96,7 @@ export default {
   'ice throne': { text: 'Eisthron', g: 'm' },
   'giant shell': { text: 'Riesenmuschel', g: 'f' },
   'sunken bell': { text: 'Meeresglocke', g: 'f' },
-  'chorten great': { text: 'Stupa', g: 'm' },
+  'great chorten': { text: 'Stupa', g: 'm' },
   hermitage: { text: 'Einsiedelei', g: 'f' },
   'mani wall': { text: 'Mani-Mauer', g: 'f' },
   'nomad tent': { text: 'Nomadenzelt', g: 'n' },
@@ -237,6 +237,10 @@ export default {
     '{relation:Mein} {person} ist hinunter auf {where:den} gegangen und nicht zurückgekommen. Jemand hat {person:ihn} gesehen, {clue}. Bitte finde {person:ihn}! Ich warte hier.',
   '{person}, my {relation:lower}, wanted to see {where:the} and never came back. The last I heard, {clue}. Bring {person:him} home to me, please.':
     '{person}, {relation:mein}, wollte {where:den} sehen und kam nie zurück. Zuletzt hieß es: {clue}. Bitte bring {person:ihn} zu mir nach Hause.',
+  'First {before}, and now my {relation:lower} {person} is gone too! {person} went down to {where:the}, and somebody saw {person:him} {clue}. Would you look once more?':
+    'Erst {before}, und jetzt ist auch {relation:mein} {person} verschwunden! {person} ist hinunter auf {where:den} gegangen, und jemand hat {person:ihn} gesehen, {clue}. Suchst du noch einmal?',
+  'You brought {before} home to me, so I know you can do it. Now {person}, my {relation:lower}, is lost on {where:the}, {clue}. Please!':
+    'Du hast mir {before} nach Hause gebracht, also weiß ich, dass du es kannst. Jetzt hat sich {person}, {relation:mein}, auf {where:dem} verirrt, {clue}. Bitte!',
   'Find {person} on {where:the}': 'Finde {person} auf {where:dem}',
 
   // treasure

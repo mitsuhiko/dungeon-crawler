@@ -472,3 +472,32 @@ test('the things lost, gathered and carried are many, not the same few', () => {
   }
   assert.ok(seen.size >= 30, `${seen.size} different things`);
 });
+
+test('the people of the quests hang together: families stay, names do not clash, camps have room, bounties differ', async () => {
+  const { CAMP_RESCUES } = await import('../src/core/questplan.js');
+  const { residentOf } = await import('../src/core/npcs.js');
+  for (const seed of [7, 99, 31337]) {
+    const ctx = ctxOf(seed), plan = questPlan(seed, ctx.layout), log = createQuestLog();
+    const camps = new Map();
+    for (const s of plan.slots.filter(x => x.kind === 'rescue')) camps.set(s.giver, (camps.get(s.giver) ?? 0) + 1);
+    for (const [giver, n] of camps) assert.ok(n <= CAMP_RESCUES, `${giver} asks for ${n} people`);
+    log.met = [...new Set(plan.slots.map(s => s.giver).filter(isNpcGiver))];
+    for (let deepest = 0; deepest <= 20; deepest++) {
+      log.deepest = deepest;
+      for (let round = 0; round < 6; round++) { log.townOpen = true; refreshOffers(log, ctx); for (const q of log.list) if (q.state === 'offered') q.state = 'done'; }
+    }
+    const bounties = log.list.filter(q => q.kind === 'bounty').map(q => q.stages[0].name);
+    assert.equal(new Set(bounties).size, bounties.length, `every bounty its own name: ${bounties}`);
+    const relation = new Map();
+    for (const q of log.list) {
+      const lost = q.kin ?? q.stages.find(s => s.goal === 'rescue')?.person;
+      if (!lost) continue;
+      const spot = ctx.layout(0) && q.giver.startsWith('npc:') && q.giver.slice(4), key = spot && spot.split(':')[1];
+      const giver = key && ctx.layout(-Number(key.split(',')[1])).spotList.map(residentOf).find(n => n?.giver === q.giver);
+      assert.notEqual(lost.name, giver?.name, `${q.id}: nobody loses themselves`);
+      const was = relation.get(lost.name);
+      assert.ok(!was || was.giver === q.giver && was.relation === lost.relation, `${lost.name} is one person of one family: ${q.id}`);
+      relation.set(lost.name, { giver: q.giver, relation: lost.relation });
+    }
+  }
+});

@@ -85,7 +85,7 @@ export function giverProfile(giver, ctx) {
   if (!key) return null;
   const depth = -Number(key.split(',')[1]), plan = ctx.layout(depth)?.spots?.get(key)?.find(s => s.id === id), npc = residentOf(plan);
   if (!npc) return null;
-  return { title: npc.title, name: npc.title, owner: personWords(npc.name), role: npc.role, where: whereAt(plan.kind === 'camp', depth),
+  return { title: npc.title, name: npc.title, owner: personWords(npc.name), who: npc.name, role: npc.role, where: whereAt(plan.kind === 'camp', depth),
     kinds: ROLES[npc.role].kinds, depths: () => range(depth, depth + 1) };
 }
 // how a quest names its giver: in a sentence ('{giver:the}'), on its own; as words
@@ -135,7 +135,7 @@ const themeName = (ctx, d) => d === 0 ? noun('Meadows') : noun(ctx.layout(d).the
 // a landmark's name as said: 'meadow_windmill_a' -> 'windmill' (src/i18n/sources.js lists them)
 export function landmarkName(name) {
   const base = PROP_METADATA.find(p => p.name === name)?.base ?? String(name).replace(/^[a-z]+_|_[a-z]$/g, '');
-  return base.replace(/_/g, ' ');
+  return base.replace(/^(.+)_(great|small)$/, '$2_$1').replace(/_/g, ' ');   // ('chorten_great': 'great chorten')
 }
 const pick = (R, xs) => xs[Math.floor(R() * xs.length)];
 const NUMBER = [msg('no'), msg('one'), msg('two'), msg('three'), msg('four'), msg('five')];
@@ -171,12 +171,30 @@ function pickThing(R, log, role) {
 }
 // a thing as a noun (src/i18n/en.js knows the plural ones and how many of a thing are said)
 export const thingWords = id => noun(ITEMS[id].name);
-// whose a lost thing is: the giver's own (mine), or somebody's they know (their name and how they
-// are related, as words)
-function ownerOf(R, g, seed) {
+// whose a lost thing is: the giver's own (mine), or somebody of their family's (their name and how
+// they are related, as words; kin: who they are, kept with the quest)
+function ownerOf(R, g, ctx, log, giver, depth, seed) {
   if (R() < 0.5) return { owner: g.owner, mine: true };
-  const p = lostPerson(seed);
-  return { owner: personWords(p.name), person: personWords(p.name), relation: roleWords(p.relation, p.name) };
+  const known = kinOf(log, giver), p = known.length && R() < 0.6 ? known[Math.floor(R() * known.length)] : lostPerson(seed, namesTaken(log, g, ctx, depth));
+  return { owner: personWords(p.name), person: personWords(p.name), relation: roleWords(p.relation, p.name), kin: p };
+}
+// The people of a giver's family the quests told of so far (their things lost, they lost
+// themselves): the same people, related the same way, whenever the giver speaks of them again
+export const kinOf = (log, giver) => [...new Map(log.list.filter(q => q.giver === giver)
+  .flatMap(q => [q.kin, ...q.stages.filter(s => s.goal === 'rescue').map(s => s.person)]).filter(p => p?.name && p.relation)
+  .map(p => [p.name, p])).values()];
+// the names a new person of the quests should not have: the giver's own, everybody's the quests
+// know already (the families, the people found, those living at camps), and the people living near
+// depth `depth` (the seats and camps two up and two down)
+function namesTaken(log, g, ctx, depth) {
+  const out = new Set(g.who ? [g.who] : []);
+  for (const d of range(Math.max(0, depth - 2), depth + 2)) for (const s of ctx.layout(d).spotList) { const n = residentOf(s); if (n) out.add(n.name); }
+  for (const q of log.list) {
+    if (q.kin?.name) out.add(q.kin.name);
+    for (const s of q.stages) for (const p of [s.person, s.to?.person]) if (p?.name) out.add(p.name);
+  }
+  for (const p of log.living) out.add(p.name);
+  return out;
 }
 
 // --- the kinds of quests ---------------------------------------------------------------------------
@@ -274,9 +292,9 @@ const KINDS = {
   find: {
     payout: 'return',
     targets: (ctx, log, depths) => hidingPlaces(ctx, log, depths),
-    quest(t, ctx, R, { id, log, g }) {
+    quest(t, ctx, R, { id, log, g, giver }) {
       const item = pickThing(R, log, g.role), thing = thingWords(item), where = depthName(t.depth);
-      const clue = clueOf(ctx.layout, t.plan, landmarkName), o = ownerOf(R, g, hash32(ctx.seed ^ hashString(id) ^ 0x7a11));
+      const clue = clueOf(ctx.layout, t.plan, landmarkName), o = ownerOf(R, g, ctx, log, giver, t.depth, hash32(ctx.seed ^ hashString(id) ^ 0x7a11));
       const label = owned(o.owner, thing), w = { thing, where, clue, label, person: o.person, relation: o.relation };
       return {
         title: o.mine ? phrase('The lost {thing:lower}', w) : phrase('{label:cap}', w),
@@ -291,6 +309,7 @@ const KINDS = {
           phrase('Somebody saw {label} lying on {where:the}, {clue}. {person} is my {relation:lower}. Would you bring {thing:it} back for us?', w),
         ]),
         target: { spot: t.spot, item },
+        ...(o.kin ? { kin: o.kin } : {}),
         stages: [{ goal: 'find', depth: t.depth, key: t.key, spot: t.spot, item, label, text: phrase('Find {label} on {where:the}', w) }],
       };
     },
@@ -299,13 +318,19 @@ const KINDS = {
   rescue: {
     payout: 'spot',
     targets: (ctx, log, depths, giver) => campOf(ctx.layout, giver) ? hidingPlaces(ctx, log, depths) : [],
-    quest(t, ctx, R, { id }) {
-      const lost = lostPerson(hash32(ctx.seed ^ hashString(id)));
+    quest(t, ctx, R, { id, log, g, giver }) {
+      const lost = lostPerson(hash32(ctx.seed ^ hashString(id)), namesTaken(log, g, ctx, t.depth));
+      // (somebody of theirs found before: they say so)
+      const before = log.list.findLast(q => q.giver === giver && q.kind === 'rescue' && q.id !== id)?.stages.find(s => s.goal === 'rescue')?.person;
       const w = { person: personWords(lost.name), relation: roleWords(lost.relation, lost.name), where: depthName(t.depth),
-        clue: clueOf(ctx.layout, t.plan, landmarkName) };
+        clue: clueOf(ctx.layout, t.plan, landmarkName), before: before && personWords(before.name) };
       return {
         title: phrase('Where is {person}?', w),
-        text: pick(R, [
+        kin: lost,
+        text: before ? pick(R, [
+          phrase('First {before}, and now my {relation:lower} {person} is gone too! {person} went down to {where:the}, and somebody saw {person:him} {clue}. Would you look once more?', w),
+          phrase('You brought {before} home to me, so I know you can do it. Now {person}, my {relation:lower}, is lost on {where:the}, {clue}. Please!', w),
+        ]) : pick(R, [
           phrase('My {relation:lower} {person} went down to {where:the} and has not come back. Somebody saw {person:him} {clue}. Please find {person:him}! I will wait here.', w),
           phrase('{person}, my {relation:lower}, wanted to see {where:the} and never came back. The last I heard, {clue}. Bring {person:him} home to me, please.', w),
         ]),
@@ -337,8 +362,9 @@ const KINDS = {
 KINDS.bounty = {
   payout: 'return',
   targets: (ctx, log, depths) => hidingPlaces(ctx, log, depths).filter(t => t.depth > 0 || t.tier > 0),
-  quest(t, ctx, R, { id }) {
-    const b = pickBounty(t.depth, hash32(ctx.seed ^ hashString(id))), kind = bountyKind(b.enemy, b.name);
+  quest(t, ctx, R, { id, log }) {
+    const used = new Set(log.list.flatMap(q => q.stages.map(s => s.goal === 'bounty' && s.name)).filter(Boolean));
+    const b = pickBounty(t.depth, hash32(ctx.seed ^ hashString(id)), used), kind = bountyKind(b.enemy, b.name);
     const w = { name: noun(b.name, { proper: true }), bounty: enemyWords(kind), kind: noun(ENEMY_KINDS[b.enemy].label), where: depthName(t.depth),
       clue: clueOf(ctx.layout, t.plan, landmarkName) };
     return {
@@ -582,6 +608,7 @@ export function makeQuest(log, ctx, giver, slot) {
     const rewards = questRewards(R, t.depth, difficulty);
     return { id, giver, n: Number(slot.id.split(':')[1]) || 0, slot: slot.id, from: { name: g.name, title: g.title, where: g.where },
       kind, depth: t.depth, difficulty, target: { id: t.id, ...made.target },
+      ...(made.kin ? { kin: made.kin } : {}),
       title: made.title, text: made.text, stages: made.stages.map(s => ({ ...s, done: false })), stage: 0,
       payout: KINDS[kind].payout, rewards: KINDS[kind].payout === 'self' ? { xp: rewards.xp, copper: 0, items: [] } : rewards,
       state: 'offered', archived: false, created: ctx.now ?? 0, finished: 0 };
@@ -924,7 +951,7 @@ export function checkQuest(q) {
   const from = { name: words(f.name, 60) || who || noun('somebody', { proper: true }), title: words(f.title, 60) || who || noun('Somebody', { proper: true }),
     where: words(f.where, 80) || town?.where || '' };
   return { id: q.id, giver: q.giver, n: nat(q.n), ...(typeof q.slot === 'string' ? { slot: q.slot.slice(0, 12) } : {}),
-    ...(q.repeat ? { repeat: true } : {}), from, kind: q.kind, depth: q.depth, difficulty: q.difficulty, target,
+    ...(q.repeat ? { repeat: true } : {}), ...(checkPerson(q.kin) ? { kin: checkPerson(q.kin) } : {}), from, kind: q.kind, depth: q.depth, difficulty: q.difficulty, target,
     title: words(q.title, 80), text: words(q.text), stages, stage: Math.min(nat(q.stage), stages.length), payout: q.payout,
     rewards: checkRewards(q.rewards),
     state: q.state, archived: !!q.archived, created: nat(q.created), finished: nat(q.finished) };

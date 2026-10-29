@@ -7,7 +7,7 @@
 // Also here: the clues a quest gives about a place (from what the layout knows of it) and the
 // people somebody may have lost.
 import { mulberry32, hash32 } from './util.js';
-import { residentOf, npcGiver, NAMES, isShe } from './npcs.js';
+import { residentOf, npcGiver, KIN_NAMES, isShe } from './npcs.js';
 import { msg, phrase, noun } from '../i18n/i18n.js';
 
 export const MAX_DEPTH = 20;
@@ -22,6 +22,9 @@ export const SCOUTS = ['reach', 'landmark', 'guardian', 'horde'];
 export const BUILT = new Set(['find', 'gather', 'treasure', 'rescue', 'scout', 'bounty', 'delivery', 'relay', 'defense']);
 // (scattered pieces are much like gathering or a treasure map; freeing prisoners like breaking a horde)
 const STAND_IN = { pieces: [['gather', 1], ['treasure', 1]], prisoners: [['scout', 1]] };
+// how many people found may come to live at one camp (its places beside the resident's,
+// world/spots.js): so one giver does not lose half the world's people
+export const CAMP_RESCUES = 2;
 // how many of a depth's quests the villagers give (the rest: the people out in the world)
 const townShare = d => d <= 3 ? 0.7 : d <= 7 ? 0.45 : d <= 11 ? 0.3 : 0.1;
 export const TOWN = ['innkeeper', 'groom', 'smith', 'keeper', 'alchemist', 'enchanter'];
@@ -38,7 +41,7 @@ const plans = new WeakMap();
 // learn: memory.html#quests (see learn/README.md)
 export function questPlan(seed, layout) {
   if (plans.has(layout)) return plans.get(layout);
-  const slots = [];
+  const slots = [], rescues = new Map();
   for (let d = 0; d <= MAX_DEPTH; d++) {
     const R = mulberry32(hash32(seed ^ Math.imul(d + 1, 0x3c6ef372) ^ 0x9a17));
     // the people of this depth and the one above who could ask (their seats and camps)
@@ -49,8 +52,14 @@ export function questPlan(seed, layout) {
       if (kind === 'delivery' && R() < 0.4) kind = 'relay';   // (now and then: ask somebody, then find it)
       if (!BUILT.has(kind)) kind = weighted(R, STAND_IN[kind]);
       let giver;
-      // somebody lost: asked for by whoever waits at a camp near above (they wait there together)
-      if (kind === 'rescue') giver = camps.length ? npcGiver(camps[Math.floor(R() * camps.length)].id) : null;
+      // somebody lost: asked for by whoever waits at a camp near above (they wait there together),
+      // the camp that has asked least first, and none more than it has room for
+      if (kind === 'rescue') {
+        const open = camps.filter(c => (rescues.get(c.id) ?? 0) < CAMP_RESCUES), fewest = Math.min(...open.map(c => rescues.get(c.id) ?? 0));
+        const least = open.filter(c => (rescues.get(c.id) ?? 0) === fewest), camp = least.length ? least[Math.floor(R() * least.length)] : null;
+        if (camp) rescues.set(camp.id, (rescues.get(camp.id) ?? 0) + 1);
+        giver = camp && npcGiver(camp.id);
+      }
       else if (R() < townShare(d) || !near.length) giver = TOWN[Math.floor(R() * TOWN.length)];
       else giver = npcGiver(near[Math.floor(R() * near.length)].id);
       if (!giver) { kind = 'find'; giver = TOWN[Math.floor(R() * TOWN.length)]; }
@@ -109,9 +118,11 @@ const RELATIONS = { she: ['daughter', 'sister', 'friend', 'apprentice', 'cousin'
   he: ['son', 'brother', 'friend', 'apprentice', 'cousin', 'grandson'] };
 const LOST_TINTS = ['#e0c7a0', '#d9b48c', '#c99a86', '#b9c79a', '#d6a9a0'];
 const LOST_OUTFITS = [['wear_explorer_hat'], ['wear_headscarf'], ['wear_straw_hat'], ['wear_hood'], ['held_rope'], []];
-// who went missing for quest `seed`, whose `relation` they are to the one asking
-export function lostPerson(seed) {
-  const R = mulberry32(hash32(seed ^ 0x1057)), name = NAMES[Math.floor(R() * NAMES.length)], relations = RELATIONS[isShe(name) ? 'she' : 'he'];
+// who went missing for quest `seed`, whose `relation` they are to the one asking; avoid: names
+// not to take (the one asking, the people the quests know already), if any are left
+export function lostPerson(seed, avoid = new Set()) {
+  const R = mulberry32(hash32(seed ^ 0x1057)), free = KIN_NAMES.filter(n => !avoid.has(n)), names = free.length ? free : KIN_NAMES;
+  const name = names[Math.floor(R() * names.length)], relations = RELATIONS[isShe(name) ? 'she' : 'he'];
   return { name, relation: relations[Math.floor(R() * relations.length)],
     tint: LOST_TINTS[Math.floor(R() * LOST_TINTS.length)], outfit: LOST_OUTFITS[Math.floor(R() * LOST_OUTFITS.length)] };
 }
