@@ -148,7 +148,7 @@ function letGo() {
     support: g.s, vanished: false, rescue: null, landImpact: 2, landCount: player.landCount + 1, airTime: 0 });
   if (g.s) player.layer = g.s.kind ? g.s.run.layer : g.s.layer;
   burst(to.x, player.y, to.z, ['#ffffff', '#ffe9a0', '#9fdcff'], false);
-  sfx('land', { at: to });
+  sfx('thud', { at: to, volume: 0.5 });
   state.enemyGrace = Math.max(state.enemyGrace, RESCUE.grace);
 }
 
