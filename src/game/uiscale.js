@@ -13,7 +13,7 @@
 // The layouts that change with the window's size (the inventory, the touch layout of the quick
 // bar and the minimap) go by the room the UI has at its scale: classes on <body> stand in for the
 // media queries, the window's size divided by the scale against the same widths.
-//   ui-w1000, ui-w640, ui-w540   at most this wide
+//   ui-w1000, ui-w640, ui-w540, ui-w400   at most this wide
 //   ui-roomy                     at least 700 wide and 600 high (a tablet: the quick bar at the bottom)
 import { uiScale, onSettingsChange } from './settings.js';
 
@@ -23,7 +23,7 @@ export { uiScale };
 function apply() {
   const s = uiScale(), w = root.clientWidth / s, h = root.clientHeight / s;
   root.style.setProperty('--ui', String(s));
-  for (const n of [1000, 640, 540]) body.classList.toggle(`ui-w${n}`, w <= n);
+  for (const n of [1000, 640, 540, 400]) body.classList.toggle(`ui-w${n}`, w <= n);
   body.classList.toggle('ui-roomy', w >= 700 && h >= 600);
 }
 apply();

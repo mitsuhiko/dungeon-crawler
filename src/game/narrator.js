@@ -30,8 +30,14 @@ import { onAudioStart } from '../audio/context.js';
 import { duckMusic } from '../audio/music.js';
 import { player, state, worldPaused } from './state.js';
 import { allEnemies } from './enemies.js';
-import { subtitles, voiceVolume } from './settings.js';
+import { subtitles, voiceVolume, onSettingsChange } from './settings.js';
 import { log } from './log.js';
+
+// <body> .subtitled while the subtitles are on: on a phone the chat leaves out the lines they show (style.css)
+if (typeof document === 'object') {
+  const mark = () => document.body.classList.toggle('subtitled', subtitles());
+  mark(); onSettingsChange(mark);
+}
 
 const GAP = 0.9;          // s of quiet between two lines
 const FIRST = 1.2;        // s before the first line in a world (it fades in)

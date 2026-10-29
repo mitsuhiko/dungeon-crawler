@@ -41,7 +41,7 @@ import { peopleHere } from './npcs.js';
 import { closedChests } from './chests.js';
 import { RARITY } from '../core/gear/rarities.js';
 import { tr, say, onLanguageChange } from '../i18n/i18n.js';
-import { itemNames, setItemNames } from './settings.js';
+import { itemNames, setItemNames, onSettingsChange } from './settings.js';
 import { curtained } from './hud.js';
 import { NPC_H } from '../core/npcs.js';
 
@@ -49,6 +49,10 @@ const layer = document.getElementById('loot-labels'), canvas = renderer.domEleme
 const labels = new Map();   // pickup id (or 'chest:' + site id) -> { el, p, w, h }
 // another language: the labels are made again in it
 onLanguageChange(() => { for (const l of labels.values()) l.el.remove(); labels.clear(); });
+// another UI scale or window (a phone turned: its labels are smaller upright, style.css): measured again
+const remeasure = () => { for (const l of labels.values()) l.w = 0; };
+onSettingsChange(remeasure);
+addEventListener('resize', remeasure);
 const PICK_PAD = 6;           // px the cursor may be off a thing's body and still hover it
 const PICK_MIN = 14;          // px: the least a body is wide on screen (far off, small things)
 const PART_COLOR = '#8fd0ff', WAY_COLOR = '#c9b8ff';

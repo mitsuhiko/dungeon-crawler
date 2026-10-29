@@ -452,6 +452,10 @@ body.look #loot-labels .loot-label { pointer-events: none; }
   padding: calc(2px * var(--ui)) calc(6px * var(--ui)); white-space: nowrap;
   background: #0b0e14d0; border: 1px solid #ffffff22; border-radius: 3px; cursor: pointer; text-shadow: 0 1px 2px #000; }
 .loot-label.hovered { background: #1d2532f0; border-color: currentColor; }
+/* a phone, either way up: the world drawn small, its labels too (the screen's size: they are not zoomed) */
+@media (max-width: 540px), (max-height: 500px) {
+  .loot-label { font-size: calc(12px * var(--ui)); padding: calc(1px * var(--ui)) calc(4px * var(--ui)); }
+}
 .loot-label[data-rarity="fabled"], .loot-label[data-rarity="impossible"], .loot-label[data-rarity="omg"] { font-weight: bold; }
 /* OMG (core/gear/rarities.js rainbow): its text and its slot's backdrop (--rarity) run through every hue */
 @property --rarity { syntax: '<color>'; inherits: true; initial-value: transparent; }
@@ -636,6 +640,10 @@ body.touch :is(input, textarea, select) { font-size: calc(16px / min(var(--ui), 
 #touch-turn-right { right: calc(10px + env(safe-area-inset-right)); }
 #touch .touch-turn svg { width: 28px; height: 28px; fill: #e6e9ef; pointer-events: none; }
 #touch .touch-turn:active { border-color: #ffcf7a; opacity: 1; }
+/* a phone held sideways: the turn buttons up, clear of the use button */
+@media (max-height: 500px) { #touch .touch-turn { top: 40%; } }
+/* (and the quest followed, under the minimap, left of the turn button) */
+@media (max-height: 500px) { body.touch #quest-track { right: calc(72px + env(safe-area-inset-right)); } }
 #touch-hold { position: fixed; left: -36px; top: -36px; width: 72px; height: 72px; pointer-events: none; }
 #touch-hold::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid #ffcf7a; opacity: 0; }
 #touch-hold.on::after { animation: hold-fill .45s linear forwards; }
@@ -667,6 +675,32 @@ body.touch.ui-roomy #teleport-menu { top: auto; bottom: calc(120px + env(safe-ar
 body.touch.ui-roomy #loading { top: auto; bottom: calc(110px + env(safe-area-inset-bottom)); }
 body.touch.ui-roomy #chat { bottom: calc(82px + env(safe-area-inset-bottom)); }
 body.touch.ui-roomy #inventory-overlay { padding: calc(12px + env(safe-area-inset-top)) 12px calc(84px + env(safe-area-inset-bottom)); }
+/* a phone (touch and not roomy, either way up): the closed chat shorter and smaller, without the narrator's lines while the
+   subtitle shows them; the subtitle smaller, over the chat and clear of the use button; the potions at work under the boss
+   bar while it is up */
+body.touch:not(.ui-roomy) #chat:not(.open) { font-size: 13px; }
+body.touch:not(.ui-roomy) #chat:not(.open) #chat-log { max-height: 6.75em; }
+body.touch:not(.ui-roomy).subtitled #chat:not(.open) #chat-log li.k-narration { display: none; }
+body.touch:not(.ui-roomy) #subtitle { bottom: calc(112px + env(safe-area-inset-bottom)); max-width: calc(100% - 240px); }
+body.touch:not(.ui-roomy) #subtitle p { font-size: 17px; }
+body.touch:not(.ui-roomy, .ui-w540):has(#boss-bar.on) #effects { top: calc(132px + env(safe-area-inset-top)); }
+/* held upright (at the UI scale): the quick bar's stones smaller, so all eight fit across (40px: 357px wide, 36px: 325px);
+   the minimap, the potions and the boss bar closer under it, the potions and the boss bar left of the minimap; the chat
+   narrower, left of the jump button (198px from the right); the subtitle up over the use button (198px from the bottom) */
+body.touch.ui-w540 #quickbar { gap: 3px; padding: 4px; }
+body.touch.ui-w540 #quickbar :is(.qb-slot, .qb-bag, .qb-menu) { width: 40px; height: 40px; }
+body.touch.ui-w540 #quickbar :is(.qb-bag, .qb-menu) { margin-left: 2px; }
+body.touch.ui-w540 #quickbar :is(.qb-bag, .qb-menu) svg { width: 24px; height: 24px; }
+body.touch.ui-w400 #quickbar :is(.qb-slot, .qb-bag, .qb-menu) { width: 36px; height: 36px; }
+body.touch.ui-w540 #effects { top: calc(62px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); transform: none;
+  flex-wrap: wrap; max-width: calc(100% - 24px - 96px * var(--map, 1)); }
+body.touch.ui-w540 #boss-bar { top: calc(100px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); transform: none;
+  width: calc(100% - 24px - 96px * var(--map, 1)); }
+body.touch.ui-w540 #inventory-overlay { padding-top: calc(60px + env(safe-area-inset-top)); }
+body.touch.ui-w540 #minimap { top: calc(60px + env(safe-area-inset-top)); }
+body.touch.ui-w540 #chat:not(.open) { left: calc(8px + env(safe-area-inset-left)); width: calc(100% - 214px - env(safe-area-inset-right)); }
+body.touch.ui-w540 #chat.open { left: 8px; width: calc(100% - 16px); }
+body.touch.ui-w540 #subtitle { bottom: calc(212px + env(safe-area-inset-bottom)); max-width: calc(100% - 32px); }
 
 /* the main menu (game/menu.js): the heroes, the worlds, joining a friend */
 body.in-menu :is(#quickbar, #boss-bar, #teleport-menu, #chat, #minimap, #effects, #touch, #loot-labels, #dev, #teach-pace) { display: none !important; }
@@ -779,6 +813,8 @@ li.title-form, .title-rename { flex-direction: column; }
 #quest-track[hidden] { display: none; }
 #quest-track b { display: block; color: var(--ember-hi); font: 13px/1.5 var(--font-display); }
 body.touch #quest-track { top: calc(2px + 148px * var(--map, 1) + env(safe-area-inset-top)); width: 150px; font-size: 14px; }
+body.touch.ui-w640 #quest-track { top: calc(82px + 96px * var(--map, 1) + env(safe-area-inset-top)); }
+body.touch.ui-w540 #quest-track { top: calc(72px + 96px * var(--map, 1) + env(safe-area-inset-top)); width: 130px; font-size: 13px; }
 /* the boss bar (game/bossbar.js, docs/ui.md "The boss bar"): a boss's health along the top, a strip of glass with his name in
    amber over an amber fill; behind the fill the damage strip, pale, lagging after a hit. It fades in and out (.on). On touch the
    quick bar is up there: it goes under it. */

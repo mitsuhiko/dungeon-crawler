@@ -32,6 +32,21 @@ them off. On, the body has the `touch` class and the layout changes with it (`st
   an item is selected); the same slot again takes it off.
   The potions at work show below it; the minimap gets smaller.
 - The stick and buttons hide while the inventory is open.
+
+### Phones
+
+A phone (touch, and not roomy: `game/uiscale.js`) has little room around the cube:
+
+- The closed chat is smaller and at most five lines, and leaves out the narrator's lines while
+  the subtitles show them (`body.subtitled`, `game/narrator.js`). The subtitle is smaller, over
+  the chat and clear of the use button.
+- The labels in the world are smaller (12 px instead of 15, times the UI scale), as the world is
+  drawn small (a screen at most 540 px wide or 500 px high).
+- Held upright (`ui-w540`): the quick bar's stones are 40 px (36 px under 400 px), so all eight
+  fit across; the potions at work and the boss bar go left of the minimap; the chat stays left of
+  the jump button; the subtitle goes above the use button.
+- Held sideways (at most 500 px high): the turn buttons sit higher, clear of the use button, and
+  the quest followed stays left of the right one.
 - A hold never sticks: the browser does not always report a finger lifted, so a new touch on
   the stick or the action button replaces the old one, a hold whose pointer capture is gone is
   released each frame, and leaving the page (blur, hidden tab) releases everything.
