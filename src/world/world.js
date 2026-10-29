@@ -142,7 +142,7 @@ export class World {
     if (!c && waterfallOutside(k)) {
       const outside = this.cube(waterfallOutside(k)).map, door = outside.doors?.find(d => d.to === k);
       if (!door) throw new Error('No waterfall door leads to ' + k);
-      c = { key: k, map: generateWaterfallRoom({ key: k, seed: hash32(outside.seed ^ 0x7a7ef411) }, outside, door), visits: 0 };
+      c = { key: k, map: stampFluidBodies(generateWaterfallRoom({ key: k, seed: hash32(outside.seed ^ 0x7a7ef411) }, outside, door)), visits: 0 };
       this.cubes.set(k, c);
     }
     if (!c && isInterior(k)) {

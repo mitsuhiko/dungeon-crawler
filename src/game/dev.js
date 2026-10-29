@@ -290,6 +290,7 @@ export async function goTestRoom(name, depth) {
     if (state.cubes !== cubes) return;
     const { arrival: a, note } = c.map.testRoom;
     enterCube(c, null, null, a);
+    if (c.map.swimArrival) Object.assign(player, c.map.swimArrival, { visY: c.map.swimArrival.y, swimming: true, grounded: false, vy: 0 });
     player.yaw = a.yaw;
     setStatus(`Test room ${name} · ${c.map.biome} (depth ${depth}) · ${tr(note)}`);
   } finally { if (state.cubes === cubes) state.transitioning = false; }

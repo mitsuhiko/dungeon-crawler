@@ -56,6 +56,10 @@ export function addWaterfallHideout(m) {
   const choice = waterfallDoors(m)[0];
   if (choice) {
     choice.fall.width = choice.width;
+    const f = choice.fall, [nx, nz] = DIRS[f.d];
+    // The curtain itself is the entrance, rather than a wooden door on the dry ledge.
+    Object.assign(choice.door, { x: f.c % N + 0.5 - nx * 0.4,
+      z: Math.floor(f.c / N) + 0.5 - nz * 0.4, y: f.bot * LH - 0.5, w: choice.width * 0.7, swim: true });
     m.doors = [choice.door];
   }
   return m;

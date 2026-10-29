@@ -991,30 +991,37 @@ x, y, z, yaw and scale (a string's sheared segments).
 
 ## Waterfall hideouts (`world/waterfalls.js`, `cubegen/waterfallroom.js`)
 
-Occasionally an ordinary clear-water fall conceals a door on an already reachable, dry ledge
-behind its curtain. An independent hash admits one third of eligible cubes; only falls with
-safe body clearance and a supported, unobstructed return doorstep qualify. Bosses, trials,
+Occasionally an ordinary clear-water fall conceals a swim-through passage. An independent hash
+admits one third of eligible cubes; only falls with an existing reachable, dry fallback ledge
+and safe body clearance behind the curtain qualify. Bosses, trials,
 clearings, test rooms and cross-cube falls are excluded. No terrain, routes or ordinary reward
 sites are changed. The selected curtain is wider than usual (2.2 or 4.2 cells instead of 0.9),
 the visual hint; no discovery marker is added.
 
-The door uses the existing `map.doors` interaction and house-door transitions, not a second
-travel system. Its destination, `interior:waterfall:<outside key>`, is a lazily generated house
-interior with a loft, stairs, no windows, peaceful crystal/mushroom/plant dressing and one
-ordinary uncommon reward-site chest. It inherits the outside depth and biome. Its return door
-leads to the original ledge. Chest identities and contents are deterministic and use the normal
+The water curtain uses the existing `map.doors` interaction and house-door transitions, not a second
+travel system. There is no visible wooden door or frame outside: swimming into the curtain
+enters the room. Only these `swim` entrances allow an ungrounded swimmer to transition;
+ordinary house doors still require grounded feet. Returning restores a swimming pose in the
+pool, retaining the ordinary dry respawn fallback. Its destination, `interior:waterfall:<outside key>`,
+retains the interior key namespace for save/travel compatibility but is visually an ordinary
+peaceful dark forest: normal terrain and ambient forest dressing, no house, wooden floor,
+windows or stairs. A small waterfall (0.9 cells wide, falling 1.5 cells) pours into a swimming
+pool with a sloping shore; swimming back through it returns outside. A reserved clearing keeps
+the approach to one ordinary uncommon reward-site chest accessible. The forest inherits the
+outside depth, but uses the dark-forest biome. Chest identities and contents are deterministic and use the normal
 run's opened-chest persistence, so leaving and returning cannot farm the reward. These rooms
 follow the existing interior save/menu policy (reloading from an interior starts in town).
-The town portal remains disabled indoors; the hideout specifically asks players to use its door.
+The town portal remains disabled in these off-grid rooms; the hideout asks players to swim
+back through the small waterfall.
 
 Developer preview: `/waterfall` works with any seed, using the ordinary test-room framework.
-It places the hero on the dry ledge behind a deliberately broad waterfall, next to the working
-secret door. Return through the door and use `/testroom leave` to go back to the original world
-position. `/testroom waterfall` is equivalent. Existing test-room keys are unchanged.
+It places the hero swimming in a deep pool in front of a deliberately broad waterfall.
+Swim into the curtain to enter the forest. Return through its small waterfall and use
+`/testroom leave` to go back to the original world position. `/testroom waterfall` is equivalent. Existing test-room keys are unchanged.
 
-Natural-generation check: open `?dev=1&seed=123`, then `/goto 3 3,3 5.5,2.01,11.7`. Walk north into the
-door under the overhang, open the chest normally, return through the door and re-enter: the
-chest must remain open. `tests/waterfalls.test.js` also checks deterministic generation, unchanged
+Natural-generation check: open `?dev=1&seed=123`, then `/goto 3 3,3`. The broad waterfall in
+that cube has a passage through its curtain. Swim in, open the chest normally, swim back out
+and re-enter: the chest must remain open. `tests/waterfalls.test.js` also checks deterministic generation, unchanged
 terrain/routes, safe arrivals, exclusions, ordinary chest loot and the actual curtain geometry.
 
 ## Reward sites (`world/sites.js`, `cubegen/sites.js`)

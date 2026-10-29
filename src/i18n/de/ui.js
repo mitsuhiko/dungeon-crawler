@@ -1,10 +1,10 @@
 // The menus, the settings, the HUD, the keys and the chat box.
 export default {
   'preview a broad waterfall and its secret room, in any world': 'Vorschau eines breiten Wasserfalls und seines Geheimraums, in jeder Welt',
-  'The broad waterfall hides this door. Walk into it to visit the hideout; come back through it, then /testroom leave returns you.':
-    'Der breite Wasserfall verbirgt diese Tür. Geh hinein, um das Versteck zu besuchen; komm durch sie zurück, dann bringt dich /testroom leave zurück.',
+  'Swim through the broad waterfall to enter the hideout. Return through its exit, then /testroom leave returns you.':
+    'Schwimm durch den breiten Wasserfall ins Versteck. Komm durch seinen Ausgang zurück, dann bringt dich /testroom leave zurück.',
   'in a waterfall hideout': 'in einem Wasserfallversteck',
-  'Leave the hideout through the door first': 'Verlasse das Versteck zuerst durch die Tür',
+  'Swim back through the small waterfall first': 'Schwimm zuerst durch den kleinen Wasserfall zurück',
   // index.html
   'The Glass Bird': 'Der Glasvogel',
   'Chat and what happened': 'Chat und was passiert ist',

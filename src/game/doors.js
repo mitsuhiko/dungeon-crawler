@@ -16,8 +16,8 @@ const FADE_MS = 380;
 
 // every step (game/portals.js): through a door the player walks into
 export function checkDoors(dx = 0, dz = 0) {
-  if (state.transitioning || !player.grounded) return false;
-  const d = (state.map.doors || []).find(d => atDoor(player, d, dx, dz));
+  if (state.transitioning) return false;
+  const d = (state.map.doors || []).find(d => (player.grounded || d.swim && player.swimming) && atDoor(player, d, dx, dz));
   return d ? takeDoor(d) : false;
 }
 
@@ -35,6 +35,8 @@ export function takeDoor(d) {
     if (!back) throw new Error('No door back from ' + d.to);
     const at = doorArrival(back);
     enterCube(c, null, null, at);
+    // Keep ordinary dry respawn safety, but return through a water curtain swimming.
+    if (back.swim) Object.assign(player, at, { visY: at.y, grounded: false, swimming: true, vy: 0 });
     player.yaw = at.yaw;
     state.transitioning = false;
   }).catch(e => {

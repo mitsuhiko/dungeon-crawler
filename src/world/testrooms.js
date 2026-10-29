@@ -9,7 +9,7 @@
 import { key, parse } from './coords.js';
 import { BOSSES } from '../core/bosses.js';
 import { msg } from '../i18n/i18n.js';
-export const WATERFALL_HINT = msg('The broad waterfall hides this door. Walk into it to visit the hideout; come back through it, then /testroom leave returns you.');
+export const WATERFALL_HINT = msg('Swim through the broad waterfall to enter the hideout. Return through its exit, then /testroom leave returns you.');
 
 export const TEST_ROOMS = Object.freeze({
   water_hill: 'a hill standing in a lake to halfway up; a shallow shelf to wade on, deep water past it',

@@ -295,7 +295,7 @@ function waterfallRoom(spec) {
   const ctx = start(spec);
   for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
     const pool = x >= 6 && x <= 10 && z >= 6 && z <= 9;
-    ctx.put(x, z, { top: pool ? 2 : 4, ...(pool ? { fluid: WATER, surf: 3 } : {}) });
+    ctx.put(x, z, { top: pool ? 0 : 4, ...(pool ? { fluid: WATER, surf: 3 } : {}) });
     if (x >= 4 && x <= 12 && z >= 1 && z <= 5) {
       const channel = x >= 7 && x <= 9;
       ctx.put(x, z, { top: channel ? 10 : 13, bottom: 8, layer: 1,
@@ -306,9 +306,10 @@ function waterfallRoom(spec) {
   ctx.stats.fluids.push('broad waterfall with a hidden door');
   const m = finish(ctx, spec, { K: 2, B: [0, 8], arrival: { x: 5.5, z: 10.5, yaw: Math.PI }, note: WATERFALL_HINT });
   m.doors = [{ id: 'waterfall', building: 'waterfall:' + spec.key, to: waterfallRoomKey(spec.key),
-    x: 8.5, y: 2, z: 4.95, nx: 0, nz: 1, w: 1, layer: 0, waterfall: true }];
+    x: 8.5, y: 1, z: 6.1, nx: 0, nz: 1, w: 2.2, layer: 0, waterfall: true, swim: true }];
   // Arrive on the dry ledge under the overhang, not on the channel over it.
   m.testRoom.arrival = { x: 8.5, y: 2, z: 5.7, yaw: Math.PI };
+  m.swimArrival = { x: 8.5, y: 1, z: 8.5, yaw: Math.PI };
   return m;
 }
 

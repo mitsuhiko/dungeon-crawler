@@ -7,7 +7,7 @@ import { isInterior, TOWN_KEY } from '../src/world/town.js';
 import { testRoomKey, TEST_ROOM_NAMES } from '../src/world/testrooms.js';
 import { doorArrival, doorBack, atDoor } from '../src/core/doors.js';
 import { player } from '../src/game/state.js';
-import { supportedPoint } from '../src/physics/respawn.js';
+import { supportedPoint, respawnPoint } from '../src/physics/respawn.js';
 import { WATER, LAVA, ACID, CHAR_R } from '../src/core/constants.js';
 import { buildCubeParts } from '../src/render/cubegeo.js';
 import { generate } from '../src/cubegen/index.js';
@@ -36,18 +36,25 @@ test('both doors use the existing arrival, walk-in and return rules with dry sup
   for (const [m, d] of [[outside, door], [room, back]]) {
     state.map = m;
     const a = doorArrival(d);
-    assert.ok(supportedPoint(a.x, a.y, a.z), m.key);
+    if (d.swim) {
+      const safe = respawnPoint(a);
+      assert.ok(supportedPoint(safe.x, safe.y, safe.z), 'a dry fallback remains available near the water entrance');
+    } else assert.ok(supportedPoint(a.x, a.y, a.z), m.key);
     const p = { ...a, x: d.x + d.nx * 0.3, z: d.z + d.nz * 0.3, vx: 0, vz: 0, r: CHAR_R };
     assert.equal(atDoor(p, d, -d.nx, -d.nz), true);
     assert.equal(atDoor(p, d, d.nx, d.nz), false);
   }
 });
 
-test('hideouts reuse furnished house interiors, stay peaceful and give one persistent ordinary chest', () => {
+test('hideouts are ordinary peaceful forests with a small waterfall and one persistent ordinary chest', () => {
   assert.equal(room.enemyFree, true); assert.equal(room.depth, outside.depth);
-  assert.equal(room.interior.outside, outside.key); assert.equal(room.waterfallRoom, true);
+  assert.equal(room.roomOutside.outside, outside.key); assert.equal(room.waterfallRoom, true);
+  assert.equal(room.interior, undefined); assert.equal(room.biome, 'darkforest');
   assert.equal(room.doors.length, 1); assert.equal(room.rewardSites.length, 1);
-  assert.ok(room.authoredProps.length >= 5); assert.equal(room.runs[0].kind, 'stair');
+  assert.equal(room.authoredProps, undefined, 'use ordinary forest dressing');
+  assert.equal(room.runs.length, 0); assert.equal(room.falls.length, 1);
+  assert.ok(room.falls[0].width < outside.falls.find(f => f.width).width);
+  assert.ok(!buildCubeParts(room).parts.wood?.pos.length, 'no wooden house floor or stairs');
   const site = room.rewardSites[0];
   assert.equal(site.prestige, 'uncommon'); assert.equal(site.encounter, null);
   assert.deepEqual(chestLoot(site, room.depth, room.seed), chestLoot(site, room.depth, room.seed));
@@ -94,6 +101,6 @@ test('the curtain actually renders wider and its door and room compile through n
     return Math.max(...a) - Math.min(...a);
   };
   assert.ok(span(wide.parts['water-fall']) > span(narrow.parts['water-fall']) * 2);
-  assert.ok(wide.parts.stone.pos.length > narrow.parts.stone.pos.length);
-  assert.ok(buildCubeParts(room).parts.stone.pos.length > 0);
+  assert.equal(wide.parts.stone.pos.length, narrow.parts.stone.pos.length, 'no wooden door or frame at a swim-through entrance');
+  assert.ok(buildCubeParts(room).parts.terrain.pos.length > 0);
 });

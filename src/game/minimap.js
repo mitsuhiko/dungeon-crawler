@@ -111,7 +111,7 @@ function whereabouts(b, Y) {
 }
 
 export function drawMinimap() {
-  const inside = state.map?.interior, W = state.cubes, size = minimapSize();
+  const inside = state.map?.interior ?? state.map?.roomOutside, W = state.cubes, size = minimapSize();
   if (!W || !state.cubeKey || !size) return;   // (hidden: the settings)
   const [X0, Y, Z0] = parse(inside ? inside.outside : state.cubeKey);
   // the centre: where we stand, in a house its door outside
