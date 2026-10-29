@@ -3628,11 +3628,11 @@
         "hash": "efe2ac35e4db5779"
       },
       "robot.trial.balance": {
-        "text": "Stepping stones! Each one sinks soon after you land, so keep hopping.",
-        "source": "Stepping stones! Each one sinks soon after you land, so keep hopping.",
+        "text": "Stepping stones! They sink when you land on them, and the dark ones rise and fall by themselves. Watch, then hop!",
+        "source": "Stepping stones! They sink when you land on them, and the dark ones rise and fall by themselves. Watch, then hop!",
         "seed": 0,
-        "dur": 5.51,
-        "hash": "ab65d8a7a08c8089"
+        "dur": 8.99,
+        "hash": "ad6590b6f5cfe503"
       },
       "robot.trial.cold": {
         "text": "So cold! Light the braziers on the way, they keep you warm.",
@@ -7438,11 +7438,11 @@
         "hash": "958e38dcff7d2ac1"
       },
       "robot.trial.balance": {
-        "text": "Trittsteine! Jeder sinkt kurz, nachdem du gelandet bist, also hüpf weiter!",
-        "source": "Trittsteine! Jeder sinkt kurz, nachdem du gelandet bist, also hüpf weiter!",
+        "text": "Trittsteine! Sie sinken, wenn du auf ihnen landest, und die dunklen gehen von selbst auf und ab. Erst schauen, dann hüpfen!",
+        "source": "Trittsteine! Sie sinken, wenn du auf ihnen landest, und die dunklen gehen von selbst auf und ab. Erst schauen, dann hüpfen!",
         "seed": 0,
-        "dur": 5.72,
-        "hash": "56c1a2802fdb44e5"
+        "dur": 9.92,
+        "hash": "7d42b9d59184b942"
       },
       "robot.trial.cold": {
         "text": "So kalt! Zünde unterwegs die Feuerschalen an, die halten dich warm.",
