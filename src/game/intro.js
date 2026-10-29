@@ -21,6 +21,8 @@ import { playScene, scenePlaying } from './scene.js';
 import { introPlaying } from './bossintro.js';
 import { curtained } from './hud.js';
 import { allEnemies } from './enemies.js';
+import { plazaShards } from '../render/shards.js';
+import { emit, soft, ring, rand } from '../render/particles.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
 import { equipItem } from '../core/inventory.js';
 import { sfx } from '../audio/sfx.js';
@@ -77,7 +79,8 @@ function open(gate) {
 let refused = false;   // the sword did not fit into the bag: said once, until the hero steps away
 let breaking = null;   // the glass breaking in its scene (its id): not taken again meanwhile
 // main.js, every frame: walking onto a thing takes it; coming into the rock's room, its glass is shown
-export function updateIntro() {
+export function updateIntro(dt = 0) {
+  dressPlaza(dt);
   if (!state.run || state.mode !== 'play' || state.transitioning || worldPaused() || player.hp <= 0 || player.ragdoll) return;
   showGlass();
   noticeRock();
@@ -88,6 +91,24 @@ export function updateIntro() {
     if (p.story === 'glass') { if (p.id !== breaking) findGlass(p); } else takeSword(p);
   }
   if (!near) refused = false;
+}
+
+// The town's plaza: the shards of the big glass that burst over it (render/shards.js), put into its
+// world as it is built; glowing and smoking a little until the robot is awake, then only dimly
+let smoke = 0;
+function dressPlaza(dt) {
+  const w = state.world, at = state.map?.relics?.shards;
+  if (!w || !state.map.town || !at || !state.run) return;
+  let shards = w.group.userData.shards;
+  if (!shards) { shards = w.group.userData.shards = plazaShards(at.x, at.y, at.z, state.cubes?.seed ?? 0); w.group.add(shards); }
+  const fresh = !robotMet(state.run);
+  shards.userData.glow(fresh ? 1 : 0.3);
+  shards.userData.tick(state.time ?? 0);
+  if (!fresh || worldPaused() || (smoke -= dt) > 0) return;
+  smoke = 0.35;
+  const o = w.group.position, [dx, dz] = ring(0.9);
+  emit(soft, at.x + o.x + dx, at.y + o.y + 0.05, at.z + o.z + dz, { v: [rand(-0.05, 0.05), rand(0.25, 0.45), rand(-0.05, 0.05)],
+    life: rand(2.2, 3.4), size: rand(0.18, 0.3), grow: 0.25, color: '#5a5550', alpha: 0.22, drag: 0.4 });
 }
 
 // The rock's room (core/intro.js), the first time a world comes into it with his glass still on top:

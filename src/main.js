@@ -250,7 +250,7 @@ function frame(now = performance.now()) {
   updateMusic(elapsed);
   updateNarrator(elapsed);   // the Glassmaker's voice and her subtitles (game/narrator.js)
   updateQuests(elapsed);   // the world's quests: goals done, offers made, told to the others (game/quests.js)
-  updateIntro();   // the beginning: the glassmaker's glass and sword taken (game/intro.js)
+  updateIntro(dt);   // the beginning: the sword and his glass taken, the shards on the plaza (game/intro.js)
   updateDefense(dt, questEvent);   // a raid on an outpost's cart (game/defense.js), in game time
   updateSaves();   // the hero and world being played, as they change (game/save.js)
   tickSky(performance.now() / 1000);   // real time: the stars shimmer on while paused
