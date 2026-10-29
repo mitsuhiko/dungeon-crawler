@@ -25,6 +25,22 @@ async function until(test, what, ms = 8000) {
   for (let t = 0; t < ms && !test(); t += 50) await delay(50);
   check(test(), `timed out: ${what}`);
 }
+// The hero walks the room's way in (its check path, cubegen/trials/index.js; without one straight
+// in, `dir`) until `done` (what: what timed out, if it must come; ms at most): straight in from the
+// portal may run into a wall where the way turns, before stepping far enough off the pad to arm it
+async function walkIn(dir, done, what, ms) {
+  const path = state.map.trial.check?.path;
+  for (let t = 0; t < ms && !done(); t += 50) {
+    if (!path?.length) { player.autoDir = dir; await delay(50); continue; }
+    let i = 0;
+    path.forEach((q, j) => { if (Math.hypot(q.x - player.x, q.z - player.z) < Math.hypot(path[i].x - player.x, path[i].z - player.z)) i = j; });
+    const q = path[Math.min(i + 1, path.length - 1)], dx = q.x - player.x, dz = q.z - player.z, l = Math.hypot(dx, dz) || 1;
+    player.autoDir = [dx / l, dz / l];
+    await delay(50);
+  }
+  player.autoDir = null;
+  if (what) check(done(), `timed out: ${what}`);
+}
 // (the enemies stand still meanwhile: what is checked here is the trials)
 state.devPassive = true;
 const seals = () => state.world.portalFx.filter(f => f.obj.userData.portal.kind === 'side').map(f => f.obj.children.at(-1).visible);
@@ -307,19 +323,16 @@ export async function runTrialChecks(kind = 'flood') {
   check(state.trial?.phase === 'idle' && !sealedIn(), 'the trial waits, idle');
   check(portalLocked(state.map, state.run, { dir: t.exit }), 'the exit is locked until resolved');
   // stepping off the pad arms it, and seals every portal
-  const [ax, az] = DIRS[t.fromDir];
-  player.autoDir = [ax, az];
+  const [ax, az] = DIRS[t.fromDir], into = [ax, az];
   if (kind === 'siege' || kind === 'chase') {   // (armed by lighting the beacon or taking the relic, not by stepping off the pad)
-    await delay(1000);
-    player.autoDir = null;
+    await walkIn(into, () => false, null, 1000);
     check(state.trial.phase === 'idle', 'stepping off the pad arms nothing');
     const b = state.map.trial.parts.find(p => p.type === 'beacon' || p.type === 'relic');
     Object.assign(player, { x: b.x + 0.8, y: b.y, z: b.z, vx: 0, vz: 0 });
     await delay(150);
     useAction();
-  }
-  await until(() => state.trial.phase !== 'idle', 'armed by stepping off the pad', 4000);
-  player.autoDir = null;
+    await until(() => state.trial.phase !== 'idle', 'armed by lighting it', 4000);
+  } else await walkIn(into, () => state.trial.phase !== 'idle', 'armed by stepping off the pad', 4000);
   check(sealedIn(), 'sealed while armed');
   await delay(300);
   check(seals().every(Boolean), 'every portal shows its seal');
@@ -333,11 +346,15 @@ export async function runTrialChecks(kind = 'flood') {
   results.push('sealed');
   // dying in it: back in the room before, beside the portal, facing it, the trial room put back
   await delay(200);
-  hurt(player.hp + 1, 'a test'); answerDeath(true);   // "You died": respawn (game/deathask.js)
+  const god = player.god;
+  player.god = false;   // (the dev tools' god mode takes no damage: mortal for this blow only)
+  try { hurt(player.hp + 1, 'a test'); } finally { player.god = god; }
+  answerDeath(true);   // "You died": respawn (game/deathask.js)
   await until(() => !state.transitioning && state.cubeKey === t.from, 'back in the room before after dying');
   check(player.hp === player.maxHp, 'at full health');
   const back = state.map.portals.find(p => p.dir === t.fromDir);
-  check(Math.hypot(player.x - back.x - 0.5, player.z - back.z - 0.5) > 1, 'beside the portal, not on it');
+  // (a step inside, as one comes through it, where the floor further in is not level: flow.js besidePortal)
+  check(Math.hypot(player.x - back.x - 0.5, player.z - back.z - 0.5) > 0.99, 'beside the portal, not on it');
   check(Math.abs(Math.sin(player.yaw) - DIRS[t.fromDir][0]) < 0.01 && Math.abs(Math.cos(player.yaw) - DIRS[t.fromDir][1]) < 0.01, 'facing it');
   check(!trialFluid(), 'no water here');
   results.push('died, back before');
@@ -349,9 +366,7 @@ export async function runTrialChecks(kind = 'flood') {
   // (the seals open, its water drains, nothing is put back, stepping off the pad arms nothing); out
   // and in again, a new attempt
   if (kind === 'flood' || kind === 'collapse') {
-    player.autoDir = [ax, az];
-    await until(() => state.trial.phase !== 'idle', 'armed again', 4000);
-    player.autoDir = null;
+    await walkIn(into, () => state.trial.phase !== 'idle', 'armed again', 4000);
     await until(() => state.trial.phase === 'running', 'running', 6000);
     const on = state.map.trial.check.path.at(-3);
     Object.assign(player, { x: on.x, y: on.y, z: on.z, vx: 0, vz: 0 });
@@ -365,7 +380,7 @@ export async function runTrialChecks(kind = 'flood') {
       await delay(300);
       check(state.map.trial.crust.every(q => { const f = state.map.floors[q.f]; return groundAt(f.x + .5, f.z + .5, Math.max(...f.cs) + .1, 0).s !== f; }), 'the crust all gone');
     }
-    player.autoDir = [ax, az]; await delay(800); player.autoDir = null;
+    await walkIn(into, () => false, null, 800);
     check(state.trial.phase === 'spent', 'stepping off the pad arms nothing');
     takePortal(state.map.portals.find(p => p.dir === (t.fromDir ^ 1)));
     await until(() => !state.transitioning && state.cubeKey === t.from, 'out into the room before');
@@ -379,15 +394,18 @@ export async function runTrialChecks(kind = 'flood') {
   if (kind === 'cold') {
     const path = state.map.trial.check.path, first = state.map.trial.parts.find(p => p.type === 'warm');
     Object.assign(player, { x: path[0].x, y: path[0].y, z: path[0].z, vx: 0, vz: 0 });
-    player.autoDir = DIRS[t.fromDir];
-    await until(() => state.trial.phase === 'running', 'running', 6000);
-    player.autoDir = null;
+    await walkIn(into, () => state.trial.phase === 'running', 'running', 6000);
     const far = state.map.trial.check.path.at(-3);
     Object.assign(player, { x: far.x, y: far.y, z: far.z, vx: 0, vz: 0 });
     await delay(1500);
     const before = Number(document.getElementById('trial-line').textContent.match(/\d+/)[0]);
     check(before > 0, `the cold rises (${before}%)`);
-    Object.assign(player, { x: first.x + 0.7, y: first.y, z: first.z, vx: 0, vz: 0 });
+    // (beside it on dry ground at its height: one side may be the room's water, and the robot
+    // pulling the hero out of it would spend the attempt)
+    const by = [[0.7, 0], [-0.7, 0], [0, 0.7], [0, -0.7]].map(([dx, dz]) => ({ x: first.x + dx, z: first.z + dz }))
+      .map(q => ({ ...q, g: groundAt(q.x, q.z, first.y + 0.5, 0) })).find(q => q.g.s && !q.g.s.fluid && Math.abs(q.g.h - first.y) < 0.3);
+    check(by, 'dry ground beside the first brazier');
+    Object.assign(player, { x: by.x, y: by.g.h, z: by.z, vx: 0, vz: 0 });
     await delay(150);
     check(pendingAction()?.target?.id === first.id, 'the first brazier in reach');
     useAction();
@@ -400,9 +418,7 @@ export async function runTrialChecks(kind = 'flood') {
   if (kind === 'storm') {
     const m = state.map.trial, path = m.check.path, exposed = new Set(m.exposed);
     Object.assign(player, { x: path[0].x, y: path[0].y, z: path[0].z, vx: 0, vz: 0 });
-    player.autoDir = DIRS[t.fromDir];
-    await until(() => state.trial.phase === 'running', 'running', 6000);
-    player.autoDir = null;
+    await walkIn(into, () => state.trial.phase === 'running', 'running', 6000);
     const { stormPhase } = await import('../../src/core/trials.js');
     const cell = p => Math.floor(p.z) * 16 + Math.floor(p.x);
     const open = path.find(p => exposed.has(cell(p)));
@@ -424,9 +440,7 @@ export async function runTrialChecks(kind = 'flood') {
   // the siege: idle until the beacon is lit; waves come; holding the ring fills it
   if (kind === 'siege') {
     const m = state.map.trial, b = m.parts.find(p => p.type === 'beacon');
-    player.autoDir = DIRS[t.fromDir];
-    await delay(1200);
-    player.autoDir = null;
+    await walkIn(into, () => false, null, 1200);
     check(state.trial.phase === 'idle', 'stepping off the pad does not start it');
     Object.assign(player, { x: b.x + 0.8, y: b.y, z: b.z, vx: 0, vz: 0 });
     await delay(150);
@@ -506,9 +520,7 @@ export async function runTrialChecks(kind = 'flood') {
   // resolved by stepping onto the exit apron, the keystone (collapse): armed first, the crust
   // falling behind
   if (kind === 'collapse') {
-    player.autoDir = [ax, az];
-    await until(() => state.trial.phase !== 'idle', 'armed again', 4000);
-    player.autoDir = null;
+    await walkIn(into, () => state.trial.phase !== 'idle', 'armed again', 4000);
     await until(() => state.trial.phase === 'running', 'running', 5000);
     const k = state.map.trial.keystone;
     Object.assign(player, { x: k.x, y: k.y + 0.05, z: k.z, vx: 0, vz: 0 });
