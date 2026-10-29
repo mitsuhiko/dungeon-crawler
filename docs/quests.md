@@ -127,8 +127,9 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
   (`FALLBACK`) and is otherwise passed over (`log.used`). An offer whose goal got done meanwhile
   goes. When its slots are used up, a giver offers nothing more.
 - **Clues** (`clueOf`): where a hiding place is, in words from what the layout knows of its room
-  (on the needle of rock, by the great lake, near the windmill, where the horde gathers, off the
-  main way, past the guardian's gate, not far from where the depth begins ...), never on a map.
+  (on the needle of rock, by the great lake, near the windmill, where the horde gathers, near
+  Ada's camp, not far from Finn the trapper, by the supply cart, off the main way, past the
+  guardian's gate, not far from where the depth begins ...), never on a map.
   Coming into the cube, the game says so ("Something glints somewhere here...", "You hear
   somebody calling for help!"); the thing then has a label.
 - **In the world** (`game/questworld.js`): what a quest going on (not archived) has as its goal

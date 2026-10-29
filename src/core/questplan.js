@@ -7,7 +7,7 @@
 // Also here: the clues a quest gives about a place (from what the layout knows of it) and the
 // people somebody may have lost.
 import { mulberry32, hash32 } from './util.js';
-import { residentOf, npcGiver, KIN_NAMES, isShe } from './npcs.js';
+import { residentOf, npcGiver, KIN_NAMES, isShe, personWords } from './npcs.js';
 import { msg, phrase, noun } from '../i18n/i18n.js';
 
 export const MAX_DEPTH = 20;
@@ -102,6 +102,11 @@ export function clueOf(layout, spot, landmarkName = n => n) {
   else if (span?.role === 'island') out.push(msg('on the island at the end of the long bridge'));
   if (site) out.push(phrase('near {landmark:the}', { landmark: noun(landmarkName(site.landmark)) }));
   if (L.hordes.has(k)) out.push(msg('where the horde gathers'));
+  // the people living in the same room, an outpost's cart
+  const here = L.spotList.filter(s => s.key === k && s.id !== spot.id), camp = here.find(s => s.kind === 'camp'), seat = here.find(s => s.kind === 'seat');
+  if (camp) out.push(phrase("near {name}'s camp", { name: personWords(residentOf(camp).name) }));
+  else if (seat) out.push(phrase('not far from {who}', { who: residentOf(seat).title }));
+  if (here.some(s => s.kind === 'outpost')) out.push(msg('by the supply cart'));
   if (route.indexOf(k) < 0) out.push(msg('off the main way'));
   const gates = [...L.guardians].filter(([g, x]) => x.role === 'side' && route.indexOf(g) < at).length;
   if (gates) out.push(gates > 1 ? msg("past the guardians' gates") : msg("past the guardian's gate"));
