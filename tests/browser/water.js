@@ -155,8 +155,18 @@ export async function runWaterChecks() {
         if (robot) { check(t >= RESCUE.trapped - 0.1, 'It waits a moment first: ' + t); rescued(WATER, 'no way out of the water'); }
         else { check(t >= RESCUE.tire - 0.1, 'They tire first: ' + t); drowned(WATER); respawned(); }
       }
+      // the robot along, but nowhere to take them: they tire and drown all the same
       robotArrived();
-      results.push('no way out of the water: the robot carries them out, else they drown');
+      reset(3.5, 0, 3.5);
+      const safe = state.map.safe.slice();
+      state.map.safe.fill(0);
+      Object.assign(player, { x: 7.5, y: surface - SWIM_FEET, z: 6.5, grounded: false, swimming: true, support: water, visY: surface - SWIM_FEET, safe: null });
+      let t = 0;
+      for (; t < RESCUE.tire + 1.5 && !player.rescue && !player.ragdoll; t += 1 / 60) updatePlayer(1 / 60);
+      state.map.safe.set(safe);
+      check(!player.rescue && t >= RESCUE.tire - 0.1, 'Nowhere to take them: they tire first: ' + t);
+      drowned(WATER); respawned();
+      results.push('no way out of the water: the robot carries them out, else (no robot, nowhere to go) they drown');
 
       reset(7.5, surface - 1);
       const ready = character.ready;

@@ -515,7 +515,9 @@ The other kinds: [sword](img/loadout-sword.jpg),
   out of the water (`wet`, [world.md](world.md#the-way-down-cubegenroutejs-cubegenreachjs-cubegenescapejs))
   is taken hold of swimming. The generator gives every water a way out; where a standing water (a
   trial's, a boss's) leaves none (`physics/swimout.js wayOut`, looked for twice a second), the robot
-  carries them out after 2 s; with no robot yet they tire, and drown after 8 s.
+  carries them out after 2 s; with no robot yet they tire, and drown after 8 s. So do they with the
+  robot along when it cannot take them out (nowhere safe to go, or in his mud too little health
+  left for its share): it tries again twice a second while they tire.
 - **Walking** stops at edges facing lava, acid or water deeper than wading goes from dry land
   (the head's height but for a margin, judged where the foot goes); already wading it walks on
   into deep water and swims. Jumps, knockbacks and airborne falls can still enter any of them.

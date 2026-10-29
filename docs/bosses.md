@@ -1464,7 +1464,8 @@ world tips, or where enough of it came together), slowing the strokes too (`phys
 swum`, `game/swim.js`: brown splashes and ripples). A swimmer climbs out of it onto ground a step
 over the feet, as out of water; with no way out (`physics/swimout.js wayOut`) the robot pulls them
 out onto dry ground (over all of the mud if any is) for a quarter of their health ("Stuck in the
-mud!", `game/rescue.js`), else they tire and sink ("Sank in the mud!"). Every game runs its own field from what it
+mud!", `game/rescue.js`), else (no robot, nowhere to go, or no more than that quarter left) they
+tire and sink ("Sank in the mud!"). Every game runs its own field from what it
 is shown of him (his tilt and his `drops`, below).
 
 It is drawn as one sheet over the basin (`render/mud.js`): the field goes to the GPU as a texture

@@ -129,7 +129,8 @@ Decided:
   costs a quarter of their most health (water nothing), and only if that is all they have left does
   it kill. Meanwhile nothing hurts them, and no enemy strikes until a moment after. With no robot
   yet (it lies asleep in the merchant camp), the fluid kills (water with no way out: they tire, and
-  drown after 8 s). In a flood's or a crumbling floor's running trial it pulls them out and the
+  drown after 8 s, as they do when the robot finds nowhere to take them or they cannot pay its
+  share). In a flood's or a crumbling floor's running trial it pulls them out and the
   trial starts over (`game/trials.js sweptAway`). It says a line as it does (`rescue`).
 - **It brings you back** when you die, to the last safe place (not built yet).
 - **Its memory**: it knows something about the glassmaker, but cannot get at all of what it

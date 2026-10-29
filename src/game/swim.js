@@ -1,9 +1,10 @@
 // The hero in the water (physics/move.js swims them; in Sollmeldon's mud too): the splash going in,
 // the strokes' sounds and ripples, and water with no way out. The generator gives every water of the cubes a way out
 // (cubegen/escape.js), but a standing water (a trial's, a boss's) may stand where there is none
-// (physics/swimout.js wayOut): after RESCUE.trapped s of that the robot carries them out
-// (game/rescue.js); with no robot yet they tire, and after RESCUE.tire s they drown. Swimming in a
-// flood's or a crumbling floor's water fails that trial (game/trials.js sweptAway).
+// (physics/swimout.js wayOut): they tire, and after RESCUE.tire s they drown, unless the robot
+// carries them out first, after RESCUE.trapped s (game/rescue.js). Should it find nowhere to take
+// them, or they cannot pay its share (his mud's), it tries again every look while they tire.
+// Swimming in a flood's or a crumbling floor's water fails that trial (game/trials.js sweptAway).
 import { WATER, MUD } from '../core/constants.js';
 import { RESCUE } from '../core/rescue.js';
 import { player, state, setStatus } from './state.js';
@@ -19,7 +20,7 @@ import { narrate } from './narrator.js';
 import { tr } from '../i18n/i18n.js';
 
 const LOOK_EVERY = 0.5;   // s between two looks for a way out
-let splashes = 0, look = 0, trapped = 0, stroke = 0, ripple = 0;
+let splashes = 0, look = 0, trapped = 0, call = 0, stroke = 0, ripple = 0;   // (call: when the robot is called next)
 
 // the colours of what flies up and spreads (drops, foam, ripples): of clear water, of the mud
 const SPRAY = { 0: ['#e8f6ff', '#9fd2ff', '#f2fbff', '#eaf8ff'], [MUD]: ['#5a4e43', '#3a3129', '#6b5d4f', '#4a3f35'] };
@@ -69,15 +70,16 @@ export function tickSwim(dt) {
   if (look <= 0) {
     look = LOOK_EVERY;
     if (wayOut(p.x, p.z, p.swimY)) trapped = 0;
-    else if (trapped === 0) trapped = 1e-6;
+    else if (trapped === 0) { trapped = 1e-6; call = RESCUE.trapped; }
   }
   if (trapped <= 0) return false;
   trapped += dt;
-  if (robotCanRescue()) {
-    if (trapped >= RESCUE.trapped) { trapped = 0; return rescue(WATER, p.swimLook ?? 0, p.swimY); }
-    return false;
+  const robot = robotCanRescue();
+  if (robot && trapped >= call) {
+    call = trapped + LOOK_EVERY;
+    if (rescue(WATER, p.swimLook ?? 0, p.swimY)) { trapped = 0; return true; }
   }
   if (trapped >= RESCUE.tire) { trapped = 0; dieInFluid(WATER, p.swimY, p.swimLook ?? 0); return true; }
-  if (!state.statusMsg) setStatus(tr('No way out of the water! You are getting tired'));
+  if ((!robot || trapped >= RESCUE.trapped) && !state.statusMsg) setStatus(tr('No way out of the water! You are getting tired'));
   return false;
 }
