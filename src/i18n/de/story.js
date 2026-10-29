@@ -6,9 +6,8 @@
 export default {
   // his recordings (core/narration.js RECORDINGS)
   'A voice in the glass': 'Eine Stimme im Glas',
-  'Found on the town plaza': 'Gefunden auf dem Platz der Stadt',
+  'Found on a rock by the road': 'Gefunden auf einem Felsen an der Straße',
   'Where the sword fell': 'Wo das Schwert hinfiel',
-  'Found in the merchant camp': 'Gefunden im Händlerlager',
   // the glass on the town plaza
   'So my glass found someone. Good.': 'Mein Glas hat also jemanden gefunden. Gut.',
   'This glass keeps my words. Keep them with you, and listen again whenever you need to.':

@@ -50,8 +50,8 @@ export class WFC {
     const region = new Set();
     // span cubes (spans.js), tablelands (heights.js) and large areas (areas.js) are pinned first:
     // their faces follow the span, the escarpment or the area, they have one layer; so does a lone
-    // peak's flat field (cubegen/setpieces.js)
-    const L = this.layout(d), peak = L.peak ? [[L.peak, ['L', 'L', 'L', 'L']]] : [];
+    // peak's flat field (cubegen/setpieces.js), the beginning's rock too (core/intro.js)
+    const L = this.layout(d), peak = [L.peak, L.firstGlass].filter(Boolean).map(k => [k, ['L', 'L', 'L', 'L']]);
     for (const [k, sock] of [...spanPins(L), ...heightPins(L), ...areaPins(L), ...peak]) {
       const tile = TILES.find(t => t.sock.every((s, i) => s === sock[i]));
       if (!this.tiles.has(k)) this.tiles.set(k, { ...tile, K: 1 });

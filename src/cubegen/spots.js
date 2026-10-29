@@ -149,7 +149,7 @@ export function finishSpots(ctx) {
     const face = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
     const anchor = at(f, plan.kind === 'seat' ? face(f, access) : 0), approach = at(access, face(access, f));
     spots.push({ id: plan.id, kind: plan.kind, tier: plan.tier, depth: plan.depth, seed: plan.seed, layer: f.layer,
-      ...plan.kind === 'glass' ? { glass: plan.glass, way: plan.way } : {},
+      ...plan.kind === 'glass' ? { glass: plan.glass, way: plan.way, ...plan.part ? { part: plan.part } : {} } : {},
       cells: cells.map(g => g.c), floor: f.id, accessFloor: access.id, anchor, approach,
       places: places.map(g => at(g, face(g, f))) });
     if (plan.kind === 'outpost') {

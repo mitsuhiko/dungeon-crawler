@@ -407,7 +407,7 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
   state.run = createRun(); state.inventoryOpen = false;
   if (restore) restoreRun(restore);
   // the beginning (game/intro.js): done already in a world saved before it, and with the dev tools
-  settleIntro(state.run, seed, restore?.visited, state.dev, params);
+  settleIntro(state.run, state.cubes.layout(0), restore?.visited, state.dev, params);
   log('world', restore?.name ? { seed, name: restore.name } : { seed });
   // a saved spot whose cube does not come (the generator changed): the town instead
   const cubes = state.cubes, spot = restore?.spot;

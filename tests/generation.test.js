@@ -46,7 +46,7 @@ function checkSites(m) {
 test('stratum budgets and site IDs are seeded, sparse, and independent of WFC or exploration order', () => {
   for (let seed = 0; seed < 10; seed++) {
     const a = makeLayouts(seed), b = makeLayouts(seed);
-    assert.equal(a(0).sitePlans.size, 0);
+    assert.deepEqual([...a(0).sitePlans.keys()], [a(0).firstGlass], 'depth 0: only the beginning\'s rock (core/intro.js)');
     for (let d = 20; d > 0; d--) {
       assert.deepEqual(a(d).sitePlans, b(d).sitePlans);
       // (a puzzle's vault in a branch, world/trials.js, holds a site of its own besides)

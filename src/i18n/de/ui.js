@@ -748,15 +748,15 @@ export default {
 
   'The way across is blocked': 'Der Weg hinüber ist versperrt',
 
-  // the beginning (core/intro.js, game/intro.js): the glassmaker's glass (in the town and the camp) and his sword
-  'The gate will not open yet. Something glints on the plaza.': 'Das Tor geht noch nicht auf. Auf dem Platz glitzert etwas.',
+  // the beginning (core/intro.js, game/intro.js): his sword in the merchant camp, his glass on the rock after it
+  'The gate will not open yet. Something glints on top of the rock.': 'Das Tor geht noch nicht auf. Oben auf dem Felsen glitzert etwas.',
   'The gate will not open yet. Take the sword from the ground first.': 'Das Tor geht noch nicht auf. Zieh zuerst das Schwert aus dem Boden.',
   'Bubble of star-glass': 'Blase aus Sternglas',
   // the robot asleep in the merchant camp (game/robot.js): its label, and the action key's
   'Robot of star-glass': 'Roboter aus Sternglas',
   'Wake the robot': 'Weck den Roboter',
-  'The glass broke, and a voice came out of it. The gate out of the town is open.':
-    'Das Glas ist zerbrochen, und eine Stimme kam heraus. Das Tor aus der Stadt ist offen.',
+  'The glass broke, and a voice came out of it. The gate on along the road is open.':
+    'Das Glas ist zerbrochen, und eine Stimme kam heraus. Das Tor weiter die Straße entlang ist offen.',
   'The glass broke, and a voice came out of it.': 'Das Glas ist zerbrochen, und eine Stimme kam heraus.',
   'You pulled {item:the} out of the ground': 'Du hast {item:den} aus dem Boden gezogen',
   'The gate to the road is open.': 'Das Tor zur Straße ist offen.',

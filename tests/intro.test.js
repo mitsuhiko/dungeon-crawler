@@ -8,8 +8,9 @@ import { containsXZ } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { step, faceKey } from '../src/world/coords.js';
-import { TOWN_KEY, TOWN_LEVEL, TOWN_RELIC, CAMP_GLASS, CAMP_RELIC, CAMP_ROBOT, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
-import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, campGlassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../src/core/intro.js';
+import { TOWN_KEY, TOWN_LEVEL, TOWN_SHARDS, CAMP_RELIC, CAMP_ROBOT, WAKE_HOUSE, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
+import { INTRO_GATES, INTRO_LOCKED, STORY_NEWS, glassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../src/core/intro.js';
+import { FIRST_GLASS } from '../src/core/spawns.js';
 import { GLASS, PER_DEPTH, glassAt } from '../src/core/glass.js';
 import { recordingLines } from '../src/core/narration.js';
 import { portalLocked, lockMessage } from '../src/core/guardians.js';
@@ -20,34 +21,39 @@ import { OLD_SWORD } from '../src/core/items.js';
 import { fixedWeapon } from '../src/core/gear/generate.js';
 import { RELAYED } from '../src/net/protocol.js';
 
-test('the town\'s way out opens for the glass, the merchant camp\'s for the sword', () => {
+test('the town\'s way out is open; the merchant camp\'s opens for the sword, the rock\'s room\'s for the glass', () => {
   for (let seed = 0; seed < 40; seed++) {
-    const L = makeLayouts(seed)(0), camp = merchantCampKey(seed);
-    assert.equal(L.route[0], TOWN_KEY); assert.equal(L.route[1], camp);
-    assert.equal(L.gateFaces.get(faceKey(TOWN_KEY, L.exit.get(TOWN_KEY))), INTRO_GATES.glass);
+    const L = makeLayouts(seed)(0), camp = merchantCampKey(seed), rock = step(camp, seed % 4);
+    assert.equal(L.route[0], TOWN_KEY); assert.equal(L.route[1], camp); assert.equal(L.route[2], rock);
+    assert.equal(L.firstGlass, rock);
+    assert.equal(L.gateFaces.get(faceKey(TOWN_KEY, L.exit.get(TOWN_KEY))), undefined);
     assert.equal(L.gateFaces.get(faceKey(camp, L.exit.get(camp))), INTRO_GATES.sword);
+    assert.equal(L.gateFaces.get(faceKey(rock, L.exit.get(rock))), INTRO_GATES.glass);
+    assert.ok(!L.guardians.has(rock) && !L.hordes.has(rock) && !L.trialCells?.has(rock), 'nothing else in the rock\'s room');
   }
   const w = new World(5), town = w.cube(w.start).map, camp = w.cube(step(w.start, town.exit)).map, run = createRun();
-  assert.equal(portalLocked(town, run, { dir: town.exit }), true);
-  assert.equal(portalLocked(camp, run, { dir: town.exit ^ 1 }), true, 'nor back into town from the camp');
-  assert.equal(portalLocked(camp, run, { dir: camp.exit }), true);
-  assert.equal(lockMessage(town, town.exit), INTRO_LOCKED[INTRO_GATES.glass]);
-  assert.equal(lockMessage(camp, camp.exit), INTRO_LOCKED[INTRO_GATES.sword]);
-  run.unlockedGates.add(INTRO_GATES.glass);
+  const rock = w.cube(step(camp.key, camp.exit)).map;
   assert.equal(portalLocked(town, run, { dir: town.exit }), false);
-  assert.equal(portalLocked(camp, run, { dir: camp.exit }), true, 'the sword is still in the ground');
+  assert.equal(portalLocked(camp, run, { dir: town.exit ^ 1 }), false, 'back into town from the camp');
+  assert.equal(portalLocked(camp, run, { dir: camp.exit }), true);
+  assert.equal(portalLocked(rock, run, { dir: rock.exit }), true);
+  assert.equal(lockMessage(camp, camp.exit), INTRO_LOCKED[INTRO_GATES.sword]);
+  assert.equal(lockMessage(rock, rock.exit), INTRO_LOCKED[INTRO_GATES.glass]);
   run.unlockedGates.add(INTRO_GATES.sword);
   assert.equal(portalLocked(camp, run, { dir: camp.exit }), false);
+  assert.equal(portalLocked(rock, run, { dir: rock.exit }), true, 'his glass is still on the rock');
+  run.unlockedGates.add(INTRO_GATES.glass);
+  assert.equal(portalLocked(rock, run, { dir: rock.exit }), false);
 });
 
-test('the glass floats over the plaza near the spawn, the camp\'s near its way in, the sword stands beside the camp\'s road: dry, reachable, clear', () => {
+test('the shards lie on the plaza; the robot and the sword beside each other in the camp, off its road: dry, reachable, clear', () => {
   const exits = new Set();
   for (let seed = 0; seed < 40; seed++) {
     const w = new World(seed), town = w.cube(w.start).map, camp = w.cube(step(w.start, town.exit)).map;
     exits.add(town.exit);
-    assert.deepEqual(Object.keys(town.relics), ['glass']);
-    assert.deepEqual(Object.keys(camp.relics), ['glass', 'sword', 'robot']);
-    for (const [r, spot, m, plan] of [[town.relics.glass, TOWN_RELIC, town, town.town], [camp.relics.glass, CAMP_GLASS, camp, camp.merchantCamp],
+    assert.deepEqual(Object.keys(town.relics), ['shards']);
+    assert.deepEqual(Object.keys(camp.relics), ['sword', 'robot']);
+    for (const [r, spot, m, plan] of [[town.relics.shards, TOWN_SHARDS, town, town.town],
       [camp.relics.sword, CAMP_RELIC, camp, camp.merchantCamp], [camp.relics.robot, CAMP_ROBOT, camp, camp.merchantCamp]]) {
       const cell = Math.floor(r.z) * N + Math.floor(r.x);
       assert.equal(r.y, TOWN_LEVEL * LH);
@@ -57,30 +63,46 @@ test('the glass floats over the plaza near the spawn, the camp\'s near its way i
       assert.ok(!new Set(m.staticBlockers.flat()).values().some(b => containsXZ(b, r.x, r.z, 0.4)), 'nothing stands on it');
       assert.ok(!m.authoredProps.some(p => Math.hypot(p.x - r.x, p.z - r.z) < 0.9), 'no clutter on it');
     }
-    const spawn = town.portals.find(p => p.kind === 'spawn');
-    const d = Math.hypot(town.relics.glass.x - spawn.x - 0.5, town.relics.glass.z - spawn.z - 0.5);
-    assert.ok(d > 1 && d < 3, 'a few steps from where a new hero stands');
-    // the camp's glass a few steps in from the town's gate (the camp's second: the first is its exit)
-    const into = camp.portals[1], g = camp.relics.glass;
-    assert.notEqual(into.dir, camp.exit);
-    const steps = Math.hypot(g.x - into.x - 0.5, g.z - into.z - 0.5);
-    assert.ok(steps > 2 && steps < 4.5, `the camp's glass is ${steps} from the way in`);
-    // beside the camp's road, not on it: walking along it takes neither the glass nor the sword
+    const { sword, robot } = camp.relics, apart = Math.hypot(sword.x - robot.x, sword.z - robot.z);
+    assert.ok(apart > 0.8 && apart < 1.8, `the sword stands beside the robot (${apart})`);
+    // beside the camp's road, not on it: walking along it takes neither
     const road = camp.merchantCamp.paths[0].points, [a, b] = [road[0], road.at(-1)];
     for (const [what, q] of Object.entries(camp.relics)) {
       const along = Math.abs(a[0] - b[0]) < 1e-9 ? Math.abs(q.x - a[0]) : Math.abs(q.z - a[1]);
       assert.ok(along > 0.85, `the ${what} is ${along} off the road`);
     }
+    // a new hero comes out of the inn's door
+    assert.ok(town.doors.some(d => d.building === WAKE_HOUSE));
   }
   assert.deepEqual([...exits].sort(), [0, 1, 2, 3]);
 });
 
-test('a glass is there until it is found; the sword until it is taken, and for anyone without a weapon', async () => {
-  const { recordingLines } = await import('../src/core/narration.js');
+test('the rock\'s room: a lone peak, his glass on top up its ladder, three snakes at its foot, no chest', async () => {
+  const { state } = await import('./fixtures.js');
+  const { enemySpots } = await import('../src/game/enemyspawn.js');
+  const { ENEMY_KINDS } = await import('../src/core/enemies.js');
+  for (let seed = 0; seed < 24; seed++) {
+    const w = new World(seed), k = w.layout(0).route[2], m = state.map = w.cube(k).map, g = m.firstGlass;
+    assert.equal(m.archetype, 'peak');
+    assert.ok(g && g.glass && g.ladder, 'his glass and the ladder up to it');
+    assert.ok(g.glass.y > g.ladder.y + 2, 'up on the rock');
+    assert.ok(Math.abs(g.glass.y - g.ladder.top) < 0.6, 'where the ladder goes up to');
+    const at = g.approach, top = m.floors.find(f => f.x === Math.floor(at.x) && f.z === Math.floor(at.z) && Math.abs(f.top * LH - at.y) < 0.6);
+    assert.ok(top && m.safe[top.id] && Math.hypot(at.x - g.glass.x, at.z - g.glass.z) < 1.2, 'reachable');
+    assert.equal(m.rewardSites.length, 0, 'his glass is no chest');
+    const snakes = enemySpots(m, ENEMY_KINDS.snake);
+    assert.equal(snakes.length, FIRST_GLASS.count);
+    for (const s of snakes) {
+      const d = Math.hypot(s.x - g.ladder.x, s.z - g.ladder.z);
+      assert.ok(d < 4 && Math.abs(s.y - g.ladder.y) < 1, `at the rock's foot (${d})`);
+      assert.equal(s.kind.type, 'snake');
+    }
+  }
+});
+
+test('his glass is there until it is found; the sword until it is taken, and for anyone without a weapon', () => {
   const run = createRun();
-  assert.ok(glassThere(run)); assert.ok(campGlassThere(run)); assert.ok(swordThere(run, 3));
-  run.told.add(recordingLines('camp')[0].id);
-  assert.ok(!campGlassThere(run), 'its recording heard');
+  assert.ok(glassThere(run)); assert.ok(swordThere(run, 3));
   run.unlockedGates.add(INTRO_GATES.glass);
   assert.ok(!glassThere(run));
   run.unlockedGates.add(INTRO_GATES.sword);
@@ -88,9 +110,13 @@ test('a glass is there until it is found; the sword until it is taken, and for a
   const dev = createRun();
   skipIntro(dev);
   assert.ok(!glassThere(dev) && !swordThere(dev, 1));
-  const seed = 7, camp = merchantCampKey(seed), road = step(camp, seed % 4);
-  assert.equal(pastIntro([TOWN_KEY, camp, 'interior:town_inn_a'], seed), false);
-  assert.equal(pastIntro([TOWN_KEY, camp, road], seed), true);
+  // past it: further along the road than the rock (a branch off its room is not), or deeper
+  const seed = 7, L = makeLayouts(seed)(0), camp = merchantCampKey(seed), rock = step(camp, seed % 4);
+  assert.equal(pastIntro([TOWN_KEY, camp, 'interior:town_inn_a', rock], L), false);
+  const branch = [...L.exists].find(k => L.routeIndex.get(k) === 2 && k !== rock);
+  if (branch) assert.equal(pastIntro([TOWN_KEY, camp, rock, branch], L), false);
+  assert.equal(pastIntro([TOWN_KEY, camp, rock, L.route[3]], L), true);
+  assert.equal(pastIntro(['0,-1,0'], L), true);
 });
 
 test('a world starts at noon, in the light of the day', () => {
@@ -150,9 +176,9 @@ test('a recording is told whole once it begins, and is cut short by the next or 
   assert.deepEqual(recordingsHeard(new Set([recordingLines('glass')[0].id])).map(r => r.id), ['glass']);
   const town = { town: {} }, house = { interior: true }, camp = { merchantCamp: {} }, road = {};
   assert.deepEqual([town, house, camp, road].map(placeOf), ['town', 'town', 'camp', null]);
-  const [glass] = recordingLines('glass'), [inCamp] = recordingLines('camp');
-  assert.ok(!outOfPlace(glass, town) && !outOfPlace(glass, house) && outOfPlace(glass, camp), 'leaving the town cuts the glass\'s');
-  assert.ok(outOfPlace(inCamp, road) && !outOfPlace(inCamp, camp));
+  const [glass] = recordingLines('glass'), [onTheRoad] = recordingLines('camp');
+  for (const line of [glass, onTheRoad])
+    assert.ok(!outOfPlace(line, road) && outOfPlace(line, camp) && outOfPlace(line, town) && outOfPlace(line, { depth: 1 }), 'leaving the road cuts it');
   // his glass in the depths: leaving the depth cuts it short (for the town too, at depth 0)
   const [deep] = recordingLines('red-light'), [onRoad] = recordingLines('breath');
   assert.ok(!outOfPlace(deep, { depth: 1 }) && outOfPlace(deep, { depth: 2 }) && outOfPlace(deep, town));
@@ -173,6 +199,14 @@ test('his glass in the depths: two of each depth\'s three, one on the way, one h
   const map = { spots: [{ kind: 'hide', depth: 1 }, { kind: 'glass', depth: 1, glass: 0, anchor: {} }, { kind: 'glass', depth: 1, glass: 1, anchor: {} }] };
   const run = { told: new Set() };
   assert.deepEqual(depthGlassIn(map, run, 5).map(g => g.part), glassAt(5, 1));
+  // depth 0's third: the recording that came up with his sword, past the rock, on the way
+  assert.deepEqual(depthGlassIn({ spots: [{ kind: 'glass', depth: 0, part: 'camp', way: true, anchor: {} }] }, run, 5).map(g => g.part), ['camp']);
+  for (let seed = 0; seed < 12; seed++) {
+    const L = makeLayouts(seed)(0), camp = L.spotList.filter(s => s.kind === 'glass' && s.part === 'camp');
+    assert.equal(camp.length, 1);
+    assert.ok(camp[0].way && L.routeIndex.get(camp[0].key) >= 3, 'past the rock, on the way');
+    assert.ok(!L.spotList.some(s => s.kind === 'glass' && s.key === L.firstGlass), 'no other glass on the rock');
+  }
   run.told.add(recordingLines(glassAt(5, 1)[0])[2].id);
   assert.deepEqual(depthGlassIn(map, run, 5).map(g => g.part), glassAt(5, 1).slice(1), 'heard: its glass is gone');
   assert.ok(isStoryNews('glass') && isStoryNews('red-light') && !isStoryNews('nonsense'));

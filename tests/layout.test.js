@@ -50,12 +50,13 @@ test('all depths have routes within their band, the core all nine rooms; discove
       if (d < 20) assert.equal(goal, L.down);
       for (const k of L.guardians.keys()) run.unlockedGates.add(k);
       for (const t of L.trials) run.unlockedGates.add(t.gate);   // (trial rooms, world/trials.js: resolved)
-      // the beginning (core/intro.js): the town's gate is shut until its glass is found, the merchant
-      // camp's until the sword is taken
+      // the beginning (core/intro.js): the town's gate is open, the merchant camp's shut until the
+      // sword is taken, the rock's room's until his glass on it is found
       if (d === 0) {
-        assert.equal(distances(L, cubes, run, entry).size, 1, `seed ${seed}: the town's gate is shut`);
-        run.unlockedGates.add(INTRO_GATES.glass);
         assert.equal(distances(L, cubes, run, entry).size, 2, `seed ${seed}: the camp's gate is shut`);
+        run.unlockedGates.add(INTRO_GATES.sword);
+        const reach = distances(L, cubes, run, entry);
+        assert.ok(reach.has(L.route[2]) && !reach.has(L.route[3]), `seed ${seed}: the rock's gate is shut`);
         skipIntro(run);
       }
       // an annex (a quest's room beside the way) is sealed until a quest opens it

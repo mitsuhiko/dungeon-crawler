@@ -34,6 +34,10 @@ import { ENEMY_KINDS, STAGE_PROFILES } from './enemies.js';
 export const D = (mix, ...roster) => ({ mix, roster: roster.map(([type, chance, lo, hi, pack = 1, kinds = { [type]: 1 }, where = null]) =>
   ({ type, chance, lo, hi, pack, kinds, where })) });
 
+// who waits at the foot of the beginning's rock, in front of his first glass (docs/story.md "The
+// beginning"): the hero's first fight (game/enemyspawn.js firstGlassSpots)
+export const FIRST_GLASS = { type: 'snake', count: 3 };
+
 export const DEPTH_SPAWNS = [
   /*  0 road out of town */ D(1, ['snake', 1, 1, 2]),
   /*  1 act I */ D(2, ['snake', 1, 2, 4], ['stunder', .2, 1, 1], ['wolk', .25, 1, 1],
@@ -166,6 +170,8 @@ export function population(map) {
       swarm: true, rewardScale: Math.min(1, budget / (count * base.xp)) }]]);
   }
   if (map.populationScale === 0) return new Map();   // (nobody: the hunter's room, docs/trials.md `chase`)
+  // the beginning's rock (core/intro.js): three grass snakes at its foot, the first fight (FIRST_GLASS)
+  if (map.firstGlass) return new Map([[FIRST_GLASS.type, { count: FIRST_GLASS.count, pack: FIRST_GLASS.count, lead: true, kinds: { [FIRST_GLASS.type]: 1 } }]]);
   const R = mulberry32(hash32(map.seed ^ SALT)), row = map.spawns ?? spawnsAt(map.depth || 0);
   const rolled = [];
   for (const e of row.roster) if (livesIn(e, map.biome) && R() < e.chance) rolled.push({ e, key: e.chance >= 1 ? 1 + R() : R() ** (1 / e.chance) });

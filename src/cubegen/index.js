@@ -126,6 +126,8 @@ function tryGenerate(seed, spec) {
   if (!trial) return null;
   const clues = placeClues(ctx, safe);   // rune rooms' tablets, in a room before them
   const sites = finishSites(ctx), vignettes = finishVignettes(ctx);
+  const firstGlass = spec.firstGlass ? firstGlassOf(ctx, sites) : null;
+  if (spec.firstGlass && !firstGlass) return null;   // (his glass must stand on the rock, up its ladder)
   sites.sitePlacements.push(...vignettes.placements);
   for (const b of vignettes.blockers) indexBox(sites.staticBlockers, b);
   sites.occluders.push(...vignettes.occluders);
@@ -169,8 +171,23 @@ function tryGenerate(seed, spec) {
     // a large area (world/areas.js): its cubes
     area: spec.area ? { id: spec.area.id, kind: spec.area.kind, role: spec.area.role, keys: spec.area.keys } : null,
     sparse: !!spec.sparse,   // a mostly empty set piece (cubegen/setpieces.js): few props
+    firstGlass,   // the beginning's third room (core/intro.js): { glass, ladder, foot }, else null
     routes: ctx.segments.map(s => pathPoints(ctx, s)),   // each portal -> the exit, then the way back
   };
+}
+
+// The beginning's third room (world/layout.js firstGlass, core/intro.js): its lone peak's site holds
+// the glassmaker's first glass, not a chest. Out of the reward sites into { glass: where it floats
+// over, approach: where one walks up to it from, ladder: the foot of the ladder up the rock (its
+// wall `d`, and the rock's top) }; null
+// where the site or its ladder did not come (the cube is made again).
+function firstGlassOf(ctx, sites) {
+  const i = sites.rewardSites.findIndex(s => s.spawn === 'glass');
+  const l = ctx.ladders.find(l => ctx.peakTop.has(l.hi.c));
+  if (i < 0 || !l) return null;
+  const [site] = sites.rewardSites.splice(i, 1), a = site.anchor;
+  return { site: site.id, glass: { x: a.x, y: a.y, z: a.z }, approach: site.approach,
+    ladder: { x: l.lo.x + 0.5, y: l.lo.top * LH, z: l.lo.z + 0.5, d: l.d, top: l.hi.top * LH } };
 }
 
 // spec: what the world fixes for this cube (faces, portals, layers; see world/world.js)

@@ -300,16 +300,17 @@ function facing(put, name, candidates, [tx, tz]) {
 // Where the town end of a town portal stands (town-local; the plan rotates it with the exit):
 // east of the plaza, between the stable's and the pet shop's paths. Nothing is put on it.
 export const TOWN_PORTAL_SPOT = [12, 8.5];
-// Where the beginning's things lie (town-local, core/intro.js): the glassmaker's glass over the
-// town's plaza, on the street to the gate, a few steps from where a new hero stands; in the
-// merchant camp another glass of his, a few steps in from the town's side, beside the road, and his
-// sword in the camp's middle, beside the road on the other side (walking along it takes neither).
-// The robot lies asleep in the camp too (core/robot.js), across the road from the glass.
-// Nothing is put on them (plan.relics: { glass, sword, robot }).
-export const TOWN_RELIC = [8.5, 6.6], CAMP_GLASS = [9.5, 12.0], CAMP_RELIC = [7.3, 7.6], CAMP_ROBOT = [7.2, 12.6];
+// Where the beginning's things lie (town-local, core/intro.js, docs/story.md "The beginning"): the
+// shards of the big glass that burst over the town, on its plaza, round where a hero stood before
+// (render/shards.js); in the merchant camp the robot asleep (core/robot.js), a few steps in from the
+// town's side, and his old sword stuck in the ground beside it, both off the road (walking along it
+// takes neither). Nothing is put on them (plan.relics: { shards } and { sword, robot }).
+export const TOWN_SHARDS = [8.5, 8.2], CAMP_RELIC = [6.3, 11.8], CAMP_ROBOT = [7.2, 12.6];
+// the house a new hero comes out of as the world comes up (game/intro.js): the inn
+export const WAKE_HOUSE = 'town_inn_a';
 
 export function townPlan(exit, seed) {
-  const { plan, path, tree, put, group, scatter, shore, R } = clearingPlan(exit, seed, BUILDINGS, [[8.5, .9]], { glass: TOWN_RELIC });
+  const { plan, path, tree, put, group, scatter, shore, R } = clearingPlan(exit, seed, BUILDINGS, [[8.5, .9]], { shards: TOWN_SHARDS });
   const [px, pz] = rotateTownPoint(...TOWN_PORTAL_SPOT, plan.yaw);
   plan.portal = { x: px, z: pz };
   GROVE.forEach(([x, z], i) => tree(i, x, z));
@@ -371,7 +372,7 @@ export function townPlan(exit, seed) {
 }
 
 export function merchantCampPlan(exit, seed) {
-  const { plan, path, tree, put, group, scatter, R } = clearingPlan(exit, seed, MERCHANTS, [[8.5, .9], [8.5, 15.1]], { glass: CAMP_GLASS, sword: CAMP_RELIC, robot: CAMP_ROBOT });
+  const { plan, path, tree, put, group, scatter, R } = clearingPlan(exit, seed, MERCHANTS, [[8.5, .9], [8.5, 15.1]], { sword: CAMP_RELIC, robot: CAMP_ROBOT });
   // Open at both ends of the road; tents flank it instead of forming another row.
   [[1.0, 1.4], [14.7, 2.2], [1.0, 7.0], [14.9, 11.6], [2.0, 14.9], [12.9, 14.9]]
     .forEach(([x, z], i) => tree(i, x, z));

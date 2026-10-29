@@ -11,7 +11,8 @@
 //   glass on the depths with the glassmaker's glass (core/glass.js), two: where a bubble of his
 //         star-glass came to rest (game/intro.js), one on the way (`way`), one hidden off it;
 //         `glass` its number (0, 1), which says its recording (core/glass.js glassAt). Never a
-//         quest's: nobody stands there and nothing else lies there.
+//         quest's: nobody stands there and nothing else lies there. Depth 0 has a third, on the
+//         way past the beginning's rock: `part` 'camp', the recording that came up with his sword.
 // A spot names its cube; where in the cube it lies is up to the cube's generator
 // (cubegen/spots.js), which keeps it clear and reachable both ways like a reward site.
 //
@@ -104,7 +105,7 @@ export function planSpots(seed, layout) {
   const glass = glassAt(seed, d);
   if (glass.length) {
     const R3 = mulberry32(hash32(seed ^ Math.imul(d + 1, 0x61a55) ^ 0x61a));
-    const plain = info.filter(r => r.key !== layout.annex?.key), last = Math.max(1, route.length - 1);
+    const plain = info.filter(r => r.key !== layout.annex?.key && r.key !== layout.firstGlass), last = Math.max(1, route.length - 1);
     const hi = Math.max(...plain.map(r => r.tier));
     const used = new Set();
     glass.forEach((part, i) => {
@@ -118,6 +119,12 @@ export function planSpots(seed, layout) {
       used.add(room.key);
       Object.assign(add(room, 'glass'), { glass: i, way: i === 0 });
     });
+  }
+  // the recording that came up with his sword (core/narration.js 'camp'): the first glass of his on
+  // the road past the beginning's rock (layout.firstGlass), in the first room of the way there is
+  if (d === 0) {
+    const room = info.filter(r => !r.branch && r.at >= 3 && !layout.hordes.has(r.key)).sort((a, b) => a.at - b.at)[0];
+    if (room) Object.assign(add(room, 'glass'), { part: 'camp', way: true });
   }
   for (const r of info) if (r.spots.length) plans.set(r.key, r.spots);
   return { spots: plans, list: info.flatMap(r => r.spots) };

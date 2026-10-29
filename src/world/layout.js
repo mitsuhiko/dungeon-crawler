@@ -6,7 +6,7 @@ import { mulberry32, hash32 } from '../core/util.js';
 import { bossAt, BOSS_ARENAS } from '../core/bosses.js';
 import { key, faceKey } from './coords.js';
 import { MAX_DEPTH, themeAt, themesAt, worldThemes } from '../themes/depth.js';
-import { planSites } from './sites.js';
+import { planSites, siteIntent } from './sites.js';
 import { planSpots } from './spots.js';
 import { planHordes } from './hordes.js';
 import { planArenas } from './arenas.js';
@@ -168,11 +168,11 @@ function build(seed, d, above, theme, opts = {}) {
     // the core's last cube: its boss's arena, the end of the world (`final`: no way on, cubegen/guardian.js)
     guardians.set(K(end), { role: 'descent', exit: 4, bossPlaceholder: false, boss: bossAt(d), final: true });
   }
-  // the beginning (core/intro.js): the town's gate opens for the glassmaker's glass, the merchant
-  // camp's gate out to the road for his sword
+  // the beginning (core/intro.js, docs/story.md "The beginning"): the merchant camp's gate out to
+  // the road opens for the glassmaker's sword, the next room's (his first glass, on a rock) for his glass
   if (d === 0) {
-    gateFaces.set(faceKey(K(spine[0]), exit.get(K(spine[0]))), INTRO_GATES.glass);
     gateFaces.set(faceKey(K(spine[1]), exit.get(K(spine[1]))), INTRO_GATES.sword);
+    gateFaces.set(faceKey(K(spine[2]), exit.get(K(spine[2]))), INTRO_GATES.glass);
   }
   const hordes = planHordes(seed, d, spine.map(K), guardians, k => areaRooms.some(a => K(a) === k));
   // One-room branches only, never attached to arenas or the safe surface prefix.
@@ -260,6 +260,13 @@ function build(seed, d, above, theme, opts = {}) {
   indexTrials(layout, trialPlan);
   const sites = planSites(seed, layout, distance);
   layout.sitePlans = sites.plans; layout.roles = sites.roles;
+  // the beginning's third room (core/intro.js): a lone peak (cubegen/setpieces.js) with his first
+  // glass on top, where a discovery would be (its site: no chest, the glass instead)
+  if (d === 0) {
+    const k = layout.firstGlass = K(spine[2]);
+    layout.sitePlans.set(k, [{ ...siteIntent(seed, k, theme.props, 'basic'), spawn: 'glass' }]);
+    layout.roles.set(k, 'discovery');
+  }
   Object.assign(layout, planSetPiece(layout, slots));
   for (const [k, g] of guardians) layout.roles.set(k, `${g.role}-guardian`);
   layout.populationScale = new Map();

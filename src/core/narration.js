@@ -143,8 +143,8 @@ export const robotMayTalk = (pri, quiet) => quiet >= (ROBOT_REST[pri] ?? 0);
 const FOUND_ROAD = msg('Found on the road out of town'), FOUND_DEEP = msg('Found at depth {depth}');
 const deep = (id, title) => { const depth = depthOfGlass(id); return { id, title, found: depth ? FOUND_DEEP : FOUND_ROAD, depth, where: { depth } }; };
 export const RECORDINGS = [
-  { id: 'glass', title: msg('A voice in the glass'), found: msg('Found on the town plaza'), where: 'town' },
-  { id: 'camp', title: msg('Where the sword fell'), found: msg('Found in the merchant camp'), where: 'camp' },
+  { id: 'glass', title: msg('A voice in the glass'), found: msg('Found on a rock by the road'), where: { depth: 0 } },
+  { id: 'camp', title: msg('Where the sword fell'), found: FOUND_ROAD, where: { depth: 0 } },
   deep('breath', msg('Every glass begins with a breath')),
   deep('star-sand', msg('Star-sand')),
   deep('birds', msg('Little birds of glass')),

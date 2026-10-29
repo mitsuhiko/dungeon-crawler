@@ -7,12 +7,13 @@
 // so the kinds never move a spot. A spot carries its kind's profile as `kind`.
 // A fluid dweller (physics/dwell.js: the Squirtles) is placed in a fluid of its kind's instead
 // (`dwellerSpots`), and in an arena in its pond (cubegen/guardian.js).
-import { N } from '../core/constants.js';
+import { N, LH } from '../core/constants.js';
 import { enemyRoll, coinRange, guardianLevel, ENEMY_KINDS, GUARDIAN_KINDS, DESCENT_GUARDIAN_KINDS, isRanged } from '../core/enemies.js';
 import { guardianId } from '../core/guardians.js';
 import { population } from '../core/spawns.js';
 import { swarmKind, HORDE } from '../core/hordes.js';
 import { mulberry32, hash32 } from '../core/util.js';
+import { step as stepKey } from '../world/coords.js';
 import { walkable, neighbors, groundY, floorAt } from '../physics/enemynav.js';
 import { fixedWet, livesOn, walker, standY } from '../physics/dwell.js';
 
@@ -39,6 +40,7 @@ const ofSpecies = (spots, profile) => spots.filter(s => s.kind.species === profi
 export function enemySpots(map, profile) {
   if (map.guardian) return ofSpecies(placedOnce(map, 'guardian', guardianSpots), profile);
   if (map.horde) return ofSpecies(placedOnce(map, 'horde', hordeSpots), profile);
+  if (map.firstGlass) return ofSpecies(placedOnce(map, 'firstGlass', firstGlassSpots), profile);
   const spec = population(map).get(profile.type);
   if (!spec?.count) return [];
   if (profile.dwells) return dwellerSpots(map, profile, spec);
@@ -113,6 +115,30 @@ function dwellerSpots(map, profile, spec) {
   }
   return spots.map((f, i) => ({ ...enemyRoll(map, out[i], f.id), respawn: map.key, kind: out[i], f, x: f.x + 0.5, z: f.z + 0.5,
     y: standY(out[i], f, f.x + 0.5, f.z + 0.5), yaw: R() * Math.PI * 2 }));
+}
+
+// The beginning's rock (core/intro.js, core/spawns.js FIRST_GLASS): its snakes wait round the foot of
+// its ladder, on the side the hero comes from (the room's way in from the merchant camp), a little
+// apart, facing that way: they stand between the hero and his glass.
+const FOOT = [1.2, 3.6];   // cells from the ladder's foot
+function firstGlassSpots(map) {
+  const [type, spec] = [...population(map)][0], kind = ENEMY_KINDS[type], l = map.firstGlass.ladder;
+  const came = map.route?.[map.routeIndex - 1], into = map.portals.find(p => came && stepKey(map.key, p.dir) === came) ?? map.portals[0];
+  const ix = into.x + 0.5, iz = into.z + 0.5, R = mulberry32(hash32(map.seed ^ 0xf1a55));
+  const cand = map.floors.filter(f => walkable(f, kind.height) && !f.siteAnchor && !f.siteAccess && !f.spot
+    && Math.abs(f.top * LH - l.y) < 0.6 && f.x > 0 && f.z > 0 && f.x < N - 1 && f.z < N - 1
+    && Math.hypot(f.x + 0.5 - l.x, f.z + 0.5 - l.z) >= FOOT[0] && Math.hypot(f.x + 0.5 - l.x, f.z + 0.5 - l.z) <= FOOT[1]
+    && Math.hypot(f.x - into.x, f.z - into.z) >= 4 && neighbors(f, kind.height).length >= 2
+    && [[kind.radius, 0], [-kind.radius, 0], [0, kind.radius], [0, -kind.radius]].every(([x, z]) => floorAt(f, f.x + 0.5 + x, f.z + 0.5 + z, kind.height)))
+    .map(f => ({ f, s: Math.hypot(f.x + 0.5 - ix, f.z + 0.5 - iz) + R() * 0.8 }))
+    .sort((a, b) => a.s - b.s).map(c => c.f);
+  const spots = [];
+  for (const f of cand) {
+    if (spots.length >= spec.count) break;
+    if (spots.every(g => Math.hypot(g.x - f.x, g.z - f.z) >= 1.4)) spots.push(f);
+  }
+  return spots.map(f => ({ ...enemyRoll(map, kind, f.id), respawn: map.key, kind, f, x: f.x + 0.5, z: f.z + 0.5,
+    y: groundY(f, f.x + 0.5, f.z + 0.5), yaw: Math.atan2(ix - f.x - 0.5, iz - f.z - 0.5) }));
 }
 
 // A connected local spawn patch; IDs/rolls use member slots, not terrain floor IDs.

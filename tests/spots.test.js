@@ -21,7 +21,9 @@ test('every depth plans its spots from the seed: hiding places, two seats, a cam
       assert.equal(count('seat'), SEATS);
       assert.equal(count('camp'), d > 0 && campDepth(d) ? 1 : 0, `depth ${d}'s camp`);
       // the glassmaker's glass: one on the way, one hidden off it, in rooms of their own
-      const glass = list.filter(s => s.kind === 'glass');
+      // (and depth 0's third: the recording that came up with his sword, past the beginning's rock)
+      const glass = list.filter(s => s.kind === 'glass' && !s.part);
+      assert.equal(list.filter(s => s.part === 'camp').length, d === 0 ? 1 : 0);
       assert.deepEqual(glass.map(s => s.glass), glassAt(seed, d).map((_, i) => i), `depth ${d}'s glass`);
       if (glass.length) {
         assert.ok(l.route.includes(glass[0].key) && glass[0].way, `depth ${d}: a glass on the way`);
@@ -88,7 +90,7 @@ function checkSpots(world, map, plans) {
       assert.ok(props.out.some(q => q.spot === s.id && q.name.includes('campfire')), 'the camp has its fire');
     }
     if (s.kind === 'seat') assert.ok(Math.hypot(s.anchor.x - s.approach.x, s.anchor.z - s.approach.z) === 1);
-    if (s.kind === 'glass') assert.ok(s.cells.length === 1 && [0, 1].includes(s.glass), 'a glass floats over one cell');
+    if (s.kind === 'glass') assert.ok(s.cells.length === 1 && ([0, 1].includes(s.glass) || s.part === 'camp'), 'a glass floats over one cell');
     if (s.kind === 'outpost') {
       assert.equal(s.cells.length, 9);
       assert.equal(s.places.length, 1, 'its keeper');

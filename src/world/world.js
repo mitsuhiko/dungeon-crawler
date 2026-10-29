@@ -85,8 +85,10 @@ export class World {
     // the set-piece cubes (cubegen/setpieces.js): a lone peak with a discovery on top, up a ladder,
     // in a flat empty field; a great lake, a discovery on an islet in it
     const discovery = (L.sitePlans.get(k) || []).find(i => !i.landmark), Rs = this.wfc.rng(k, 0x5e7c);
-    const peak = L.peak === k && !special ? { x: 5 + Math.floor(Rs() * 3), z: 5 + Math.floor(Rs() * 3),
-      side: discovery && discovery.prestige !== 'basic' ? 5 : 4, rise: 10 + Math.floor(Rs() * 4) } : null;
+    // (the beginning's third room is one too, with his first glass on top: core/intro.js)
+    const firstGlass = L.firstGlass === k;
+    const peak = (L.peak === k || firstGlass) && !special ? { x: 5 + Math.floor(Rs() * 3), z: 5 + Math.floor(Rs() * 3),
+      side: firstGlass || discovery && discovery.prestige !== 'basic' ? 5 : 4, rise: (firstGlass ? 6 : 10) + Math.floor(Rs() * 4) } : null;
     const lake = L.lake === k && !special ? { islet: discovery ? { x: 7 + Rs(), z: 7 + Rs(), r: discovery.prestige === 'basic' ? 2.3 : 2.9 } : null } : null;
     // a short tunnel the way leads through (cubegen/tunnel.js): not where rivers run, falls come
     // or go, spouts pour, a horde waits, or something else shapes the cube
@@ -107,8 +109,9 @@ export class World {
       fluid, fluidMix: theme.fluids, mud: theme.mud ?? 0, voidOK: !annex && voidAllowed(this, k), fallIn: fallMask(this, k),
       outflow, inflow, relief: theme.relief, height, pinnacle, tunnel, shaftBottom: special ? null : shaftAbove(this, k),
       area, peak, lake, sparse: !!(peak || lake),   // sparse: mostly empty (few props, render/propplace.js)
+      firstGlass,   // the beginning's third room: his first glass on the peak (core/intro.js)
       // islands without pillars: lakes, the sky islands near the top and the abyss
-      floating: !isClearing(k, this.seed) && (t.kind === 'lake' || ((-Y <= 3 || -Y >= 19) && this.wfc.rng(k, 0xf10a7)() < 0.5)),
+      floating: !isClearing(k, this.seed) && !firstGlass && (t.kind === 'lake' || ((-Y <= 3 || -Y >= 19) && this.wfc.rng(k, 0xf10a7)() < 0.5)),
       seed: hash32(this.seed ^ hashKey(k)),
       trial: trial && { id: trial.id, key: trial.key, kind: trial.kind, role: trial.role, from: trial.from, fromDir: trial.fromDir,
         exit: trial.exit, gate: trial.gate, stages: trial.stages || null, depth: trial.depth, entry: trial.fromDir ^ 1 },

@@ -1,10 +1,9 @@
-// The beginning (core/intro.js, docs/story.md "The beginning"): the glassmaker's glass over the
-// town's plaza, another glass of his in the merchant camp and his old sword stuck in the ground
-// there. They are drawn like a quest's things (render/loot.js: glowing gold, always labelled;
-// clicked, the hero walks there), and walking onto one takes it:
-// - a glass breaks and its recording plays (game/narrator.js): the town's opens the memories (the
-//   inventory's Memories tab, game/memorypanel.js) and the town's gate; the camp's tells where the
-//   sword fell;
+// The beginning (core/intro.js, docs/story.md "The beginning"): the glassmaker's old sword stuck in
+// the ground in the merchant camp, his first glass on top of the rock in the room after it, and his
+// glass further on. They are drawn like a quest's things (render/loot.js: glowing gold, always
+// labelled; clicked, the hero walks there), and walking onto one takes it:
+// - a glass breaks and its recording plays (game/narrator.js): the rock's opens the memories (the
+//   inventory's Memories tab, game/memorypanel.js) and the rock's gate on along the road;
 // - the sword goes into the bag (in hand, if nothing is; one of his in the bag already is replaced
 //   by it, core/intro.js pullSword) and the camp's gate out to the road opens.
 // His words only ever come out of his glass: coming somewhere or taking the sword says nothing.
@@ -14,7 +13,7 @@
 // Playing together the others are told (relay.story, net/session.js): a gate opened here opens
 // for everyone, and a recording one of us sets off plays for everyone at once (heardStory).
 import { player, state, setStatus, worldPaused } from './state.js';
-import { INTRO_GATES, glassThere, campGlassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../core/intro.js';
+import { INTRO_GATES, glassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../core/intro.js';
 import { meetRobot } from '../core/robot.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
 import { equipItem } from '../core/inventory.js';
@@ -37,22 +36,22 @@ const weapons = () => player.inventory.slots.filter(s => s && ITEMS[s.itemId]?.w
 // the beginning's things in the cube we are in, as pickups to draw (render/loot.js drawLoot) and
 // label (game/lootlabels.js)
 export function introThingsHere() {
-  const map = state.map, run = state.run, at = map?.relics;
-  if (!at || !run) return depthGlassHere();
+  const map = state.map, run = state.run;
+  if (!map || !run) return [];
   const thing = ({ x, y, z }) => ({ x, y, z, toss: 1, phase: 0, from: [x, y, z], count: 1, questItem: true });
   // a glass of his: `part` its recording (core/narration.js RECORDINGS)
   const glass = (q, id, part) => ({ ...thing(q), id, story: 'glass', part, itemId: GLASS_VIEW, title: msg('Bubble of star-glass'), lift: GLASS_LIFT, labelY: 1.35 });
-  const out = [];
-  if (map.town && glassThere(run)) out.push(glass(at.glass, 'story:glass', 'glass'));
-  if (map.merchantCamp && campGlassThere(run)) out.push(glass(at.glass, 'story:camp', 'camp'));
-  if (map.merchantCamp && swordThere(run, weapons()))
-    out.push({ ...thing(at.sword), id: 'story:sword', story: 'sword', itemId: OLD_SWORD.id, title: OLD_SWORD.name, stuck: true, labelY: 1.1 });
+  const out = depthGlassHere();
+  if (map.firstGlass && glassThere(run)) out.push(glass(map.firstGlass.glass, 'story:glass', 'glass'));
+  if (map.merchantCamp && map.relics?.sword && swordThere(run, weapons()))
+    out.push({ ...thing(map.relics.sword), id: 'story:sword', story: 'sword', itemId: OLD_SWORD.id, title: OLD_SWORD.name, stuck: true, labelY: 1.1 });
   return out;
 }
-// his glass in the depths (core/glass.js): on the cube's glass spots, until its recording is heard
+// his glass further on (core/glass.js; depth 0's 'camp' too): on the cube's glass spots, until its
+// recording is heard
 function depthGlassHere() {
   const map = state.map, run = state.run;
-  if (!map || !run || map.testRoom) return [];
+  if (map.testRoom) return [];
   return depthGlassIn(map, run, state.cubes?.seed ?? 0).map(({ spot, part }) => ({ ...spot.anchor, toss: 1, phase: 0,
     from: [spot.anchor.x, spot.anchor.y, spot.anchor.z], count: 1, questItem: true, id: `story:glass:${part}`, story: 'glass', part,
     itemId: GLASS_VIEW, title: msg('Bubble of star-glass'), lift: GLASS_LIFT, labelY: 1.35 }));
@@ -88,7 +87,7 @@ function findGlass(p) {
   sfx('shatter');
   if (p.part === 'glass') {
     open(INTRO_GATES.glass);
-    setStatus(tr('The glass broke, and a voice came out of it. The gate out of the town is open.'));
+    setStatus(tr('The glass broke, and a voice came out of it. The gate on along the road is open.'));
   } else setStatus(tr('The glass broke, and a voice came out of it.'));
   narrate('recording', { part: p.part });
   relay.story?.(p.part);
@@ -122,11 +121,12 @@ export function heardStory(what) {
 }
 
 // game/flow.js newWorld: the beginning done already in a world saved before it existed (somebody
-// has been out past the camp), and with the dev tools (?intro=1: played anyway). The dev tools skip
-// the robot's waking too: it is with the hero from the start (core/robot.js). A world saved before
-// there was a robot has it lie asleep in the merchant camp until it is woken.
-export function settleIntro(run, seed, visited = [], dev = false, params = new URLSearchParams()) {
+// has been out past the rock; layout0: depth 0's layout), and with the dev tools (?intro=1: played
+// anyway). The dev tools skip the robot's waking too: it is with the hero from the start
+// (core/robot.js). A world saved before there was a robot has it lie asleep in the merchant camp
+// until the hero comes by.
+export function settleIntro(run, layout0, visited = [], dev = false, params = new URLSearchParams()) {
   const skip = dev && params.get('intro') !== '1';
-  if (skip || pastIntro(visited, seed)) skipIntro(run);
+  if (skip || pastIntro(visited, layout0)) skipIntro(run);
   if (skip) meetRobot(run);
 }
