@@ -10,6 +10,11 @@
 // of a core: the sound broke up. The browser resamples to the device, which is cheap.
 // 'balanced' latency gives the audio thread a longer buffer than 'interactive', so a busy
 // moment does not crackle; the sound effects come a few ms later, which nobody hears.
+// On an iPhone or iPad, Web Audio is 'ambient' by default: the ring/silent switch (or silent
+// mode) mutes it, as it does a ringtone. A game is played, not rung: the audio session is
+// 'playback', like a video's, so it sounds with the switch on silent (the volume buttons still
+// work). It also pauses another app's music while the game plays, as a video does. (Safari 17+:
+// navigator.audioSession; elsewhere it is not there, and nothing changes.)
 const RATE = 44100;
 let ctx = null, sounds = null, music = null, voice = null, master = null;
 const starters = [];
@@ -24,6 +29,7 @@ function start() {
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
     try { ctx = new AC({ sampleRate: RATE, latencyHint: 'balanced' }); }
     catch { ctx = new AC(); }   // (old Safari takes no options)
     sounds = ctx.createGain(); music = ctx.createGain(); voice = ctx.createGain(); master = ctx.createGain();
