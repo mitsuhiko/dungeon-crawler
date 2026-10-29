@@ -15,11 +15,10 @@ import { player, state } from './state.js';
 import { allEnemies, mirroring, resetEnemies } from './enemies.js';
 import { bossOf } from '../core/bossbar.js';
 import { enemyName } from '../core/enemies.js';
-import { INTROS, introOf, shotAt, shotFrame, shotPoint, shotScale, blendAt, blinking, BLINK, dimAt, within, epithetOf } from '../core/bossintro.js';
-import { N, LH } from '../core/constants.js';
-import { viewBlockedAt } from '../core/blockers.js';
+import { INTROS, introOf, shotAt, shotFrame, shotScale, blendAt, blinking, BLINK, dimAt, within, epithetOf } from '../core/bossintro.js';
 import { REVEALS } from './reveals.js';
-import { setCine, WALLED } from './camera.js';
+import { setCine } from './camera.js';
+import { clearShots } from './cineshots.js';
 import { spawnAt } from './flow.js';
 import { curtained } from './hud.js';
 import { clearInput } from './inputstate.js';
@@ -28,8 +27,7 @@ import { cancelSword } from './sword.js';
 import { reduceMotion } from './settings.js';
 import { online } from '../net/online.js';
 import { camera, renderer } from '../render/scene.js';
-import { groundAt, insideSolid, cellAt } from '../physics/collide.js';
-import { standingAt } from '../physics/fluid.js';
+import { groundAt } from '../physics/collide.js';
 import { firesUnder } from '../render/flames.js';
 import { emit, glow, rand } from '../render/particles.js';
 import { hideIntroFx } from '../render/introfx.js';
@@ -129,7 +127,7 @@ function start(e, full) {
   cancelSword(); clearInput(); clearMouseInput();
   reveal?.start(run);
   run.frame = shotFrame(player, spot, run.k, run.side);
-  run.shots = clearShots(run);
+  run.shots = clearIntroShots(run);
   run.fires = def.fires && state.world ? firesUnder(state.world.group) : [];
   document.body.classList.add('cinematic');
 }
@@ -187,76 +185,10 @@ function fires(r, t) {
   if (flared && !f.wave) sfx('fireball', { at: r.e, pitch: 0.5, volume: 0.7 });
 }
 
-// The intro's shots, each key's camera out of the way: where it is (at the key's moment: the boss
-// where the reveal has him then) inside something, under a fluid, outside the cube, or with
-// something between it and what it looks at, it is moved round what it looks at (TRIES: the
-// nearest first: a little round, further or closer, higher), to the first place that is clear.
-// None clear: as it was (the camera then keeps in front of what is in the way, game/camera.js).
-const TRIES = (() => {
-  const out = [];
-  for (const turn of [0, 20, -20, 40, -40, 65, -65, 90, -90, 120, -120, 150, -150, 180])
-    for (const far of [1, 0.85, 1.2, 0.7, 1.45, 0.55])
-      for (const up of [0, 0.8, 1.6, 2.6, 4])
-        out.push({ turn: turn * Math.PI / 180, far, up, cost: Math.abs(turn) / 25 + Math.abs(Math.log(far)) * 4 + up * 0.7 });
-  return out.sort((a, b) => a.cost - b.cost);
-})();
-function clearShots(r) {
-  const { f, r: right, k } = r.frame;
-  return cutWhereBlocked(r, r.def.shots.map(key => {
-    const anchors = { ...r.anchors, boss: r.reveal?.where?.(r, key.t) ?? r.spot }, look = shotPoint(r.frame, anchors, key.look);
-    const cam = shotPoint(r.frame, anchors, key.cam), dx = cam[0] - look[0], dz = cam[2] - look[2], o = anchors[key.cam[0]] ?? anchors.spot;
-    const kk = key.cam[0] === 'hero' ? 1 : k;
-    for (const { turn, far, up } of TRIES) {
-      const c = Math.cos(turn), s = Math.sin(turn);
-      const p = [look[0] + (dx * c - dz * s) * far, cam[1] + up, look[2] + (dx * s + dz * c) * far];
-      if (!clearView(p, look)) continue;
-      if (!turn && far === 1 && !up) return key;
-      // (back into the key's terms: round its anchor, in the frame)
-      const ox = p[0] - o.x, oz = p[2] - o.z;
-      return { ...key, cam: [key.cam[0], (ox * f[0] + oz * f[1]) / kk, (ox * right[0] + oz * right[1]) / kk, (p[1] - o.y) / kk] };
-    }
-    return key;
-  }));
-}
-// Where the camera's way from one key to the next would go into something (or under a fluid), or
-// lose sight of what it looks at for a while (a tower between), it cuts to the next key instead.
-function cutWhereBlocked(r, keys) {
-  const STEPS = 10;
-  for (let i = 0; i + 1 < keys.length; i++) {
-    if (keys[i + 1].cut) continue;
-    let hidden = 0;
-    for (let n = 1; n < STEPS; n++) {
-      const t = keys[i].t + (keys[i + 1].t - keys[i].t) * n / STEPS;
-      const shot = shotAt(keys, t, r.frame, { ...r.anchors, boss: r.reveal?.where?.(r, t) ?? r.spot }), [x, y, z] = shot.cam;
-      const inside = insideSolid(x, z, y) || viewBlockedAt(state.map, x, y, z) || underFluid(x, y, z);
-      hidden = clearView(shot.cam, shot.look) ? 0 : hidden + 1;
-      if (inside || hidden >= 3) { keys[i + 1] = { ...keys[i + 1], cut: true }; break; }
-    }
-  }
-  return keys;
-}
-// a camera at p looking at `at`: in the cube (off the walls round it), out of every solid (a little round it too) and over
-// every fluid, with nothing between
-function clearView(p, at) {
-  const m = state.map, [x, y, z] = p;
-  const edge = m.walled ? WALLED : 0.4;
-  if (x < edge || z < edge || x > N - edge || z > N - edge || underFluid(x, y, z)) return false;
-  for (const [dx, dy, dz] of [[0, 0, 0], [0.35, 0, 0], [-0.35, 0, 0], [0, 0, 0.35], [0, 0, -0.35], [0, 0.35, 0], [0, -0.35, 0]])
-    if (insideSolid(x + dx, z + dz, y + dy) || viewBlockedAt(m, x + dx, y + dy, z + dz)) return false;
-  const len = Math.hypot(x - at[0], y - at[1], z - at[2]);
-  for (let s = 0.3; s < len; s += 0.12) {
-    const k = s / len, px = at[0] + (x - at[0]) * k, py = at[1] + (y - at[1]) * k, pz = at[2] + (z - at[2]) * k;
-    if (insideSolid(px, pz, py) || viewBlockedAt(m, px, py, pz)) return false;
-  }
-  return true;
-}
-// is (x, y, z) in a fluid, or just over it (a standing one too: a boss's tide, Foggery's lava)?
-function underFluid(x, y, z) {
-  const s = standingAt(x, z);
-  if (s && y < s.y + 0.35) return true;
-  const i = cellAt(x, z);
-  return i >= 0 && state.map.cols[i].some(f => f.fluid && y < f.surf * LH + 0.35 && y > f.top * LH - 1);
-}
+// The intro's shots, each key's camera out of the way (game/cineshots.js), the boss where the reveal
+// has him at the key's moment
+const anchorsAt = r => t => ({ ...r.anchors, boss: r.reveal?.where?.(r, t) ?? r.spot });
+const clearIntroShots = r => clearShots(r.def.shots, r.frame, anchorsAt(r));
 
 // skipped: on to where the camera goes back, him as the fight wants him
 function skip() {
