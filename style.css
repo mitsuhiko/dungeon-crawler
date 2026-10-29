@@ -588,6 +588,9 @@ body.touch #teleport-menu kbd { display: none; }
 #subtitle p { margin: 0; font: italic 21px/1.35 var(--font-body); color: #f4ede2; text-align: center;
   text-wrap: balance; text-shadow: 0 1px 2px #000, 0 0 8px #000; }
 body.calm #subtitle { transition: none; }
+/* in a boss's intro or a scene of the story the black bars (#letterbox, 10.5% of the window each) come in: it stands over the
+   lower one, never in it */
+body.cinematic #subtitle { bottom: calc(10.5% + 14px) !important; }
 #effects { position: fixed; left: 50%; bottom: 78px; transform: translateX(-50%); z-index: 19; display: flex; gap: 5px; pointer-events: none; }
 #effects .fx { position: relative; width: 30px; height: 30px; padding: 2px; overflow: hidden; --c1: 4px; --c2: 1px; --c3: 4px; --c4: 1px; --face: #0e1312d9; --edge-hi: #5e7f78; --edge-lo: #26302e; }
 #effects .fx img { width: 100%; height: 100%; object-fit: contain; display: block; position: relative; }
