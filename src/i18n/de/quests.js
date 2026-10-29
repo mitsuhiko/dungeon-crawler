@@ -628,4 +628,20 @@ export default {
   '{name}: You found me! I was so scared. I will go straight back. Here, take this.': '{name}: Du hast mich gefunden! Ich hatte solche Angst. Ich gehe gleich zurück. Hier, nimm das.',
   '{name}: Is it safe? With you here, it is. I will go home now. Take this, please.': '{name}: Ist es sicher? Mit dir hier schon. Ich gehe jetzt nach Hause. Nimm das, bitte.',
   '{name}: Finally! My feet hurt and I am hungry. Thank you! Here, for you.': '{name}: Endlich! Mir tun die Füße weh, und ich habe Hunger. Danke! Hier, für dich.',
+
+  // twists (core/quests.js TWISTS): guards, an ambush, somebody hurt
+  '{story} {twist}': '{story} {twist}',
+  '{person} may be hurt. Take a health potion along!': '{person} ist vielleicht verletzt. Nimm einen Heiltrank mit!',
+  '{goal} (bring a health potion)': '{goal} (bring einen Heiltrank mit)',
+  'Something waits there for whoever comes along. Keep your weapon ready.': 'Dort wartet etwas auf jeden, der vorbeikommt. Halt deine Waffe bereit.',
+  'And it never goes anywhere without its gang of {enemy:pl}.': 'Und es ist nie ohne seine Bande unterwegs: lauter {enemy:pl}.',
+  'And hurry: {enemy:pl} prowl all round {person:him}, and {person} will not come out while they are there.':
+    'Und beeil dich: Um {person:ihn} herum streifen {enemy:pl}, und solange sie da sind, kommt {person} nicht heraus.',
+  'Careful: a pack of {enemy:pl} has settled right there. Chase them off first.': 'Vorsicht: Genau dort hat sich ein Rudel {enemy:pl} niedergelassen. Verjag sie zuerst.',
+  '{goal}, guarded by {enemy:pl}': '{goal} (bewacht: {enemy:pl})',
+  'Its guards are still here! Beat them first.': 'Es wird noch bewacht! Besiege zuerst die Monster drumherum.',
+  'An ambush!': 'Ein Hinterhalt!',
+  '{name}: Help! Not while they are still here!': '{name}: Hilfe! Nicht, solange die noch hier sind!',
+  '{name} is hurt and cannot walk. Bring a health potion!': '{name} ist verletzt und kann nicht laufen. Bring einen Heiltrank!',
+  'Something is guarded here...': 'Hier wird etwas bewacht …',
 };

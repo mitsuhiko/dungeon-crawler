@@ -23,7 +23,7 @@ import { TEST_ROOMS, isTestRoom, testRoomDepth } from '../world/testrooms.js';
 import { TRIALS, TRIAL_KINDS } from '../core/trials.js';
 import { devTrial } from './trials.js';
 import { SPOT_KINDS } from '../world/spots.js';
-import { QUEST_KINDS } from '../core/quests.js';
+import { QUEST_KINDS, TWISTS } from '../core/quests.js';
 import { devQuest } from './quests.js';
 import { BRIDGE_STYLES, LADDER_STYLES } from '../themes/builds.js';
 import { ARENA_WEIGHTS } from '../world/arenas.js';
@@ -240,10 +240,13 @@ dev({
   async run({ kind }) { await goFeature(kind); },
 });
 addType(commands, { name: 'questkind', values: () => QUEST_KINDS.map(k => ({ value: k, label: k })) });
+addType(commands, { name: 'twist', values: () => ['none', ...new Set(Object.values(TWISTS).flat())].map(k => ({ value: k, label: k })) });
 dev({
-  name: 'quest', help: 'a quest of this kind on this depth (default: here), taken at once',
-  args: [{ name: 'kind', type: 'questkind' }, { name: 'depth', type: 'depth', optional: true }],
-  run({ kind, depth }) { return devQuest(kind, depth === undefined ? state.map?.depth ?? 0 : Number(depth)); },
+  name: 'quest', help: 'a quest of this kind on this depth (default: here), taken at once; with a twist (none: without)',
+  args: [{ name: 'kind', type: 'questkind' }, { name: 'depth', type: 'depth', optional: true }, { name: 'twist', type: 'twist', optional: true }],
+  run({ kind, depth, twist }) {
+    return devQuest(kind, depth === undefined ? state.map?.depth ?? 0 : Number(depth), twist === undefined ? undefined : twist === 'none' ? null : twist);
+  },
 });
 addType(commands, { name: 'spotkind', values: () => SPOT_KINDS.map(k => ({ value: k, label: k })) });
 dev({

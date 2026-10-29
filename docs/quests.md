@@ -72,6 +72,21 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
   people again, related the same way. A new one gets a name (`KIN_NAMES`) nobody of the quests has
   yet: not the giver's own, nor the families', the people found, or those living two depths up or
   down.
+- **Twists** (`TWISTS`, `twisted`): now and then (a fifth of the easy quests, two in five of the
+  medium, three in five of the hard: `TWIST_CHANCE`) getting there is more than walking there. The
+  story says so, and so does the goal. On the stage that finds a thing, somebody or a bounty:
+  - `guarded` (a find, a rescue): a few of the depth's enemies that fight up close
+    (`core/bounties.js pickGuards`, more deeper down and on a hard quest) stand round the hiding
+    place; the thing cannot be picked up, nor will the person come out, while they stand. Ids
+    `q:<quest id>:g<n>`, remembered like a bounty's (`run.defeated`, back with a death there);
+    `game/questworld.js guardsHere` puts them there like the bounties.
+  - `ambush` (a find, a relay's find): picking the thing up springs an ambush: enemies come
+    running from a few cells off (only on the game that runs the cube's enemies).
+  - `hurt` (a rescue): the person found needs a health potion (from the talker's bag) before they
+    can go home.
+  - `escort` (a bounty): its gang stands round it (`guards`); the bounty is done once it falls.
+  A twist with enemies makes the quest a step harder (and pays so). None on the road out of town
+  but `hurt`. `/quest <kind> [depth] [twist]` (dev) makes one with a twist (`none`: without).
 - **Voices** (`core/questvoices.js`): every villager talks in a voice of their own, and the people
   out in the world by their role (the smith gruff, the innkeeper a gossip with soup, the keeper all
   rabbits, the scholar footnotes ...). Each kind has a few titles and stories anybody tells and some

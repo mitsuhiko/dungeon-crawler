@@ -41,7 +41,7 @@ import { bossAt } from './bosses.js';
 import { PROP_METADATA } from './propmetadata.js';
 import { ROLES, residentOf, isNpcGiver, spotOfGiver, keyOfSpot, personWords, roleWords, titleWords } from './npcs.js';
 import { questPlan, clueOf, lostPerson, campOf, SCOUTS } from './questplan.js';
-import { pickBounty, bountyKind } from './bounties.js';
+import { pickBounty, bountyKind, pickGuards } from './bounties.js';
 import { msg, phrase, noun, tr, say, cleanWords } from '../i18n/i18n.js';
 import { told, dressed, thanksOf } from './questvoices.js';
 
@@ -652,9 +652,16 @@ export function makeQuest(log, ctx, giver, slot) {
       && !goalDone({ goal: kind, depth: t.depth, key: t.key }, log, f));
     if (!options.length) continue;
     const t = options[Math.floor(R() * options.length)];
-    const step = Math.max(0, Math.min(2, t.depth - log.deepest + (t.role === 'descent' || kind === 'bounty' || kind === 'defense' ? 1 : 0)
+    let step = Math.max(0, Math.min(2, t.depth - log.deepest + (t.role === 'descent' || kind === 'bounty' || kind === 'defense' ? 1 : 0)
       + ((t.tier ?? 0) >= 3 ? 1 : 0)));
+    // a twist (TWISTS) now and then, likelier the harder it is; one with enemies makes it harder
+    const twists = (TWISTS[kind] ?? []).filter(x => t.depth > 0 || x === 'hurt');
+    // (slot.twist: this one, the dev tools'; null: none)
+    const twist = slot.twist !== undefined ? (twists.includes(slot.twist) ? slot.twist : null)
+      : twists.length && R() < TWIST_CHANCE[step] ? pick(R, twists) : null;
+    if (twist && twist !== 'hurt') step = Math.min(2, step + 1);
     const difficulty = DIFFICULTIES[step], voice = g.role, made = KINDS[kind].quest(t, ctx, R, { id, giver, difficulty, log, g, voice });
+    if (twist) twisted(made, twist, t.depth, difficulty, hash32(ctx.seed ^ hashString(id) ^ 0x7157));
     const text = dressed(R, voice, made.text), thanks = KINDS[kind].payout === 'return' ? thanksOf(R, voice) : null;
     const rewards = questRewards(R, t.depth, difficulty);
     return { id, giver, n: Number(slot.id.split(':')[1]) || 0, slot: slot.id, from: { name: g.name, title: g.title, where: g.where },
@@ -665,6 +672,38 @@ export function makeQuest(log, ctx, giver, slot) {
       state: 'offered', archived: false, created: ctx.now ?? 0, finished: 0 };
   }
   return null;
+}
+
+// Twists (docs/quests.md, "Twists"): what makes getting there more than walking there, on the
+// stage that finds a thing, finds somebody or beats a bounty:
+//   guarded  a few of the depth's enemies stand round the hiding place: the thing (or the person,
+//            who will not come out) only once they are beaten (stage.guards: { enemy, n })
+//   ambush   picking the thing up springs an ambush: enemies come running (stage.ambush)
+//   hurt     the person found is hurt: they need a health potion before they can go home (stage.hurt)
+//   escort   the bounty has a gang round it (stage.guards)
+// The story says so, and so does the goal.
+export const TWISTS = { find: ['guarded', 'ambush'], relay: ['ambush'], rescue: ['guarded', 'hurt'], bounty: ['escort'] };
+export const TWIST_CHANCE = [0.2, 0.4, 0.6];   // by difficulty
+const TWIST_GOALS = ['find', 'rescue', 'bounty'];
+function twisted(made, twist, depth, difficulty, seed) {
+  const s = made.stages.find(x => TWIST_GOALS.includes(x.goal));
+  if (!s) return;
+  const guards = pickGuards(depth, seed, difficulty === 'hard'), enemy = noun(ENEMY_KINDS[guards.enemy].label);
+  const w = { enemy, goal: s.text, ...(s.person ? { person: personWords(s.person.name) } : {}) };
+  const tell = (story, goal) => { made.text = phrase('{story} {twist}', { story: made.text, twist: story }); s.text = goal; };
+  if (twist === 'hurt') {
+    s.hurt = true;
+    tell(phrase('{person} may be hurt. Take a health potion along!', w), phrase('{goal} (bring a health potion)', w));
+  } else if (twist === 'ambush') {
+    s.ambush = guards;
+    tell(phrase('Something waits there for whoever comes along. Keep your weapon ready.', w), s.text);
+  } else {
+    s.guards = guards;
+    tell(twist === 'escort' ? phrase('And it never goes anywhere without its gang of {enemy:pl}.', w)
+      : s.goal === 'rescue' ? phrase('And hurry: {enemy:pl} prowl all round {person:him}, and {person} will not come out while they are there.', w)
+      : phrase('Careful: a pack of {enemy:pl} has settled right there. Chase them off first.', w),
+    phrase('{goal}, guarded by {enemy:pl}', w));
+  }
 }
 
 // a repeatable quest come back (REPEAT): of its kind, at its giver's depth (a villager's: at or a
@@ -975,6 +1014,8 @@ function checkStage(s) {
   }
   if (s.clue) out.clue = words(s.clue, 120);
   if (s.goal === 'defend') out.waves = Math.max(1, Math.min(9, nat(s.waves) || 3));
+  for (const k of ['guards', 'ambush']) if (isObj(s[k]) && ENEMY_KINDS[s[k].enemy]) out[k] = { enemy: s[k].enemy, n: Math.max(1, Math.min(8, nat(s[k].n) || 2)) };
+  if (s.hurt) out.hurt = true;
   if (typeof s.opens === 'string' && s.opens.startsWith('annex:')) out.opens = s.opens.slice(0, 60);
   if (['find', 'rescue', 'open', 'bounty', 'defend'].includes(s.goal) && !out.spot) return null;
   return out;

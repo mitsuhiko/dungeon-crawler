@@ -15,12 +15,12 @@ import { log } from './log.js';
 import { sfx } from '../audio/sfx.js';
 import { jingle } from '../audio/jingles.js';
 import { awardXP } from '../core/progression.js';
-import { addCopper, addInstance, autoBar, fits, formatCoins } from '../core/inventory.js';
-import { ITEMS } from '../core/items.js';
+import { addCopper, addInstance, autoBar, fits, formatCoins, removeItem } from '../core/inventory.js';
+import { ITEMS, HEALTH_POTION } from '../core/items.js';
 import { dropAtFeet } from './loot.js';
 import { giverOf, giverName, meet, fail, openedGates, makeQuest, refreshOffers, settle, questEvent as noteEvent, accept, archive, restart, handIn, wantsLandmark,
   progressOf, restoreProgress, checkQuestLog, checkRewards, packQuestLog, LANDMARK_REACH } from '../core/quests.js';
-import { pickUpQuestItems, questWorldChanged, bountiesHere } from './questworld.js';
+import { pickUpQuestItems, questWorldChanged, bountiesHere, guardsHere, guardsLeft } from './questworld.js';
 import { allEnemies, addEnemies, mirroring } from './enemies.js';
 import { rebuildWorld, refreshOpenFaces } from './flow.js';
 import { drawTracker } from './questpanel.js';
@@ -186,7 +186,7 @@ export function updateQuests(dt) {
     if (state.map && !state.transitioning && questWorldChanged()) rebuildWorld();
     // a bounty waiting here (where we run the enemies): on its hiding place
     if (state.map && !state.transitioning && !mirroring()) {
-      const here = new Set(allEnemies().map(e => e.id)), missing = bountiesHere().filter(e => !here.has(e.id));
+      const here = new Set(allEnemies().map(e => e.id)), missing = [...bountiesHere(), ...guardsHere()].filter(e => !here.has(e.id));
       if (missing.length) addEnemies(missing);
     }
   }
@@ -207,10 +207,11 @@ export const questLogPacked = () => state.run?.quests ? packQuestLog(state.run.q
 
 // --- the dev tools ------------------------------------------------------------------------------
 
-// /quest <kind> [depth] (game/devcommands.js): a quest of that kind there, taken at once, from
-// somebody who could give it. What it says (or why not).
+// /quest <kind> [depth] [twist] (game/devcommands.js): a quest of that kind there, taken at once,
+// from somebody who could give it (with that twist: core/quests.js TWISTS; null: none). What it
+// says (or why not).
 let devSerial = 0;
-export function devQuest(kind, depth) {
+export function devQuest(kind, depth, twist) {
   if (!live()) return 'No world';
   if (!questAuthority()) return 'Only the host makes quests';
   const L = questLog(), c = ctx(), layout = c.layout(depth), spots = [depth, depth - 1, depth - 2].filter(d => d >= 0).flatMap(d => c.layout(d).spotList);
@@ -218,7 +219,7 @@ export function devQuest(kind, depth) {
   const seat = layout.spotList.find(s => s.kind === 'seat');
   const giver = kind === 'rescue' ? camp && `npc:${camp.id}` : kind === 'defense' ? outpost && (outpost.annex ? (seat ? `npc:${seat.id}` : 'innkeeper') : `npc:${outpost.id}`) : 'innkeeper';
   if (!giver) return `Nobody near depth ${depth} could ask for that`;
-  const q = makeQuest(L, c, giver, { id: `dev:${++devSerial}`, depth, kind, force: true });
+  const q = makeQuest(L, c, giver, { id: `dev:${++devSerial}`, depth, kind, force: true, ...(twist !== undefined ? { twist } : {}) });
   if (!q || q.kind !== kind) return `No ${kind} quest fits on depth ${depth} now`;
   L.list.push(q); L.version++;
   doAct('accept', q.id);
@@ -243,9 +244,18 @@ export function questTalk(v) {
   }
   return null;
 }
-// talking to somebody a quest is looking for (game/questworld.js): found! They thank you
+// talking to somebody a quest is looking for (game/questworld.js): found! They thank you. But not
+// while their guards stand, and somebody hurt first needs a health potion (core/quests.js TWISTS)
 export function rescue(v) {
   if (!v?.lost || !live()) return false;
+  const q = questLog().list.find(x => x.id === v.lost), s = q?.stages[q.stage];
+  if (s && guardsLeft(q, s)) { setStatus(tr('{name}: Help! Not while they are still here!', { name: v.name })); return true; }
+  if (s?.hurt) {
+    const potion = player.inventory.slots.find(x => x?.itemId === HEALTH_POTION.id);
+    if (!potion) { setStatus(tr('{name} is hurt and cannot walk. Bring a health potion!', { name: v.name })); return true; }
+    removeItem(player.inventory, potion.instanceId, 1);
+    sfx('drink');
+  }
   setStatus(tr(foundSays(v.lost), { name: v.name }));
   questEvent({ kind: 'rescued', quest: v.lost });
   return true;

@@ -15,7 +15,11 @@ import { loadPropSets } from '../render/props.js';
 import { propSetsOf } from '../render/propplace.js';
 import { themeOf } from '../themes/depth.js';
 import { sfx } from '../audio/sfx.js';
-import { makeEnemy, coinRange } from '../core/enemies.js';
+import { makeEnemy, coinRange, ENEMY_KINDS, depthLevel } from '../core/enemies.js';
+import { walkable, groundY } from '../physics/enemynav.js';
+import { addEnemies, mirroring } from './enemies.js';
+import { hash32 } from '../core/util.js';
+import { hashString } from '../core/gear/drops.js';
 import { bountyKind, bountyLevel } from '../core/bounties.js';
 import { residentsOf, spotOfGiver, keyOfSpot } from '../core/npcs.js';
 import { TOWN_KEY, isInterior } from '../world/town.js';
@@ -111,15 +115,21 @@ export function questItemsHere() {
   return out;
 }
 
-// Every frame (game/quests.js): walking onto a thing picks it up for its quest. found: the quest
-// event to raise.
+// Every frame (game/quests.js): walking onto a thing picks it up for its quest (but not while its
+// guards stand: core/quests.js TWISTS). found: the quest event to raise.
 const picked = new Set();
+let guardedSaid = '';
 export function pickUpQuestItems(found) {
   if (state.transitioning || player.hp <= 0 || player.ragdoll) return;
   for (const p of questItemsHere()) {
     if (picked.has(p.id) || Math.hypot(p.x - player.x, p.z - player.z) > FIND_REACH || Math.abs(p.y - player.y) > 1) continue;
-    picked.add(p.id);
     const q = state.run.quests.list.find(x => x.id === p.quest), s = q?.stages[q.stage], thing = noun(ITEMS[p.itemId].name);
+    if (s && guardsLeft(q, s)) {
+      if (guardedSaid !== p.id) { guardedSaid = p.id; setStatus(tr('Its guards are still here! Beat them first.')); sfx('block'); }
+      continue;
+    }
+    picked.add(p.id);
+    if (s?.ambush) ambush(q, s, p);
     const giver = q ? giverName(q) : noun('whoever asked', { proper: true });
     sfx('pickup');
     if (p.spot) {
@@ -130,7 +140,58 @@ export function pickUpQuestItems(found) {
   }
 }
 // a death put the cube back: what was picked up there may be picked up again
-export const forgetPicked = () => picked.clear();
+export const forgetPicked = () => { picked.clear(); guardedSaid = ''; };
+
+// --- twists (core/quests.js TWISTS): guards round a hiding place, an ambush on it ---------------
+
+const guardIds = (q, s) => Array.from({ length: s.guards?.n ?? 0 }, (_, i) => `q:${q.id}:g${i}`);
+// are some of stage s's guards (quest q's) still standing?
+export const guardsLeft = (q, s) => guardIds(q, s).some(id => !state.run.defeated.has(id));
+// the floors round point `at` an enemy of `height` can stand on (lo to hi cells off, about level
+// with it, not on a planned spot or in a fluid), in an order of the quest's own
+function floorsRound(at, lo, hi, height, seed) {
+  const order = f => hash32(seed ^ Math.imul(f.x + 97, 0x9e3779b1) ^ Math.imul(f.z + 89, 0x85ebca6b));
+  return (state.map.floors ?? []).filter(f => {
+    const d = Math.hypot(f.x + .5 - at.x, f.z + .5 - at.z);
+    return d >= lo && d <= hi && Math.abs(groundY(f, f.x + .5, f.z + .5) - at.y) < 1.6 && walkable(f, height) && !f.spot && !f.fluid;
+  }).sort((a, b) => order(a) - order(b));
+}
+// enemies of kind `type` at depth's level on floors round `at`, facing it, with these ids
+function standRound(type, depth, at, ids, lo, hi, seed) {
+  const kind = ENEMY_KINDS[type], level = depthLevel(depth), floors = floorsRound(at, lo, hi, kind.height, seed);
+  if (!floors.length) return [];
+  return ids.map((id, i) => {
+    const f = floors[i % floors.length], x = f.x + .5, z = f.z + .5, [lo2, hi2] = coinRange(kind, level);
+    return makeEnemy({ id, level, coinDrop: Math.round((lo2 + hi2) / 3), kind, f, x, y: groundY(f, x, z), z, yaw: Math.atan2(at.x - x, at.z - z) }, kind, i);
+  });
+}
+// the guards standing here (core/quests.js TWISTS), as enemies (game/quests.js adds them), but
+// those defeated: round their hiding place (or their bounty)
+export function guardsHere() {
+  const map = state.map, log = state.run?.quests;
+  if (!map || !log || map.interior) return [];
+  const out = [];
+  for (const { quest, stage } of questGoalsIn(log, map.key)) {
+    if (!stage.guards) continue;
+    const s = spotOf(map, stage.spot), ids = guardIds(quest, stage).filter(id => !state.run.defeated.has(id));
+    if (s && ids.length) out.push(...standRound(stage.guards.enemy, stage.depth, s.anchor, ids, 1.4, 3.6, hash32(hashString(quest.id))));
+  }
+  return out;
+}
+// picking up quest q's thing springs its ambush: they come running from a few cells off (only the
+// game that runs the cube's enemies)
+let sprung = 0;
+function ambush(q, s, p) {
+  if (mirroring()) return;
+  const n = ++sprung, ids = Array.from({ length: s.ambush.n }, (_, i) => `q:${q.id}:a${n}:${i}`);
+  const list = standRound(s.ambush.enemy, s.depth, { x: p.x, y: p.y, z: p.z }, ids, 4, 7.5, hash32(hashString(q.id) ^ n));
+  if (!list.length) return;
+  // (they know where you are: noticed, they turn and come running)
+  for (const e of list) Object.assign(e, { mode: 'alert', t: 0.4, speed: 0, seen: { x: player.x, y: player.y, z: player.z, f: null }, lost: 0 });
+  addEnemies(list);
+  setStatus(tr('An ambush!'));
+  sfx('unlock');
+}
 
 // the bounties waiting here (core/bounties.js), as enemies (game/quests.js adds them), but those
 // defeated: on their hiding place, facing where you come from
@@ -139,7 +200,7 @@ export function bountiesHere() {
   if (!map || !log || map.interior) return [];
   const out = [];
   for (const { stage } of questGoalsIn(log, map.key)) {
-    if (stage.goal !== 'bounty' || state.run.defeated.has(stage.enemyId)) continue;
+    if (stage.goal !== 'bounty' || state.run.defeated.has(stage.enemyId)) continue;   // (its gang: guardsHere)
     const s = spotOf(map, stage.spot), f = s && map.floors[s.floor];
     if (!f) continue;
     const kind = bountyKind(stage.enemy, stage.name), level = bountyLevel(stage.depth), [lo, hi] = coinRange(kind, level);
@@ -214,8 +275,9 @@ function wayOnDepth(L, from, to, opened = state.openedFaces ?? new Set()) {
 export function noticeQuestGoals() {
   const log = state.run?.quests;
   if (!log || !state.map) return;
-  const goals = questGoalsIn(log, state.map.key).map(g => g.stage.goal);
-  if (goals.includes('bounty')) setStatus(tr('Something big is prowling about here...'));
+  const here = questGoalsIn(log, state.map.key), goals = here.map(g => g.stage.goal);
+  if (here.some(g => g.stage.guards && g.stage.goal !== 'bounty' && guardsLeft(g.quest, g.stage))) setStatus(tr('Something is guarded here...'));
+  else if (goals.includes('bounty')) setStatus(tr('Something big is prowling about here...'));
   else if (goals.includes('rescue')) setStatus(tr('You hear somebody calling for help!'));
   else if (goals.includes('find') || goals.includes('gather')) setStatus(tr('Something glints somewhere here...'));
   else if (goals.includes('open')) setStatus(tr('The cross on the map must be here somewhere!'));

@@ -525,3 +525,38 @@ test('every giver has a voice: their stories, thanks and greetings are their own
   const again = checkQuestLog(roundTrip(packQuestLog(log)));
   assert.deepEqual(again.list.map(q => say(q.thanks ?? '')), log.list.map(q => say(q.thanks ?? '')), 'the thanks are kept');
 });
+
+test('twists: guards round a hiding place, an ambush, somebody hurt, a bounty with its gang', async () => {
+  const { TWISTS } = await import('../src/core/quests.js');
+  const { ENEMY_KINDS, isRanged } = await import('../src/core/enemies.js');
+  const ctx = ctxOf(7);
+  for (const [kind, twists] of Object.entries(TWISTS)) for (const twist of twists) {
+    const log = createQuestLog();
+    log.deepest = 2;
+    const giver = kind === 'rescue' ? npcGiver([3, 2, 1].flatMap(d => ctx.layout(d).spotList).find(s => s.kind === 'camp').id) : 'innkeeper';
+    const q = makeQuest(log, ctx, giver, { id: '3:98', depth: 3, kind, force: true, twist });
+    assert.ok(q, `${kind} ${twist}`);
+    const s = q.stages.find(x => ['find', 'rescue', 'bounty'].includes(x.goal));
+    if (twist === 'hurt') assert.ok(s.hurt);
+    else {
+      const g = s[twist === 'ambush' ? 'ambush' : 'guards'];
+      assert.ok(g && ENEMY_KINDS[g.enemy] && !isRanged(ENEMY_KINDS[g.enemy]) && g.n >= 2, `${kind} ${twist}: ${JSON.stringify(g)}`);
+      assert.notEqual(q.difficulty, 'easy', 'enemies make it harder');
+    }
+    assert.ok(/health potion|weapon|gang|prowl|pack/.test(say(q.text)), `the story says so: ${say(q.text)}`);
+    log.list.push(q);
+    assert.deepEqual(checkQuestLog(roundTrip(packQuestLog(log))).list[0].stages, roundTrip(q.stages), 'kept');
+  }
+  const plain = makeQuest(createQuestLog(), ctx, 'innkeeper', { id: '3:97', depth: 3, kind: 'find', force: true, twist: null });
+  assert.ok(!plain.stages.some(s => s.guards || s.ambush || s.hurt), 'none when asked for none');
+  // in a world: some, not all
+  const log = createQuestLog(), plan = questPlan(7, ctx.layout);
+  log.met = [...new Set(plan.slots.map(s => s.giver).filter(isNpcGiver))];
+  for (let deepest = 0; deepest <= 20; deepest++) {
+    log.deepest = deepest;
+    for (let round = 0; round < 6; round++) { log.townOpen = true; refreshOffers(log, ctx); for (const q of log.list) if (q.state === 'offered') q.state = 'done'; }
+  }
+  const twisted = log.list.filter(q => q.stages.some(s => s.guards || s.ambush || s.hurt)).length;
+  assert.ok(twisted >= 8 && twisted <= 40, `${twisted} twisted`);
+  assert.ok(!log.list.some(q => q.depth === 0 && q.stages.some(s => s.guards || s.ambush)), 'no quest spawns on the road out of town');
+});

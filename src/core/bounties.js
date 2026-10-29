@@ -3,7 +3,7 @@
 // health, a third more damage, a little bigger, golden, worth four times the XP and coins, hard to
 // stagger. It is an ordinary enemy otherwise, with an id of its own (`q:<quest id>`), so its
 // death is remembered like any other (run.defeated) and goes back with a death in its cube.
-import { enemyKind, ENEMY_KINDS, depthLevel } from './enemies.js';
+import { enemyKind, ENEMY_KINDS, depthLevel, isRanged } from './enemies.js';
 import { DEPTH_SPAWNS } from './spawns.js';
 import { mulberry32, hash32 } from './util.js';
 import { noun, msg } from '../i18n/i18n.js';
@@ -47,4 +47,17 @@ export function pickBounty(depth, seed, used = new Set()) {
   for (const [t, k] of list) if ((w -= k) < 0) { type = t; break; }
   const free = BOUNTY_NAMES.filter(n => !used.has(n)), names = free.length ? free : BOUNTY_NAMES;
   return { enemy: ENEMY_KINDS[type] ? type : row.type, name: names[Math.floor(R() * names.length)] };
+}
+
+// Guards (docs/quests.md, "Twists"): a few of the depth's enemies that fight up close, posted
+// round a quest's hiding place (or round a bounty: its gang), or springing an ambush there. Which
+// kind and how many, from the seed: { enemy, n }
+export function pickGuards(depth, seed, hard = false) {
+  const R = mulberry32(hash32(seed ^ 0x6a2d));
+  const roster = DEPTH_SPAWNS[Math.min(depth, DEPTH_SPAWNS.length - 1)].roster;
+  const kinds = roster.flatMap(r => Object.entries(r.kinds).map(([type, w]) => [type, w * r.chance]))
+    .filter(([type]) => ENEMY_KINDS[type] && !ENEMY_KINDS[type].boss && !isRanged(ENEMY_KINDS[type]));
+  let r = R() * kinds.reduce((n, [, w]) => n + w, 0), enemy = kinds.at(-1)?.[0] ?? 'snake';
+  for (const [type, w] of kinds) if ((r -= w) < 0) { enemy = type; break; }
+  return { enemy, n: 2 + Math.floor(depth / 7) + (hard ? 1 : 0) };
 }
