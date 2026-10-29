@@ -11,9 +11,11 @@ import { rarityOf } from '../core/gear/rarities.js';
 import { displayName } from '../core/gear/stats.js';
 import { GIVERS, giverOf, giverQuests, questLists, stateText, stageText, depthName, giverName, carried } from '../core/quests.js';
 import { questLog, questAct } from './quests.js';
+import { greeting } from '../core/questvoices.js';
 import { tr, msg, say, onLanguageChange } from '../i18n/i18n.js';
 
 const DIFFICULTY = { easy: msg('easy'), medium: msg('medium'), hard: msg('hard') };
+const THANKS_FOR = 60000;   // ms: a giver still says thanks for a quest handed in so long ago
 // another language: the panel and the corner say it again
 onLanguageChange(() => { signature = ''; shownTrack = ''; });
 import { state } from './state.js';
@@ -62,9 +64,13 @@ export function drawQuests() {
   $('quests-talk').hidden = !talker;
   if (talker) {
     const title = talker.title ? say(talker.title) : GIVERS[talker.name] ? tr(GIVERS[talker.name].title) : talker.name;
-    const words = mine.some(q => q.state === 'ready') ? tr('You are back! Did you do what I asked?')
-      : mine.some(q => q.state === 'offered') ? tr('I could use some help...') : mine.length ? tr('How is it going?')
-      : tr('Nothing for you just now. Come back when you have been further down.');
+    // in their own voice (core/questvoices.js); just handed in: their thanks
+    const voice = GIVERS[talker.name] ? talker.name : talker.role, giver = giverOf(talker);
+    const thanked = L.list.filter(q => q.giver === giver && q.state === 'done' && q.thanks && Date.now() - q.finished < THANKS_FOR).at(-1);
+    const said = (what, plain) => greeting(voice, what) ? tr(greeting(voice, what)) : plain();
+    const words = mine.some(q => q.state === 'ready') ? said('back', () => tr('You are back! Did you do what I asked?'))
+      : mine.some(q => q.state === 'offered') ? said('ask', () => tr('I could use some help...')) : mine.length ? said('waiting', () => tr('How is it going?'))
+      : thanked ? say(thanked.thanks) : said('idle', () => tr('Nothing for you just now. Come back when you have been further down.'));
     $('quests-talk').innerHTML = `<h2>${esc(title)}</h2><p>${esc(words)}</p>`
       + (mine.length ? `<div class="quest-entries" role="listbox" aria-label="${esc(tr("{name}'s quests", { name: title }))}">${mine.map(q => entry(q, q.id === selected)).join('')}</div>` : '');
   }
@@ -114,6 +120,7 @@ function details(q) {
   return `<h2>${esc(say(q.title))}</h2>`
     + `<div class="quest-meta">${esc(tr('From {giver:the} · {where} · {difficulty}', { giver: who, where: say(depthName(q.depth)), difficulty: tr(DIFFICULTY[q.difficulty]) }))}</div>`
     + `<p class="quest-text">${esc(say(q.text))}</p>`
+    + (q.state === 'done' && q.thanks ? `<p class="quest-text quest-thanks">${esc(tr('{giver:The}: {said}', { giver: who, said: say(q.thanks) }))}</p>` : '')
     + `<h3>${esc(tr('Goal'))}</h3><ul class="quest-goals">${goals}</ul>`
     + (carried(q).length ? `<h3>${esc(tr('Carrying'))}</h3><ul class="quest-rewards">${carrying(q)}</ul>` : '')
     + `<h3>${esc(tr('Reward'))}</h3><ul class="quest-rewards">${rewards}</ul>`

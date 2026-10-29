@@ -43,6 +43,7 @@ import { ROLES, residentOf, isNpcGiver, spotOfGiver, keyOfSpot, personWords, rol
 import { questPlan, clueOf, lostPerson, campOf, SCOUTS } from './questplan.js';
 import { pickBounty, bountyKind } from './bounties.js';
 import { msg, phrase, noun, tr, say, cleanWords } from '../i18n/i18n.js';
+import { told, dressed, thanksOf } from './questvoices.js';
 
 const MAX_DEPTH = 20;   // themes/depth.js MAX_DEPTH
 export const STATES = ['offered', 'active', 'ready', 'done', 'failed'];
@@ -200,21 +201,27 @@ function namesTaken(log, g, ctx, depth) {
 // --- the kinds of quests ---------------------------------------------------------------------------
 
 // Each kind: targets(ctx, log, depths) -> what it could be about now, at those depths ({ id,
-// depth, ... }), and quest(t,
-// ctx, R, giver) -> its words and stages. A target's `id` is what two quests may not share.
+// depth, ... }), and quest(t, ctx, R, { id, giver, g, log, difficulty, voice }) -> its words and
+// stages. A target's `id` is what two quests may not share. Its title and story are told in the
+// giver's voice (core/questvoices.js told): a line is anybody's, or only some voices' ({ t, voices }).
+const OLD = ['hermit', 'pilgrim', 'scholar'];   // who may be too old to go digging
 const KINDS = {
   // get down to a depth nobody has been to yet
   reach: {
     payout: 'return',
     targets: (ctx, log, depths) => depths.filter(d => d > log.deepest && d <= log.deepest + 2).map(depth => ({ id: `reach:${depth}`, depth })),
-    quest(t, ctx, R) {
+    quest(t, ctx, R, { voice }) {
       const w = { place: themeName(ctx, t.depth), depth: t.depth };
       return {
-        title: phrase('Down to depth {depth}', w),
-        text: pick(R, [
-          phrase('Travellers talk about {place:the}, down on depth {depth}. Nobody I know has been there. Go and see, and come back to tell me what it is like.', w),
-          phrase('I have heard of {place:the}, deep down on depth {depth}. Will you go there for me? Then come back and tell me all about it.', w),
-        ]),
+        title: told(R, voice, [msg('Down to depth {depth}'), msg('What lies in {place:the}?'), msg('Into {place:the}')], w),
+        text: told(R, voice, [
+          msg('Travellers talk about {place:the}, down on depth {depth}. Nobody I know has been there. Go and see, and come back to tell me what it is like.'),
+          msg('I have heard of {place:the}, deep down on depth {depth}. Will you go there for me? Then come back and tell me all about it.'),
+          msg('Nobody has ever come back from {place:the} with a proper story. Go down to depth {depth} and be the first!'),
+          msg('I keep dreaming of {place:the}, down on depth {depth}. Is it real? Go and see, then tell me.'),
+          { t: msg('Every map I own stops above depth {depth}. They say {place:the} is down there. Go and fill in the blank for me!'), voices: ['explorer', 'scholar', 'groom'] },
+          { t: msg('The travellers who come in for soup all whisper about {place:the}, down on depth {depth}. I want to know if they are making it up. Go and look!'), voices: ['innkeeper'] },
+        ], w),
         stages: [{ goal: 'reach', depth: t.depth, text: phrase('Reach depth {depth} ({place:the})', w) }],
       };
     },
@@ -224,14 +231,19 @@ const KINDS = {
     payout: 'return',
     targets: (ctx, log, depths) => depths.filter(d => d > 0).flatMap(depth => [...ctx.layout(depth).sitePlans]
       .filter(([, plans]) => plans[0]?.landmark).map(([key, plans]) => ({ id: `landmark:${key}`, depth, key, landmark: plans[0].landmark }))),
-    quest(t, ctx, R) {
+    quest(t, ctx, R, { voice }) {
       const w = { landmark: noun(landmarkName(t.landmark)), place: themeName(ctx, t.depth), depth: t.depth };
       return {
-        title: phrase('{landmark:The}', w),
-        text: pick(R, [
-          phrase('Somewhere in {place:the} on depth {depth} there is {landmark:a}. My grandmother told me about it. Find it, stand beside it, and come back to tell me it is really there.', w),
-          phrase('They say {landmark:a} stands in {place:the}, on depth {depth}. I would love to know what it looks like. Find it for me and come back.', w),
-        ]),
+        title: told(R, voice, [msg('{landmark:The}'), msg('Is {landmark:the} real?'), msg('A visit to {landmark:the}')], w),
+        text: told(R, voice, [
+          msg('Somewhere in {place:the} on depth {depth} there is {landmark:a}. My grandmother told me about it. Find it, stand beside it, and come back to tell me it is really there.'),
+          msg('They say {landmark:a} stands in {place:the}, on depth {depth}. I would love to know what it looks like. Find it for me and come back.'),
+          msg('There is a song about {landmark:a} in {place:the}, on depth {depth}. Find it, stand beside it, and come back to tell me if the song is true.'),
+          { t: msg('I painted {landmark:a} once, from a story. Now I want to know if I got it right. It stands in {place:the}, on depth {depth}. Go and look closely!'),
+            voices: ['enchanter', 'keeper', 'hermit', 'innkeeper'] },
+          { t: msg('My book has a whole chapter on {landmark:the} in {place:the}, on depth {depth}, and I have never seen it. Embarrassing! Go and stand beside it for me.'), voices: ['scholar'] },
+          { t: msg('Pilgrims walk all the way to {landmark:the} in {place:the}, on depth {depth}. I never made it. Go there for me, stand beside it, and come back.'), voices: ['pilgrim', 'hermit'] },
+        ], w),
         target: { landmark: t.landmark },
         stages: [{ goal: 'landmark', depth: t.depth, key: t.key, text: phrase('Find {landmark:the} on depth {depth}', w) }],
       };
@@ -246,25 +258,31 @@ const KINDS = {
       return [...L.guardians].filter(([k]) => !ctx.gates.has(k)).map(([key, g]) => ({ id: `guardian:${key}`, depth, key,
         role: g.role, boss: bossAt(depth, g.role), nth: side.indexOf(key), sides: side.length }));
     }),
-    quest(t, ctx, R) {
+    quest(t, ctx, R, { voice }) {
       const where = depthName(t.depth), boss = t.boss && noun(cap(t.boss), { proper: true });
       if (t.role === 'descent') return {
-        title: boss ? phrase('Beat {boss}', { boss }) : phrase('The guardian of the well'),
-        text: boss ? phrase('{boss} guards the way down from {where:the}, and nobody gets past. Beat {boss}, and come back to tell me the way is open.', { boss, where })
-          : pick(R, [phrase('The way down from {where:the} is guarded by something big. Beat the guardian of the well and come back to tell me.', { where }),
-            phrase('A guardian sits by the well at the end of {where:the}. Nobody gets down while it is there. Beat it, then come back.', { where })]),
+        title: boss ? told(R, voice, [msg('Beat {boss}'), msg('Down past {boss}')], { boss }) : phrase('The guardian of the well'),
+        text: boss ? told(R, voice, [
+          msg('{boss} guards the way down from {where:the}, and nobody gets past. Beat {boss}, and come back to tell me the way is open.'),
+          ...t.depth < MAX_DEPTH ? [msg('Everybody who wants to go deeper than {where:the} has to get past {boss}. Nobody has. Will you be the one? Then come back and tell me.')] : [],
+        ], { boss, where })
+          : told(R, voice, [msg('The way down from {where:the} is guarded by something big. Beat the guardian of the well and come back to tell me.'),
+            msg('A guardian sits by the well at the end of {where:the}. Nobody gets down while it is there. Beat it, then come back.')], { where }),
         target: { role: t.role },
         stages: [{ goal: 'guardian', depth: t.depth, key: t.key, text: boss ? phrase('Defeat {boss} on {where:the}', { boss, where })
           : phrase('Defeat the Temp Boss on {where:the}', { where }) }],
       };
       const which = t.sides > 1 ? ORDINAL[t.nth] ?? noun('next guardian') : noun('guardian'), w = { where, which, n: t.sides };
       return {
-        title: phrase('A gate on {where:the}', w),
-        text: pick(R, [
-          t.sides > 1 ? phrase('On {where:the} a guardian blocks the way through. There are {n} of them; I mean {which:the} you come to. Beat it so the way is open for everyone, then come back.', w)
-            : phrase('On {where:the} a guardian blocks the way through. Beat it so the way is open for everyone, then come back.', w),
-          phrase('{which:The} on {where:the} has scared off everyone who went that way. Beat it, and come back to tell me.', w),
-        ]),
+        title: told(R, voice, [msg('A gate on {where:the}'), msg('Open the way on {where:the}')], w),
+        text: told(R, voice, [
+          t.sides > 1 ? msg('On {where:the} a guardian blocks the way through. There are {n} of them; I mean {which:the} you come to. Beat it so the way is open for everyone, then come back.')
+            : msg('On {where:the} a guardian blocks the way through. Beat it so the way is open for everyone, then come back.'),
+          msg('{which:The} on {where:the} has scared off everyone who went that way. Beat it, and come back to tell me.'),
+          { t: msg('The traders have to go the long way round {where:the}, because {which:the} sits on the short way. They grumble all day. Beat it, then come back!'),
+            voices: ['innkeeper', 'groom', 'carter', 'alchemist'] },
+          { t: msg('{which:The} on {where:the}: I made a sword for the last one who tried. I would like it back, and the gate open. Go on.'), voices: ['smith'] },
+        ], w),
         target: { role: t.role, nth: t.nth },
         stages: [{ goal: 'guardian', depth: t.depth, key: t.key, text: phrase('Defeat {which:the} on {where:the}', w) }],
       };
@@ -275,14 +293,17 @@ const KINDS = {
     payout: 'return',
     targets: (ctx, log, depths) => depths.flatMap(depth => [...ctx.layout(depth).hordes]
       .map(([key, h]) => ({ id: `horde:${key}`, depth, key, enemy: h.kind }))),
-    quest(t, ctx, R) {
+    quest(t, ctx, R, { voice }) {
       const w = { enemy: noun(ENEMY_KINDS[t.enemy]?.label ?? 'enemy'), where: depthName(t.depth) };
       return {
-        title: phrase('A horde of {enemy:pl}', w),
-        text: pick(R, [
-          phrase('A whole horde of {enemy:pl} has gathered on {where:the}. Left alone they only get bolder. Break it up, and come back to tell me.', w),
-          phrase('People coming back from {where:the} talk of a horde of {enemy:pl}. Scatter them, every last one, then come back.', w),
-        ]),
+        title: told(R, voice, [msg('A horde of {enemy:pl}'), msg('Too many {enemy:pl}')], w),
+        text: told(R, voice, [
+          msg('A whole horde of {enemy:pl} has gathered on {where:the}. Left alone they only get bolder. Break it up, and come back to tell me.'),
+          msg('People coming back from {where:the} talk of a horde of {enemy:pl}. Scatter them, every last one, then come back.'),
+          msg('The {enemy:pl} on {where:the} have stopped hiding and started marching about. Before they get ideas, break them up. Then come back!'),
+          { t: msg('I counted the {enemy:pl} on {where:the} and gave up at a hundred. They keep my snares empty. Thin them out, every one, then come back.'), voices: ['trapper'] },
+          { t: msg('The {enemy:pl} on {where:the} chewed through my tunnel props. All of them! Break up that horde before they start on the roof.'), voices: ['miner'] },
+        ], w),
         target: { enemy: t.enemy },
         stages: [{ goal: 'horde', depth: t.depth, key: t.key, text: phrase('Break the horde of {enemy:pl} on {where:the}', w) }],
       };
@@ -292,22 +313,28 @@ const KINDS = {
   find: {
     payout: 'return',
     targets: (ctx, log, depths) => hidingPlaces(ctx, log, depths),
-    quest(t, ctx, R, { id, log, g, giver }) {
+    quest(t, ctx, R, { id, log, g, giver, voice }) {
       const item = pickThing(R, log, g.role), thing = thingWords(item), where = depthName(t.depth);
       const clue = clueOf(ctx.layout, t.plan, landmarkName), o = ownerOf(R, g, ctx, log, giver, t.depth, hash32(ctx.seed ^ hashString(id) ^ 0x7a11));
       const label = owned(o.owner, thing), w = { thing, where, clue, label, person: o.person, relation: o.relation };
       return {
-        title: o.mine ? phrase('The lost {thing:lower}', w) : phrase('{label:cap}', w),
-        text: o.mine ? pick(R, [
-          phrase('I lost my {thing:lower} down on {where:the}, {clue}. Could you look for {thing:it} and bring {thing:it} back to me?', w),
-          phrase('My {thing:lower}! I dropped {thing:it} when I ran from the monsters on {where:the}, {clue}. Please bring {thing:it} back.', w),
-          phrase('I only put my {thing:lower} down for a moment on {where:the}, {clue}, and then something came at me and I ran. Would you fetch {thing:it} for me?', w),
-          phrase('A big bird snatched my {thing:lower} and let {thing:it} fall on {where:the}, {clue}. Can you get {thing:it} back for me?', w),
-        ]) : pick(R, [
-          phrase('My {relation:lower} {person} left {person:his} {thing:lower} on {where:the}, {clue}. {person} is too scared to go back. Would you fetch {thing:it}?', w),
-          phrase('{person}, my {relation:lower}, was carrying {person:his} {thing:lower} down to {where:the} and dropped {thing:it} {clue}. Please bring {thing:it} back to me.', w),
-          phrase('Somebody saw {label} lying on {where:the}, {clue}. {person} is my {relation:lower}. Would you bring {thing:it} back for us?', w),
-        ]),
+        title: o.mine ? told(R, voice, [msg('The lost {thing:lower}'), msg('Where is my {thing:lower}?')], w) : phrase('{label:cap}', w),
+        text: o.mine ? told(R, voice, [
+          msg('I lost my {thing:lower} down on {where:the}, {clue}. Could you look for {thing:it} and bring {thing:it} back to me?'),
+          msg('My {thing:lower}! I dropped {thing:it} when I ran from the monsters on {where:the}, {clue}. Please bring {thing:it} back.'),
+          msg('I only put my {thing:lower} down for a moment on {where:the}, {clue}, and then something came at me and I ran. Would you fetch {thing:it} for me?'),
+          msg('A big bird snatched my {thing:lower} and let {thing:it} fall on {where:the}, {clue}. Can you get {thing:it} back for me?'),
+          msg('I hid my {thing:lower} on {where:the}, {clue}, so nobody would find {thing:it}. It worked: not even I can. Would you look?'),
+          msg('My {thing:lower} rolled off a ledge on {where:the}, {clue}, and I was too scared to climb after {thing:it}. Will you?'),
+          { t: msg('I lent my {thing:lower} to a traveller who swore to bring {thing:it} back. Now I hear {thing:it} is lying on {where:the}, {clue}. Typical! Fetch {thing:it}?'), voices: ['innkeeper'] },
+          { t: msg('One of the rabbits got out with my {thing:lower} and dropped {thing:it} on {where:the}, {clue}. How a rabbit got that far, I do not know. Bring {thing:it} back?'), voices: ['keeper'] },
+          { t: msg('I was measuring something very important on {where:the}, {clue}, and left my {thing:lower} behind. Science waits for nobody. Except you. Fetch {thing:it}?'), voices: ['scholar'] },
+        ], w) : told(R, voice, [
+          msg('My {relation:lower} {person} left {person:his} {thing:lower} on {where:the}, {clue}. {person} is too scared to go back. Would you fetch {thing:it}?'),
+          msg('{person}, my {relation:lower}, was carrying {person:his} {thing:lower} down to {where:the} and dropped {thing:it} {clue}. Please bring {thing:it} back to me.'),
+          msg('Somebody saw {label} lying on {where:the}, {clue}. {person} is my {relation:lower}. Would you bring {thing:it} back for us?'),
+          msg('{person}, my {relation:lower}, cried all night. {person:His} {thing:lower} is lying somewhere on {where:the}, {clue}. Would you get {thing:it} back?'),
+        ], w),
         target: { spot: t.spot, item },
         ...(o.kin ? { kin: o.kin } : {}),
         stages: [{ goal: 'find', depth: t.depth, key: t.key, spot: t.spot, item, label, text: phrase('Find {label} on {where:the}', w) }],
@@ -318,22 +345,25 @@ const KINDS = {
   rescue: {
     payout: 'spot',
     targets: (ctx, log, depths, giver) => campOf(ctx.layout, giver) ? hidingPlaces(ctx, log, depths) : [],
-    quest(t, ctx, R, { id, log, g, giver }) {
+    quest(t, ctx, R, { id, log, g, giver, voice }) {
       const lost = lostPerson(hash32(ctx.seed ^ hashString(id)), namesTaken(log, g, ctx, t.depth));
       // (somebody of theirs found before: they say so)
       const before = log.list.findLast(q => q.giver === giver && q.kind === 'rescue' && q.id !== id)?.stages.find(s => s.goal === 'rescue')?.person;
       const w = { person: personWords(lost.name), relation: roleWords(lost.relation, lost.name), where: depthName(t.depth),
         clue: clueOf(ctx.layout, t.plan, landmarkName), before: before && personWords(before.name) };
       return {
-        title: phrase('Where is {person}?', w),
+        title: told(R, voice, [msg('Where is {person}?'), msg('{person} is lost'), msg('Bring {person} home')], w),
         kin: lost,
-        text: before ? pick(R, [
-          phrase('First {before}, and now my {relation:lower} {person} is gone too! {person} went down to {where:the}, and somebody saw {person:him} {clue}. Would you look once more?', w),
-          phrase('You brought {before} home to me, so I know you can do it. Now {person}, my {relation:lower}, is lost on {where:the}, {clue}. Please!', w),
-        ]) : pick(R, [
-          phrase('My {relation:lower} {person} went down to {where:the} and has not come back. Somebody saw {person:him} {clue}. Please find {person:him}! I will wait here.', w),
-          phrase('{person}, my {relation:lower}, wanted to see {where:the} and never came back. The last I heard, {clue}. Bring {person:him} home to me, please.', w),
-        ]),
+        text: before ? told(R, voice, [
+          msg('First {before}, and now my {relation:lower} {person} is gone too! {person} went down to {where:the}, and somebody saw {person:him} {clue}. Would you look once more?'),
+          msg('You brought {before} home to me, so I know you can do it. Now {person}, my {relation:lower}, is lost on {where:the}, {clue}. Please!'),
+        ], w) : told(R, voice, [
+          msg('My {relation:lower} {person} went down to {where:the} and has not come back. Somebody saw {person:him} {clue}. Please find {person:him}! I will wait here.'),
+          msg('{person}, my {relation:lower}, wanted to see {where:the} and never came back. The last I heard, {clue}. Bring {person:him} home to me, please.'),
+          msg('{person}, my {relation:lower}, went chasing a glowing moth down to {where:the}, and that was days ago! The last anyone saw, {clue}. Please find {person:him}.'),
+          { t: msg('I sent my {relation:lower} {person} to check the snares on {where:the}. {person} should have been back by dark. The tracks lead {clue}. Find {person:him}?'), voices: ['trapper'] },
+          { t: msg('My {relation:lower} {person} went to map {where:the} on {person:his} own. {person:His} last note says {clue}. Then nothing. Please find {person:him}!'), voices: ['explorer', 'scholar'] },
+        ], w),
         target: { spot: t.spot, person: lost.name },
         stages: [{ goal: 'rescue', depth: t.depth, key: t.key, spot: t.spot, person: lost, text: phrase('Find {person} on {where:the}', w) }],
       };
@@ -343,14 +373,18 @@ const KINDS = {
   treasure: {
     payout: 'self',
     targets: (ctx, log, depths) => hidingPlaces(ctx, log, depths),
-    quest(t, ctx, R, { id, difficulty }) {
+    quest(t, ctx, R, { id, difficulty, voice }) {
       const w = { where: depthName(t.depth), clue: clueOf(ctx.layout, t.plan, landmarkName) };
       return {
-        title: phrase('A map with a cross'),
-        text: pick(R, [
-          phrase('I found this scrap of an old map. The cross is on {where:the}, {clue}. I am too old to go digging; whatever is there is yours.', w),
-          phrase('Look at this map scrap! Treasure, on {where:the}, {clue}. Find it, and keep what is in it.', w),
-        ]),
+        title: told(R, voice, [msg('A map with a cross'), msg('X marks the spot'), msg('An old map scrap'), msg('Buried on {where:the}')], w),
+        text: told(R, voice, [
+          msg('Look at this map scrap! Treasure, on {where:the}, {clue}. Find it, and keep what is in it.'),
+          msg('This scrap of map fell out of an old book. The cross is on {where:the}, {clue}. Whatever is there, you can have it. I only want the story.'),
+          msg('My grandfather drew this map and never went back for what he hid. The cross is on {where:the}, {clue}. If you find it, it is yours.'),
+          { t: msg('I found this scrap of an old map. The cross is on {where:the}, {clue}. I am too old to go digging; whatever is there is yours.'), voices: OLD },
+          { t: msg('A traveller paid for a bowl of soup with this map. Soup! The cross is on {where:the}, {clue}. Go and see what is there; keep it.'), voices: ['innkeeper'] },
+          { t: msg('This map was in a crate I bought for its nails. The cross is on {where:the}, {clue}. Treasure is not my trade; iron is. Go and keep what you find.'), voices: ['smith', 'miner'] },
+        ], w),
         target: { spot: t.spot },
         stages: [{ goal: 'open', depth: t.depth, key: t.key, spot: t.spot, chest: `q:${id}`, prestige: REWARD.chest[difficulty],
           text: phrase('Find the treasure on {where:the}', w) }],
@@ -362,17 +396,23 @@ const KINDS = {
 KINDS.bounty = {
   payout: 'return',
   targets: (ctx, log, depths) => hidingPlaces(ctx, log, depths).filter(t => t.depth > 0 || t.tier > 0),
-  quest(t, ctx, R, { id, log }) {
+  quest(t, ctx, R, { id, log, voice }) {
     const used = new Set(log.list.flatMap(q => q.stages.map(s => s.goal === 'bounty' && s.name)).filter(Boolean));
     const b = pickBounty(t.depth, hash32(ctx.seed ^ hashString(id)), used), kind = bountyKind(b.enemy, b.name);
     const w = { name: noun(b.name, { proper: true }), bounty: enemyWords(kind), kind: noun(ENEMY_KINDS[b.enemy].label), where: depthName(t.depth),
       clue: clueOf(ctx.layout, t.plan, landmarkName) };
     return {
-      title: phrase('Wanted: {name}', w),
-      text: pick(R, [
-        phrase('{bounty:cap} has been seen on {where:the}, {clue}. It is bigger and meaner than the others of its kind. Beat it, and come back for the reward.', w),
-        phrase('There is a reward on {name}! {kind:A} the size of a cart, on {where:the}, {clue}. Bring me word it is gone.', w),
-      ]),
+      title: told(R, voice, [msg('Wanted: {name}'), msg('{name} must go'), msg('The trouble with {name}')], w),
+      text: told(R, voice, [
+        msg('{bounty:cap} has been seen on {where:the}, {clue}. It is bigger and meaner than the others of its kind. Beat it, and come back for the reward.'),
+        msg('There is a reward on {name}! {kind:A} the size of a cart, on {where:the}, {clue}. Bring me word it is gone.'),
+        msg('{name} has a bad temper and worse breath. It prowls on {where:the}, {clue}. Make it go away for good, and the reward is yours.'),
+        msg('{bounty:cap} lives on {where:the}, {clue}. It has chased off three hunters and one very brave goat. Will you try? You, not the goat.'),
+        { t: msg('{name} stole a whole wheel of cheese from a cart on {where:the} and ran off {clue}, laughing. Monsters cannot laugh! This one can. Beat it!'),
+          voices: ['innkeeper', 'carter', 'groom'] },
+        { t: msg('I set three snares for {name}, on {where:the}, {clue}. It ate the snares. Then the bait. Then my hat. Beat it, and bring me the good news.'), voices: ['trapper'] },
+        { t: msg('{name} bent my best blade like a spoon. {kind:A}, on {where:the}, {clue}. Beat it, and I will forget the blade.'), voices: ['smith'] },
+      ], w),
       target: { spot: t.spot, enemy: b.enemy },
       stages: [{ goal: 'bounty', depth: t.depth, key: t.key, spot: t.spot, enemy: b.enemy, name: b.name, enemyId: `q:${id}`,
         text: phrase('Defeat {name} on {where:the}', w) }],
@@ -381,24 +421,27 @@ KINDS.bounty = {
 };
 // take something to somebody further down (a letter, a parcel, or any of the quest things):
 // somebody living at a seat or a camp there, else somebody waiting on a hiding place; they end it
-// and pay
+// and pay (in their own voice, if they have one)
 KINDS.delivery = {
   payout: 'spot',
   targets: (ctx, log, depths, giver) => recipients(ctx, log, depths, giver),
-  quest(t, ctx, R, { log, g }) {
+  quest(t, ctx, R, { log, g, voice }) {
     const item = R() < 0.35 ? pick(R, ['quest_letter', 'quest_parcel']) : pickThing(R, log, g.role), where = depthName(t.depth);
     const at = t.to.resident ? t.to.where : phrase('on {where:the}, {clue}', { where, clue: clueOf(ctx.layout, t.plan, landmarkName) });
     const w = { thing: thingWords(item), name: t.to.name, to: t.to.title, at, where };
+    const thanks = R() < 0.6 && thanksOf(R, t.voice);
     return {
-      title: phrase('{thing:cap} for {name}', w),
-      text: pick(R, [
-        phrase('Could you take {thing:this} {thing:lower} to {to}, {at}? {name} has been waiting for {thing:it} for a long time.', w),
-        phrase('{thing:This} {thing:lower} must get to {to}, {at}. Nobody else dares to go that far down. {name} will thank you for it.', w),
-        phrase('{to} ({at}) asked me for {thing:this} {thing:lower}, and I promised to send {thing:it}. Would you carry {thing:it} down there for me?', w),
-        phrase('I owe {name} a favour. {thing:This} {thing:lower} should make us even. You will find {to} {at}.', w),
-      ]),
+      title: told(R, voice, [msg('{thing:cap} for {name}'), msg('Off to {name}')], w),
+      text: told(R, voice, [
+        msg('Could you take {thing:this} {thing:lower} to {to}, {at}? {name} has been waiting for {thing:it} for a long time.'),
+        msg('{thing:This} {thing:lower} must get to {to}, {at}. Nobody else dares to go that far down. {name} will thank you for it.'),
+        msg('{to} ({at}) asked me for {thing:this} {thing:lower}, and I promised to send {thing:it}. Would you carry {thing:it} down there for me?'),
+        msg('I owe {name} a favour. {thing:This} {thing:lower} should make us even. You will find {to} {at}.'),
+        msg('Here, wrap {thing:this} {thing:lower} up well. It is for {to}, {at}. Do not peek! Well, you may peek a little.'),
+        msg('{name} writes to me every year, and every year I forget to write back. This year I am sending {thing:this} {thing:lower} instead. You will find {to} {at}.'),
+      ], w),
       target: { recipient: t.id },
-      stages: [{ goal: 'deliver', depth: t.depth, key: t.key, to: t.to, item, reply: pick(R, [
+      stages: [{ goal: 'deliver', depth: t.depth, key: t.key, to: t.to, item, reply: thanks ? phrase('{name}: {said}', { name: t.to.name, said: thanks }) : pick(R, [
         phrase('{name}: At last! Thank you so much. Here, this is for your trouble.', w),
         phrase('{name}: For me? I hoped {thing:it} would come. Take this, you have earned it.', w),
         phrase('{name}: Oh, wonderful! I was beginning to think nobody would come. Here, take this.', w)]),
@@ -413,21 +456,23 @@ KINDS.relay = {
     const near = hidingPlaces(ctx, log, [r.depth]).filter(h => h.spot !== r.to.spot);
     return near.length ? [{ ...r, id: `${r.id}|${near[0].id}`, find: near[0] }] : [];
   }),
-  quest(t, ctx, R, { log, g }) {
+  quest(t, ctx, R, { log, g, voice }) {
     const item = pickThing(R, log, g.role), thing = thingWords(item), where = depthName(t.depth);
     const at = t.to.resident ? t.to.where : phrase('on {where:the}, {clue}', { where, clue: clueOf(ctx.layout, t.plan, landmarkName) });
     const clue = clueOf(ctx.layout, t.find.plan, landmarkName), label = owned(g.owner, thing);
     const w = { thing, name: t.to.name, to: t.to.title, at, where, clue };
     return {
-      title: phrase('Ask {name}', w),
-      text: pick(R, [
-        phrase('My {thing:lower} {thing:is} gone, and {to} ({at}) saw where {thing:they} went. Ask {name}, find {thing:it}, and bring {thing:it} back to me.', w),
-        phrase('{to} found my {thing:lower} once before! Go and ask, {at}. Then bring {thing:it} back to me, please.', w),
-        phrase('Somebody took my {thing:lower} down below. {to} hears all the gossip down there, {at}. Ask, then bring {thing:it} back to me.', w),
-      ]),
+      title: told(R, voice, [msg('Ask {name}'), msg('A word with {name}')], w),
+      text: told(R, voice, [
+        msg('My {thing:lower} {thing:is} gone, and {to} ({at}) saw where {thing:they} went. Ask {name}, find {thing:it}, and bring {thing:it} back to me.'),
+        msg('{to} found my {thing:lower} once before! Go and ask, {at}. Then bring {thing:it} back to me, please.'),
+        msg('Somebody took my {thing:lower} down below. {to} hears all the gossip down there, {at}. Ask, then bring {thing:it} back to me.'),
+        msg('{to} ({at}) has sharp eyes and a long memory, and my {thing:lower} went missing down there. Ask {name}, then bring {thing:it} home.'),
+      ], w),
       target: { recipient: t.id, spot: t.find.spot, item },
       stages: [
-        { goal: 'talk', depth: t.depth, key: t.key, to: t.to, reply: phrase('{name}: Your {thing:lower}? I saw {thing:it} on {where:the}, {clue}.', w),
+        { goal: 'talk', depth: t.depth, key: t.key, to: t.to, reply: pick(R, [phrase('{name}: Your {thing:lower}? I saw {thing:it} on {where:the}, {clue}.', w),
+          phrase('{name}: Oh, that! I saw {thing:it} just the other day, on {where:the}, {clue}. Hurry, before something eats {thing:it}.', w)]),
           text: phrase('Ask {to} on {where:the}', w) },
         { goal: 'find', depth: t.depth, key: t.find.key, spot: t.find.spot, item, label, clue, text: phrase('Find {thing:the} on {where:the}, {clue}', w) },
       ],
@@ -442,7 +487,7 @@ KINDS.gather = {
     const free = hidingPlaces(ctx, log, [depth]);
     return free.length >= GATHER ? [{ id: `gather:${depth}`, depth, key: free[0].key, tier: 1, free }] : [];
   }),
-  quest(t, ctx, R, { log, g }) {
+  quest(t, ctx, R, { log, g, voice }) {
     const pool = [...t.free], spots = [];
     while (spots.length < GATHER) {
       const apart = pool.filter(h => !spots.some(x => x.key === h.key)), from = apart.length ? apart : pool;
@@ -452,13 +497,15 @@ KINDS.gather = {
     const item = pickThing(R, log, g.role), thing = thingWords(item), clue = clueOf(ctx.layout, spots[0].plan, landmarkName);
     const w = { thing, where: depthName(t.depth), n: phrase(NUMBER[GATHER]), clue };
     return {
-      title: phrase('{thing:Pl} on {where:the}', w),
-      text: pick(R, [
-        phrase('A cart tipped over on {where:the}, and {n} {thing:pl} went rolling off all over the place. One was seen {clue}. Could you gather them up and bring them back to me?', w),
-        phrase('The monsters on {where:the} ran off with my {thing:pl}, {n} of them, and dropped them here and there. Bring back every one! I think one is {clue}.', w),
-        phrase('I need {n} {thing:pl}, and there are some lying about on {where:the}, one of them {clue}. Would you collect them for me?', w),
-        phrase('A great gust of wind blew {n} of my {thing:pl} all over {where:the}. I saw one come down {clue}. Please find them all!', w),
-      ]),
+      title: told(R, voice, [msg('{thing:Pl} on {where:the}'), msg('Scattered {thing:pl}')], w),
+      text: told(R, voice, [
+        msg('A cart tipped over on {where:the}, and {n} {thing:pl} went rolling off all over the place. One was seen {clue}. Could you gather them up and bring them back to me?'),
+        msg('The monsters on {where:the} ran off with my {thing:pl}, {n} of them, and dropped them here and there. Bring back every one! I think one is {clue}.'),
+        msg('I need {n} {thing:pl}, and there are some lying about on {where:the}, one of them {clue}. Would you collect them for me?'),
+        msg('A great gust of wind blew {n} of my {thing:pl} all over {where:the}. I saw one come down {clue}. Please find them all!'),
+        msg('I am making something wonderful, and I need {n} {thing:pl} for it. There are some on {where:the}, one {clue}. What am I making? A surprise!'),
+        { t: msg('My cart lost a wheel on {where:the}, and while I fixed it, {n} {thing:pl} bounced off the back. One went {clue}. Pick them up for me?'), voices: ['carter', 'groom'] },
+      ], w),
       target: { item },
       stages: [{ goal: 'gather', depth: t.depth, spots: spots.map(h => h.spot), keys: spots.map(h => h.key), got: spots.map(() => false),
         item, label: owned(g.owner, thing), clue, text: phrase('Collect {n} {thing:pl} on {where:the}', w) }],
@@ -471,7 +518,7 @@ function recipients(ctx, log, depths, giver) {
   return depths.flatMap(depth => {
     const living = ctx.layout(depth).spotList.filter(s => s.kind !== 'hide' && s.kind !== 'glass' && !s.annex).map(residentOf)   // (not behind a sealed portal)
       .filter(n => n && n.giver !== giver)
-      .map(n => ({ id: `to:${n.giver}`, depth, key: keyOfSpot(n.spot),
+      .map(n => ({ id: `to:${n.giver}`, depth, key: keyOfSpot(n.spot), voice: n.role,
         to: { resident: n.giver, name: personWords(n.name), title: n.title, where: whereAt(n.camp, depth) } }));
     if (living.length) return living;
     return hidingPlaces(ctx, log, [depth]).map(h => {
@@ -488,25 +535,28 @@ KINDS.defense = {
   targets: (ctx, log, depths, giver) => depths.flatMap(depth => ctx.layout(depth).spotList
     .filter(s => s.kind === 'outpost' && (s.annex || residentOf(s)?.giver === giver))
     .map(plan => ({ id: `defend:${plan.id}`, depth, key: plan.key, spot: plan.id, tier: 1, plan }))),
-  quest(t, ctx, R) {
+  quest(t, ctx, R, { voice }) {
     const w = { keeper: personWords(residentOf(t.plan).name), where: depthName(t.depth) };
     // an annex's: behind a portal sealed until the quest is taken (world/layout.js)
     if (t.plan.annex) return {
-      title: phrase('The sealed storehouse'),
-      text: pick(R, [
-        phrase('Behind a sealed door on {where:the} {keeper} keeps a hidden storehouse, and the monsters have found it. Here is the way in: take it, and help {keeper} hold the cart until they give up.', w),
-        phrase("There is a door on {where:the} that nobody can open. I can. Behind it, {keeper}'s storehouse is under attack. Go in and keep them off the cart!", w),
-      ]),
+      title: told(R, voice, [msg('The sealed storehouse'), msg('Behind the sealed door')], w),
+      text: told(R, voice, [
+        msg('Behind a sealed door on {where:the} {keeper} keeps a hidden storehouse, and the monsters have found it. Here is the way in: take it, and help {keeper} hold the cart until they give up.'),
+        msg("There is a door on {where:the} that nobody can open. I can. Behind it, {keeper}'s storehouse is under attack. Go in and keep them off the cart!"),
+        msg('{keeper} gave me the key to a sealed door on {where:the}, in case of trouble. Well, this is trouble: the monsters are at the storehouse behind it. Go in and help!'),
+      ], w),
       target: { spot: t.spot },
       stages: [{ goal: 'defend', depth: t.depth, key: t.key, spot: t.spot, waves: 3, opens: t.plan.annex,
         text: phrase("Defend {keeper}'s storehouse on {where:the}", w) }],
     };
     return {
-      title: phrase('Raiders at the cart'),
-      text: pick(R, [
-        phrase('Every night the monsters come for my supply cart. I cannot hold them off alone! When you are ready, stand by the cart and I will ring the bell. Keep them off it until they give up.'),
-        phrase('They have been at my cart again, and next time there will be more of them. Will you stand by it with me? Keep them away from it, wave after wave.'),
-      ]),
+      title: told(R, voice, [msg('Raiders at the cart'), msg('Hold the cart'), msg("{keeper}'s cart")], w),
+      text: told(R, voice, [
+        msg('Every night the monsters come for my supply cart. I cannot hold them off alone! When you are ready, stand by the cart and I will ring the bell. Keep them off it until they give up.'),
+        msg('They have been at my cart again, and next time there will be more of them. Will you stand by it with me? Keep them away from it, wave after wave.'),
+        msg('My cart is full of good things, and the monsters can smell it from a depth away. They will come again soon. Stand with me by the cart and keep them off it!'),
+        msg('Bell, cart, monsters: that is my whole life down here. Today it could be bell, cart, you! Stand by the cart and keep them off it until they give up.'),
+      ], w),
       target: { spot: t.spot },
       stages: [{ goal: 'defend', depth: t.depth, key: t.key, spot: t.spot, waves: 3, text: phrase("Defend {keeper}'s cart on {where:the}", w) }],
     };
@@ -604,12 +654,13 @@ export function makeQuest(log, ctx, giver, slot) {
     const t = options[Math.floor(R() * options.length)];
     const step = Math.max(0, Math.min(2, t.depth - log.deepest + (t.role === 'descent' || kind === 'bounty' || kind === 'defense' ? 1 : 0)
       + ((t.tier ?? 0) >= 3 ? 1 : 0)));
-    const difficulty = DIFFICULTIES[step], made = KINDS[kind].quest(t, ctx, R, { id, giver, difficulty, log, g });
+    const difficulty = DIFFICULTIES[step], voice = g.role, made = KINDS[kind].quest(t, ctx, R, { id, giver, difficulty, log, g, voice });
+    const text = dressed(R, voice, made.text), thanks = KINDS[kind].payout === 'return' ? thanksOf(R, voice) : null;
     const rewards = questRewards(R, t.depth, difficulty);
     return { id, giver, n: Number(slot.id.split(':')[1]) || 0, slot: slot.id, from: { name: g.name, title: g.title, where: g.where },
       kind, depth: t.depth, difficulty, target: { id: t.id, ...made.target },
       ...(made.kin ? { kin: made.kin } : {}),
-      title: made.title, text: made.text, stages: made.stages.map(s => ({ ...s, done: false })), stage: 0,
+      title: made.title, text, ...(thanks ? { thanks } : {}), stages: made.stages.map(s => ({ ...s, done: false })), stage: 0,
       payout: KINDS[kind].payout, rewards: KINDS[kind].payout === 'self' ? { xp: rewards.xp, copper: 0, items: [] } : rewards,
       state: 'offered', archived: false, created: ctx.now ?? 0, finished: 0 };
   }
@@ -952,7 +1003,7 @@ export function checkQuest(q) {
     where: words(f.where, 80) || town?.where || '' };
   return { id: q.id, giver: q.giver, n: nat(q.n), ...(typeof q.slot === 'string' ? { slot: q.slot.slice(0, 12) } : {}),
     ...(q.repeat ? { repeat: true } : {}), ...(checkPerson(q.kin) ? { kin: checkPerson(q.kin) } : {}), from, kind: q.kind, depth: q.depth, difficulty: q.difficulty, target,
-    title: words(q.title, 80), text: words(q.text), stages, stage: Math.min(nat(q.stage), stages.length), payout: q.payout,
+    title: words(q.title, 80), text: words(q.text, 600), ...(q.thanks ? { thanks: words(q.thanks, 200) } : {}), stages, stage: Math.min(nat(q.stage), stages.length), payout: q.payout,
     rewards: checkRewards(q.rewards),
     state: q.state, archived: !!q.archived, created: nat(q.created), finished: nat(q.finished) };
 }

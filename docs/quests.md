@@ -72,6 +72,15 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
   people again, related the same way. A new one gets a name (`KIN_NAMES`) nobody of the quests has
   yet: not the giver's own, nor the families', the people found, or those living two depths up or
   down.
+- **Voices** (`core/questvoices.js`): every villager talks in a voice of their own, and the people
+  out in the world by their role (the smith gruff, the innkeeper a gossip with soup, the keeper all
+  rabbits, the scholar footnotes ...). Each kind has a few titles and stories anybody tells and some
+  only some voices tell (`told`: `{ t, voices }`, three times as likely for them); the story gets
+  the giver's hello before it, a bye after it, both or neither (`dressed`). A quest handed back
+  keeps the giver's `thanks` (shown when handed in, and in the Done list); talking to a giver they
+  greet you by what they have for you (`greeting`: ask, back, waiting, idle); somebody found and a
+  letter's recipient answer in their own words (`FOUND_SAYS`, the recipient's thanks). Text only:
+  nothing of it is voiced.
 - **Quest things** (`core/items.js QUEST_THINGS`): what is lost, gathered and carried, any of
   them for any of these: the first quest items (locket, ring, compass, journal, toy rabbit) and 44
   made from the world's props (backpack, wagon wheel, jar of thunder, honey pot, jade idol, rune

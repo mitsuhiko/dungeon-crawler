@@ -501,3 +501,27 @@ test('the people of the quests hang together: families stay, names do not clash,
     }
   }
 });
+
+test('every giver has a voice: their stories, thanks and greetings are their own', async () => {
+  const { VOICES, told, dressed, greeting, foundSays, FOUND_SAYS } = await import('../src/core/questvoices.js');
+  const { ROLES } = await import('../src/core/npcs.js');
+  for (const voice of [...Object.keys(GIVERS), ...Object.keys(ROLES)]) {
+    const v = VOICES[voice];
+    assert.ok(v, `${voice} has a voice`);
+    assert.ok(v.hello.length >= 2 && v.bye.length >= 2 && v.thanks.length >= 2, voice);
+    for (const what of ['ask', 'back', 'waiting', 'idle']) assert.ok(greeting(voice, what), `${voice} says ${what}`);
+  }
+  const lines = ['anybody', { t: 'only smiths', voices: ['smith'] }], R = mulberry32(3);
+  const heard = new Set(Array.from({ length: 200 }, () => say(told(R, 'groom', lines))));
+  assert.deepEqual([...heard], ['anybody'], 'a line only some voices say, only they say');
+  const smith = Array.from({ length: 400 }, () => say(told(R, 'smith', lines))).filter(x => x === 'only smiths').length;
+  assert.ok(smith > 200, 'and they say it likelier than the rest');
+  assert.equal(say(dressed(R, 'nobody', { t: 'story' })), 'story', 'nobody with a voice tells it plain');
+  assert.ok(FOUND_SAYS.includes(foundSays('q:1')) && foundSays('q:1') === foundSays('q:1'));
+  const ctx = ctxOf(7), log = createQuestLog();
+  log.deepest = 20;
+  for (let i = 0; i < 30; i++) { refreshOffers(log, ctx, Object.keys(GIVERS)); for (const q of log.list) if (q.state === 'offered') q.state = 'done'; log.townOpen = true; }
+  for (const q of log.list) assert.equal(!!q.thanks, q.payout === 'return', `${q.id}: thanks where it is handed in`);
+  const again = checkQuestLog(roundTrip(packQuestLog(log)));
+  assert.deepEqual(again.list.map(q => say(q.thanks ?? '')), log.list.map(q => say(q.thanks ?? '')), 'the thanks are kept');
+});

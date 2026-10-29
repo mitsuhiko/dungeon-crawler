@@ -499,6 +499,7 @@ body.calm :is(.rainbow, #rewind, #rewind *, #quickbar.assigning.ready, #effects 
 #quests-details-inner h3 { font-size: 12px; color: #9cc9bf; margin: 14px 0 6px; font-weight: normal; letter-spacing: 1px; text-transform: uppercase; }
 .quest-meta { color: var(--ink-dim); font-size: 15px; }
 .quest-text { color: #d9e3df; font-size: 16px; line-height: 1.45; }
+.quest-thanks { font-style: italic; color: #f2d79a; }
 .quest-goals, .quest-rewards { margin: 0; padding: 0; list-style: none; font-size: 16px; color: #b3c2be; }
 .quest-goals li::before { content: '○ '; color: var(--ink-dim); }
 .quest-goals li.done { color: #7fd87a; } .quest-goals li.done::before { content: '✓ '; color: #7fd87a; }

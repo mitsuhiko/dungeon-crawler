@@ -26,6 +26,7 @@ import { rebuildWorld, refreshOpenFaces } from './flow.js';
 import { drawTracker } from './questpanel.js';
 import { tr, say, phrase, cleanWords } from '../i18n/i18n.js';
 import { narrate } from './narrator.js';
+import { foundSays } from '../core/questvoices.js';
 
 const CHECK_EVERY = 0.5;   // s (real time): the gates looked at, offers brought up to date, a landmark looked for
 // seen: the quests' states as last told (in run seenIn); sent: the log as last given out
@@ -245,7 +246,7 @@ export function questTalk(v) {
 // talking to somebody a quest is looking for (game/questworld.js): found! They thank you
 export function rescue(v) {
   if (!v?.lost || !live()) return false;
-  setStatus(tr('{name}: Thank you! I will go back now. Here, take this.', { name: v.name }));
+  setStatus(tr(foundSays(v.lost), { name: v.name }));
   questEvent({ kind: 'rescued', quest: v.lost });
   return true;
 }
