@@ -7,6 +7,13 @@
 // and flies them along an arc over to safe ground (SPEED, at most RISE over the higher end, kept
 // under the ceiling), lowers them onto it (SET) and lets go. Only if that share is all they have
 // left does it kill, as it does a hero with no robot yet (it lies asleep in the merchant camp).
+//
+// It catches them out of the void too (game/rescue.js catchFall): a fall through a hole into the
+// piece below (once that is found: game/fall.js), or out of a piece with nothing below. They slow
+// to a hover while it dives down to them (DIVE s, from DIVE_FROM over them, sagging SAG more), and
+// it pulls them up (LIFT), back up the hole (up into the piece the fall started in, if it went
+// into the one below: game/travel.js 'lift'), and flies them on to safe ground. It costs
+// FALL_SHARE of their most health; when that is all they have left, it takes all of it: they die.
 import { WATER, LAVA, ACID, MUD } from './constants.js';
 
 export const RESCUE = {
@@ -19,12 +26,22 @@ export const RESCUE = {
   grace: 1.5,       // s after it let go before an enemy may strike
   trapped: 2,       // s swimming with no way out of the water before it comes
   tire: 8,          // ... and before the hero drowns, with no robot
+  dive: 0.35,       // s it takes to get to a hero falling through the void (they slow to a hover)
+  diveFrom: 3,      // cells over them it dives down from
+  sag: 0.35,        // cells they still drop meanwhile
+  climb: 6,         // cells/s it carries them straight up the hole they fell through, at most
+  over: 0.3,        // cells over the floor they fell from it carries them out of the hole
+  clear: 2.5,       // cells over the ground a fall into the piece below comes out at least (caught in time)
 };
 
 // what it costs, of the most health: by the fluid (and the look of a boss's water: his mud, his
 // slime, as much as lava); clear water nothing
 export const SHARE = { [LAVA]: 0.25, [ACID]: 0.25, [WATER]: 0, [MUD]: 0.25, slime: 0.25 };
 export const shareOf = (fluid, look) => fluid === WATER && look ? (look === MUD ? SHARE[MUD] : SHARE.slime) : SHARE[fluid] ?? 0.25;
+// what catching them out of the void costs, of the most health
+export const FALL_SHARE = 0.25;
+// the health a share of maxHp is (whole points, at least one for any share)
+export const lossOf = (maxHp, share) => share > 0 ? Math.ceil(maxHp * share) : 0;
 
 // How far the robot's feet are over the hero's while it carries them: the Hang clip's grip, the
 // fists up at the top of the head (blender/character.py HANG_GRIP: 1.08), less where they hold its

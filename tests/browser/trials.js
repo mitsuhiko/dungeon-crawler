@@ -3,7 +3,8 @@
 //   await (await import('./tests/browser/trials.js')).runTrialChecks()
 // Into the room before, through its portal into a flood, armed by stepping off the pad, sealed in
 // (portals, open faces, both scrolls refuse), drowned, back in the room before beside the portal,
-// in again to a room as built, and resolved with the button.
+// in again to a room as built, pulled out of it by the robot (the attempt spent, out and in again),
+// and resolved with the button.
 import { player, state } from '../../src/game/state.js';
 import { goTrial, takePortal } from '../../src/game/dev.js';
 import { hurt } from '../../src/game/flow.js';
@@ -343,6 +344,31 @@ export async function runTrialChecks(kind = 'flood') {
   takePortal(back);
   await until(() => !state.transitioning && state.cubeKey === t.key, 'into the trial room again');
   check(state.trial.phase === 'idle', 'idle again');
+  // the robot pulls them out of its fluid: back at the start, for what it costs; the attempt spent
+  // (the seals open, its water drains, nothing is put back, stepping off the pad arms nothing); out
+  // and in again, a new attempt
+  if (kind === 'flood' || kind === 'collapse') {
+    player.autoDir = [ax, az];
+    await until(() => state.trial.phase !== 'idle', 'armed again', 4000);
+    player.autoDir = null;
+    await until(() => state.trial.phase === 'running', 'running', 6000);
+    const on = state.map.trial.check.path.at(-3);
+    Object.assign(player, { x: on.x, y: on.y, z: on.z, vx: 0, vz: 0 });
+    const { rescue } = await import('../../src/game/rescue.js');
+    check(rescue(state.map.trial.fluid, 0, player.y + 0.5), 'the robot comes');
+    await until(() => !player.rescue, 'set down', 8000);
+    check(state.trial.phase === 'spent' && !sealedIn(), 'the attempt is spent, the seals open');
+    check(Math.hypot(player.x - state.arrival.x, player.z - state.arrival.z) < 0.6, 'back at the start');
+    check(!trialFluid() || kind === 'collapse', 'its water drained');
+    player.autoDir = [ax, az]; await delay(800); player.autoDir = null;
+    check(state.trial.phase === 'spent', 'stepping off the pad arms nothing');
+    takePortal(state.map.portals.find(p => p.dir === (t.fromDir ^ 1)));
+    await until(() => !state.transitioning && state.cubeKey === t.from, 'out into the room before');
+    takePortal(back);
+    await until(() => !state.transitioning && state.cubeKey === t.key, 'into the trial room again');
+    check(state.trial.phase === 'idle', 'a new attempt: idle');
+    results.push('pulled out, spent');
+  }
   // resolved by the button on the summit (flood)
   // the cold: armed, the meter rises away from the braziers, and drops by a lit one
   if (kind === 'cold') {

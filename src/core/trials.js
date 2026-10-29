@@ -12,7 +12,6 @@
 //           combines (a combiner: how many puzzles of the rotation it holds, world/trials.js
 //           combinerStages), mounts (a puzzle a combiner may hold: cubegen/trials/puzzles.js) }
 import { msg } from '../i18n/i18n.js';
-import { LH } from './constants.js';
 
 export const TRIALS = {
   flood: { name: msg('Rising water'), family: 'event', sealed: true, timed: true, depths: [1, 19], themes: null, weight: 1, color: '#3fa8ff', built: true,
@@ -94,6 +93,8 @@ export const CLOSE = 5;
 // when the slow player gets where a perfect runner is at t s (the trial's clock: from arming)
 export const slowTime = t => t * SLACK + REACT;
 export const DRAIN_TIME = 5;   // s for the water to drain back once resolved
+export const SPENT_DRAIN = 1;  // ... and once spent: as the robot pulls the hero out (game/rescue.js)
+const drainOf = s => s.phase === 'spent' ? SPENT_DRAIN : DRAIN_TIME;
 
 // The flood's timeline: the water starts at `from` (levels) and rises in pulses of `step` levels,
 // each over `rise` s, the j-th starting at pulses[j] s (the trial's clock: from arming), never over
@@ -127,7 +128,7 @@ export const nextPulse = (tl, t) => tl.pulses.find(p => p > t) ?? null;
 export const floodEnd = tl => (tl.pulses.at(-1) ?? 0) + tl.rise;
 
 // draining back: from level `at` down to `from` over DRAIN_TIME, s seconds after resolving
-export const drainLevel = (tl, at, s) => at - (at - tl.from) * Math.min(1, s / DRAIN_TIME);
+export const drainLevel = (tl, at, s, T = DRAIN_TIME) => at - (at - tl.from) * Math.min(1, s / T);
 
 // Fit a flood's pulses to the way up: needs[j] is the earliest the j-th pulse may start (a slow
 // player has left every floor it floods by then). Each pulse starts then, no later: the water
@@ -152,7 +153,8 @@ export const fogLevel = (tl, t) => tl.top - floodLevel(tl, t);   // (levels)
 export function fogY(m, s) {
   if (!m?.timeline || m.kind !== 'miasma' || !s || s.phase === 'idle') return null;
   const tl = m.timeline;
-  if (s.phase === 'resolved') return s.at == null || s.done >= DRAIN_TIME ? null : (s.at + (tl.top + 6 - s.at) * Math.min(1, s.done / DRAIN_TIME)) * 0.5;
+  const T = drainOf(s);
+  if (s.phase === 'resolved' || s.phase === 'spent') return s.at == null || s.done >= T ? null : (s.at + (tl.top + 6 - s.at) * Math.min(1, s.done / T)) * 0.5;
   return fogLevel(tl, s.t) * 0.5;
 }
 export const fogHurt = (maxHp, inFor) => maxHp * (FOG.hurt + FOG.more * inFor);
@@ -225,8 +227,12 @@ export const clueMark = key => `clue:${key}`;
 //   armed     ARM_TIME s of telegraph: the banner, the rumble; nothing hurts yet
 //   running   the clock runs (t, from arming on): the water rises
 //   resolved  the goal is met; `done` counts the s since (the water drains back)
+//   spent     the attempt is over without a death: the robot carried the hero back to the start
+//             (game/rescue.js). The seals open, the clock stops, the water drains back (the fog
+//             lifts) as when resolved, what crumbled or sank stays gone, and it does not arm again:
+//             leaving the room and coming back starts it over (a new state, game/trials.js enterTrial)
 // One state per trial room a game is in: { key, kind, phase, t, done, at (the water's level when
-// it was resolved) }. Puzzles never arm: they are just there.
+// it was resolved or spent) }. Puzzles never arm: they are just there.
 
 export const ARM_DISTANCE = 1.2;   // cells off the arrival pad that arm an event
 // bits: a puzzle's state, part id -> a small number (a lever's 0/1, a plate held ...); start: the
@@ -241,7 +247,7 @@ export function stepTrial(s, dt, input = {}) {
     if (isEvent(s.kind) && TRIALS[s.kind].timed && !TRIALS[s.kind].armByPart && input.away) { s.phase = 'armed'; s.t = 0; return 'armed'; }
     return null;
   }
-  if (s.phase === 'resolved') { s.done += dt; return null; }
+  if (s.phase === 'resolved' || s.phase === 'spent') { s.done += dt; return null; }
   s.t += dt;
   if (s.phase === 'armed' && s.t >= ARM_TIME) { s.phase = 'running'; return 'running'; }
   return null;
@@ -256,6 +262,13 @@ export const SEALED_MESSAGE = msg('The way out is sealed');   // (said with tr w
 export function resolveTrial(s, level = null) {
   if (s.phase === 'resolved') return false;
   s.phase = 'resolved'; s.done = 0; s.at = level;
+  return true;
+}
+// the attempt is over, the room left as it is (level: the water's level then, for it to drain back
+// from; the fog's for the miasma). Only an event that is armed or running is spent.
+export function spendTrial(s, level = null) {
+  if (s.phase !== 'armed' && s.phase !== 'running') return false;
+  s.phase = 'spent'; s.done = 0; s.at = level;
   return true;
 }
 // back as built (a fail, a death, nobody left in the room)
@@ -279,11 +292,11 @@ export function trialFluidLevel(m, s) {
   if (m.kind === 'sunken') return sunkenLevel(m, s);
   if (m.kind === 'balance') return s.phase === 'resolved' ? null : m.basin;
   // the collapse: what falls through the crust is in the basin's fluid (its surface over every hole)
-  if (m.kind === 'collapse') return s.phase === 'armed' || s.phase === 'running' ? BASIN : null;
+  if (m.kind === 'collapse') return s.phase === 'armed' || s.phase === 'running' || s.phase === 'spent' ? BASIN : null;
   if (m.kind !== 'flood') return null;
   const tl = m.timeline;
   if (s.phase === 'idle') return null;
-  if (s.phase === 'resolved') return s.at == null || s.done >= DRAIN_TIME ? null : drainLevel(tl, s.at, s.done);
+  if (s.phase === 'resolved' || s.phase === 'spent') return s.at == null || s.done >= drainOf(s) ? null : drainLevel(tl, s.at, s.done, drainOf(s));
   return floodLevel(tl, s.t);
 }
 
@@ -308,6 +321,8 @@ export const crumbleTime = (wave, d) => ARM_TIME + wave.delay + d / wave.speed;
 // is crust cell q ({ d }) of trial m gone at state s? (shaking: the SHAKE s before)
 export function crustState(m, s, q) {
   if (!s || s.phase === 'idle' || s.phase === 'resolved') return 'whole';
+  // spent: what was gone stays gone, the rest holds (it shakes no more)
+  if (s.phase === 'spent') return crustState(m, { ...s, phase: 'running' }, q) === 'gone' ? 'gone' : 'whole';
   if (m.kind === 'balance') {
     const at = s.stones?.[q.stone];
     return at == null ? 'whole' : s.t >= at + STONE_TIME ? 'gone' : 'shaking';
@@ -319,9 +334,6 @@ export function crustState(m, s, q) {
 // Each floating slab has its own clock, started by the first grounded landing. Leaving it,
 // landing again or another player arriving never buys more time. The clock runs while airborne.
 export const STONE_TIME = 3;
-// Missed a slab: retry before ordinary fluid death (also with god mode on). Only the basin
-// surface matters, not the jump's apex or whether its vanished support still has a floor.
-export const balanceFallen = (m, y) => m?.kind === 'balance' && Number.isFinite(y) && y < m.basin * LH;
 export function touchStone(m, s, stone) {
   if (m?.kind !== 'balance' || !s || (s.phase !== 'armed' && s.phase !== 'running')
     || !Number.isInteger(stone) || !m.crust.some(q => q.stone === stone) || s.stones?.[stone] != null) return false;

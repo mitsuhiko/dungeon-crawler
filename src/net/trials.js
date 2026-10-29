@@ -8,11 +8,12 @@
 //   trialAct  { key, act, id? }               the others -> the owner: 'away' (I stepped off the
 //             arrival pad: arm it), 'part' (I used part `id`)
 // One who fails goes to the room before and the trial goes on for the others; with nobody left
-// in the room, nobody runs it: the next one in finds it as built. Pure: testable in node.
+// in the room, nobody runs it: the next one in finds it as built. One the robot carries back to the
+// start waits there while the others go on (the last one in it spends it: game/trials.js). Pure: testable in node.
 import { TRIALS, ARM_TIME } from '../core/trials.js';
 
 export const TRIAL_EVERY = 1000;
-const PHASES = new Set(['idle', 'armed', 'running', 'resolved']);
+const PHASES = new Set(['idle', 'armed', 'running', 'resolved', 'spent']);
 const ACTS = new Set(['away', 'part']);
 
 // a `trial` message as it may be used, or null
@@ -56,7 +57,7 @@ export class TrialOwner {
 }
 
 // A viewer's side: its state s of the trial follows the owner's word m (trialMessage). Returns
-// the phase it came into ('armed', 'running', 'resolved', 'idle'), or null when it stayed.
+// the phase it came into ('armed', 'running', 'resolved', 'idle', 'spent'), or null when it stayed.
 export function followTrial(s, m) {
   if (!s || !m || m.key !== s.key) return null;
   const before = s.phase;
@@ -64,6 +65,9 @@ export function followTrial(s, m) {
   if (m.phase === 'resolved') { s.phase = 'resolved'; s.done = 0; return 'resolved'; }
   if (m.bits) s.bits = { ...m.bits };
   if (s.kind === 'balance' && m.stones) s.stones = { ...m.stones };
+  // spent (core/trials.js spendTrial: the robot carried its last one in it back to the start): its
+  // water is gone by the time anyone comes in
+  if (m.phase === 'spent' && before !== 'spent') { s.done = Infinity; s.at = null; }
   s.phase = m.phase; s.t = m.time;
   // the clock is the owner's: between its words it runs on here (arming turns to running by itself)
   if (s.phase === 'armed' && s.t >= ARM_TIME && TRIALS[s.kind]) s.phase = 'running';

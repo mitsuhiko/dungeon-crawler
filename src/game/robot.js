@@ -20,9 +20,9 @@
 // It is in no fight and nobody's target: it is not an enemy, has no body, and the hover and the
 // clicks never see it (game/lootlabels.js, game/pointer.js).
 //
-// It pulls the hero out of what would kill them in a fluid (game/rescue.js): meanwhile it is where
-// that says (rescuePose: swooping over to them, then carrying them, its clip RobotCarry), and its
-// way starts again from where it lets go.
+// It pulls the hero out of what would kill them in a fluid, and catches them falling through the
+// void (game/rescue.js): meanwhile it is where that says (rescuePose: swooping over to them, then
+// carrying them, its clip RobotCarry), and its way starts again from where it lets go.
 //
 // Playing together everyone sees everyone's robot: ours goes along in our `me` (robotWord), and
 // the others' are drawn here as their games fly them (showOtherRobot, render/robot.js).
@@ -64,6 +64,8 @@ let robot = null;
 export const robotHere = () => robot;
 // game/flow.js: no robot (another world, back to the menu)
 export function forgetRobot() { robot = null; hideRobot(); }
+// game/rescue.js: the hero needs it now; still waking up, it is up at once
+export function rouseRobot() { if (robot?.waking > 0) robot.waking = 0; }
 
 // game/flow.js settleIn: the hero is in this map now. Woken before (this world remembers its
 // hello), it comes in at their side; else it may lie asleep here (sleepingRobot)
@@ -190,7 +192,8 @@ export function updateRobot(dt) {
     robot.at = { k, x: carry.x, y: carry.y, z: carry.z };
     robot.way = newWay(k, carry.x, carry.y, carry.z);
     robot.yaw = carry.yaw; robot.clip = carry.clip; robot.wait = 0;
-    drawRobot(where && scene.set(carry.x, carry.y, carry.z).add(where.at), robot.yaw, where ? carry.fade * where.fade : 0, carry.clip, dt);
+    // (sliding up into the cube a fall started in, it shows as the hero does, not fading in with the cube)
+    drawRobot(where && scene.set(carry.x, carry.y, carry.z).add(where.at), robot.yaw, where ? carry.fade * (travelling() ? 1 : where.fade) : 0, carry.clip, dt);
     return;
   }
   const w = robot.way;

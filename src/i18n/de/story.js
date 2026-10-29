@@ -914,10 +914,10 @@ export default {
     'Schon wieder? Langsam werde ich richtig gut darin.',
   'Yippee! I mean: are you all right?':
     'Juhu! Ich meine: alles in Ordnung?',
-  'You fell through to the piece below! Wait for me!':
-    'Du bist ins Stück darunter gefallen! Warte auf mich!',
-  'Down we go! That is one way to get somewhere.':
-    'Abwärts! So kommt man auch irgendwohin.',
+  'Got you! Not down there, not yet. Back up we go!':
+    'Hab dich! Nicht da runter, noch nicht. Wir fliegen wieder hoch!',
+  'Hold on to me! I will fly you back up to where it is safe.':
+    'Halt dich an mir fest! Ich fliege dich wieder hoch, dahin, wo es sicher ist.',
   'Home! Well, your home. I do not have one, I have you.':
     'Zu Hause! Also, dein Zuhause. Ich habe keins, ich habe dich.',
   'The town smells of bread. Is it the same bread, do you think?':

@@ -8,15 +8,32 @@
 // Meanwhile nothing hurts them (game/enemycombat.js hitPlayer), no enemy strikes until a little
 // after (RESCUE.grace), and the robot is drawn where it carries them (game/robot.js rescuePose).
 // The safe ground it takes them to: physics/rescuespot.js.
+//
+// It catches them out of the void too (catchFall): falling through a hole out of a piece with
+// nothing below it (physics/hazards.js), or into the piece below, once that is found and before they
+// land (game/travel.js, as the slide down ends). They slow to a hover while it dives down to them,
+// it grabs them and pulls them straight up the hole (into the piece the fall started in first:
+// game/fall.js liftBack, the slide up, game/travel.js 'lift'), out over the floor they fell from,
+// and flies them on to safe ground. It costs a quarter of their most health (core/rescue.js
+// FALL_SHARE); when that is all they have left it takes all of it, and they fall to their death.
+//
+// In a trial room not resolved it takes them back to its start, where the room was entered, and the
+// trial is not put back: a running event is over, its seals open, until they leave the room
+// (game/trials.js trialStart, spendTrialHere; docs/trials.md "Failing and dying").
 import { WATER, LAVA, ACID, MUD, SWIM_FEET } from '../core/constants.js';
-import { RESCUE, GRIP, shareOf, flight, along } from '../core/rescue.js';
+import { RESCUE, GRIP, shareOf, FALL_SHARE, lossOf, flight, along } from '../core/rescue.js';
 import { beside } from '../core/robot.js';
 import { player, state, setStatus } from './state.js';
-import { robotHere } from './robot.js';
+import { robotHere, rouseRobot } from './robot.js';
 import { flash } from './hud.js';
 import { takeDamage } from '../core/progression.js';
 import { groundAt, ceilingAt, insideSolid } from '../physics/collide.js';
-import { spotFor } from '../physics/rescuespot.js';
+import { spotFor, spotAt } from '../physics/rescuespot.js';
+import { respawnPoint } from '../physics/respawn.js';
+import { trialStart, trialSpends, spendTrialHere } from './trials.js';
+import { truePosition, travelling } from './travel.js';
+import { knockDown } from './ragdoll.js';
+import { liftBack } from './fall.js';
 import { sfx } from '../audio/sfx.js';
 import { emit, glow, soft, rand } from '../render/particles.js';
 import { narrate } from './narrator.js';
@@ -39,22 +56,36 @@ const SAYS = {
   [WATER]: { reason: msg('No way out of the water!'), status: msg('No way out of the water: the robot carries you out'), sound: 'splash',
     colors: ['#ffffff', '#c8f0ff', '#7fcaf0'] },
 };
+// a fall through the void; and what is said in a trial room the robot takes them back to the start of
+const FALL = { reason: msg('Fell through the void!'), status: msg('Fell through the void! The robot carries you back up') };
+const BACK = msg('The robot carries you back to the start: leave the room and come back to try again');
+const SHIMMER = ['#ffffff', '#ffe9a0', '#9fdcff'];   // (the robot's light: where it grabs them, where it sets them down)
 const saysOf = (fluid, look) => fluid === WATER && look ? SAYS[look === MUD ? MUD : 'slime'] : SAYS[fluid] ?? SAYS[LAVA];
 // what the robot's line says it pulled them out of (core/narration.js `rescue`)
 const nameOf = (fluid, look) => fluid === WATER ? (look === MUD ? 'mud' : look ? 'slime' : 'water') : fluid === LAVA ? 'lava' : 'acid';
 
-// can the robot come now? (with the hero, awake)
-export const robotCanRescue = () => { const r = robotHere(); return !!r && !(r.waking > 0) && state.mode === 'play'; };
+// can the robot come now? (with the hero; one still waking up is up at once: rouseRobot)
+export const robotCanRescue = () => !!robotHere() && state.mode === 'play';
+
+// Where it takes them from (x, y, z): in a trial room not resolved, back to its start (dry, unless
+// the attempt is spent: its water drains as the robot comes, core/trials.js SPENT_DRAIN); else safe
+// ground (physics/rescuespot.js). null: nowhere
+function destination(x, y, z, spent = false) {
+  const start = trialStart();
+  return (start && spotAt(start, spent)) || spotFor(x, y, z);
+}
 
 // The hero is in `fluid` (`look`: a boss's mud or slime) whose surface stands at `surface`: does the
 // robot pull them out? true: it does (it is under way: tickRescue)
 export function rescue(fluid, look, surface) {
   if (player.rescue) return true;
   if (!robotCanRescue() || player.hp <= 0) return false;
-  const lose = Math.ceil(player.maxHp * shareOf(fluid, look));
+  const lose = lossOf(player.maxHp, shareOf(fluid, look));
   if (lose > 0 && player.hp <= lose) return false;
-  const to = spotFor(player.x, player.y, player.z);
+  const spent = trialSpends(), to = destination(player.x, player.y, player.z, spent);
   if (!to) return false;
+  rouseRobot();
+  if (spent) spendTrialHere();
   const says = saysOf(fluid, look), x = player.x, z = player.z;
   const hold = fluid === WATER && !look ? SWIM_FEET : HOLD;
   const from = { x, y: Math.max(groundAt(x, z, surface, 0).h, surface - hold), z };
@@ -75,9 +106,61 @@ export function rescue(fluid, look, surface) {
   player.rescue = { phase: 'reach', t: 0, fluid, look, surface, from, up, to, path: blink ? hop(up, to) : path, blink,
     robot: robotStart(), colors: says.colors, drip: 0 };
   state.enemyGrace = Math.max(state.enemyGrace, RESCUE.reach + RESCUE.lift + player.rescue.path.time + RESCUE.grace);
-  setStatus(tr(says.status));
+  setStatus(tr(spent ? BACK : says.status));
   narrate('rescue', { fluid: nameOf(fluid, look) });
   return true;
+}
+
+// The hero falls through the void (physics/hazards.js: under the floor of a piece with nothing
+// below it, or out of Flip's box; game/travel.js: the slide down into the piece below is over,
+// `below`): does the robot catch them? true: it does, or it took all they had left and they fall
+// to their death (as a ragdoll: game/ragdoll.js dies as it lands, or out of the world)
+export function catchFall(below = false) {
+  if (player.rescue) return true;
+  if (!robotCanRescue() || player.hp <= 0) return false;
+  rouseRobot();
+  const lose = lossOf(player.maxHp, FALL_SHARE);
+  if (player.hp <= lose && !player.god) { knockDown({ damage: lose, reason: FALL.reason }); return true; }
+  const spent = !below && trialSpends();
+  player.lastHurt = { reason: FALL.reason, by: null };
+  takeDamage(player, lose, state.time);
+  flash();
+  if (spent) spendTrialHere();
+  const x = player.x, y = player.y, z = player.z;
+  Object.assign(player, { ragdoll: null, ragdollThen: null, fluidDeath: 0, climb: null, getUp: null, swimming: false, grounded: false,
+    engulfed: null, held: null, gust: null, pull: null, vx: 0, vy: 0, vz: 0, stun: 0, visY: y });
+  // up the hole to over the floor they last stood on (into the piece the fall started in: there)
+  const top = below ? null : Math.max(y, player.footY ?? 0) + RESCUE.over;
+  player.rescue = { phase: 'reach', air: true, t: 0, fluid: null, look: 0, from: { x, y, z }, up: null, to: null, path: null, blink: false,
+    // (it swoops over from where it is, if that is close by and shows; else it dives down after them)
+    robot: below ? null : robotStart(), colors: SHIMMER, drip: 0,
+    below, top, safe: below ? state.fallFrom?.safe ?? null : null };
+  if (!player.rescue.robot) player.rescue.dive = { x: x - Math.sin(player.yaw) * 0.6, y: y + RESCUE.diveFrom, z: z - Math.cos(player.yaw) * 0.6 };
+  // no enemy strikes while it carries them (set again for the flight, once it is known)
+  state.enemyGrace = Math.max(state.enemyGrace, RESCUE.dive + RESCUE.lift + RESCUE.carry[1] + RESCUE.grace + (below ? 2 : 0));
+  sfx('rescue', { at: { x, y: y + 1, z } });
+  setStatus(tr(spent ? BACK : FALL.status));
+  narrate('fall');
+  return true;
+}
+
+// the flight on from where it pulled them up to (up) onto safe ground: a blink if even under the
+// roof it would go through something (a cave's narrow way). Nowhere safe (a catch out of the void
+// must end somewhere): where they last stood safely, else where they came into the piece.
+function flyOn(r, up) {
+  const to = destination(up.x, up.y, up.z) ?? spotAt(r.safe ?? player.safe) ?? respawnPoint(state.arrival ?? player.safe);
+  const path = flight(up, to, ceilingAt), blink = blocked(path);
+  Object.assign(r, { phase: 'carry', t: 0, up, to, path: blink ? hop(up, to) : path, blink });
+  state.enemyGrace = Math.max(state.enemyGrace, r.path.time + RESCUE.grace);
+}
+
+// game/travel.js: the slide up into the piece the fall started in is over; they hang over the hole
+// they fell through: on to safe ground (the last they stood on there, player.safe again)
+export function liftArrived() {
+  const r = player.rescue;
+  if (!r) return;
+  if (r.safe) player.safe = { ...r.safe };
+  flyOn(r, { x: player.x, y: player.y, z: player.z });
 }
 
 // where the robot comes from: its place in our cube's coordinates, or null (far, or out of sight:
@@ -106,24 +189,42 @@ function hop(up, to) {
 export function tickRescue(dt) {
   const r = player.rescue, p = player;
   r.t += dt;
-  if (r.phase === 'reach') {
+  if (r.phase === 'reach' && r.air) {
+    // falling through the void: slowing to a hover as the robot dives down to them
+    p.y = r.from.y - RESCUE.sag * along(r.t, RESCUE.dive);
+    if (r.t >= RESCUE.dive) {
+      r.phase = 'lift'; r.t = 0;
+      sfx('rescue', { at: { x: p.x, y: p.y + 1.5, z: p.z }, pitch: 1.25 });
+      burst(p.x, p.y + 0.6, p.z, SHIMMER, false);
+      // pulled up a little before the slide up (below), else straight up the hole, as fast as it climbs
+      r.from = { x: p.x, y: p.y, z: p.z };
+      r.up = { x: p.x, y: r.below ? p.y + PULL : Math.max(p.y + PULL, r.top), z: p.z };
+      r.lift = Math.max(RESCUE.lift, (r.up.y - p.y) / RESCUE.climb);
+    }
+  } else if (r.phase === 'reach') {
     // sunk in it, treading, bobbing a little, while the robot comes
     p.y = r.from.y + Math.sin(r.t * 9) * 0.03;
     if (Math.random() < dt * 14) emit(glow, p.x + rand(-0.3, 0.3), r.surface + 0.05, p.z + rand(-0.3, 0.3),
       { v: [0, rand(0.6, 1.4), 0], life: rand(0.3, 0.6), size: rand(0.04, 0.08), color: r.colors[(Math.random() * 3) | 0], gravity: 3 });
     if (r.t >= RESCUE.reach) { r.phase = 'lift'; r.t = 0; sfx('rescue', { at: { x: p.x, y: p.y + 1.5, z: p.z }, pitch: 1.25 }); }
   } else if (r.phase === 'lift') {
-    const k = along(r.t, RESCUE.lift);
+    const time = r.lift ?? RESCUE.lift, k = along(r.t, time);
     p.y = r.from.y + (r.up.y - r.from.y) * k;
     drip(r, dt);
-    if (r.t >= RESCUE.lift) { r.phase = 'carry'; r.t = 0; }
+    if (r.t < time) { /* (still pulling) */ }
+    else if (!r.air) { r.phase = 'carry'; r.t = 0; }
+    // out of the piece below: up into the one the fall started in (game/travel.js moves them)
+    else if (r.below) { r.phase = 'up'; r.t = 0; if (!liftBack()) { r.below = false; flyOn(r, { ...r.up }); } }
+    else flyOn(r, { ...r.up });
+  } else if (r.phase === 'up') {
+    // (sliding up: game/travel.js has them, game/update.js does not tick this meanwhile)
   } else {
     const k = along(r.t, r.path.time), at = r.path.at(k), next = r.path.at(Math.min(1, k + 0.02));
     if (Math.hypot(next.x - at.x, next.z - at.z) > 1e-3) p.yaw = Math.atan2(next.x - at.x, next.z - at.z);
     Object.assign(p, at);
     if (r.blink) {
       const gone = r.t > 0.4 && r.t < 0.6;
-      if (gone !== p.vanished) burst(p.x, p.y + 0.6, p.z, ['#ffffff', '#ffe9a0', '#9fdcff'], false);
+      if (gone !== p.vanished) burst(p.x, p.y + 0.6, p.z, SHIMMER, false);
       p.vanished = gone;
     }
     drip(r, dt);
@@ -134,6 +235,7 @@ export function tickRescue(dt) {
 
 // the fluid running off them as they come up out of it
 function drip(r, dt) {
+  if (!r.fluid) return;   // (out of the void: dry)
   r.drip += dt;
   if (r.drip > 0.9 || Math.random() > dt * 30) return;
   const p = player;
@@ -147,7 +249,7 @@ function letGo() {
   Object.assign(player, { x: to.x, y: g.s ? g.h : to.y, z: to.z, visY: g.s ? g.h : to.y, vx: 0, vy: 0, vz: 0, grounded: true, swimming: false,
     support: g.s, vanished: false, rescue: null, landImpact: 2, landCount: player.landCount + 1, airTime: 0 });
   if (g.s) player.layer = g.s.kind ? g.s.run.layer : g.s.layer;
-  burst(to.x, player.y, to.z, ['#ffffff', '#ffe9a0', '#9fdcff'], false);
+  burst(to.x, player.y, to.z, SHIMMER, false);
   sfx('thud', { at: to, volume: 0.5 });
   state.enemyGrace = Math.max(state.enemyGrace, RESCUE.grace);
 }
@@ -157,9 +259,16 @@ function letGo() {
 export function rescuePose() {
   const r = player.rescue;
   if (!r) return null;
-  const over = { x: player.x, y: player.y + GRIP, z: player.z, yaw: player.yaw };
+  // (sliding up into another piece: where they really are, game/robot.js adds where it is drawn)
+  const h = travelling() ? truePosition() : player;
+  const over = { x: h.x, y: h.y + GRIP, z: h.z, yaw: player.yaw };
   if (r.phase !== 'reach') return { ...over, fade: player.vanished ? 0 : 1, clip: 'carry' };
-  const k = along(r.t, RESCUE.reach);
+  const k = along(r.t, r.air ? RESCUE.dive : RESCUE.reach);
+  if (r.dive) {   // diving down after them from over them, fading in as it comes
+    const s = r.dive;
+    return { x: s.x + (over.x - s.x) * k, y: s.y + (over.y - s.y) * k, z: s.z + (over.z - s.z) * k,
+      yaw: Math.atan2(over.x - s.x, over.z - s.z), fade: Math.min(1, k * 3), clip: k > 0.8 ? 'carry' : 'fly' };
+  }
   if (!r.robot) return { ...over, y: over.y + 1.2 * (1 - k), fade: k, clip: 'fly' };   // (blinking in over them)
   // a swoop: from where it was, down onto them from a little over them
   const s = r.robot, lift = Math.sin(Math.PI * k) * 0.8;

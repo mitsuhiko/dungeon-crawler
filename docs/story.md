@@ -130,8 +130,17 @@ Decided:
   it kill. Meanwhile nothing hurts them, and no enemy strikes until a moment after. With no robot
   yet (it lies asleep in the merchant camp), the fluid kills (water with no way out: they tire, and
   drown after 8 s, as they do when the robot finds nowhere to take them or they cannot pay its
-  share). In a flood's or a crumbling floor's running trial it pulls them out and the
-  trial starts over (`game/trials.js sweptAway`). It says a line as it does (`rescue`).
+  share). In a trial room not resolved it takes them back to the start, where the room was
+  entered, and the trial is not put back: a running event is over (spent) until they leave the
+  room and come back (`docs/trials.md`, "Failing and dying"). It says a line as it does (`rescue`).
+- **It catches you** (built: `game/rescue.js catchFall`, `game/fall.js`): falling through a hole
+  in the ground, the hero still finds the piece below (the slide down, it is on the map from then
+  on), but before they land it dives down after them, catches them by the hands and carries them
+  back up the hole (the slide up) and on to where they last stood safely. Out of a piece with
+  nothing below it (the core, a trial room, Flip's box) it catches them just under the floor. It
+  costs a quarter of their most health; when that is all they have left it takes it, and they
+  fall to their death. It says a line as it does (`fall`). With no robot yet the fall goes on to
+  a hard landing (60) and back to the last safe spot of the piece it started in.
 - **It brings you back** when you die, to the last safe place (not built yet).
 - **Its memory**: it knows something about the glassmaker, but cannot get at all of what it
   remembers at once. What it says is not one of the memories (the inventory's Memories tab: the

@@ -25,7 +25,6 @@ export const FLIP_FIGHT = Object.freeze({
   turn: 1.5,              // s the box takes to turn a quarter round
   turnHalf: 2.1,          // ... and half round
   holes: { delay: 1.1, crack: 0.9 },     // s after the player landed before the holes crack, then open
-  outFall: 0.6,           // what falling out through a hole costs, times his damage
   beam: 7,                // cells/s his tractor beam carries the player to the new floor (0.6 to 1.8 s)
   grace: 1,               // s after the beam (or a black hole) set the player down before anyone may strike
   stray: 1.2,             // s one stands off the fight's floors (a ledge out of reach) before his beam pulls them back

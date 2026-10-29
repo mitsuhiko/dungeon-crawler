@@ -288,10 +288,18 @@ that gives L0 54%, L1 28%, L2 15%, L3 4%.
 - **What stays solid:** portal pads, the ground around them and rivers. Upper slabs over
   void float without pillars.
 - **Falling in:** you fall into the cube below (`game/fall.js`) with the vertical slide. You
-  come out at the same spot, 5 units over the ground. If it is void there too, you keep
-  falling. For now a fall is no way into a cube: the first landing (or leaving the world)
-  costs full fall damage (`FALL_DAMAGE`, 60 HP) and puts you back in the cube the fall
-  started in, at its last safe spot, or at its entry if the landing killed you.
+  come out at the same spot, 5 units over the ground (at least 2.5, `RESCUE.clear`). The cube
+  below is found then (discovered, on the map), but a fall is no way into it. With the robot
+  along it catches you before you land (`game/rescue.js catchFall`) and carries you back up:
+  the vertical slide upwards (`game/travel.js` 'lift', into the cube the fall started in, its
+  visit going on), out over the hole and on to its last safe spot, for a quarter of your most
+  health (all of it if that is all you have: you fall to your death). With no robot yet, if it is
+  void there too you keep falling; the first landing (or leaving the world) costs full fall
+  damage (`FALL_DAMAGE`, 60 HP) and puts you back in the cube the fall started in, at its last
+  safe spot, or at its entry if the landing killed you. Out of a cube with nothing below (the
+  core, a trial room, Flip's box) the robot catches you just under the floor; with no robot,
+  that hurts (25) and puts you back on the last safe spot. Checked in the browser by
+  `tests/browser/fall.js` (`?dev=1`, `await (await import('./tests/browser/fall.js')).runFallChecks()`).
 - **Relief:** themes also have a `relief` that stretches highland faces (up to level ~18 in
   the snowy peaks) and makes hills and plateaus taller.
 

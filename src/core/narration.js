@@ -91,7 +91,7 @@ export const MOMENTS = {
   loot: { pri: 1, ttl: 8, shuffle: true },    // a rare weapon or piece of armor picked up
   quest: { pri: 1, ttl: 10, shuffle: true },  // a quest taken
   horde: { pri: 2, ttl: 5, shuffle: true },   // a horde woke up
-  fall: { pri: 1, ttl: 6, shuffle: true },    // fell through a gap into the place below
+  fall: { pri: 2, ttl: 6, shuffle: true },    // it caught the hero falling through the void, to carry them back up (game/rescue.js catchFall)
   swim: { pri: 1, ttl: 5, shuffle: true },    // into water deep enough to swim in (game/swim.js)
   rescue: { pri: 2, ttl: 6, shuffle: true },  // it pulls the hero out of a fluid ({ fluid }: 'lava', 'acid', 'mud', 'slime', 'water'; game/rescue.js)
   idle: { pri: 0, ttl: 3, quiet: 30, calm: true, shuffle: true },     // standing about for a while
@@ -1348,11 +1348,11 @@ export const LINES = [
   says('horde', null, 'horde.surround', 'Here they come! Do not let them surround you.',
     'A horde woke up.', WARN),
   says('fall', null, 'fall.whee', 'Yippee! I mean: are you all right?',
-    'The hero fell through a gap into the piece below.', CHEER, { seed: { en: 1, de: 2 } }),
-  says('fall', null, 'fall.wait', 'You fell through to the piece below! Wait for me!',
-    'The hero fell through a gap.', BRIGHT),
-  says('fall', null, 'fall.one-way', 'Down we go! That is one way to get somewhere.',
-    'The hero fell through a gap.', CHATTY),
+    'The hero fell through a gap: it dove after them and caught them.', CHEER, { seed: { en: 1, de: 2 } }),
+  says('fall', null, 'fall.got-you', 'Got you! Not down there, not yet. Back up we go!',
+    'The hero fell through a gap: it caught them, and carries them back up.', BRIGHT),
+  says('fall', null, 'fall.hold-on', 'Hold on to me! I will fly you back up to where it is safe.',
+    'The hero fell through a gap: it caught them, and carries them back up.', CHATTY),
   // --- in the water, and pulled out of what would kill (game/swim.js, game/rescue.js) ------------
   says('swim', null, 'swim.sink', 'You can swim! I cannot. I would sink like a stone. A shiny stone.',
     'The hero swims for the first time.', CHATTY),

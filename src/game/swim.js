@@ -5,7 +5,9 @@
 // wayOut): they tire, and after RESCUE.tire s they drown, unless the robot carries them out first,
 // after RESCUE.trapped s (game/rescue.js). Should it find nowhere to take them, or they cannot pay
 // its share (his mud's), it tries again every look while they tire.
-// Swimming in a flood's or a crumbling floor's water fails that trial (game/trials.js sweptAway).
+// Swimming in a running flood's or crumbling floor's water: the robot carries them back to the
+// trial's start, the attempt over (game/rescue.js); with no robot the trial is lost (game/trials.js
+// sweptAway).
 import { WATER, MUD, SWIM_DEPTH } from '../core/constants.js';
 import { RESCUE } from '../core/rescue.js';
 import { player, state, setStatus } from './state.js';
@@ -13,7 +15,7 @@ import { wayOut } from '../physics/swimout.js';
 import { swum } from '../physics/fluid.js';
 import { rescue, robotCanRescue } from './rescue.js';
 import { dieInFluid } from './ragdoll.js';
-import { sweptAway } from './trials.js';
+import { inTrialWater, sweptAway } from './trials.js';
 import { blend } from '../render/blendtree.js';
 import { sfx } from '../audio/sfx.js';
 import { emit, soft, rand, ring } from '../render/particles.js';
@@ -78,7 +80,7 @@ export function tickSwim(dt) {
     narrate('swim');
   }
   if (!p.swimming) { trapped = 0; look = 0; wadeRings(p, dt); return false; }
-  if (sweptAway()) return true;
+  if (inTrialWater() && (rescue(WATER, p.swimLook ?? 0, p.swimY) || sweptAway())) return true;
   // strokes: a soft slosh with each paddle, a ring spreading from it; little rings all the while
   // where the body cuts the surface (a collar round it), and swimming a wake of them behind it
   const speed = Math.hypot(p.vx, p.vz), c = sprayOf(p.swimLook), y = shown(p), w = fluidAround(p.x, p.y, p.z);

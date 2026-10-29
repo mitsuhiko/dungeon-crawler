@@ -1,8 +1,8 @@
 // Knocking the player over: the body turns into a ragdoll; once it has settled the player
 // either gets up where the body lies (GetUpBack / GetUpFront, see render/animator.js) or respawns.
 import { Ragdoll } from '../physics/ragdoll.js';
-import { rescue, robotCanRescue } from './rescue.js';
-import { sweptAway } from './trials.js';
+import { rescue, robotCanRescue, catchFall } from './rescue.js';
+import { startFall } from './fall.js';
 import { groundAt } from '../physics/collide.js';
 import { canMove } from '../physics/canmove.js';
 import { WATER, LAVA, MUD, STEP, GET_UP_SPEED, SWIM_FEET } from '../core/constants.js';
@@ -50,7 +50,6 @@ const FLUID_DEATH_TIME = 2.2;   // keep the body around long enough for the effe
 
 export function dieInFluid(fluid, surface, look = 0) {
   if (player.hp <= 0) return;
-  if (robotCanRescue() && sweptAway(fluid)) return;   // a flood's or a crumbling floor's: the trial starts over (game/trials.js)
   if (rescue(fluid, look, surface)) return;   // the robot pulls them out: it hurts (game/rescue.js)
   const reason = deathReason(fluid, look);
   if (player.god) { setStatus(tr(reason) + ' (god mode: back to safety)'); recover(); return; }   // dev: /god on
@@ -94,6 +93,13 @@ export function stepRagdoll(dt) {
   const gr = groundAt(player.x, player.z, player.y, 0), takes = peril(gr, player.y);
   if (takes) dieInFluid(takes.fluid, takes.y, takes.look);
   if (!player.ragdoll || (!takes && intoWater(gr))) return;
+  // tumbled down a hole into the void, the robot along: a fall like any other (physics/hazards.js),
+  // into the cube below or caught here (game/rescue.js)
+  if (pel[1] < -1.5 && player.hp > 0 && !player.fluidDeath && !state.fallFrom && robotCanRescue()) {
+    Object.assign(player, { ragdoll: null, ragdollThen: null, vx: 0, vy: -4, vz: 0, grounded: false, visY: player.y });
+    if (!startFall()) catchFall();
+    return;
+  }
   if (player.fluidDeath) { sink(r, player.fluidDeath); if (r.t < FLUID_DEATH_TIME) r.done = false; }
   if (pel[1] < -3) r.done = true;
   if (!r.done) return;

@@ -9,9 +9,7 @@ import { peril } from './fluid.js';
 import { startFall, landFall } from '../game/fall.js';
 import { poisonPlayer } from '../game/enemycombat.js';
 import { toxinOf, ACID_TOXIN } from '../core/status.js';
-import { holeFallDamage } from '../game/flipworld.js';
-import { allEnemies } from '../game/enemies.js';
-import { retryBalance } from '../game/trials.js';
+import { catchFall } from '../game/rescue.js';
 import { msg, tr } from '../i18n/i18n.js';
 
 // returns false when the player got respawned (or the robot pulls them out). Lava and acid are
@@ -46,16 +44,17 @@ function falls(dt, ci) {
 }
 
 export function applyHazards(dt, gr) {
-  if (retryBalance()) return false;
-  // below the cube: through the void into the cube below, or out of the world
-  if (player.y < -1.5 && startFall()) return false;
+  // below the cube: through the void into the cube below (the robot catches them there, once it is
+  // found: game/travel.js), else the robot catches them here (game/rescue.js); with no robot yet,
+  // out of the world
+  if (player.y < -1.5 && (startFall() || catchFall())) return false;
   if (player.y < -3) {
     if (state.fallFrom) landFall();
-    // out through a hole in Flip's box (game/flipworld.js): back where we last stood
-    else if (state.map.flip) hurt(holeFallDamage(allEnemies()), msg('Fell out of the world!'));
     else hurt(25, msg('Fell out of the cube'));
     return false;
   }
+  // the floor they last stood on: how high the robot carries them back up a hole they fall through
+  if (player.grounded && !player.swimming && gr.s) player.footY = player.y;
   if (state.time > state.statusUntil) state.statusMsg = '';
   if (!fluids(gr) || !falls(dt, gr.i)) return false;
   if (!player.swimming && player.grounded) regenerate(player, dt, state.time);

@@ -219,7 +219,7 @@
     "src/render/bake.js#assignChannels": "6d1efd24",
     "src/render/bake.js#tickBakes": "46245cd7",
     "src/render/blendtree.js#header": "a51a8f49",
-    "src/render/blendtree.js#nextMode": "34d808fb",
+    "src/render/blendtree.js#nextMode": "8bd30a13",
     "src/render/blendtree.js#RATE": "5b0ea8b3",
     "src/render/blendtree.js#updateBlend": "2ba60e36",
     "src/render/cutshader.js#CORNERS": "c447ab95",

@@ -260,5 +260,9 @@ test('a trial room: one shown it follows its owner (joining in progress sealed),
   assert.equal(viewer.phase, 'resolved');
   assert.equal(trialMessage({ key: 'k', seed: 1, phase: 'resolved', time: 1, gate: 'k:guardian' }), null);
   assert.equal(trialMessage({ key: 'k', seed: 1, phase: 'flying', time: 1 }), null);
+  // spent (the robot carried its last one back to the start): one coming in finds it drained
+  const spent = newTrial({ key: 's', kind: 'flood' });
+  assert.equal(followTrial(spent, trialMessage({ key: 's', seed: 1, phase: 'spent', time: 12 })), 'spent');
+  assert.deepEqual([spent.phase, spent.t, spent.at, spent.done], ['spent', 12, null, Infinity]);
   assert.ok(RELAYED.has('trial') && RELAYED.has('trialAct'));
 });

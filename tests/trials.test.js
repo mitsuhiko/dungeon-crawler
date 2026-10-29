@@ -7,7 +7,7 @@ import { step, faceKey, parse, key } from '../src/world/coords.js';
 import { voidAllowed, fallMask } from '../src/world/voids.js';
 import { MAX_DEPTH, worldThemes } from '../src/themes/depth.js';
 import { TRIALS, trialGate, floodLevel, floodTime, nextPulse, drainLevel, DRAIN_TIME, fitFlood, floodEnd, FLOOD, ARM_TIME, CLOSE, slowTime, stormAllowance,
-  newTrial, stepTrial, resolveTrial, resetTrial, trialFluidLevel, trialSealed, WAVE, crumbleTime, crustState, BASIN,
+  newTrial, stepTrial, resolveTrial, spendTrial, SPENT_DRAIN, resetTrial, trialFluidLevel, trialSealed, WAVE, crumbleTime, crustState, BASIN,
   slideStop, fieldIn, isRock, useBit, plateHeld, sinkStage, SINK, traceBeam, beamDone, pressBrazier, allLit, pushTarget, platesHeld, FOG, fogLevel, fogY, fogHurt, COLD, coldStep, STORM, stormPhase, holdTime, HUNTER, runeOrder } from '../src/core/trials.js';
 import { solveSlide, slideBand, solveMirror, solveBraziers, brazierPattern, solveSokoban } from '../src/cubegen/trials/solve.js';
 import { PUZZLE_SIZE } from '../src/cubegen/trials/puzzles.js';
@@ -250,6 +250,38 @@ test('the states: idle until a player steps off the pad, armed for ARM_TIME, the
   assert.ok(trialFluidLevel(m, f) < 5 && trialFluidLevel(m, f) > 2);
   stepTrial(f, DRAIN_TIME);
   assert.equal(trialFluidLevel(m, f), null);
+});
+
+test('spent (the robot carried the hero back to the start): unsealed, stopped, drained fast, never armed again; a new attempt once back in', () => {
+  const m = { kind: 'flood', timeline: { kind: 'flood', from: 2, to: 15, step: 2, rise: 3, pulses: [3, 10, 17] } };
+  const s = newTrial({ key: 'f', kind: 'flood' });
+  assert.equal(spendTrial(s), false, 'idle: nothing to spend');
+  stepTrial(s, 0, { away: true }); stepTrial(s, 11.5);
+  const level = trialFluidLevel(m, s);
+  assert.ok(spendTrial(s, level)); assert.equal(s.phase, 'spent'); assert.equal(spendTrial(s, level), false);
+  assert.equal(trialSealed(s), false);
+  assert.equal(trialFluidLevel(m, s), level);
+  assert.equal(stepTrial(s, SPENT_DRAIN / 2, { away: true }), null);
+  assert.equal(s.t, 11.5, 'its clock stopped');
+  assert.ok(trialFluidLevel(m, s) < level && trialFluidLevel(m, s) > m.timeline.from);
+  stepTrial(s, SPENT_DRAIN);
+  assert.equal(trialFluidLevel(m, s), null, 'drained by the time the robot sets them down');
+  assert.equal(s.phase, 'spent');
+  // the fog lifts the same way; the collapse's crust: what fell stays gone, the rest holds
+  const fog = { kind: 'miasma', timeline: { kind: 'miasma', top: 12, from: 0, to: 8, step: 2, rise: 1, pulses: [3, 6, 9, 12] } };
+  const g = newTrial({ key: 'g', kind: 'miasma' });
+  stepTrial(g, 0, { away: true }); stepTrial(g, 8);
+  spendTrial(g, fogLevel(fog.timeline, g.t));
+  stepTrial(g, SPENT_DRAIN);
+  assert.equal(fogY(fog, g), null);
+  const c = { kind: 'collapse', wave: { delay: 1, speed: 2 }, crust: [{ c: 1, f: 1, d: 0 }, { c: 2, f: 2, d: 20 }] };
+  const k = newTrial({ key: 'c', kind: 'collapse' });
+  stepTrial(k, 0, { away: true }); stepTrial(k, crumbleTime(c.wave, 20) - WAVE.shake / 2);
+  assert.deepEqual(c.crust.map(q => crustState(c, k, q)), ['gone', 'shaking']);
+  spendTrial(k, trialFluidLevel(c, k));
+  assert.deepEqual(c.crust.map(q => crustState(c, k, q)), ['gone', 'whole']);
+  assert.equal(trialFluidLevel(c, k), BASIN, 'the basin stays under the holes');
+  resetTrial(k); assert.equal(k.phase, 'idle');
 });
 
 const DT = 1 / 60;

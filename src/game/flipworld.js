@@ -89,11 +89,6 @@ export function resetFlipWorld() {
 // the side that is down now (null: no box here)
 export const downNow = () => w ? downFace(w.O) : null;
 export const turning = () => !!w?.turn;
-// what falling out through a hole costs
-export function holeFallDamage(list) {
-  const e = list.find(isFlip);
-  return e ? Math.round(e.profile.damage * G.outFall) : 25;
-}
 
 // one step (game/enemies.js), with the enemies this game runs (`own`: false for those it is shown)
 export function updateFlipWorld(list, dt, own = true) {
@@ -183,6 +178,7 @@ function startTurn(O, boss, list) {
   for (const axis of ['x', 'z']) for (const q of [1, -1, 2]) if (!found && orientKey(rotation(axis, q)) === orientKey(R)) found = { axis, q };
   if (!found) { snap(O); return; }
   if (player.flipping?.kind === 'beam') player.flipping = null;   // (a turn while the beam still had them)
+  if (player.rescue) { player.rescue = null; player.vanished = false; }   // (... or the robot: the turn has them now, game/rescue.js)
   const gentle = boss.mode === 'dead', carry = !player.flipping && player.hp > 0;
   if (carry) {
     Object.assign(player, { ragdoll: null, getUp: null, held: null, climb: null, gust: null, pull: null, stun: 0, vx: 0, vy: 0, vz: 0 });

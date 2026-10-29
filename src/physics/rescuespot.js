@@ -20,6 +20,13 @@ function dry(s) {
   return !peril(groundAt(s.x, s.z, s.y + 0.05, 0), s.y + 0.01);
 }
 
+// p ({ x, y, z }) if the hero can be set down there: supported (physics/respawn.js) and dry, unless
+// `wet` (a trial's water that drains as the robot comes: game/rescue.js); else null
+export function spotAt(p, wet = false) {
+  const q = p && supportedPoint(p.x, p.y, p.z);
+  return q && (wet || dry(q)) ? q : null;
+}
+
 // where the robot takes the hero from (x, y, z): { x, y, z } or null (nowhere)
 export function spotFor(x, y, z) {
   const m = state.map;

@@ -33,10 +33,10 @@ above, and every puzzle you solve drains it one stage further.
 
 | id | Family | Sealed | Timed | Goal | Fails by | Depths, themes |
 |---|---|---|---|---|---|---|
-| `flood` | event | yes | yes | press the button on the summit | swept away (in its water), burned (lava, acid) | 1–19, any (the depth's fluid) |
+| `flood` | event | yes | yes | press the button on the summit | swept away (in its water), burned (lava, acid); the robot pulling you out | 1–19, any (the depth's fluid) |
 | `sunken` | event + puzzles | no | no | solve 2–3 puzzles, each drains a stage | (ordinary death) | 2–19, any |
 | `collapse` | event | yes | yes | reach the exit apron | falling in | 1–19, any |
-| `balance` | event | yes | per stone | jump from stone to stone to the exit apron | (a miss: back to the start) | 1–19, lava and acid themes, forge |
+| `balance` | event | yes | per stone | jump from stone to stone to the exit apron | a miss (into the basin) | 1–19, lava and acid themes, forge |
 | `cold` | event | yes | meter | light the great fire | freezing | peaks, frozen caves (1–13) |
 | `storm` | event | yes | gusts | pull the lightning rod on top of the hill | (blown off: a fall) | sky and surface themes (1–6) |
 | `siege` | event | yes | yes | hold the beacon long enough | death | 2–19, any |
@@ -89,7 +89,7 @@ has been visited.
 
 ### States
 
-`idle → armed → running → resolved` (`core/trials.js`, pure, testable).
+`idle → armed → running → resolved`, or `running → spent` (`core/trials.js`, pure, testable).
 
 - **idle:** the room as built. Events: armed when the player steps off the arrival pad (any
   player, playing together). Puzzles never arm; they are just there.
@@ -100,6 +100,11 @@ has been visited.
 - **resolved:** the goal is met. Seals open, the hazard ends (water drains back, fog lifts, the
   crust holds). The id goes into `run.trials`, saved with the world like a defeated guardian,
   and the chronicle notes it (`trial` entry, told to friends).
+- **spent:** the attempt is over without a death: the robot carried the hero back to the start
+  ("Failing and dying"). The seals open, the clock stops, the water drains back (the fog lifts)
+  in a second (`SPENT_DRAIN`), and what crumbled or sank stays gone; the rest of the crust holds.
+  Nothing in the room can be used, and it never arms again: walking out and back in starts it
+  over (a new `idle`, as built). The HUD says so; the chronicle notes a failed trial.
 
 ### Sealing (events only)
 
@@ -127,6 +132,16 @@ back stays open.
 - **Puzzles:** an ordinary death in the room (the arrival pad, the visit rolled back). The
   puzzle's state goes back to its start on death and when you leave the room; a solved puzzle
   stays solved. `sunken` keeps its drained stages for the run.
+- **The robot** (once it is with the hero, `game/rescue.js`): what it pulls them out of (lava,
+  acid, a flood's or the basin's water they swim in) or catches them falling into (the void), in
+  any trial room not resolved, it carries them back to the start: where the room was entered.
+  It costs what it costs anywhere (a quarter of the most health; clear water nothing), and it does
+  not put the trial back: a puzzle stays as it was, and an event that is armed or running is
+  **spent** (no new attempt, no checkpoint). To try again, leave the room and come back. Playing
+  together, while a friend in the room still runs the event, it goes on (and the one carried
+  back waits, sealed in); the last one in spends it (`game/trials.js spendTrialHere`). With no
+  robot yet, swimming in a running flood's or basin's water still loses the trial (back in the
+  room before, `sweptAway`), and lava or acid kill.
 
 ### After
 
@@ -199,7 +214,9 @@ One small set of parts serves every puzzle; a puzzle is a layout of parts plus a
 - The player who owns the cube's enemies (`net/foes.js`) owns its trial: they run the clock
   and the puzzle rules and send the state. Others send their part presses to the owner.
 - One player failing an event goes back to the room before. The event runs on for the others
-  in the room. If nobody is left in the room, it resets to `idle`.
+  in the room. If nobody is left in the room, it resets to `idle`. One the robot carries back to
+  the start waits there while the others go on; the last one in the room spends it, and one
+  coming in later finds it `spent` (drained) until they leave and come back.
 - Resolved is resolved for everyone (`run.trials` is shared like kills).
 
 ### Data
@@ -246,10 +263,12 @@ that stops it.
   player leaves the floors it covers (never sooner after the one before than its rise). It stops 2
   levels under the summit's top. About 15-25 s in all (at most `FLOOD.max`, 70 s).
 - **Rules:** water is waded through ([bosses.md](bosses.md#water-wading-swimming-and-sinking)),
-  but once it lifts the hero (they swim in it) they are swept away: the trial is lost, back where
-  the room was entered (`game/trials.js sweptAway`). Lava and acid kill on contact as every fluid
-  does (`physics/fluid.js peril` reads `max(floor surf, trial level)`); with the robot along it
-  pulls the hero out instead, and the trial is lost the same way. Enemies drown too, without
+  but once it lifts the hero (they swim in it) the robot carries them back to the start and the
+  attempt is spent ("Failing and dying"); with no robot they are swept away: the trial is lost,
+  back in the room before (`game/trials.js sweptAway`). Lava and acid kill on contact as every
+  fluid does (`physics/fluid.js peril` reads `max(floor surf, trial level)`); with the robot along
+  it pulls the hero out instead (a quarter of their health), back to the start, spent the same
+  way. Enemies drown too, without
   rewards. The water is one surface clipped to the glass box (the room fills like an aquarium).
 - **Goal:** the button (`F`). The water drains back in 5 s and the seals open.
 - **Telegraph (idle):** tide lines on rocks and walls, the button glowing on the summit.
@@ -311,9 +330,10 @@ The floor breaks up behind you in a wave from the entry; outrun it to the exit.
   distance from the entry apron over the crust. The speed is the room's, the slow player's own
   pace along the crust (1.3-2.8 cells/s, about 2.1; running is 2.8). It shakes, cracks and drops
   dust for 1.5 s first, then falls away.
-- **Rules:** falling into the basin fails the trial (swimming in its water, or its lava or acid,
-  which kills, or with the robot along is pulled out of; the void counts as a fail even where a
-  fall would lead to the cube below).
+- **Rules:** falling into the basin ends the attempt: its lava or acid kills (a death: the room
+  before), and with the robot along it pulls the hero out (or carries them out of its water, or
+  catches them out of the void; a trial room has no cube below) back to the start, the attempt
+  spent ("Failing and dying"). With no robot, swimming in its water loses the trial.
 - **Goal:** stepping onto the exit apron stops the wave (the keystone) and opens the seals.
 - **Check:** deadlines: a crust cell's deadline is its crumble time; the aprons have none.
   Each dead end must be one: no path leaves it.
@@ -346,9 +366,11 @@ from stone to stone to the far side.
   on one clock). It shakes and darkens, then sinks and is not there for the physics any more.
   Leaving it, coming back or a friend landing on it never buys more time; a stone nobody has
   stood on waits. The HUD counts down the stone underfoot.
-- **Rules:** a miss is no death. Under the basin's surface (`balanceFallen`) the hero is put back
-  on the entry apron, without losing HP (in god mode too), and the trial starts over with every
-  stone back up (`game/trials.js retryBalance`, before any other hazard in `physics/hazards.js`).
+- **Rules:** a miss is a fall into the basin's lava or acid, as anywhere: with no robot it kills
+  (the room before); with the robot along it pulls the hero out for a quarter of their health
+  and carries them back to the start (where the room was entered), the attempt spent: the sunk stones stay sunk, the
+  rest hold, and only leaving and coming back starts it over ("Failing and dying"). No
+  checkpoint, no free retry.
 - **Goal:** stepping onto the exit apron (the keystone) opens the seals.
 - **Check:** the jumps are the reach graph's own (after smoothing). Along the checked path the slow
   player's stay on each stone, from its first landing to the take-off off it (with the jump's
@@ -362,8 +384,7 @@ from stone to stone to the far side.
   beside the exit apron; then each slab grows a shape where it stays two cells from everything
   else. The stones are the collapse's crust, drawn and taken away the same way, in one grey. The
   stones' clocks (`state.trial.stones`, on the trial's clock) go with the trial's state; a guest's
-  landing goes to the owner as the part press `stone:<n>`, a miss as `balance:retry`, which
-  starts the trial over for everyone in the room.
+  landing goes to the owner as the part press `stone:<n>`.
 
 ### `cold`: Cold snap
 
@@ -736,8 +757,10 @@ volcanic fire shrine; candles stay as they are, too small for it).
   seals; town portal refused while running; two players (one failing, the event going on).
 - `tests/balance.test.js`, `tests/browser/balance.js` (`?dev=1&trial=balance`, then
   `await (await import('./tests/browser/balance.js')).runBalanceChecks()`): the stones' clocks,
-  the retry, the generated rooms and the real character jumping the checked way; in the browser,
-  `/trial balance`, a stone sinking, a miss back to the start and the exit apron.
+  a spent attempt, the generated rooms and the real character jumping the checked way; in the
+  browser, `/trial balance`, a stone sinking, a miss the robot pulls them out of (a quarter of
+  their health, back at the start, the attempt spent and the sunk stone still gone; out
+  and back in, a new attempt) and the exit apron.
 
 ## Implementation order
 

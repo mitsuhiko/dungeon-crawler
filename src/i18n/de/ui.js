@@ -619,7 +619,9 @@ export default {
   'No way out of the water: the robot carries you out': 'Kein Weg aus dem Wasser: Der Roboter trägt dich hinaus',
   'No way out of the water! You are getting tired': 'Kein Weg aus dem Wasser! Du wirst müde',
   'Swept away by the water! The trial starts over': 'Vom Wasser fortgerissen! Die Prüfung beginnt von vorn',
-  'The robot pulls you out! The trial starts over': 'Der Roboter zieht dich heraus! Die Prüfung beginnt von vorn',
+  'Fell through the void! The robot carries you back up': 'Durch die Leere gefallen! Der Roboter trägt dich wieder hinauf',
+  'The robot carries you back to the start: leave the room and come back to try again':
+    'Der Roboter trägt dich zurück zum Start: Verlass den Raum und komm wieder, um es noch einmal zu versuchen',
   'Could not save the game (is the storage full?)': 'Konnte das Spiel nicht speichern (ist der Speicher voll?)',
   'The water is rising! Get up a hill!': 'Das Wasser steigt! Rauf auf einen Hügel!',
   'No weapon equipped': 'Keine Waffe ausgerüstet',
@@ -646,7 +648,6 @@ export default {
   'Flip flips the world!': 'Flip kippt die Welt!',
   'Poisoned by acid': 'Von Säure vergiftet',
   'Acid rain!': 'Säureregen!',
-  'Fell out of the world!': 'Aus der Welt gefallen!',
   'Fell out of the cube': 'Aus dem Würfel gefallen',
   '{title} · Lv {level}': '{title} · Lv {level}',
   'Helping {name} up {n}%': '{name} aufhelfen: {n} %',

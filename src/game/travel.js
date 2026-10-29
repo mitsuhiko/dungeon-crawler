@@ -31,6 +31,7 @@ import { arrivalPoint, portalSeen, spawnAt, settleIn, visitedNeighbors, discover
 import { enterTrial, warnTrials } from './trials.js';
 import { slideVisuals, endVisuals } from './travelfx.js';
 import { fallPoint } from './fall.js';
+import { catchFall, liftArrived } from './rescue.js';
 import { townPadIn } from '../core/townportal.js';
 import { cancelCast } from './townportal.js';
 import { tr } from '../i18n/i18n.js';
@@ -47,7 +48,8 @@ export const travelling = () => !!trip;
 // What the minimap shows and the others are told (net/session.js), so neither jumps a cube
 // ahead and back as the slide starts.
 export const truePosition = () => trip ? (trip.last ?? trip.S) : player;
-// what kind of trip goes on ('side', 'down', 'up', 'fall'; null: none), and the cube it left:
+// what kind of trip goes on ('side', 'down', 'up', 'fall', 'lift': the robot carrying the hero back
+// up out of the cube a fall went into, game/fall.js liftBack; null: none), and the cube it left:
 // { key, group } where that is drawn while the slide carries it away (game/robot.js)
 export const tripKind = () => trip?.kind ?? null;
 export const leftCube = () => trip ? { key: trip.oldKey, group: trip.old.world.group } : null;
@@ -58,8 +60,9 @@ export const slidingCubes = () => trip?.cubes ?? null;
 // the cube behind the portal may still be generating: wait for it (frozen in the portal).
 // A side portal into a cube not drawn yet gets a cloud to walk onto (render/portalcloud.js).
 // force: ignore guardian locks (dev tools, game/dev.js); the gate itself stays locked.
+// A 'lift' (game/fall.js liftBack): p.at, where it comes out; p.failed, should that cube not come.
 export function startTravel(p, { force = false } = {}) {
-  if (state.transitioning || state.inventoryOpen) return;
+  if (state.transitioning || (state.inventoryOpen && p.kind !== 'lift')) return;
   if (!force && portalLocked(state.map, state.run, p)) { setStatus(lockMessage(state.map, p.dir, guardianKind(state.map))); return; }
   clearMouseInput();
   state.transitioning = true;
@@ -78,7 +81,8 @@ export function startTravel(p, { force = false } = {}) {
   }, () => {
     hidePortalCloud();
     if (state.cubes !== cubes || state.cubeKey !== source) return;
-    state.transitioning = false; setStatus(tr('The portal does not open'));
+    state.transitioning = false;
+    if (p.failed) p.failed(); else setStatus(tr('The portal does not open'));
   });
 }
 
@@ -90,7 +94,9 @@ function slide(p, c, cloud) {
   const motion = crossing ? Object.fromEntries(['vx', 'vy', 'vz', 'grounded', 'swimming', 'fluid', 'airTime', 'coyote', 'jumpBuf', 'stun', 'layer'].map(key => [key, player[key]])) : null;
   state.map = m;   // arrivalPoint and collision queries read the destination map
   const arr = m.portals.find(q => q.dir === OPP6[p.dir]), fall = p.kind === 'fall' && fallPoint(m);
-  const A = crossing ? boundaryArrival(player, p.dir) : fall ? fall.air : arrivalPoint(arr);
+  // carried back up out of a fall: into the cube it started in, as it was then (its visit goes on)
+  const lift = p.kind === 'lift' ? state.fallFrom : null;
+  const A = crossing ? boundaryArrival(player, p.dir) : fall ? fall.air : lift ? p.at : arrivalPoint(arr);
   // No route/safety adjustment: just respect solid terrain at the destination, as walking
   // would. A body-sized footprint also prevents sliding into a pillar or cliff beside it.
   // Nor onto a stair or bridge over its side rail (physics/canmove.js railedFace).
@@ -116,11 +122,16 @@ function slide(p, c, cloud) {
   trip.T = p.kind === 'side' ? THREE.MathUtils.clamp(trip.S.distanceTo(trip.A) / 2.2, 0.9, 1.4) : 1.3;
   trip.delay = cloud ? CLOUD_DELAY : 0;
   setCut(Infinity, null, 0, 0, 0);
-  if (discover(c)) setWorldOpenFaces(oldWorld, openedSides(state.openedFaces, oldKey));
-  state.cubeKey = k; state.arrival = fall ? fall.rest : A;
-  beginVisit();
-  state.portalLock = fall || p.kind === 'side' ? 0 : arr.id;
-  state.boundaryLock = p.kind === 'side' ? OPP6[p.dir] : -1;
+  if (!lift && discover(c)) setWorldOpenFaces(oldWorld, openedSides(state.openedFaces, oldKey));
+  state.cubeKey = k;
+  if (lift) {
+    Object.assign(state, { arrival: lift.arrival, portalLock: lift.portalLock, boundaryLock: lift.boundaryLock, visit: lift.visit, fallFrom: null });
+  } else {
+    state.arrival = fall ? fall.rest : A;
+    beginVisit();
+    state.portalLock = fall || p.kind === 'side' ? 0 : arr.id;
+    state.boundaryLock = p.kind === 'side' ? OPP6[p.dir] : -1;
+  }
   trip.A0 = A;
   // the people living here and what the quests put here, before it is built (else the quests
   // found it changed once the slide ended and built the whole cube again: game/quests.js)
@@ -155,7 +166,7 @@ export function updateTravel(dt) {
   // and so does the ground the hero's feet stand on
   if (dx || dy || dz) { shiftParticles(dx, dy, dz); shiftFloatText(dx, dy, dz); shiftHeroFeet(dx, dy, dz); trip.drawn.copy(off); }
   // the path in the new cube's coordinates: walk straight through, fall, or rise
-  const u = trip.kind === 'side' ? t : trip.kind === 'up' ? 1 - (1 - t) ** 2 : t * t;
+  const u = trip.kind === 'side' ? t : trip.kind === 'up' || trip.kind === 'lift' ? 1 - (1 - t) ** 2 : t * t;
   const x = trip.S.x + (trip.A.x - trip.S.x) * t, z = trip.S.z + (trip.A.z - trip.S.z) * t, y = trip.S.y + (trip.A.y - trip.S.y) * u;
   if (trip.last) { p.vx = (x - trip.last.x) / dt; p.vz = (z - trip.last.z) / dt; p.vy = (y - trip.last.y) / dt; }
   trip.last = { x, y, z };
@@ -173,10 +184,12 @@ export function drawTravelEnemies(dt) {
 
 function finish() {
   endVisuals(trip);
-  const landed = trip.kind === 'down', falling = trip.kind === 'fall', hp = player.hp, A = trip.A0, motion = trip.motion;
+  const landed = trip.kind === 'down', falling = trip.kind === 'fall', lifted = trip.kind === 'lift', hp = player.hp, A = trip.A0, motion = trip.motion;
+  const carried = player.rescue;   // (the robot's, through a 'lift': spawnAt lets go)
   trip = null;
   spawnAt(A.x, A.y, A.z);
   player.hp = hp;
+  if (lifted && carried) Object.assign(player, { rescue: carried, grounded: false, support: null });
   if (motion) {
     const gr = groundAt(A.x, A.z, A.y, motion.swimming ? SWIM_STEP : STEP);
     Object.assign(player, motion);
@@ -188,4 +201,7 @@ function finish() {
   if (landed) { player.landImpact = 4; player.landCount++; }
   settleIn();   // reconcile toggles made during travel; unchanged proxies are reused
   state.transitioning = false;
+  // the robot: carried back up, on to safe ground; fallen into this cube, caught before landing
+  if (lifted) liftArrived();
+  if (falling && state.fallFrom?.catch) catchFall(true);
 }

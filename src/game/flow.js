@@ -57,7 +57,7 @@ import { robotArrived, forgetRobot } from './robot.js';
 
 export function spawnAt(x, y, z) {
   cancelSword(true); cancelCast();
-  Object.assign(player, { x, y, z, vy: 0, vx: 0, vz: 0, visY: y, grounded: true, swimming: false, support: null, ragdoll: null, down: null, getUp: null, swimOut: null, fluidDeath: 0, stun: 0, climb: null, engulfed: null, burning: null, chilled: null, slowed: null, toxic: null, gust: null, shocked: 0, dazed: 0, flat: 0,
+  Object.assign(player, { x, y, z, footY: y, vy: 0, vx: 0, vz: 0, visY: y, grounded: true, swimming: false, support: null, ragdoll: null, down: null, getUp: null, swimOut: null, fluidDeath: 0, stun: 0, climb: null, engulfed: null, burning: null, chilled: null, slowed: null, toxic: null, gust: null, shocked: 0, dazed: 0, flat: 0,
     flipping: null, vanished: false, pull: null, rescue: null, wade: 0 });   // (Flip's world, game/flipworld.js; the robot's rescue, game/rescue.js)
   player.safe = respawnPoint({ x, y, z });
   const gr = groundAt(x, z, y + 0.05, 0);

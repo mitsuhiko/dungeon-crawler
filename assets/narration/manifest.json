@@ -3284,19 +3284,19 @@
         "dur": 3.43,
         "hash": "67c0a9caab12e90d"
       },
-      "robot.fall.wait": {
-        "text": "You fell through to the piece below! Wait for me!",
-        "source": "You fell through to the piece below! Wait for me!",
+      "robot.fall.got-you": {
+        "text": "Got you! Not down there, not yet. Back up we go!",
+        "source": "Got you! Not down there, not yet. Back up we go!",
         "seed": 0,
-        "dur": 3.54,
-        "hash": "c82cc8a5320aaf55"
+        "dur": 4.95,
+        "hash": "09d762d30437cbba"
       },
-      "robot.fall.one-way": {
-        "text": "Down we go! That is one way to get somewhere.",
-        "source": "Down we go! That is one way to get somewhere.",
+      "robot.fall.hold-on": {
+        "text": "Hold on to me! I will fly you back up to where it is safe.",
+        "source": "Hold on to me! I will fly you back up to where it is safe.",
         "seed": 0,
-        "dur": 4.58,
-        "hash": "fe22d7c0c52c860c"
+        "dur": 4.27,
+        "hash": "35a7cc59834ae390"
       },
       "robot.swim.sink": {
         "text": "You can swim! I cannot. I would sink like a stone. A shiny stone.",
@@ -7094,19 +7094,19 @@
         "dur": 4.09,
         "hash": "f5d87e2ee541fe90"
       },
-      "robot.fall.wait": {
-        "text": "Du bist ins Stück darunter gefallen! Warte auf mich!",
-        "source": "Du bist ins Stück darunter gefallen! Warte auf mich!",
+      "robot.fall.got-you": {
+        "text": "Hab dich! Nicht da runter, noch nicht. Wir fliegen wieder hoch!",
+        "source": "Hab dich! Nicht da runter, noch nicht. Wir fliegen wieder hoch!",
         "seed": 0,
-        "dur": 4.15,
-        "hash": "e41f19ca7163081c"
+        "dur": 5.24,
+        "hash": "119df011af557abf"
       },
-      "robot.fall.one-way": {
-        "text": "Abwärts! So kommt man auch irgendwohin.",
-        "source": "Abwärts! So kommt man auch irgendwohin.",
+      "robot.fall.hold-on": {
+        "text": "Halt dich an mir fest! Ich fliege dich wieder hoch, dahin, wo es sicher ist.",
+        "source": "Halt dich an mir fest! Ich fliege dich wieder hoch, dahin, wo es sicher ist.",
         "seed": 0,
-        "dur": 4.76,
-        "hash": "9008d949097612cc"
+        "dur": 6.84,
+        "hash": "08312980183063ef"
       },
       "robot.swim.sink": {
         "text": "Du kannst schwimmen! Ich nicht. Ich würde sinken wie ein Stein. Ein glänzender Stein.",

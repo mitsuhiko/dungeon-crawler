@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { World } from '../src/world/world.js';
-import { TRIALS, STONE_TIME, newTrial, stepTrial, touchStone, crustState, balanceFallen, resolveTrial, resetTrial, trialFluidLevel, trialSealed } from '../src/core/trials.js';
+import { TRIALS, STONE_TIME, newTrial, stepTrial, touchStone, crustState, spendTrial, resolveTrial, resetTrial, trialFluidLevel, trialSealed } from '../src/core/trials.js';
 import { TrialOwner, trialMessage, followTrial } from '../src/net/trials.js';
 import { N, LH, CHAR_R, CHAR_H, LAVA, ACID } from '../src/core/constants.js';
 import { movePlayer } from '../src/physics/move.js';
@@ -39,14 +39,28 @@ test('a whole slab sinks exactly three seconds after first contact, independentl
   assert.equal(crustState(m, s, m.crust[0]), 'whole');
 });
 
-test('Balance retries at its basin surface, not at the top of a jump, and never changes other trials', () => {
-  const m = model();
-  assert.equal(balanceFallen(m, m.basin * LH + 0.01), false);
-  assert.equal(balanceFallen(m, m.basin * LH - 0.01), true);
-  assert.equal(balanceFallen(m, -10), true);
-  assert.equal(balanceFallen({ ...m, kind: 'collapse' }, -10), false);
-  assert.equal(balanceFallen(null, -10), false);
-  assert.equal(balanceFallen(m, NaN), false);
+test('a miss the robot pulls them out of spends the attempt: unsealed, the sunk stones stay sunk, the rest hold, it never arms again', () => {
+  const m = model(), s = newTrial(m);
+  assert.equal(spendTrial(s), false, 'an idle trial is not spent');
+  stepTrial(s, 0, { away: true });
+  touchStone(m, s, 0);
+  stepTrial(s, STONE_TIME + 0.5);
+  touchStone(m, s, 1);
+  stepTrial(s, 1);
+  assert.deepEqual([crustState(m, s, m.crust[0]), crustState(m, s, m.crust[2])], ['gone', 'shaking']);
+  assert.equal(spendTrial(s, trialFluidLevel(m, s)), true);
+  assert.equal(s.phase, 'spent');
+  assert.equal(trialSealed(s), false, 'the seals open: they can leave to start it over');
+  assert.equal(crustState(m, s, m.crust[0]), 'gone', 'what sank stays sunk');
+  assert.equal(crustState(m, s, m.crust[2]), 'whole', 'what shook holds');
+  assert.equal(trialFluidLevel(m, s), m.basin, 'the basin stays');
+  assert.equal(touchStone(m, s, 1), false);
+  const t = s.t;
+  assert.equal(stepTrial(s, 10, { away: true }), null, 'it never arms again');
+  assert.deepEqual([s.phase, s.t], ['spent', t], 'its clock stopped');
+  assert.equal(spendTrial(s), false, 'spent once');
+  resetTrial(s);
+  assert.equal(s.phase, 'idle', 'coming back in, it is as built');
 });
 
 test('slab clocks are sent immediately to friends and late joiners, including long attempts', () => {

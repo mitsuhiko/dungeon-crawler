@@ -26,9 +26,10 @@ export const resetMode = () => { mode = 'loco'; };
 function nextMode(dt, speed) {
   const p = player;
   modeT += dt;
-  // In the robot's hands: treading the fluid until it comes, then hanging from it
+  // In the robot's hands: treading the fluid (or falling through the void) until it comes, then
+  // hanging from it
   if (p.rescue) {
-    const want = p.rescue.phase === 'reach' ? 'swim' : 'hang';
+    const want = p.rescue.phase !== 'reach' ? 'hang' : p.rescue.air ? 'fall' : 'swim';
     if (mode !== want) modeT = 0;
     mode = want; slow = 0;
     seen.jump = p.jumpCount; seen.land = p.landCount;

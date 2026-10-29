@@ -680,7 +680,7 @@ of his phase); the fight's rules and his box in `src/core/flip.js` (`FLIP_FIGHT`
 | | Level 5 |
 |---|---|
 | Health | 1680 (the descent tier's floor, grown four levels) |
-| Damage | 34 (ball ×0.7, volley ×0.55 a ball; a fall out through a hole ×0.6, a black hole's swallow ×0.55; a flip: none) |
+| Damage | 34 (ball ×0.7, volley ×0.55 a ball; a black hole's swallow ×0.55; a flip: none; a fall out through a hole: as any fall out of the world) |
 | XP | 650 grown; coins 160–280 at level 1; two weapons and two potions like a descent guardian |
 | Poise | 2 s |
 
@@ -773,8 +773,10 @@ ground there (only the doorway does): the one place in the world where it does n
 - **The holes**: the holes in the side that comes down are shut (panes of ice over them) while
   the beam carries the player; 1.1 s after they are down the holes crack (the panes flicker) and
   0.9 s later burst open (and the walls break open): whoever stands on one falls out of the world,
-  and so does a minion. Falling out hurts (20 at level 5) and puts the player back where they last
-  stood. Unturned, the floor has no holes; the walls' holes are windows.
+  and so does a minion. A player falling out is caught by the robot as out of any piece with
+  nothing below it (`game/rescue.js catchFall`: a quarter of their most health, carried back in
+  onto the floor they last stood on; with no robot yet, 25 and back there); a turn starting
+  meanwhile takes them out of its hands and carries them as ever. Unturned, the floor has no holes; the walls' holes are windows.
 - No blow takes him below half his health (`hpFloor`).
 
 ### Spinning up

@@ -9,7 +9,7 @@ import { groundAt } from '../src/physics/collide.js';
 import { inFluid, wading, wadeable, tooDeep, peril, swimWater, setTide } from '../src/physics/fluid.js';
 import { climb } from '../src/physics/climb.js';
 import { wayOut } from '../src/physics/swimout.js';
-import { flight, along, RESCUE, CARRIED_H, shareOf } from '../src/core/rescue.js';
+import { flight, along, RESCUE, CARRIED_H, shareOf, FALL_SHARE, lossOf } from '../src/core/rescue.js';
 
 function bank(dx = 1, dz = 0, fluid = WATER) {
   const m = flatMap(), f = m.floors[5 * N + 5], water = m.floors[(5 + dz) * N + 5 + dx];
@@ -274,4 +274,9 @@ test('the robot\'s flight: up out of it, over to the spot under the roof, as lon
   for (let t = 0; t <= 1; t += 0.05) assert.ok(low.at(t).y <= Math.max(3 - CARRIED_H, b.y + 0.3) + 1e-9);
   assert.equal(along(0, 1), 0); assert.equal(along(1, 1), 1); assert.ok(along(0.5, 1) === 0.5);
   assert.equal(shareOf(WATER, 0), 0); assert.ok(shareOf(LAVA, 0) > 0 && shareOf(WATER, MUD) > 0);
+  // a catch out of the void: a quarter of the most health, in whole points (the lot, when that is all)
+  assert.equal(FALL_SHARE, 0.25);
+  assert.equal(lossOf(296, FALL_SHARE), 74); assert.equal(lossOf(101, FALL_SHARE), 26); assert.equal(lossOf(100, 0), 0);
+  // a fall into the piece below comes out high enough to be caught before it lands (game/fall.js fallPoint)
+  assert.ok(RESCUE.clear - RESCUE.sag > 1, "still well over the ground as it grabs them");
 });

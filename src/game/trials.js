@@ -3,16 +3,14 @@
 // (game/action.js), resolving and resetting it.
 //   state.trial: { key, kind, phase, t, done, at } (core/trials.js newTrial) or null
 import * as THREE from 'three';
-import { LH, N, DIRS, WATER } from '../core/constants.js';
+import { LH, N } from '../core/constants.js';
 import { step } from '../world/coords.js';
 import { camera } from '../render/scene.js';
 import { pointer } from './pointer.js';
 import { TRIALS, ARM_DISTANCE, ARM_TIME, PART_REACH, fogY, fogLevel, fogHurt, COLD, coldStep, STORM, stormPhase, newTrial, stepTrial, resolveTrial, resetTrial, trialFluidLevel,
-  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, STONE_TIME, balanceFallen, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
+  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, STONE_TIME, spendTrial, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
   traceBeam, beamDone, allLit, pressBrazier, pushTarget, clueMark } from '../core/trials.js';
 import { groundAt } from '../physics/collide.js';
-import { floorY } from '../core/surfaces.js';
-import { clearOrder } from './orders.js';
 import { setTrialFluid } from '../physics/fluid.js';
 import { drownEnemies } from './tide.js';
 import { setTrialWater, setTrialParts, setTrialBarriers, setCrust, setGridParts, setTrialFog, setStorm } from '../render/trials.js';
@@ -27,7 +25,7 @@ import { allEnemies, mirroring } from './enemies.js';
 import { relay, online } from '../net/online.js';
 import { followTrial } from '../net/trials.js';
 import { solveMirror, solveBraziers } from '../cubegen/trials/solve.js';
-import { refreshOpenFaces, spawnAt, spawnEntry, backBeforeTrial, besidePortal, rebuildWorld, hurt } from './flow.js';
+import { refreshOpenFaces, spawnEntry, backBeforeTrial, besidePortal, rebuildWorld, hurt } from './flow.js';
 import { CHAR_H } from '../core/constants.js';
 import { emit, soft, rand } from '../render/particles.js';
 import { stepSiege, stepChase, dropPortcullis, resetEvents, lightBeacon, eventHud, EVENT_HOW, EVENT_DONE } from './trialevents.js';
@@ -221,7 +219,7 @@ export function updateTrial(dt) {
   let happened = null;
   if (mirroring()) {
     if (s.phase === 'armed' || s.phase === 'running') { s.t += dt; if (s.phase === 'armed' && s.t >= ARM_TIME) { s.phase = 'running'; happened = 'running'; } }
-    if (s.phase === 'resolved') s.done += dt;
+    if (s.phase === 'resolved' || s.phase === 'spent') s.done += dt;
     if (away && s.phase === 'idle' && !awayAsked) { awayAsked = true; relay.trialAct?.({ key: s.key, act: 'away' }); }
   } else {
     happened = stepTrial(s, dt, { away: away || awayFrom });
@@ -271,7 +269,6 @@ export function trialActFrom(m) {
   const s = state.trial;
   if (!s || m.key !== s.key || mirroring()) return;
   if (m.act === 'away') awayFrom = true;
-  if (m.act === 'part' && m.id === 'balance:retry' && mapTrial()?.kind === 'balance') { restartTrial(); return; }
   if (m.act === 'part' && /^stone:\d+$/.test(m.id)) { touchStone(mapTrial(), s, Number(m.id.slice(6))); return; }
   if (m.act === 'part' && m.id === 'keystone') { resolve(); return; }
   if (m.act === 'part' && m.id.startsWith('solve:')) { solvePuzzle(+m.id.slice(6)); return; }
@@ -309,7 +306,7 @@ const tabletOf = c => tablets.get(c) ?? tablets.set(c, { id: 'tablet', type: 'ta
 export function usableParts() {
   const m = mapTrial(), s = state.trial;
   const out = (state.map?.clues || []).map(tabletOf);
-  if (!m?.parts || !s || s.phase === 'resolved') return out;
+  if (!m?.parts || !s || s.phase === 'resolved' || s.phase === 'spent') return out;   // (spent: nothing wins it now)
   for (const p of m.parts) {
     if (!PART_LABELS[p.type] || (p.puzzle != null && puzzleSolved(s, p.puzzle)) || (p.type === 'warm' && s.bits[p.id])) continue;
     if ((p.type === 'beacon' && s.phase !== 'idle') || (p.type === 'relic' && s.phase !== 'idle')) continue;   // (plates, gates: nothing to use; a solved puzzle: done)
@@ -340,7 +337,7 @@ export const partLabel = p => p.type === 'runestone' ? tr('Press the runestone {
 export function usePart(p, fromOther = false) {
   const s = state.trial, m = mapTrial();
   if (p.type === 'tablet') { readTablet(p.key); return true; }
-  if (!s || !m) return false;
+  if (!s || !m || s.phase === 'spent') return false;
   if (!fromOther && mirroring()) { sfx('clink'); relay.trialAct?.({ key: s.key, act: 'part', id: p.id }); return true; }
   if (p.type === 'button' && m.kind === 'flood') { if (!fromOther) sfx('clink'); resolve(); return true; }
   if (p.type === 'valve') { if (!fromOther) sfx('door'); resolve(); return true; }
@@ -426,7 +423,7 @@ function hud() {
   if (!el) return;
   if (bannerUntil && performance.now() > bannerUntil) { $('trial-banner').classList.add('out'); bannerUntil = 0; }
   // (an event while it runs; a puzzle, or the sunken room's, while it is not solved)
-  const show = !!s && !!m && (s.phase === 'armed' || s.phase === 'running' || (isPuzzle(s.kind) || s.kind === 'sunken' || s.kind === 'siege') && s.phase !== 'resolved');
+  const show = !!s && !!m && (s.phase === 'armed' || s.phase === 'running' || s.phase === 'spent' || (isPuzzle(s.kind) || s.kind === 'sunken' || s.kind === 'siege') && s.phase !== 'resolved');
   el.hidden = !show;
   if (!show) return;
   // (a combiner, the sunken room: the puzzle it is at, as in a room of its own, under its own name)
@@ -478,6 +475,8 @@ function hud() {
     line = at == null ? tr('Jump from stone to stone!') : tr('Jump! This stone sinks in {n} s', { n: Math.max(0, Math.ceil(STONE_TIME - s.t + at)) });
     fill = at == null ? 0 : Math.min(1, (s.t - at) / STONE_TIME);
   }
+  // spent (the robot carried the hero back to the start): over until they leave the room
+  if (s.phase === 'spent') { line = tr('Over: leave the room and come back to try again'); fill = 0; }
   $('trial-line').textContent = line;
   $('trial-bar').style.width = `${Math.round(fill * 100)}%`;
 }
@@ -600,34 +599,44 @@ export function failTrial(reason) {
   spawnEntry();
 }
 
-// In the water of a running flood or crumbling floor (swimming in its rising water, the basin under
-// the crust), or, with the robot along, in its lava or acid (it pulls the hero out): the trial is
-// lost, back where the room was entered (game/swim.js, game/ragdoll.js dieInFluid). true: it was
-export function sweptAway(fluid = WATER) {
+// Swimming in the water of a running flood or crumbling floor (its rising water, the basin under the
+// crust; game/swim.js): with the robot along it carries the hero back to the start (game/rescue.js);
+// with none the trial is lost, back in the room before (sweptAway). Swimming up with the water would
+// be no trial.
+export function inTrialWater() {
   const s = state.trial, m = mapTrial();
-  if (!s || !m || s.phase !== 'running' || (m.kind !== 'flood' && m.kind !== 'collapse')) return false;
-  failTrial(fluid === WATER ? msg('Swept away by the water! The trial starts over') : msg('The robot pulls you out! The trial starts over'));
+  return !!s && !!m && s.phase === 'running' && (m.kind === 'flood' || m.kind === 'collapse');
+}
+export function sweptAway() {
+  if (!inTrialWater()) return false;
+  failTrial(msg('Swept away by the water! The trial starts over'));
   return true;
 }
 
-// A missed Balance jump is a checkpoint retry, never ordinary fluid death or a trip to the
-// previous cube. Called by hazards before fluid/void handling, including in developer god mode.
-export function retryBalance() {
-  const m = mapTrial(), s = state.trial;
-  if (!s || player.hp <= 0 || !balanceFallen(m, player.y)) return false;
-  const c = m.entryApron[Math.floor(m.entryApron.length / 2)], f = state.map.cols[c].find(f => !f.fluid && f.layer === 0);
-  if (!f) return false;
-  if (s.phase !== 'resolved') {
-    if (mirroring()) relay.trialAct?.({ key: s.key, act: 'part', id: 'balance:retry' });
-    restartTrial();
-  }
-  gone.clear(); crust.clear(); stoneAsked.clear();
-  setCrust(state.world, crust, 0, true);
-  clearOrder();
-  state.arrival = { x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5 };
-  spawnAt(state.arrival.x, state.arrival.y, state.arrival.z);
-  player.yaw = Math.atan2(-DIRS[m.entry][0], -DIRS[m.entry][1]);
-  setStatus(tr('Back to the start: try the stones again!'));
+// Where the robot takes a hero it pulls out of a fluid or catches out of the void in a trial room
+// not resolved (game/rescue.js): back to its start, where the room was entered (docs/trials.md
+// "Failing and dying"). null: not in one
+export function trialStart() {
+  const s = state.trial;
+  if (!s || !mapTrial() || s.phase === 'resolved' || !state.arrival) return null;
+  return state.arrival;
+}
+// ... and in an event that is armed or running, with nobody else still in the room, the attempt is
+// over without being put back (core/trials.js spendTrial): the seals open, the water drains, what
+// crumbled or sank stays gone, and it starts over only once the hero left the room and came back.
+// Playing together, while a friend still runs it, it goes on. trialSpends: would it be (spendTrialHere:
+// it is; true: it was)
+export function trialSpends() {
+  const s = state.trial;
+  return !!s && !!mapTrial() && trialSealed(s) && !mirroring() && !online.buddies.some(b => b.here && !b.out && b.hp > 0);
+}
+export function spendTrialHere() {
+  const s = state.trial, m = mapTrial();
+  if (!trialSpends()) return false;
+  if (!spendTrial(s, m.kind === 'miasma' ? fogLevel(m.timeline, s.t) : trialFluidLevel(m, s))) return false;
+  log('trial', { name: TRIALS[m.kind].name, depth: state.map.depth, what: 'failed' });
+  jingle('trialfailed');
+  showTrial();
   return true;
 }
 
