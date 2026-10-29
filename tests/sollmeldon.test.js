@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SOLLMELDON_FIGHT as G, HEAD_SIDE, BITES, ALL_HEADS, headsOf, nextHead, headToCut, sideOf, phaseFloor, summonCount, barred,
   stepLift, flying, groundTime, airTime, newTilt, tiltToward, levelTilt, stepTilt, tipped, slopeOf,
-  PIVOT, planeY, mudVolume, mudLevel, MUD_FLOW, newMudField, fillMud, depositMud, stepMud, drainMud, mudTotal, depthAt, surfaceAt, cellSurfaces,
+  PIVOT, planeY, mudVolume, mudLevel, MUD_RES, MUD_FLOW, newMudField, fillMud, depositMud, stepMud, drainMud, mudTotal, depthAt, surfaceAt, cellSurfaces,
   SOLLMELDON_MUSIC, sollmeldonMusic } from '../src/core/sollmeldon.js';
 import { N, LH, HEAD_Y, WATER, MUD } from '../src/core/constants.js';
 import { state } from './fixtures.js';
@@ -83,8 +83,9 @@ test('the tilt: it tips towards where he lands, holds and levels again', () => {
   // taking off levels it
   levelTilt(w); assert.equal(w.phase, 'back');
   run(w, G.tilt.back + 0.1, stepTilt); assert.equal(w.phase, 'level');
-  // the lean of a level surface in the tipped cube: rising towards the low side
-  const s = slopeOf([1, 0]); close(s[0], Math.tan(G.tilt.angle)); close(s[1], 0);
+  // the lean the mud settles to in the tipped cube: rising towards the low side, steeper than a level surface's
+  const s = slopeOf([1, 0]); close(s[0], Math.tan(G.tilt.angle) * MUD_FLOW.lean); close(s[1], 0);
+  assert.ok(MUD_FLOW.lean > 1);
 });
 
 // a flat basin (x, z in 2..14, floor at 0) with a pit on its -x side and a ledge on its +x side
@@ -196,6 +197,25 @@ test('his mire: a basin his mud stands in, shallow while level, deep on the low 
     // islands: ground at the doorways' level in the basin
     assert.ok(map.floors.filter(f => f.encounter && f.top === map.portals[0].floor.top + 0).length > 6, 'islands');
     assert.equal(MIRE.low, -2);
+  }
+});
+
+test('tipped, all of his mud runs to the low side of his mire, none kept in its hollows', () => {
+  for (const seed of [1, 2, 3, 8, 42]) {
+    const map = mireOf(seed), t = map.tide;
+    const at = (x, z) => { const cx = Math.floor(x), cz = Math.floor(z), f = map.cols[cz * N + cx]?.filter(g => !g.kind).sort((a, b) => a.top - b.top)[0]; return f ? floorY(f, x - cx, z - cz) : null; };
+    for (const v of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const f = newMudField(t.box, at);
+      for (let k = 0; k < f.depth.length; k++) f.depth[k] = Number.isFinite(f.ground[k]) ? Math.max(0, t.rest * LH - f.ground[k]) : 0;
+      const vol = mudTotal(f);
+      settle(f, slopeOf(v), true, 8);
+      close(mudTotal(f), vol, 1e-3, 'no mud lost or made');
+      // what lies further than 4 cells from the low side
+      let edge = -Infinity, far = 0;
+      for (let k = 0; k < f.depth.length; k++) if (Number.isFinite(f.ground[k])) edge = Math.max(edge, (k % f.w) * v[0] + Math.floor(k / f.w) * v[1]);
+      for (let k = 0; k < f.depth.length; k++) if (edge - ((k % f.w) * v[0] + Math.floor(k / f.w) * v[1]) > 4 * MUD_RES) far += f.depth[k];
+      assert.ok(far / (vol * MUD_RES * MUD_RES) < 0.05, `seed ${seed}, tipped ${v}: ${(100 * far / (vol * MUD_RES * MUD_RES)).toFixed(0)}% left behind`);
+    }
   }
 });
 

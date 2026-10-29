@@ -1447,8 +1447,11 @@ between each two, `MUD_FLOW`: `pull`, `keep`), less through thin mud (it drags o
 level mud thinner than `film` holds still: a ball of mud he spits lands as a dome (`depositMud`)
 that spreads into a puddle and stays, slowing whoever wades through it. When the world tips, all
 of it runs: the tilt pulls it to the low side (`slopeOf` the tilt: the surface it settles to rises
-that way by 0.1 a cell), the puddles run down into the rest and the low side gets deep, over the
-head where enough of his mud has come together. Level again, the deep mud levels out; what the
+that way by 0.2 a cell, twice what a level surface would, `lean`: at the tilt alone the bumps of
+the basin would keep most of it where it lay), the puddles run down into the rest and the low side
+gets deep, over the head where enough of his mud has come together. What a hollow keeps over the
+surface all of the mud would settle to as one pool (`mudLevel`) seeps out of it to the low side
+(half of it a second, `seep`): none of it stays behind, it all gathers there. Level again, the deep mud levels out; what the
 puddles brought stays in it. There is no limit to it: every ball adds to it, every head cut off
 lands as a big dome of it (`head`), and the more there is, the deeper the low side gets when the
 world tips. His death drains it back to what it was at first (`drainMud`) and the world levels.

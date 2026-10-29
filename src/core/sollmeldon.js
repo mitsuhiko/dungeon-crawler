@@ -148,9 +148,10 @@ export function stepTilt(w, dt) {
 }
 // how far it is tipped (0 level .. 1 at `angle`)
 export const tipped = v => Math.hypot(v[0], v[1]);
-// the lean of a surface that stays level in the world, in the cube's coordinates (rise per cell,
-// towards the low side), the cube tipped by v
-export const slopeOf = v => { const k = Math.tan(G.tilt.angle); return [v[0] * k, v[1] * k]; };
+// the lean the mud settles to in the cube's coordinates (rise per cell, towards the low side), the
+// cube tipped by v: that of a surface level in the world, `MUD_FLOW.lean` times over (at the tilt
+// alone the basin's bumps would hold most of it where it lay; it runs to the low side, heaped there)
+export const slopeOf = v => { const k = Math.tan(G.tilt.angle) * MUD_FLOW.lean; return [v[0] * k, v[1] * k]; };
 
 // --- the mud -----------------------------------------------------------------------------------
 
@@ -191,8 +192,12 @@ export function mudLevel(samples, volume, g = [0, 0]) {
 // carried (`keep` of it: the mud's weight) and `pull` of the difference of their surfaces (less
 // through mud thinner than `thin`: it drags on the ground); thinner than `film`, it holds still
 // while the world is level (puddles). Where it is under `wet` deep a sample counts as dry.
+// Tipped, the tilt pulls it `lean` times as hard as a level surface would lean (slopeOf), and what
+// a hollow keeps of it over the surface all of it would settle to (`mudLevel`, as though it were
+// all one pool) seeps out of it to the low side, `seep` of it a second: it all gathers there.
 export const MUD_RES = 4;
-export const MUD_FLOW = Object.freeze({ step: 1 / 60, most: 6, pull: 0.03, keep: 0.94, thin: 0.12, film: 0.07, wet: 0.012, tipped: 0.15 });
+export const MUD_FLOW = Object.freeze({ step: 1 / 60, most: 6, pull: 0.03, keep: 0.94, thin: 0.12, film: 0.07, wet: 0.012, tipped: 0.15,
+  lean: 2, seep: 0.5 });
 
 // A field of mud over the cells of `box` ([x0, z0, x1, z1]): groundAt(x, z) is the height of the
 // ground there (null: none, a wall to the mud). { x0, z0, w, h (samples), ground, depth, qx, qz
@@ -244,7 +249,32 @@ export function depositMud(f, x, z, vol, r) {
 export function stepMud(f, g, tipped, dt) {
   const F = MUD_FLOW;
   f.acc = Math.min(f.acc + dt, F.step * F.most);
-  while (f.acc >= F.step) { f.acc -= F.step; flow(f, g, tipped); }
+  let n = 0;
+  while (f.acc >= F.step) { f.acc -= F.step; flow(f, g, tipped); n++; }
+  if (n && tipped && (g[0] || g[1])) seep(f, g, Math.min(1, F.seep * F.step * n));
+}
+// Tipped: `share` of what each sample holds over the surface all the mud would settle to (the plane
+// leaning g that holds it: mudLevel) goes to those under it, as each lacks (none lost or made): the
+// hollows the low side's mud cannot reach empty into it
+function seep(f, g, share) {
+  const { ground: G, depth: D } = f, n = D.length;
+  f.samples ??= samplesOf(f);
+  const total = mudTotal(f);
+  if (total <= 0) return;
+  const y = mudLevel(f.samples, total, g);
+  f.want ??= new Float32Array(n);
+  let over = 0, under = 0;
+  for (let k = 0; k < n; k++) {
+    const w = f.want[k] = Number.isFinite(G[k]) ? Math.max(0, planeY(y, g, sampleX(f, k), sampleZ(f, k)) - G[k]) : 0;
+    if (D[k] > w) over += D[k] - w; else under += w - D[k];
+  }
+  const move = Math.min(over, under) * share;
+  if (move <= 1e-9) return;
+  const out = move / over, into = move / under;
+  for (let k = 0; k < n; k++) {
+    const w = f.want[k];
+    D[k] += D[k] > w ? -(D[k] - w) * out : (w - D[k]) * into;
+  }
 }
 function flow(f, g, tipped) {
   const F = MUD_FLOW, { w, h, ground: G, depth: D, qx, qz } = f, n = w * h;
