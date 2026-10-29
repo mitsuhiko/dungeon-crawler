@@ -4,8 +4,9 @@ import { createPlayerStats } from '../src/core/progression.js';
 import { addItem, equipItem } from '../src/core/inventory.js';
 import { SPIDER, STUNDER, makeEnemy } from '../src/core/enemies.js';
 import { swordState, combatStats, startSwing, advanceSwing, cancelSwing, swingClipTime, swingClipFrom, crossbowLoaded,
-  reloadTime, softTarget, weaponHit, shotDue, KINDS, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, SLASH_CLIP } from '../src/core/combat.js';
-import { SHOTS, MUZZLES, BURST_SHARE, launchShot, stepShot, burstTargets, shotView, aimPoint } from '../src/core/shots.js';
+  reloadTime, softTarget, weaponHit, shotDue, inSwordArc, KINDS, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, SLASH_CLIP } from '../src/core/combat.js';
+import { SHOTS, MUZZLES, BURST_SHARE, CHAIN_REACH, launchShot, stepShot, burstTargets, chainTargets, chainShare, shotView, shotOrigin,
+  aimPoint } from '../src/core/shots.js';
 
 const hero = id => {
   const p = { ...createPlayerStats(), x: 0, y: 0, z: 0, yaw: 0, stun: 0, sword: swordState() };
@@ -15,7 +16,7 @@ const hero = id => {
 const open = () => false;
 
 test('each kind has its clip, and attack times map onto its frames', () => {
-  assert.deepEqual(Object.keys(KINDS), ['sword', 'flail', 'bow', 'crossbow', 'staff', 'throw']);
+  assert.deepEqual(Object.keys(KINDS), ['sword', 'flail', 'bow', 'crossbow', 'staff', 'trident', 'zap', 'throw']);
   for (const [id, clip] of [['weapon_bow_recurve', SHOOT_CLIP], ['weapon_crossbow_light', CROSSBOW_CLIP], ['weapon_staff_oak', CAST_CLIP],
     ['weapon_sword_medium', SLASH_CLIP], ['weapon_flail_twin', SLASH_CLIP]]) {
     const s = combatStats(hero(id));
@@ -104,6 +105,55 @@ test('a spell bursts where it ends, hurting the others around it for a share of 
   const before = near.hp, hit = weaponHit(p, stats, near, 1, BURST_SHARE);
   assert.equal(hit.damage, Math.round(stats.damage * BURST_SHARE)); assert.equal(near.hp, Math.max(0, before - hit.damage));
   assert.deepEqual(burstTargets(launchShot(hero('weapon_bow_long'), combatStats(hero('weapon_bow_long')), null), [near]), [], 'arrows do not burst');
+});
+
+test('lightning strikes at once and jumps on to the nearest enemies, each for less', () => {
+  const p = hero('weapon_staff_lightning'), stats = combatStats(p);
+  assert.equal(stats.kind, 'staff'); assert.equal(stats.jumps, 2); assert.equal(stats.burst, 0);
+  const target = makeEnemy({ x: 0, y: 0, z: 3 }, STUNDER), a = makeEnemy({ x: 1.2, y: 0, z: 3.4 }, SPIDER),
+    b = makeEnemy({ x: 2.6, y: 0, z: 3.6 }, SPIDER), c = makeEnemy({ x: 3.9, y: 0, z: 3.6 }, SPIDER),
+    away = makeEnemy({ x: -3 - CHAIN_REACH, y: 0, z: 3 }, SPIDER), shot = launchShot(p, stats, target, 0);
+  assert.equal(shot.kind, 'lightning');
+  assert.deepEqual(shotOrigin(shot), [shot.x + shot.from[0], shot.y + shot.from[1], shot.z + shot.from[2]], 'drawn from the staff');
+  let end = null, steps = 0, hits = [];
+  for (; steps < 120 && !end; steps++) ({ end, hits } = stepShot(shot, 1 / 60, [target, a, b, c, away], open));
+  assert.equal(end, 'hit'); assert.deepEqual(hits, [target]);
+  assert.ok(steps <= 4, `there almost at once (${steps} frames)`);
+  // the nearest to the one before, as many as the staff says; not through walls
+  assert.deepEqual(chainTargets(shot, [target, a, b, c, away], target), [a, b]);
+  assert.ok(!chainTargets(shot, [target, a, b, c, away], target, (x, y) => y !== a).includes(a), 'the level in the way');
+  assert.deepEqual(chainTargets(shot, [target, a, b, c, away], target, () => false), []);
+  assert.deepEqual(chainTargets({ ...shot, stats: { ...stats, jumps: 9 } }, [target, a, b, c, away], target), [a, b, c]);
+  assert.ok(chainShare(0) < 1 && chainShare(1) < chainShare(0));
+  assert.deepEqual(chainTargets(launchShot(hero('weapon_staff_oak'), combatStats(hero('weapon_staff_oak')), target), [a], target), [],
+    'spells do not jump');
+});
+
+test('a trident stabs through what is in a line close up, and throws lightning at what is further off', () => {
+  const p = hero('weapon_trident_sea'), s = p.sword;
+  const near = makeEnemy({ x: 0, y: 0, z: 1 }, SPIDER), behind = makeEnemy({ x: 0.1, y: 0, z: 1.5 }, SPIDER),
+    aside = makeEnemy({ x: 1, y: 0, z: 0.6 }, SPIDER), far = makeEnemy({ x: 0, y: 0, z: 4 }, STUNDER);
+  // asked about nothing in particular (how far to walk up, what to aim at): its lightning
+  const zap = combatStats(p);
+  assert.equal(zap.kind, 'zap'); assert.ok(zap.ranged && zap.range > 4 && zap.shot === 'lightning');
+  const stab = combatStats(p, near);
+  assert.equal(stab.kind, 'trident'); assert.ok(!stab.ranged && stab.range < 2 && zap.damage < stab.damage);
+  assert.equal(combatStats(p, null).kind, 'trident', 'ahead: a stab');
+  assert.equal(combatStats(p, { x: 0, z: 9 }).kind, 'trident', 'a point: a stab');
+  assert.equal(combatStats(p, far).kind, 'zap');
+  // the stab goes through both in the line, not the one aside
+  s.target = near; assert.ok(startSwing(p)); assert.equal(s.stats.kind, 'trident');
+  advanceSwing(p, s.stats.activeStart + 0.001);
+  assert.ok(inSwordArc(p, near) && inSwordArc(p, behind)); assert.equal(inSwordArc(p, aside), false);
+  advanceSwing(p, s.stats.duration); cancelSwing(p, true);
+  // the lightning leaves the prongs at activeStart and strikes almost at once
+  s.target = far; assert.ok(startSwing(p)); assert.equal(s.stats.kind, 'zap');
+  advanceSwing(p, s.stats.activeStart + 0.001); assert.ok(shotDue(p));
+  const shot = launchShot(p, s.stats, far);
+  assert.equal(shot.kind, 'lightning'); assert.deepEqual(MUZZLES.zap, MUZZLES.trident);
+  let end = null;
+  for (let i = 0; i < 10 && !end; i++) end = stepShot(shot, 1 / 60, [far], open).end;
+  assert.equal(end, 'hit');
 });
 
 test('ranged soft-targeting reaches as far as the weapon shoots and up and down ledges', () => {

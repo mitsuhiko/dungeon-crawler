@@ -29,7 +29,7 @@ import { player, state, setStatus } from './state.js';
 import { sfx } from '../audio/sfx.js';
 import { jingle } from '../audio/jingles.js';
 import { ITEMS, COINS, ARMOR_SLOTS, ARMOR_SLOT_NAMES, isGear } from '../core/items.js';
-import { BURST_SHARE } from '../core/shots.js';
+import { BURST_SHARE, CHAIN_SHARE } from '../core/shots.js';
 import { BAR_SIZE, equippedItem, ownedItem, assignBar, barAllowed, barIndexOf, countOf, copperTotal, formatCoins, coinCounts, hasRoom, autoBar, isWorn, wornItem } from '../core/inventory.js';
 import { shopOf, priceOf, buy as buyWare, smithStock, buyStock } from '../core/shops.js';
 import { flaskStats, cooldownLeft } from '../core/potions.js';
@@ -218,8 +218,8 @@ function swung(item) {
 }
 // whether it is an OMG item, all colours at once (style.css .rainbow)
 const rainbow = item => !!(item?.gen && rarityOf(item).glow?.rainbow);
-const KIND_NAMES = { sword: msg('Sword'), flail: msg('Flail · swings wide, shoves hard'), bow: msg('Bow · shoots arrows'),
-  crossbow: msg('Crossbow · shoots bolts'), staff: msg('Staff · casts spells') };
+const KIND_NAMES = { sword: msg('Sword'), flail: msg('Flail · swings wide, shoves hard'), trident: msg('Trident · stabs up close, throws lightning from afar'),
+  bow: msg('Bow · shoots arrows'), crossbow: msg('Crossbow · shoots bolts'), staff: msg('Staff · casts spells') };
 const fixed = (v, d) => num(v, { minimumFractionDigits: d, maximumFractionDigits: d });
 // its rarity, and its item level if it has one
 const rarityLine = (item, r) => item.gen ? tr('{rarity} · item level {level}', { rarity: tr(r.name), level: item.gen.ilvl }) : tr(r.name);
@@ -233,6 +233,9 @@ function weaponText(item) {
   if (s.balls > 1) lines.push(s.balls === 2 ? tr('Two balls: each strikes, one after the other') : tr('Three balls: each strikes, one after the other'));
   if (s.pierce) lines.push(tr('{n, plural, one {Bolts pierce # enemy} other {Bolts pierce # enemies}}', { n: s.pierce }));
   if (s.burst) lines.push(tr('Bursts for {share}% damage within {radius} cells', { share: Math.round(BURST_SHARE * 100), radius: fixed(s.burst, 2) }));
+  if (s.zap) lines.push(tr('Throws lightning up to {range} cells away for {share}% damage', { range: fixed(s.zap.range, 1), share: Math.round(s.zap.share * 100) }));
+  if (s.jumps || s.zap?.jumps) lines.push(tr('{n, plural, one {Lightning jumps on to # more enemy nearby for {share}% damage} other {Lightning jumps on to # more enemies nearby, each for {share}% of the one before}}',
+    { n: s.jumps || s.zap.jumps, share: Math.round(CHAIN_SHARE * 100) }));
   return lines.join('\n');
 }
 // against the equipped weapon, stat by stat: what you have now -> this one

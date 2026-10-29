@@ -9,13 +9,14 @@ blocks one, and the affixes add health, healing, speed and resistances.
 ## Bases
 
 `ARMORS` in `core/items.js`, dropping from the item levels in `ARMOR_BASES`
-(`core/gear/bases.js`); five a slot, a light one from item level 1, the heavier ones deeper:
+(`core/gear/bases.js`); five a slot (eight shields), a light one from item level 1, the heavier
+ones deeper:
 
 | Slot | Base (item level, armor) |
 |---|---|
 | Head | Leather Cap (1, 5), Iron Skullcap (2, 7), Nasal Helm (4, 9), Horned Helm (6, 11), Great Helm (8, 14) |
 | Body | Padded Vest (1, 12), Leather Jerkin (2, 15), Chainmail (4, 20), Scale Coat (6, 25), Plate Armor (8, 30) |
-| Shield | Wooden Buckler (1, 3, blocks 10%), Round Shield (2, 5, 13%), Kite Shield (4, 7, 16%), Heater Shield (6, 9, 19%), Tower Shield (8, 12, 22%) |
+| Shield | Wooden Buckler (1, 3, blocks 10%), Round Shield (2, 5, 13%), Kite Shield (4, 7, 16%), Heater Shield (6, 9, 19%), Tower Shield (8, 12, 22%), Prow Shield (9, 13, 23%), Bulwark (11, 15, 25%), Aegis (13, 17, 27%, 15% less shoved about) |
 | Feet | Sandals (1, 3, 3% faster), Leather Boots (1, 4), Hobnail Boots (3, 6), Iron Greaves (5, 9), Winged Boots (7, 8, 6% faster) |
 
 The hats the villagers and the people out in the world wear (`WEARABLES` in `core/items.js`, the
@@ -32,6 +33,11 @@ them, and the hero wears them like any armor:
 | Wizard hat | 3, 3 | 20% faster healing |
 | Miner's helmet | 3, 8 | (a hard hat) |
 | Welding mask | 4, 9 | 20% less hurt by fire |
+
+The three prow shields are the deepest: long, bent round the arm like a ship's prow, a broad arched
+top narrowing to a point, a double rim, a sunken triangle on the face and a finial on top
+(`blender/armor.py Prow`). A base may have something of its own like the hats (`perks`): the
+Aegis's is less shoved about.
 
 What they carry in their hands (`CARRIED`) goes in the off hand, the shield's slot: a little armor,
 a small chance to block and something of its own, each a little less likely than a shield. The

@@ -5,6 +5,7 @@
 //             (core/combat.js crossbowLoaded); after a shot the string is forward and the
 //             groove empty until the reload
 //   staff:    its stone glows in the spell's colour, brighter as the spell gathers
+//   trident:  its stones glow in its lightning's colour as its lightning gathers (a stab: not)
 //   flail:    its balls hang and swing on their chains, whatever the hand does (swingFlail)
 // The strings are drawn here (the GLB's own string part, as found, is hidden), and so are a
 // flail's chains (its own, lying as on the floor, are hidden: its first link is copied along
@@ -51,7 +52,7 @@ export function prepareHeld(weapon, item) {
     h.nock = h.rest.clone();
   }
   if (h.kind === 'crossbow') h.bolt = part('_bolt');
-  if (h.kind === 'staff') {
+  if (h.kind === 'staff' || h.kind === 'trident') {
     h.color = new THREE.Color(ITEMS[item.name]?.weapon?.color ?? '#c48cff');
     h.head = vec(d.head_gltf ?? [0, 1.2, 0]);
     h.stones = [];
@@ -94,7 +95,7 @@ export function prepareHeld(weapon, item) {
 // them; `hands`: { L, R } bones
 export function updateHeld(h, p, hands, dt) {
   if (!h) return;
-  const s = p.sword, mine = s.stats?.kind === h.kind;
+  const s = p.sword, mine = s.stats?.kind === h.kind || (h.kind === 'trident' && s.stats?.kind === 'zap');
   if (h.kind === 'bow') {
     const clip = mine && s.active ? swingClipTime(s.stats, s.t, swingClipFrom(s)) : 0;
     // drawn from when the right fist takes the string until the arrow goes
@@ -116,9 +117,10 @@ export function updateHeld(h, p, hands, dt) {
   }
   if (h.strings) for (let i = 0; i < 2; i++) segment(h.strings[i], h.tips[i], h.nock);
   if (h.kind === 'flail') swingFlail(h, dt);
-  if (h.kind === 'staff') {
-    // gathering until the spell goes, then fading
-    const gather = mine && s.active && !s.fired ? clamp(s.t / s.stats.activeStart, 0, 1) : 0;
+  if (h.kind === 'staff' || h.kind === 'trident') {
+    // gathering until the spell goes, then fading (a trident's lightning only)
+    const casting = h.kind === 'staff' || s.stats?.kind === 'zap';
+    const gather = mine && s.active && !s.fired && casting ? clamp(s.t / s.stats.activeStart, 0, 1) : 0;
     h.glow = gather > h.glow ? gather : Math.max(gather, h.glow - dt * 4);
     for (const m of h.stones) { m.emissive?.copy(h.color); m.emissiveIntensity = 0.25 + 1.6 * h.glow; }
     if (gather > 0.3 && Math.random() < dt * 40) {

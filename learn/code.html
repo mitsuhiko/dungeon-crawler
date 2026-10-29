@@ -238,9 +238,12 @@
     <div>
       <p lang="en">Sometimes you just want to count. A guardian drops several weapons:</p>
       <p lang="de">Manchmal willst du einfach zählen. Ein Wächter lässt mehrere Waffen fallen:</p>
-      <pre data-src="src/core/gear/drops.js#weaponDrops"><code>for (let i = 0; i &lt; g.count; i++) out.push(rollWeapon(R, level, { ...g, favor, ...(own &amp;&amp; i === 0 &amp;&amp; { kind: own }) }));</code></pre>
-      <p class="small muted" lang="en"><code>own &amp;&amp; i === 0</code>: a boss with a weapon of his own (Renew and his flails) always drops one of those first, the first time round.</p>
-      <p class="small muted" lang="de"><code>own &amp;&amp; i === 0</code>: Ein Boss mit einer eigenen Waffe (Renew und seine Flegel) lässt beim ersten Durchlauf immer eine davon fallen.</p>
+      <pre data-src="src/core/gear/drops.js#weaponDrops"><code>for (let i = 0; i &lt; g.count; i++) {
+  const kind = own &amp;&amp; i === 0 ? own : lean &amp;&amp; R() &lt; lean.chance ? lean.kind : null;
+  out.push(rollWeapon(R, level, { ...g, favor, ...(kind &amp;&amp; { kind }) }));
+}</code></pre>
+      <p class="small muted" lang="en"><code>own &amp;&amp; i === 0</code>: a boss with a weapon of his own (Renew and his flails) always drops one of those first, the first time round. <code>R() &lt; lean.chance</code>: a boss who likes a kind of weapon (Squarlo and his tridents) drops one of those half the time.</p>
+      <p class="small muted" lang="de"><code>own &amp;&amp; i === 0</code>: Ein Boss mit einer eigenen Waffe (Renew und seine Flegel) lässt beim ersten Durchlauf immer eine davon fallen. <code>R() &lt; lean.chance</code>: Ein Boss, der eine Art Waffe mag (Squarlo und seine Dreizacke), lässt in der Hälfte der Fälle eine davon fallen.</p>
       <p lang="en">This one has three parts, separated by <code>;</code>:</p>
       <p lang="de">Diese hat drei Teile, getrennt durch <code>;</code>:</p>
       <ol class="steps">

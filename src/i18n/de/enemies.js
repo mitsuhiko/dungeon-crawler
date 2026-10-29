@@ -287,6 +287,7 @@ export default {
 
   // fighting (game/sword.js, game/shots.js, game/enemies.js, the bosses)
   'Slashed Lv {level} {name} ({hp}/{max})': 'Getroffen: {name} Lv {level} ({hp}/{max})',
+  'Stabbed Lv {level} {name} ({hp}/{max})': 'Gestochen: {name} Lv {level} ({hp}/{max})',
   'Hit Lv {level} {name} ({hp}/{max})': 'Getroffen: {name} Lv {level} ({hp}/{max})',
   '{name} defeated · Gate unlocked!': '{name} besiegt · Tor offen!',
   '{n, plural, one {Defeated # enemy} other {Defeated # enemies}}': '{n, plural, one {# Monster besiegt} other {# Monster besiegt}}',

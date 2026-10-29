@@ -90,7 +90,9 @@ export function hitWithSword(list) {
     if (hit.evaded) { evadedFx(e, e.x - p.x, e.z - p.z); continue; }
     hitEnemy(e, hit, before, e.x - p.x, e.z - p.z, p.sword.stats?.knockback ?? 1);
     enchantHit(e, hit, p.sword.stats);
-    if (e.hp) setStatus(tr('Slashed Lv {level} {name} ({hp}/{max})', { level: e.level, name: enemyName(e.profile), hp: e.hp, max: e.profile.hp }));
+    const words = { level: e.level, name: enemyName(e.profile), hp: e.hp, max: e.profile.hp };
+    if (e.hp) setStatus(p.sword.stats?.kind === 'trident' ? tr('Stabbed Lv {level} {name} ({hp}/{max})', words)
+      : tr('Slashed Lv {level} {name} ({hp}/{max})', words));
   }
 }
 export const cancelSword = (resetCooldown = false) => cancelSwing(player, resetCooldown);

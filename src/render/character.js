@@ -202,7 +202,9 @@ function setup(gltf) {
   }
   // each kind of weapon's attack clip, twice: a chained attack cross-fades from one to the other
   const attacks = {};
-  for (const [kind, name] of [['sword', 'Slash'], ['flail', 'Slash'], ['bow', 'Shoot'], ['crossbow', 'CrossbowShot'], ['staff', 'Cast'], ['throw', 'Throw']]) {
+  // (a trident stabs and throws its lightning, 'zap', with the same clip)
+  for (const [kind, name] of [['sword', 'Slash'], ['flail', 'Slash'], ['bow', 'Shoot'], ['crossbow', 'CrossbowShot'], ['staff', 'Cast'],
+    ['trident', 'Thrust'], ['zap', 'Thrust'], ['throw', 'Throw']]) {
     attacks[kind] = [clips[name], clips[name].clone()].map(clip => {
       const a = mixer.clipAction(clip);
       a.play(); a.timeScale = 0; a.setEffectiveWeight(0);

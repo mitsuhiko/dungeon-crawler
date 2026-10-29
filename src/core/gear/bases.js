@@ -1,11 +1,11 @@
 // Which base types drop, from what item level and how often. A base is an item in
 // core/items.js; `tags` decide which affixes may roll on it (core/gear/affixes.js): its kind
-// (sword, flail, bow, crossbow, staff) and how it fights (melee or ranged).
+// (sword, flail, trident, bow, crossbow, staff) and how it fights (melee or ranged; a trident both).
 // To add a dropping weapon: define the item (with its model), then list it here.
 // The glassmaker's old sword is never dropped: it waits in the merchant camp (core/intro.js).
-// Every kind but the flails has a light base from item level 1 and heavier ones further down;
-// the flails only from item level 7 (Renew's, the time boss, who always drops one: he is the
-// first to hand you one). A kind's weights add up to the same, so each kind is about as likely as
+// Every kind but the flails and the tridents has a light base from item level 1 and heavier ones
+// further down; the flails only from item level 7 (Renew's, the time boss, who always drops one:
+// he is the first to hand you one), the tridents from 3 (Squarlo's, who drops them more often). A kind's weights add up to the same, so each kind is about as likely as
 // the others once all of it drops.
 // Rolls lean towards the kind the player fights with (`favor`, FAVOR times its weight): about
 // half of the weapons are of that kind, so whatever you use keeps finding upgrades while the
@@ -28,6 +28,11 @@ export const BASES = [
   base('weapon_flail_twin', 8),
   base('weapon_flail_knight', 9),
   base('weapon_flail_triple', 10),
+  // tridents (melee and ranged: they stab and throw lightning) from depth 3 on, three of them:
+  // as likely as a kind of five together (Squarlo's lean towards them: core/gear/drops.js)
+  base('weapon_trident_fisher', 3, 5 / 3, ['ranged']),
+  base('weapon_trident_sea', 5, 5 / 3, ['ranged']),
+  base('weapon_trident_storm', 8, 5 / 3, ['ranged']),
   base('weapon_bow_short', 1),
   base('weapon_bow_hunting', 1),
   base('weapon_bow_recurve', 3),
@@ -38,11 +43,15 @@ export const BASES = [
   base('weapon_crossbow_heavy', 4),
   base('weapon_crossbow_repeating', 6),
   base('weapon_crossbow_arbalest', 8),
-  base('weapon_staff_gnarled', 1),
-  base('weapon_staff_oak', 2),
-  base('weapon_staff_ember', 4),
-  base('weapon_staff_crystal', 6),
-  base('weapon_staff_arcane', 8),
+  // eight staffs, the lightning staffs from further down: as likely as a kind of five together
+  base('weapon_staff_gnarled', 1, 5 / 8),
+  base('weapon_staff_oak', 2, 5 / 8),
+  base('weapon_staff_ember', 4, 5 / 8),
+  base('weapon_staff_spark', 5, 5 / 8),
+  base('weapon_staff_crystal', 6, 5 / 8),
+  base('weapon_staff_arcane', 8, 5 / 8),
+  base('weapon_staff_lightning', 8, 5 / 8),
+  base('weapon_staff_thunder', 11, 5 / 8),
 ];
 export const BASE = Object.fromEntries(BASES.map(b => [b.itemId, b]));
 // tags for any weapon or armor, including those that never drop
@@ -54,7 +63,7 @@ export function baseTags(itemId) {
 }
 
 export const FAVOR = 3;
-// favor: a kind (sword, flail, bow, crossbow, staff) to lean towards, or null; kind: only that kind,
+// favor: a kind (sword, flail, trident, bow, crossbow, staff) to lean towards, or null; kind: only that kind,
 // any of its bases however deep (a boss's own: Renew's flails, core/gear/drops.js)
 export function rollBase(rng, ilvl, favor = null, kind = null) {
   const open = kind ? BASES.filter(b => b.tags[0] === kind) : BASES.filter(b => ilvl >= b.minLevel);
@@ -64,8 +73,8 @@ export function rollBase(rng, ilvl, favor = null, kind = null) {
   return open.at(-1);
 }
 
-// Armor (core/items.js ARMORS): five of each slot, a light one or two from item level 1 and
-// heavier ones further down, and what the villagers wear and carry (core/items.js WEARABLES: light
+// Armor (core/items.js ARMORS): five of each slot (eight shields: the prow shields from deep
+// down), a light one or two from item level 1 and heavier ones further down, and what the villagers wear and carry (core/items.js WEARABLES: light
 // head armor, half as likely as a helm each; off-hand things, a little less likely than a shield). Tags: 'armor' and the slot. A roll picks the slot
 // first, each as likely, then a base of it by weight; it leans towards the slots the player wears
 // nothing in (`favor`: a list of slots, FAVOR times as likely), so an empty slot soon gets something.
@@ -82,6 +91,7 @@ export const ARMOR_BASES = [
   armorBase('armor_body_scale', 6), armorBase('armor_body_plate', 8),
   armorBase('armor_shield_buckler', 1), armorBase('armor_shield_round', 2), armorBase('armor_shield_kite', 4),
   armorBase('armor_shield_heater', 6), armorBase('armor_shield_tower', 8),
+  armorBase('armor_shield_prow', 9), armorBase('armor_shield_bulwark', 11), armorBase('armor_shield_aegis', 13),
   armorBase('armor_feet_sandals', 1), armorBase('armor_feet_boots', 1), armorBase('armor_feet_hobnail', 3),
   armorBase('armor_feet_greaves', 5), armorBase('armor_feet_winged', 7),
 ];

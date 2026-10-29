@@ -491,13 +491,13 @@ function together() {
     relay.quests = log => post({ t: 'quests', log });
     relay.questReward = (id, rewards, title) => post({ t: 'questReward', id, rewards, title });
   } else relay.questAct = m => post({ t: 'quest', ...m }, 0);
-  // our arrows, bolts, spells and flasks fly for those here too (they only look; the hits
+  // our arrows, bolts, spells, lightning and flasks fly for those here too (they only look; the hits
   // are ours: game/shots.js, game/throws.js)
   relay.shoot = shot => {
     const to = hereSlots();
     if (!to.length) return;
-    const { kind, range, pierce, burst, color } = shot.stats;
-    post({ t: 'arrow', kind: shot.kind, stats: { kind, range, pierce, burst, color },
+    const { kind, range, pierce, burst, color, jumps } = shot.stats;
+    post({ t: 'arrow', kind: shot.kind, stats: { kind, range, pierce, burst, color, jumps },
       at: [shot.x, shot.y, shot.z, shot.vx, shot.vy, shot.vz].map(r), origin: shot.from.map(r) }, to);
   };
   relay.toss = f => {
@@ -595,7 +595,7 @@ function shared(m, p) {
     if (a && foes instanceof Runner && p.here) trialActFrom(a);
   }
   else if (m.t === 'arrow') {
-    if (!p.here || !['arrow', 'bolt', 'spell'].includes(m.kind) || !Array.isArray(m.at) || m.at.length !== 6 || !finite(...m.at)
+    if (!p.here || !['arrow', 'bolt', 'spell', 'lightning'].includes(m.kind) || !Array.isArray(m.at) || m.at.length !== 6 || !finite(...m.at)
       || !Array.isArray(m.origin) || m.origin.length !== 3 || !finite(...m.origin) || !finite(m.stats?.range)) return true;
     const [x, y, z, vx, vy, vz] = m.at;
     ghostShot({ kind: m.kind, stats: m.stats, x, y, z, vx, vy, vz, from: m.origin });

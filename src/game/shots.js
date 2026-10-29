@@ -1,14 +1,14 @@
-// The player's shots in flight in the current cube (core/shots.js): arrows, bolts and spells.
-// They hit the enemies they meet, stop at walls and props or at their range; a spell bursts
-// where it ends. Travel and level resets clear them. Playing together, the friend's shots fly
+// The player's shots in flight in the current cube (core/shots.js): arrows, bolts, spells and
+// lightning. They hit the enemies they meet, stop at walls and props or at their range; a spell
+// bursts where it ends, lightning jumps on from the enemy it struck to the next ones. Travel and level resets clear them. Playing together, the friend's shots fly
 // here too (`ghost`): they stop where they would, but their hits are the friend's to make.
 import { player, state, setStatus } from './state.js';
 import { insideSolid } from '../physics/collide.js';
 import { clearLine } from '../physics/enemynav.js';
 import { weaponHit } from '../core/combat.js';
-import { launchShot, stepShot, burstTargets, aimPoint, BURST_SHARE, MUZZLES, SHOTS } from '../core/shots.js';
+import { launchShot, stepShot, burstTargets, chainTargets, chainShare, aimPoint, BURST_SHARE, MUZZLES, SHOTS } from '../core/shots.js';
 import { hitEnemy, rolls } from './sword.js';
-import { shotFx, evadedFx } from './juice.js';
+import { shotFx, chainFx, evadedFx } from './juice.js';
 import { drawShots, removeShotViews } from '../render/shots.js';
 import { relay } from '../net/online.js';
 import { enchantHit } from './enchants.js';
@@ -34,7 +34,8 @@ export function fireShot(p, stats, target, yaw) {
 }
 // the friend's shot (what relay.shoot sent): { kind, stats, x, y, z, vx, vy, vz, from }
 export function ghostShot(s) {
-  const shot = { ...s, spec: SHOTS[s.kind], travelled: 0, t: 0, hits: new Set(), left: s.stats.pierce ?? 0, ghost: true };
+  const stats = { ...s.stats, jumps: Math.min(4, Math.max(0, s.stats.jumps | 0)) };   // (a friend's lightning jumps on too)
+  const shot = { ...s, stats, spec: SHOTS[s.kind], travelled: 0, t: 0, hits: new Set(), left: s.stats.pierce ?? 0, x0: s.x, y0: s.y, z0: s.z, ghost: true };
   shots.push(shot);
   shotFx(shot, 'launch');
 }
@@ -51,6 +52,18 @@ function strike(shot, e, share = 1, dodge = rolls.evade()) {
   if (e.hp) setStatus(tr('Hit Lv {level} {name} ({hp}/{max})', { level: e.level, name: enemyName(e.profile), hp: e.hp, max: e.profile.hp }));
 }
 
+// lightning that struck enemy `from` jumps on to the next ones (core/shots.js chainTargets): it
+// hurts them (ours; a friend's is drawn only), each for less, where the level is not in the way
+const inSight = (a, b) => { const p = aimPoint(a), q = aimPoint(b); return clearLine(p.x, p.y, p.z, q.x, q.y, q.z); };
+function chain(shot, from, enemies) {
+  chainTargets(shot, enemies, from, inSight).forEach((e, i) => {
+    chainFx(shot, from, e);
+    shot.hits.add(e);
+    if (!shot.ghost) strike(shot, e, chainShare(i));
+    from = e;
+  });
+}
+
 export function updateShots(dt, enemies) {
   if (state.inventoryOpen || state.transitioning || !shots.length) return;
   shots = shots.filter(shot => {
@@ -60,6 +73,7 @@ export function updateShots(dt, enemies) {
     for (const e of misses) evadedFx(e, shot.vx, shot.vz);
     if (!end) return true;
     if (shot.stats.burst && !shot.ghost) for (const e of burstTargets(shot, enemies)) strike(shot, e, BURST_SHARE);
+    if (shot.stats.jumps && end === 'hit' && hits.length) chain(shot, hits.at(-1), enemies);
     shotFx(shot, end);
     removeShotViews([shot]);
     return false;

@@ -74,8 +74,9 @@ test('generated weapons are deterministic, plain JSON, and valid for every rarit
     }
     assert.ok(item.gen.name.length > 2);
     const s = itemStats(item);
-    assert.ok(s.damage >= 1 && s.interval > 0.2 && s.range > 0.5 && s.arc >= ARC && s.crit >= CRIT_CHANCE && s.crit < 0.5
-      && s.critDamage >= CRIT_DAMAGE && s.leech >= 0 && s.knockback >= 1);
+    // (a trident thrusts: a narrow arc)
+    assert.ok(s.damage >= 1 && s.interval > 0.2 && s.range > 0.5 && s.arc >= (s.kind === 'trident' ? 0.3 : 1) * ARC && s.crit >= CRIT_CHANCE
+      && s.crit < 0.5 && s.critDamage >= CRIT_DAMAGE && s.leech >= 0 && s.knockback >= 1);
   }
 });
 
@@ -137,37 +138,42 @@ test('stats: item level grows base damage, rarity scales it, affixes add on top'
   assert.equal(itemStats({ itemId: 'item_potion_health', count: 1 }), null);
 });
 
-test('bows, crossbows and staffs: five bases each, ranged, weaker per second than swords of their weight', () => {
+test('bows, crossbows and staffs: five bases each (eight staffs), ranged, weaker per second than swords of their weight', () => {
   const gen = (itemId, affixes = [], ilvl = 1) => ({ itemId, count: 1, gen: { v: 1, rarity: 'vanilla', ilvl, affixes, name: 'x' } });
   const dpsOf = id => weaponDps(itemStats(gen(id)));
   const swordDps = WEAPONS.filter(w => w.weapon.kind === 'sword' && w.id !== OLD_SWORD.id).map(w => dpsOf(w.id));
   for (const kind of ['bow', 'crossbow', 'staff']) {
-    const list = WEAPONS.filter(w => w.weapon.kind === kind);
-    assert.equal(list.length, 5, kind);
-    assert.equal(BASES.filter(b => ITEMS[b.itemId].weapon.kind === kind).length, 5, `every ${kind} drops`);
+    const list = WEAPONS.filter(w => w.weapon.kind === kind), n = kind === 'staff' ? 8 : 5;
+    assert.equal(list.length, n, kind);
+    assert.equal(BASES.filter(b => ITEMS[b.itemId].weapon.kind === kind).length, n, `every ${kind} drops`);
     assert.ok(BASES.some(b => ITEMS[b.itemId].weapon.kind === kind && b.minLevel === 1), `a ${kind} from item level 1`);
     for (const w of list) {
       const s = itemStats(gen(w.id));
       assert.ok(s.ranged && s.kind === kind && s.range >= 4, w.id);
       assert.ok(dpsOf(w.id) < Math.max(...swordDps), `${w.id} does less per second than the heaviest sword`);
-      if (kind === 'staff') assert.ok(s.burst > 0 && /^#[0-9a-f]{6}$/.test(s.color), w.id);
+      // a staff's spell bursts, a lightning staff's lightning jumps on
+      if (kind === 'staff') assert.ok((s.burst > 0) !== (s.jumps > 0) && /^#[0-9a-f]{6}$/.test(s.color), w.id);
       if (kind !== 'crossbow') assert.equal(s.pierce, 0, w.id);
     }
     const dps = list.map(w => dpsOf(w.id)).sort((a, b) => a - b);
     assert.ok(dps.at(-1) / dps[0] < 1.5, `no ${kind} outclasses the others`);
   }
   assert.ok(WEAPONS.some(w => w.weapon.pierce > 0), 'some crossbows pierce');
-  // melee-only affixes never roll on ranged bases and the other way round; Distance stretches range
+  // melee-only affixes never roll on ranged bases and the other way round (a trident is both);
+  // Distance stretches range
   const R = mulberry32(21);
   for (let k = 0; k < 400; k++) {
-    const item = rollWeapon(R, 20, { rarity: 'omg' }), ranged = !isMelee(ITEMS[item.itemId].weapon.kind);
-    for (const a of item.gen.affixes) assert.ok(AFFIX[a.id].tags.includes(ranged ? 'ranged' : 'melee'), `${a.id} on ${item.itemId}`);
+    const item = rollWeapon(R, 20, { rarity: 'omg' }), tags = BASE[item.itemId].tags;
+    for (const a of item.gen.affixes) assert.ok(AFFIX[a.id].tags.some(t => tags.includes(t)), `${a.id} on ${item.itemId}`);
+    if (!tags.includes('ranged')) assert.ok(item.gen.affixes.every(a => AFFIX[a.id].tags.includes('melee')), item.itemId);
+    if (!tags.includes('melee')) assert.ok(item.gen.affixes.every(a => AFFIX[a.id].tags.includes('ranged')), item.itemId);
   }
-  // drops lean towards the kind you fight with: about two in five of them once every kind drops
+  // drops lean towards the kind you fight with: about three in eight of them once every kind drops
+  const kinds = WEAPON_KINDS.length;
   const share = (favor, n = 8000) => { const R2 = mulberry32(5); let k = 0;
     for (let i = 0; i < n; i++) if (ITEMS[rollWeapon(R2, 12, { favor }).itemId].weapon.kind === (favor ?? 'bow')) k++;
     return k / n; };
-  assert.ok(Math.abs(share(null) - 0.2) < 0.02 && Math.abs(share('bow') - FAVOR / (FAVOR + 4)) < 0.02, `${share(null)} ${share('bow')}`);
+  assert.ok(Math.abs(share(null) - 1 / kinds) < 0.02 && Math.abs(share('bow') - FAVOR / (FAVOR + kinds - 1)) < 0.02, `${share(null)} ${share('bow')}`);
   assert.deepEqual(weaponDrops({ id: 'g', level: 9, guardian: true, guardianRole: 'side' }, 4, 'staff'),
     weaponDrops({ id: 'g', level: 9, guardian: true, guardianRole: 'side' }, 4, 'staff'), 'still seeded');
   assert.equal(itemStats(gen('weapon_bow_long', [{ id: 'distance', tier: 3, value: 25 }])).range, 10);
@@ -176,7 +182,7 @@ test('bows, crossbows and staffs: five bases each, ranged, weaker per second tha
 
 test('flails: five bases, melee, wide and shoving, their balls striking in turn; from Renew on', () => {
   const gen = (itemId, ilvl = 1) => ({ itemId, count: 1, gen: { v: 1, rarity: 'vanilla', ilvl, affixes: [], name: 'x' } });
-  assert.deepEqual(WEAPON_KINDS, ['sword', 'flail', 'bow', 'crossbow', 'staff']);
+  assert.deepEqual(WEAPON_KINDS, ['sword', 'flail', 'trident', 'bow', 'crossbow', 'staff']);
   const list = WEAPONS.filter(w => w.weapon.kind === 'flail'), swords = WEAPONS.filter(w => w.weapon.kind === 'sword');
   assert.equal(list.length, 5);
   assert.deepEqual(list.map(w => w.weapon.balls ?? 1), [1, 1, 2, 1, 3]);
@@ -209,6 +215,34 @@ test('flails: five bases, melee, wide and shoving, their balls striking in turn;
   assert.ok(seen.has('weapon_flail_twin') && seen.size >= 4, [...seen].join());
   // and nobody else drops them up there
   for (let k = 0; k < 400; k++) assert.notEqual(ITEMS[rollWeapon(R, 6).itemId].weapon.kind, 'flail');
+});
+
+test('tridents: three bases, they stab narrow and long and throw lightning from afar; Squarlo drops them often', () => {
+  const gen = (itemId, affixes = []) => ({ itemId, count: 1, gen: { v: 1, rarity: 'vanilla', ilvl: 1, affixes, name: 'x' } });
+  const list = WEAPONS.filter(w => w.weapon.kind === 'trident'), swords = WEAPONS.filter(w => w.weapon.kind === 'sword');
+  assert.equal(list.length, 3);
+  const narrowest = Math.min(...swords.map(w => itemStats(gen(w.id)).arc)), longest = Math.max(...swords.map(w => w.weapon.range));
+  for (const w of list) {
+    const s = itemStats(gen(w.id));
+    assert.ok(isMelee(s.kind) && !s.ranged && s.arc < narrowest / 2 && s.range > longest, w.id);
+    assert.ok(s.zap.range > 4 && s.zap.share < 1 && /^#[0-9a-f]{6}$/.test(s.color), w.id);
+    assert.ok(BASE[w.id].minLevel >= 3, 'none on the surface');
+    assert.deepEqual(BASE[w.id].tags, ['trident', 'melee', 'ranged']);
+  }
+  assert.ok(Math.max(...list.map(w => weaponDps(itemStats(gen(w.id))))) < 95, 'about a sword of their depth');
+  // reach stretches the stab, distance the lightning
+  const far = itemStats(gen('weapon_trident_sea', [{ id: 'distance', tier: 3, value: 20 }, { id: 'reach', tier: 3, value: 0.15 }]));
+  assert.equal(far.range, 1.5); assert.equal(far.zap.range, 6);
+  // Squarlo drops one more often than not (any of them, however shallow), others now and then
+  const level = guardianLevel(2, 'descent');
+  let squarlo = 0, other = 0;
+  for (let seed = 0; seed < 200; seed++) {
+    const drops = weaponDrops({ id: 'squarlo', level, kind: ENEMY_KINDS.squarlo, guardian: true, guardianRole: 'descent' }, seed, 'sword');
+    if (drops.some(d => ITEMS[d.itemId].weapon.kind === 'trident')) squarlo++;
+    const theirs = weaponDrops({ id: 'g', level, kind: STUNDER, guardian: true, guardianRole: 'descent' }, seed, 'sword');
+    if (theirs.some(d => ITEMS[d.itemId].weapon.kind === 'trident')) other++;
+  }
+  assert.ok(squarlo > 120 && other < 60, `${squarlo} ${other}`);
 });
 
 test('drops: seeded per enemy and world, likelier from tougher kinds, guardians always drop', () => {

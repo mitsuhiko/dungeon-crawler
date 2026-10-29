@@ -1,5 +1,6 @@
 // Pure attack rules. Jumping / body contact never call damageEnemy.
-// An attack (a sword or flail swing, a bow or crossbow shot, a spell) is a quick wind-up, a short
+// An attack (a sword or flail swing, a trident's stab, a bow or crossbow shot, a spell, a trident's
+// lightning) is a quick wind-up, a short
 // active window and a recovery that a new attack (chaining) or movement can cut short. Swords and
 // flails hit in the active window (inSwordArc; a flail of two or three balls strikes once with
 // each, one after the other: ballAt); the ranged kinds let their shot go at its start (shotDue,
@@ -23,6 +24,9 @@ export const SHOOT_CLIP = { duration: 32 / 30, activeStart: 18 / 30, activeEnd: 
 // the bolt flies at activeStart, the crossbow is drawn and loaded again at `reloaded`
 export const CROSSBOW_CLIP = { duration: 36 / 30, activeStart: 9 / 30, activeEnd: 11 / 30, reloaded: 26 / 30 };
 export const CAST_CLIP = { duration: 28 / 30, activeStart: 12 / 30, activeEnd: 14 / 30 };
+// a trident's stab: drawn back, then driven out (its prongs strike from activeStart to activeEnd;
+// its lightning leaves the prongs at activeStart)
+export const THRUST_CLIP = { duration: 26 / 30, activeStart: 11 / 30, activeEnd: 15 / 30 };
 // the flask leaves the hand at activeStart
 export const THROW_CLIP = { duration: 26 / 30, activeStart: 12 / 30, activeEnd: 14 / 30 };
 // game time (s) for the basic sword (the glassmaker's old sword's timing)
@@ -40,6 +44,9 @@ export const FLAIL = { activeStart: 0.24, activeEnd: 0.38, moveCancel: 0.44, cha
 export const BOW = { activeStart: 0.36, activeEnd: 0.4, moveCancel: 0.44, chain: 0.62, duration: 0.78 };
 export const CROSSBOW = { activeStart: 0.2, activeEnd: 0.24, moveCancel: 0.3, chain: 0.84, duration: 0.95 };
 export const STAFF = { activeStart: 0.28, activeEnd: 0.32, moveCancel: 0.38, chain: 0.62, duration: 0.72 };
+// a trident at the interval of a middling one: a quick stab, its prongs going through for a while
+// (its lightning thrown the same way, the bolt leaving at activeStart)
+export const TRIDENT = { activeStart: 0.24, activeEnd: 0.34, moveCancel: 0.4, chain: 0.58, duration: 0.66 };
 export const THROW = { activeStart: 0.3, activeEnd: 0.34, moveCancel: 0.38, chain: 0.7, duration: 0.8 };
 // how each kind of weapon attacks: its timing, its clip, and what it shoots (core/shots.js SHOTS)
 // learn: combat.html#shoot (see learn/README.md)
@@ -49,6 +56,9 @@ export const KINDS = {
   bow: { timing: BOW, clip: SHOOT_CLIP, shot: 'arrow', verb: 'Bow shot' },
   crossbow: { timing: CROSSBOW, clip: CROSSBOW_CLIP, shot: 'bolt', verb: 'Crossbow shot' },
   staff: { timing: STAFF, clip: CAST_CLIP, shot: 'spell', verb: 'Spell cast' },
+  trident: { timing: TRIDENT, clip: THRUST_CLIP, shot: null, verb: 'Trident stab' },
+  // a trident's lightning, thrown at what is out of its reach (combatStats)
+  zap: { timing: TRIDENT, clip: THRUST_CLIP, shot: 'lightning', verb: 'Lightning' },
   throw: { timing: THROW, clip: THROW_CLIP, shot: 'flask', verb: 'Throw' },
 };
 const TIMES = ['activeStart', 'activeEnd', 'moveCancel', 'chain', 'duration'];
@@ -77,19 +87,36 @@ export const canChangeWeapon = p => !p.sword.active && !p.ragdoll && !p.climb &&
 export const readiedFlask = p => p.inventory ? readiedItem(p.inventory) : null;
 // null without a weapon (or a flask in hand): no attacks at all. Haste (attackSpeed) shortens
 // every attack time, might (damage) adds to the damage (a flask's too).
-export function combatStats(p) {
+// A trident stabs what is within its reach (`target`, an enemy: the stab's lunge included) and
+// throws lightning at what is further off: its attack is then of kind 'zap', a ranged one
+// (zapStats). Asked without a target (what to aim at, how far to walk up: game/input.js,
+// game/orders.js) it answers with its lightning, which reaches furthest; a target that is no
+// enemy (a point, or straight ahead: null) is stabbed at.
+export function combatStats(p, target) {
   const haste = 1 + effectMod(p, 'attackSpeed'), might = 1 + effectMod(p, 'damage'), flask = readiedFlask(p);
   if (flask) {
     const f = flaskStats(flask, p.level, might), T = THROW, speed = 1 / haste;
     return { ...SWORD, kind: 'throw', ranged: true, flask: flask.id, ...f, damage: f.blast, crit: 0, critDamage: 1, knockback: 1,
       pierce: 0, burst: f.radius, ...Object.fromEntries(TIMES.map(k => [k, T[k] * speed])) };
   }
-  const weapon = itemStats(equippedInstance(p));
+  let weapon = itemStats(equippedInstance(p));
   if (!weapon) return null;
+  if (weapon.zap && !withinStab(p, target, weapon)) weapon = zapStats(weapon);
   const interval = weapon.interval / haste, T = KINDS[weapon.kind].timing, speed = interval / T.chain;
   return { ...SWORD, ...weapon, damage: Math.round(weapon.damage * levelDamage(p.level || 1) * might),
     ...Object.fromEntries(TIMES.map(k => [k, T[k] * speed])), chain: interval };
 }
+
+// can a trident's stab (its reach `weapon.range`, the lunge's LUNGE_REACH beyond) reach target?
+// (undefined: nothing in particular, its lightning reaches further; not an enemy: stab ahead)
+function withinStab(p, target, weapon) {
+  if (target === undefined) return false;
+  if (!target?.profile) return true;
+  return Math.hypot(target.x - p.x, target.z - p.z) <= weapon.range + target.profile.radius + LUNGE_REACH;
+}
+// a trident's attack stats for its lightning: ranged, its range, a share of the stab's damage
+export const zapStats = w => ({ ...w, kind: 'zap', ranged: true, range: w.zap.range, damage: Math.max(1, Math.round(w.damage * w.zap.share)),
+  shot: 'lightning', jumps: w.zap.jumps, pierce: 0, burst: 0, color: w.color ?? '#9fd0ff' });
 
 // the attack clip's time for attack time t: wind-up, active window and recovery are each
 // mapped onto the clip's own parts, so the blade connects (the shot leaves) on the clip's
@@ -123,7 +150,7 @@ export function cancelSwing(p, resetCooldown = false) {
 }
 // a new swing may start when idle, or once the current one reaches its chain point (cool)
 export function startSwing(p, yaw = p.yaw) {
-  const s = p.sword, stats = combatStats(p);
+  const s = p.sword, stats = combatStats(p, s.target ?? null);
   if (!stats || s.cool > 0 || p.ragdoll || p.swimming || p.swimOut || p.climb || p.stun > 0 || p.hp <= 0) return false;
   // Snapshot this swing: a level-up or later equipment change cannot alter a hit midway.
   Object.assign(s, { chained: s.active, active: true, t: 0, cool: stats.chain, yaw, serial: s.serial + 1, stats, fired: false, ball: 0 });

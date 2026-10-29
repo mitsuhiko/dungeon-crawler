@@ -10,14 +10,17 @@ import { msg, phrase } from '../i18n/i18n.js';
 
 const model = name => `assets/items/${name}.glb`;
 // Base weapon stats at item level 1 (core/gear/stats.js grows the damage with item level):
-//   kind: sword, flail, bow, crossbow or staff (how it attacks: core/combat.js KINDS); damage
+//   kind: sword, flail, trident, bow, crossbow or staff (how it attacks: core/combat.js KINDS); damage
 //   per hit; interval: seconds from one attack to the next (the attack speed; every attack time
 //   scales with it, see core/combat.js); range: reach in cells (how far a shot flies for the
 //   ranged kinds); arc: × the basic swing arc (swords, flails); pierce: how many enemies a bolt
 //   goes through before it stops; burst: the radius (cells) a spell bursts over where it hits,
-//   hurting everything else there for BURST_SHARE of its damage (core/shots.js); color: the
-//   spell's; balls: how many balls a flail has (each strikes, one after the other, in a swing:
-//   core/combat.js ballAt); knockback: × how hard its hits shove.
+//   hurting everything else there for BURST_SHARE of its damage (core/shots.js); shot: what it
+//   shoots, when not its kind's (the lightning staffs' 'lightning'); jumps: how many more enemies
+//   lightning jumps on to from the one it struck (core/shots.js chainTargets); color: the
+//   spell's (the lightning's); balls: how many balls a flail has (each strikes, one after the other, in a swing:
+//   core/combat.js ballAt); knockback: × how hard its hits shove; zap: a trident's lightning
+//   from afar ({ range, share, jumps }, see the tridents below).
 // Swords: the light ones are quick and nimble, the heavy ones hit harder, wider and further but
 // plant you for longer; damage per second rises a little with weight, and the heavier bases only
 // drop deeper down (core/gear/bases.js). Shooting from afar is safer, so the ranged kinds deal
@@ -28,6 +31,7 @@ const weapon = (id, name, kind, damage, interval, range, more = {}) => ({
   model: more.old ? 'assets/sword.glb' : model(id),
   weapon: { kind, damage, interval, range, arc: more.arc ?? 1, pierce: more.pierce ?? 0,
     burst: more.burst ?? 0, ...(more.color && { color: more.color }), ...(more.balls && { balls: more.balls }),
+    ...(more.shot && { shot: more.shot }), ...(more.jumps && { jumps: more.jumps }), ...(more.zap && { zap: more.zap }),
     ...(more.knockback && { knockback: more.knockback }) },
 });
 const sword = (id, name, damage, interval, range, arc = 1, old = false) => weapon(id, name, 'sword', damage, interval, range, { arc, old });
@@ -38,6 +42,15 @@ const sword = (id, name, damage, interval, range, arc = 1, old = false) => weapo
 // than he is (core/gear/bases.js), so he is the first to hand you one.
 const flail = (id, name, damage, interval, range, arc, balls = 1) =>
   weapon(id, name, 'flail', damage, interval, range, { arc, balls, knockback: 1.5 });
+// Tridents: a long shaft and three prongs. Close up (an enemy within its reach, the stab's lunge
+// included) it stabs like a spear: a long, narrow thrust (a narrow `arc`) that goes through
+// everything in a line in front of it. Further off it throws lightning instead (`zap`, core/combat.js
+// combatStats): as far as `range`, for `share` of the stab's damage (shooting from afar is
+// safer), jumping on to `jumps` more enemies like a lightning staff's (core/shots.js). Per second
+// they stab about as hard as a sword of their depth. They drop from depth 3 on; Squarlo, the
+// sea's boss, drops one more often than not (core/gear/drops.js).
+const trident = (id, name, damage, interval, range, zap, color) =>
+  weapon(id, name, 'trident', damage, interval, range, { arc: 0.3, knockback: 1.2, zap: { share: 0.6, jumps: 0, ...zap }, color });
 // learn: combat.html#chain (see learn/README.md)
 export const WEAPONS = [
   // the glassmaker's own (core/intro.js): found in the merchant camp, stuck in the ground
@@ -52,6 +65,9 @@ export const WEAPONS = [
   flail('weapon_flail_twin', 'Twin Morning Star', 32, .68, 1, 1.5, 2),     //  94 (two balls), the widest
   flail('weapon_flail_knight', 'Knight\'s Flail', 62, .7, 1.15, 1.35),     //  89, the longest chain
   flail('weapon_flail_triple', 'Triple Flail', 24, .74, .95, 1.55, 3),     //  97 (three balls)
+  trident('weapon_trident_fisher', "Fisher's Trident", 38, .52, 1.25, { range: 4.5 }, '#ffd76a'),        //  73 stabbing, 44 throwing
+  trident('weapon_trident_sea', 'Trident', 48, .58, 1.35, { range: 5 }, '#9fd0ff'),                       //  83, 50
+  trident('weapon_trident_storm', 'Storm Trident', 58, .66, 1.45, { range: 5.5, jumps: 1 }, '#c48cff'),   //  88, 53 (and a jump)
   weapon('weapon_bow_short', 'Short Bow', 'bow', 22, .44, 5),             // 50, the quickest
   weapon('weapon_bow_hunting', 'Hunting Bow', 'bow', 30, .56, 6),         // 54
   weapon('weapon_bow_recurve', 'Recurve Bow', 'bow', 35, .62, 6.5),       // 56
@@ -67,11 +83,17 @@ export const WEAPONS = [
   weapon('weapon_staff_ember', 'Ember Staff', 'staff', 41, .70, 5, { burst: .85, color: '#ff8a3a' }),       // 59
   weapon('weapon_staff_crystal', 'Crystal Staff', 'staff', 47, .74, 5.5, { burst: .7, color: '#bdf3ff' }),  // 64
   weapon('weapon_staff_arcane', 'Arcane Staff', 'staff', 58, .84, 6, { burst: 1, color: '#c48cff' }),       // 69
+  // the lightning staffs: a staff shaped like a bolt of lightning, from deeper down; its lightning
+  // strikes at once and jumps on to `jumps` more enemies near the one it struck (core/shots.js)
+  weapon('weapon_staff_spark', 'Spark Staff', 'staff', 38, .64, 5.5, { shot: 'lightning', jumps: 1, color: '#ffd76a' }),      // 59
+  weapon('weapon_staff_lightning', 'Lightning Staff', 'staff', 48, .72, 6, { shot: 'lightning', jumps: 2, color: '#9fd0ff' }), // 67
+  weapon('weapon_staff_thunder', 'Thunderbolt', 'staff', 55, .8, 6.5, { shot: 'lightning', jumps: 3, color: '#c48cff' }),      // 69
 ];
 // the kinds of weapon, in the order the UI lists them
-export const WEAPON_KINDS = ['sword', 'flail', 'bow', 'crossbow', 'staff'];
-// the kinds that strike what is in front of them (the others shoot)
-export const isMelee = kind => kind === 'sword' || kind === 'flail';
+export const WEAPON_KINDS = ['sword', 'flail', 'trident', 'bow', 'crossbow', 'staff'];
+// the kinds that strike what is in front of them (the others shoot; a trident shoots too, from
+// afar: core/combat.js combatStats)
+export const isMelee = kind => kind === 'sword' || kind === 'flail' || kind === 'trident';
 // learn: code.html#lists (see learn/README.md)
 export const COINS = [
   { id: 'item_coin_gold', name: 'Gold', value: 1000, suffix: 'g' },
@@ -211,7 +233,7 @@ export const ARMOR_SLOTS = ['head', 'body', 'shield', 'feet'];
 export const ARMOR_SLOT_NAMES = { head: msg('Head'), body: msg('Body'), shield: msg('Off hand'), feet: msg('Feet') };
 const armor = (id, name, slot, value, description, more = {}) => ({
   id, name, category: 'armor', slot, stackLimit: 1, model: model(id), description,
-  armor: { slot, armor: value, block: more.block ?? 0, speed: more.speed ?? 0 },
+  armor: { slot, armor: value, block: more.block ?? 0, speed: more.speed ?? 0, ...(more.perks && { perks: more.perks }) },
 });
 // the headwear among WEARABLES above, head armor too, and the things carried, off-hand armor
 export const HATS = WEARABLES.filter(w => w.armor?.slot === 'head');
@@ -232,6 +254,11 @@ export const ARMORS = [
   armor('armor_shield_kite', 'Kite Shield', 'shield', 7, 'Long and pointed at the bottom, to cover the legs too.', { block: 16 }),
   armor('armor_shield_heater', 'Heater Shield', 'shield', 9, 'A knight\'s shield with a crest on it.', { block: 19 }),
   armor('armor_shield_tower', 'Tower Shield', 'shield', 12, 'A wall you carry around.', { block: 22 }),
+  // the prow shields (blender/armor.py): long, bent round the arm, from deep down
+  armor('armor_shield_prow', 'Prow Shield', 'shield', 13, 'Bent round the arm like the prow of a ship, with a ruby at its point.', { block: 23 }),
+  armor('armor_shield_bulwark', 'Bulwark', 'shield', 15, 'A steel prow with spikes on top. Things bounce off it.', { block: 25 }),
+  armor('armor_shield_aegis', 'Aegis', 'shield', 17, 'Dark steel round a glowing stone. Blows hardly move you behind it.',
+    { block: 27, perks: { steady: 15 } }),
   armor('armor_feet_sandals', 'Sandals', 'feet', 3, 'Leather straps and a sole. Light on the feet.', { speed: 3 }),
   armor('armor_feet_boots', 'Leather Boots', 'feet', 4, 'Good honest boots.'),
   armor('armor_feet_hobnail', 'Hobnail Boots', 'feet', 6, 'Heavy boots with iron nails in the soles.'),

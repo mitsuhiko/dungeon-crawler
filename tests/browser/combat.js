@@ -7,7 +7,7 @@ import { player, state } from '../../src/game/state.js';
 import { SWORD, cancelSwing, startSwing, damageEnemy, combatStats, reloadTime } from '../../src/core/combat.js';
 import { ITEMS } from '../../src/core/items.js';
 import { addItem, equipItem } from '../../src/core/inventory.js';
-import { BURST_SHARE } from '../../src/core/shots.js';
+import { BURST_SHARE, chainShare } from '../../src/core/shots.js';
 import { shots, clearShots } from '../../src/game/shots.js';
 import { shotModelsReady } from '../../src/render/shots.js';
 import { createPlayerStats, createRun } from '../../src/core/progression.js';
@@ -284,6 +284,33 @@ export async function runRangedChecks() {
       check(a.hp === STUNDER.hp - staff.damage, 'The spell hits for the staff\'s damage');
       check(spider.hp === Math.max(0, SPIDER.hp - Math.round(staff.damage * BURST_SHARE)), 'Its burst hurts what stands next to its target: ' + spider.hp);
       results.push('staff: glow, spell hits its target, burst hurts a neighbour');
+
+      await arm('weapon_staff_lightning');
+      const bolt = combatStats(player);
+      place(a, 6.5, 9.5); place(spider, 7.4, 10.3); place(b, 8.6, 11.2); a.hp = b.hp = STUNDER.hp; spider.hp = SPIDER.hp;
+      clickOn(a);
+      check(until(() => shot('staff') && player.sword.stats.shot === 'lightning') && until(() => !shots.length, 20), 'The lightning strikes almost at once');
+      check(a.hp === STUNDER.hp - bolt.damage, 'The lightning hits for the staff\'s damage: ' + a.hp);
+      check(spider.hp === Math.max(0, SPIDER.hp - Math.round(bolt.damage * chainShare(0))), 'It jumps on to the nearest: ' + spider.hp);
+      check(b.hp === STUNDER.hp - Math.round(bolt.damage * chainShare(1)), 'and on from there, for less: ' + b.hp);
+      results.push('lightning staff: strikes at once, jumps on twice, each for less');
+
+      await arm('weapon_trident_sea');
+      resetMode(); tick(60);
+      check(character.holdWeight > 0.95, 'A trident is carried in its hold pose');
+      place(a, 6.5, 7.4); place(b, 6.6, 8.0); place(spider, 1.5, 14.5); a.hp = b.hp = STUNDER.hp;
+      const stab = combatStats(player, a), zap = combatStats(player);
+      clickOn(a);
+      check(until(() => player.sword.active && player.sword.stats.kind === 'trident'), 'Close up: a stab');
+      check(until(() => a.hp < STUNDER.hp) && until(() => b.hp < STUNDER.hp, 30), 'The stab goes through both in the line');
+      check(a.hp === STUNDER.hp - stab.damage && b.hp === STUNDER.hp - stab.damage && !shots.length, 'for the stab\'s damage, nothing thrown');
+      until(() => !player.sword.active); cancelSwing(player, true);
+      place(a, 6.5, 10.5); place(b, 1.5, 14.5); a.hp = STUNDER.hp;
+      clickOn(a);
+      check(until(() => shot('zap')), 'Further off: it throws lightning');
+      check(Math.hypot(player.x - 6.5, player.z - 6.5) < 0.01, 'from where it stands');
+      check(until(() => !shots.length, 20) && a.hp === STUNDER.hp - zap.damage && zap.damage < stab.damage, 'for less than a stab: ' + a.hp);
+      results.push('trident: hold pose, stabs through a line close up, throws lightning from afar');
       return results;
     } finally {
       state.map = originalMap; state.run = savedRun;

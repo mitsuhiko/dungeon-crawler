@@ -79,6 +79,7 @@ CHEST_CLIPS = {
 #   bow:      in the left fist, limbs up and the belly forward with the arm held out
 #   crossbow: like a pistol, the stock along the forearm, its top over the knuckles
 #   staff:    straight through the fist, upright with the forearm held level
+#   trident:  along the forearm, 12 degrees up from it
 #   flail:    its handle held like a sword's grip
 MOUNTS = {
     'sword': ('hand.R', (math.sin(math.pi / 6), 0, 0, math.cos(math.pi / 6))),
@@ -86,9 +87,13 @@ MOUNTS = {
     'bow': ('hand.L', (-0.1934, 0.2476, 0.5894, 0.7443)),
     'crossbow': ('hand.R', (-0.3083, 0.3874, -0.3157, 0.8095)),
     'staff': ('hand.R', (-0.0989, -0.6061, -0.7408, 0.2723)),
+    # the trident along the forearm out of the fist, tipped up a little towards the knuckles (so its
+    # butt passes under the elbow): the arm aims it (character.py HoldTrident, Thrust)
+    'trident': ('hand.R', (math.sin(math.radians(6)), 0, 0, math.cos(math.radians(6)))),
 }
 # the player's attack clip for each kind (character.py)
-CLIPS = {'sword': 'Slash', 'flail': 'Slash', 'bow': 'Shoot', 'crossbow': 'CrossbowShot', 'staff': 'Cast', 'throw': 'Throw'}
+CLIPS = {'sword': 'Slash', 'flail': 'Slash', 'bow': 'Shoot', 'crossbow': 'CrossbowShot', 'staff': 'Cast', 'trident': 'Thrust',
+         'throw': 'Throw'}
 
 # Things a character wears or carries (category 'wearable' / 'held'): name: (socket bone,
 # rotation (glTF x y z w) and offset (rig units) in the socket bone's head frame, the arm's
@@ -677,6 +682,135 @@ def staff(m, v=0):
         m.slot = 0
         m.tube([(-.02, .04, .91), (-.18, .025, .78), (-.20, .02, .63)], .012, LEATHER, n=5)
         gem(m, 3, (-.20, .02, .56), .22)
+
+
+# The lightning staffs: the staff itself a bolt of lightning, broad and squared off at the top
+# where the lightning leaves, zigzagging down to a point at the bottom, straight where the fist
+# holds it (round the origin, wrapped in a grip), a stone set in its head. Held and cast like the
+# other staffs (MOUNTS['staff']). (name, bolt metal, its edge, the stone (colour, light), the
+# inlay down its middle (or None))
+BOLT_STAFFS = [
+    ('spark', COPPER, '#d79a6a', ('#e8b440', '#ffe08a'), None),
+    ('lightning', '#d2b062', '#efd894', ('#8fc4ec', '#e2f2ff'), '#bfe3ff'),
+    ('thunder', '#45424f', '#6a6578', ('#916aaa', '#d7b8f0'), '#b98cff'),
+]
+# the bolt's middle line (x, z) from its point at the bottom to its head, and how broad it is there
+BOLT_LINE = [(.05, -.92), (-.035, -.62), (.09, -.55), (0, -.3), (0, -.18), (0, 0), (0, .18), (0, .3),
+             (-.12, .6), (.06, .66), (-.05, .97), (.1, 1.03), (.02, 1.2)]
+BOLT_WIDTH = [.006, .045, .05, .045, .03, .03, .03, .06, .085, .095, .105, .115, .15]
+BOLT_HEAD = (.02, 0, 1.28)   # where the lightning leaves (Blender space)
+
+
+def bolt_outline(scale=1.0):
+    """The bolt's two edges, [(left, right)] at each point of BOLT_LINE: out from the line at right
+    angles (mitred where it bends, but not too far)."""
+    pts = [Vector((x, 0, z)) for x, z in BOLT_LINE]
+    out = []
+    for i, p in enumerate(pts):
+        a = (p - pts[i - 1]).normalized() if i else None
+        b = (pts[i + 1] - p).normalized() if i + 1 < len(pts) else None
+        first = a if a is not None else b
+        d = (a + b).normalized() if a is not None and b is not None and (a + b).length > 1e-6 else first
+        n = Vector((-d.z, 0, d.x))
+        k = 1 / max(.45, n.dot(Vector((-first.z, 0, first.x))))
+        w = BOLT_WIDTH[i] * scale * min(k, 1.8)
+        out.append((p - n * w, p + n * w))
+    return out
+
+
+def bolt_staff(m, v=0):
+    name, metal, edge, (stone, light), inlay = BOLT_STAFFS[v]
+    t = .05 + .006 * v
+    edges = bolt_outline()
+    m.slot = 1
+    rings = [[m.vert(l + Vector((0, -t / 2, 0))), m.vert(r + Vector((0, -t / 2, 0))),
+              m.vert(r + Vector((0, t / 2, 0))), m.vert(l + Vector((0, t / 2, 0)))] for l, r in edges]
+    for i, (a, b) in enumerate(zip(rings, rings[1:])):
+        for k in range(4):
+            j = (k + 1) % 4
+            m.face((a[k], a[j], b[j], b[k]), metal if k % 2 == 0 else edge)
+    m.face(tuple(reversed(rings[0])), edge)
+    m.face(rings[-1], edge)
+    if inlay:   # a glowing line down the middle of both faces
+        m.slot = 2
+        for side in (-1, 1):
+            pts = [Vector((x, side * (t / 2 + .004), z)) for x, z in BOLT_LINE[1:-1]]
+            m.tube(pts, .009, inlay, n=4)
+    m.slot = 0
+    grip(m, .34, .05, '#4a3428' if v == 2 else LEATHER)
+    m.slot = 1
+    for z in (-.19, .19):   # collars round the ends of the grip
+        m.lathe((0, 0, z), [(-.018, .058), (.018, .058)], edge, n=8, jitter=0)
+    # the head: a stone set in a squared mount
+    head = Vector((BOLT_LINE[-1][0], 0, BOLT_LINE[-1][1] - .04))
+    m.box(head, (.2, t + .02, .1), edge)
+    m.slot = 2
+    for side in (-1, 1):
+        m.lathe(head + Vector((0, side * (t / 2 + .008), 0)), [(0, .06), (.022, .055), (.038, 0)],
+                stone, n=6, jitter=0, axis=(0, side, 0), colors=[stone, light])
+    m.shard(head + Vector((0, 0, .05)), .045, .14 + .04 * v, stone)
+    m.slot = 0
+
+
+# Tridents: a long shaft along +Z, the grip at the origin, a stone set in its butt; at its top a
+# collar and three prongs, the middle one straight with a leaf-shaped point, the outer ones bending
+# out and up and curling over at their tips like hooks. (name, shaft, its bands, the head's metal,
+# its edge, the stone (colour, light), the wrap)
+TRIDENTS = [
+    ('fisher', WOOD, '#7a5a3a', '#b0804e', '#d7a46e', None, '#c9b48a'),
+    ('sea', '#4a3428', STEEL, STEEL, EDGE, ('#3f78b8', '#a8d4f2'), LEATHER),
+    ('storm', '#2e2a36', GOLD, '#c9a456', '#f0dc9a', ('#7f56b8', '#d7b8f0'), '#5b4a7a'),
+]
+TRIDENT_TIP = 1.6   # how high its middle prong reaches; where its lightning leaves (a little under it)
+
+
+def prong(m, side, color, edge, spread=.15):
+    """An outer prong: out from the collar, up, its tip curling outwards and down like a hook."""
+    s = side
+    pts = [(s * .04, 0, 1.13), (s * spread, 0, 1.18), (s * (spread + .02), 0, 1.3), (s * (spread + .01), 0, 1.43),
+           (s * (spread - .02), 0, 1.5)]
+    m.tube(pts, [.026, .024, .022, .018, .012], color, n=6)
+    # the point, and the hook curling back down off it
+    m.leaf((s * (spread - .02), 0, 1.49), (s * (spread - .05), 0, 1.57), .022, edge)
+    m.leaf((s * (spread + .015), 0, 1.44), (s * (spread + .06), 0, 1.38), .016, edge)
+
+
+def trident(m, v=0):
+    name, shaft, band, metal, edge, stone, wrap = TRIDENTS[v]
+    m.tube([(0, 0, -1.0), (0, 0, 0), (0, 0, 1.1)], [.034, .036, .034], shaft, n=8)
+    grip(m, .36, .046, wrap)
+    m.slot = 1
+    for z in (-.92, -.22, .22, .7):
+        m.lathe((0, 0, z), [(-.015, .046), (.015, .046)], band, n=8, jitter=0)
+    # the collar: a diamond between two rings, the prongs rising out of it
+    m.lathe((0, 0, 1.04), [(0, .04), (.03, .056), (.07, .062), (.11, .04)], metal, n=8, jitter=0)
+    m.lathe((0, 0, 1.12), [(-.04, .045), (0, .085), (.04, .045)], edge, n=4, jitter=0)
+    for side in (-1, 1):
+        prong(m, side, metal, edge, .15 + .01 * v)
+    m.tube([(0, 0, 1.12), (0, 0, 1.36), (0, 0, 1.5)], [.03, .026, .02], metal, n=6)
+    m.leaf((0, 0, 1.48), (0, 0, TRIDENT_TIP), .04, edge)
+    if v == 2:   # the storm's: little lightning-bolt barbs on its middle prong
+        for side in (-1, 1):
+            m.leaf((0, 0, 1.3), (side * .07, 0, 1.36), .016, edge)
+    # the butt: a ring and a six-sided stone in a cage (the fisher's a plain iron cap)
+    m.lathe((0, 0, -1.0), [(-.04, 0), (-.025, .045), (.02, .045)], band, n=8, jitter=0)
+    m.slot = 0
+    if stone:
+        m.slot = 2
+        m.lathe((0, 0, -1.06), [(-.06, 0), (-.035, .055), (.035, .055), (.06, 0)], stone[0], n=6, jitter=0,
+                colors=[stone[0], stone[1], stone[0]])
+        m.slot = 1
+        for i in range(3):
+            a = math.tau * i / 3
+            m.tube([(0, 0, -1.0), (.06 * math.cos(a), .06 * math.sin(a), -1.06), (0, 0, -1.13)], .007, edge, n=4)
+        m.slot = 2   # a stone in the collar too
+        for side in (-1, 1):
+            m.lathe((0, side * .06, 1.075), [(0, .02), (.012, .016), (.02, 0)], stone[0], n=6, jitter=0, axis=(0, side, 0))
+        m.slot = 0
+    else:
+        m.slot = 1
+        m.lathe((0, 0, -1.0), [(-.05, 0), (-.03, .04), (0, .04)], IRON, n=8, jitter=0)
+        m.slot = 0
 
 
 # Flails (morning stars): the handle along +Z, the grip at the origin, an iron cap at its top
@@ -1818,6 +1952,8 @@ SPECS = [(f'item_stick_{s}', stick, i, 'resource', 'ground')
     (f'weapon_bow_{b[0]}', bow, i, 'weapon', 'hand') for i, b in enumerate(BOWS)] + [
     (f'weapon_crossbow_{c[0]}', crossbow, i, 'weapon', 'hand') for i, c in enumerate(CROSSBOWS)] + [
     (f'weapon_staff_{s[0]}', staff, i, 'weapon', 'hand') for i, s in enumerate(STAFFS)] + [
+    (f'weapon_staff_{s[0]}', bolt_staff, i, 'weapon', 'hand') for i, s in enumerate(BOLT_STAFFS)] + [
+    (f'weapon_trident_{t[0]}', trident, i, 'weapon', 'hand') for i, t in enumerate(TRIDENTS)] + [
     (f'weapon_flail_{f[0]}', flail, i, 'weapon', 'hand') for i, f in enumerate(FLAILS)] + [
     ('weapon_arrow', arrow, 0, 'ammunition', 'nock'),
     ('weapon_bolt', bolt, 0, 'ammunition', 'nock'),
@@ -1861,7 +1997,8 @@ def build(scene=None):
                 'units': 'character_rig' if attach != 'ground' else 'cells',
                 'game_scale': .55 if attach != 'ground' else 1.0, 'front': '+Z'}
         if category == 'weapon':
-            kind = {sword: 'sword', bow: 'bow', crossbow: 'crossbow', staff: 'staff', flail: 'flail'}[builder]
+            kind = {sword: 'sword', bow: 'bow', crossbow: 'crossbow', staff: 'staff', bolt_staff: 'staff', trident: 'trident',
+                    flail: 'flail'}[builder]
             socket, quat = MOUNTS[kind]
             info.update(weapon=kind, socket=socket, mount_quat_gltf=[round(c, 6) for c in quat],
                         grip_angle_blender=-math.pi / 6 if builder == sword else 0,
@@ -1878,6 +2015,10 @@ def build(scene=None):
                             parts='string,bolt')
             if builder == staff:
                 info.update(head_gltf=gltf(staff_head(v)))
+            if builder == bolt_staff:
+                info.update(head_gltf=gltf(BOLT_HEAD))
+            if builder == trident:   # where its lightning leaves, between the prongs
+                info.update(head_gltf=gltf((0, 0, TRIDENT_TIP - .14)))
             if builder == flail:
                 # the chains' anchor, how long each is, how far apart its links are, where the first
                 # link's middle is; for each ball (flattened) the end of its chain (the ball's pivot)
@@ -1921,7 +2062,7 @@ def build(scene=None):
 
 
 def validate(objects):
-    assert len(objects) == len(SPECS) == 76 + len(QUEST_PROPS) + len(armor.ARMOR)
+    assert len(objects) == len(SPECS) == 82 + len(QUEST_PROPS) + len(armor.ARMOR)
     assert {o.name for o in objects} == {s[0] for s in SPECS}
     report = []
     for obj in objects:
@@ -1985,7 +2126,7 @@ def setup_preview(scene, objects):
     # family, the worn things, the potions (health and the old ones, then the rest and the
     # flasks), then the rest.
     groups = [[o for o in objects if o.name.startswith(p + '_')]
-              for p in ('weapon_sword', 'weapon_bow', 'weapon_crossbow', 'weapon_staff', 'weapon_flail')]
+              for p in ('weapon_sword', 'weapon_bow', 'weapon_crossbow', 'weapon_staff', 'weapon_trident', 'weapon_flail')]
     groups.append([o for o in objects if o.name.startswith(('wear_', 'held_'))])
     groups += [[o for o in objects if o.name.startswith(f'armor_{s}_')] for s in ('head', 'body', 'shield', 'feet')]
     groups.append([o for o in objects if o.name.startswith(('item_potion_health', 'item_potion_mana', 'item_potion_stamina'))])

@@ -742,6 +742,7 @@ export const SQUARLO = {
   light: '#7fe8ff', sparks: ['#e0fbff', '#7fe8ff'],
   style: 'skirmish', circle: 2.6, strafe: true, guardian: true, guardianRole: 'descent', boss: 'squarlo',
   seedSalt: 0x5a1a20, spacing: 6,
+  leansTo: { kind: 'trident', chance: 0.5 },   // the sea's: each of his weapons a trident half the time (core/gear/drops.js)
 };
 // Flip, the fourth real boss (blender/flip.py), in place of the descent guardian of depth 3
 // (core/bosses.js): three rings of little rings, light blue, floating; the game spins the rings now

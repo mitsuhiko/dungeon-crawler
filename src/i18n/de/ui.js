@@ -340,6 +340,8 @@ export default {
   'Bow · shoots arrows': 'Bogen · schießt Pfeile',
   'Crossbow · shoots bolts': 'Armbrust · schießt Bolzen',
   'Staff · casts spells': 'Stab · wirkt Zauber',
+  'Trident · stabs up close, throws lightning from afar': 'Dreizack · sticht aus der Nähe, wirft aus der Ferne Blitze',
+  'Throws lightning up to {range} cells away for {share}% damage': 'Wirft Blitze bis zu {range} Felder weit, mit {share} % Schaden',
   '{rarity} · item level {level}': '{rarity} · Gegenstandslevel {level}',
   'Damage {damage} · {speed} attacks per second': 'Schaden {damage} · {speed} Angriffe pro Sekunde',
   'Damage per second {dps}': 'Schaden pro Sekunde {dps}',
@@ -350,6 +352,8 @@ export default {
   'Three balls: each strikes, one after the other': 'Drei Kugeln: Jede trifft, eine nach der anderen',
   '{n, plural, one {Bolts pierce # enemy} other {Bolts pierce # enemies}}': '{n, plural, one {Bolzen gehen durch # Monster} other {Bolzen gehen durch # Monster}}',
   'Bursts for {share}% damage within {radius} cells': 'Platzt mit {share} % Schaden im Umkreis von {radius} Feldern',
+  '{n, plural, one {Lightning jumps on to # more enemy nearby for {share}% damage} other {Lightning jumps on to # more enemies nearby, each for {share}% of the one before}}':
+    '{n, plural, one {Der Blitz springt auf # weiteres Monster in der Nähe über, mit {share} % Schaden} other {Der Blitz springt auf # weitere Monster in der Nähe über, jedes mit {share} % des vorigen}}',
   'You have no weapon equipped.': 'Du hast keine Waffe ausgerüstet.',
   Range: 'Reichweite',
   Reach: 'Reichweite',
@@ -659,6 +663,8 @@ export default {
   'Bow shot': 'Bogenschuss',
   'Crossbow shot': 'Armbrustschuss',
   'Spell cast': 'Zauber',
+  'Trident stab': 'Dreizackstich',
+  Lightning: 'Blitz',
   Throw: 'Wurf',
 
   // the skin painter (game/skineditor.js)

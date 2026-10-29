@@ -5,6 +5,7 @@ import { emit, glow, soft, rand } from '../render/particles.js';
 import { floatText } from '../render/floattext.js';
 import { sfx } from '../audio/sfx.js';
 import { muzzleAt } from '../core/beams.js';
+import { aimPoint, shotOrigin } from '../core/shots.js';
 import { strikeBolt, eruptGeyser } from '../render/beams.js';
 import { cannonJet, jetSplash } from '../render/giantfx.js';
 import { groundAt } from '../physics/collide.js';
@@ -81,22 +82,36 @@ export function evadedFx(e, dx, dz) {
   e.flinch = { t: 0, side: Math.random() < 0.5 ? -1 : 1, dx, dz };
 }
 
-// an attack starts: a sword's whoosh, a flail's deeper one with its chain, a bow's draw, a staff's
-// wind-up (a crossbow is quiet until it shoots)
+// an attack starts: a sword's whoosh, a flail's deeper one with its chain, a trident's quick jab, a
+// bow's draw, a staff's wind-up (a crossbow is quiet until it shoots)
 export function swingFx(kind = 'sword') {
   if (kind === 'sword') sfx('swing', { at: player, pitch: 0.9 + 0.2 * Math.random() });
   else if (kind === 'flail') sfx('flail', { at: player, pitch: 0.9 + 0.2 * Math.random() });
   else if (kind === 'bow') sfx('draw', { at: player, volume: 0.8 });
   else if (kind === 'staff') sfx('swing', { at: player, pitch: 0.6, volume: 0.5 });
+  else if (kind === 'trident') sfx('swing', { at: player, pitch: 1.25 + 0.15 * Math.random(), volume: 0.8 });   // a quick jab
+  else if (kind === 'zap') sfx('swing', { at: player, pitch: 0.8, volume: 0.5 });
 }
 
 // the player's shot (core/shots.js) left ('launch'), or ended: 'hit' (an enemy stopped it),
 // 'blocked' (the level), 'spent' (its range). Arrows and bolts knock into walls; spells burst
-// in their colour wherever they end. A crossbow's reload: 'reload'
+// in their colour wherever they end; lightning cracks as it leaves and flashes from the staff to
+// where it ended (render/beams.js strikeBolt), sparks flying there. A crossbow's reload: 'reload'
+const LAUNCH = { spell: 'spell', bolt: 'crossbow', arrow: 'twang', lightning: 'lightning' };
 export function shotFx(shot, what) {
   const { x, y, z } = shot, spell = shot.kind === 'spell', color = shot.stats.color ?? '#c48cff';
-  if (what === 'launch') { sfx(spell ? 'spell' : shot.kind === 'bolt' ? 'crossbow' : 'twang', { at: shot.ghost ? shot : player }); return; }
+  if (what === 'launch') {
+    const lightning = shot.kind === 'lightning';
+    sfx(LAUNCH[shot.kind] ?? 'twang', { at: shot.ghost ? shot : player, ...(lightning && { volume: 0.55, pitch: 1.5 }) });
+    return;
+  }
   if (what === 'reload') { sfx('reload', { at: player, volume: 0.8 }); return; }
+  if (shot.kind === 'lightning') {
+    const [ox, oy, oz] = shotOrigin(shot);
+    strikeBolt({ x: ox, y: oy, z: oz, ex: x, ey: y, ez: z, spec: { color }, width: 0.011, branches: 1, light: 4 });
+    sparks(x, y, z, color, what === 'hit' ? 14 : 7);
+    return;
+  }
   if (spell) {
     const r = Math.max(0.4, shot.stats.burst ?? 0.5), n = what === 'spent' ? 10 : 22;
     emit(glow, x, y, z, { life: 0.22, size: r * 1.6, grow: 1.2, color, alpha: 0.85 });
@@ -113,6 +128,21 @@ export function shotFx(shot, what) {
     emit(soft, x, y, z, { v: [-shot.vx * 0.06 + rand(-1, 1), rand(0.5, 2), -shot.vz * 0.06 + rand(-1, 1)], life: rand(0.25, 0.45),
       size: rand(0.04, 0.08), color: i % 2 ? '#c9b48a' : '#8a7a62', alpha: 0.9, gravity: 9 });
   sfx('thunk', { at: shot, volume: 0.7 });
+}
+
+// lightning (the player's shot) jumping on from enemy a to enemy b (game/shots.js chain)
+export function chainFx(shot, a, b) {
+  const p = aimPoint(a), q = aimPoint(b), color = shot.stats.color ?? '#9fd0ff';
+  strikeBolt({ x: p.x, y: p.y, z: p.z, ex: q.x, ey: q.y, ez: q.z, spec: { color }, width: 0.009, branches: 0, light: 3 });
+  sparks(q.x, q.y, q.z, color, 10);
+  sfx('zap', { at: q, volume: 0.5, pitch: 1.5 + 0.3 * Math.random() });
+}
+function sparks(x, y, z, color, n) {
+  const colors = ['#ffffff', color, '#9fd0ff'];
+  emit(glow, x, y, z, { life: 0.14, size: 0.5, grow: 1.2, color: '#ffffff', alpha: 0.8 });
+  for (let i = 0; i < n; i++)
+    emit(glow, x, y, z, { v: [rand(-2.5, 2.5), rand(0.5, 3), rand(-2.5, 2.5)], life: rand(0.15, 0.35), size: rand(0.04, 0.08),
+      color: colors[i % 3], gravity: 6, drag: 2 });
 }
 
 // the player took dmg from something at (fx, fz)

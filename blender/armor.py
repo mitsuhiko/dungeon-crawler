@@ -638,7 +638,184 @@ def shield_tower(m):
     straps(m, .5)
 
 
-SHIELDS = {'buckler': shield_buckler, 'round': shield_round, 'kite': shield_kite, 'heater': shield_heater, 'tower': shield_tower}
+# --- the prow shields: long, bent round the arm like a ship's prow, a broad arched top narrowing to a
+# point, a double rim, a sunken triangle on the face, a finial on top. Three of them, heavier and
+# deeper down: the Prow Shield, the Bulwark, the Aegis.
+
+def prow_outline(w, top, tip, arch, n=6):
+    """An arched top from -w to w (rising `arch` in the middle), straight sides bellying out a
+    little down to the point at `tip`; counter-clockwise seen from the front (-y)."""
+    pts = []
+    for i in range(n + 1):   # the arch, right to left
+        a = i / n
+        x = w * (1 - 2 * a)
+        pts.append((x, top + arch * (1 - (x / w) ** 2)))
+    for side in (-1, 1):     # down the left side to the point, then up the right one
+        steps = range(1, 5) if side < 0 else range(4, 0, -1)
+        if side > 0:
+            pts.append((0, tip))
+        for k in steps:
+            t = k / 5
+            belly = .035 * math.sin(math.pi * t)
+            pts.append((side * (w * (1 - t) + belly), top + (tip - top) * t))
+    return pts[::-1]
+
+
+class Prow:
+    """A board bent round the arm: its face towards -y, `curve` how far its edges sweep back
+    (behind the face's middle), `bulge` how much its middle stands out."""
+
+    def __init__(self, w, top, tip, arch, thickness, curve, bulge):
+        self.w, self.top, self.tip, self.arch = w, top, tip, arch
+        self.t, self.curve, self.bulge = thickness, curve, bulge
+        self.outline = prow_outline(w, top, tip, arch)
+        self.mid = Vector((0, 0, (top + tip) * .5 + .04))
+
+    def bend(self, x):
+        return self.curve * (x / self.w) ** 2
+
+    def front(self, x, z, lift=0.0):
+        """A point on the face (lifted off it by `lift`)."""
+        r2 = (x * x + (z - self.mid.z) ** 2) / (self.top - self.tip) ** 2 * 4
+        return Vector((x, -self.t / 2 - self.bulge * max(0, 1 - r2) + self.bend(x) - lift, z))
+
+    def board(self, m, face, back=WOOD_DARK, edge=TRIM, rings=4):
+        """The board in rings from the edge in to the middle; face(ring) its colour."""
+        outline = [Vector((x, 0, z)) for x, z in self.outline]
+        n = len(outline)
+        loops_f, loops_b = [], []
+        for r in range(rings):
+            k = 1 - r / rings
+            pts = [self.mid.lerp(p, k) for p in outline]
+            loops_f.append([m.vert(self.front(p.x, p.z)) for p in pts])
+            loops_b.append([m.vert(Vector((p.x, self.t / 2 + self.bend(p.x), p.z))) for p in pts])
+        cf = m.vert(self.front(self.mid.x, self.mid.z))
+        cb = m.vert(Vector((0, self.t / 2, self.mid.z)))
+        m.slot = 0
+        for r in range(rings):
+            for i in range(n):
+                j = (i + 1) % n
+                if r + 1 < rings:
+                    m.face((loops_f[r][j], loops_f[r][i], loops_f[r + 1][i], loops_f[r + 1][j]), face(r))
+                    m.face((loops_b[r][i], loops_b[r][j], loops_b[r + 1][j], loops_b[r + 1][i]), back, shade=.8)
+                else:
+                    m.face((loops_f[r][j], loops_f[r][i], cf), face(r))
+                    m.face((loops_b[r][i], loops_b[r][j], cb), back, shade=.8)
+        m.slot = TRIM_SLOT
+        for i in range(n):
+            j = (i + 1) % n
+            m.face((loops_f[0][i], loops_f[0][j], loops_b[0][j], loops_b[0][i]), edge)
+        # the outer rim: a rounded band round the edge, half over the face
+        rim_pts = [Vector((p.x, (self.front(p.x, p.z).y + self.t / 2 + self.bend(p.x)) * .5, p.z)) for p in outline]
+        m.tube(rim_pts + rim_pts[:2], .02, edge, n=5)
+        m.slot = 0
+
+    def band(self, m, k, color=TRIM, radius=.014, slot=TRIM_SLOT):
+        """The inner rim: the outline drawn in towards the middle (k: 1 the edge)."""
+        m.slot = slot
+        pts = [self.mid.lerp(Vector((x, 0, z)), k) for x, z in self.outline]
+        pts = [self.front(p.x, p.z, radius * .6) for p in pts]
+        m.tube(pts + pts[:2], radius, color, n=4)
+        m.slot = 0
+
+    def triangle(self, m, corners, fill, frame=TRIM, fill_slot=0, frame_r=.016, depth=.008):
+        """The sunken triangle: a panel a little in front of the face (corners in x, z, its broad
+        side up), in a raised frame."""
+        cs = [Vector((x, 0, z)) for x, z in corners]
+        m.slot = fill_slot
+        steps = 4
+        # a grid of little triangles, so the panel follows the bent face
+        grid = {}
+        for i in range(steps + 1):
+            for j in range(steps + 1 - i):
+                p = cs[0] + (cs[1] - cs[0]) * (i / steps) + (cs[2] - cs[0]) * (j / steps)
+                grid[i, j] = m.vert(self.front(p.x, p.z, depth))
+        for i in range(steps):
+            for j in range(steps - i):
+                m.face((grid[i, j], grid[i, j + 1], grid[i + 1, j]), fill)
+                if i + j + 1 < steps:
+                    m.face((grid[i + 1, j], grid[i, j + 1], grid[i + 1, j + 1]), fill)
+        m.slot = TRIM_SLOT if frame == TRIM else 0
+        pts = []
+        for a, b in zip(cs, cs[1:] + cs[:1]):
+            pts += [self.front(*(a.lerp(b, s / steps)).xz, frame_r * .7) for s in range(steps)]
+        m.tube(pts + pts[:2], frame_r, frame, n=4)
+        m.slot = 0
+
+    def finial(self, m, height, radius, color=TRIM, slot=TRIM_SLOT):
+        """A spike on top of the arch, a knob under it."""
+        m.slot = slot
+        z = self.top + self.arch - .005
+        y = -self.t / 2 + self.bend(0) * .5
+        m.lathe(Vector((0, y, z)), [(0, radius * .55), (radius * .5, radius), (radius * 1.1, radius * .5),
+                                    (radius * 1.5, radius * .7), (height, 0)], color, n=6, jitter=0)
+        m.slot = 0
+
+    def straps(self, m):
+        for z in (self.tip * .3, self.top * .45):
+            m.box(Vector((0, self.t / 2 + .02, z)), (.24, .03, .04), LEATHER_DARK)
+
+
+def shield_prow(m):
+    """The Prow Shield: iron, the triangle painted red, a ruby at its point."""
+    p = Prow(.27, .3, -.46, .07, .045, .09, .025)
+    p.board(m, lambda r: STEEL_DARK if r % 2 == 0 else IRON)
+    p.band(m, .8)
+    p.triangle(m, [(-.15, .22), (.15, .22), (0, -.26)], PAINT[0])
+    p.finial(m, .11, .03)
+    gem(m, p.front(0, -.36, .004), (0, -1, 0), .03, '#c94b5a')
+    p.straps(m)
+
+
+def shield_bulwark(m):
+    """The Bulwark: bigger and bent further round, steel, a blue triangle studded at its corners,
+    spikes on top and at the shoulders, a sapphire at the point."""
+    p = Prow(.3, .33, -.52, .08, .05, .12, .03)
+    p.board(m, lambda r: STEEL if r % 2 == 0 else STEEL_DARK)
+    p.band(m, .82, radius=.016)
+    tri = [(-.17, .25), (.17, .25), (0, -.3)]
+    p.triangle(m, tri, PAINT[1], frame_r=.018)
+    for x, z in tri:
+        rivet(m, p.front(x, z, .02), (0, -1, 0), size=.02)
+    for i in range(1, 6):   # studs down the band
+        t = i / 6
+        for side in (-1, 1):
+            x, z = side * .82 * p.w * (1 - t), .82 * (p.top - p.mid.z) * (1 - t) + .82 * (p.tip - p.mid.z) * t + p.mid.z
+            rivet(m, p.front(x, z, .02), (0, -1, 0))
+    p.finial(m, .17, .035)
+    m.slot = TRIM_SLOT
+    for side in (-1, 1):    # spikes at the shoulders of the arch
+        base = Vector((side * p.w * .96, p.bend(p.w * .96) * .5, p.top + .005))
+        m.lathe(base, [(0, .022), (.1, 0)], TRIM, n=5, jitter=0, axis=(side * .7, 0, .7))
+    m.slot = 0
+    gem(m, p.front(0, -.41, .004), (0, -1, 0), .034, '#4f7fbf')
+    p.straps(m)
+
+
+def shield_aegis(m):
+    """The Aegis: dark steel bent furthest round, its triangle a gem that glows (the facets slot),
+    a crystal for a finial, a gem at the point."""
+    p = Prow(.31, .35, -.56, .09, .05, .14, .035)
+    p.board(m, lambda r: IRON_DARK if r % 2 == 0 else '#3a3d44')
+    p.band(m, .84, radius=.017)
+    p.band(m, .74, radius=.009)
+    p.triangle(m, [(-.16, .25), (.16, .25), (0, -.3)], '#7f6ad6', fill_slot=2, frame_r=.02)
+    p.finial(m, .14, .036)
+    m.slot = 2   # a crystal on the finial
+    m.lathe(Vector((0, -p.t / 2 + p.bend(0) * .5, p.top + p.arch + .1)),
+            [(0, 0), (.04, .035), (.13, 0)], '#b9a8ff', n=5, jitter=0)
+    m.slot = 0
+    m.slot = TRIM_SLOT
+    for side in (-1, 1):    # swept wings off the shoulders
+        a = Vector((side * p.w * .9, p.bend(p.w * .9) * .4, p.top + .02))
+        m.tube([a, a + Vector((side * .07, .02, .07)), a + Vector((side * .1, .05, .16))], [.024, .014, .003], TRIM, n=4)
+    m.slot = 0
+    gem(m, p.front(0, -.44, .004), (0, -1, 0), .036, '#9b7fe0')
+    p.straps(m)
+
+
+SHIELDS = {'buckler': shield_buckler, 'round': shield_round, 'kite': shield_kite, 'heater': shield_heater, 'tower': shield_tower,
+           'prow': shield_prow, 'bulwark': shield_bulwark, 'aegis': shield_aegis}
 
 
 def shield(kind):

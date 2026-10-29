@@ -25,11 +25,11 @@ import { SPIDER, STUNDER } from '../src/core/enemies.js';
 const many = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 const slotOf = item => ITEMS[item.itemId].armor.slot;
 
-test('five pieces of armor for every slot (and the hats), a light one from item level 1, each with a model', () => {
+test('five pieces of armor for every slot (eight shields, and the hats), a light one from item level 1, each with a model', () => {
   assert.deepEqual(ARMOR_SLOTS, ['head', 'body', 'shield', 'feet']);
   for (const slot of ARMOR_SLOTS) {
     const bases = ARMOR_BASES.filter(b => slotOf(b) === slot);
-    assert.equal(bases.length, 5 + (slot === 'head' ? HATS.length : slot === 'shield' ? CARRIED.length : 0), slot);
+    assert.equal(bases.length, (slot === 'shield' ? 8 : 5) + (slot === 'head' ? HATS.length : slot === 'shield' ? CARRIED.length : 0), slot);
     assert.ok(bases.some(b => b.minLevel === 1), `a ${slot} piece from item level 1`);
     assert.deepEqual(bases.map(b => b.tags), bases.map(() => ['armor', slot]));
   }

@@ -48,6 +48,7 @@ export const IMAGES = {
   'loadout-sword-front.png': ['docs/img/loadout-sword.jpg'],
   'loadout-crossbow-front.png': ['docs/img/loadout-crossbow.jpg'],
   'loadout-staff-front.png': ['docs/img/loadout-staff.jpg'],
+  'loadout-trident-front.png': ['docs/img/loadout-trident.jpg'],
   'loadout-villagers-front.png': ['docs/img/loadout-villagers.jpg'],
   'clutter-preview.png': ['docs/img/clutter.jpg'],
   'themes-preview.png': ['docs/img/themes.jpg'],

@@ -29,6 +29,9 @@ SETS = [
     ('chain', ['armor_head_nasal', 'armor_body_chain', 'armor_shield_kite', 'armor_feet_hobnail']),
     ('scale', ['armor_head_horned', 'armor_body_scale', 'armor_shield_heater', 'armor_feet_greaves']),
     ('plate', ['armor_head_great', 'armor_body_plate', 'armor_shield_tower', 'armor_feet_winged']),
+    ('prow', ['armor_head_nasal', 'armor_body_chain', 'armor_shield_prow', 'armor_feet_hobnail']),
+    ('bulwark', ['armor_head_horned', 'armor_body_scale', 'armor_shield_bulwark', 'armor_feet_greaves']),
+    ('aegis', ['armor_head_great', 'armor_body_plate', 'armor_shield_aegis', 'armor_feet_winged']),
 ]
 POSES = [('Jump', 0, False), ('Walk', 6, False), ('Run', 4, False), ('Slash', 15, False), ('Shoot', 18, True),
          ('Roll', 10, False), ('Climb', 10, False)]

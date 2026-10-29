@@ -297,7 +297,7 @@ test('every weapon has real assets, damage, reach and synchronized attack timing
   for (const w of WEAPONS) {
     assert.ok(existsSync(assetPath(w.model)));
     const p = hero(); equip(p, w.id); awardXP(p, xpForLevel(5));
-    const stats = combatStats(p), T = KINDS[w.weapon.kind].timing;
+    const stats = combatStats(p, null), T = KINDS[w.weapon.kind].timing;   // (a trident: its stab, at what is ahead)
     assert.equal(stats.kind, w.weapon.kind); assert.equal(stats.ranged, !isMelee(w.weapon.kind));
     assert.equal(stats.damage, Math.round(w.weapon.damage * levelDamage(5))); assert.equal(stats.range, w.weapon.range);
     assert.equal(stats.chain, w.weapon.interval, 'attacks chain at the weapon interval');

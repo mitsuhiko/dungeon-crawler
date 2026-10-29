@@ -809,6 +809,162 @@
       "glb": "items/weapon_staff_arcane.glb"
     },
     {
+      "name": "weapon_staff_spark",
+      "triangles": 446,
+      "size": [
+        0.4884,
+        0.142,
+        2.2716
+      ],
+      "bounds_blender": [
+        [
+          -0.23240023851394653,
+          -0.07100000232458115,
+          -0.921635627746582
+        ],
+        [
+          0.2560160458087921,
+          0.07100000232458115,
+          1.3499999046325684
+        ]
+      ],
+      "attach": "hand",
+      "category": "weapon",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/weapon_staff_spark.glb"
+    },
+    {
+      "name": "weapon_staff_lightning",
+      "triangles": 614,
+      "size": [
+        0.4884,
+        0.148,
+        2.3116
+      ],
+      "bounds_blender": [
+        [
+          -0.23240023851394653,
+          -0.07400000095367432,
+          -0.921635627746582
+        ],
+        [
+          0.2560160458087921,
+          0.07400000095367432,
+          1.3899998664855957
+        ]
+      ],
+      "attach": "hand",
+      "category": "weapon",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/weapon_staff_lightning.glb"
+    },
+    {
+      "name": "weapon_staff_thunder",
+      "triangles": 614,
+      "size": [
+        0.4884,
+        0.154,
+        2.3516
+      ],
+      "bounds_blender": [
+        [
+          -0.23240023851394653,
+          -0.07700000703334808,
+          -0.921635627746582
+        ],
+        [
+          0.2560160458087921,
+          0.07700000703334808,
+          1.4299999475479126
+        ]
+      ],
+      "attach": "hand",
+      "category": "weapon",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/weapon_staff_thunder.glb"
+    },
+    {
+      "name": "weapon_trident_fisher",
+      "triangles": 680,
+      "size": [
+        0.42,
+        0.17,
+        2.65
+      ],
+      "bounds_blender": [
+        [
+          -0.20999999344348907,
+          -0.08500000089406967,
+          -1.0499999523162842
+        ],
+        [
+          0.20999999344348907,
+          0.08500000089406967,
+          1.600000023841858
+        ]
+      ],
+      "attach": "hand",
+      "category": "weapon",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/weapon_trident_fisher.glb"
+    },
+    {
+      "name": "weapon_trident_sea",
+      "triangles": 778,
+      "size": [
+        0.44,
+        0.17,
+        2.7346
+      ],
+      "bounds_blender": [
+        [
+          -0.2199999988079071,
+          -0.08500000089406967,
+          -1.1345555782318115
+        ],
+        [
+          0.2199999988079071,
+          0.08500000089406967,
+          1.600000023841858
+        ]
+      ],
+      "attach": "hand",
+      "category": "weapon",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/weapon_trident_sea.glb"
+    },
+    {
+      "name": "weapon_trident_storm",
+      "triangles": 794,
+      "size": [
+        0.46,
+        0.17,
+        2.7346
+      ],
+      "bounds_blender": [
+        [
+          -0.23000000417232513,
+          -0.08500000089406967,
+          -1.1345555782318115
+        ],
+        [
+          0.23000000417232513,
+          0.08500000089406967,
+          1.600000023841858
+        ]
+      ],
+      "attach": "hand",
+      "category": "weapon",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/weapon_trident_storm.glb"
+    },
+    {
       "name": "weapon_flail_ball",
       "triangles": 892,
       "size": [
@@ -3511,6 +3667,84 @@
       "units": "character_rig",
       "game_scale": 0.55,
       "glb": "items/armor_shield_tower.glb"
+    },
+    {
+      "name": "armor_shield_prow",
+      "triangles": 800,
+      "size": [
+        0.8218,
+        0.3968,
+        0.5423
+      ],
+      "bounds_blender": [
+        [
+          0.5132031440734863,
+          -0.2660069465637207,
+          0.881999671459198
+        ],
+        [
+          1.334989070892334,
+          0.13083022832870483,
+          1.4243065118789673
+        ]
+      ],
+      "attach": "body",
+      "category": "armor",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/armor_shield_prow.glb"
+    },
+    {
+      "name": "armor_shield_bulwark",
+      "triangles": 1050,
+      "size": [
+        0.9746,
+        0.4921,
+        0.6847
+      ],
+      "bounds_blender": [
+        [
+          0.4123048782348633,
+          -0.3184431195259094,
+          0.8519997000694275
+        ],
+        [
+          1.3869504928588867,
+          0.1736851930618286,
+          1.5366811752319336
+        ]
+      ],
+      "attach": "body",
+      "category": "armor",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/armor_shield_bulwark.glb"
+    },
+    {
+      "name": "armor_shield_aegis",
+      "triangles": 990,
+      "size": [
+        1.1378,
+        0.5109,
+        0.7601
+      ],
+      "bounds_blender": [
+        [
+          0.28375479578971863,
+          -0.31547868251800537,
+          0.831999659538269
+        ],
+        [
+          1.4215916395187378,
+          0.19543395936489105,
+          1.5921212434768677
+        ]
+      ],
+      "attach": "body",
+      "category": "armor",
+      "units": "character_rig",
+      "game_scale": 0.55,
+      "glb": "items/armor_shield_aegis.glb"
     },
     {
       "name": "armor_feet_sandals",

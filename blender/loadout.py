@@ -3,7 +3,7 @@ The player with each kind of weapon: a lineup of the attack clips' key frames, t
 mounted in the fist the way the game mounts it (items.MOUNTS, render/character.js).
 
 Rows: sword (Slash), bow (Shoot), crossbow (HoldCrossbow, CrossbowShot), staff (HoldStaff,
-Cast), a throwing flask (HoldThrow, Throw; held by the neck, items.flask_mount). Each figure is a copy of the rig playing its clip at one frame (an NLA strip offset).
+Cast; a lightning staff too), trident (HoldTrident, Thrust, and Cast: its lightning), a throwing flask (HoldThrow, Throw; held by the neck, items.flask_mount). Each figure is a copy of the rig playing its clip at one frame (an NLA strip offset).
 A last image shows the town's villagers (src/world/town.js VILLAGERS) standing in their hold
 poses, tinted, wearing and holding their things (items.WEARS) the way render/figure.js mounts
 them. Nothing is exported; this is for checking poses, grips and aim.
@@ -41,6 +41,9 @@ ROWS = [
     ('weapon_crossbow_light', [('HoldCrossbow', 0), ('CrossbowShot', 6), ('CrossbowShot', 9), ('CrossbowShot', 12),
                                ('CrossbowShot', 19), ('CrossbowShot', 23), ('CrossbowShot', 27)]),
     ('weapon_staff_arcane', [('HoldStaff', 0), ('Cast', 7), ('Cast', 12), ('Cast', 16), ('Cast', 22)]),
+    ('weapon_staff_lightning', [('HoldStaff', 0), ('Cast', 7), ('Cast', 12), ('Cast', 16), ('Cast', 22)]),
+    ('weapon_trident_sea', [('HoldTrident', 0), ('Thrust', 4), ('Thrust', 7), ('Thrust', 11), ('Thrust', 13), ('Thrust', 17),
+                            ('Thrust', 22)]),
     ('item_flask_fire', [('HoldThrow', 0), ('Throw', 4), ('Throw', 8), ('Throw', 12), ('Throw', 17), ('Throw', 22)]),
 ]
 
@@ -61,7 +64,7 @@ def weapon_kind(name):
         return name
     if name.startswith('item_flask_'):
         return 'throw'
-    return next(k for k in ('sword', 'bow', 'crossbow', 'staff') if name.startswith('weapon_' + k))
+    return next(k for k in ('sword', 'bow', 'crossbow', 'staff', 'trident') if name.startswith('weapon_' + k))
 
 
 def mount(rig, weapon, kind):
@@ -335,7 +338,8 @@ def main(out=None, view='front', only_villagers=False):
             group += [r, *r.children]
             w = mount(r, weapons[weapon], weapon_kind(weapon))
             group += [w, *w.children]
-        rows.append((weapon_kind(weapon), len(shots), group))
+        kind = weapon_kind(weapon)   # (a second row of a kind is named for its weapon)
+        rows.append((kind if all(r[0] != kind for r in rows) else weapon.replace('weapon_', ''), len(shots), group))
     scene.frame_set(SCENE_FRAME)
     directory = Path(out).resolve() if out else HERE / 'previews'
     directory.mkdir(parents=True, exist_ok=True)

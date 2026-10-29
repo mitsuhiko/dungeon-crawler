@@ -86,7 +86,7 @@ const GLOW_BLUE = '#9fd0ff', RING_BLUE = new THREE.Color('#4fb2ff'), RING_FLASH 
 
 // a zigzag line of `n` segments from `from` to `to`, kinked sideways by up to `amp` × its length
 // (most in the middle, the ends fixed): world points
-function zigzag(from, to, n, amp) {
+export function zigzag(from, to, n, amp) {
   dir.subVectors(to, from);
   const length = dir.length();
   side.crossVectors(dir, up); if (side.lengthSq() < 1e-6) side.set(1, 0, 0);
@@ -100,7 +100,7 @@ function zigzag(from, to, n, amp) {
   return pts;
 }
 // segments (a bright core in a glow, like the laser) along `pts`; spare ones are hidden
-function makeSegments(group, count, core, halo) {
+export function makeSegments(group, count, core, halo) {
   return Array.from({ length: count }, () => {
     const c = new THREE.Mesh(tube, core), h = new THREE.Mesh(tube, halo);
     c.frustumCulled = h.frustumCulled = false; c.visible = h.visible = false;
@@ -108,7 +108,7 @@ function makeSegments(group, count, core, halo) {
     return { core: c, halo: h };
   });
 }
-function layOut(segments, pts, width, from = 0) {
+export function layOut(segments, pts, width, from = 0) {
   let i = from;
   for (let k = 0; k + 1 < pts.length && i < segments.length; k++, i++) {
     const s = segments[i];
@@ -121,7 +121,7 @@ function layOut(segments, pts, width, from = 0) {
   }
   return i;
 }
-const hideFrom = (segments, i) => { for (; i < segments.length; i++) segments[i].core.visible = segments[i].halo.visible = false; };
+export const hideFrom = (segments, i) => { for (; i < segments.length; i++) segments[i].core.visible = segments[i].halo.visible = false; };
 
 function makeBoltView(b) {
   const color = new THREE.Color(boltColor(b)), blue = new THREE.Color(GLOW_BLUE);
@@ -212,9 +212,12 @@ function drawStomp(b, v, dt, off) {
   }
 }
 
-// strikes in flight: { from, to (world), t, view }
+// strikes in flight: { from, to (world), t, width, branches, light, view }
 let strikes = [];
 const STRIKE = 0.34;   // how long a strike lights up
+// b: { x, y, z (where it comes from), ex, ey, ez (where it strikes), spec or profile (its colour) };
+// the player's lightning (game/juice.js) a thinner one, `width`, with fewer `branches` and a
+// dimmer `light`
 export function strikeBolt(b) {
   const color = new THREE.Color(boltColor(b));
   const additive = { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false };
@@ -226,7 +229,7 @@ export function strikeBolt(b) {
   const light = new THREE.PointLight(color, 0, 6, 2); light.position.y = 0.6;
   scene.add(group); trackLight(light, anchor);
   strikes.push({ from: new THREE.Vector3(b.x, b.y, b.z), to: new THREE.Vector3(b.ex, b.ey, b.ez), t: 0, shape: -1, pts: null,
-    view: { group, anchor, segments, light, owned: [core, halo] } });
+    width: b.width ?? 0.013, branches: b.branches ?? 2, light: b.light ?? 9, view: { group, anchor, segments, light, owned: [core, halo] } });
 }
 // bright, a dim gap, a second stroke, then fading
 const strength = t => t < 0.06 ? 1 : t < 0.1 ? 0.2 : t < 0.16 ? 0.95 : Math.max(0, 0.95 * (1 - (t - 0.16) / (STRIKE - 0.16)));
@@ -241,18 +244,18 @@ function drawStrikes(dt, off) {
       s.shape = shape;
       const from = s.from.clone().add(off), to = offset(s.to, off).clone();
       const main = zigzag(from, to, 12, 0.09);
-      let used = layOut(v.segments, main, 0.013);
-      for (let n = 0; n < 2; n++) {   // a branch or two off the main stroke
+      let used = layOut(v.segments, main, s.width);
+      for (let n = 0; n < s.branches; n++) {   // a branch or two off the main stroke
         const at = main[2 + Math.floor(Math.random() * 7)], end = at.clone().lerp(to, rand(0.25, 0.5))
           .add(new THREE.Vector3(rand(-0.5, 0.5), 0, rand(-0.5, 0.5)));
-        used = layOut(v.segments, zigzag(at, end, 5, 0.2), 0.007, used);
+        used = layOut(v.segments, zigzag(at, end, 5, 0.2), s.width * 0.55, used);
       }
       hideFrom(v.segments, used);
     }
     const k = strength(s.t);
     v.owned[0].opacity = k; v.owned[1].opacity = 0.35 * k;
     v.anchor.position.copy(offset(s.to, off));
-    v.light.intensity = 9 * k;
+    v.light.intensity = s.light * k;
     return true;
   });
 }

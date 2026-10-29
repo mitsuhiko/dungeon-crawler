@@ -88,7 +88,7 @@ export const GLOSSARY = [
   term('enchantment', { word: { en: 'enchantment', de: 'Verzauberung', id: 'sihir' }, g: 'f' }, 'what the Enchanter puts on a weapon: Toasty (Knusprig / Panggang) ...; the Enchanter herself is the "Penyihir"',
     { en: /\benchant/i, de: /verzauber/i, id: /sihir|penyihir/i }),
   term('armor', { word: { en: 'armor', de: 'Rüstung', id: 'armor' }, g: 'f' }, 'what the hero wears in four slots: head, body, off hand, feet; "armor" is the loanword in Indonesian'),
-  term('weapon', { word: { en: 'weapon', de: 'Waffe', id: 'senjata' }, g: 'f' }, 'sword, flail (Flegel / Flail), bow (Bogen / Busur), crossbow (Armbrust / Crossbow), staff (Stab / Tongkat)'),
+  term('weapon', { word: { en: 'weapon', de: 'Waffe', id: 'senjata' }, g: 'f' }, 'sword, flail (Flegel / Flail), trident (Dreizack / Trisula), bow (Bogen / Busur), crossbow (Armbrust / Crossbow), staff (Stab / Tongkat)'),
   term('chest', { word: { en: 'chest', de: 'Truhe', id: 'peti' }, g: 'f' }, 'a treasure chest', { en: /\bchests?\b/i, de: /truhe/i }),
   term('potion', { word: { en: 'potion', de: 'Trank', id: 'ramuan' }, g: 'm', pl: 'Tränke' }, 'something to drink: a health potion is a "Heiltrank" / "Ramuan Kesehatan"',
     { en: /\bpotions?\b/i, de: /tr(a|ä)nk/i }),

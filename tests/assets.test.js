@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { assets } from './paths.js';
 import { readGlb, accessorValues, decoderReady, isCompressed } from '../tools/glb.mjs';
 import { readdirSync } from 'node:fs';
-import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THROW_CLIP, KINDS } from '../src/core/combat.js';
+import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THRUST_CLIP, THROW_CLIP, KINDS } from '../src/core/combat.js';
 import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
@@ -64,7 +64,7 @@ test('player is unarmed, retains both hand sockets and exports only its own clip
     assert.equal(socket.children?.length || 0, 0, 'hand socket must be empty');
   }
   assert.equal(j.meshes.length, 1); assert.equal(j.skins.length, 1);
-  assert.ok(!j.animations.some(a => /Spider|Stunder|Snake|Octo|Fire|Tri|Cat/.test(a.name)));
+  assert.ok(!j.animations.some(a => /Spider|Stunder|Snake|Octo|Fire|Tri(?!dent)|Cat/.test(a.name)));
   const slash = j.animations.find(a => a.name === 'Slash');
   assert.ok(slash);
   assert.ok(Math.abs(duration(slash) - SLASH_CLIP.duration) < 1e-5);
@@ -81,11 +81,11 @@ test('the hero\'s Pummel is the Flimmer\'s beating: its fists land on the attack
   assert.equal(clip.extras.hits.length, hits.length);
   clip.extras.hits.forEach((t, i) => assert.ok(Math.abs(t - hits[i]) < 1e-9, `blow ${i + 1}`));
 });
-test('the bow, crossbow, staff and throw clips match the attack timing, shoot from the profile muzzles and come with hold poses', () => {
+test('the bow, crossbow, staff, trident and throw clips match the attack timing, shoot from the profile muzzles and come with hold poses', () => {
   const { json: j, duration } = glb('character');
   const clip = name => j.animations.find(a => a.name === name);
   for (const [kind, name, C] of [['bow', 'Shoot', SHOOT_CLIP], ['crossbow', 'CrossbowShot', CROSSBOW_CLIP], ['staff', 'Cast', CAST_CLIP],
-    ['throw', 'Throw', THROW_CLIP]]) {
+    ['trident', 'Thrust', THRUST_CLIP], ['throw', 'Throw', THROW_CLIP]]) {
     const a = clip(name);
     assert.ok(a, name); assert.equal(KINDS[kind].clip, C);
     assert.ok(Math.abs(duration(a) - C.duration) < 1e-5, name);
@@ -100,7 +100,7 @@ test('the bow, crossbow, staff and throw clips match the attack timing, shoot fr
   }
 });
 test('every weapon model says which socket it goes in, how it sits there and which clip it attacks with', () => {
-  const names = { sword: 'Slash', flail: 'Slash', bow: 'Shoot', crossbow: 'CrossbowShot', staff: 'Cast' };
+  const names = { sword: 'Slash', flail: 'Slash', bow: 'Shoot', crossbow: 'CrossbowShot', staff: 'Cast', trident: 'Thrust' };
   for (const w of WEAPONS.filter(w => !w.model.endsWith('sword.glb'))) {
     const { json: j } = glb(w.model.replace(/^assets\//, '').replace(/\.glb$/, ''));
     const node = j.nodes.find(n => n.name === w.id), e = node.extras;

@@ -25,11 +25,13 @@ end in the neutral standing pose so they can be cross-faded from anything):
     Pummel       -- a beating: five quick straight punches, right and left in turn, the last
                     the hardest (extras: hits, the times each fist lands; the Flimmer's)
     Slash        -- right-handed overhead diagonal slash (extras: weapon_socket)
+    Thrust       -- a trident's stab (and its lightning thrown): drawn back by the ribs, then
+                    driven straight out ahead (extras: weapon_socket, the frames, muzzle)
     Throw        -- a flask lobbed overhand from the right fist (extras: weapon_socket,
                     active_start: it lets go, muzzle: where)
     Roll         -- forward roll; game moves ~`distance` forward (extras: distance)
     Flex         -- static strongman pose (the original sculpt)
-    Hold<Name>   -- still poses of one arm carrying a weapon (HOLDS: Bow, Crossbow, Staff, Throw; extras:
+    Hold<Name>   -- still poses of one arm carrying a weapon (HOLDS: Bow, Crossbow, Staff, Trident, Throw; extras:
                     weapon) or a held item (CARRIES: Towel, Orb, Hammer, Pliers, Rope, Feed);
                     extras: hold, arm_bones
 
@@ -1086,6 +1088,8 @@ HOLDS = {   # kind: (side, arm spec, forearm twist)
     "bow": ("L", A(D(8), D(16), D(78), 1), D(62)),
     "crossbow": ("R", A(D(14), D(16), D(74), -1), 0.0),
     "staff": ("R", A(D(8), D(18), D(80), -1), 0.0),
+    # the trident along the forearm (items.MOUNTS), the forearm raised: it slants up ahead
+    "trident": ("R", A(D(10), D(16), D(118), -1), 0.0),
     # a throwing flask held up by the neck like the staff (items.flask_mount)
     "throw": ("R", A(D(8), D(18), D(80), -1), 0.0),
 }
@@ -1108,6 +1112,8 @@ CARRIES = {   # name: (side, arm spec, forearm twist)
 SHOOT_FRAMES = {"duration": 32, "active_start": 18, "active_end": 20, "redraw": 7}
 CROSSBOW_FRAMES = {"duration": 36, "active_start": 9, "active_end": 11, "reloaded": 26}
 CAST_FRAMES = {"duration": 28, "active_start": 12, "active_end": 14}
+THRUST_FRAMES = {"duration": 26, "active_start": 11, "active_end": 15}
+THRUST_ROLL = 15.0   # degrees the forearm turns stabbing (the prongs level)
 THROW_FRAMES = {"duration": 26, "active_start": 12, "active_end": 14}
 
 
@@ -1256,6 +1262,37 @@ def throw_params():
 
 
 ROLL_RADIUS = 0.40   # the tucked body rolls like a ball of this radius
+
+
+def thrust_params():
+    """Trident (in the right fist, along the forearm: items.MOUNTS): from its hold, slanting up
+    ahead, the fist drawn back by the ribs, the trident level, then the arm driven straight out
+    ahead, the body leaning into it, the prongs going through what is in front (active_start ..
+    active_end), and back to the hold. Its lightning leaves the prongs at active_start too."""
+    F = {k: v / FPS for k, v in THRUST_FRAMES.items()}
+    na = neutral_arms()
+    hold = HOLDS["trident"][1]
+    tw, tc, th, te = 0.2, F["active_start"], F["active_end"], F["duration"]
+    back = Vector((-0.44, 0.02, 1.04))          # drawn back by the ribs, the forearm level ahead
+    out = Vector((-0.54, -0.86, 1.1))           # driven straight out ahead (the arm all but straight)
+    elbow_back, elbow_out = Vector((-0.4, 0.6, -1)), Vector((-0.5, 0.2, -1))
+    arm_r = ik_keys((0.02, hold), (tw, IK(back, elbow_back, 1, hold)), (tw + 0.05, IK(back, elbow_back, 1, hold)),
+                    (tc, IK(out, elbow_out, 1, hold)), (th, IK(out, elbow_out, 1, hold)), (te, hold))
+    arm_l = keyframes((0.02, na["L"]), (tw, A(D(30), D(25), D(60), 1)), (tc, A(D(-20), D(28), D(35), 1)),
+                      (th, A(D(-18), D(28), D(35), 1)), (te, na["L"]))
+    twist = keyframes((0.02, 0.0), (tw, D(-18)), (tw + 0.05, D(-20)), (tc, D(16)), (th, D(14)), (te, 0.0))
+    lean = keyframes((0.02, 0.0), (tw, D(-4)), (tc, D(12)), (th, D(11)), (te, 0.0))
+    hz = keyframes((0.02, STAND_Z), (tw, STAND_Z - 0.02), (tc, STAND_Z - 0.07), (th, STAND_Z - 0.07), (te, STAND_Z))
+    roll = keyframes((0.02, 0.0), (tw, D(THRUST_ROLL)), (th, D(THRUST_ROLL)), (te, 0.0))   # the knuckles up
+
+    def fn(t):
+        return pose_params(
+            hips_pos=Vector((0, 0, hz(t))), hips_rot=(0.0, 0.0, twist(t) * 0.35),
+            spine_lean=lean(t), spine_twist=twist(t) * 0.65,
+            head_pitch=-lean(t) * 0.7, head_twist=-twist(t) * 0.9,
+            arms={"L": arm_l(t), "R": arm_r(t)}, fore_twist={"R": roll(t)},
+        )
+    return one_shot(te, fn)
 
 
 def roll_params():
@@ -1765,6 +1802,7 @@ def make_animations(rig, ob):
     one("CrossbowShot", crossbow_params(), *stiff, {"weapon_socket": "hand.R", **timing(CROSSBOW_FRAMES)})
     one("Cast", cast_params(), *stiff, {"weapon_socket": "hand.R", **timing(CAST_FRAMES)})
     one("Throw", throw_params(), *stiff, {"weapon_socket": "hand.R", **timing(THROW_FRAMES)})
+    one("Thrust", thrust_params(), *stiff, {"weapon_socket": "hand.R", **timing(THRUST_FRAMES)})
     # where each shot leaves at its active_start: the bow fist, the bolt's tip, the staff's head,
     # the thrown flask's belly
     import items
@@ -1772,6 +1810,7 @@ def make_animations(rig, ob):
             ("Shoot", SHOOT_FRAMES, "hand.L", None, Vector()),
             ("CrossbowShot", CROSSBOW_FRAMES, "hand.R", "crossbow", Vector((0, items.STOCK_Y - .053, .46))),
             ("Cast", CAST_FRAMES, "hand.R", "staff", Vector(items.staff_head(1))),
+            ("Thrust", THRUST_FRAMES, "hand.R", "trident", Vector((0, 0, items.TRIDENT_TIP - .14))),
             ("Throw", THROW_FRAMES, "hand.R", "throw", Vector((0, 0, .12)))):
         act = bpy.data.actions[clip]
         act["muzzle"] = muzzle(rig, act, frames["active_start"], bone,
@@ -1825,7 +1864,7 @@ def main(scene=None, export_path=None, active_action="Walk"):
     make_animations(rig, ob)
     register_actions(rig, ("Walk", "Run", "Swim", "SwimIdle", "SwimOut", "Skid", "Climb", "Hang", "Jump", "JumpLandSit",
                            "GetUpBack", "GetUpFront", "Kick", "Punch", "Pummel", "Slash", "Shoot", "CrossbowShot",
-                           "Cast", "Throw", "HoldBow", "HoldCrossbow", "HoldStaff", "HoldThrow",
+                           "Cast", "Throw", "Thrust", "HoldBow", "HoldCrossbow", "HoldStaff", "HoldTrident", "HoldThrow",
                            *("Hold" + k.capitalize() for k in CARRIES), "Roll", "Flex"))
     act = bpy.data.actions[active_action]
     rig.animation_data.action = act

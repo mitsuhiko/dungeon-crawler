@@ -1,7 +1,8 @@
 # Combat and enemies
 
-Five kinds of weapon: swords swing (most of this page) and so do flails (see [Flails](#flails)),
-bows, crossbows and staffs shoot (see [Bows, crossbows and staffs](#bows-crossbows-and-staffs)).
+Six kinds of weapon: swords swing (most of this page) and so do flails (see [Flails](#flails)),
+bows, crossbows and staffs shoot (see [Bows, crossbows and staffs](#bows-crossbows-and-staffs)),
+tridents stab close up and throw lightning from afar (see [Tridents](#tridents)).
 The controls are the same for all.
 
 - **Mouse (Diablo style):** click the floor to walk there (pathing over the floor
@@ -439,6 +440,31 @@ slackens. The model's own chains, lying as on the floor, are hidden (`blender/it
 the anchor, the chain's length and each ball's pivot are in the item's extras). Renew's, the
 others' and the echoes' flails swing the same way.
 
+## Tridents
+
+Tridents (`kind: 'trident'`, three bases; stats in [progression.md](progression.md#tridents)) do
+both. Each attack decides when it starts (`combatStats(p, target)`, `core/combat.js`): an enemy
+within the trident's reach (and the wind-up's step-in, `LUNGE_REACH`), a point or nothing in
+particular (straight ahead) is **stabbed**; an enemy further off gets its **lightning** (an
+attack of kind `zap`, `zapStats`). Asked without a target (how far to walk up to a clicked enemy,
+what Shift's auto-attack or mouse look picks, how far enemies keep away) it answers with its
+lightning, which reaches furthest: clicking a far enemy throws lightning from where you stand,
+clicking one close up stabs it.
+
+- **The stab** is a blade's: the same rules as a sword's swing (one hit per target, the height
+  band, the step-in), but with a narrow arc (`arc` ×0.3) and a long reach, so it goes through
+  every enemy in a line in front of it. Its timing is `TRIDENT`; the hero plays the `Thrust`
+  clip: from its hold (the trident along the forearm, slanting up ahead, `HoldTrident`) the fist
+  is drawn back by the ribs with the trident level, then driven straight out.
+- **The lightning** is a lightning staff's (below): it leaves the prongs at the stab's
+  `activeStart` (the same clip, `MUZZLES.zap`), strikes almost at once, for a share of the stab's
+  damage (`zap.share`, 60%: shooting from afar is safer) and as far as `zap.range`; the Storm
+  Trident's jumps on to one more enemy. Its stones glow while it gathers.
+- Of Long Arms stretches the stab, Of Far Away the lightning (both may roll: a trident's tags
+  are `melee` and `ranged`).
+
+![The trident: its hold, the Thrust clip drawn back and driven out](img/loadout-trident.jpg)
+
 ## Bows, crossbows and staffs
 
 The ranged kinds (`kind` in `core/items.js`, five bases each; stats in
@@ -458,6 +484,12 @@ weapon's `interval`. Each kind has its timing in `core/combat.js` (`KINDS`: `BOW
   every enemy body it passes once: an arrow stops at the first, a bolt goes through `pierce`
   more, a spell stops at the first and bursts (`burst` cells, `BURST_SHARE` = half its damage
   to everything else there). Walls, props and its `range` stop it (a spell bursts there too).
+  Lightning (a lightning staff's `shot`, a trident's from afar) flies at 60 cells a second, so
+  it all but strikes at once, drawn as a flickering jagged line from the staff to its head and a
+  flash when it ends (`render/beams.js strikeBolt`); it stops at the first enemy, then jumps on
+  to `jumps` more, each the nearest to the one before within `CHAIN_REACH` (2.5 cells between
+  their bodies) where the level is not in the way, each jump for `CHAIN_SHARE` (70%) of the one
+  before (`chainTargets`, `game/shots.js`).
   Damage, crits, life on hit, knockback (along the flight) and staggering are the sword's
   (`weaponHit`). Travel and level resets clear shots in flight.
 - **Targeting**: clicking an enemy walks until it is in range *and* in sight (a clear line from
@@ -476,7 +508,9 @@ weapon's `interval`. Each kind has its timing in `core/combat.js` (`KINDS`: `BOW
   `reloaded`), also when walking cut the reload short; a ratchet and click sound just before.
 - **Staff** (right fist): lift it beside the shoulder, then thrust it so its head points at the
   target as the spell leaves, the left palm pushing along. The stone glows in the spell's
-  colour (`color` per staff) as it gathers, with sparks at the head.
+  colour (`color` per staff) as it gathers, with sparks at the head. The lightning staffs (the
+  staff a zigzag bolt of lightning, `blender/items.py bolt_staff`) cast lightning instead of a
+  spell (`shot: 'lightning'`); its inlay glows as it gathers.
 - **Carrying**: the ranged kinds are carried in a hold pose (`HoldBow`, `HoldCrossbow`,
   `HoldStaff`: one arm's two bones, laid over idle, walk, run and jumps by the animator, a
   little looser while running): a bow upright at the left hip, a crossbow pointing ahead at

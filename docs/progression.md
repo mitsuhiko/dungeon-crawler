@@ -166,11 +166,12 @@ all for loot.
 
 ## Weapons
 
-These are the base types (`core/items.js`), five of each kind besides the Glassmaker's Old Sword. A weapon
+These are the base types (`core/items.js`), five of each kind besides the Glassmaker's Old Sword
+(eight staffs, three tridents). A weapon
 instance scales the damage by its rarity and changes its stats with its affixes
 ([loot.md](loot.md)); combat reads only the instance's stats (`core/gear/stats.js`). How the
 ranged kinds attack: [combat.md](combat.md#bows-crossbows-and-staffs), the flails:
-[combat.md](combat.md#flails).
+[combat.md](combat.md#flails), the tridents: [combat.md](combat.md#tridents).
 
 ### Swords
 
@@ -208,6 +209,20 @@ all. They only drop from item level 7, Renew's level: he always drops one
 | Knight's Flail | 62 | 1 | .70 | 89 | 1.15 | ×1.35 | 9 |
 | Triple Flail | 24 | 3 | .74 | 97 | .95 | ×1.55 | 10 |
 
+### Tridents
+
+A long shaft and three prongs ([combat.md](combat.md#tridents)): close up a stab, a narrow thrust
+(arc ×0.3) through everything in a line, at its reach; further off its lightning, for 60% of the
+stab's damage, as far as its range. They stab about as hard per second as a sword of their depth
+and drop from item level 3; Squarlo (depth 2) drops one half the time for each of his weapons
+(`leansTo`, [loot.md](loot.md#drops)).
+
+| Trident | Damage | Interval | Per second (stab, lightning) | Reach | Lightning range | Jumps | Drops from |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Fisher's Trident | 38 | .52 | 73, 44 | 1.25 | 4.5 | 0 | 3 |
+| Trident | 48 | .58 | 83, 50 | 1.35 | 5 | 0 | 5 |
+| Storm Trident | 58 | .66 | 88, 53 | 1.45 | 5.5 | 1 | 8 |
+
 ### Bows, crossbows and staffs
 
 Shooting from afar is safer, so these deal less per second than swords of the same weight;
@@ -239,8 +254,18 @@ damage to everything else there).
 | Crystal Staff | 47 | .74 | 64 | 5.5 | .7 | ice | 6 |
 | Arcane Staff | 58 | .84 | 69 | 6 | 1 | violet | 8 |
 
-Each kind plays its own clip (Shoot, CrossbowShot, Cast), scaled in time like Slash, and is
-carried in its own hold pose.
+The lightning staffs (the staff itself a bolt of lightning) cast lightning instead: it strikes
+almost at once and jumps on to more enemies nearby, each jump for 70% of the one before
+([combat.md](combat.md#bows-crossbows-and-staffs)).
+
+| Lightning staff | Damage | Interval | Per second | Range | Jumps | Lightning | Drops from |
+|---|---:|---:|---:|---:|---:|---|---:|
+| Spark Staff | 38 | .64 | 59 | 5.5 | 1 | yellow | 5 |
+| Lightning Staff | 48 | .72 | 67 | 6 | 2 | blue | 8 |
+| Thunderbolt | 55 | .80 | 69 | 6.5 | 3 | violet | 11 |
+
+Each kind plays its own clip (Shoot, CrossbowShot, Cast; a trident Thrust), scaled in time like
+Slash, and is carried in its own hold pose.
 
 `game/equipment.js` prepares/caches assets and then commits ownership selection
 and visual attachment together. Failed or stale asynchronous requests cannot
