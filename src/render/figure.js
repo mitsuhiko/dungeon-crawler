@@ -175,6 +175,27 @@ export function wear(f, id, opts = {}) {
   return true;
 }
 
+// The silhouette of a hero (ours, render/character.js; the others', render/partner.js): the body
+// drawn again, see-through, where something stands in front of it. A fluid's surface writes depth
+// (render/materials.js fluidMaterial), so it would count as that too and show what of a body
+// swimming or wading lies under the surface: the silhouette is cut off below `floor` (the
+// material's userData.floor, scene y: where the surface the body is in is drawn, render/
+// waterline.js; far down: in none).
+export function ghostMaterial(color) {
+  const floor = { value: -1e4 };
+  const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4, depthFunc: THREE.GreaterDepth, depthWrite: false });
+  m.onBeforeCompile = s => {
+    s.uniforms.uGhostFloor = floor;
+    s.vertexShader = 'varying float vGhostY;\n' + s.vertexShader.replace('#include <project_vertex>',
+      '#include <project_vertex>\n  vGhostY = (modelMatrix * vec4(transformed, 1.0)).y;');
+    s.fragmentShader = 'uniform float uGhostFloor;\nvarying float vGhostY;\n'
+      + s.fragmentShader.replace('void main() {', 'void main() {\n  if (vGhostY < uGhostFloor) discard;');
+  };
+  m.customProgramCacheKey = () => 'hero-ghost';
+  m.userData.floor = floor;
+  return m;
+}
+
 // What a figure wears or holds is drawn after its silhouette (the player's and the others' see-
 // through ghost, render/character.js, render/partner.js: renderOrder 999, then the body 1000):
 // drawn before it, a shield or a helm would count as terrain hiding the body, and the silhouette

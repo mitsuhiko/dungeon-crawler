@@ -503,11 +503,15 @@ The other kinds: [sword](img/loadout-sword.jpg),
   surface, held there like a spring a plunge sinks into a little and bobs back out of; a tide
   rising or falling carries them along. No weapon swings while swimming (`core/combat.js`); the
   weapon is hidden. A jump out of it is a hop. Into the water there is a splash
-  (louder the harder the plunge), strokes slosh (`paddle`) and ripples spread (`game/swim.js`);
-  no fall into water hurts. The robot says a line about it the first few times. The swimmer is
-  drawn floating on the water as it is drawn (its surface rests under the level physics swims at
-  and rises and falls with the tide: `render/animator.js`, `render/materials.js waterShownAt`): head
-  and shoulders out of it, the hands paddling under the surface. Sollmeldon's mud is swum in too
+  (louder the harder the plunge), strokes slosh (`paddle`) and rings spread on the surface
+  (`game/swim.js`, `render/ripples.js`: thin lines in the water's foam colour, like its shore's):
+  a collar of little ones where the body cuts it, a wake behind a swimmer, a bigger one with each
+  stroke and where they went in, smaller ones round the legs of a wader; no fall into water hurts. The robot says a line about it the first few times. The swimmer is drawn floating on the
+  water as it is drawn (its surface rests under the level physics swims at and rises and falls
+  with the tide: `render/animator.js`, `render/materials.js waterShownAt`): head and shoulders out
+  of it, the hands paddling under the surface. The hero's silhouette (shown where something hides
+  the body) is cut off under the surface they swim or wade in (`render/figure.js ghostMaterial`,
+  `render/waterline.js`): the water hides the body, but it is no wall. Sollmeldon's mud is swum in too
   (`physics/fluid.js swum`), slowing the strokes like his mud slows a wader; Slomo's slime is not.
 - **Out of the water**: a swimmer (or one wading at least `WADE_CLIMB` deep) steps up onto a bank
   up to `SWIM_STEP` (1.1) over the feet: a level over the water's surface. Under a bridge they swim

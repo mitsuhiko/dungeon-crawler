@@ -8,7 +8,7 @@ import { scene, camera } from './scene.js';
 import { state } from '../game/state.js';
 import { ceilingAt, insideSolid, cellAt } from '../physics/collide.js';
 import { prepareHeld } from './held.js';
-import { rigReady, overGhost } from './figure.js';
+import { rigReady, overGhost, ghostMaterial } from './figure.js';
 import { ownShadowDepth } from './skinned.js';
 import { setSkinMap, skinTexture } from './skin.js';
 import { readSkinFile, skinImage } from '../game/skinfiles.js';
@@ -161,8 +161,8 @@ function setup(gltf) {
   }
 
   // silhouette shown where the character is hidden behind terrain
-  const ghost = new THREE.SkinnedMesh(mesh.geometry, new THREE.MeshBasicMaterial({
-    color: 0xffe9a8, transparent: true, opacity: 0.4, depthFunc: THREE.GreaterDepth, depthWrite: false }));
+  // (not under the water it swims or wades in: render/figure.js ghostMaterial, set by the animator)
+  const ghost = new THREE.SkinnedMesh(mesh.geometry, ghostMaterial(0xffe9a8));
   ghost.bind(mesh.skeleton, mesh.bindMatrix);
   ghost.renderOrder = 999; ghost.frustumCulled = false;
   mesh.parent.add(ghost);
@@ -237,7 +237,7 @@ function setup(gltf) {
   mixer.update(0);
   const standing = Object.fromEntries(Object.entries(bones).map(([n, b]) => [n, b.quaternion.clone()]));
   Object.assign(character, {
-    ready: true, group, model, mesh, bones, mixer, actions, attacks, holds, standing, light, getUps, footfalls, worn: {}, clay, tint: null,
+    ready: true, group, model, mesh, ghost, bones, mixer, actions, attacks, holds, standing, light, getUps, footfalls, worn: {}, clay, tint: null,
     sword: null, held: null, swordWeight: 0, holdWeight: 0, getUpWeight: 0,
     walkStride: stride('Walk'), runStride: stride('Run'), swimStride: stride('Swim'),
     climbStride: extras('Climb').distance * CHAR_SCALE,

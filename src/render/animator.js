@@ -22,6 +22,7 @@ import { allEnemies } from '../game/enemies.js';
 import { hoveredEnemy } from '../game/pointer.js';
 import { slidingCubes } from '../game/travel.js';
 import { waterShownAt } from './materials.js';
+import { waterlineAt } from './waterline.js';
 
 // learn: animation.html#getup (see learn/README.md)
 const MORPH = 0.3;       // s from the ragdoll pose into the get-up clip
@@ -92,6 +93,7 @@ export function animateCharacter(dt, time) {
   const ch = character, p = player;
   if (!ch.ready) return;
   clean ??= Object.values(ch.bones).map(b => [b, b.quaternion.clone(), b.position.clone()]);
+  ch.ghost.material.userData.floor.value = waterlineAt(p.x, p.visY, p.z);   // (no silhouette under the water: render/figure.js)
   if (p.ragdoll) { p.flat = 0; ch.group.scale.set(1, 1, 1); applyRagdollPose(p.ragdoll.p); getUp = upAction = morph = null; ch.getUpWeight = 0; ragdolled = true; return; }
   // out of the ragdoll but for getting up (into the water, swimming; carried off by the robot):
   // from its pose into the clips

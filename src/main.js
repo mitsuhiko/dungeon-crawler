@@ -54,6 +54,7 @@ import { updateLoot } from './game/loot.js';
 import { updateLootLabels } from './game/lootlabels.js';
 import { tickFloatText } from './render/floattext.js';
 import { tickParticles, setParticleShare } from './render/particles.js';
+import { tickRipples } from './render/ripples.js';
 import { tickPortalCloud } from './render/portalcloud.js';
 import { timeScale } from './game/juice.js';
 import { gameTime, pace } from './game/pace.js';
@@ -186,6 +187,7 @@ function frame(now = performance.now()) {
   updateRobot(dt);   // the robot follows the hero (game/robot.js; before the lights: it has one)
   tickFloatText(dt);
   tickParticles(dt);
+  tickRipples(dt);   // (on the water round a swimmer: game/swim.js)
   tickPortalCloud(dt);
   tickNeighbors(dt);
   tickProps(state.time, state.night);   // (the wind; the town's windows and lamps lit at night: render/night.js)

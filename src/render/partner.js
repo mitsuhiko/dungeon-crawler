@@ -15,7 +15,8 @@ import { scene, camera } from './scene.js';
 import { character, mountWeapon, wornSkin } from './character.js';
 import { prepareHeld, updateHeld } from './held.js';
 import { setSkinMap, skinTexture } from './skin.js';
-import { rig, createFigure, takeOff, wearLike, wornKey, animateWorn } from './figure.js';
+import { rig, createFigure, takeOff, wearLike, wornKey, animateWorn, ghostMaterial } from './figure.js';
+import { waterlineAt } from './waterline.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { makeBar, makeLevelLabel, makeNote } from './bars.js';
 import { playerColor } from '../net/online.js';
@@ -58,8 +59,7 @@ function build(slot, name) {
   f.model.traverse(o => { if (o.isSkinnedMesh) mesh = o; if (o.isMesh) { o.userData.skinMaterial = true; clay.push(o); } });
   if (skins.has(slot)) for (const o of clay) setSkinMap(o, skins.get(slot));
   // silhouette where terrain hides them, like our own (render/character.js)
-  const ghost = new THREE.SkinnedMesh(mesh.geometry, new THREE.MeshBasicMaterial({
-    color: shade(slot, 0.5), transparent: true, opacity: 0.4, depthFunc: THREE.GreaterDepth, depthWrite: false }));
+  const ghost = new THREE.SkinnedMesh(mesh.geometry, ghostMaterial(shade(slot, 0.5)));
   ghost.bind(mesh.skeleton, mesh.bindMatrix);
   ghost.renderOrder = 999; ghost.boundingSphere = mesh.boundingSphere;   // culled with the body
   ghost.userData.sharedGeo = true;
@@ -148,6 +148,7 @@ export function showPartner(slot, span, name) {
   fig.group.position.set(mix(A.p[0], B.p[0]), mix(A.p[1], B.p[1]), mix(A.p[2], B.p[2]));
   fig.group.rotation.y = lerpAngle(A.yaw, B.yaw, k);
   const at = fig.group.position;   // (a wet print as they walk over slime, render/footprints.js)
+  fig.ghost.material.userData.floor.value = waterlineAt(at.x, at.y, at.z);   // (none under the water they are in)
   walkPrints('partner:' + slot, at.x, at.y, at.z, fig.group.rotation.y, 1, slimeAt(at.x, at.y, at.z));
   const bones = fig.f.bones;
   bones.hips.position.set(mix(A.hips[0], B.hips[0]), mix(A.hips[1], B.hips[1]), mix(A.hips[2], B.hips[2]));

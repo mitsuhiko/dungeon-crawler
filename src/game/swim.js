@@ -1,14 +1,16 @@
 // The hero in the water (physics/move.js swims them; in Sollmeldon's mud too): the splash going in,
-// the strokes' sounds and ripples, and water with no way out. The generator gives every water of the cubes a way out
-// (cubegen/escape.js), but a standing water (a trial's, a boss's) may stand where there is none
-// (physics/swimout.js wayOut): they tire, and after RESCUE.tire s they drown, unless the robot
-// carries them out first, after RESCUE.trapped s (game/rescue.js). Should it find nowhere to take
-// them, or they cannot pay its share (his mud's), it tries again every look while they tire.
+// the strokes' sounds, the rings spreading round them (render/ripples.js; wading too), and water
+// with no way out. The generator gives every water of the cubes a way out (cubegen/escape.js),
+// but a standing water (a trial's, a boss's) may stand where there is none (physics/swimout.js
+// wayOut): they tire, and after RESCUE.tire s they drown, unless the robot carries them out first,
+// after RESCUE.trapped s (game/rescue.js). Should it find nowhere to take them, or they cannot pay
+// its share (his mud's), it tries again every look while they tire.
 // Swimming in a flood's or a crumbling floor's water fails that trial (game/trials.js sweptAway).
-import { WATER, MUD } from '../core/constants.js';
+import { WATER, MUD, SWIM_DEPTH } from '../core/constants.js';
 import { RESCUE } from '../core/rescue.js';
 import { player, state, setStatus } from './state.js';
 import { wayOut } from '../physics/swimout.js';
+import { swum } from '../physics/fluid.js';
 import { rescue, robotCanRescue } from './rescue.js';
 import { dieInFluid } from './ragdoll.js';
 import { sweptAway } from './trials.js';
@@ -16,14 +18,17 @@ import { blend } from '../render/blendtree.js';
 import { sfx } from '../audio/sfx.js';
 import { waterShownAt } from '../render/materials.js';
 import { emit, soft, rand, ring } from '../render/particles.js';
+import { ripple } from '../render/ripples.js';
+import { fluidAround } from '../render/waterline.js';
 import { narrate } from './narrator.js';
 import { tr } from '../i18n/i18n.js';
 
 const LOOK_EVERY = 0.5;   // s between two looks for a way out
-let splashes = 0, look = 0, trapped = 0, call = 0, stroke = 0, ripple = 0;   // (call: when the robot is called next)
+let splashes = 0, look = 0, trapped = 0, call = 0, stroke = 0, collar = 0, wake = 0;   // (call: when the robot is called next)
 
-// the colours of what flies up and spreads (drops, foam, ripples): of clear water, of the mud
-const SPRAY = { 0: ['#e8f6ff', '#9fd2ff', '#f2fbff', '#eaf8ff'], [MUD]: ['#5a4e43', '#3a3129', '#6b5d4f', '#4a3f35'] };
+// the colours of what flies up (drops, foam): of clear water, of the mud (the rings on it are in
+// its foam's, render/ripples.js)
+const SPRAY = { 0: ['#e8f6ff', '#9fd2ff', '#f2fbff'], [MUD]: ['#5a4e43', '#3a3129', '#6b5d4f'] };
 const sprayOf = look => SPRAY[look] ?? SPRAY[0];
 // where its surface is drawn (clear water under its level, render/materials.js waterShownAt)
 const shown = p => p.swimY + (p.swimLook ? 0 : waterShownAt());
@@ -39,6 +44,26 @@ function splash(x, y, z, size, c) {
   emit(soft, x, y + 0.02, z, { life: 0.6, size: 0.4 + 0.4 * size, grow: 1.6, color: c[2], alpha: 0.5 });
 }
 
+// Wading (physics/move.js p.wade: how deep, shallower than it is swum in): little rings round the
+// legs where they cut the surface, a few standing, more walking, and a wake behind
+function wadeRings(p, dt) {
+  if (!(p.wade > 0.03) || p.ragdoll || p.climb) return;
+  const w = fluidAround(p.x, p.y, p.z);
+  if (!w || w.fluid !== WATER || !swum(w.look)) return;
+  const speed = Math.hypot(p.vx, p.vz), r = 0.12 + 0.1 * Math.min(1, p.wade / SWIM_DEPTH);
+  collar += dt;
+  if (collar > (speed > 0.3 ? 0.3 : 0.7)) {
+    collar = 0;
+    const [dx, dz] = ring(0.04);
+    ripple(p.x + dx, p.z + dz, w, { r0: r, r1: r + 0.16, life: 1.4, width: 0.03, alpha: 0.7 });
+  }
+  wake += speed * dt;
+  if (wake > 0.4) {
+    wake = 0;
+    ripple(p.x - p.vx / speed * 0.08, p.z - p.vz / speed * 0.08, w, { r0: r, r1: r + 0.35, life: 1.8, width: 0.035, alpha: 0.7 });
+  }
+}
+
 // every frame of play after the player moved (game/update.js); true: the hero was taken out of it
 // (the robot came, they drowned, the trial is lost)
 export function tickSwim(dt) {
@@ -48,18 +73,32 @@ export function tickSwim(dt) {
     const size = Math.min(1, Math.max(0.15, (p.plunge || 0) / 9));
     sfx('splash', { at: { x: p.x, y: p.swimY, z: p.z }, pitch: 1.5 - 0.5 * size, volume: 0.35 + 0.65 * size });
     splash(p.x, shown(p), p.z, size, sprayOf(p.swimLook));
+    const w = fluidAround(p.x, p.y, p.z);
+    ripple(p.x, p.z, w, { r0: 0.3, r1: 0.8 + 0.6 * size, life: 2.4, width: 0.05, alpha: 0.9 });
+    ripple(p.x, p.z, w, { r0: 0.15, r1: 0.45 + 0.3 * size, life: 1.8, width: 0.04, alpha: 0.8 });
     narrate('swim');
   }
-  if (!p.swimming) { trapped = 0; look = 0; return false; }
+  if (!p.swimming) { trapped = 0; look = 0; wadeRings(p, dt); return false; }
   if (sweptAway()) return true;
-  // strokes: a soft slosh with each paddle, ripples round the swimmer
-  const speed = Math.hypot(p.vx, p.vz), c = sprayOf(p.swimLook), y = shown(p);
+  // strokes: a soft slosh with each paddle, a ring spreading from it; little rings all the while
+  // where the body cuts the surface (a collar round it), and swimming a wake of them behind it
+  const speed = Math.hypot(p.vx, p.vz), c = sprayOf(p.swimLook), y = shown(p), w = fluidAround(p.x, p.y, p.z);
   stroke += dt * (0.8 + speed * 1.2);
-  if (stroke >= 1) { stroke = 0; sfx('paddle', { at: { x: p.x, y: p.swimY, z: p.z }, volume: 0.3 + 0.4 * Math.min(1, speed) }); }
-  ripple += dt;
-  if (ripple > 0.35) {
-    ripple = 0;
-    emit(soft, p.x, y + 0.02, p.z, { life: 1.1, size: 0.35, grow: 1.4, color: c[3], alpha: 0.28 });
+  if (stroke >= 1) {
+    stroke = 0;
+    sfx('paddle', { at: { x: p.x, y: p.swimY, z: p.z }, volume: 0.3 + 0.4 * Math.min(1, speed) });
+    ripple(p.x, p.z, w, { r0: 0.26, r1: 0.7, life: 2.2, width: 0.04, alpha: 0.85 });
+  }
+  collar += dt;
+  if (collar > (speed > 0.3 ? 0.3 : 0.55)) {
+    collar = 0;
+    const [dx, dz] = ring(0.04);
+    ripple(p.x + dx, p.z + dz, w, { r0: 0.22, r1: 0.4, life: 1.5, width: 0.035, alpha: 0.8 });
+  }
+  wake += speed * dt;
+  if (wake > 0.35) {
+    wake = 0;
+    ripple(p.x - p.vx / speed * 0.1, p.z - p.vz / speed * 0.1, w, { r0: 0.2, r1: 0.6, life: 2, width: 0.035, alpha: 0.75 });
   }
   if (blend.mode === 'swim' && speed > 0.3 && Math.random() < dt * 6) {
     const [dx, dz] = ring(0.2);
