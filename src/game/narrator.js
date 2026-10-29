@@ -180,6 +180,13 @@ export function narrate(on, data = {}, { delay = 0 } = {}) {
   return lines.length > 0;
 }
 
+// Drop the lines `which` picks (line -> true) that wait their turn: no longer to say (the one being
+// said goes on). They count as told.
+export function drop(which) {
+  for (const q of queue) if (which(q.line)) state.run?.told.add(q.line.id);
+  queue = queue.filter(q => !which(q.line));
+}
+
 // Cut short the lines `which` picks (line -> true): those waiting are dropped, the one being said
 // fades out (its subtitle goes), and all of them count as told. The next waits the usual GAP.
 export function cut(which) {

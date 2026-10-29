@@ -27,7 +27,7 @@ import { emit, soft, ring, rand } from '../render/particles.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
 import { equipItem } from '../core/inventory.js';
 import { sfx } from '../audio/sfx.js';
-import { narrate } from './narrator.js';
+import { narrate, drop } from './narrator.js';
 import { syncEquippedWeapon } from './equipment.js';
 import { refreshOpenFaces, rebuildWorld } from './flow.js';
 import { storyBurst } from '../render/loot.js';
@@ -128,11 +128,14 @@ function showGlass() {
     if (robotMet(state.run)) narrate('robot', { what: 'rock' });
   } } });
 }
-// the snakes at the rock's foot beaten, or the hero at the ladder: the robot points up it (once)
+// the snakes at the rock's foot beaten, or the hero at the ladder: the robot points up it (once).
+// Up on the rock already, what it would say about getting up there is not said any more.
 const LADDER_NEAR = 2.5;
+const UP_THERE = l => l.on === 'robot' && (l.when?.what === 'ladder' || l.id === 'robot.rock.snakes');
 function noticeRock() {
   const map = state.map, g = map?.firstGlass;
   if (!g || !glassThere(state.run) || !robotMet(state.run) || scenePlaying()) return;
+  if (player.grounded && player.y > g.ladder.top - 0.4) { drop(UP_THERE); return; }
   const foes = allEnemies().some(e => e.hp > 0 && e.mode !== 'dead' && e.profile?.species === 'snake');
   if (!foes || Math.hypot(player.x - g.ladder.x, player.z - g.ladder.z) < LADDER_NEAR) narrate('robot', { what: 'ladder' });
 }
@@ -149,6 +152,8 @@ function breakGlass(p) {
   storyBurst(state.world, p.x, p.y + 1, p.z, AMBER, 26);
   sfx('shatter');
   if (p.part === 'glass') {
+    // (found: nothing more about the rock and the way up it waits to be said)
+    drop(l => l.on === 'robot' && ['rock', 'ladder'].includes(l.when?.what));
     open(INTRO_GATES.glass);
     setStatus(tr('The glass broke, and a voice came out of it. The gate on along the road is open.'));
   } else setStatus(tr('The glass broke, and a voice came out of it.'));
@@ -165,6 +170,7 @@ function takeSword(p) {
     return;
   }
   if (!inv.equipped && !inv.readied) { equipItem(inv, got.id); syncEquippedWeapon(); }
+  drop(l => l.on === 'robot' && l.when?.what === 'sword');   // (taken already: the robot no longer says to take it)
   storyBurst(state.world, p.x, p.y + 0.4, p.z, STEEL, 16);
   sfx('pickup');
   floatText(`+${tr(OLD_SWORD.name)}`, q => q.set(player.x, player.visY + 1.55, player.z), { life: 1.6 });
