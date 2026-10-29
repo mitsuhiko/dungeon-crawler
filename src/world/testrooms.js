@@ -8,6 +8,8 @@
 // runs in the world worker.
 import { key, parse } from './coords.js';
 import { BOSSES } from '../core/bosses.js';
+import { msg } from '../i18n/i18n.js';
+export const WATERFALL_HINT = msg('The broad waterfall hides this door. Walk into it to visit the hideout; come back through it, then /testroom leave returns you.');
 
 export const TEST_ROOMS = Object.freeze({
   water_hill: 'a hill standing in a lake to halfway up; a shallow shelf to wade on, deep water past it',
@@ -18,6 +20,7 @@ export const TEST_ROOMS = Object.freeze({
   shores: 'a lake with a stair down into it, a bridge on legs over it and a ladder up out of it',
   boss: 'the boss of a depth (a boss\'s name or his depth), idle in his own arena until hit',
   leaps: 'what click to move jumps and climbs: a trench, a ledge, a wide gap, steps down, a pit and a tower with ladders',
+  waterfall: WATERFALL_HINT,
 });
 export const TEST_ROOM_NAMES = Object.keys(TEST_ROOMS);
 

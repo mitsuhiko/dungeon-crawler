@@ -20,6 +20,7 @@ import { DIR_NAME, readPlace, isCellText } from '../world/coords.js';
 import { MAX_DEPTH } from '../themes/depth.js';
 import { N } from '../core/constants.js';
 import { TEST_ROOMS, isTestRoom, testRoomDepth } from '../world/testrooms.js';
+import { tr } from '../i18n/i18n.js';
 import { TRIALS, TRIAL_KINDS } from '../core/trials.js';
 import { devTrial } from './trials.js';
 import { SPOT_KINDS } from '../world/spots.js';
@@ -191,6 +192,9 @@ dev({
 });
 
 // --- getting about -------------------------------------------------------------------------
+
+dev({ name: 'waterfall', help: tr('preview a broad waterfall and its secret room, in any world'),
+  async run() { await goTestRoom('waterfall'); } });
 
 // /goto down|up, east|west|south|north, or a place: [depth] [X,Z] [x,y,z] (world/coords.js readPlace)
 addType(commands, { name: 'goto', read: t => isCellText(t) ? t : undefined, values: () => [

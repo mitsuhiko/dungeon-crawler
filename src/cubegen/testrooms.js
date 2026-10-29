@@ -14,7 +14,8 @@ import { indexBlockers } from '../core/blockers.js';
 import { createContext } from './context.js';
 import { ladderInfo } from './climbs.js';
 import { shapeStructures } from './shape.js';
-import { testRoomOf } from '../world/testrooms.js';
+import { testRoomOf, WATERFALL_HINT } from '../world/testrooms.js';
+import { waterfallRoomKey } from '../world/waterfalls.js';
 import { ENEMY_KINDS } from '../core/enemies.js';
 import { generateGuardian } from './guardian.js';
 
@@ -290,7 +291,28 @@ function bossRoom(spec) {
       lineup: [{ type: boss, x: g.x, z: g.z, yaw: g.yaw }] } };
 }
 
-const BUILD = { water_hill: waterHill, fluids, climb, shores, enemies: s => lineupRoom(s, 'enemies'), guardians: s => lineupRoom(s, 'guardians'), boss: bossRoom, leaps };
+function waterfallRoom(spec) {
+  const ctx = start(spec);
+  for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
+    const pool = x >= 6 && x <= 10 && z >= 6 && z <= 9;
+    ctx.put(x, z, { top: pool ? 2 : 4, ...(pool ? { fluid: WATER, surf: 3 } : {}) });
+    if (x >= 4 && x <= 12 && z >= 1 && z <= 5) {
+      const channel = x >= 7 && x <= 9;
+      ctx.put(x, z, { top: channel ? 10 : 13, bottom: 8, layer: 1,
+        ...(channel ? { fluid: WATER, surf: 12 } : {}) });
+    }
+  }
+  ctx.falls.push({ c: idx(8, 6), d: 2, top: 12, bot: 3, type: WATER, layer: 0, width: 3.2 });
+  ctx.stats.fluids.push('broad waterfall with a hidden door');
+  const m = finish(ctx, spec, { K: 2, B: [0, 8], arrival: { x: 5.5, z: 10.5, yaw: Math.PI }, note: WATERFALL_HINT });
+  m.doors = [{ id: 'waterfall', building: 'waterfall:' + spec.key, to: waterfallRoomKey(spec.key),
+    x: 8.5, y: 2, z: 4.95, nx: 0, nz: 1, w: 1, layer: 0, waterfall: true }];
+  // Arrive on the dry ledge under the overhang, not on the channel over it.
+  m.testRoom.arrival = { x: 8.5, y: 2, z: 5.7, yaw: Math.PI };
+  return m;
+}
+
+const BUILD = { waterfall: waterfallRoom, water_hill: waterHill, fluids, climb, shores, enemies: s => lineupRoom(s, 'enemies'), guardians: s => lineupRoom(s, 'guardians'), boss: bossRoom, leaps };
 // spec: { key, depth, seed, biome (the depth's theme); arena: the boss room's (bossRoom) }
 export function generateTestRoom(spec) {
   const name = testRoomOf(spec.key);

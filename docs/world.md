@@ -1007,7 +1007,12 @@ run's opened-chest persistence, so leaving and returning cannot farm the reward.
 follow the existing interior save/menu policy (reloading from an interior starts in town).
 The town portal remains disabled indoors; the hideout specifically asks players to use its door.
 
-Developer check: open `?dev=1&seed=123`, then `/goto 3 3,3 5.5,2.01,11.7`. Walk north into the
+Developer preview: `/waterfall` works with any seed, using the ordinary test-room framework.
+It places the hero on the dry ledge behind a deliberately broad waterfall, next to the working
+secret door. Return through the door and use `/testroom leave` to go back to the original world
+position. `/testroom waterfall` is equivalent. Existing test-room keys are unchanged.
+
+Natural-generation check: open `?dev=1&seed=123`, then `/goto 3 3,3 5.5,2.01,11.7`. Walk north into the
 door under the overhang, open the chest normally, return through the door and re-enter: the
 chest must remain open. `tests/waterfalls.test.js` also checks deterministic generation, unchanged
 terrain/routes, safe arrivals, exclusions, ordinary chest loot and the actual curtain geometry.

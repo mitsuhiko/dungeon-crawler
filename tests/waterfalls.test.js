@@ -4,6 +4,7 @@ import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { waterfallRoomKey, waterfallOutside, waterfallDoors, addWaterfallHideout } from '../src/world/waterfalls.js';
 import { isInterior, TOWN_KEY } from '../src/world/town.js';
+import { testRoomKey, TEST_ROOM_NAMES } from '../src/world/testrooms.js';
 import { doorArrival, doorBack, atDoor } from '../src/core/doors.js';
 import { player } from '../src/game/state.js';
 import { supportedPoint } from '../src/physics/respawn.js';
@@ -65,6 +66,22 @@ test('bosses, trials, test rooms, lethal falls and inaccessible land never recei
   const unsafe = bare(); unsafe.safe = new Uint8Array(outside.safe.length);
   assert.deepEqual(waterfallDoors(unsafe), []);
   assert.throws(() => world.cube(waterfallRoomKey(TOWN_KEY)), /No (waterfall )?door/);
+});
+
+test('the waterfall command preview has a supported entrance and a real two-way room for any seed', () => {
+  assert.equal(TEST_ROOM_NAMES.at(-1), 'waterfall');
+  assert.equal(testRoomKey('leaps', 1), '10028,-1,10000');
+  for (const seed of [1, 123, 987654]) for (const depth of [1, 20]) {
+    const w = new World(seed), m = w.cube(testRoomKey('waterfall', depth)).map;
+    state.map = m;
+    const a = m.testRoom.arrival;
+    assert.ok(supportedPoint(a.x, a.y, a.z));
+    assert.equal(m.falls[0].width, 3.2);
+    const d = m.doors[0], r = w.cube(d.to).map;
+    assert.ok(doorBack(r, d, m.key));
+    assert.equal(r.rewardSites.length, 1); assert.equal(r.enemyFree, true);
+    buildCubeParts(m); buildCubeParts(r);
+  }
 });
 
 test('the curtain actually renders wider and its door and room compile through native cube geometry', () => {
