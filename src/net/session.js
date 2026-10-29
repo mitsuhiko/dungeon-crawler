@@ -62,6 +62,7 @@ import { online, relay, travel } from './online.js';
 import { Runner, Viewer, canBeHit } from './foes.js';
 import { setOthers } from '../game/party.js';
 import { allEnemies, adoptEnemies, shareDefeat } from '../game/enemies.js';
+import { cleanWorldLevel } from '../core/enemies.js';
 import { hitEnemy } from '../game/sword.js';
 import { afflictEnemy, AFFLICTIONS } from '../game/statuses.js';
 import { hitPlayer } from '../game/enemycombat.js';
@@ -102,8 +103,9 @@ const pid = Math.random().toString(36).slice(2, 12);
 let link = null, lastHeard = 0;
 let lastSend = 0, ping = null;
 // lastKey / cubeSince: the cube we are in and since when; following: a fade to a friend is
-// under way; pendingSeed: a world the host asked for, started once we are not travelling;
-// announced: the seed the guests were told about (host)
+// under way; pendingSeed: a world the host asked for, started once we are not travelling (its
+// level and progress: pendingRun); announced: the world the guests were told about (host: its
+// seed and level, worldOf)
 let lastKey = null, cubeSince = 0, following = false, pendingSeed = null, pendingRun = null, announced = null;
 // how many open faces the others know of (a face once open stays open: more is new)
 let facesSent = 0;
@@ -333,9 +335,9 @@ function welcome(l, slot, name, id, again) {
   l.onmessage = m => fromGuest(p, l, m);
   l.onclose = () => { if (p.link === l) lostGuest(p); };
   if (foes instanceof Runner) foes.forget(slot);
-  announced = state.cubes?.seed ?? null;
+  announced = worldOf();
   const players = [{ slot: 0, name: myName }, ...[...peers.values()].filter(o => o !== p).map(o => ({ slot: o.slot, name: o.name }))];
-  l.send({ t: 'welcome', v: PROTOCOL, slot, players, seed: announced, ...runOf() });
+  l.send({ t: 'welcome', v: PROTOCOL, slot, players, seed: state.cubes?.seed ?? null, ...runOf() });
   facesSent = state.openedFaces.size;
   deliver({ t: 'joined', slot, name, from: 0 }, undefined, slot);
   together();
@@ -346,7 +348,8 @@ function welcome(l, slot, name, id, again) {
 // the host's progress in its world, for a guest (welcome, world): what was defeated, opened
 // and discovered, the loot on its floors, the quest log, its play time (game/worldclock.js) and
 // the kills that come back
-const runOf = () => ({ defeated: [...state.run.defeated], gates: [...state.run.unlockedGates], visited: visitedKeys(), faces: [...state.openedFaces],
+const worldOf = () => state.cubes ? `${state.cubes.seed}:${state.cubes.level}` : null;
+const runOf = () => ({ level: state.cubes?.level ?? 1, defeated: [...state.run.defeated], gates: [...state.run.unlockedGates], visited: visitedKeys(), faces: [...state.openedFaces],
   trials: [...state.run.trials], loot: allLoot(), dropped: [...state.run.dropped], chests: [...state.run.chests], quests: questLogPacked(),
   clock: worldClock(), kills: packKills(state.run.kills) });
 
@@ -417,7 +420,7 @@ function welcomed(m) {
   // play time is ours from now on (game/worldclock.js)
   const run = readRun(m);
   heardClock(m.clock, true);
-  if (Number.isFinite(m.seed) && m.seed !== state.cubes?.seed) { pendingSeed = m.seed; pendingRun = run; }
+  if (Number.isFinite(m.seed) && (m.seed !== state.cubes?.seed || run.level !== state.cubes?.level)) { pendingSeed = m.seed; pendingRun = run; }
   else {
     takeRun(run);
     // (back after a lost connection: what we found meanwhile)
@@ -434,7 +437,7 @@ function readRun(m) {
   const list = x => Array.isArray(x) ? x.filter(k => typeof k === 'string') : [];
   const loot = (Array.isArray(m.loot) ? m.loot : []).filter(c => Array.isArray(c) && typeof c[0] === 'string' && Array.isArray(c[1]))
     .map(([k, items]) => [k, items.filter(p => typeof p?.source === 'string' && validPickup(p))]);
-  return { defeated: list(m.defeated), gates: list(m.gates), visited: list(m.visited), faces: list(m.faces), trials: checkTrials(m.trials),
+  return { level: cleanWorldLevel(m.level), defeated: list(m.defeated), gates: list(m.gates), visited: list(m.visited), faces: list(m.faces), trials: checkTrials(m.trials),
     loot, dropped: list(m.dropped), chests: list(m.chests), quests: m.quests ?? null,
     clock: Number.isFinite(m.clock) && m.clock >= 0 ? m.clock : null, kills: unpackKills(m.kills) };
 }
@@ -846,12 +849,12 @@ export function updateOnline() {
     const seed = pendingSeed;
     pendingSeed = null;
     if (state.inventoryOpen) setInventoryOpen(false);
-    newWorld(seed, { keepPlayer: true });   // (it starts the fresh run at once, the cube comes later)
+    newWorld(seed, { keepPlayer: true, level: pendingRun?.level ?? 1 });   // (it starts the fresh run at once, the cube comes later)
     if (pendingRun) { takeRun(pendingRun); pendingRun = null; }
   }
-  if (online.role === 'host' && state.cubes && state.cubes.seed !== announced) {
-    announced = state.cubes.seed;
-    post({ t: 'world', seed: announced, ...runOf() });
+  if (online.role === 'host' && state.cubes && worldOf() !== announced) {
+    announced = worldOf();
+    post({ t: 'world', seed: state.cubes.seed, ...runOf() });
   }
   // faces we opened (crossing, discovering, a gate): the others can walk across there too
   if (state.openedFaces.size < facesSent) facesSent = state.openedFaces.size;   // a new world

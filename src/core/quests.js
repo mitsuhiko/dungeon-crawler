@@ -24,8 +24,9 @@
 // it is (`ctx`, below): every target is one the layout has and nobody has done yet. The quest is
 // kept whole once made, so a changed generator leaves the quests taken alone.
 //
-// ctx: { seed, layout: depth -> the depth's layout (world/layout.js makeLayouts), gates: the
-// guardian gates open (run.unlockedGates), chests: the chests open (run.chests), now }
+// ctx: { seed, level: the world's level (core/enemies.js depthLevel), layout: depth -> the depth's
+// layout (world/layout.js makeLayouts), gates: the guardian gates open (run.unlockedGates), chests:
+// the chests open (run.chests), now }
 // The facts goals are checked against: { gates, chests } (a Set alone: the gates).
 import { mulberry32, hash32 } from './util.js';
 import { hashString } from './gear/drops.js';
@@ -691,8 +692,8 @@ export function goalDone(stage, log, facts) {
 // XP: a share of the level's cost at the quest's depth, more for harder quests; coins like a
 // chest (basic, uncommon, rare); items: potions, a weapon half the time, a weapon from Decent up
 export const REWARD = { xpShare: 0.07, factor: { easy: 0.6, medium: 1, hard: 1.6 }, chest: { easy: 'basic', medium: 'uncommon', hard: 'rare' } };
-export function questRewards(R, depth, difficulty) {
-  const level = depthLevel(depth), xp = Math.round(REWARD.xpShare * xpToNext(level) * REWARD.factor[difficulty]);
+export function questRewards(R, depth, difficulty, world = 1) {
+  const level = depthLevel(depth, world), xp = Math.round(REWARD.xpShare * xpToNext(level) * REWARD.factor[difficulty]);
   const [lo, hi] = CHESTS[REWARD.chest[difficulty]].copper.map(c => Math.round(grown(c, GROWTH.coins, level)));
   const copper = lo + Math.floor(R() * (hi - lo + 1));
   const items = [];
@@ -755,7 +756,7 @@ export function makeQuest(log, ctx, giver, slot) {
     const difficulty = DIFFICULTIES[step], voice = g.role, made = KINDS[kind].quest(t, ctx, R, { id, giver, difficulty, log, g, voice });
     if (twist) twisted(made, twist, t.depth, difficulty, hash32(ctx.seed ^ hashString(id) ^ 0x7157));
     const text = dressed(R, voice, made.text), thanks = KINDS[kind].payout === 'return' ? thanksOf(R, voice) : null;
-    const rewards = questRewards(R, t.depth, difficulty);
+    const rewards = questRewards(R, t.depth, difficulty, ctx.level);
     return { id, giver, n: Number(slot.id.split(':')[1]) || 0, slot: slot.id, from: { name: g.name, title: g.title, where: g.where },
       kind, depth: t.depth, difficulty, target: { id: t.id, ...made.target },
       ...(made.kin ? { kin: made.kin } : {}),
@@ -805,7 +806,7 @@ function makeRepeat(log, ctx, r) {
   const depth = GIVERS[r.giver] ? Math.max(1, log.deepest - Math.floor(R() * 3)) : Math.min(MAX_DEPTH, r.depth + (r.kind === 'defense' ? 0 : Math.floor(R() * 2)));
   const q = makeQuest(log, ctx, r.giver, { id: `r:${++log.repeated}`, depth, kind: r.kind, force: true });
   if (!q || q.kind !== r.kind) return null;
-  const level = depthLevel(q.depth);
+  const level = depthLevel(q.depth, ctx.level);
   Object.assign(q, { repeat: true, title: phrase('{title} (again)', { title: q.title }), text: phrase('Back again? {text}', { text: q.text }),
     rewards: { xp: Math.round(q.rewards.xp * REPEAT.share), copper: Math.round(q.rewards.copper * REPEAT.share),
       items: rollPotions(R, level, 1 + Math.floor(R() * 2)) } });

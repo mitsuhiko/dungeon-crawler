@@ -87,7 +87,7 @@ export function stopSaving() {
 function restoreOf(world, heroId) {
   const spot = world.spots[heroId] ?? null, [X, Y, Z] = spot && !isInterior(spot.cube) ? parse(spot.cube) : [0, 0, 0];
   const far = k => isInterior(k) ? Infinity : (([x, y, z]) => Math.abs(x - X) + Math.abs(y - Y) * 2 + Math.abs(z - Z))(parse(k));
-  return { name: world.name, run: world.run, faces: world.faces, spot, deepest: world.deepest, visited: [...world.visited].sort((a, b) => far(a) - far(b)) };
+  return { name: world.name, level: world.level, run: world.run, faces: world.faces, spot, deepest: world.deepest, visited: [...world.visited].sort((a, b) => far(a) - far(b)) };
 }
 
 // A new hero in the store (null: there are MAX_HEROES already, or the storage refused)
@@ -97,9 +97,10 @@ export function newHero(name, gender) {
   return store.putHero(h) ? h : null;
 }
 // A new world in the store (seed: random if not given; a seed saved already makes a copy, "... II")
-export function newSavedWorld(seed = (Math.random() * 2 ** 32) >>> 0) {
+// of level `level` (core/enemies.js worldLevelFor: the menu's, from the hero who makes it)
+export function newSavedWorld(seed = (Math.random() * 2 ** 32) >>> 0, level = 1) {
   if (store.worlds().length >= MAX_WORLDS) return null;
-  const w = createWorld(seed, { copy: store.nextCopy(seed >>> 0) });
+  const w = createWorld(seed, { copy: store.nextCopy(seed >>> 0), level });
   return store.putWorld(w) ? w : null;
 }
 
@@ -115,7 +116,7 @@ export function saveAs(heroName) {
   if (current.hero?.id !== hero.id) played = 0;
   setHero(hero);
   if (!worldSaved()) {
-    const world = newSavedWorld(state.cubes.seed);
+    const world = newSavedWorld(state.cubes.seed, state.cubes.level);
     if (!world) { saveNow(); return `Saved ${hero.name}; there are ${MAX_WORLDS} worlds already, this one is not saved`; }
     Object.assign(current, { world, cubes: state.cubes, visited: new Set() });
   }

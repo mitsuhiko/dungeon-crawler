@@ -12,10 +12,11 @@
 //   hello   { v, name, pid }           guest -> host, first thing after connecting (pid: this
 //                                      page's player; the same pid again is the friend getting
 //                                      back in after a lost connection)
-//   welcome { v, slot, players, seed, defeated, gates, visited, faces, loot, dropped, chests, quests,
-//             clock, kills }
+//   welcome { v, slot, players, seed, level, defeated, gates, visited, faces, loot, dropped, chests,
+//             quests, clock, kills }
 //                                      host -> guest: you are player `slot`, with players
-//                                      ([{ slot, name }], the host too); play in this world
+//                                      ([{ slot, name }], the host too); play in this world (of
+//                                      this level: core/enemies.js depthLevel)
 //                                      (and what was defeated, opened and discovered in it so
 //                                      far, the loot on its floors: [[cube, pickups]], the
 //                                      sources that dropped, the chests open, the quest log, its
@@ -25,7 +26,7 @@
 //   left    { slot }                   host -> guests: someone went
 //   visited { keys }                   to all: I discovered these cubes (yours too now)
 //   faces   { keys }                   to all: the side faces open for me (open for you too)
-//   world   { seed, defeated, ... }    host -> guests: the host went into another world (and its
+//   world   { seed, level, defeated, ... } host -> guests: the host went into another world (and its
 //                                      progress there, as in the welcome)
 //   me      { ts, seed, cube, busy, pose, body, ground, swim, down, ko, hp, maxHp, level,
 //             weapon, armed, worn, skin, robot }  to all, about 20 times a second: where I am and how I
@@ -102,7 +103,7 @@ import { RARITY } from '../core/gear/rarities.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
-export const PROTOCOL = 17;
+export const PROTOCOL = 18;
 
 export const MAX_PLAYERS = 4;
 // what the host passes on from one guest to the others

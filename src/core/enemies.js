@@ -31,13 +31,21 @@ const paints = roles => Object.fromEntries(Object.entries(roles).map(([role, nam
 // learn: enemies.html#kind-code, stronger.html#curve #monsters-grow (see learn/README.md)
 export const GROWTH = { hp: 0.17, damage: 0.1, xp: 0.25, coins: 0.25 };
 // the level enemies have at a depth: one per depth (1 at the surface), and ±1 for a cube's
-// species from depth 2 on
+// species from depth 2 on; in a world of level `world` (docs/progression.md, "World level") all of
+// it stands world - 1 levels higher: a world of level 9 starts at level 9 on the road out of town
 // learn: code.html#functions, stronger.html#monsters-grow (see learn/README.md)
-export const depthLevel = depth => Math.max(1, Math.floor(depth || 0));
+export const depthLevel = (depth, world = 1) => Math.max(1, Math.floor(depth || 0)) + worldOffset(world);
+// A world's level is fixed when it is made: from the hero who makes it, WORLD_BELOW levels under
+// the hero (a fresh hero's world is level 1), so the road out of town meets it about as the
+// depths meet a hero who came down them. At most MAX_WORLD_LEVEL (item levels stop at 99).
+export const WORLD_BELOW = 2, MAX_WORLD_LEVEL = 80;
+export const cleanWorldLevel = l => Number.isInteger(l) ? Math.min(MAX_WORLD_LEVEL, Math.max(1, l)) : 1;
+export const worldLevelFor = heroLevel => cleanWorldLevel(Math.floor(heroLevel || 1) - WORLD_BELOW);
+const worldOffset = world => cleanWorldLevel(world) - 1;
 // guardians stand above their depth: side guardians one level, descent guardians two (on the
 // road out of town, the very first ones, at the road's own level)
 export const GUARDIAN_LEVELS = { side: 1, descent: 2 };
-export const guardianLevel = (depth, role) => depthLevel(depth) + (depth >= 1 ? GUARDIAN_LEVELS[role] : 0);
+export const guardianLevel = (depth, role, world = 1) => depthLevel(depth, world) + (depth >= 1 ? GUARDIAN_LEVELS[role] : 0);
 
 // learn: checks.html#try-test, code.html#objects, combat.html#damage, enemies.html#numbers, space.html#distance, stronger.html#monsters-grow (see learn/README.md)
 export const SPIDER = {
@@ -2031,7 +2039,7 @@ export const coinRange = (profile, level) => profile.coins.map(c => Math.round(g
 export function enemyRoll(map, profile, floorId) {
   const R = mulberry32(hash32(map.seed ^ profile.seedSalt ^ Math.imul(floorId, 7919) ^ 0x1007));
   const depth = Math.max(0, map.depth || 0), r = R();
-  const level = Math.max(1, depthLevel(depth) + (depth >= 2 ? r < .25 ? -1 : r >= .75 ? 1 : 0 : 0));
+  const level = Math.max(1, depthLevel(depth, map.level) + (depth >= 2 ? r < .25 ? -1 : r >= .75 ? 1 : 0 : 0));
   const [lo, hi] = coinRange(profile, level);
   return { id: `${map.key ?? map.seed}:${profile.species}:${floorId}`, level, coinDrop: lo + Math.floor(R() * (hi - lo + 1)) };
 }

@@ -173,12 +173,12 @@ export function guardianSpots(map) {
   const role = guard.role ?? 'descent';
   if (guard.boss) return [bossSpot(map, ENEMY_KINDS[guard.boss], role)];
   const { chosen, kind } = promoted(species, role, R);
-  // the guardian's level follows the depth alone (core/enemies.js guardianLevel); its coins
+  // the guardian's level follows the depth (and the world's level) alone (core/enemies.js guardianLevel); its coins
   // still come from the arena's seeded roll. (A fluid dweller guards from the arena's pond, the
   // nearest of it to its spot.)
   const pond = kind.dwells && map.floors.filter(g => g.encounter && livesOn(kind, g, map))
     .sort((a, b) => Math.hypot(a.x + .5 - guard.x, a.z + .5 - guard.z) - Math.hypot(b.x + .5 - guard.x, b.z + .5 - guard.z))[0];
-  const f = pond || guard.floor, at = pond ? { x: f.x + .5, z: f.z + .5, y: standY(kind, f, f.x + .5, f.z + .5) } : guard, R2 = mulberry32(hash32(map.seed ^ 0x6a7d1b)), level = guardianLevel(map.depth, role);
+  const f = pond || guard.floor, at = pond ? { x: f.x + .5, z: f.z + .5, y: standY(kind, f, f.x + .5, f.z + .5) } : guard, R2 = mulberry32(hash32(map.seed ^ 0x6a7d1b)), level = guardianLevel(map.depth, role, map.level);
   const [lo, hi] = coinRange(kind, level);
   const spots = [{ id: guardianId(map.key), level, coinDrop: lo + Math.floor(R2() * (hi - lo + 1)),
     guardian: true, guardianRole: role, bossPlaceholder: role === 'descent', guardianGate: map.key, kind, f, x: at.x, z: at.z, y: at.y, yaw: guard.yaw }];
@@ -230,7 +230,7 @@ export function guardianKind(map) {
 // A real boss (core/bosses.js) stands on the guardian's spot alone, at the guardian's level, with
 // the guardian's id and gate: no defenders, it brings its own (game/gusto.js).
 function bossSpot(map, kind, role) {
-  const guard = map.guardian, level = guardianLevel(map.depth, role), [lo, hi] = coinRange(kind, level);
+  const guard = map.guardian, level = guardianLevel(map.depth, role, map.level), [lo, hi] = coinRange(kind, level);
   const R = mulberry32(hash32(map.seed ^ 0x6a7d1b));
   return { id: guardianId(map.key), level, coinDrop: lo + Math.floor(R() * (hi - lo + 1)), guardian: true, guardianRole: role,
     bossPlaceholder: false, boss: kind.boss, guardianGate: map.key, kind, f: guard.floor, x: guard.x, z: guard.z, y: guard.y, yaw: guard.yaw };

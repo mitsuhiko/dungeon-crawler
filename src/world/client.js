@@ -5,15 +5,18 @@
 // map is. Asking for cubes early (prefetch) makes walking through a portal instant. The worker
 // makes the cubes in the order they were asked for, except that one asked for urgently (`get`:
 // someone waits for it) goes first. opts.lightmap: the lightmap's texels a unit (render/bake.js
-// bakeDensity), for every cube of this world.
+// bakeDensity), for every cube of this world. opts.level: the world's level (core/enemies.js
+// depthLevel), 1 if not given: every map it hands out says it (map.level), for the enemies' levels.
 import { key } from './coords.js';
+import { cleanWorldLevel } from '../core/enemies.js';
 import { makeLayouts } from './layout.js';
 import { worldThemes } from '../themes/depth.js';
 
 // learn: architecture.html#worker (see learn/README.md)
 export class WorldClient {
-  constructor(seed, { load = null, warm = null, ...opts } = {}) {
+  constructor(seed, { load = null, warm = null, level = 1, ...opts } = {}) {
     this.seed = seed;
+    this.level = cleanWorldLevel(level);
     this.load = load; this.warm = warm;
     this.start = key(0, 0, 0);
     this.layout = makeLayouts(seed, worldThemes(seed, opts.themes || []), { trial: opts.trial });   // which cubes exist (cheap, also needed here)
@@ -29,6 +32,7 @@ export class WorldClient {
     this.waiting.delete(data.key);
     if (data.type === 'error') { console.error('cube failed', data.key, data.message); list.forEach(([, rej]) => rej(new Error(data.message))); return; }
     // (asked for again while on its way: made twice, the first one kept)
+    if (data.map) data.map.level = this.level;
     const c = this.cubes.get(data.key) ?? { key: data.key, map: data.map, geo: data.geo, info: data.info, visits: 0 };
     this.cubes.set(data.key, c);
     list.forEach(([res]) => res(c));

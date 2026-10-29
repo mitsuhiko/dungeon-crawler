@@ -123,6 +123,11 @@ drop, 80% after one respawn (5 minutes), 91% after two, 96% after three; the lev
 Without farming, three quarters of the runs see one before Gusto (the side guardian's weapon
 helps most).
 
+- **A world of a higher level meets a returning hero the same way** ([progression.md](progression.md#world-level)).
+  `node tools/balance.mjs world [depth] [seeds]` plays a first world down to `depth`, then a new
+  world of the hero's world level through: the hero arrives about two levels above the road out of
+  town, and stays two to three above the depths with 87–97% of its XP counting, all the way down.
+
 ## Tuning
 
 Change a number, then run `node tools/balance.mjs` and `npm test`. Useful checks:

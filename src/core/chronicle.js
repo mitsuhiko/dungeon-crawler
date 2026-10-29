@@ -47,7 +47,7 @@ export const KINDS = {
   quest: { group: 'events' },    // { title, what, giver?, xp?, copper? }: a quest taken ('taken'), its goals done
                                  // ('ready'), handed in and paid ('done'), failed or started again
   party: { group: 'events' },    // { text }: someone joined or left
-  world: { group: 'events' },    // { seed, name? }: a new world began (name: a saved one, back in it)
+  world: { group: 'events' },    // { seed, name?, level? }: a new world began (name: a saved one, back in it; level: its level)
   narration: { group: 'events' },// { line, form }: what the narrator said (core/narration.js: a line's id, and its form)
   system: { group: 'system' },   // { text }: what the console says (help, mistakes)
   dev: { group: 'system' },      // { text, error? }: what a developer command did
@@ -174,7 +174,11 @@ export function describe({ kind, data: d = {}, who }) {
       const line = lineById(d.line);
       return line ? lineText(line, d.form) : '';
     }
-    case 'world': return d.name ? tr('{name} · seed {seed}', { name: d.name, seed: String(d.seed) }) : tr('A new world · seed {seed}', { seed: String(d.seed) });
+    case 'world': {
+      const w = { name: d.name, seed: String(d.seed), level: d.level };
+      if (d.level > 1) return d.name ? tr('{name} · seed {seed} · world level {level}', w) : tr('A new world · seed {seed} · world level {level}', w);
+      return d.name ? tr('{name} · seed {seed}', w) : tr('A new world · seed {seed}', w);
+    }
     default: return w(d.text ?? '');
   }
 }

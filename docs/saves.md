@@ -10,9 +10,11 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   `?menu=1` shows it after all). It is about one hero, the chosen one (remembered):
   - **Continue**: the hero in its world (its name, level, the world and how deep the hero got
     there). Only when the hero has a world.
-  - **Choose World**: one of the saved worlds, **New Random World**, or **New Known World** (a
-    world name or a number, with what it makes shown as it is typed; a world saved already makes
-    a fresh copy, "... II"). Choosing goes back to the title: it only changes Continue. Each
+  - **Choose World**: one of the saved worlds (each with its world level), **New Random World**,
+    or **New Known World** (a world name or a number, with what it makes shown as it is typed; a
+    world saved already makes a fresh copy, "... II"). A new world is of the level shown above
+    those two buttons: the chosen hero's level less two, which − and + change
+    ([progression.md](progression.md#world-level)). Choosing goes back to the title: it only changes Continue. Each
     world's name can be copied here (to share it: a friend makes it with New Known World) and the
     world deleted (the button asks again). Worlds have no other names.
   - **Join Game**: the hero that goes (it becomes the chosen one) and the friend's room code. The
@@ -65,7 +67,8 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   into any world, a friend's too, and takes home what it found there; a friend's world never
   becomes its world (it is not saved here). Playing a saved world makes it the hero's world.
   `{ v, id, name, gender, created, updated, playTime, xp, inventory, world }`
-- A **world** (up to 8) is a seed and what was done in it: what was defeated, the gates and
+- A **world** (up to 8) is a seed, a level (fixed when it is made, [progression.md](progression.md#world-level);
+  worlds saved before levels are level 1) and what was done in it: what was defeated, the gates and
   chests opened, the drops that came (`run.dropped`), the loot lying on the floors, the open town
   portal, the quests ([quests.md](quests.md): they are the world's, not a hero's), the open side
   faces, the discovered cubes, the deepest depth reached, and where each hero left it (`spots`: the cube and its entry). The map is never saved: the seed makes the same
@@ -79,7 +82,7 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   `intro:sword`, [story.md](story.md#the-beginning)) are kept with the guardians' in `gates`. A
   world saved before the beginning existed, somebody already out past the merchant camp, gets both
   opened when it is loaded. A hero's Old Sword saved before it was the glassmaker's is renamed so.
-  `{ v, id, seed, copy, name, created, updated, deepest, run: { defeated, gates, chests, dropped,
+  `{ v, id, seed, copy, name, level, created, updated, deepest, run: { defeated, gates, chests, dropped,
   loot, townPortal, quests, clock, kills, told }, faces, visited, spots }`
 - Coming into a world a hero has its level and bag, full health, no potions at work
   (`heroStats`). It comes in at the entry of the cube it left that world in (or the cube a fall
@@ -106,7 +109,7 @@ the worlds that have it and their old names no longer find them. Worlds cannot b
 | key | what |
 |---|---|
 | `cube-crawler.heroes` | the heroes, one list |
-| `cube-crawler.worlds` | the worlds' index for the menu: id, name, seed, updated, deepest, heroes there |
+| `cube-crawler.worlds` | the worlds' index for the menu: id, name, seed, level, updated, deepest, heroes there |
 | `cube-crawler.world.<id>` | one world (they grow: mostly the floor loot) |
 | `cube-crawler.last` | the hero chosen in the menu (`{ hero }`; Continue plays it in its world) |
 

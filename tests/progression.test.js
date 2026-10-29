@@ -10,7 +10,11 @@ import { fixedWeapon } from '../src/core/gear/generate.js';
 import { createPlayerStats, carryTools, createRun, xpForLevel, xpToNext, levelFromXP, xpProgress, xpScale, awardXP, awardKill, takeDamage, regenerate,
   levelDamage, maxHealth, fullHealth, START_POTIONS, DEV_GOLD } from '../src/core/progression.js';
 import { drinkPotion, tickEffects } from '../src/core/potions.js';
-import { SPIDER, STUNDER, enemyProfile, enemyRoll, makeEnemy, coinRange, depthLevel } from '../src/core/enemies.js';
+import { SPIDER, STUNDER, enemyProfile, enemyRoll, makeEnemy, coinRange, depthLevel, guardianLevel, worldLevelFor, cleanWorldLevel, MAX_WORLD_LEVEL } from '../src/core/enemies.js';
+import { chestLoot, CHESTS } from '../src/core/chests.js';
+import { smithStock } from '../src/core/shops.js';
+import { questRewards } from '../src/core/quests.js';
+import { mulberry32 } from '../src/core/util.js';
 import { itemStats } from '../src/core/gear/stats.js';
 import { swordState, combatStats, startSwing, advanceSwing, swordHit, cancelSwing, damageEnemy, canChangeWeapon, shotDue, KINDS } from '../src/core/combat.js';
 
@@ -263,6 +267,28 @@ test('enemy levels and rewards are deterministic, depth-based and independent of
   }
   assert.deepEqual([...variations].sort(), [-1,0,1]);
 });
+test('a world of a higher level lifts every level by the same, from the road out of town to the core', () => {
+  assert.equal(worldLevelFor(1), 1, 'a fresh hero makes a world of level 1');
+  assert.equal(worldLevelFor(3), 1);
+  assert.equal(worldLevelFor(11), 9, 'two levels under the hero');
+  assert.equal(worldLevelFor(500), MAX_WORLD_LEVEL);
+  assert.equal(cleanWorldLevel(undefined), 1); assert.equal(cleanWorldLevel(2.5), 1); assert.equal(cleanWorldLevel(-3), 1);
+  for (let depth = 0; depth <= 20; depth++) {
+    assert.equal(depthLevel(depth, 9), depthLevel(depth) + 8);
+    assert.equal(guardianLevel(depth, 'descent', 9), guardianLevel(depth, 'descent') + 8);
+    for (let seed = 0; seed < 16; seed++) {
+      const map = { seed, depth, key: `0,${-depth},0` }, a = enemyRoll(map, SPIDER, 5), b = enemyRoll({ ...map, level: 9 }, SPIDER, 5);
+      assert.equal(b.level, a.level + 8);
+      assert.equal(b.id, a.id, 'the same enemy, only stronger');
+    }
+  }
+  // what a world gives lifts with it: chests, quest rewards, the Smith's armor
+  const site = { id: 'site:1', prestige: 'rare' };
+  assert.ok(chestLoot(site, 3, 7, null, null, 9).items.filter(i => i.gen).every(i => i.gen.ilvl === depthLevel(3, 9) + CHESTS.rare.level));
+  assert.ok(smithStock(7, 3, 0, 9).every(w => w.item.gen.ilvl === 11));
+  assert.ok(questRewards(mulberry32(3), 3, 'medium', 9).xp > questRewards(mulberry32(3), 3, 'medium').xp);
+});
+
 test('death rewards occur once per stable enemy ID, including reconstructed enemies', () => {
   const p = createPlayerStats(), run = createRun(), roll = enemyRoll({ seed: 8, depth: 4, key: '0,-4,0' }, STUNDER, 12);
   const e = makeEnemy(roll, STUNDER);

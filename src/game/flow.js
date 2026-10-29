@@ -11,7 +11,7 @@ import { buildWorld, disposeWorld, setWorldOpenFaces } from '../render/world.js'
 import { baked, bakeDensity } from '../render/bake.js';
 import { groundAt } from '../physics/collide.js';
 import { respawnPoint } from '../physics/respawn.js';
-import { player, state, setStatus } from './state.js';
+import { player, state, setStatus, worldLevel } from './state.js';
 import { sfx } from '../audio/sfx.js';
 import { jingle } from '../audio/jingles.js';
 import { showStats, flash, fadeOut, fadeIn, slowFade, whenReady } from './hud.js';
@@ -380,15 +380,17 @@ export function rebuildWorld() {
 
 // keepPlayer: the player keeps their character (level, bag, gear); joining a friend's world
 // (src/net/session.js), or a saved hero (game/save.js). restore: a saved world's progress
-// (game/save.js restoreOf): { name, run, faces, visited, spot }; spot: { cube, arrival } where to
-// come in (else the town's spawn pad)
-export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = state.keepHero, restore = null } = {}) {
+// (game/save.js restoreOf): { name, level, run, faces, visited, spot }; spot: { cube, arrival } where to
+// come in (else the town's spawn pad). level: the world's level (core/enemies.js depthLevel): a
+// saved world's, else 1 (dev: ?worldlevel=)
+export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = state.keepHero, restore = null, level = restore?.level ?? null } = {}) {
   clearNeighbors(); clearNeighborCache();
   state.cubes?.dispose();
   const params = new URLSearchParams(location.search);
   // dev: ?arche=<archetype> everywhere, ?theme=clouds,forge picks those themes for their depths,
   // ?bridge=chain / ?ladder=vine one bridge / ladder style wherever it fits, ?trial=flood a trial on every depth
-  state.cubes = new WorldClient(seed, { load: cubeAssets, warm: warmCube, lightmap: bakeDensity(), arche: state.dev && params.get('arche'),
+  level ??= state.dev && Number(params.get('worldlevel')) || 1;
+  state.cubes = new WorldClient(seed, { level, load: cubeAssets, warm: warmCube, lightmap: bakeDensity(), arche: state.dev && params.get('arche'),
     themes: state.dev && params.get('theme') ? params.get('theme').split(',') : [],
     bridge: state.dev && params.get('bridge'), ladder: state.dev && params.get('ladder'),
     trial: state.dev && params.get('trial') || null });   // ?trial=flood: every depth gets one (world/trials.js)
@@ -408,7 +410,7 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
   if (restore) restoreRun(restore);
   // the beginning (game/intro.js): done already in a world saved before it, and with the dev tools
   settleIntro(state.run, state.cubes.layout(0), restore?.visited, state.dev, params);
-  log('world', restore?.name ? { seed, name: restore.name } : { seed });
+  log('world', restore?.name ? { seed, name: restore.name, level: state.cubes.level } : { seed, level: state.cubes.level });
   // a saved spot whose cube does not come (the generator changed): the town instead
   const cubes = state.cubes, spot = restore?.spot;
   const first = spot ? cubes.get(spot.cube).catch(() => cubes.get(cubes.start)) : cubes.get(cubes.start);
@@ -467,7 +469,8 @@ export function nextCube() {
   if (online.role === 'guest') { setStatus(tr('Only the host starts a new world')); return; }
   state.transitioning = true;
   fadeOut();
-  setTimeout(() => newWorld().then(() => setStatus(tr('A new world'))), 380);
+  const level = worldLevel();   // (the dev tool's N: a new world of the same level)
+  setTimeout(() => newWorld(undefined, { level }).then(() => setStatus(tr('A new world'))), 380);
 }
 export const loadCube = () => newWorld(state.baseSeed);
 

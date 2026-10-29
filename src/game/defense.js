@@ -12,7 +12,7 @@
 // runner, net/foes.js); the others fight the raiders it shows them.
 import * as THREE from 'three';
 import { camera } from '../render/scene.js';
-import { state, player, setStatus } from './state.js';
+import { state, player, setStatus, worldLevel } from './state.js';
 import { addEnemies, allEnemies, mirroring, removeEnemies } from './enemies.js';
 import { questGoalsIn } from '../core/quests.js';
 import { DEPTH_SPAWNS } from '../core/spawns.js';
@@ -74,7 +74,7 @@ function arrivals(height) {
 function spawnWave() {
   const R = mulberry32(hash32(raid.seed ^ Math.imul(raid.wave + 1, 0x9e37))), kinds = raiders(raid.depth);
   const n = (RAID.sizes[raid.wave] ?? RAID.sizes.at(-1) + raid.wave) + Math.floor(raid.depth / 6);
-  const level = depthLevel(raid.depth), list = [], from = arrivals(Math.max(...kinds.map(([k]) => k.height)));
+  const level = depthLevel(raid.depth, worldLevel()), list = [], from = arrivals(Math.max(...kinds.map(([k]) => k.height)));
   if (!from.length || !raid.ring.length) { end('off', () => {}); calmUntil = state.time + 30; setStatus(tr('Nothing comes... maybe another time.')); return; }
   for (let i = 0; i < n; i++) {
     let r = R() * kinds.reduce((s, [, w]) => s + w, 0), kind = kinds.at(-1)[0];

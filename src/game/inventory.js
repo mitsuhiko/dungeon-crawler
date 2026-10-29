@@ -25,7 +25,7 @@
 // (render/itemviews.js draws it), the bag with the selected item's actions underneath it, the
 // details on the right (scrolling when long). Items show as their models (pictures rendered
 // once, render/itemviews.js); the selected one turns.
-import { player, state, setStatus } from './state.js';
+import { player, state, setStatus, worldLevel } from './state.js';
 import { sfx } from '../audio/sfx.js';
 import { jingle } from '../audio/jingles.js';
 import { ITEMS, COINS, ARMOR_SLOTS, ARMOR_SLOT_NAMES, isGear } from '../core/items.js';
@@ -158,8 +158,8 @@ const floorPickup = id => floorItems().find(p => p.id === id) || null;
 let stockMade = null;
 function stock() {
   if (!shopOf(trader)?.stock || !state.cubes) return [];
-  const r = state.run.smith, deepest = state.run.quests.deepest, key = `${state.cubes.seed}:${r.visit}:${deepest}`;
-  if (stockMade?.key !== key) stockMade = { key, list: smithStock(state.cubes.seed, deepest, r.visit).map((w, i) => ({ ...w, i })) };
+  const r = state.run.smith, deepest = state.run.quests.deepest, key = `${state.cubes.seed}:${state.cubes.level}:${r.visit}:${deepest}`;
+  if (stockMade?.key !== key) stockMade = { key, list: smithStock(state.cubes.seed, deepest, r.visit, state.cubes.level).map((w, i) => ({ ...w, i })) };
   return stockMade.list.filter(w => !r.sold.includes(w.i));
 }
 const stockWare = id => typeof id === 'string' && id.startsWith('stock:') ? stock().find(w => `stock:${w.i}` === id) ?? null : null;
@@ -266,7 +266,7 @@ const PERKS = { regen: msg('{v}% faster healing'), burnResist: msg('{v}% less hu
 const SLOT_ARMOR = { head: msg('Head armor'), body: msg('Body armor'), feet: msg('Feet armor') };
 const NOTHING_WORN = { head: msg('Nothing worn on your head yet.'), body: msg('Nothing worn on your body yet.'),
   shield: msg('Nothing in your off hand yet.'), feet: msg('Nothing worn on your feet yet.') };
-const against = () => Math.max(depthLevel(state.map?.depth ?? 0), depthLevel(state.run?.quests.deepest ?? 0));
+const against = () => Math.max(depthLevel(state.map?.depth ?? 0, worldLevel()), depthLevel(state.run?.quests.deepest ?? 0, worldLevel()));
 function armorText(item) {
   const s = armorStats(item), r = rarityOf(item), level = against();
   const def = ITEMS[item.itemId], what = s.slot !== 'shield' ? tr(SLOT_ARMOR[s.slot]) : def.category === 'armor' ? tr('Shield') : tr('Carried in the off hand');

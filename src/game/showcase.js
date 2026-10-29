@@ -49,7 +49,7 @@ let show = null;
 
 export const showcaseCubes = () => show?.cubes ?? null;
 
-// Show `focus` behind the menu: { key, seed, cube (null: the town), run } (a saved world's run:
+// Show `focus` behind the menu: { key, seed, level, cube (null: the town), run } (a saved world's run:
 // defeated, gates, chests), or null: random cubes of a new random world (its seed is never
 // seen). The same as already shown: nothing changes; else the old fades out first.
 export function startShowcase(focus = null) {
@@ -62,7 +62,8 @@ export function startShowcase(focus = null) {
   const begin = () => {
     if (show !== s) return;
     if (prev?.cubes && state.cubes === prev.cubes) { prev.cubes.dispose(); state.cubes = null; }
-    const cubes = new WorldClient(focus ? focus.seed : (Math.random() * 2 ** 32) >>> 0, { load: cubeAssets, warm: warmCube, lightmap: bakeDensity() });
+    const cubes = new WorldClient(focus ? focus.seed : (Math.random() * 2 ** 32) >>> 0, { load: cubeAssets, warm: warmCube, lightmap: bakeDensity(),
+      level: focus?.level ?? 1 });
     s.cubes = cubes;
     setFluidPalettes(cubes.seed, cubes.layout.themes);
     state.cubes = cubes; state.run = createRun(); state.openedFaces.clear();

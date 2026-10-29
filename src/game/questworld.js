@@ -7,7 +7,7 @@
 // The people and the chests are part of the cube as it is built (game/flow.js enterCube calls
 // questWorld; updateQuests builds the cube again when they change); the things are drawn with
 // the loot (game/loot.js) and picked up by walking onto them.
-import { state, player, setStatus } from './state.js';
+import { state, player, setStatus, worldLevel } from './state.js';
 import { npcsIn } from './npcs.js';
 import { questGoalsIn, livingAt, giverName, stageKey } from '../core/quests.js';
 import { ITEMS } from '../core/items.js';
@@ -158,7 +158,7 @@ function floorsRound(at, lo, hi, height, seed) {
 }
 // enemies of kind `type` at depth's level on floors round `at`, facing it, with these ids
 function standRound(type, depth, at, ids, lo, hi, seed) {
-  const kind = ENEMY_KINDS[type], level = depthLevel(depth), floors = floorsRound(at, lo, hi, kind.height, seed);
+  const kind = ENEMY_KINDS[type], level = depthLevel(depth, worldLevel()), floors = floorsRound(at, lo, hi, kind.height, seed);
   if (!floors.length) return [];
   return ids.map((id, i) => {
     const f = floors[i % floors.length], x = f.x + .5, z = f.z + .5, [lo2, hi2] = coinRange(kind, level);
@@ -203,7 +203,7 @@ export function bountiesHere() {
     if (stage.goal !== 'bounty' || state.run.defeated.has(stage.enemyId)) continue;   // (its gang: guardsHere)
     const s = spotOf(map, stage.spot), f = s && map.floors[s.floor];
     if (!f) continue;
-    const kind = bountyKind(stage.enemy, stage.name), level = bountyLevel(stage.depth), [lo, hi] = coinRange(kind, level);
+    const kind = bountyKind(stage.enemy, stage.name), level = bountyLevel(stage.depth, worldLevel()), [lo, hi] = coinRange(kind, level);
     out.push(makeEnemy({ id: stage.enemyId, level, coinDrop: Math.round((lo + hi) / 2), kind, f,
       x: s.anchor.x, y: s.anchor.y, z: s.anchor.z, yaw: Math.atan2(s.approach.x - s.anchor.x, s.approach.z - s.anchor.z) }, kind, 0));
   }

@@ -17,7 +17,7 @@ import { step, key, parse } from '../world/coords.js';
 import { groundAt } from '../physics/collide.js';
 import { isInterior } from '../world/town.js';
 import { boundaryArrival } from '../core/boundaries.js';
-import { state, player, view, setStatus } from './state.js';
+import { state, player, view, setStatus, worldLevel } from './state.js';
 import { whenReady } from './hud.js';
 import { startTravel } from './travel.js';
 import { enterCube, arrivalPoint, spawnAt } from './flow.js';
@@ -351,7 +351,7 @@ if (state.dev && new URLSearchParams(location.search).get('at') === 'trial') {
 // his level, keeping the developer's OMG staff
 const atBoss = state.dev ? new URLSearchParams(location.search).get('at') : null;
 if (Object.values(BOSSES).includes(atBoss)) {
-  const depth = Number(Object.keys(BOSSES).find(d => BOSSES[d] === atBoss)), level = guardianLevel(depth, 'descent');
+  const depth = Number(Object.keys(BOSSES).find(d => BOSSES[d] === atBoss)), level = guardianLevel(depth, 'descent', worldLevel());
   const wait = async () => {
     if (!state.map || state.transitioning) { setTimeout(wait, 200); return; }
     player.xp = xpForLevel(level); player.level = levelFromXP(player.xp);

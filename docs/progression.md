@@ -112,9 +112,10 @@ reference into the bag, not an item (`inventory.bar`, `assignBar` / `barEntry` i
 
 ## Enemy levels and rewards
 
-Enemies are level `depth`, 1 on the surface (`depthLevel`). From depth 2, seeded variation is
-−1 / 0 / +1 with weights 25% / 50% / 25%, clamped at level 1. Difficulty never follows the
-player's level. Town and its surface buffer remain enemy-free. Animation timing, movement,
+Enemies are level `depth`, 1 on the surface (`depthLevel`), plus the world's level − 1 (below).
+From depth 2, seeded variation is −1 / 0 / +1 with weights 25% / 50% / 25%, clamped at level 1.
+Difficulty never follows the player's level while playing: only the world's level, fixed when the
+world was made. Town and its surface buffer remain enemy-free. Animation timing, movement,
 body size and knockback do not scale with level. Guardians stand a level (side) or two
 (descent) above the depth from depth 1 on ([guardians.md](guardians.md)).
 
@@ -136,6 +137,28 @@ On death, XP is credited at once; coins and sometimes a weapon or a health potio
 to pick up ([loot.md](loot.md)). The run remembers defeated enemy IDs, so revisiting
 or rebuilding a cube cannot resurrect them or duplicate rewards (until they come back, below).
 Surviving monsters reset on re-entry; their levels/drop rolls remain unchanged.
+
+### World level
+
+A hero keeps its level and bag from world to world ([saves.md](saves.md)), so a world must meet
+a hero who has been down before as the depths meet one who comes down them for the first time.
+Every world has a **level**, fixed when it is made (`core/enemies.js`): the chosen hero's level
+less `WORLD_BELOW` (2), at least 1 (`worldLevelFor`); the main menu shows it under the worlds
+and lets it be set lower or higher before New Random World or New Known World (at most
+`MAX_WORLD_LEVEL`, 80: item levels stop at 99). A fresh hero's world is level 1, as worlds were
+before (saved ones without a level are level 1).
+
+Everything that takes its level from the depth adds the world's level − 1 (`depthLevel(depth,
+world)`): ordinary enemies (`map.level`, from `world/client.js`), guardians and bosses
+(`guardianLevel`), bounties, quest enemies, raids and trial waves, meteorites, chests, quest
+rewards and the Smith's armor. So a level-11 hero makes a level-9 world: level-9 snakes on the road
+out of town, level-28 enemies at the core, and drops, chests and prices to match; it comes in two
+levels above the road, the place a hero arrives at at its first time down (the XP falloff pays in
+full), and stays about two above all the way down (`node tools/balance.mjs`, "World level"). The
+layout, the kinds of enemy and how many come do not change with it: only their levels.
+
+A friend's world keeps the host's level (`welcome`, `world`: `net/protocol.js`), whatever the
+guests' levels: a weaker guest catches up fast (kills above the player pay up to half again).
 
 ### Enemies come back
 

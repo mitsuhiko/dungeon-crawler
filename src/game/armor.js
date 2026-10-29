@@ -11,7 +11,7 @@
 //   armorOnly       a blow through the armor alone (held in a grab, game/grab.js: no shield)
 //   wornDefense     what the armor adds up to now (the inventory shows it)
 import * as THREE from 'three';
-import { player, state } from './state.js';
+import { player, state, worldLevel } from './state.js';
 import { sfx } from '../audio/sfx.js';
 import { ARMOR_SLOTS } from '../core/items.js';
 import { equippedWeapon } from '../core/combat.js';
@@ -68,7 +68,7 @@ function dress(want) {
 export function guardBlow(blow) {
   const d = wornDefense();
   if (!d.armor && !d.block && !d.steady) return blow;
-  const level = Number.isFinite(blow.by?.level) ? blow.by.level : depthLevel(state.map?.depth);
+  const level = Number.isFinite(blow.by?.level) ? blow.by.level : depthLevel(state.map?.depth, worldLevel());
   const cut = 1 - armorReduction(d.armor, level);
   if (blow.damage > 0 && d.block > 0 && Math.random() * 100 < d.block) {
     const damage = blow.damage * BLOCK_TAKES * cut;
@@ -82,7 +82,7 @@ export function guardBlow(blow) {
 export function armorOnly(blow) {
   const d = wornDefense();
   if (!d.armor) return blow;
-  const level = Number.isFinite(blow.by?.level) ? blow.by.level : depthLevel(state.map?.depth);
+  const level = Number.isFinite(blow.by?.level) ? blow.by.level : depthLevel(state.map?.depth, worldLevel());
   return { ...blow, damage: blow.damage * (1 - armorReduction(d.armor, level)) };
 }
 // the clang of a block: a word over the hero, a spray of sparks from the shield

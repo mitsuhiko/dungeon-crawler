@@ -13,6 +13,7 @@ import { RARITY } from './gear/rarities.js';
 import { BASE } from './gear/bases.js';
 import { roundPrice, PRICE_GROWTH } from './crafting.js';
 import { mulberry32, hash32 } from './util.js';
+import { depthLevel } from './enemies.js';
 
 export const SHOPS = {
   // the potion seller in the wizard hat: every potion and flask there is
@@ -41,7 +42,8 @@ export function buy(inv, itemId, count = 1) {
 
 // --- the Smith's armor ---------------------------------------------------------------------------
 // What the Smith has for sale: STOCK_SIZE pieces of armor, one for every slot and the rest any,
-// of the item level of the deepest depth anyone got to in this world (core/quests.js `deepest`),
+// of the item level of the deepest depth anyone got to in this world (core/quests.js `deepest`;
+// in a world of level `world`, core/enemies.js depthLevel),
 // never better than Unusual (the great ones are found, not bought). He forges new ones each time
 // you come back to town (`visit`, game/smith.js); what you bought is gone until then (`sold`).
 // Seeded by the world seed, the depth and the visit: the same for a visit, whatever you do.
@@ -59,8 +61,8 @@ export function armorPrice(item) {
     * (1 + BASE_PRICE * ((BASE[item.itemId]?.minLevel ?? 1) - 1)));
 }
 // [{ item: { itemId, count, gen }, price }]
-export function smithStock(seed, depth, visit = 0) {
-  const ilvl = Math.max(1, Math.floor(depth || 0));
+export function smithStock(seed, depth, visit = 0, world = 1) {
+  const ilvl = depthLevel(depth, world);
   const R = mulberry32(hash32((seed >>> 0) ^ Math.imul(ilvl, 0x9e3779b1) ^ Math.imul(visit + 1, 0x85ebca6b) ^ 0x5317));
   const slots = [...ARMOR_SLOTS, ...Array.from({ length: STOCK_SIZE - ARMOR_SLOTS.length }, () => null)];
   return slots.map(slot => {

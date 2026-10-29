@@ -53,11 +53,11 @@ export const fallAt = (m, clock) => Math.min(1, Math.max(0, (clock - (m.t - METE
 // how far its warning has got: 0 when it starts, 1 as it lands
 export const warnAt = (m, clock) => Math.min(1, Math.max(0, (clock - (m.t - METEOR.warn)) / METEOR.warn));
 
-// the blow of one landing at depth `depth`, along (nx, nz) from its spot
-export function meteorBlow(depth) {
-  const level = depthLevel(depth);
+// the blow of one landing at depth `depth` of a world of level `world`, along (nx, nz) from its spot
+export function meteorBlow(depth, world = 1) {
+  const level = depthLevel(depth, world);
   return { damage: Math.round(METEOR.damage * (1 + GROWTH.damage * (level - 1))), knock: METEOR.knock, knockDown: false, hop: 3,
     reason: msg('Hit by a slime meteorite!'), burn: null, chill: null, toxin: null, slow: METEOR.slow };
 }
 // what one landing on an enemy does to it: a little more than to a player (they have more health)
-export const enemyMeteorDamage = depth => Math.round(meteorBlow(depth).damage * 1.6);
+export const enemyMeteorDamage = (depth, world = 1) => Math.round(meteorBlow(depth, world).damage * 1.6);

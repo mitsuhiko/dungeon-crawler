@@ -773,6 +773,12 @@ li.title-form, .title-rename { flex-direction: column; }
 #title-panel .title-gender button[aria-pressed=false]:not(:hover) { --face: #0e131266; --edge-hi: #3a504b; --edge-lo: #1c2624; color: var(--ink-dim); }
 .title-new-world { flex-direction: column; margin-top: 8px; }
 #title-panel .title-new { margin-top: 8px; }
+/* the level of a new world: − level + */
+.title-level { margin-top: 8px; align-items: center; }
+.title-level span { flex: 1; display: grid; text-align: center; color: var(--ink); font-size: 13px; }
+.title-level small { color: var(--ink-dim); font-size: 12px; }
+#title-panel .title-level button { flex: none; padding: 2px 12px; min-width: 36px; }
+#title-panel .title-level span { flex: 1; }
 #title-code { text-transform: uppercase; letter-spacing: 4px; }
 #title-panel .title-back { margin-top: 16px; }
 .title-status { color: #bfe6de !important; min-height: 1.4em; }

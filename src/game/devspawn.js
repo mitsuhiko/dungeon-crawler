@@ -66,7 +66,7 @@ export function spawnEnemies(type, { level = null, n = 1, at = null, single = fa
 }
 // one enemy of kind standing on floor f at (x, y, z), facing yaw
 function spawned(kind, f, x, y, z, yaw, level, i) {
-  const lv = level ?? (kind.guardian ? guardianLevel(state.map.depth, kind.guardianRole) : enemyRoll(state.map, kind, f.id).level);
+  const lv = level ?? (kind.guardian ? guardianLevel(state.map.depth, kind.guardianRole, state.map.level) : enemyRoll(state.map, kind, f.id).level);
   const [lo, hi] = coinRange(kind, lv);
   return makeEnemy({
     id: `dev:${++serial}`, level: lv, coinDrop: lo + Math.floor(Math.random() * (hi - lo + 1)), kind, f, x, y, z, yaw,

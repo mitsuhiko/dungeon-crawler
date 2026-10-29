@@ -10,7 +10,9 @@ import { checkSkin } from './skin.js';
 // A world (up to MAX_WORLDS) is a seed and what was done in it: what was defeated and opened,
 // the loot on the floor, the cubes discovered, and where each hero left it (spots). Its name
 // comes from the seed (core/names.js); the same seed saved again is the second copy, "... II".
-//   { v, id, seed, copy, name, created, updated, deepest,
+// Its level (core/enemies.js depthLevel, worldLevelFor) is fixed when it is made: worlds saved
+// before there were levels are level 1.
+//   { v, id, seed, copy, name, level, created, updated, deepest,
 //     run: { defeated, gates, chests, dropped, loot, townPortal, quests, clock, kills, trials, smith, told, met }, faces, visited,
 //     spots: { [heroId]: { cube, arrival: { x, y, z } } } }
 // The map itself is never saved: the same seed makes the same cubes (world/). The name is
@@ -29,6 +31,7 @@ import { worldName } from './names.js';
 import { createQuestLog, checkQuestLog } from './quests.js';
 import { packKills, unpackKills } from './respawn.js';
 import { START_CLOCK } from './daycycle.js';
+import { cleanWorldLevel } from './enemies.js';
 
 export const SAVE_VERSION = 1, MAX_HEROES = 3, MAX_WORLDS = 8, NAME_MAX = 16;
 // a hero's gender: the first is what a hero has that never said
@@ -124,9 +127,9 @@ export function checkHero(h) {
 
 // --- worlds -------------------------------------------------------------------------------------
 
-export function createWorld(seed, { copy = 1, id = newId('w'), now = Date.now() } = {}) {
+export function createWorld(seed, { copy = 1, level = 1, id = newId('w'), now = Date.now() } = {}) {
   seed >>>= 0;
-  return { v: SAVE_VERSION, id, seed, copy, name: savedWorldName(seed, copy), created: now, updated: now, deepest: 0,
+  return { v: SAVE_VERSION, id, seed, copy, name: savedWorldName(seed, copy), level: cleanWorldLevel(level), created: now, updated: now, deepest: 0,
     run: { defeated: [], gates: [], chests: [], dropped: [], loot: [], townPortal: null, quests: createQuestLog(), clock: START_CLOCK, kills: [], trials: [],
       smith: { visit: 0, sold: [] }, told: [], met: [] },
     faces: [], visited: [], spots: {} };
@@ -154,7 +157,7 @@ export function checkWorld(w) {
     if (isId(hero) && typeof s.cube === 'string' && arrival) spots[hero] = { cube: s.cube, arrival };
   }
   const copy = Number.isInteger(w.copy) && w.copy > 0 ? w.copy : 1;
-  return { v: SAVE_VERSION, id: w.id, seed: w.seed, copy, name: savedWorldName(w.seed, copy),
+  return { v: SAVE_VERSION, id: w.id, seed: w.seed, copy, name: savedWorldName(w.seed, copy), level: cleanWorldLevel(w.level),
     created: time(w.created), updated: time(w.updated), deepest: Number.isInteger(w.deepest) && w.deepest > 0 ? w.deepest : 0,
     run: { defeated: strings(run.defeated), gates: strings(run.gates), chests: strings(run.chests), dropped: strings(run.dropped),
       loot: checkLoot(run.loot), townPortal: checkTownPortal(run.townPortal), quests: checkQuestLog(run.quests),
@@ -169,11 +172,11 @@ export const checkSmith = s => ({ visit: Number.isSafeInteger(s?.visit) && s.vis
 export const checkTrials = t => Array.isArray(t) ? t.filter(e => Array.isArray(e) && typeof e[0] === 'string' && Number.isInteger(e[1]) && e[1] > 0 && e[1] < 10) : [];
 
 // what the menu lists of a world, without reading all of it (the heroes: those that were there)
-export const worldEntry = w => ({ id: w.id, seed: w.seed, copy: w.copy, updated: w.updated, deepest: w.deepest, heroes: Object.keys(w.spots) });
+export const worldEntry = w => ({ id: w.id, seed: w.seed, copy: w.copy, level: w.level, updated: w.updated, deepest: w.deepest, heroes: Object.keys(w.spots) });
 function checkEntry(e) {
   if (!isObj(e) || !isId(e.id) || !Number.isInteger(e.seed) || e.seed < 0 || e.seed > 0xffffffff) return null;
   const copy = Number.isInteger(e.copy) && e.copy > 0 ? e.copy : 1;
-  return { id: e.id, seed: e.seed, copy, name: savedWorldName(e.seed, copy), updated: time(e.updated),
+  return { id: e.id, seed: e.seed, copy, name: savedWorldName(e.seed, copy), level: cleanWorldLevel(e.level), updated: time(e.updated),
     deepest: Number.isInteger(e.deepest) && e.deepest > 0 ? e.deepest : 0, heroes: strings(e.heroes) };
 }
 

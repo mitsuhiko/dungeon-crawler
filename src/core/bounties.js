@@ -32,7 +32,7 @@ export function bountyKind(type, name) {
   return k;
 }
 // the level a bounty at depth d is: one over the depth's
-export const bountyLevel = d => depthLevel(d) + 1;
+export const bountyLevel = (d, world = 1) => depthLevel(d, world) + 1;
 
 // which enemy a bounty at depth d is (one of the depth's kinds, as likely as they are there) and
 // its name, from the seed; used: the names the world's bounties have already (each comes once,

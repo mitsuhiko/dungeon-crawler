@@ -97,6 +97,18 @@ test('a world is named after its seed; a second copy of a seed is "... II"', () 
   assert.equal(createWorld(-1, { id: 'w-1' }).seed, 0xffffffff);
 });
 
+test('a world keeps the level it was made with; worlds saved before levels are level 1', () => {
+  assert.equal(createWorld(7, { id: 'w-1' }).level, 1);
+  const w = createWorld(7, { id: 'w-1', level: 9 });
+  assert.equal(checkWorld(roundTrip(w)).level, 9);
+  const old = roundTrip(w); delete old.level;
+  assert.equal(checkWorld(old).level, 1);
+  assert.equal(checkWorld({ ...roundTrip(w), level: 'nine' }).level, 1);
+  const store = openStore(memoryStorage());
+  store.putWorld(w);
+  assert.equal(store.worlds()[0].level, 9, 'the menu lists it with its level');
+});
+
 test('a world comes back as it was saved; what does not make sense is left out', () => {
   const w = createWorld(123, { id: 'w-1', now: 9 });
   Object.assign(w, { deepest: 3, faces: ['0,0,0/0'], visited: ['0,0,0', '1,0,0', 'interior:inn'] });

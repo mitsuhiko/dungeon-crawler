@@ -14,7 +14,7 @@
 // only that player (with the boss's blow, `rain.power` of his damage) and leaving its splat. They
 // spare the enemies (they are his). A rain of another `look` (Monteur's: 'stone', stones falling
 // out of the sky, render/meteors.js) leaves no splat, and does not slow.
-import { state, player } from './state.js';
+import { state, player, worldLevel } from './state.js';
 import { allEnemies, mirroring } from './enemies.js';
 import { hitBody } from './enemycombat.js';
 import { afflictEnemy } from './statuses.js';
@@ -96,14 +96,14 @@ function land(v) {
   splats.push({ x, y, z, t: 0 });
   const p = player, d = Math.hypot(p.x - x, p.z - z), noticed = v.m.t - v.since >= METEOR.notice;
   if (noticed && d <= METEOR.radius + p.r && Math.abs(p.y - y) < 1.2 && p.hp > 0 && !p.ragdoll && open(p.x, p.y, p.z))
-    hitBody(p, meteorBlow(depth), x, z, d ? (p.x - x) / d : 1, d ? (p.z - z) / d : 0);
+    hitBody(p, meteorBlow(depth, worldLevel()), x, z, d ? (p.x - x) / d : 1, d ? (p.z - z) / d : 0);
   if (mirroring()) return;   // (another runs the enemies: what it does to them is theirs to say)
   for (const e of allEnemies()) {
     if (absent(e)) continue;
     const de = Math.hypot(e.x - x, e.z - z);
     if (de > METEOR.radius + e.profile.radius || Math.abs(e.y - y) > 1.5) continue;
     const before = e.hp;
-    if (!damageEnemy(e, enemyMeteorDamage(depth), false)) continue;
+    if (!damageEnemy(e, enemyMeteorDamage(depth, worldLevel()), false)) continue;
     statusHurtFx(e, before - e.hp, 'meteor', !e.hp);
     e.lastHit = null;
     if (e.hp) {

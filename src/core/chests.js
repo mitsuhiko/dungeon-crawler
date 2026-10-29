@@ -30,9 +30,10 @@ export const CHEST_ARMOR = {
 
 // site: a reward site ({ id, prestige }); { copper, items: [{ itemId, count, gen? }] }; favor:
 // the kind of weapon the player fights with (weapons lean towards it, gear/bases.js); bare: the
-// armor slots the player wears nothing in (armor leans towards them)
-export function chestLoot(site, depth, seed = 0, favor = null, bare = null) {
-  const t = CHESTS[site.prestige] ?? CHESTS.basic, level = depthLevel(depth) + t.level;
+// armor slots the player wears nothing in (armor leans towards them); world: the world's level
+// (core/enemies.js depthLevel)
+export function chestLoot(site, depth, seed = 0, favor = null, bare = null, world = 1) {
+  const t = CHESTS[site.prestige] ?? CHESTS.basic, level = depthLevel(depth, world) + t.level;
   const R = mulberry32(hash32(hashString(String(site.id)) ^ Math.imul(seed >>> 0, 0x85ebca6b) ^ 0xc4e57));
   const range = ([lo, hi]) => lo + Math.floor(R() * (hi - lo + 1));
   const copper = range(t.copper.map(c => Math.round(grown(c, GROWTH.coins, level))));

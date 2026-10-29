@@ -13,7 +13,7 @@ import { hordeKinds, hordeSize } from '../world/hordes.js';
 import { walkable, groundY } from '../physics/enemynav.js';
 import { mulberry32, hash32 } from '../core/util.js';
 import { hashString } from '../core/gear/drops.js';
-import { player, state, setStatus } from './state.js';
+import { player, state, setStatus, worldLevel } from './state.js';
 import { addEnemies, removeEnemies, mirroring, allEnemies } from './enemies.js';
 import { online } from '../net/online.js';
 import { sfx } from '../audio/sfx.js';
@@ -45,7 +45,7 @@ function waveKinds(depth) {
 
 function spawnWave(m, s, k) {
   const depth = state.map.depth, R = mulberry32(hash32(hashString(m.key) ^ Math.imul(k + 1, 0x9e37) ^ attempt));
-  const [lo, hi] = hordeSize(depth), n = Math.round((lo + hi) / 2 / SIEGE.waves), { light, heavy } = waveKinds(depth), level = depthLevel(depth);
+  const [lo, hi] = hordeSize(depth), n = Math.round((lo + hi) / 2 / SIEGE.waves), { light, heavy } = waveKinds(depth), level = depthLevel(depth, worldLevel());
   const ring = state.map.floors.filter(f => Math.hypot(f.x + 0.5 - m.ring.x, f.z + 0.5 - m.ring.z) <= m.ring.r && walkable(f, 0.9) && !f.fluid);
   const mouths = [m.mouths[k % m.mouths.length], m.mouths[(k + 1) % m.mouths.length]];
   const list = [];
@@ -134,7 +134,7 @@ export function stepChase(m, s, dt, resolve) {
   if (e.defence) e.defence.engage = true;
 }
 function spawnWarden(m) {
-  const depth = state.map.depth, base = heaviest(depth) ?? ENEMY_KINDS.stunder, kind = wardenKind(base), level = depthLevel(depth);
+  const depth = state.map.depth, base = heaviest(depth) ?? ENEMY_KINDS.stunder, kind = wardenKind(base), level = depthLevel(depth, worldLevel());
   const f = state.map.floors[m.lair.f];
   if (!f) return;
   const [clo, chi] = coinRange(kind, level), id = `trial:${m.key}:warden${attempt}`;

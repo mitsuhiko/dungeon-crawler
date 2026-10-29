@@ -3,14 +3,14 @@
 // (game/devspawn.js, game/dev.js, game/equipment.js), now by name: /help lists them.
 import { addCommand, addType } from '../core/commands.js';
 import { ITEMS, TOOLS } from '../core/items.js';
-import { ENEMY_KINDS } from '../core/enemies.js';
+import { ENEMY_KINDS, MAX_WORLD_LEVEL } from '../core/enemies.js';
 import { addItem, addInstance, autoBar, countOf, equippedItem } from '../core/inventory.js';
 import { xpForLevel, levelFromXP, fullHealth } from '../core/progression.js';
 import { MAX_ILVL, rollWeapon, rollArmor } from '../core/gear/generate.js';
 import { RARITY } from '../core/gear/rarities.js';
 import { ENCHANTS, ENCHANT, enchantOf, describeEnchant } from '../core/gear/enchants.js';
 import { online } from '../net/online.js';
-import { player, state } from './state.js';
+import { player, state, worldLevel } from './state.js';
 import { commands } from './commands.js';
 import { spawnEnemies, killEnemies, clearEnemies } from './devspawn.js';
 import { devIntro, devHoldIntro } from './bossintro.js';
@@ -316,11 +316,12 @@ dev({
   },
 });
 dev({
-  name: 'newworld', help: 'start a new world (N), with this seed', args: [{ name: 'seed', type: 'int', optional: true, min: 0, max: 2 ** 32 - 1 }],
-  run({ seed }) {
+  name: 'newworld', help: 'start a new world (N), with this seed, of this world level (else the one played now)',
+  args: [{ name: 'seed', type: 'int', optional: true, min: 0, max: 2 ** 32 - 1 }, { name: 'level', type: 'int', optional: true, min: 1, max: MAX_WORLD_LEVEL }],
+  run({ seed, level }) {
     if (online.role === 'guest') return 'Only the host starts a new world';
     if (seed === undefined) { nextCube(); return; }
-    newWorld(seed);
+    newWorld(seed, { level: level ?? worldLevel() });
   },
 });
 dev({

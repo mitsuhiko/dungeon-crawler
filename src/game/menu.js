@@ -6,6 +6,8 @@
 //   worlds      the chosen hero's world: one of the saved ones, a new random one, or a known one
 //               (a world name or a number, core/names.js). Back to the title: Continue plays it.
 //               Each world's name can be copied (to share it) and the world deleted here too.
+//               A new world is of the level shown (core/enemies.js worldLevelFor: the chosen
+//               hero's, a little under it), which can be set lower or higher before making it.
 //   join        a hero (it becomes the chosen one) and a friend's room code
 //   joining     waiting for the friend's game; the hero comes along, the world is theirs (it
 //               does not become the hero's world)
@@ -41,6 +43,7 @@ import { playFilm, filmsWanted } from '../film/player.js';
 import { FILMS } from '../film/films.js';
 import { cleanName, cleanGender, heroLevel, heroStats, savedWorldName, GENDERS, MAX_HEROES, MAX_WORLDS } from '../core/save.js';
 import { readSeed } from '../core/names.js';
+import { worldLevelFor, cleanWorldLevel, MAX_WORLD_LEVEL, WORLD_BELOW } from '../core/enemies.js';
 import { ITEMS } from '../core/items.js';
 import { pictureImg } from '../render/itemviews.js';
 import { playSong, setMood } from '../audio/music.js';
@@ -64,6 +67,16 @@ const params = new URLSearchParams(location.search), local = params.get('net') =
 let screen = 'title', from = 'title', form = null, gender = GENDERS[0], asked = { id: null, until: 0 }, note = '', copied = null;
 let invite = state.mode === 'menu' ? readCode(params.get('join')) : null, code = invite ?? '', joining = null;
 let shownHero = '';   // the hero over the menu, as it was saved (id, when): its bag is the player's
+// the level a new world gets: { hero, level } as set for that hero (else the hero's own, levelFor);
+// typed: the world name typed so far (kept while the level changes)
+let newLevel = null, typed = '';
+const levelFor = hero => newLevel?.hero === hero.id ? newLevel.level : worldLevelFor(heroLevel(hero));
+function setLevel(step) {
+  const hero = chosen();
+  if (!hero) return;
+  typed = $('title-seed')?.value ?? typed;
+  newLevel = { hero: hero.id, level: cleanWorldLevel(levelFor(hero) + step) };
+}
 // Choose Skin: the library (null: still coming from IndexedDB), its thumbnails (object URLs, by
 // key) and which load is the latest; wearing: a skin is being copied onto the hero
 let skins = null, skinPictures = new Map(), skinLoad = 0, wearing = false;
@@ -83,6 +96,7 @@ function playTime(s) {
 // the item a hero holds (its weapon), shown as its picture
 const heroWeapon = h => { const s = h.inventory.slots.find(x => x?.instanceId === h.inventory.equipped); return ITEMS[s?.itemId] ? s.itemId : null; };
 const depthText = w => w.deepest ? tr('depth {depth}', { depth: w.deepest }) : tr('town');
+const levelText = w => tr('world level {level}', { level: w.level ?? 1 });
 const chosen = () => { const id = store.selected(); return id ? store.hero(id) : null; };
 
 // --- showing ------------------------------------------------------------------------------------
@@ -159,7 +173,7 @@ const screens = {
     const more = `<button class="title-item" data-act="settings">${tr('Settings')}</button><a class="title-item title-link" href="learn/${GUIDE_LANGUAGES.includes(language()) ? `?lang=${language()}` : ''}" target="_blank" rel="noopener">${tr('The guide')}</a>`;
     if (!hero) return `<div class="title-list">${noHero()}${more}</div>`;
     const world = store.heroWorld(hero.id), name = esc(hero.name);
-    const where = world && `${esc(world.name)} · ${world.heroes.includes(hero.id) ? depthText(world) : tr('not been there yet')}`;
+    const where = world && `${esc(world.name)} · ${levelText(world)} · ${world.heroes.includes(hero.id) ? depthText(world) : tr('not been there yet')}`;
     return `<div class="title-list">
       ${world ? `<button class="menu-big" data-act="continue">${fresh(world.id) ? tr('Start') : tr('Continue')}<small>${name} · ${tr('level {level}', { level: heroLevel(hero) })}</small><small>${where}</small></button>` : ''}
       <button class="${world ? 'title-item' : 'menu-big'}" data-act="choose-world">${tr('Choose World')}${world ? '' : `<small>${tr('{name} has no world yet', { name })}</small>`}</button>
@@ -173,15 +187,19 @@ const screens = {
     const hero = chosen(), worlds = store.worlds(), names = new Map(store.heroes().map(h => [h.id, h.name]));
     const cards = worlds.map(w => card(pick({ act: 'world', id: w.id, chosen: w.id === hero.world, name: w.name,
       tag: w.id === hero.world ? tr('its world now') : '',
-      info: `${depthText(w)} · ${ago(w.updated)}${w.heroes.length ? ' · ' + w.heroes.map(id => esc(names.get(id) ?? '?')).join(', ') : ''}` }),
+      info: `${levelText(w)} · ${depthText(w)} · ${ago(w.updated)}${w.heroes.length ? ' · ' + w.heroes.map(id => esc(names.get(id) ?? '?')).join(', ') : ''}` }),
       `<button data-act="copy-name" data-id="${w.id}" title="${esc(tr('To share it: a friend makes it with New Known World'))}">${copied === w.id ? tr('Copied!') : tr('Copy name')}</button>${deleteButton(w.id)}`,
       'title-world'));
+    const level = levelFor(hero), suits = level + WORLD_BELOW;
+    const stepper = `<div class="menu-row title-level"><button data-act="level-down" aria-label="${esc(tr('Lower'))}"${level <= 1 ? ' disabled' : ''}>−</button>`
+      + `<span>${tr('New worlds: level {level}', { level })}<small>${tr('for heroes of about level {level}', { level: suits })}</small></span>`
+      + `<button data-act="level-up" aria-label="${esc(tr('Higher'))}"${level >= MAX_WORLD_LEVEL ? ' disabled' : ''}>+</button></div>`;
     const make = worlds.length >= MAX_WORLDS ? tooMany(tr('{max} worlds is the most: delete one to make a new one.', { max: MAX_WORLDS }))
-      : form === 'known' ? `<div class="title-form title-new-world">
-          <input id="title-seed" maxlength="60" placeholder="${esc(tr('A world name or a number'))}" data-enter="create-world" aria-label="${esc(tr('World name or number'))}" autocomplete="off" spellcheck="false">
+      : stepper + (form === 'known' ? `<div class="title-form title-new-world">
+          <input id="title-seed" maxlength="60" value="${esc(typed)}" placeholder="${esc(tr('A world name or a number'))}" data-enter="create-world" aria-label="${esc(tr('World name or number'))}" autocomplete="off" spellcheck="false">
           <p id="title-preview" class="title-preview">${tr("A friend's world: type its name.")}</p>
           <div class="menu-row"><button class="menu-big" data-act="create-world">${tr('Make it')}</button><button data-act="cancel">${tr('Cancel')}</button></div></div>`
-      : `<div class="menu-row title-new"><button data-act="random-world">${tr('New Random World')}</button><button data-act="known-world">${tr('New Known World')}</button></div>`;
+      : `<div class="menu-row title-new"><button data-act="random-world">${tr('New Random World')}</button><button data-act="known-world">${tr('New Known World')}</button></div>`);
     return listScreen({ title: tr('Choose World'), about: tr('for {name} · {n} of {max}', { name: esc(hero.name), n: worlds.length, max: MAX_WORLDS }),
       cards, empty: tr('No worlds yet.'), below: make });
   },
@@ -236,6 +254,7 @@ function render() {
   panel.innerHTML = screens[screen]() + (note ? `<p class="title-note" role="alert">${esc(note)}</p>` : '');
   panel.dataset.screen = screen;
   panel.querySelector('#title-rename, #title-name, #title-seed')?.focus();
+  if (typed && $('title-seed')) updatePreview();
   updateScene();
 }
 
@@ -260,7 +279,7 @@ function updateScene() {
   }
   const w = hero?.world ? store.world(hero.world) : null, spot = w?.spots[hero.id];
   const cube = spot && !isInterior(spot.cube) ? spot.cube : null;   // (in a house: the town)
-  startShowcase(w ? { key: `${w.id} ${cube}`, seed: w.seed, cube, run: w.run } : null);
+  startShowcase(w ? { key: `${w.id} ${cube}`, seed: w.seed, level: w.level, cube, run: w.run } : null);
 }
 
 // main.js menuFrame: where the hero over the menu is drawn (CSS pixels; null: nowhere). Right
@@ -458,16 +477,18 @@ const actions = {
     if (screen === 'characters') { form = null; screen = from; }
   },
   world(id) { chooseWorld(id); },
+  'level-down'() { setLevel(-1); },
+  'level-up'() { setLevel(1); },
   'random-world'() {
-    const w = newSavedWorld();
+    const w = newSavedWorld(undefined, levelFor(chosen()));
     if (!w) { note = tr('Could not make the world (is the storage full?)'); return; }
     chooseWorld(w.id);
   },
-  'known-world'() { form = 'known'; },
+  'known-world'() { form = 'known'; typed = ''; },
   'create-world'() {
     const seed = readSeed($('title-seed').value);
     if (seed === null) { note = $('title-seed').value.trim() ? tr('That is not a world name or a number') : tr("Type the world's name"); return; }
-    const w = newSavedWorld(seed);
+    const w = newSavedWorld(seed, levelFor(chosen()));
     if (!w) { note = tr('Could not make the world (is the storage full?)'); return; }
     chooseWorld(w.id);
   },

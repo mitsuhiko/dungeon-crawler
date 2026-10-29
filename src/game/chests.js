@@ -7,7 +7,7 @@
 // together a chest opens for everyone: the loot is the opener's roll (game/loot.js), and the
 // others see the lid open (shareChest).
 import { vaultLocked } from './trials.js';
-import { player, state, setStatus } from './state.js';
+import { player, state, setStatus, worldLevel } from './state.js';
 import { chestLoot } from '../core/chests.js';
 import { favoredKind } from '../core/combat.js';
 import { bareSlots } from '../core/inventory.js';
@@ -42,7 +42,7 @@ export function openChest(site) {
   state.run.chests.add(site.id);
   // the loot only comes out once the lid is all the way open
   const opening = showChestOpen(state.world, site.id);
-  const { copper, items } = chestLoot(site, state.map.depth, state.map.seed, favoredKind(player), bareSlots(player.inventory));
+  const { copper, items } = chestLoot(site, state.map.depth, state.map.seed, favoredKind(player), bareSlots(player.inventory), worldLevel());
   const a = site.anchor, front = site.approach ?? a;
   spill(`c:${site.id}`, front, copper, items, { kept: true }, { x: a.x, y: a.y + 0.6, z: a.z }, opening,
     list => stowLoot(state.world, site.id, list));
