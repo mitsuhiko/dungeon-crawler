@@ -70,7 +70,7 @@ export function rescue(fluid, look, surface) {
   // through something (a cave's narrow way)
   const up = { x, y: from.y + PULL, z }, path = flight(up, to, ceilingAt);
   const blink = blocked(path);
-  Object.assign(player, { ragdoll: null, fluidDeath: 0, climb: null, getUp: null, swimming: false, grounded: false, engulfed: null,
+  Object.assign(player, { ragdoll: null, fluidDeath: 0, climb: null, getUp: null, swimOut: null, swimming: false, grounded: false, engulfed: null,
     gust: null, pull: null, vx: 0, vy: 0, vz: 0, x, z, y: from.y, visY: from.y, stun: 0 });
   player.rescue = { phase: 'reach', t: 0, fluid, look, surface, from, up, to, path: blink ? hop(up, to) : path, blink,
     robot: robotStart(), colors: says.colors, drip: 0 };

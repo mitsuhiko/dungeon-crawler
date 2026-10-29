@@ -1,9 +1,10 @@
 // Drives the character from the controller state: places and turns the model, runs the
 // blend trees (render/blendtree.js), plays the attack clip of the weapon in hand (Slash, Shoot,
 // CrossbowShot, Cast) and lays its Hold pose over the rest, poses the ragdoll, and plays the
-// get-up clip (GetUpBack / GetUpFront), morphing from the ragdoll pose into it. IK over it all
-// (render/ik.js, heroIK): the hero looks at the enemy they fight and stands with each foot on the
-// ground under it.
+// get-up clip (GetUpBack / GetUpFront), morphing from the ragdoll pose into it, and the climb out
+// of the water (SwimOut), morphing from the swimming pose. IK over it all (render/ik.js, heroIK):
+// the hero looks at the enemy they fight and stands with each foot on the ground under it, and
+// climbing out holds on to the bank's edge.
 import * as THREE from 'three';
 import { clamp } from '../core/util.js';
 import { DIRS } from '../core/constants.js';
@@ -22,7 +23,7 @@ import { allEnemies } from '../game/enemies.js';
 import { hoveredEnemy } from '../game/pointer.js';
 import { slidingCubes } from '../game/travel.js';
 import { waterShownAt } from './materials.js';
-import { waterlineAt } from './waterline.js';
+import { waterlineAt, drawnSurface } from './waterline.js';
 
 // learn: animation.html#getup (see learn/README.md)
 const MORPH = 0.3;       // s from the ragdoll pose into the get-up clip
@@ -32,6 +33,7 @@ let getUp = null;        // the player.getUp being played
 let upAction = null;     // ... and its clip (kept while it fades out)
 let afloat = 0;          // how far the swimmer is drawn under the level physics swims at (floatOffset)
 let morph = null;        // { t, list, quats, hips }: the ragdoll pose (world space)
+let swimOut = null;      // the player.swimOut being played
 let ragdolled = false;   // the hero was a ragdoll last frame
 // the attack being played: its serial, its action and the one before it (a chained attack
 // cross-fades from that one over CHAIN_FADE), f: how far the cross-fade got, from: clip start
@@ -55,6 +57,15 @@ function floatOffset(dt, p) {
   const want = p.swimming && !p.swimLook ? waterShownAt() : 0;
   afloat += (want - afloat) * Math.min(1, dt * 6);
   return afloat;
+}
+
+// The climb out of the water is made for a bank SwimOut's `rise` over the feet; for a lower (or
+// higher) one the body is drawn that much higher (lower) while it is in the water, coming to
+// where the clip has it as it comes up, its knee on the bank. (The fists hold on to the real
+// edge, the feet stand on the real bank: heroIK.)
+function outOffset() {
+  const o = player.swimOut, c = character.swimOut;
+  return o && c ? (c.rise - o.rise) * (1 - smooth(c.grab, c.knee, o.at)) : 0;
 }
 
 // remember the ragdoll pose in world space; the model is turned and moved under it
@@ -93,7 +104,9 @@ export function animateCharacter(dt, time) {
   const ch = character, p = player;
   if (!ch.ready) return;
   clean ??= Object.values(ch.bones).map(b => [b, b.quaternion.clone(), b.position.clone()]);
-  ch.ghost.material.userData.floor.value = waterlineAt(p.x, p.visY, p.z);   // (no silhouette under the water: render/figure.js)
+  // (no silhouette under the water: render/figure.js; climbing out, the water it comes out of)
+  const out = p.swimOut?.water;
+  ch.ghost.material.userData.floor.value = out ? drawnSurface(out.level, out.fluid, out.look) : waterlineAt(p.x, p.visY, p.z);
   if (p.ragdoll) { p.flat = 0; ch.group.scale.set(1, 1, 1); applyRagdollPose(p.ragdoll.p); getUp = upAction = morph = null; ch.getUpWeight = 0; ragdolled = true; return; }
   // out of the ragdoll but for getting up (into the water, swimming; carried off by the robot):
   // from its pose into the clips
@@ -108,6 +121,8 @@ export function animateCharacter(dt, time) {
     }
   }
   restorePose();
+  // climbing out of the water: from the swimming pose into its clip
+  if (p.swimOut !== swimOut) { swimOut = p.swimOut; if (swimOut) startMorph(); }
 
   // Ladder motion is driven separately by signed vertical speed in the blend tree.
   const speed = Math.hypot(p.vx, p.vz);
@@ -116,7 +131,7 @@ export function animateCharacter(dt, time) {
   else if (p.climb) { const [dx, dz] = DIRS[p.climb.l.d]; yaw = angleTo(yaw, Math.atan2(dx, dz), Math.min(1, dt * 12)); }
   else if (speed > 0.2 && p.stun <= 0) yaw = angleTo(yaw, Math.atan2(p.vx, p.vz), Math.min(1, dt * (p.swimming ? 5 : 12)));
   p.yaw = yaw;
-  ch.group.position.set(p.x, p.visY + floatOffset(dt, p), p.z);
+  ch.group.position.set(p.x, p.visY + floatOffset(dt, p) + outOffset(), p.z);
   ch.group.rotation.y = yaw;
   squash(ch.group, p, dt);
   ch.group.updateMatrixWorld(true);
@@ -141,7 +156,7 @@ export function animateCharacter(dt, time) {
     attack.prev.setEffectiveWeight(sw * (1 - attack.f));
     if (attack.f >= 1) attack.prev = null;
   }
-  const shown = !p.swimming && !p.climb && !p.rescue;
+  const shown = !p.swimming && !p.swimOut && !p.climb && !p.rescue;
   // a thrown flask has left the hand until the throw is over (the next one is drawn then)
   if (ch.sword) ch.sword.visible = shown && !(s.active && s.fired && s.stats?.kind === 'throw');
   ch.mixer.update(0);
@@ -220,8 +235,26 @@ function heroIK(dt) {
   if (p.carried.x || p.carried.z) { shiftRig(ch.rig, p.carried.x, 0, p.carried.z); p.carried.x = p.carried.z = 0; }
   const foe = p.hp > 0 && !getUp ? heroFoe(p) : null;
   if (foe) aim.set(foe.x, foe.y + (foe.profile.bodyHeight ?? foe.profile.height) * 0.7, foe.z);
-  const stands = p.grounded && !p.swimming && !p.climb && !getUp && !(p.flat > 0) && (blend.mode === 'loco' || blend.mode === 'land');
-  poseRig(ch.rig, dt, { look: foe ? aim : null, ground: stands ? groundUnder : null, base: p.visY });
+  const o = p.swimOut, c = ch.swimOut;
+  const stands = p.grounded && !p.swimming && !p.climb && !getUp && !(p.flat > 0) && (blend.mode === 'loco' || blend.mode === 'land')
+    || !!o && o.at >= c.knee;   // (climbing out: once the knee is up on the bank)
+  poseRig(ch.rig, dt, { look: foe && !o ? aim : null, ground: stands ? groundUnder : null, base: p.visY, grips: o ? grips(o, c) : null });
+}
+
+// Climbing out (game/swimout.js): each fist on the bank's edge where it really is (across from the
+// body, its left and its right, a little in from the edge and on the ground there), holding on
+// from when the clip grips to when it lets go
+const GRIPS = [{ at: new THREE.Vector3(), w: 0 }, { at: new THREE.Vector3(), w: 0 }];
+function grips(o, c) {
+  const w = smooth(c.grab - 0.12, c.grab, o.at) * (1 - smooth(c.release - 0.04, c.release + 0.14, o.at));
+  GRIPS.forEach((g, i) => {
+    const s = i ? -1 : 1;   // (the left arm first: rigs.js FIGURE_RIG; facing n, the left is (nz, -nx))
+    const x = o.edge.x + o.nx * c.grip_in + o.nz * s * c.grip_x, z = o.edge.z + o.nz * c.grip_in - o.nx * s * c.grip_x;
+    const h = groundUnder(x, z, player.visY + 0.3);
+    g.at.set(x, (h ?? player.visY) + c.grip_up, z);
+    g.w = w;
+  });
+  return GRIPS;
 }
 
 export const characterYaw = () => player.yaw;

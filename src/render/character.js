@@ -182,6 +182,7 @@ function setup(gltf) {
     idle: part(J, 'Idle', 0, 2),          // the neutral standing pose
     walk: clips.Walk, run: clips.Run,
     swim: clips.Swim, swimIdle: clips.SwimIdle,   // authored for floating shoulder deep, the hands under the surface
+    swimOut: clips.SwimOut,   // out of the water onto a bank (game/swimout.js; its origin where the feet end up)
     skid: clips.Skid,   // side-on on the ice, arms out (a loop)
     climb: clips.Climb,   // in-place ladder grips and steps
     jump: part(J, 'JumpUp', 15, 27),      // push-off into the rising pose
@@ -240,6 +241,8 @@ function setup(gltf) {
     ready: true, group, model, mesh, ghost, bones, mixer, actions, attacks, holds, standing, light, getUps, footfalls, worn: {}, clay, tint: null,
     sword: null, held: null, swordWeight: 0, holdWeight: 0, getUpWeight: 0,
     walkStride: stride('Walk'), runStride: stride('Run'), swimStride: stride('Swim'),
+    // the climb out: how long, the bank and its edge it was made for, where its fists grip (game units), its moments
+    swimOut: { duration: clips.SwimOut.duration, ...extras('SwimOut') },
     climbStride: extras('Climb').distance * CHAR_SCALE,
   });
 }

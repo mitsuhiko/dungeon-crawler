@@ -8,6 +8,8 @@
 //          down as far as the lower foot needs; a foot lifted in its stride lets go
 //   reach  an arm reaches for what it strikes, round the hit, so a claw lands on the hero
 //          standing higher or lower than the clip thought
+//   grips  each arm's hand holds on to a point of its own (the hero's fists on a bank's edge as
+//          they climb out of the water, render/animator.js), however high or far the clip has it
 // A rig says which bones do what, by their Blender names (makeRig's spec); each model brings its
 // own (`ik` in render/*model.js; the hero's in render/character.js, the villagers' in
 // render/villagers.js, the robot's in render/robot.js).
@@ -161,9 +163,10 @@ function keep(rig) {
 // After the clips (and what else turns the bones): IK on top, `dt` s on.
 //   look: a point (world) to look at, or null; ground(x, z, top): the height of the ground under
 //   (x, z) not above `top` (world), or null (none, or the feet do not stand: in the air, swimming);
-//   base: the height the body stands at; reach: { at (world point), w (0..1) } or null; weight:
-//   how much of it all shows (fading in and out as a whole, e.g. as it dies)
-export function poseRig(rig, dt, { look = null, ground = null, base = 0, reach = null, weight = 1 } = {}) {
+//   base: the height the body stands at; reach: { at (world point), w (0..1) } or null; grips:
+//   per arm (the rig's order) { at (world point), w (0..1) } or null, or none; weight: how much
+//   of it all shows (fading in and out as a whole, e.g. as it dies)
+export function poseRig(rig, dt, { look = null, ground = null, base = 0, reach = null, grips = null, weight = 1 } = {}) {
   if (!rig || !IK.on) return;
   const L = rig.limits, root = rig.model.parent ?? rig.model;
   // the body's facing (its group's turn): what the head turns from
@@ -190,12 +193,17 @@ export function poseRig(rig, dt, { look = null, ground = null, base = 0, reach =
   if (rig.w.look < 1e-3) rig.seen = false;
   const feet = rig.legs.length && (rig.w.feet > 1e-3 || Math.abs(rig.drop) > 1e-4);
   const arm = reach && reach.w * weight > 1e-3 && rig.arms.length;
-  if (rig.w.look < 1e-3 && !feet && !arm) return;
+  const grip = grips && rig.arms.some((_, i) => grips[i]?.w * weight > 1e-3);
+  if (rig.w.look < 1e-3 && !feet && !arm && !grip) return;
   rig.model.updateWorldMatrix(true, true);   // (the bones as the clips just put them)
   keep(rig);
   if (rig.w.look >= 1e-3) lookAt(rig, bodyYaw);
   if (feet) plantFeet(rig, ground, base, dt);
   if (arm) reachFor(rig, reach.at, reach.w * weight);
+  if (grip) rig.arms.forEach((c, i) => {
+    const g = grips[i], w = (g?.w ?? 0) * weight;
+    if (w > 1e-3) solveTwo(c, _v.copy(endOf(c, _c)).lerp(g.at, w), false);
+  });
 }
 
 // the head turned (additively: on top of the clip) towards rig.yaw, rig.pitch from the body's

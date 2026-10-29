@@ -515,7 +515,20 @@ The other kinds: [sword](img/loadout-sword.jpg),
   (`physics/fluid.js swum`), slowing the strokes like his mud slows a wader; Slomo's slime is not.
 - **Out of the water**: a swimmer (or one wading at least `WADE_CLIMB` deep) steps up onto a bank
   up to `SWIM_STEP` (1.1) over the feet: a level over the water's surface. Under a bridge they swim
-  on (a structure only a plain step over the feet), if its deck leaves room for the head. A ladder
+  on (a structure only a plain step over the feet), if its deck leaves room for the head. Onto a
+  bank more than a plain step (`STEP`) over the feet they **climb out** (`game/swimout.js`, the
+  `SwimOut` clip of `blender/character.py`): the body is put where the clip's feet end up on the
+  bank, turned to its edge, and drawn coming out of the water, morphing from the swimming pose: the
+  fists onto the edge, pull up and press, a knee up, the feet onto the bank, stand (about a second,
+  `SWIM_OUT_SPEED`). The clip is made for one bank (a level over the water's surface, the feet half a
+  unit under it); IK fits it to the real one ([Posing by IK](#posing-by-ik)): for a lower bank the
+  body is drawn higher while it is in the water, the fists hold on to the real edge (across from the
+  body, on the ground there, however high or far the clip has them), the feet stand on the real bank
+  once the knee is up. Water drips off the body and rings spread where it comes out. Moving on
+  towards the bank (or not at all) lets it play out, and once the feet are on the bank any moving
+  ends it; moving more than 60 degrees away cuts it short: back into the water while the body is
+  not up yet and the way leads back, else on from the bank. Coming out, the feet leave wet prints
+  for a while, fainter as they dry (brown out of Sollmeldon's mud: `render/footprints.js`). A ladder
   out of the water (`wet`, [world.md](world.md#the-way-down-cubegenroutejs-cubegenreachjs-cubegenescapejs))
   is taken hold of swimming. The generator gives every water a way out; where a standing water (a
   trial's, a boss's) leaves none (`physics/swimout.js wayOut`, looked for twice a second), the robot
@@ -616,7 +629,8 @@ In the game, IK is laid over the clips every frame (`src/render/ik.js`; which bo
 creature look, stand and reach in `src/render/rigs.js`): heads (and eyes) turn towards what they
 look at (an enemy at the hero once it noticed them, the hero at the enemy they fight, villagers and
 the robot at the hero), each foot stands on the ground under it (stairs, slopes, ledges: the hips
-go down for the lower foot), and a claw reaches for the hero round a melee hit. A foot the clip has
+go down for the lower foot), a claw reaches for the hero round a melee hit, and the hero's fists
+hold on to a bank's edge as they climb out of the water (`grips`). A foot the clip has
 down is **held** where it came down (foot locking): turning on the spot, tracking the hero in an
 attack or shoved, a body no longer skates over its feet; a held foot too far from where the clip
 has it takes a step of its own, while the other feet stand. Only near the hero, in the cube being

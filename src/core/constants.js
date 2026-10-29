@@ -55,6 +55,9 @@ export const HEAD_Y = 0.79, WADE_SLOW = 0.45;
 // deep, the body climbs out as a swimmer does (SWIM_STEP).
 // learn: physics.html#walls (see learn/README.md)
 export const SWIM_DEPTH = 0.6, SWIM_FEET = 0.5, WADE_CLIMB = 0.3;
+// climbing out onto a bank more than a STEP over the feet plays its clip this much faster than made
+// (game/swimout.js, blender/character.py SwimOut)
+export const SWIM_OUT_SPEED = 1.2;
 // learn: animation.html#mixing, code.html#names, physics.html#adding (see learn/README.md)
 export const WALK_SPEED = 1.9, RUN_SPEED = 2.8, SWIM_SPEED = 1.2;
 export const CLIMB_SPEED = 1.7;   // up and down ladders (physics/climb.js)

@@ -50,6 +50,8 @@ export const RIGS = {
     legs: range(6, i => [`tentacle${i}.2`, `tentacle${i}.3`, `tentacle${i}.4`]) },
 };
 // the human figure (assets/character.glb): the hero, the villagers, the people out in the world
-export const FIGURE_RIG = { look: [['spine', 0.3], ['head', 0.7]], legs: legs(), limits: { yaw: 1.2, pitch: 0.5 } };
+// (its arms, left then right, for the hero's grips: render/animator.js)
+export const FIGURE_RIG = { look: [['spine', 0.3], ['head', 0.7]], legs: legs(), arms: arms('upper_arm', 'forearm', 'hand'),
+  limits: { yaw: 1.2, pitch: 0.5 } };
 // the robot: its eyes, and its whole body leaning a little
 export const ROBOT_RIG = { look: [['body', 1]], eyes: EYES, limits: { yaw: 0.5, pitch: 0.35, eyes: 0.5 } };

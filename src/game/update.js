@@ -10,6 +10,7 @@ import { checkPortals } from './portals.js';
 import { knockDown, stepRagdoll, tickGetUp } from './ragdoll.js';
 import { tickRescue } from './rescue.js';
 import { tickSwim } from './swim.js';
+import { beforeStep, noticeSwimOut, holdSwimOut } from './swimout.js';
 import { tickHeld } from './grab.js';
 import { tickTwirl } from './twirl.js';
 import { tickEngulf, holdInside } from './engulf.js';
@@ -82,6 +83,9 @@ export function updatePlayer(dt) {
   // on a ladder (a mouse order takes hold of none but its own, and climbs on unless the jump key lets go)
   if (!engulfed && climb(dt, dx, dz, jump, order ? order.ladder ?? null : undefined)) { cancelSword(); if (!order || jumpKey) clearOrder(); return; }
   if (iceStep(dt, dx, dz)) { cancelSword(); return; }   // on a slide puzzle's ice (game/trials.js)
+  // climbing out of the water onto a bank (game/swimout.js): it holds the body, unless they move
+  // away from the bank (or jump), which cuts it short
+  if (player.swimOut && holdSwimOut(dt, dx, dz, jump)) { dx = dz = 0; jump = false; }
   // Attacks plant you: no walking until the blade went through (the shot left), then moving
   // cuts the rest short
   const s = player.sword;
@@ -90,7 +94,9 @@ export function updatePlayer(dt) {
     else [dx, dz] = lunge(s);
   }
   // always run (mouse orders too), unless Ctrl is held (but for an order's jump) or a swing plants the feet
+  const before = beforeStep();
   const gr = movePlayer(dt, dx, dz, (order?.run || !wantsWalk()) && !s.active, jump);
+  noticeSwimOut(before);   // (out of the water onto a bank: game/swimout.js)
   holdInside();   // (still inside a Bolime: kept in it)
   updateLayer(gr);
   if (unstick(dt)) return;   // wedged in something: out onto the nearest free spot (physics/unstuck.js)

@@ -38,7 +38,7 @@ export async function warmCube(c) {
   scene.remove(world.group);   // never drawn
   const enemies = enemyWarmup(kindsIn(c.map));
   try {
-    await warm([world.group, ...proxyWarmup(c.geo, shownFar(c.map)), ...enemies.objects, ...lootWarmup(c.map.enemyFree ? [] : coins), ...warmBake(), ...flameWarmup(), ...markerWarmup(), ...introWarmup(c.map), ...cellWarmup(), ...themeOf(c.map).mire ? footprintWarmup() : [], ...themeOf(c.map).meteors ? meteorWarmup() : []]);
+    await warm([world.group, ...proxyWarmup(c.geo, shownFar(c.map)), ...enemies.objects, ...lootWarmup(c.map.enemyFree ? [] : coins), ...warmBake(), ...flameWarmup(), ...markerWarmup(), ...introWarmup(c.map), ...cellWarmup(), ...footprintWarmup(), ...themeOf(c.map).meteors ? meteorWarmup() : []]);
   } finally {
     disposeWorld(world);
     enemies.dispose();

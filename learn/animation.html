@@ -21,8 +21,8 @@
       <p class="lead" lang="de">Das Modell des Helden hat ein Skelett: unsichtbare Knochen darin. Dreh einen Knochen, und die Haut drumherum folgt.</p>
       <p lang="en">An animation, called a <a class="w" href="words.html#clip">clip</a>, is a list of poses: where every bone points, 30 times a second. Play them one after another, and the hero walks. Like a flipbook again, but for bones.</p>
       <p lang="de">Eine Animation, ein sogenannter <a class="w" href="words.html#clip">Clip</a>, ist eine Liste von Posen: wohin jeder Knochen zeigt, 30-mal pro Sekunde. Spiel sie nacheinander ab, und der Held läuft. Wieder wie ein Daumenkino, aber für Knochen.</p>
-      <p lang="en">The hero has a whole set of clips: standing, walking, running, jumping, falling, landing, swimming, climbing, skidding on ice, swinging the sword, getting up...</p>
-      <p lang="de">Der Held hat einen ganzen Satz Clips: Stehen, Gehen, Rennen, Springen, Fallen, Landen, Schwimmen, Klettern, Schlittern auf Eis, Schwerthieb, Aufstehen...</p>
+      <p lang="en">The hero has a whole set of clips: standing, walking, running, jumping, falling, landing, swimming, climbing out of the water, climbing, skidding on ice, swinging the sword, getting up...</p>
+      <p lang="de">Der Held hat einen ganzen Satz Clips: Stehen, Gehen, Rennen, Springen, Fallen, Landen, Schwimmen, aus dem Wasser Klettern, Klettern, Schlittern auf Eis, Schwerthieb, Aufstehen...</p>
       <a class="portal" href="art.html#bones" lang="en">How bones and clips are made</a>
       <a class="portal" href="art.html#bones" lang="de">Wie Knochen und Clips gemacht werden</a>
     </div>
@@ -106,6 +106,7 @@
         <tr><td><code>swim</code></td><td lang="en">in water: treading water, or paddling (mixed by speed)</td> <td lang="de">im Wasser: Wasser treten oder paddeln (nach Tempo gemischt)</td></tr>
         <tr><td><code>climb</code></td><td lang="en">on a ladder; the cycle runs backwards going down</td> <td lang="de">auf einer Leiter; beim Runtergehen läuft der Zyklus rückwärts</td></tr>
         <tr><td><code>skid</code></td><td lang="en">sliding over a puzzle's ice: side-on, arms out</td> <td lang="de">über das Eis eines Rätsels rutschen: seitlich, Arme ausgestreckt</td></tr>
+        <tr><td><code>swimOut</code></td><td lang="en">out of the water onto a bank: hands on its edge, pull up, a knee up, stand</td> <td lang="de">aus dem Wasser ans Ufer: die Hände auf die Kante, hochziehen, ein Knie hoch, aufstehen</td></tr>
         <tr><td><code>hang</code></td><td lang="en">the robot carries you out of lava: hanging from it by both hands, legs dangling</td> <td lang="de">der Roboter trägt dich aus der Lava: an beiden Händen an ihm hängend, die Beine baumeln</td></tr>
       </table>
     </div>
@@ -153,8 +154,8 @@
     <div>
       <p lang="en">You can hear the hero walk. When does a step sound? Not on a timer: then the sound would drift away from the feet.</p>
       <p lang="de">Du hörst den Helden gehen. Wann klingt ein Schritt? Nicht nach einer Uhr: Dann würde der Klang von den Füßen wegdriften.</p>
-      <p lang="en">The game measured in the clips <i>where</i> in the cycle each foot touches the ground. Every frame, it checks: did the cycle just pass a foot's touchdown? Then a step plays, made for the ground under that foot: grass, stone, wood, snow, mud. On the slime of the Slime marsh the foot also leaves a wet print right there.</p>
-      <p lang="de">Das Spiel hat in den Clips gemessen, <i>wo</i> im Zyklus jeder Fuß den Boden berührt. In jedem Bild prüft es: Ist der Zyklus gerade an der Landung eines Fußes vorbeigekommen? Dann spielt ein Schritt, passend zum Boden unter diesem Fuß: Gras, Stein, Holz, Schnee, Matsch. Auf dem Schleim im Schleimsumpf hinterlässt der Fuß dort auch einen nassen Abdruck.</p>
+      <p lang="en">The game measured in the clips <i>where</i> in the cycle each foot touches the ground. Every frame, it checks: did the cycle just pass a foot's touchdown? Then a step plays, made for the ground under that foot: grass, stone, wood, snow, mud. On the slime of the Slime marsh the foot also leaves a wet print right there, and so it does for a while after you come out of the water, fainter as your feet dry.</p>
+      <p lang="de">Das Spiel hat in den Clips gemessen, <i>wo</i> im Zyklus jeder Fuß den Boden berührt. In jedem Bild prüft es: Ist der Zyklus gerade an der Landung eines Fußes vorbeigekommen? Dann spielt ein Schritt, passend zum Boden unter diesem Fuß: Gras, Stein, Holz, Schnee, Matsch. Auf dem Schleim im Schleimsumpf hinterlässt der Fuß dort auch einen nassen Abdruck, und das tut er auch eine Weile, nachdem du aus dem Wasser gekommen bist, immer schwächer, während deine Füße trocknen.</p>
       <p lang="en">That's why the footsteps are updated right <i>after</i> the animation in the conductor's list: they listen to the cycle the animator just moved.</p>
       <p lang="de">Darum werden die Schritte in der Liste des Dirigenten direkt <i>nach</i> der Animation aktualisiert: Sie hören auf den Zyklus, den der Animator gerade weitergeschoben hat.</p>
     </div>
@@ -206,8 +207,8 @@
       <p lang="en">A long list of <code>if</code>s, read from top to bottom. Later ones can change what earlier ones decided, so the order matters:</p>
       <p lang="de">Eine lange Liste von <code>if</code>s, von oben nach unten gelesen. Spätere können ändern, was frühere entschieden haben, darum ist die Reihenfolge wichtig:</p>
       <ul class="small">
-        <li lang="en">Being carried by the robot comes first and wins over everything; then a ladder.</li>
-        <li lang="de">Vom Roboter getragen werden kommt zuerst und gewinnt gegen alles; dann eine Leiter.</li>
+        <li lang="en">Being carried by the robot comes first and wins over everything; then climbing out of the water; then a ladder.</li>
+        <li lang="de">Vom Roboter getragen werden kommt zuerst und gewinnt gegen alles; dann aus dem Wasser klettern; dann eine Leiter.</li>
         <li lang="en">Right after it, skidding: while the hero slides over the ice, nothing else counts.</li>
         <li lang="de">Gleich danach das Schlittern: Solange der Held über das Eis rutscht, zählt nichts anderes.</li>
         <li lang="en"><code>p.jumpCount !== seen.jump</code>: the body counts its jumps, the animation remembers the last count it saw. Different? A new jump happened.</li>

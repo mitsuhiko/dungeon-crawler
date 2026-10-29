@@ -2,7 +2,8 @@
 // (measured from the clips, render/character.js), on the surface underfoot (core/footing.js),
 // and a heavier one on landing. On a ladder each hand and foot knocks on its rung (or scuffs in
 // its hold, rustles its vines ...) as the climb cycle (up or down) passes its grip. The sounds are audio/footsteps.js.
-// On slime each step leaves a wet print (render/footprints.js).
+// On slime each step leaves a wet print (render/footprints.js), and so does each for a while after
+// coming out of the water (or Sollmeldon's mud), fainter step by step as the feet dry.
 import { player, state } from './state.js';
 import { character } from '../render/character.js';
 import { blend, W } from '../render/blendtree.js';
@@ -12,8 +13,14 @@ import { themeOf } from '../themes/depth.js';
 import { LADDER_STYLES } from '../themes/builds.js';
 import { footprint } from '../render/footprints.js';
 import { groundAt } from '../physics/collide.js';
+import { standingAt } from '../physics/fluid.js';
+import { MUD } from '../core/constants.js';
 
 let prev = null, prevClimb = null, landCount = 0, surface = null;
+// how wet the feet still are (1: just out of the water, 0: dry), what with ('wet', 'mud': render/
+// footprints.js), since when
+const DRIP = 6;   // s until they are dry
+let wet = 0, soaked = 'wet', soakedAt = 0;
 
 const ahead = (from, to) => ((to - from) % 1 + 1) % 1;   // how far forwards round the cycle
 const mixPhase = (a, b, t) => (a + (((b - a) % 1 + 1.5) % 1 - 0.5) * t + 1) % 1;
@@ -40,15 +47,29 @@ function climbing() {
   else if (passed(hand)) footstep(sound, 'walk', { volume: 0.7 });
 }
 
+// the feet in the water (swimming, wading) soak; out of it they dry
+function soak(p) {
+  const dt = Math.max(0, state.time - soakedAt);
+  soakedAt = state.time;
+  if (p.swimming || p.wade > 0.02) { wet = 1; soaked = (p.swimming ? p.swimLook : standingAt(p.x, p.z)?.look) === MUD ? 'mud' : 'wet'; }
+  else wet = Math.max(0, wet - dt / DRIP);
+}
+// a print of the foot `side` coming down where the hero stands on `s` (its surface)
+function print(p, s, side) {
+  if (s === 'slime') footprint(p.x, p.y, p.z, p.yaw, side);   // (render/footprints.js)
+  else if (wet > 0 && !(p.wade > 0)) footprint(p.x, p.y, p.z, p.yaw, side, 1, soaked, wet);
+}
+
 export function updateFootsteps() {
   const p = player;
   if (!character.ready || !state.map) return;
+  soak(p);
   climbing();
   if (p.landCount !== landCount) {
     landCount = p.landCount;
     const s = !p.swimming && underfoot();
     if (s) footstep(s, p.landImpact > 3 ? 'land' : 'walk', { volume: Math.min(1, 0.4 + p.landImpact / 10) });
-    if (s === 'slime') { footprint(p.x, p.y, p.z, p.yaw, -1); footprint(p.x, p.y, p.z, p.yaw, 1); }   // (both feet)
+    if (s && !p.swimming) { print(p, s, -1); print(p, s, 1); }   // (both feet)
   }
   const last = prev, moving = W.walk + W.run;
   prev = blend.phase;
@@ -61,7 +82,7 @@ export function updateFootsteps() {
     if (at <= 0 || at > moved) continue;
     const s = underfoot();
     if (s) footstep(s, blend.run > 0.5 ? 'run' : 'walk', { volume: 0.5 + 0.5 * Math.min(1, moving) });
-    if (s === 'slime') footprint(p.x, p.y, p.z, p.yaw, i ? 1 : -1);   // a wet print where the foot came down (render/footprints.js)
+    print(p, s, i ? 1 : -1);   // a wet print where the foot came down
   }
 }
 

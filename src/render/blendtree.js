@@ -3,15 +3,15 @@
 // ladders use a reversible, distance-driven climb cycle; jump / fall / land / sit are one-shots;
 // sliding on a slide puzzle's ice (player.skidding, game/trials.js) skids; carried off by the robot
 // (player.rescue, game/rescue.js) the hero hangs from it by the hands, treading the fluid until it
-// comes.
+// comes; climbing out of the water onto a bank (player.swimOut, game/swimout.js) plays its clip.
 import { WALK_SPEED, RUN_SPEED, WALK_ANIM, RUN_ANIM, SWIM_SPEED, SIT_IMPACT } from '../core/constants.js';
 import { clamp } from '../core/util.js';
 import { player } from '../game/state.js';
 import { character } from './character.js';
 
-export const W = { idle: 1, walk: 0, run: 0, swimIdle: 0, swim: 0, skid: 0, climb: 0, jump: 0, fall: 0, land: 0, sit: 0, hang: 0 };
+export const W = { idle: 1, walk: 0, run: 0, swimIdle: 0, swim: 0, swimOut: 0, skid: 0, climb: 0, jump: 0, fall: 0, land: 0, sit: 0, hang: 0 };
 // learn: animation.html#modes (see learn/README.md)
-const RATE = { loco: 10, swim: 6, skid: 16, climb: 14, jump: 18, fall: 7, land: 20, sit: 14, hang: 9 };   // cross-fade speeds
+const RATE = { loco: 10, swim: 6, swimOut: 40, skid: 16, climb: 14, jump: 18, fall: 7, land: 20, sit: 14, hang: 9 };   // cross-fade speeds
 const seen = { jump: 0, land: 0 };
 let mode = 'loco', modeT = 0, phase = 0, swimPhase = 0, climbPhase = 0, slow = 0;
 // stretch: stride stretch for the walk / run cycle; phase: where in that cycle, run: how much
@@ -35,6 +35,14 @@ function nextMode(dt, speed) {
     return;
   }
   if (mode === 'hang') { mode = 'land'; modeT = 0; seen.land = p.landCount; }
+  // Out of the water onto a bank: its clip (the animator morphs into it from the swimming pose)
+  if (p.swimOut) {
+    if (mode !== 'swimOut') modeT = 0;
+    mode = 'swimOut'; slow = 0;
+    seen.jump = p.jumpCount; seen.land = p.landCount;
+    return;
+  }
+  if (mode === 'swimOut') { mode = p.swimming ? 'swim' : p.grounded ? 'loco' : 'fall'; modeT = 0; }
   // A ladder grab takes priority over landing / recovery; stationary climbing holds a grip.
   if (p.climb) {
     if (mode !== 'climb') { climbPhase = 0; modeT = 0; }
@@ -98,6 +106,7 @@ export function updateBlend(dt, speed, time) {
   A.skid.time = time % dur('skid');
   A.hang.time = time % dur('hang');
   A.climb.time = climbPhase * dur('climb');
+  if (player.swimOut) A.swimOut.time = Math.min(player.swimOut.at, dur('swimOut'));
   if (mode === 'jump') A.jump.time = Math.min(modeT * 1.4, dur('jump'));
   A.fall.time = dur('fall') * (0.5 + 0.5 * Math.sin(time * 3));
   if (mode === 'land') A.land.time = Math.min(modeT, dur('land'));

@@ -72,7 +72,7 @@ export const equippedInstance = p => p.inventory ? equippedItem(p.inventory) : {
 export const equippedWeapon = p => ITEMS[equippedInstance(p)?.itemId] || null;
 // the kind of weapon p fights with (what loot leans towards, core/gear/bases.js), or null
 export const favoredKind = p => equippedWeapon(p)?.weapon?.kind ?? null;
-export const canChangeWeapon = p => !p.sword.active && !p.ragdoll && !p.climb && !p.swimming && p.stun <= 0 && p.hp > 0;
+export const canChangeWeapon = p => !p.sword.active && !p.ragdoll && !p.climb && !p.swimming && !p.swimOut && p.stun <= 0 && p.hp > 0;
 // the flask p holds ready to throw, if any
 export const readiedFlask = p => p.inventory ? readiedItem(p.inventory) : null;
 // null without a weapon (or a flask in hand): no attacks at all. Haste (attackSpeed) shortens
@@ -124,7 +124,7 @@ export function cancelSwing(p, resetCooldown = false) {
 // a new swing may start when idle, or once the current one reaches its chain point (cool)
 export function startSwing(p, yaw = p.yaw) {
   const s = p.sword, stats = combatStats(p);
-  if (!stats || s.cool > 0 || p.ragdoll || p.swimming || p.climb || p.stun > 0 || p.hp <= 0) return false;
+  if (!stats || s.cool > 0 || p.ragdoll || p.swimming || p.swimOut || p.climb || p.stun > 0 || p.hp <= 0) return false;
   // Snapshot this swing: a level-up or later equipment change cannot alter a hit midway.
   Object.assign(s, { chained: s.active, active: true, t: 0, cool: stats.chain, yaw, serial: s.serial + 1, stats, fired: false, ball: 0 });
   s.hits.clear();

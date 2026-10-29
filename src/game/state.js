@@ -32,6 +32,7 @@ export const player = {
   // event counters the animator watches
   jumpCount: 0, landCount: 0, landImpact: 0,
   ragdoll: null, getUp: null,   // getting up after a ragdoll (game/ragdoll.js)
+  swimOut: null,   // climbing out of the water onto a bank (game/swimout.js)
   ragdollThen: null, climb: null, climbV: 0,
   safe: { x: 0, y: 0, z: 0 }, safeTimer: 0,
   autoDir: null,   // overrides the movement keys (used by test bots)

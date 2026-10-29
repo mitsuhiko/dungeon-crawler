@@ -7,6 +7,8 @@ end in the neutral standing pose so they can be cross-faded from anything):
     Run          -- loop, 20 frames @ 30 fps, ground speed RUN_SPEED (extras: speed)
     Swim         -- loop, doggy paddle at SWIM_SPEED (extras: speed, water_level)
     SwimIdle     -- loop, treading water (extras: water_level)
+    SwimOut      -- out of the water onto a bank: fists onto its edge, pull up, press, a knee up,
+                    the feet onto it, stand (extras: rise, edge, grip_*, the times; src/game/swimout.js)
     Skid         -- loop, sliding on ice: side-on, knees bent, arms out, wobbling
     Climb        -- loop, alternating ladder grips / steps (extras: distance, speed)
     Hang         -- loop, hanging by both hands from the robot as it carries the hero out of a
@@ -1616,6 +1618,85 @@ def make_hang_animation(rig):
     return bake_action(rig, "Hang", frames, True, {"grip": round(HANG_GRIP.z * GAME_SCALE, 4)})
 
 
+# ----------------------------------------------------------------------------
+# climbing out of the water onto a bank (src/game/swimout.js).  The clip is made
+# for a bank SWIM_OUT_RISE over the feet (game units: a bank a level over the
+# water's surface, the feet half a unit under it), its edge SWIM_OUT_EDGE behind
+# where the feet end up (the clip's origin, on the bank); the game moves the body
+# down for a lower bank until the knee is up, and holds the fists on the real
+# edge and the feet on the real bank by IK (src/render/ik.js grips, plantFeet).
+# ----------------------------------------------------------------------------
+SWIM_OUT_RISE = 1.0 / GAME_SCALE
+SWIM_OUT_EDGE = 0.5
+SWIM_OUT_GRIP = Vector((0.32, SWIM_OUT_EDGE - 0.10, 0.10))   # the left fist (the right mirrors it): on the bank, inside its edge
+SWIM_OUT_T = {"grab": 0.25, "pull": 0.42, "push": 0.62, "release": 0.80, "knee": 0.82, "step": 1.05,
+              "stand": 1.25, "end": 1.32}
+
+
+def make_swim_out_animation(rig):
+    """Out of the water onto a bank at chin height: kick up and reach both fists onto its edge,
+    pull up and press on straight arms, the right knee up and its foot planted on the edge, let
+    go, the body over it, the left foot up beside it, and stand. Analytic IK (no arm springs:
+    the fists hold on where they grip)."""
+    skel = Skeleton(rig)
+    T, R, E, X = SWIM_OUT_T, SWIM_OUT_RISE, SWIM_OUT_EDGE, figure.LEG_X
+    bed = -R
+    hips = keyframes((0.0, Vector((0, E + 0.40, bed + STAND_Z - 0.02))), (T["grab"], Vector((0, E + 0.34, bed + STAND_Z + 0.22))),
+                     (T["pull"], Vector((0, E + 0.36, -0.40))), (T["push"], Vector((0, E + 0.25, 0.10))),
+                     (T["knee"], Vector((0, E + 0.05, 0.30))), (T["step"], Vector((0, 0.18, 0.46))),
+                     (T["stand"], Vector((0, 0, STAND_Z))))
+    pitch = keyframes((0.0, 0.0), (T["grab"], D(8)), (T["pull"], D(16)), (T["push"], D(25)),
+                      (T["knee"], D(42)), (T["step"], D(24)), (T["stand"], 0.0))
+    lean = keyframes((0.0, 0.0), (T["pull"], D(4)), (T["push"], D(6)), (T["knee"], D(8)), (T["stand"], 0.0))
+    # the head from straight up, forward > 0: looking up at the edge, then down onto the bank
+    nod = keyframes((0.0, D(-12)), (T["grab"], D(-18)), (T["push"], D(20)), (T["knee"], D(34)),
+                    (T["step"], D(16)), (T["stand"], 0.0))
+    # each foot: hanging under the hips, kicking, until it comes up onto the bank in an arc over
+    # its edge (the right one first, its knee up on the edge, then a little step forward)
+    steps = {"R": [(T["push"] - 0.06, T["knee"], Vector((-X, E - 0.20, 0.0)), 0.35),
+                   (T["step"] + 0.02, T["stand"], Vector((-X, 0.0, 0.0)), 0.08)],
+             "L": [(T["release"], T["step"] + 0.04, Vector((X, 0.0, 0.0)), 0.35)]}
+    frames = []
+    for f in range(int(round(T["end"] * FPS)) + 1):
+        t = f / FPS
+        ps, bs = {}, {}
+        bs["root"] = skel.set("root", ps, skel.base("root", ps))
+        a = pitch(t)
+        bs["hips"] = skel.set("hips", ps, Matrix.Translation(hips(t)) @ (rot_x(a) @ skel.rest_rot["hips"]).to_4x4())
+        bs["spine"] = skel.aim("spine", ps, rot_x(a + lean(t)) @ Vector((0, 0, 1)))
+        bs["head"] = skel.aim("head", ps, rot_x(nod(t)) @ Vector((0, 0, 1)))
+        for side, s in (("L", 1), ("R", -1)):
+            # the fists: sculling low in front of the chest, up onto the edge, holding on, let go
+            # and hanging by the sides
+            shoulder = skel.base(f"upper_arm.{side}", ps).translation
+            grip = Vector((s * SWIM_OUT_GRIP.x, SWIM_OUT_GRIP.y, SWIM_OUT_GRIP.z))
+            low, hang = shoulder + Vector((s * 0.06, -0.28, -0.42)), shoulder + Vector((s * 0.06, 0.02, -0.66))
+            if t < T["grab"]:
+                hand = low.lerp(grip, smoothstep(0.08, T["grab"], t))
+            else:
+                hand = grip.lerp(hang, smoothstep(T["release"], T["stand"] - 0.1, t))
+            hold = smoothstep(0.08, T["grab"], t) * (1 - smoothstep(T["release"], T["stand"] - 0.1, t))
+            pole = Vector((s * 1.0, 0.3, -0.4)).lerp(Vector((s * 1.0, 0.7, -0.1)), hold)
+            elbow, fist = two_bone_ik(shoulder, hand, figure.UPPER_ARM_LEN, figure.FOREARM_LEN, pole)
+            bs[f"upper_arm.{side}"] = skel.aim(f"upper_arm.{side}", ps, elbow - shoulder)
+            bs[f"forearm.{side}"] = skel.aim(f"forearm.{side}", ps, fist - elbow)
+            hip = skel.base(f"thigh.{side}", ps).translation
+            kick = math.sin(2 * math.pi * 2.2 * t + (0 if s > 0 else math.pi))
+            foot = hip + rot_x(a * 0.4) @ Vector((0, 0.10 + 0.08 * kick, -(LEG_LEN - 0.04)))
+            for t0, t1, to, arc in steps[side]:
+                u = smoothstep(t0, t1, t)
+                foot = foot.lerp(to, u) + Vector((0, 0, arc * math.sin(math.pi * u)))
+            knee, sole = two_bone_ik(hip, foot, THIGH_LEN, SHIN_LEN, Vector((0, -1, 0.2)))
+            bs[f"thigh.{side}"] = skel.aim(f"thigh.{side}", ps, knee - hip)
+            bs[f"shin.{side}"] = skel.aim(f"shin.{side}", ps, sole - knee)
+        frames.append(bs)
+    g = GAME_SCALE
+    return bake_action(rig, "SwimOut", frames, False, {
+        "rise": round(R * g, 4), "edge": round(E * g, 4), "grip_x": round(SWIM_OUT_GRIP.x * g, 4),
+        "grip_in": round((E - SWIM_OUT_GRIP.y) * g, 4), "grip_up": round(SWIM_OUT_GRIP.z * g, 4),
+        **{k: v for k, v in T.items() if k != "end"}})
+
+
 def make_animations(rig, ob):
     skel = Skeleton(rig)
     cycles = 6
@@ -1709,6 +1790,7 @@ def make_animations(rig, ob):
 
     make_climb_animation(rig)
     make_hang_animation(rig)
+    make_swim_out_animation(rig)
     bake_action(rig, "Flex", [flex_pose(skel)], False)
 
 
@@ -1741,7 +1823,7 @@ def main(scene=None, export_path=None, active_action="Walk"):
     unwrap_character(ob)
 
     make_animations(rig, ob)
-    register_actions(rig, ("Walk", "Run", "Swim", "SwimIdle", "Skid", "Climb", "Hang", "Jump", "JumpLandSit",
+    register_actions(rig, ("Walk", "Run", "Swim", "SwimIdle", "SwimOut", "Skid", "Climb", "Hang", "Jump", "JumpLandSit",
                            "GetUpBack", "GetUpFront", "Kick", "Punch", "Pummel", "Slash", "Shoot", "CrossbowShot",
                            "Cast", "Throw", "HoldBow", "HoldCrossbow", "HoldStaff", "HoldThrow",
                            *("Hold" + k.capitalize() for k in CARRIES), "Roll", "Flex"))
