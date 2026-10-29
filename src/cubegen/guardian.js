@@ -116,7 +116,8 @@ function pondsWanted(spec) {
 // (`least`..`most`; smaller where that does not fit), or a boss's lagoon (pondsWanted), round, on about one level of the fight zone,
 // away from the doorways, the guardian's spot, the props that block and the ramps. Its surface lies
 // a level under the lowest floor round it and under its own, its bed two levels under that (too deep
-// to wade, as a pool's: cubegen/pools.js); what was put on it that does not block goes. What is
+// to wade, as a pool's: cubegen/pools.js; water is swum in, its banks a level over it at most where
+// they meet it); what was put on it that does not block goes. What is
 // left of the zone must still hold together and hold the rest of the population. false: no room
 // for one (the arena falls back to a plainer one; the plainest has none then, and the dwellers it
 // has no room for stay away, game/enemyspawn.js guardianSpots).
@@ -161,6 +162,19 @@ function digPonds(ctx, { floors, dress, shape }, frame, ends, need) {
   }
   for (const { fluid, cells, set, S, bed } of ponds) {
     for (const f of cells) Object.assign(f, { fluid, surf: S, top: bed, cs: Array(4).fill(bed * LH), split: f.c % 2 });
+    // water: its banks' corners at it no higher than a level over its surface, so a swimmer climbs
+    // out anywhere (physics/move.js SWIM_STEP; but where a pinned floor, a doorway's or the border's,
+    // shares the corner: it stays as its neighbours have it)
+    if (fluid === WATER) {
+      const around = (X, Z) => [[X - 1, Z - 1], [X, Z - 1], [X - 1, Z], [X, Z]].map(([x, z]) => at(x, z));
+      for (const g of floors) if (!set.has(g) && !g.fluid) {
+        g.cs = g.cs.map((v, k) => {
+          const near = around(g.x + (k & 1), g.z + (k >> 1));
+          return near.some(h => set.has(h)) && !near.some(h => h && (!h.arenaCell || h.prot)) ? Math.min(v, (S + 1) * LH) : v;
+        });
+        g.split = Math.abs(g.cs[0] - g.cs[3]) <= Math.abs(g.cs[1] - g.cs[2]) ? 0 : 1;
+      }
+    }
     for (const f of cells) DIRS.forEach(([dx, dz], d) => {
       const g = at(f.x + dx, f.z + dz);
       if (g && !set.has(g)) { f.link[d] = null; if (g.link[OPP[d]] === f) g.link[OPP[d]] = null; }

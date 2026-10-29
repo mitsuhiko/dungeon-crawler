@@ -45,7 +45,8 @@ export function updatePlayerBar(close = false, hidden = false) {
   group.visible = character.ready && character.group.visible && !hidden;   // (not in the main menu, nor in a boss's intro)
   if (!group.visible) return;
   if (close) onScreen();
-  else { group.position.set(player.x, player.visY + CHAR_H + 0.4, player.z); group.scale.setScalar(uiScale()); }   // (growing upwards from the bar)
+  // (growing upwards from the bar; over the robot while it carries them, game/rescue.js)
+  else { group.position.set(player.x, player.visY + CHAR_H + (player.rescue ? 1 : 0.4), player.z); group.scale.setScalar(uiScale()); }
   bars.quaternion.copy(camera.quaternion);
   hp.set(player.hp / player.maxHp);
   const p = xpProgress(player);

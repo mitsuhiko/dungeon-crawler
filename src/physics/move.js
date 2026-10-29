@@ -1,14 +1,16 @@
 // Character controller: walk / run / swim, jumping, gravity, ceilings and slopes.
-import { STEP, SWIM_STEP, GRAV, SNAP, STEEP, ACID, WALK_SPEED, RUN_SPEED, SWIM_SPEED, JUMP_V, RUN_RAMP, BRAKE, HEAD_Y, WADE_SLOW } from '../core/constants.js';
+import { STEP, GRAV, SNAP, STEEP, WALK_SPEED, RUN_SPEED, SWIM_SPEED, JUMP_V, RUN_RAMP, BRAKE, HEAD_Y, WADE_SLOW,
+  SWIM_DEPTH, SWIM_FEET } from '../core/constants.js';
 import { player, state } from '../game/state.js';
 import { groundAt, ceilingAt, slopeAt } from './collide.js';
-import { canMove } from './canmove.js';
+import { canMove, stepOf } from './canmove.js';
 import { moveFactor } from '../core/status.js';
 import { effectMod } from '../core/potions.js';
 import { wornTotals } from '../core/gear/stats.js';
 import { pushStep, pushControl } from '../core/gusts.js';
 import { surfaceAt, mireOf } from '../core/footing.js';
 import { themeById } from '../themes/depth.js';
+import { swimWater, wading } from './fluid.js';
 
 // how much faster the boots worn make you (not swimming)
 const feet = p => p.swimming ? 0 : wornTotals(p.inventory).moveSpeed / 100;
@@ -29,7 +31,7 @@ function horizontal(dt, dx, dz, run) {
   // an ice ball's chill or a slowing slows every way of moving (core/status.js moveFactor), a
   // swiftness potion quickens it (core/potions.js), and so do light boots (core/gear/stats.js),
   // wading the more the deeper the water (physics/hazards.js), and slime holds the feet (mired)
-  const speed = (p.swimming ? (p.fluid === ACID ? 0.6 : SWIM_SPEED) : run ? RUN_SPEED : WALK_SPEED) * moveFactor(p) * mired(p)
+  const speed = (p.swimming ? SWIM_SPEED : run ? RUN_SPEED : WALK_SPEED) * moveFactor(p) * mired(p)
     * (1 + effectMod(p, 'moveSpeed') + feet(p)) * (1 - WADE_SLOW * Math.min(1, (p.wade || 0) / HEAD_Y));
   let tx = dx * speed, tz = dz * speed;
   if (p.grounded && !p.swimming && p.support) {
@@ -112,6 +114,30 @@ function pulled(dt) {
   p.pull = null;
 }
 
+// the ground under the body for a step up of `step`, but a structure (a bridge, a stair) only a
+// plain step over its feet: a swimmer goes on under a bridge, not up through its deck
+function groundFor(p, step) {
+  const g = groundAt(p.x, p.z, p.y, step);
+  return g.s?.kind && g.h > p.y + STEP ? groundAt(p.x, p.z, p.y, STEP) : g;
+}
+
+// Swimming: the water holds the body with its feet SWIM_FEET under its surface, like a spring
+// (BUOY) that a plunge from the air sinks into a little (at most PLUNGE fast) and bobs back out
+// of; a rising or falling water (a tide) carries it along. Never below the bed.
+const BUOY = 45, DAMP = 9, PLUNGE = 3.5;
+function swim(dt, gr, water) {
+  const p = player;
+  if (!p.swimming) {   // into the water
+    p.swimming = true; p.grounded = false; p.climb = null;
+    p.plunge = -p.vy; p.splashCount = (p.splashCount || 0) + 1;   // (game/swim.js: the splash)
+    p.vy = Math.max(p.vy, -PLUNGE);
+  }
+  p.vy += ((water - SWIM_FEET - p.y) * BUOY - p.vy * DAMP) * dt;
+  p.y += p.vy * dt;
+  if (p.y < gr.h) { p.y = gr.h; p.vy = Math.max(0, p.vy); }
+  p.swimY = water;
+}
+
 // returns the ground info plus `landed` (impact speed of a landing this step, else 0)
 // learn: physics.html#walls (see learn/README.md)
 export function movePlayer(dt, dx, dz, run, jump) {
@@ -127,28 +153,33 @@ export function movePlayer(dt, dx, dz, run, jump) {
   if (p.pull) pulled(dt);
   jumping(dt, jump);
 
-  const gr = groundAt(p.x, p.z, p.y, p.swimming ? SWIM_STEP : STEP);
+  const gr = groundFor(p, stepOf(p));
   gr.landed = 0;
-  if (p.swimming) {
-    if (gr.h > p.y) p.y = gr.h;   // climbing out onto a bank
-    p.vy = 0;
-  } else if (p.grounded && p.vy <= 0 && gr.h >= p.y - SNAP) {
-    p.y = gr.h; p.vy = 0;
-  } else {
-    p.vy -= GRAV * dt;
-    let ny = p.y + p.vy * dt;
-    if (p.vy > 0) {   // bump the head
-      const c = ceilingAt(p.x, p.z, p.y + 0.1);
-      if (ny + p.h > c) { ny = Math.max(p.y, c - p.h); p.vy = 0; }
+  // the clear water deep enough to swim in here (a swimmer keeps on until the ground is under
+  // their feet again; one coming down into it starts once their feet are at swimming height)
+  const water = swimWater(gr, p.swimming ? SWIM_FEET - 0.02 : SWIM_DEPTH);
+  if (water !== null && (p.swimming || (p.vy <= 0 && p.y <= water - SWIM_FEET + 0.02))) swim(dt, gr, water);
+  else {
+    p.swimming = false;
+    if (p.grounded && p.vy <= 0 && gr.h >= p.y - SNAP) {
+      p.y = gr.h; p.vy = 0;
+    } else {
+      p.vy -= GRAV * dt;
+      let ny = p.y + p.vy * dt;
+      if (p.vy > 0) {   // bump the head
+        const c = ceilingAt(p.x, p.z, p.y + 0.1);
+        if (ny + p.h > c) { ny = Math.max(p.y, c - p.h); p.vy = 0; }
+      }
+      if (ny <= gr.h) {
+        gr.landed = -p.vy;
+        p.landImpact = gr.landed; p.landCount++;
+        p.y = gr.h; p.vy = 0; p.grounded = true;
+      } else { p.y = ny; p.grounded = false; }
     }
-    if (ny <= gr.h) {
-      gr.landed = -p.vy;
-      p.landImpact = gr.landed; p.landCount++;
-      p.y = gr.h; p.vy = 0; p.grounded = true;
-    } else { p.y = ny; p.grounded = false; }
   }
   p.airTime = p.grounded || p.swimming ? 0 : p.airTime + dt;
   p.support = gr.s;
+  p.wade = p.grounded ? wading(gr, p.y) : 0;   // (how deep it wades: slower, and it climbs out as a swimmer does)
   return gr;
 }
 

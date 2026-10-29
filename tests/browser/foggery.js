@@ -3,10 +3,11 @@
 // bridge, the lava rises and he climbs his tower; at a third he curls up into his ball and his
 // Fire-cats guard him (nothing hurts him while one lives); once the lava is at its highest the
 // platforms rise out of it; at a sixth the lava floods the top and
-// only the platforms are safe; falling into the lava costs a quarter of one's health and magic
-// takes one out; his death drains the lava for good and opens the well. His Fire-cats leap after a
+// only the platforms are safe; falling into the lava costs a quarter of one's health and the robot
+// pulls one out; his death drains the lava for good and opens the well. His Fire-cats leap after a
 // player onto the platforms (and back down onto the top); his loot comes to rest on the ground
 // that stays, never on a platform or in the air.
+import { RESCUE } from '../../src/core/rescue.js';
 import { paused } from './combat.js';
 import { state, player } from '../../src/game/state.js';
 import { LH } from '../../src/core/constants.js';
@@ -154,11 +155,13 @@ export async function runFoggeryChecks() {
     check(moversNow().map(m => m.x0 + ',' + m.z0).join(' ') !== was, 'the platforms keep moving');
     check(lava() > TOWER.top * LH, 'the lava over the top: ' + lava());
     check(player.y > lava(), 'the player safe on a platform');
-    // into the lava: a quarter of one's health, and back onto safe ground
-    player.hp = player.maxHp = 400;
+    // into the lava: the robot pulls the player out, a quarter of one's health, onto safe ground
+    player.hp = player.maxHp = 400; player.god = false;   // (the dev tools start invincible)
     spawnAt(TOWER.mid + 0.5, lava() - 0.5, TOWER.mid + 0.5);
     run(0.2);
-    check(player.hp === 300 && player.y > lava(), `burned, and pulled out: ${player.hp} at ${player.y.toFixed(2)} (lava ${lava().toFixed(2)})`);
+    check(player.rescue && player.hp === 300, `burned, and the robot comes: ${player.hp}`);
+    run(RESCUE.reach + RESCUE.lift + RESCUE.carry[1] + 0.2);
+    check(!player.rescue && player.hp === 300 && player.y > lava() && player.grounded, `pulled out: ${player.hp} at ${player.y.toFixed(2)} (lava ${lava().toFixed(2)})`);
     out.push('lava rescue: 400 -> 300, onto a platform');
     tough();
     // his death drains the lava and opens the well

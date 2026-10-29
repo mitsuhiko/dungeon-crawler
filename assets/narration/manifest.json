@@ -3298,6 +3298,83 @@
         "dur": 4.58,
         "hash": "fe22d7c0c52c860c"
       },
+      "robot.swim.sink": {
+        "text": "You can swim! I cannot. I would sink like a stone. A shiny stone.",
+        "source": "You can swim! I cannot. I would sink like a stone. A shiny stone.",
+        "seed": 0,
+        "dur": 6.62,
+        "hash": "b24687a3e8b0af83"
+      },
+      "robot.swim.dry": {
+        "text": "Splash! Do not worry about me, I will stay up here where it is dry.",
+        "source": "Splash! Do not worry about me, I will stay up here where it is dry.",
+        "seed": 0,
+        "dur": 5.99,
+        "hash": "73aad8dae9d02e94"
+      },
+      "robot.swim.wait": {
+        "text": "If you cannot find a way out of the water, just wait. I will come and get you.",
+        "source": "If you cannot find a way out of the water, just wait. I will come and get you.",
+        "seed": 0,
+        "dur": 7,
+        "hash": "b60e91b5b866a9a5"
+      },
+      "robot.rescue.lava": {
+        "text": "Got you! Hot, hot, hot! Hold on to me!",
+        "source": "Got you! Hot, hot, hot! Hold on to me!",
+        "seed": 2,
+        "dur": 3.6,
+        "hash": "56b84378916a8530"
+      },
+      "robot.rescue.lava.wings": {
+        "text": "Out of the lava you come! My wings were not made for this, you know.",
+        "source": "Out of the lava you come! My wings were not made for this, you know.",
+        "seed": 0,
+        "dur": 4.64,
+        "hash": "5ead07e76f646a0a"
+      },
+      "robot.rescue.acid": {
+        "text": "Up you come! That green stuff ate a bit of you, I think.",
+        "source": "Up you come! That green stuff ate a bit of you, I think.",
+        "seed": 0,
+        "dur": 4,
+        "hash": "7f66360b4f775873"
+      },
+      "robot.rescue.mud": {
+        "text": "Hold on! Pull, pull... and out you pop!",
+        "source": "Hold on! Pull, pull... and out you pop!",
+        "seed": 0,
+        "dur": 3.99,
+        "hash": "1e404694733baa71"
+      },
+      "robot.rescue.slime": {
+        "text": "Eww, slime! Hold on, I have got you.",
+        "source": "Eww, slime! Hold on, I have got you.",
+        "seed": 0,
+        "dur": 3.96,
+        "hash": "69f6bb91ac2d9ccc"
+      },
+      "robot.rescue.water": {
+        "text": "No way out of there? Grab hold of me, I will fly you out.",
+        "source": "No way out of there? Grab hold of me, I will fly you out.",
+        "seed": 0,
+        "dur": 5.06,
+        "hash": "829b31862374a048"
+      },
+      "robot.rescue.tight": {
+        "text": "Hold on tight! And please do not look down.",
+        "source": "Hold on tight! And please do not look down.",
+        "seed": 0,
+        "dur": 3.85,
+        "hash": "d27bbfd80a0e7051"
+      },
+      "robot.rescue.good": {
+        "text": "Again? I am getting good at this.",
+        "source": "Again? I am getting good at this.",
+        "seed": 0,
+        "dur": 3.38,
+        "hash": "26982307166970dd"
+      },
       "robot.home.have-you": {
         "text": "Home! Well, your home. I do not have one, I have you.",
         "source": "Home! Well, your home. I do not have one, I have you.",
@@ -7030,6 +7107,83 @@
         "seed": 0,
         "dur": 4.76,
         "hash": "9008d949097612cc"
+      },
+      "robot.swim.sink": {
+        "text": "Du kannst schwimmen! Ich nicht. Ich würde sinken wie ein Stein. Ein glänzender Stein.",
+        "source": "Du kannst schwimmen! Ich nicht. Ich würde sinken wie ein Stein. Ein glänzender Stein.",
+        "seed": 0,
+        "dur": 8.14,
+        "hash": "772db90fce29bc74"
+      },
+      "robot.swim.dry": {
+        "text": "Platsch! Keine Sorge um mich, ich bleibe hier oben im Trockenen.",
+        "source": "Platsch! Keine Sorge um mich, ich bleibe hier oben im Trockenen.",
+        "seed": 0,
+        "dur": 4.67,
+        "hash": "ecab064b16aaa6fd"
+      },
+      "robot.swim.wait": {
+        "text": "Wenn du keinen Weg aus dem Wasser findest, warte einfach. Dann hole ich dich.",
+        "source": "Wenn du keinen Weg aus dem Wasser findest, warte einfach. Dann hole ich dich.",
+        "seed": 0,
+        "dur": 7.62,
+        "hash": "25493d940952cb04"
+      },
+      "robot.rescue.lava": {
+        "text": "Hab dich! Heiß, heiß, heiß! Halt dich an mir fest!",
+        "source": "Hab dich! Heiß, heiß, heiß! Halt dich an mir fest!",
+        "seed": 0,
+        "dur": 5.37,
+        "hash": "9e32f80599c8c5c6"
+      },
+      "robot.rescue.lava.wings": {
+        "text": "Raus aus der Lava mit dir! Meine Flügel sind dafür nicht gemacht, weißt du.",
+        "source": "Raus aus der Lava mit dir! Meine Flügel sind dafür nicht gemacht, weißt du.",
+        "seed": 0,
+        "dur": 6.73,
+        "hash": "69e2ce5c77aef417"
+      },
+      "robot.rescue.acid": {
+        "text": "Hoch mit dir! Das grüne Zeug hat ein Stück von dir gegessen, glaube ich.",
+        "source": "Hoch mit dir! Das grüne Zeug hat ein Stück von dir gegessen, glaube ich.",
+        "seed": 0,
+        "dur": 4.79,
+        "hash": "7c7e065f1f618359"
+      },
+      "robot.rescue.mud": {
+        "text": "Festhalten! Ziehen, ziehen... und plopp, bist du draußen!",
+        "source": "Festhalten! Ziehen, ziehen... und plopp, bist du draußen!",
+        "seed": 0,
+        "dur": 6.05,
+        "hash": "dfb10012a49542e5"
+      },
+      "robot.rescue.slime": {
+        "text": "Igitt, Schleim! Halt dich fest, ich hab dich.",
+        "source": "Igitt, Schleim! Halt dich fest, ich hab dich.",
+        "seed": 0,
+        "dur": 4.44,
+        "hash": "54acbbf445b6c4a7"
+      },
+      "robot.rescue.water": {
+        "text": "Kein Weg da raus? Halt dich an mir fest, ich fliege dich raus.",
+        "source": "Kein Weg da raus? Halt dich an mir fest, ich fliege dich raus.",
+        "seed": 0,
+        "dur": 5.7,
+        "hash": "f7b7a9d799414791"
+      },
+      "robot.rescue.tight": {
+        "text": "Gut festhalten! Und bitte nicht nach unten schauen.",
+        "source": "Gut festhalten! Und bitte nicht nach unten schauen.",
+        "seed": 0,
+        "dur": 5.12,
+        "hash": "c766d2467126eefb"
+      },
+      "robot.rescue.good": {
+        "text": "Schon wieder? Langsam werde ich richtig gut darin.",
+        "source": "Schon wieder? Langsam werde ich richtig gut darin.",
+        "seed": 0,
+        "dur": 4.4,
+        "hash": "11d6fd14359a8063"
       },
       "robot.home.have-you": {
         "text": "Zu Hause! Also, dein Zuhause. Ich habe keins, ich habe dich.",

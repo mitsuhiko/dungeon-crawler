@@ -14,7 +14,7 @@ import { effectMod } from '../core/potions.js';
 import { player, state } from '../game/state.js';
 import { groundAt } from './collide.js';
 import { movePlayer, landingSpeed, jumpPowers } from './move.js';
-import { wadeable } from './fluid.js';
+import { peril } from './fluid.js';
 
 const DT = 1 / 60, MAX_GAP = 3, SOFT = SIT_IMPACT * 0.95;   // (landing faster sits you down)
 const TAKEOFFS = [0.86, 0.76, 0.66, 0.56];   // where along the cell the jump goes off (its far edge at 1)
@@ -84,10 +84,11 @@ function holds(f, d, g, e, deadly) {
   return ways.every(w => trial(f, d, g, e, w));
 }
 
-// a gap's cell is deadly to fall into: nothing to land on, or a fluid that takes you
+// a gap's cell is deadly to fall into: nothing to land on, or a fluid that takes you (lava, acid:
+// water is swum in, physics/fluid.js peril)
 function deadly(x, z, y) {
   const gr = groundAt(x + 0.5, z + 0.5, y, 0);
-  return !gr.s || (gr.s.fluid && !wadeable(gr));
+  return !gr.s || !!peril(gr, gr.h + 0.01);
 }
 // visible fences (cliff fences: held up to their height) on the edges crossed; walking off a
 // ledge (`walk`), the invisible rails too

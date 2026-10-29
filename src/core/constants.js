@@ -34,7 +34,7 @@ export const edgePts = (x, z, d) => [
 
 // physics tuning
 export const STEP = 0.3;        // max ledge the character walks up without jumping
-export const SWIM_STEP = 1.1;   // climbing out of water is more generous
+export const SWIM_STEP = 1.1;   // climbing out of water is more generous: onto a bank a level over its surface
 // learn: physics.html#adding (see learn/README.md)
 export const GRAV = 22;
 export const SNAP = 0.25;       // stick to the ground when walking downhill
@@ -46,10 +46,17 @@ export const CHAR_R = 0.22;     // collision radius
 // learn: physics.html#adding (see learn/README.md)
 export const CHAR_H = 0.85;     // collision height
 // where the head starts over the feet: the rig's head bone (1.44 rig units up, blender/character.py)
-// at CHAR_SCALE. Water up to here is waded through (slowed by up to WADE_SLOW), deeper drowns.
+// at CHAR_SCALE. Water up to here is waded through (slowed by up to WADE_SLOW); the hero swims
+// before it gets that deep (SWIM_DEPTH), what cannot swim is lost in deeper water.
 export const HEAD_Y = 0.79, WADE_SLOW = 0.45;
+// Swimming (physics/move.js): clear water deeper than SWIM_DEPTH lifts the body off its feet, and it
+// swims with its feet SWIM_FEET under the surface (the Swim clips' water line, blender/character.py
+// WATER_Z, at CHAR_SCALE), until the ground comes up to them again. Wading at least WADE_CLIMB
+// deep, the body climbs out as a swimmer does (SWIM_STEP).
+// learn: physics.html#walls (see learn/README.md)
+export const SWIM_DEPTH = 0.6, SWIM_FEET = 0.5, WADE_CLIMB = 0.3;
 // learn: animation.html#mixing, code.html#names, physics.html#adding (see learn/README.md)
-export const WALK_SPEED = 1.9, RUN_SPEED = 2.8, SWIM_SPEED = 0.9;
+export const WALK_SPEED = 1.9, RUN_SPEED = 2.8, SWIM_SPEED = 1.2;
 export const CLIMB_SPEED = 1.7;   // up and down ladders (physics/climb.js)
 // on the ground speed builds up linearly: standing to a full run in RUN_RAMP s (walking pace
 // after about 70% of it, so short taps stay precise); stopping brakes at BRAKE units/s²

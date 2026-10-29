@@ -1,11 +1,12 @@
 // Knocking the player over: the body turns into a ragdoll; once it has settled the player
 // either gets up where the body lies (GetUpBack / GetUpFront, see render/animator.js) or respawns.
 import { Ragdoll } from '../physics/ragdoll.js';
-import { fluidRescue } from './fluidrescue.js';
+import { rescue, robotCanRescue } from './rescue.js';
+import { sweptAway } from './trials.js';
 import { groundAt } from '../physics/collide.js';
 import { canMove } from '../physics/canmove.js';
-import { WATER, LAVA, LH, STEP, GET_UP_SPEED } from '../core/constants.js';
-import { inFluid, fluidSurface } from '../physics/fluid.js';
+import { WATER, LAVA, MUD, STEP, GET_UP_SPEED, SWIM_FEET } from '../core/constants.js';
+import { peril, swimWater } from '../physics/fluid.js';
 import { character } from '../render/character.js';
 import { beginRagdoll } from '../render/ragdollpose.js';
 import { fluidDeathFx } from '../render/fluiddeath.js';
@@ -38,24 +39,45 @@ export function knockDown({ damage = 0, reason = '', respawn = null, push = 0, h
   player.ragdollThen = respawn;
 }
 
-// Entering any fluid is fatal, including when an existing ragdoll tumbles in.
-// The body keeps ragdolling (slowed down, sinking) under a fluid-specific effect.
+// Lava, acid and a boss's mud or slime over the head (physics/fluid.js peril) are fatal, including
+// when an existing ragdoll tumbles in, unless the robot pulls the hero out (game/rescue.js); and so
+// is water with no way out of it, with no robot (game/swim.js). The body keeps ragdolling (slowed
+// down, sinking) under a fluid-specific effect.
 const DEATH = { [WATER]: msg('Drowned!'), [LAVA]: msg('Burned up in lava!') };
-const deathReason = fluid => DEATH[fluid] || msg('Dissolved in acid!');
+const deathReason = (fluid, look) => fluid === WATER && look ? (look === MUD ? msg('Sank in the mud!') : msg('Sank in the slime!'))
+  : DEATH[fluid] || msg('Dissolved in acid!');
 const FLUID_DEATH_TIME = 2.2;   // keep the body around long enough for the effect
 
-export function dieInFluid(fluid, surface) {
+export function dieInFluid(fluid, surface, look = 0) {
   if (player.hp <= 0) return;
-  if (fluidRescue(fluid)) return;   // a boss's lava or tide: it hurts, magic pulls you out (game/fluidrescue.js)
-  if (player.god) { setStatus(tr(deathReason(fluid)) + ' (god mode: back to safety)'); recover(); return; }   // dev: /god on
-  player.swimming = false; player.fluid = 0;
+  if (robotCanRescue() && sweptAway(fluid)) return;   // a flood's or a crumbling floor's: the trial starts over (game/trials.js)
+  if (rescue(fluid, look, surface)) return;   // the robot pulls them out: it hurts (game/rescue.js)
+  const reason = deathReason(fluid, look);
+  if (player.god) { setStatus(tr(reason) + ' (god mode: back to safety)'); recover(); return; }   // dev: /god on
+  player.swimming = false;
   const { x, z } = player;   // before a no-asset fallback respawns the player
-  player.lastHurt = { reason: deathReason(fluid), by: null };
-  if (!player.ragdoll) knockDown({ damage: player.hp, reason: deathReason(fluid) });
-  else { takeDamage(player, player.hp, state.time); flash(); setStatus(deathReason(fluid)); }
+  player.lastHurt = { reason, by: null };
+  if (!player.ragdoll) knockDown({ damage: player.hp, reason });
+  else { takeDamage(player, player.hp, state.time); flash(); setStatus(tr(reason)); }
   player.fluidDeath = player.ragdoll ? fluid : 0;
   sfx(fluid === WATER ? 'splash' : fluid === LAVA ? 'burn' : 'dissolve');
   fluidDeathFx(fluid, x, surface, z, player.ragdoll);
+}
+
+// A ragdoll that tumbles into water deep enough to swim in: a live one swims (it is knocked into
+// the water, not under it), one that dies sinks; a fall's (back to safety after it) goes on
+function intoWater(gr) {
+  const water = swimWater(gr);
+  if (water === null || player.y > water - SWIM_FEET || player.fluidDeath) return false;
+  if (player.hp <= 0) {
+    player.fluidDeath = WATER;
+    fluidDeathFx(WATER, player.x, water, player.z, player.ragdoll);
+    return false;
+  }
+  if (player.ragdollThen === 'safe' || state.fallFrom) return false;
+  Object.assign(player, { ragdoll: null, fluidDeath: 0, grounded: false, swimming: false, vy: -1, vx: 0, vz: 0, support: gr.s, visY: player.y });
+  sfx('splash', { at: { x: player.x, y: water, z: player.z }, pitch: 1.2 });
+  return true;
 }
 
 // viscous fluids: the body slows down and sinks instead of bouncing off the bed
@@ -69,8 +91,9 @@ export function stepRagdoll(dt) {
   const r = player.ragdoll, pel = r.p[0];
   r.step(dt);
   player.x = pel[0]; player.z = pel[2]; player.y = pel[1] - 0.35;
-  const gr = groundAt(player.x, player.z, player.y, 0), fluid = inFluid(gr, player.y);
-  if (fluid) dieInFluid(fluid, fluidSurface(gr));
+  const gr = groundAt(player.x, player.z, player.y, 0), takes = peril(gr, player.y);
+  if (takes) dieInFluid(takes.fluid, takes.y, takes.look);
+  if (!player.ragdoll || (!takes && intoWater(gr))) return;
   if (player.fluidDeath) { sink(r, player.fluidDeath); if (r.t < FLUID_DEATH_TIME) r.done = false; }
   if (pel[1] < -3) r.done = true;
   if (!r.done) return;

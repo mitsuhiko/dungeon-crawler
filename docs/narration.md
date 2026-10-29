@@ -468,6 +468,8 @@ cannot need, and the tool says "ran to the limit: try another seed".
 | `foe` | an enemy of a species not met before comes after the hero | `species` |
 | `fight`, `hurt`, `idle` | a long fight; health under 30%; standing about | |
 | `kill`, `level`, `chest`, `loot`, `quest`, `horde`, `fall`, `home` | what they say | `kill`: `many` |
+| `swim` | into water deep enough to swim in (game/swim.js) | |
+| `rescue` | the robot pulls the hero out of a fluid (game/rescue.js) | `fluid`: `lava`, `acid`, `mud`, `slime`, `water` (no way out) |
 | `death` | the hero died (said once they are back) | `depth`; `boss`: the arena's, if he is still there |
 | `guardian` | a side guardian's arena entered, or the guardian beaten | `what`: `near`, `beaten` |
 | `arena` | a boss's arena entered while he still holds the well | `boss` |

@@ -85,8 +85,9 @@ Decided:
   turns as its hub. On top is a small wind-up key of glass on a brass shaft.
 - **Its clips**: hovering (it looks about and blinks), flying after the hero, talking (its eyes and
   core pulse with the words), lying in the mud, waking up (eyes open, lifts off, shakes off the mud),
-  bringing the hero back (rises, turns, spreads its wings, the core flares) and cheering (a hop and
-  a somersault).
+  bringing the hero back (rises, turns, spreads its wings, the core flares), cheering (a hop and
+  a somersault) and carrying the hero (`RobotCarry`: straining, the wings beating hard and wide, the
+  eyes squeezed, the core bright; the hero hangs from it by both hands, their clip `Hang`).
 - **How it wakes** (built: `src/core/robot.js`, `src/game/robot.js`, `src/render/robot.js`): it
   lies on its back in the merchant camp, across the road from the camp's glass as the hero comes
   in (`CAMP_ROBOT`, `world/town.js`), asleep (its clip `RobotDormant`), its core only glimmering,
@@ -116,6 +117,20 @@ Decided:
   (it has no body) and cannot be clicked. It flies round the heroes and the enemies, never through
   them (round to the side, or over one where a wall is beside it).
 - **Its light**: its amber core lights what is round it (a moving light, about four cells).
+- **It pulls you out** (built: `src/core/rescue.js`, `src/game/rescue.js`, the spot
+  `src/physics/rescuespot.js`): once it is with the hero, what would kill them in a fluid does not.
+  Fallen into lava or acid, sunk in a boss's mud or slime over the head, or swimming in water with
+  no way out of it (2 s of it), the hero treads in it while the robot zips over (0.5 s; from far
+  off, or another cube, it blinks in over them), grabs hold of it with both hands over their head
+  and is pulled up out of it, and it flies them along an arc (kept under the roof; where even that
+  would go through rock, it blinks there) onto safe ground: where they last stood safely, else the
+  nearest floor that leads on (in a boss's arena, of the fight), dry and well over a fluid that
+  comes and goes (a boss's lava, his mud) if any floor is. There it lets go and follows again. It
+  costs a quarter of their most health (water nothing), and only if that is all they have left does
+  it kill. Meanwhile nothing hurts them, and no enemy strikes until a moment after. With no robot
+  yet (it lies asleep in the merchant camp), the fluid kills (water with no way out: they tire, and
+  drown after 8 s). In a flood's or a crumbling floor's running trial it pulls them out and the
+  trial starts over (`game/trials.js sweptAway`). It says a line as it does (`rescue`).
 - **It brings you back** when you die, to the last safe place (not built yet).
 - **Its memory**: it knows something about the glassmaker, but cannot get at all of what it
   remembers at once. What it says is not one of the memories (the inventory's Memories tab: the
@@ -244,7 +259,8 @@ is said in another order in every world (`shuffle`), so playing again brings oth
 - **Trial rooms**: what to do as an event seals the room, how a puzzle works as the hero comes to
   it (`trial` `puzzle`), done and failed.
 - Low health, a long fight, enemies beaten, a level, a chest, a rare find, a quest taken, a horde
-  waking, a fall, coming home, standing about.
+  waking, a fall, the first swims, coming home, standing about.
+- **Pulling the hero out** of lava, acid, a boss's mud or slime, or water with no way out (`rescue`).
 
 ## The beginning
 

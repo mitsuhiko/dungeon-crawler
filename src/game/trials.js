@@ -3,7 +3,7 @@
 // (game/action.js), resolving and resetting it.
 //   state.trial: { key, kind, phase, t, done, at } (core/trials.js newTrial) or null
 import * as THREE from 'three';
-import { LH, N, DIRS } from '../core/constants.js';
+import { LH, N, DIRS, WATER } from '../core/constants.js';
 import { step } from '../world/coords.js';
 import { camera } from '../render/scene.js';
 import { pointer } from './pointer.js';
@@ -598,6 +598,16 @@ export function failTrial(reason) {
   setStatus(tr(reason));
   restartTrial();
   spawnEntry();
+}
+
+// In the water of a running flood or crumbling floor (swimming in its rising water, the basin under
+// the crust), or, with the robot along, in its lava or acid (it pulls the hero out): the trial is
+// lost, back where the room was entered (game/swim.js, game/ragdoll.js dieInFluid). true: it was
+export function sweptAway(fluid = WATER) {
+  const s = state.trial, m = mapTrial();
+  if (!s || !m || s.phase !== 'running' || (m.kind !== 'flood' && m.kind !== 'collapse')) return false;
+  failTrial(fluid === WATER ? msg('Swept away by the water! The trial starts over') : msg('The robot pulls you out! The trial starts over'));
+  return true;
 }
 
 // A missed Balance jump is a checkpoint retry, never ordinary fluid death or a trip to the

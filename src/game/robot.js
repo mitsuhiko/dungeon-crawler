@@ -20,6 +20,10 @@
 // It is in no fight and nobody's target: it is not an enemy, has no body, and the hover and the
 // clicks never see it (game/lootlabels.js, game/pointer.js).
 //
+// It pulls the hero out of what would kill them in a fluid (game/rescue.js): meanwhile it is where
+// that says (rescuePose: swooping over to them, then carrying them, its clip RobotCarry), and its
+// way starts again from where it lets go.
+//
 // Playing together everyone sees everyone's robot: ours goes along in our `me` (robotWord), and
 // the others' are drawn here as their games fly them (showOtherRobot, render/robot.js).
 import * as THREE from 'three';
@@ -39,6 +43,7 @@ import { lerpAngle } from '../net/sync.js';
 import { ROBOT_CLIPS } from '../net/protocol.js';
 import { camera } from '../render/scene.js';
 import { closeView } from './camera.js';
+import { rescuePose } from './rescue.js';
 
 const SIDE = 0.5;        // cells to the side of the way it keeps
 const NEAR = 1.1;        // cells: never closer to the hero than this
@@ -178,6 +183,16 @@ export function updateRobot(dt) {
   const asleep = sleepingRobot();
   if (asleep) { drawRobot(scene.set(asleep.x, asleep.y, asleep.z).add(drawnAt(state.cubeKey)?.at ?? ZERO), asleep.yaw, 1, 'dormant', dt); return; }
   if (!robot || state.mode !== 'play' || !state.map) { hideRobot(); return; }
+  // carrying the hero out of a fluid (game/rescue.js): there, and on from there once it lets go
+  const carry = !(robot.waking > 0) && rescuePose();
+  if (carry) {
+    const k = state.cubeKey, where = drawnAt(k);
+    robot.at = { k, x: carry.x, y: carry.y, z: carry.z };
+    robot.way = newWay(k, carry.x, carry.y, carry.z);
+    robot.yaw = carry.yaw; robot.clip = carry.clip; robot.wait = 0;
+    drawRobot(where && scene.set(carry.x, carry.y, carry.z).add(where.at), robot.yaw, where ? carry.fade * where.fade : 0, carry.clip, dt);
+    return;
+  }
   const w = robot.way;
   robot.t += dt;
   if (robot.waking > 0) {   // waking where it lay: it follows once it is up (the hero's way waits for it)

@@ -1,5 +1,5 @@
 // Can the character's body move to a new position? Cliffs, walls, structures and fences.
-import { N, STEP, SWIM_STEP, STEEP } from '../core/constants.js';
+import { N, STEP, SWIM_STEP, STEEP, WADE_CLIMB } from '../core/constants.js';
 import { clamp, edgeKey } from '../core/util.js';
 import { topOf } from '../core/surfaces.js';
 import { player, state } from '../game/state.js';
@@ -9,6 +9,9 @@ import { wadeable } from './fluid.js';
 // The invisible rails along stairs, bridges and landings (cubegen/fences.js) keep a walking or
 // swimming body on them; a jump goes on or off over them. Visible fences hold up to their height.
 const walking = () => player.grounded || player.swimming;
+// How far up the body steps: a plain step (STEP) on land; a swimmer, or one wading at least
+// WADE_CLIMB deep, climbs out onto a bank up to a level over the water (SWIM_STEP)
+export const stepOf = p => p.swimming || (p.wade || 0) >= WADE_CLIMB ? SWIM_STEP : STEP;
 
 function fenceBlocks(a, b, y) {
   if (a < 0 || b < 0 || a === b) return false;
@@ -50,7 +53,7 @@ export function railedFace(x, z, y, dir, map = state.map) {
 
 // can the body's center move to (nx,nz) along one axis? probes the center and three rim points
 export function canMove(nx, nz, axis, sign) {
-  const r = player.r, y = player.y, step = player.swimming ? SWIM_STEP : STEP;
+  const r = player.r, y = player.y, step = stepOf(player);
   const ci = cellAt(nx, nz);
   if (ci < 0) return false;
   if (fenceBlocks(cellAt(player.x, player.z), ci, y)) return false;
@@ -62,9 +65,10 @@ export function canMove(nx, nz, axis, sign) {
     const si = cellAt(sx, sz);
     if (si < 0) return false;
     const [rx, rz] = k ? [nx, nz] : [player.x, player.z];
-    // Stop at a ledge over a fluid (lava, acid, water too deep to wade, judged at the probe:
-    // physics/fluid.js wadeable) or a hole through the cube (nothing to land on below) while
-    // walking, but never act as an invisible wall for jumps/falls.
+    // Stop at a ledge over a fluid (lava, acid, water too deep to wade from dry land, judged at
+    // the probe: physics/fluid.js wadeable; wading already, on into the deep water to swim) or a
+    // hole through the cube (nothing to land on below) while walking, but never act as an
+    // invisible wall for jumps/falls.
     // Query the landing surface so bridges and stacked dry floors above fluids or voids
     // remain walkable. Rim probes keep the body off the edge. This looks for drops, not rises:
     // a rim probe ahead on a steep (but walkable) slope lies more than a step above the feet,
@@ -72,7 +76,7 @@ export function canMove(nx, nz, axis, sign) {
     // cell edge are hopBlocked's).
     if (player.grounded && !player.swimming) {
       const gr = groundAt(sx, sz, y, step + STEEP * Math.hypot(sx - nx, sz - nz));
-      if (!gr.s || !wadeable(gr)) return false;
+      if (!gr.s || !wadeable(gr, player.wade > 0 || player.wetOK)) return false;
     }
     if (hopBlocked(rx, rz, sx, sz, y, step)) return false;
     if (fenceBlocks(ci, si, y)) return false;

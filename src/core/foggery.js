@@ -22,8 +22,9 @@
 // cats and makes geysers burst through the platforms. His cats leap after a player on the
 // platforms, from one to another, so a blade reaches them there too.
 // His death drains the lava away for good and takes his minions along.
-// Falling into his lava costs a quarter of one's health, and magic takes one back to safe ground
-// (game/fluidrescue.js).
+// Falling into his lava kills, as any lava does, unless the robot pulls one out (game/rescue.js:
+// for a quarter of one's health, onto safe ground well over the lava, the top of the tower once
+// nothing lower is, else a platform).
 import { mulberry32 } from './util.js';
 
 export const FOGGERY_FIGHT = Object.freeze({
@@ -47,7 +48,6 @@ export const FOGGERY_FIGHT = Object.freeze({
   // cells a leap goes at most (edge to edge), cells/s, how high (cells, and per cell of the leap),
   // s before they leap after the player, s before they leap again
   leap: { reach: 5, speed: 6, arc: [0.35, 0.12], react: [0.35, 0.8], again: 0.6 },
-  rescue: 0.25,               // what falling into his lava costs, of one's most health
   leave: 0.5,                 // s a minion he takes along lingers, gone, before it is let go
 });
 const ALL = ['eyeL', 'eyeR', 'summon', 'spit', 'volley', 'geyser', 'cats'];

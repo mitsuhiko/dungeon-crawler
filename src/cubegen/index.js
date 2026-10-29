@@ -17,8 +17,8 @@ import { spoutGround, spoutWater } from './spouts.js';
 import { containFluids } from './contain.js';
 import { makeMoves } from './moves.js';
 import { findRoute, finishRoute } from './route.js';
-import { addAccess, addEscapes } from './escape.js';
-import { reachTo, isCramped } from './reach.js';
+import { addAccess, addEscapes, addWaterEscapes, shoalWater } from './escape.js';
+import { reachTo, reachFrom, stuckInWater, isCramped } from './reach.js';
 import { placeStructures } from './place.js';
 import { smooth } from './smooth.js';
 import { shapeStructures } from './shape.js';
@@ -87,6 +87,7 @@ function tryGenerate(seed, spec) {
   cascadeFalls(ctx);
   spoutWater(ctx);
   containFluids(ctx);
+  shoalWater(ctx);   // (most water is waded: deep only away from its banks)
   indexFloors(ctx);
   if (ctx.portalFloors.some(f => !f)) return null;
   makeMoves(ctx);
@@ -104,6 +105,8 @@ function tryGenerate(seed, spec) {
   placeVignettes(ctx);   // a theme's little set pieces (cubegen/vignettes.js), off the ways just found
   addAccess(ctx);
   addEscapes(ctx);
+  // ladders out of water with no way out, and the ways on from where they come up
+  if (addWaterEscapes(ctx)) addEscapes(ctx);
   finishRoute(ctx);
   if (!placeStructures(ctx)) return null;
   smooth(ctx);
@@ -113,6 +116,9 @@ function tryGenerate(seed, spec) {
   // every portal must lead to the exit with the final slopes and fences
   const safe = reachTo(ctx, ctx.hub, true);
   if (safe && ctx.portalFloors.some(f => !safe.has(f.id))) return null;
+  // and nobody who can get into a water is stuck in it (they swim: a bank or a ladder out of it)
+  const stuck = spec.trial ? new Set() : stuckInWater(ctx, true);
+  if (stuck.size && [...reachFrom(ctx, ctx.portalFloors, true)].some(id => stuck.has(id))) return null;
   if (ctx.moves.some(m => isCramped(ctx, m.from) || isCramped(ctx, m.to))) return null;   // a route squeezes under a slab
   const trial = finishTrial(ctx, pathPoints);   // a trial room's goal, parts and checks (cubegen/trials/)
   if (!trial) return null;

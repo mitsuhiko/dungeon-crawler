@@ -2,21 +2,23 @@
 // it. The way goes over the floor graph the enemies walk too (floors, stairs, bridges, landings:
 // physics/floornav.js), and where only the hero goes: up and down ladders (map.ladders,
 // physics/climb.js) and the jumps he can make (physics/leaps.js: over gaps, up a ledge, down off
-// one). The cheapest way wins (cells walked; climbing and jumping cost more), or, when there is
-// none, the way to the reached node closest to the target.
+// one), and through the water (he wades and swims: physics/move.js; in and out over a bank no
+// more than a level over its surface going out, JUMP_IN going in). The cheapest way wins (cells
+// walked; climbing, jumping and swimming cost more), or, when there is none, the way to the
+// reached node closest to the target.
 // Along walked steps it cuts corners where the straight line keeps to the way's nodes by walking
 // (never onto a stair or bridge from its side, under a bridge for over it, over a ledge). Before a
 // ladder or a jump it stops cutting: it gets onto a ladder in front of it (or over its top) and
 // climbs; it runs up to a jump along the middle of the take-off cell, jumps where the jump was
 // found to work (or walks slowly off the ledge) and keeps straight on in the air. A jump or
 // ladder that does not work out is left out from then on, and the way planned anew.
-import { CHAR_H, CHAR_R, DIRS, N, RUN_SPEED, CLIMB_SPEED } from '../core/constants.js';
-import { idx, inb } from '../core/util.js';
+import { CHAR_H, CHAR_R, DIRS, OPP, EDGE_CORNERS, N, LH, RUN_SPEED, CLIMB_SPEED, SWIM_SPEED, SWIM_DEPTH, SWIM_FEET, SWIM_STEP, WATER } from '../core/constants.js';
+import { idx, inb, edgeKey } from '../core/util.js';
 import { topOf } from '../core/surfaces.js';
 import { containsXZ } from '../core/blockers.js';
 import { Heap } from '../core/heap.js';
 import { player, state } from '../game/state.js';
-import { navNeighbor, structureLinks } from './floornav.js';
+import { navNeighbor, structureLinks, columnClear } from './floornav.js';
 import { walkable, groundY } from './enemynav.js';
 import { leapsFrom, cellFrame, cellPoint, runStart, airSteer, LATE, ALIGN, DROP_START, DROP_PACE } from './leaps.js';
 
@@ -40,7 +42,7 @@ function ladderLinks(map) {
   for (const l of map.ladders || []) {
     const [dx, dz] = DIRS[l.d], hx = l.x + dx, hz = l.z + dz;
     const lo = floor(l.c, l.lo), hi = inb(hx, hz) ? floor(idx(hx, hz), l.hi) : null;
-    if (!lo || !hi || lo.fluid || hi.fluid) continue;
+    if (!lo || !hi || (lo.fluid && l.wet === undefined) || hi.fluid) continue;   // (one out of the water: from it, swimming)
     const cost = 2 + (l.y1 - l.y0) * RUN_SPEED / CLIMB_SPEED;
     for (const [a, g, up] of [[lo, hi, true], [hi, lo, false]]) {
       if (!links.has(a)) links.set(a, []);
@@ -49,11 +51,35 @@ function ladderLinks(map) {
   }
   return links;
 }
+// The water's ways: a water floor (one he wades or swims in) joins the water beside it at its
+// surface (wading: WADE_COST a cell; swimming: SWIM_COST), and the ground beside it he climbs out
+// onto (up to a level over its surface) or goes into it from (a bank at most JUMP_IN levels over it:
+// the walk goes off it into the water, physics/canmove.js player.wetOK). Not under a ceiling.
+const SWIM_COST = RUN_SPEED / SWIM_SPEED, WADE_COST = 1.4, JUMP_IN = 3;
+const fenceOn = (map, a, b, y) => !!map.fences?.get(edgeKey(a.x, a.z, b.x, b.z))?.some(e => e.ymax > y - 0.6 && e.ymin < y + CHAR_H);
+// (free over the water from swimming height up to `top`: the head, or where it goes in from)
+const swimmable = (map, g, top = g.surf * LH + CHAR_H - SWIM_FEET) => g.fluid === WATER && !g.crust && columnClear(map, g.c, g.surf * LH - SWIM_FEET, top, g);
+function waterEdges(map, f, out) {
+  for (let d = 0; d < 4; d++) {
+    const x = f.x + DIRS[d][0], z = f.z + DIRS[d][1];
+    if (!inb(x, z)) continue;
+    for (const g of map.cols[idx(x, z)]) {
+      if (f.fluid === WATER) {
+        if (g.fluid === WATER && g.surf === f.surf && swimmable(map, g)) out.push([g, (g.surf - g.top) * LH > SWIM_DEPTH ? SWIM_COST : WADE_COST, null]);
+        else if (!g.fluid && !g.kind && g.top >= f.surf && g.top <= f.surf + 1 && passable(g) && !fenceOn(map, f, g, g.top * LH)
+          && EDGE_CORNERS[OPP[d]].reduce((a, k) => a + g.cs[k], 0) / 2 <= f.surf * LH - SWIM_FEET + SWIM_STEP - 0.05) out.push([g, 1.5, null]);
+      } else if (g.fluid === WATER && f.top >= g.surf && f.top <= g.surf + JUMP_IN && swimmable(map, g, f.top * LH + CHAR_H) && !fenceOn(map, f, g, f.top * LH)) out.push([g, 1.5, null]);
+    }
+  }
+}
+
 // the ways on from f: [g, cost, how (null: walked, a ladder's or a leap's step)]
 function edges(map, f) {
   const out = [];
-  for (let d = 0; d < 4; d++) { const g = navNeighbor(map, f, d, CHAR_H, passable); if (g) out.push([g, 1, null]); }
+  if (!f.kind && !f.landing) waterEdges(map, f, out);
   for (const e of ladderLinks(map).get(f) || []) if (passable(e.g)) out.push([e.g, e.cost, e]);
+  if (f.fluid) return out;
+  for (let d = 0; d < 4; d++) { const g = navNeighbor(map, f, d, CHAR_H, passable); if (g) out.push([g, 1, null]); }
   for (const e of leapsFrom(map, f, passable)) out.push([e.g, e.cost, e]);
   return out;
 }
@@ -187,16 +213,17 @@ export function steerWalk(w, dt) {
     w.air = w.run = false;   // landed: where it was for?
     if (p.support !== path[w.i]) { fail(w); return steerWalk(w, 0); }
   }
-  // where on the way we stand (lost for a while: a new way from here)
-  if (p.grounded) {
+  // where on the way we stand (lost for a while: a new way from here); swimming too
+  if (p.grounded || p.swimming) {
     const at = path.indexOf(p.support);
     if (at >= 0) {
       w.lost = 0;
       if (at + 1 !== w.i) { w.i = at + 1; w.run = false; w.push = 0; }
     } else if (!w.run && (w.lost += dt) > 0.3) { plan(w); return steerWalk(w, 0); }
   }
-  if (w.i >= path.length) { w.done = true; return aim(w.x, w.z, true); }
+  if (w.i >= path.length) { w.done = true; p.wetOK = false; return aim(w.x, w.z, true); }
   w.done = false;
+  p.wetOK = path[w.i].fluid === WATER;   // (into the water: off the bank, physics/canmove.js)
   const s = w.how[w.i];
   if (s?.ladder) return ladder(w, s, dt);
   if (s) return leap(w, s);

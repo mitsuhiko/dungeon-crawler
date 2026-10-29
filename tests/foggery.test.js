@@ -191,5 +191,5 @@ test('his fight: eyes thrown one at a time, Fire-faces, then the ball, his cats,
   const geyser = FOGGERY_BALL.attacks.find(a => a.name === 'geyser');
   assert.ok(geyser.beam.kind === 'geyser' && geyser.beam.bolts === 3 && geyser.burn && geyser.pop > 0);
   assert.equal(FOGGERY_BALL.attacks.find(a => a.name === 'volley').projectile.volley, 3);
-  assert.equal(FOGGERY_FIGHT.catsAgain, 8); assert.equal(FOGGERY_FIGHT.lava.rise, 60); assert.equal(FOGGERY_FIGHT.rescue, 0.25);
+  assert.equal(FOGGERY_FIGHT.catsAgain, 8); assert.equal(FOGGERY_FIGHT.lava.rise, 60);
 });

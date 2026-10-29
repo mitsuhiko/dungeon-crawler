@@ -543,7 +543,7 @@ a quarter of the props and nothing in the way, `render/propplace.js`). Enemies c
 - **Great lake:** in a room of the route or a branch (not the entrance, arenas or the horde room),
   one layer (its sockets as the WFC made them). Water of the depth's river fluid from three cells
   in (four in places), at the rivers' level, so a river coming in runs into it and ends there. The
-  route keeps to the shore (every fluid is deadly, the water over the head; no jumps in a lake cube). A discovery there
+  route keeps to the shore (lava and acid kill, the water is swum in; no jumps in a lake cube). A discovery there
   waits on an islet (level with the shore, water all round it) reached by a bridge (a stair onto
   or off it costs 40 more, `setPieceRoute`). A fall from
   the cube above lands in the lake (it is its catch pool).
@@ -1041,6 +1041,15 @@ in game devtools for real worker, asset, shader and collision checks.
   before routing turns any fluid that still stands above its neighbour into ground up to its
   surface (`containFluids`). `tests/fluids.test.js` checks it with the renderer's heights;
   corner smoothing may still sag a bank by up to a level.
+- **Water** is mostly waded (the hero wades and swims: [combat.md](combat.md#fluids-and-falls)):
+  every water cell next to a bank, or any other ground (its eight neighbours), has its bed a level
+  under the surface, waded through; only those with water all round them keep theirs two levels
+  under it, deep enough to swim (`shoalWater`, `cubegen/escape.js`). So a lake is deep in its
+  middle, a river of three cells or more down its middle, a pool or a narrow river not at all. Lava
+  and acid keep their beds (deep or not, they kill), as do trial rooms' fluids and arenas'. Corner
+  smoothing keeps a low bank's corners next to water (a level over it or less) no higher than its
+  level, so a slope up from the water starts where a swimmer reaches (`lowBankAt`,
+  `cubegen/smooth.js`).
 - Routing is described in "The way down" below. Moves already used are cheap, so routes
   share paths. Each route is kept for test bots and the path overlay (P).
 - Drops are capped at 8 levels (deeper ones ragdoll you) and need an extra level of headroom.
@@ -1070,13 +1079,27 @@ The world guarantees that from anywhere you can arrive, you can get to depth 20.
   when they do not fit, together with the routes that needed them.
 - **Final check:** after smoothing and fences, `reachTo` rebuilds what the character can
   physically do:
-  - walk level ground and slopes, jump up one level, drop down any cliff without a fence;
-  - swim, and climb out of water up to two levels;
+  - walk level ground and slopes, jump up one level (and back over a one-cell gap it jumped
+    to a floor within a level), drop down any cliff without a fence;
+  - swim, and climb out of water onto a bank up to a level over its surface (with the final
+    slopes, the middle of the bank's edge at most a swimmer's step over the feet: `SWIM_STEP`
+    from `SWIM_FEET` under the surface);
   - use the built structures both ways.
 
   Every portal must reach the exit, and no route may pass a floor whose smoothed corner
-  leaves less than the character's height under the slab above. Otherwise the attempt is
-  retried.
+  leaves less than the character's height under the slab above. Nobody who can get into a
+  water may be stuck in it: from every water floor got to, some floor out of the water must be
+  got to (`stuckInWater`; trial rooms aside, their fluid is the trial's). Otherwise the attempt
+  is retried.
+- **Ways out of the water** (`addWaterEscapes`, `cubegen/escape.js`): a body of water the hero
+  can get into (they swim) whose banks all stand more than a level over its surface gets a ladder
+  up out of it, standing in the water against the bank's wall: onto the lowest bank that leads to
+  the exit, else onto any (whose own way on the escapes after it find). It is a move of its own
+  (not a route: the routes keep out of the water) and dropped like the escapes when it does not fit.
+  Its `map.ladders` entry carries the water's surface (`wet`): it is taken hold of swimming
+  (`physics/climb.js`), and climbing down it lets go into the water. `tests/swim.test.js` checks
+  that no cube's water traps anyone, that most of it is shallow, and that a swimmer anywhere in it
+  gets out with a click.
 - **No jump after a drop:** a route never jumps right after dropping the same way, because
   the fall carries you into the gap.
 - **Fall landings:** `fallMask` marks where you can fall in from the cube above (its void

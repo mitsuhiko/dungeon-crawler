@@ -292,6 +292,21 @@ const SOUNDS = {
       tone('sine', hz, hz * 2.2, at, 0.05, amp(at, 0.003, 0.18 * (1 - i / 9), 0.05, out));
     }
   },
+  paddle(t, out, p) {    // a stroke swimming: a soft slosh of water and a little blub
+    noise(t, 0.22, filter('lowpass', 900 * p, 0.7, amp(t, 0.05, 0.25, 0.16, out)));
+    const hz = (220 + Math.random() * 90) * p;
+    tone('sine', hz, hz * 1.8, t + 0.06, 0.06, amp(t + 0.06, 0.004, 0.08, 0.06, out));
+  },
+  rescue(t, out, p) {    // the robot swooping in: its wings whirring and a bright chime rising
+    const f = filter('bandpass', 600 * p, 2, amp(t, 0.08, 0.35, 0.45, out));
+    f.frequency.setValueAtTime(600 * p, t);
+    f.frequency.exponentialRampToValueAtTime(1800 * p, t + 0.45);
+    noise(t, 0.5, f);
+    for (let i = 0; i < 4; i++) {
+      const at = t + 0.05 + i * 0.07, hz = [784, 988, 1175, 1568][i] * p;
+      tone('sine', hz, hz, at, 0.22, amp(at, 0.004, 0.14, 0.22, out));
+    }
+  },
   burn(t, out, p) {      // into the lava: a roaring whoomph and a long sizzle
     sweep(t, 0.8, 300 * p, 1500 * p, 250 * p, 1, 0.9, out, 0.04, 'lowpass');
     tone('sawtooth', 55 * p, 40 * p, t, 0.7, filter('lowpass', 200, 1, amp(t, 0.03, 0.5, 0.65, out)));

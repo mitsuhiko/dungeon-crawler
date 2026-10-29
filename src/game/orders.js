@@ -31,7 +31,7 @@ import { sleepingRobot, canWakeRobot, wakeRobot } from './robot.js';
 // kept from order to order while the hero gets there (a jump or climb under way finishes first)
 export const order = { kind: null, x: 0, z: 0, floor: null, enemy: null, pickup: null, chest: null, villager: null, part: null, way: null, into: false, walk: null, repath: 0, stuck: 0, lx: 0, lz: 0, hold: 0 };
 
-export function clearOrder() { order.kind = null; order.enemy = null; order.pickup = null; order.chest = null; order.villager = null; order.part = null; order.way = null; order.walk = null; }
+export function clearOrder() { player.wetOK = false; order.kind = null; order.enemy = null; order.pickup = null; order.chest = null; order.villager = null; order.part = null; order.way = null; order.walk = null; }
 // Teleports/travel invalidate cube-local targets; a held click must not recreate them.
 export function clearMouseInput() { clearOrder(); pointer.down = false; pointer.mode = null; }
 
@@ -130,6 +130,7 @@ export function holdPointer(dt) {
 // this frame's steering { dx, dz, jump, run, ladder (the one it may climb) }, or null without an order; in reach of the target
 // it stands and swings instead
 export function followOrder(dt) {
+  player.wetOK = false;   // (a walk into the water says so again: physics/playernav.js)
   if (!order.kind) return null;
   if (state.transitioning || player.ragdoll || player.hp <= 0) { clearOrder(); return null; }
   let tx = order.x, tz = order.z;

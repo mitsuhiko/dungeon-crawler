@@ -102,7 +102,7 @@ import { RARITY } from '../core/gear/rarities.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
-export const PROTOCOL = 16;
+export const PROTOCOL = 17;
 
 export const MAX_PLAYERS = 4;
 // what the host passes on from one guest to the others
@@ -250,7 +250,7 @@ export function isMe(m) {
 // A player's robot (game/robot.js robotWord), in their `me`: [cube, x, y, z, yaw, fade, clip]
 // (where it is, in that cube's coordinates; how much of it shows; what it does, an index into
 // ROBOT_CLIPS). None: they have none yet.
-export const ROBOT_CLIPS = ['hover', 'fly', 'talk', 'cheer'];
+export const ROBOT_CLIPS = ['hover', 'fly', 'talk', 'cheer', 'carry'];
 // what a `me` says of the robot: { k, x, y, z, yaw, fade, clip }, or null
 export function robotOf(r) {
   if (!Array.isArray(r) || r.length !== 7 || typeof r[0] !== 'string' || !r.slice(1).every(Number.isFinite)) return null;

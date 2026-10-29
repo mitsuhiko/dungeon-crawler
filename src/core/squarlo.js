@@ -13,8 +13,8 @@
 // giant for `morphTime` s, nothing hurting him, and fights on (phase 2): stomping, jumping onto
 // the player, kicking and blasting his water cannon (core/enemies.js SQUARLO_GIANT), with up to
 // `minions[1]` Squirtles. His death drains the tide and takes the Squirtles along.
-// Drowning in his tide costs a quarter of one's health, and magic takes one up out of the water
-// (game/fluidrescue.js).
+// His tide is water: over the head, one swims in it (physics/move.js), slowly, and strikes nothing
+// meanwhile; the hills stay out of it.
 export const SQUARLO_FIGHT = Object.freeze({
   split: 0.5,             // the share of his health he turns into a giant at
   morphTime: 3.2,         // s the fog rolls in and he grows
@@ -25,7 +25,6 @@ export const SQUARLO_FIGHT = Object.freeze({
   firstSummon: 4,         // s into the fight before his first summon
   restAfter: [3, 5],      // other attacks before he has to rest, phase 1 / 2
   leave: 0.5,             // s a Squirtle he takes along lingers, gone, before it is let go
-  rescue: 0.25,           // what drowning in his tide costs, of one's most health (game/fluidrescue.js)
 });
 const ALL = ['blow', 'tide', 'summon', 'rest', 'stomp', 'jump', 'kick', 'cannon'];
 

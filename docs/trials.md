@@ -33,7 +33,7 @@ above, and every puzzle you solve drains it one stage further.
 
 | id | Family | Sealed | Timed | Goal | Fails by | Depths, themes |
 |---|---|---|---|---|---|---|
-| `flood` | event | yes | yes | press the button on the summit | drowning (the fluid) | 1–19, any (the depth's fluid) |
+| `flood` | event | yes | yes | press the button on the summit | swept away (in its water), burned (lava, acid) | 1–19, any (the depth's fluid) |
 | `sunken` | event + puzzles | no | no | solve 2–3 puzzles, each drains a stage | (ordinary death) | 2–19, any |
 | `collapse` | event | yes | yes | reach the exit apron | falling in | 1–19, any |
 | `balance` | event | yes | per stone | jump from stone to stone to the exit apron | (a miss: back to the start) | 1–19, lava and acid themes, forge |
@@ -245,10 +245,12 @@ that stops it.
   ground and rises in pulses of 2 levels, each over `FLOOD.rise` (2 s), each starting as the slow
   player leaves the floors it covers (never sooner after the one before than its rise). It stops 2
   levels under the summit's top. About 15-25 s in all (at most `FLOOD.max`, 70 s).
-- **Rules:** the fluid kills as every fluid does (`inFluid` reads `max(floor surf, trial
-  level)`): lava and acid on contact, water once it is over the head (it is waded through until
-  then, [bosses.md](bosses.md#water-wading-and-drowning)). Enemies drown too, without rewards. The water is one surface
-  clipped to the glass box (the room fills like an aquarium).
+- **Rules:** water is waded through ([bosses.md](bosses.md#water-wading-swimming-and-sinking)),
+  but once it lifts the hero (they swim in it) they are swept away: the trial is lost, back where
+  the room was entered (`game/trials.js sweptAway`). Lava and acid kill on contact as every fluid
+  does (`physics/fluid.js peril` reads `max(floor surf, trial level)`); with the robot along it
+  pulls the hero out instead, and the trial is lost the same way. Enemies drown too, without
+  rewards. The water is one surface clipped to the glass box (the room fills like an aquarium).
 - **Goal:** the button (`F`). The water drains back in 5 s and the seals open.
 - **Telegraph (idle):** tide lines on rocks and walls, the button glowing on the summit.
 - **Check:** deadlines: a floor's deadline is when the water reaches its lowest corner; a perfect
@@ -273,7 +275,8 @@ exit come out of the water.
   (`TRIALS[kind].mounts`: not `runes`, whose clue is in another room, nor `timedgate`, a whole
   room), no kind twice. Each is mounted exactly as in its own room: the same field, tuning,
   parts, drawing and HUD hint (`cubegen/trials/puzzles.js mountPuzzle`).
-- **Rules:** untimed, not sealed. Falling into the water is an ordinary death. Drained stages
+- **Rules:** untimed, not sealed. Falling into the water is swum in (with no way out of it, the
+  robot carries the hero out, else they tire and drown: [combat.md](combat.md#fluids-and-falls)). Drained stages
   stay drained for the run.
 - **Check:** at every level `W_i`, the next platform is dry and reachable from the entry pad.
   Once fully drained, the exit is reachable from the entry both ways (stairs or ladders lead
@@ -308,8 +311,9 @@ The floor breaks up behind you in a wave from the entry; outrun it to the exit.
   distance from the entry apron over the crust. The speed is the room's, the slow player's own
   pace along the crust (1.3-2.8 cells/s, about 2.1; running is 2.8). It shakes, cracks and drops
   dust for 1.5 s first, then falls away.
-- **Rules:** falling into the basin fails the trial (the fluid kills; the void counts as a
-  fail even where a fall would lead to the cube below).
+- **Rules:** falling into the basin fails the trial (swimming in its water, or its lava or acid,
+  which kills, or with the robot along is pulled out of; the void counts as a fail even where a
+  fall would lead to the cube below).
 - **Goal:** stepping onto the exit apron stops the wave (the keystone) and opens the seals.
 - **Check:** deadlines: a crust cell's deadline is its crumble time; the aprons have none.
   Each dead end must be one: no path leaves it.
@@ -612,7 +616,8 @@ decks (field and rim or ring: 7) fit side by side in a room.
   entry's apron to the exit's. The lever stands in the middle of the entry's apron; the gate is
   the exit's seal.
 - **Rules:** the lever opens the gate for `T` s. Missing it means going back and pulling again; a
-  slip into the fluid is an ordinary death. Walk the causeway first to learn it, then run it.
+  slip into lava or acid kills (or the robot pulls the hero out), into water it is swum in (the
+  robot carries them out of a basin with no way out). Walk the causeway first to learn it, then run it.
 - **Generator:** `T = route time at RUN_SPEED × 1.15 + 0.5 s` (× 1.08 + 0.3 s from depth 10): a run
   along the right way with hardly a wrong step. Nothing is built in the room (the causeway is the
   only way, `collapseRoute`), so nothing shorter exists.

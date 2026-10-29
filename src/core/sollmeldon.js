@@ -51,7 +51,6 @@ export const SOLLMELDON_FIGHT = Object.freeze({
   minions: [2, 2, 3],         // the most Mud squirtles at once, phase by phase
   summonCool: [12, 11, 9],    // s from one summon to the next
   firstSummon: [6, 4, 3],     // s into a phase before its first summon
-  rescue: 0.25,               // what drowning in his mud costs, of one's most health (game/fluidrescue.js)
   leave: 0.5,                 // s a minion he takes along lingers, gone, before it is let go
 });
 export const PHASES = 3;

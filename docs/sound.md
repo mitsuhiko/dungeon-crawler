@@ -56,7 +56,9 @@ description there.
 | `coin`, `pickup`, `drop`, `clink`, `toss` | loot: coins, items, a rare+ weapon landing, any other landing, dropping from the bag |
 | `unlock`, `levelUp` | a guardian falls, a kill gains a level (`game/enemies.js`) |
 | `jump`, `fall`, `thud`, `getUp` | watched in `game/sounds.js`; a fall whistles below 9 units/s down |
-| `knock`, `splash`, `burn`, `dissolve` | knocked over, dying in water / lava / acid (`game/ragdoll.js`) |
+| `knock`, `splash`, `burn`, `dissolve` | knocked over; into the water (`game/swim.js`, louder the harder the plunge); into lava / acid, dying or pulled out (`game/ragdoll.js`, `game/rescue.js`) |
+| `paddle` | a swimming stroke (`game/swim.js`) |
+| `rescue` | the robot swooping in to pull the hero out of a fluid, and lifting them (`game/rescue.js`) |
 | `dizzy` | a landing hard enough to sit you down (`game/update.js`) |
 | `death` | any death, with a shimmer for coming back at the entry (`game/flow.js`) |
 | `gate`, `wellDown`, `ringUp`, `cloud` | portal travel (`game/travel.js`); the town portal keeps `portal` |

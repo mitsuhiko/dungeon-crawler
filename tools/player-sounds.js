@@ -8,7 +8,7 @@ export const SFX_GROUPS = [
   ['Storms and wind', ['thunder', 'gust', 'charge', 'lightning', 'rumble', 'whirl', 'twirl']],
   ['Flasks and potions', ['drink', 'buff', 'poison', 'lob', 'glass', 'boom', 'hiss']],
   ['Loot, items and the bag', ['coin', 'pickup', 'drop', 'clink', 'toss', 'chest', 'equip', 'bagOpen', 'bagClose', 'use', 'unlock', 'levelUp']],
-  ['The body', ['jump', 'step', 'fall', 'thud', 'knock', 'getUp', 'dizzy', 'grab', 'chomp', 'splash', 'burn', 'dissolve', 'death']],
+  ['The body', ['jump', 'step', 'fall', 'thud', 'knock', 'getUp', 'dizzy', 'grab', 'chomp', 'splash', 'paddle', 'rescue', 'burn', 'dissolve', 'death']],
   ['Travel', ['portal', 'gate', 'wellDown', 'ringUp', 'cloud', 'door', 'castStart', 'fizzle']],
   ['Gusto', ['vortex', 'inhale', 'summon', 'poof']],
   ['Totnar', ['skullthrow', 'bonk', 'rustle', 'shed', 'gloom', 'dawn']],

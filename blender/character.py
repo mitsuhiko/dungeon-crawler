@@ -9,6 +9,10 @@ end in the neutral standing pose so they can be cross-faded from anything):
     SwimIdle     -- loop, treading water (extras: water_level)
     Skid         -- loop, sliding on ice: side-on, knees bent, arms out, wobbling
     Climb        -- loop, alternating ladder grips / steps (extras: distance, speed)
+    Hang         -- loop, hanging by both hands from the robot as it carries the hero out of a
+                    fluid: the fists together over the head, the body swinging a little under
+                    them, the legs dangling and kicking (extras: grip, the fists' height in game
+                    units; src/core/rescue.js GRIP)
     Jump         -- crouch, push-off, ballistic flight, landing, recovery; the
                     game slices it by frame number (see JUMP_V0), keep timing
     JumpLandSit  -- jump, lose balance, land on the bottom, bounce, stay sitting
@@ -1563,6 +1567,48 @@ def make_climb_animation(rig):
                         "rung_spacing": 0.28 / 0.55})
 
 
+HANG_FRAMES = 40
+HANG_GRIP = Vector((0.0, -0.04, 1.97))   # between the fists, up at the top of the head (rig units)
+HANG_HANDS = 0.21                         # how far apart from there each fist holds on (the robot's sides)
+
+
+def make_hang_animation(rig):
+    """Hanging by both hands from the robot (src/game/rescue.js): analytic IK holds the fists up
+    at the sides of the robot's egg, which sits on the top of the head (the arms straight up: they
+    reach no higher), with no arm springs (they hold on); the body swings a little about them
+    like a pendulum, the head tipped back to look up at the robot, the legs dangling and kicking
+    in turn."""
+    skel = Skeleton(rig)
+    frames = []
+    for f in range(HANG_FRAMES + 1):
+        w = 2 * math.pi * f / HANG_FRAMES
+        R = rot_x(D(5) * math.sin(w)) @ rot_y(D(3) * math.sin(w + 1.3))
+
+        def about(p):
+            return HANG_GRIP + R @ (p - HANG_GRIP)
+
+        ps, bs = {}, {}
+        bs["root"] = skel.set("root", ps, skel.base("root", ps))
+        hips = Matrix.Translation(about(Vector((0, 0.02, STAND_Z + 0.04)))) @ (R @ skel.rest_rot["hips"]).to_4x4()
+        bs["hips"] = skel.set("hips", ps, hips)
+        bs["spine"] = skel.aim("spine", ps, R @ Vector((0, 0.03, 1)), D(4) * math.sin(w + 0.5))
+        bs["head"] = skel.aim("head", ps, R @ Vector((0, 0.12, 1)), D(10) * math.sin(w * 2 + 0.3))
+        for side, s, off in (("L", 1, 0.0), ("R", -1, math.pi)):
+            shoulder = skel.base(f"upper_arm.{side}", ps).translation
+            elbow, hand = two_bone_ik(shoulder, HANG_GRIP + Vector((s * HANG_HANDS, 0, 0)),
+                                      figure.UPPER_ARM_LEN, figure.FOREARM_LEN, Vector((s, 0.35, 0.0)))
+            bs[f"upper_arm.{side}"] = skel.aim(f"upper_arm.{side}", ps, elbow - shoulder)
+            bs[f"forearm.{side}"] = skel.aim(f"forearm.{side}", ps, hand - elbow)
+            kick = math.sin(2 * w + off)
+            hip = skel.base(f"thigh.{side}", ps).translation
+            foot = hip + R @ Vector((0.02 * s, -0.12 * kick - 0.03, -(LEG_LEN - 0.05 - 0.05 * max(0.0, kick))))
+            knee, sole = two_bone_ik(hip, foot, THIGH_LEN, SHIN_LEN, R @ Vector((0, -1, 0)))
+            bs[f"thigh.{side}"] = skel.aim(f"thigh.{side}", ps, knee - hip)
+            bs[f"shin.{side}"] = skel.aim(f"shin.{side}", ps, sole - knee)
+        frames.append(bs)
+    return bake_action(rig, "Hang", frames, True, {"grip": round(HANG_GRIP.z * GAME_SCALE, 4)})
+
+
 def make_animations(rig, ob):
     skel = Skeleton(rig)
     cycles = 6
@@ -1655,6 +1701,7 @@ def make_animations(rig, ob):
     one("GetUpFront", get_up_front_params(), 260.0, 0.5, 340.0, 0.55, {"move_time": GETUP_FRONT_T[-1]})
 
     make_climb_animation(rig)
+    make_hang_animation(rig)
     bake_action(rig, "Flex", [flex_pose(skel)], False)
 
 
@@ -1687,7 +1734,7 @@ def main(scene=None, export_path=None, active_action="Walk"):
     unwrap_character(ob)
 
     make_animations(rig, ob)
-    register_actions(rig, ("Walk", "Run", "Swim", "SwimIdle", "Skid", "Climb", "Jump", "JumpLandSit",
+    register_actions(rig, ("Walk", "Run", "Swim", "SwimIdle", "Skid", "Climb", "Hang", "Jump", "JumpLandSit",
                            "GetUpBack", "GetUpFront", "Kick", "Punch", "Pummel", "Slash", "Shoot", "CrossbowShot",
                            "Cast", "Throw", "HoldBow", "HoldCrossbow", "HoldStaff", "HoldThrow",
                            *("Hold" + k.capitalize() for k in CARRIES), "Roll", "Flex"))

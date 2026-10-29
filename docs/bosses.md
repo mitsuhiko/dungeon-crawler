@@ -424,8 +424,7 @@ times as big (`SQUARLO_GIANT` `size`): a giant six cells tall.
 Profiles: `SQUARLO` and `SQUARLO_GIANT` in `src/core/enemies.js` (`STAGE_PROFILES`: one for each
 of his stages); the fight's rules in `src/core/squarlo.js` (`SQUARLO_FIGHT`); the fight itself in
 `src/game/squarlo.js`, his water in `src/game/tide.js`, the giant's shockwaves in
-`src/game/quakes.js` (drawn with his water cannon by `render/giantfx.js`), drowning's rescue in
-`src/game/fluidrescue.js`.
+`src/game/quakes.js` (drawn with his water cannon by `render/giantfx.js`).
 
 | | Level 4 |
 |---|---|
@@ -454,7 +453,7 @@ sea glass.
 
 Its water (`map.tide`): at rest it stands 0.8 levels over the flats, at high tide 0.45 levels
 under the doorways, inside the box of cells within the bank (`box`), which the doorways, the
-hilltops and the bank stay above. At high tide the flats drown, the slopes down from the
+hilltops and the bank stay above. At high tide the flats are under water, the slopes down from the
 doorways and the ramps are waded through, and the hilltops and the doorways stay dry. From every
 floor there is ground a body can wade at high tide within four steps (`stepsUp`), and running
 there, slowed by the water, takes less time than the tide does to get over the head there
@@ -462,12 +461,11 @@ there, slowed by the water, takes less time than the tide does to get over the h
 
 The water is a standing fluid like a flood trial's (`physics/fluid.js setTide`; drawn like the
 trial's rising water, `render/trials.js`, only in its box): its level follows his `tide` (0 at
-rest .. 1 at high tide, `core/squarlo.js tideLevel`). It drowns what it goes over the head of
-(see [Water](#water-wading-and-drowning)), enemies too (without rewards). **A player it goes over
-the head of does not die** (`game/fluidrescue.js`, `game/ragdoll.js dieInFluid`): it costs a
-quarter of their most health (`SQUARLO_FIGHT.rescue`), and magic pulls them up out of the water:
-where they last stood if even the high tide stays under the head there, else onto the nearest
-such floor of the fight (a hill). Only if that quarter is all they have left does it drown them.
+rest .. 1 at high tide, `core/squarlo.js tideLevel`). It drowns the enemies it goes over the head
+of (without rewards; see [Water](#water-wading-swimming-and-sinking)). **A player swims in it**
+(`physics/move.js`, like in any water: [combat.md](combat.md#fluids-and-falls)): it lifts them off
+the flats and carries them up with it, slow, striking nothing, among his Squirtles; the hills are
+where to fight from.
 
 ### Phase 1 (full health to half)
 
@@ -642,23 +640,25 @@ A roster entry may keep to some themes (`where` in `core/spawns.js`: the biome, 
 set): each kind of Squirtle lives only in its own fluid there. A guardian arena whose population
 has Squirtles gets a pond of their fluid dug into its fight zone (`cubegen/guardian.js
 digPonds`: 3.5 cells for each of them, 8 to 28, a level under the floor round it and too deep to
-wade; an arena with no room for one falls back to a plainer one); they are placed in it, and its
+wade (water is swum in, its banks' corners kept no higher than a level over it, so a swimmer climbs
+out anywhere); an arena with no room for one falls back to a plainer one); they are placed in it, and its
 guardian, if it is one of them (any fluid is its), guards from it. Qualmos's arena gets one too, of
 water, his lagoon (`BOSS_ARENAS.qualmos.lagoon`: up to 24 cells; see [Qualmos](#qualmos)).
 
-## Water: wading and drowning
+## Water: wading, swimming and sinking
 
-Lava and acid kill on contact. Water only drowns a body whose head goes under
-(`physics/fluid.js`): the player's head starts 0.79 cells over their feet (`HEAD_Y`: the rig's
-head bone, 1.44 rig units up, at `CHAR_SCALE`), an enemy's at its `bodyHeight`. In shallower
-water the player wades: walking goes on into it (`physics/canmove.js` stops only at water too
-deep), slowed by up to 45% the deeper it is (`WADE_SLOW`, `physics/move.js`). The rivers and
-pools of the cubes are a cell deep (their beds two levels under the surface): over the head, so
-they drown as before; the rising water of a flood trial and Squarlo's tide are waded through
-until they get over the head. That water writes depth (`render/trials.js`), so what of a wading
-body is under its surface stays hidden (the hero is drawn after it); and the cutaway never cuts
-lower than its surface where the hero stands in it (`game/cut.js`), or it would drop the water
-round their legs.
+Lava and acid kill on contact (unless the robot pulls the hero out: [combat.md](combat.md#fluids-and-falls)).
+Clear water drowns no hero: it is waded through while shallow, slowed by up to 45% the deeper it is
+(`WADE_SLOW`, `physics/move.js`), and swum in once deeper than `SWIM_DEPTH` (0.6 cells). An enemy
+drowns once it goes over its `bodyHeight` (`physics/fluid.js enemyUnder`), unless it swims. Water
+with a look of its own, a boss's mud or slime (Sollmeldon's, Slomo's), is never swum in: it is
+waded through, and over the head (`HEAD_Y`, 0.79 cells: the rig's head bone, 1.44 rig units up, at
+`CHAR_SCALE`) it holds the body and pulls it under: the robot pulls the hero out for a quarter of
+their health, else it kills (`physics/fluid.js peril`, `game/rescue.js`). The rising water of a
+flood trial and Squarlo's tide are waded through, then swum in. That water writes depth
+(`render/trials.js`), so what of a wading body is under its surface stays hidden (the hero is drawn
+after it); and the cutaway never cuts lower than its surface where the hero stands in it
+(`game/cut.js`), or it would drop the water round their legs.
 
 ## Flip
 
@@ -832,8 +832,7 @@ bones `frog` and `ball`), and the game scales an eye he threw away and grows it 
 Profiles: `FOGGERY` (the frog, phase 1) and `FOGGERY_BALL` (phases 2 and 3; `STAGE_PROFILES`) in
 `src/core/enemies.js`; the fight's rules, his tower and the platforms' puzzle in
 `src/core/foggery.js` (`FOGGERY_FIGHT`, `TOWER`, `PLATFORMS`); the fight in `src/game/foggery.js`,
-the platforms in `src/game/movers.js` (drawn by `render/movers.js`), the lava's rescue in
-`src/game/fluidrescue.js`.
+the platforms in `src/game/movers.js` (drawn by `render/movers.js`).
 
 | | Level 6 |
 |---|---|
@@ -902,11 +901,11 @@ the clock sees the same. They are surfaces like floors for the physics (`physics
 setMovers`: ground, walls, ceilings, solids). Walking off one stops at its edge like at any edge
 over lava; a jump goes across to a platform next to it (an empty slot between two is too far).
 
-**Falling into the lava** (`game/fluidrescue.js`, `game/ragdoll.js dieInFluid`) costs a quarter of
-your most health (`FOGGERY_FIGHT.rescue`), and magic pulls you out to safe ground: where you last
-stood if the lava is still well under it (or it is the top of the tower), else the nearest floor of
-the fight well above the lava, else (the top drowned) the nearest platform. Only if that quarter is
-all you have left does it kill you, like any lava.
+**Falling into the lava** kills, like any lava, unless the robot pulls you out (`game/rescue.js`,
+`physics/rescuespot.js`: [combat.md](combat.md#fluids-and-falls)): a quarter of your most health,
+and it flies you to safe ground: where you last stood if the lava is still well under it, else the
+nearest floor of the fight well above the lava, else (nothing is) the nearest just over it (the top
+of the tower) or a platform. Only if that quarter is all you have left does it kill you.
 
 ### Phase 1 (full health to a third)
 
@@ -1456,10 +1455,10 @@ world tips. His death drains it back to what it was at first (`drainMud`) and th
 
 It goes to the physics as a tide with a height of its own in each cell (`physics/fluid.js setTide`
 `ys`: the mean surface of the wet samples of a cell, `cellSurfaces`): waded through as water,
-slowing (`mud.wade`), and over the head it drowns, where magic pulls you out onto dry ground well
-over all of the mud for a quarter of your health (`game/fluidrescue.js`, "Nearly drowned in
-Sollmeldon's mud!"). Every game runs its own field from what it is shown of him (his tilt and his
-`drops`, below).
+slowing (`mud.wade`), never swum in, and over the head it pulls you under: the robot pulls you out
+onto dry ground (over all of the mud if any is) for a quarter of your health ("Stuck in the mud!",
+`game/rescue.js`), else it kills ("Sank in the mud!"). Every game runs its own field from what it
+is shown of him (his tilt and his `drops`, below).
 
 It is drawn as one sheet over the basin (`render/mud.js`): the field goes to the GPU as a texture
 (each sample's surface, depth and ground), and a fine sheet reads it through a cubic B-spline, its

@@ -38,6 +38,9 @@ Clips, 30 fps, in place (the game moves it):
                   its core flares at frame 40 (extras.hit_frame: the hero comes back), then
                   settles.
     RobotCheer    1.6 s: a happy hop and a somersault, the eyes squinting.
+    RobotCarry    32-frame loop: carrying the hero out of a fluid (they hang from it by the hands,
+                  their clip Hang, blender/character.py): straining, the wings beating hard and
+                  wide, the eyes squeezed, the core glowing bright, the gears racing.
 
 Headless:
     Blender -b --python blender/robot.py -- assets/robot.glb blender/robot.blend \
@@ -63,7 +66,7 @@ NAME, RIG_NAME = "Robot", "RobotRig"
 SCENE, COLLECTION, STAGE = "Robot", "RobotAsset", "RobotStage"
 FPS, D, TAU = K.FPS, K.D, K.TAU
 V = Vector
-CLIPS = ("RobotHover", "RobotFly", "RobotTalk", "RobotDormant", "RobotWake", "RobotRevive", "RobotCheer")
+CLIPS = ("RobotHover", "RobotFly", "RobotTalk", "RobotDormant", "RobotWake", "RobotRevive", "RobotCheer", "RobotCarry")
 SIDES = (("L", 1), ("R", -1))           # the robot's left is +X (it faces -Y)
 
 GLASS_HEX, GEAR_HEX, EYE_HEX, CORE_HEX, BRASS_HEX = "#bfeee6", "#d6f7f1", "#ffa43c", "#ffa640", "#c09040"
@@ -75,6 +78,7 @@ HOVER_FRAMES, FLY_FRAMES, TALK_FRAMES, DORMANT_FRAMES = 96, 48, 48, 90
 WAKE_FRAMES, WAKE_EYES, WAKE_LIFT = 108, 36, 54
 REVIVE_FRAMES, REVIVE_HIT = 72, 40
 CHEER_FRAMES = 48
+CARRY_FRAMES = 32
 
 # --- body plan -------------------------------------------------------------------------------------
 CENTRE = V((0, 0, 0.9))
@@ -548,6 +552,18 @@ def cheer(f):
     return one_shot(t, end, p, {"pitch": -TAU * flip, "gear": 2 * whole, "hub": whole, "key": whole})
 
 
+def carry(f, n=CARRY_FRAMES):
+    """Carrying the hero: everything a whole number of times round the loop, so it closes."""
+    w = TAU * f / n
+    beat = math.sin(4 * w)
+    strain = 0.5 + 0.5 * math.sin(2 * w + 0.6)
+    return params(pos=V((0.008 * math.sin(w), 0, 0.03 * math.sin(4 * w - 1.2))), pitch=D(-4) + D(3) * math.sin(4 * w),
+                  roll=D(6) * math.sin(w) + D(2) * math.sin(4 * w + 1), yaw=D(4) * math.sin(w + 0.7),
+                  flap=[D(16) + D(42) * beat, D(16) + D(42) * math.sin(4 * w + 0.15)], sweep=[D(-12) + D(8) * math.sin(4 * w + 1)] * 2,
+                  eye=[0.45 + 0.1 * strain] * 2, eye_size=1.05, core=1.2 + 0.12 * math.sin(4 * w),
+                  gear=4 * f / n, hub=4 * f / n, key=2 * f / n)
+
+
 def animate(rig, obj):
     rig.animation_data_create()
     # how far it sinks to lie on its back: bake the lying pose once and measure it
@@ -564,6 +580,7 @@ def animate(rig, obj):
                       extras={"hit_frame": REVIVE_HIT, "hit_time": REVIVE_HIT / FPS, "then": "RobotHover"})
     a.pose_markers.new("Revive").frame = REVIVE_HIT
     K.ground_clip(rig, obj, "RobotCheer", solver(rig, cheer), CHEER_FRAMES, extras={"then": "RobotHover"})
+    K.ground_clip(rig, obj, "RobotCarry", solver(rig, carry), CARRY_FRAMES, cyclic=True)
     K.register(rig, CLIPS)
 
 
@@ -623,7 +640,7 @@ def preview(scene, rig, path):
              ("RobotFly", 10, (-1.9, -0.4, up + 0.3), up), ("RobotTalk", 4, (0.6, -1.8, up + 0.5), up + 0.02),
              ("RobotDormant", 0, (-1.0, -1.2, 1.5), 0.15), ("RobotWake", 40, (0.8, -1.6, 1.1), 0.3),
              ("RobotWake", 84, (-0.5, -1.9, 1.3), up + 0.05), ("RobotRevive", REVIVE_HIT, (0.6, -2.0, up + 0.6), up + 0.22),
-             ("RobotCheer", 22, (-1.9, -0.6, up + 0.4), up + 0.2), ("RobotHover", 0, (-1.5, -2.2, 2.4), up)]
+             ("RobotCheer", 22, (-1.9, -0.6, up + 0.4), up + 0.2), ("RobotCarry", 4, (1.2, -1.6, up - 0.3), up)]
     size, cols = 360, 4
     rows = (len(shots) + cols - 1) // cols
     sheet = np.ones((rows * size, cols * size, 4), np.float32)

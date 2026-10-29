@@ -1,7 +1,8 @@
 // The robot's view (docs/story.md "The robot", blender/robot.py, assets/robot.glb): a hovering egg
 // of star-glass with amber eyes, little glass wings and glass gears, and an amber core that glows
 // and lights what is round it. game/robot.js says where it is and what it does; here it is drawn
-// there, its clips blended (lying asleep, waking, hovering, flying, talking, a cheer), faded in and
+// there, its clips blended (lying asleep, waking, hovering, flying, talking, a cheer, carrying the
+// hero out of a fluid: game/rescue.js), faded in and
 // out as it comes and goes (with the cube it is in, while a slide carries that away). Asleep its
 // core only glimmers (DORMANT_GLOW). Awake, ours looks at the hero when near (render/ik.js: its
 // eyes, its body leaning a little).
@@ -22,7 +23,8 @@ import { makeRig, restoreRig, poseRig } from './ik.js';
 import { ROBOT_RIG } from './rigs.js';
 
 const URL = 'assets/robot.glb';
-const CLIPS = { hover: 'RobotHover', fly: 'RobotFly', talk: 'RobotTalk', cheer: 'RobotCheer', dormant: 'RobotDormant', wake: 'RobotWake' };
+const CLIPS = { hover: 'RobotHover', fly: 'RobotFly', talk: 'RobotTalk', cheer: 'RobotCheer', dormant: 'RobotDormant', wake: 'RobotWake',
+  carry: 'RobotCarry' };
 const ONCE = new Set(['cheer', 'wake']);   // (played once from the start, then held: cheer, robotWake)
 const BLEND = 5;                 // 1/s: how quickly one clip takes over from another
 const LIGHT = 0xffc27a;          // its light: the amber of its core, a little paler
@@ -100,8 +102,8 @@ function cheer(v) {
 export function robotWake() { if (robotView.ready) robotView.actions.wake.reset().play(); }
 
 // Draw it at `at` (the scene's coordinates: its feet, the floor under it), turned to `yaw`, `fade`
-// of it showing (0: hidden); `clip`: what it does ('dormant', 'wake', 'hover', 'fly', 'talk'),
-// blended into
+// of it showing (0: hidden); `clip`: what it does ('dormant', 'wake', 'hover', 'fly', 'talk',
+// 'carry'), blended into
 export function drawRobot(at, yaw, fade, clip, dt) { if (robotView.ready) drawView(robotView, at, yaw, fade, clip, dt); }
 // what ours shows now ('cheer' while it cheers), for the others (game/robot.js robotWord)
 export const robotClip = clip => robotView.cheer > 0 ? 'cheer' : clip;
@@ -124,7 +126,7 @@ function drawView(v, at, yaw, fade, clip, dt) {
   restoreRig(v.rig);
   v.mixer.update(dt);
   // (ours looks at the hero, near: not asleep, nor while it cheers)
-  const looks = v === robotView && want !== 'dormant' && want !== 'cheer' && character.ready && character.group.visible
+  const looks = v === robotView && want !== 'dormant' && want !== 'cheer' && want !== 'carry' && character.ready && character.group.visible
     && character.group.position.distanceTo(at) < LOOK_NEAR;
   if (looks) character.bones.head.getWorldPosition(face);
   poseRig(v.rig, dt, { look: looks ? face : null });

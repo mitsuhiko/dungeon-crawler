@@ -29,6 +29,7 @@ let clean = null;        // [bone, quaternion, position]: the pose the mixer pro
 let getUp = null;        // the player.getUp being played
 let upAction = null;     // ... and its clip (kept while it fades out)
 let morph = null;        // { t, list, quats, hips }: the ragdoll pose (world space)
+let ragdolled = false;   // the hero was a ragdoll last frame
 // the attack being played: its serial, its action and the one before it (a chained attack
 // cross-fades from that one over CHAIN_FADE), f: how far the cross-fade got, from: clip start
 const attack = { serial: -1, cur: null, prev: null, f: 1, from: 0 };
@@ -80,7 +81,11 @@ export function animateCharacter(dt, time) {
   const ch = character, p = player;
   if (!ch.ready) return;
   clean ??= Object.values(ch.bones).map(b => [b, b.quaternion.clone(), b.position.clone()]);
-  if (p.ragdoll) { p.flat = 0; ch.group.scale.set(1, 1, 1); applyRagdollPose(p.ragdoll.p); getUp = upAction = morph = null; ch.getUpWeight = 0; return; }
+  if (p.ragdoll) { p.flat = 0; ch.group.scale.set(1, 1, 1); applyRagdollPose(p.ragdoll.p); getUp = upAction = morph = null; ch.getUpWeight = 0; ragdolled = true; return; }
+  // out of the ragdoll but for getting up (into the water, swimming; carried off by the robot):
+  // from its pose into the clips
+  if (ragdolled && !p.getUp) { startMorph(); resetMode(); }
+  ragdolled = false;
   if (p.getUp !== getUp) {
     getUp = p.getUp;
     if (getUp) {
@@ -123,7 +128,7 @@ export function animateCharacter(dt, time) {
     attack.prev.setEffectiveWeight(sw * (1 - attack.f));
     if (attack.f >= 1) attack.prev = null;
   }
-  const shown = !p.swimming && !p.climb;
+  const shown = !p.swimming && !p.climb && !p.rescue;
   // a thrown flask has left the hand until the throw is over (the next one is drawn then)
   if (ch.sword) ch.sword.visible = shown && !(s.active && s.fired && s.stats?.kind === 'throw');
   ch.mixer.update(0);

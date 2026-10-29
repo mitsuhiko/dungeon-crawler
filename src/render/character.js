@@ -189,6 +189,7 @@ function setup(gltf) {
     land: part(J, 'Land', 37, 58),        // compression + recovery
     sit: part(S, 'SitLand', 36, 78),      // lose balance, land on the bottom, stay sitting
     getUpBack: clips.GetUpBack, getUpFront: clips.GetUpFront,   // from lying to standing
+    hang: clips.Hang,   // hanging by the hands from the robot (game/rescue.js), the legs dangling (a loop)
   };
   // all actions run all the time; the animator drives their weights and times by hand
   const mixer = new THREE.AnimationMixer(model);

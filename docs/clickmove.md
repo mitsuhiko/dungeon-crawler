@@ -32,9 +32,17 @@ portal at once.
 The nodes are the floor graph the enemies walk (floors, stair and bridge pieces, landings:
 `physics/floornav.js`). Some steps only the hero takes:
 
-- **Ladders** (`map.ladders`): up from the floor at its foot, down from the floor at its top.
+- **Ladders** (`map.ladders`): up from the floor at its foot, down from the floor at its top;
+  one out of the water (`wet`) up from the water, swimming.
 - **Jumps** (`src/physics/leaps.js`): over a gap of up to three cells, up onto a ledge too high
   to walk up, and down off one (walked off slowly, or jumped).
+- **The water** (`waterEdges`): from a water floor to the water beside it at its surface (waded
+  or swum: a cell swum costs `RUN_SPEED / SWIM_SPEED`, one waded 1.4), out onto the ground beside
+  it up to a level over its surface (where the middle of that ground's edge is no higher than a
+  swimmer climbs: `SWIM_STEP`), and into it off a bank up to three levels over it (the order lets
+  the walk go off the bank into deep water: `player.wetOK`, `physics/canmove.js`). Never where
+  something overhead leaves no room for the head, through a fence, or under a bridge it would
+  walk onto instead.
 
 The cheapest way wins, counted in cells walked. A ladder costs its height at climbing speed and a
 jump a little extra, so the hero walks where walking is about as short. When the target cannot
@@ -47,8 +55,8 @@ Jumps are not guessed from heights. They are found by making them with the hero'
 cell, the jump where along the cell it was found to work, and straight on in the air, braking
 back over the landing cell. It only counts if it lands on its floor every time, softly (no
 sitting down), and keeps standing there. It also has to work from a little off the middle, a
-little late, and at a lower frame rate. Over what kills (a fluid too deep to wade, or nothing at
-all) it has to work with wider margins too.
+little late, and at a lower frame rate. Over what kills (lava or acid, or nothing at all) it has to
+work with wider margins too (water is swum in: no margin).
 
 Jumps are found per map, floor by floor as the way's search reaches them, and per what the hero
 can do now. A leaping potion jumps higher, a swiftness potion or light boots leap further, a

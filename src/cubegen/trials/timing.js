@@ -3,11 +3,11 @@
 // after the smoothing and the fences, with the structures) gives every floor its earliest arrival
 // for a perfect runner, each move costing its real duration: running at RUN_SPEED (as the hero
 // always does), ramps and stairs by their length, ladders at the climb speed, a jump or a drop 0.6 s
-// (a jump a second more, its run-up). The slow player gets there at slowTime of that
+// (a jump a second more, its run-up), the water at the swimming speed. The slow player gets there at slowTime of that
 // (core/trials.js: SLACK times as long, plus REACT s).
 //   deadlines  the hazard gives each floor the time it stops being safe: the path must leave
 //              every floor by slowTime <= deadline, and end on a floor with none
-import { N, LH, RUN_SPEED, CLIMB_SPEED, CHAR_H } from '../../core/constants.js';
+import { N, LH, RUN_SPEED, CLIMB_SPEED, CHAR_H, SWIM_SPEED } from '../../core/constants.js';
 import { Heap } from '../../core/heap.js';
 import { slowTime } from '../../core/trials.js';
 import { graph } from '../reach.js';
@@ -28,6 +28,7 @@ function duration(a, b, move, speed) {
     return Math.hypot(k + 1, rise) / speed;   // walk, stair, bridge, walkway
   }
   const dh = level(b) - level(a), d = Math.abs(a.x - b.x) + Math.abs(a.z - b.z) || 1;
+  if (a.fluid || b.fluid) return d / Math.min(speed, SWIM_SPEED) + (Math.abs(dh) < 1 ? 0 : JUMP_TIME);   // swimming (into it, out of it)
   const linked = a.link?.some(l => l === b);
   if (linked || Math.abs(dh) < 1) return Math.hypot(d, dh * LH) / speed;
   return d / speed + JUMP_TIME;   // a jump up, or a drop

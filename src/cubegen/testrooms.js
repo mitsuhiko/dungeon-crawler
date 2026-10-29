@@ -98,7 +98,9 @@ function finish(ctx, spec, { K = 1, B = [0], arrival, note, lineup = [], shape =
 // A hill standing in a lake to halfway up (its top 15 levels up, the water at 8, the bed at 1),
 // steep all round but to the east: there a shelf runs out under the water, so gently that
 // walking down it the water rises to just under the head (physics/fluid.js HEAD_Y) by its far
-// edge (x = 14); past that it drops off into deep water. A dry rim runs round the cube.
+// edge (x = 14), lifting the body to swim on the way (physics/move.js SWIM_DEPTH); past that it
+// drops off into deep water. A dry rim runs round the cube, a level over the water: a swimmer
+// climbs out onto it anywhere.
 const HILL = { S: 8, bed: 1, top: 15, x: 6, z: 8 };
 export function hillHeight(X, Z) {
   const { S, bed, top } = HILL, r = Math.hypot(X - HILL.x, Z - HILL.z);
@@ -116,7 +118,7 @@ function waterHill(spec) {
   }
   ctx.stats.fluids.push('water lake with a wading shelf');
   return finish(ctx, spec, { arrival: { x: 8.5, z: 8.5, yaw: Math.PI / 2 },
-    note: 'wade east down the shelf; it stops where the water gets too deep (jump in to drown)' });
+    note: 'wade east down the shelf until you swim; climb out onto the rim or the shelf' });
 }
 
 // Flat ground (level 4) before a cliff along the north (level 14, up a ladder in its west end):

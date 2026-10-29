@@ -1,11 +1,11 @@
-// Fluids (drown / burn / dissolve), waterfalls, health regeneration and the respawn point.
+// Fluids (burn / dissolve / sink; swimming: game/swim.js), waterfalls, health regeneration and the respawn point.
 import { LH, LAVA, ACID, DIRS } from '../core/constants.js';
 import { floorY } from '../core/surfaces.js';
 import { takeDamage, regenerate } from '../core/progression.js';
 import { player, state } from '../game/state.js';
 import { hurt } from '../game/flow.js';
 import { knockDown, dieInFluid } from '../game/ragdoll.js';
-import { inFluid, fluidSurface, wading } from './fluid.js';
+import { peril } from './fluid.js';
 import { startFall, landFall } from '../game/fall.js';
 import { poisonPlayer } from '../game/enemycombat.js';
 import { toxinOf, ACID_TOXIN } from '../core/status.js';
@@ -14,15 +14,14 @@ import { allEnemies } from '../game/enemies.js';
 import { retryBalance } from '../game/trials.js';
 import { msg, tr } from '../i18n/i18n.js';
 
-// returns false when the player got respawned. Lava and acid are fatal, and water over the
-// head (physics/fluid.js); walking is kept off such edges (and holes into the void) by canMove,
-// so only jumps, falls, knockbacks and a rising fluid get here. Shallower water is waded
-// through (`wade`: how deep, physics/move.js slows the player by it).
+// returns false when the player got respawned (or the robot pulls them out). Lava and acid are
+// fatal, and a boss's mud or slime over the head (physics/fluid.js peril), unless the robot comes
+// (game/rescue.js); walking is kept off such edges (and holes into the void) by canMove, so only
+// jumps, falls, knockbacks and a rising fluid get here. Clear water is waded through (`wade`: how
+// deep, physics/move.js slows the player by it) and swum in (physics/move.js, game/swim.js).
 function fluids(gr) {
-  player.swimming = false; player.fluid = 0;
-  const fluid = inFluid(gr, player.y);
-  if (fluid) { player.wade = 0; dieInFluid(fluid, fluidSurface(gr)); return false; }
-  player.wade = player.grounded ? wading(gr, player.y) : 0;
+  const takes = peril(gr, player.y);
+  if (takes) { player.wade = 0; dieInFluid(takes.fluid, takes.y, takes.look); return false; }
   return true;
 }
 

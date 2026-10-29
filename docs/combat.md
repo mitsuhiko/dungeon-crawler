@@ -176,7 +176,7 @@ The controls are the same for all.
   2, in tidal hills of his own: tiny (smaller than the player), teal and boxy, with a floppy cap,
   three dots for a face and cupped hands, and super fast. He blows jets of water that knock you
   back, summons Squirtles out of his water and, warded while he casts, calls the tide: the flats
-  drown and only the hills stay safe; now and then he has to rest. At half his health he grows
+  go under (you swim, slowly, and strike nothing) and only the hills stay dry; now and then he has to rest. At half his health he grows
   into a giant six cells tall in a fog and stomps (his foot's shadow shows where). See
   [bosses.md](bosses.md).
 - Flip (`blender/flip.py`), the fourth real boss, in place of the descent guardian of depth 3, in a
@@ -199,8 +199,8 @@ The controls are the same for all.
   puzzle. At a third of his health he curls up into a ball with a shield: two Fire-cats guard
   him, and only with both dead can he be hurt, until he calls new ones 8 s later. He spits
   fireballs and makes fire geysers burst out of the floor. At a sixth the lava floods the top and
-  only the platforms are safe. Falling into his lava costs a quarter of your health and magic pulls
-  you out. See [bosses.md](bosses.md#foggery).
+  only the platforms are safe. Falling into his lava kills, unless your robot pulls you out (a
+  quarter of your health). See [bosses.md](bosses.md#foggery).
 - Renew, the sixth real boss, in place of the descent guardian of depth 5, in the arena his depth
   would have anyway (with braziers lit round it): no monster but a hero like you, the same figure,
   in a hood. He runs as fast as you, chains his blows, lunges, and rolls out of the way of your
@@ -496,29 +496,52 @@ The other kinds: [sword](img/loadout-sword.jpg),
 
 ## Fluids and falls
 
-- Walking/running stops at edges facing lava, acid or water too deep to wade; jumps,
-  knockbacks and airborne falls can still enter them. Bridges and dry floors above fluids
-  remain walkable.
-- Lava and acid are fatal on contact, water once it is over the head (`physics/fluid.js`,
-  `dieInFluid` in `game/ragdoll.js`): you drown in water, burn up in lava, dissolve in acid.
-  Shallower water (under `HEAD_Y`, 0.79 cells: the rig's head bone) is waded through, slowed by
-  up to 45% the deeper it is (`WADE_SLOW`, `physics/move.js`); the cubes' own rivers and pools
-  are a cell deep, a flood trial's rising water and Squarlo's tide get there only as they rise
-  ([bosses.md](bosses.md#water-wading-and-drowning)). Enemies drown once a standing fluid is over
-  their `bodyHeight`, unless they `swim` (Squarlo, the Squirtles). The player ragdolls, slowed
-  down and sinking, for at least 2.2 s, then respawns at the cube entry with full
-  health. Existing ragdolls die the same way when they tumble in.
+- **Water is swum in.** Clear water is waded through while it is shallow, slowed by up to 45% the
+  deeper it is (`WADE_SLOW`, `physics/move.js`); deeper than `SWIM_DEPTH` (0.6 cells) it lifts the
+  body off its feet and the hero swims (`player.swimming`, the `Swim` / `SwimIdle` clips, mixed by
+  speed: `render/blendtree.js`), slowly (`SWIM_SPEED`), the feet `SWIM_FEET` (0.5) under the
+  surface, held there like a spring a plunge sinks into a little and bobs back out of; a tide
+  rising or falling carries them along. No weapon swings while swimming (`core/combat.js`); the
+  weapon is hidden. A jump out of it is a hop. Into the water there is a splash
+  (louder the harder the plunge), strokes slosh (`paddle`) and ripples spread (`game/swim.js`);
+  no fall into water hurts. The robot says a line about it the first few times.
+- **Out of the water**: a swimmer (or one wading at least `WADE_CLIMB` deep) steps up onto a bank
+  up to `SWIM_STEP` (1.1) over the feet: a level over the water's surface. Under a bridge they swim
+  on (a structure only a plain step over the feet), if its deck leaves room for the head. A ladder
+  out of the water (`wet`, [world.md](world.md#the-way-down-cubegenroutejs-cubegenreachjs-cubegenescapejs))
+  is taken hold of swimming. The generator gives every water a way out; where a standing water (a
+  trial's, a boss's) leaves none (`physics/swimout.js wayOut`, looked for twice a second), the robot
+  carries them out after 2 s; with no robot yet they tire, and drown after 8 s.
+- **Walking** stops at edges facing lava, acid or water deeper than wading goes from dry land
+  (the head's height but for a margin, judged where the foot goes); already wading it walks on
+  into deep water and swims. Jumps, knockbacks and airborne falls can still enter any of them.
+  Bridges and dry floors above fluids remain walkable. A mouse order's way may go through the
+  water ([clickmove.md](clickmove.md)).
+- **What kills** (`physics/fluid.js peril`): lava and acid on contact, and a boss's mud or slime
+  (a standing water with a look of its own) over the head. With the robot along (woken in the
+  merchant camp) it pulls the hero out instead (`game/rescue.js`, `core/rescue.js`; [story.md](story.md#the-robot)):
+  a quarter of their most health, and it flies them to safe ground (where they last stood safely,
+  else the nearest floor that leads on: in a boss's arena a floor of the fight, well over a fluid
+  that comes and goes if any is, else just over it, else a platform). Only if that quarter is all
+  they have left does it kill. Without the robot it kills (`dieInFluid` in `game/ragdoll.js`): you
+  burn up in lava, dissolve in acid, sink in the mud or the slime. The player ragdolls, slowed
+  down and sinking, for at least 2.2 s, then respawns at the cube entry with full health. A
+  ragdoll that tumbles in dies the same way (or is pulled out); one knocked into deep water swims
+  on. Enemies drown once a standing fluid is over their `bodyHeight`, unless they `swim` (Squarlo,
+  the Squirtles); things on the floor are lost in water over the head (`inFluid`).
 - There are no dedicated death animations; `render/fluiddeath.js` layers an effect
   over the ragdoll: a splash and bubbles (water); embers, smoke, a glowing then
   charred body and an orange light (lava); fizz, vapour and a green body that fades
   away (acid). The shared character material is restored when that ragdoll ends.
-- Falling through a cube into a fluid preserves the landing position. A fall through
-  cubes always ends back in the cube it started in (see `docs/world.md`).
+- Falling through a cube into a fluid preserves the landing position; a fall through cubes ends
+  on the first landing, in water too. A fall through cubes always ends back in the cube it
+  started in (see `docs/world.md`).
 - Dying puts the cube back as it was when you came in (`game/flow.js` `die`): enemies
   defeated since return and the coins they dropped that are still on the floor go.
 - Entering a cube (or respawning) gives a grace period (`ENTRY_GRACE`, 1.2 s in
   `game/enemies.js`): enemies may chase but start no attack until it runs out or you
-  land a hit.
+  land a hit. Carried by the robot nothing hits the hero, and no enemy strikes until 1.5 s after it
+  let go (`RESCUE.grace`).
 - Lava and acid *falls* (the sheets pouring off ledges) are unchanged: lavafalls knock
   you down for 50 damage, acid falls hurt over time.
 
@@ -609,7 +632,7 @@ await (await import('./tests/browser/mecked.js')).runMeckedChecks(); // Mecked b
 await (await import('./tests/browser/moose.js')).runMooseChecks(); // Moose: tail behind it without turning, nothing at its side, toss, charge tramples, crash dazes
 await (await import('./tests/browser/tornado.js')).runTornadoChecks(); // Tornado twisters: spun up, let go, caught, lifted and flung (or sidestepped); hop, slam, burning twisters
 const water = await import('./tests/browser/water.js');
-await water.runWaterChecks(); // all fluids: edge guard, jumps/high falls, ragdolls, effects, dry respawn
+await water.runWaterChecks(); // swimming in, out; lava and acid deadly or pulled out by the robot; no way out of the water
 const inventory = await import('./tests/browser/inventory.js');
 await inventory.runInventoryChecks(); // resets the run; UI, equipment, rewards, revisits
 await inventory.runWeaponLootChecks(); // weapon drops, labels, click pickup, the inventory floor column, deaths

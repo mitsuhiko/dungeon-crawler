@@ -890,6 +890,28 @@ export default {
     'Die wachen alle auf einmal auf! Such dir eine enge Stelle!',
   'Here they come! Do not let them surround you.':
     'Da kommen sie! Lass dich nicht umzingeln.',
+  'You can swim! I cannot. I would sink like a stone. A shiny stone.':
+    'Du kannst schwimmen! Ich nicht. Ich würde sinken wie ein Stein. Ein glänzender Stein.',
+  'Splash! Do not worry about me, I will stay up here where it is dry.':
+    'Platsch! Keine Sorge um mich, ich bleibe hier oben im Trockenen.',
+  'If you cannot find a way out of the water, just wait. I will come and get you.':
+    'Wenn du keinen Weg aus dem Wasser findest, warte einfach. Dann hole ich dich.',
+  'Got you! Hot, hot, hot! Hold on to me!':
+    'Hab dich! Heiß, heiß, heiß! Halt dich an mir fest!',
+  'Out of the lava you come! My wings were not made for this, you know.':
+    'Raus aus der Lava mit dir! Meine Flügel sind dafür nicht gemacht, weißt du.',
+  'Up you come! That green stuff ate a bit of you, I think.':
+    'Hoch mit dir! Das grüne Zeug hat ein Stück von dir gegessen, glaube ich.',
+  'Hold on! Pull, pull... and out you pop!':
+    'Festhalten! Ziehen, ziehen... und plopp, bist du draußen!',
+  'Eww, slime! Hold on, I have got you.':
+    'Igitt, Schleim! Halt dich fest, ich hab dich.',
+  'No way out of there? Grab hold of me, I will fly you out.':
+    'Kein Weg da raus? Halt dich an mir fest, ich fliege dich raus.',
+  'Hold on tight! And please do not look down.':
+    'Gut festhalten! Und bitte nicht nach unten schauen.',
+  'Again? I am getting good at this.':
+    'Schon wieder? Langsam werde ich richtig gut darin.',
   'Yippee! I mean: are you all right?':
     'Juhu! Ich meine: alles in Ordnung?',
   'You fell through to the piece below! Wait for me!':

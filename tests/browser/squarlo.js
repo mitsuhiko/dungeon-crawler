@@ -1,8 +1,8 @@
 // In devtools: await (await import('./tests/browser/squarlo.js')).runSquarloChecks()
 // Squarlo's whole fight in his real arena (the descent of depth 2, his tidal hills): the water
 // standing in the flats, his jet pushing the player back, Squirtles popping out of his water and
-// diving into it, the tide (he cannot be hurt while he calls it) drowning the flats but not the
-// hills (drowning there costs a quarter of one's health, and magic pulls one out onto a hill), the
+// diving into it, the tide (he cannot be hurt while he calls it) going over the flats but not the
+// hills (the player swims in it there, unhurt, carried up with it), the
 // rest after it, growing into a giant at half his health, the giant's stomp, its shockwave and
 // his jump, and his death draining the water and taking the Squirtles along.
 import { paused } from './combat.js';
@@ -13,7 +13,7 @@ import { damageEnemy } from '../../src/core/combat.js';
 import { attackOf, exposedBy, hurtBy, SQUARLO_GIANT } from '../../src/core/enemies.js';
 import { gateLocked } from '../../src/core/guardians.js';
 import { SQUARLO_FIGHT, splitHp } from '../../src/core/squarlo.js';
-import { LH, HEAD_Y } from '../../src/core/constants.js';
+import { LH, HEAD_Y, SWIM_FEET } from '../../src/core/constants.js';
 import { allEnemies, updateEnemies, drawEnemies } from '../../src/game/enemies.js';
 import { beams } from '../../src/game/beams.js';
 import { updatePlayer } from '../../src/game/update.js';
@@ -102,14 +102,14 @@ export async function runSquarloChecks() {
       const hill = map.floors.filter(f => f.encounter && f.top >= level && walkable(f, 1) && !f.prot)[0];
       check(flat && hill, 'flats and a hill');
       put(flat);
-      let drowned = false, seen = q.attacks, before = player.hp;
+      let swam = false, seen = q.attacks, before = player.hp;
       const after = [];   // the attacks he starts after it
       const watch = () => { if (q.attacks !== seen) { seen = q.attacks; if (q.mode === 'attack') after.push(attackOf(q).name); } };
-      run(SQUARLO_FIGHT.tide.rise + 0.5, 1 / 30, dt => { watch(); if (!drowned) { updatePlayer(dt); drowned = player.hp < before; } });
-      // drowning there costs a quarter of one's health, and magic pulls one out onto a hill
-      check(drowned && before - player.hp === Math.ceil(player.maxHp * SQUARLO_FIGHT.rescue) && !player.fluidDeath,
-        'on the flats the tide nearly drowns the player: ' + (before - player.hp));
-      check(player.y + HEAD_Y > map.tide.high * LH, 'pulled out, up where the high tide stays under the head');
+      run(SQUARLO_FIGHT.tide.rise + 0.5, 1 / 30, dt => { watch(); updatePlayer(dt); swam ||= player.swimming; });
+      // the water lifts the player off the flats: they swim, unhurt, up with it
+      check(swam && player.swimming && player.hp === before && !player.fluidDeath && !player.rescue,
+        'on the flats the tide lifts the player: they swim (' + (before - player.hp) + ' hurt)');
+      check(Math.abs(player.y + SWIM_FEET - state.tide * LH) < 0.1, 'afloat on the high tide: ' + player.y);
       check(q.tide === 1 && Math.abs(state.tide - map.tide.high) < 0.05, 'high tide: ' + state.tide);
       check(q.barred.has('blow'), 'no jet while the water is up');
       put(hill);
@@ -190,7 +190,7 @@ export async function runSquarloChecks() {
       run(SQUARLO_FIGHT.tide.fall + 0.5);
       check(Math.abs(state.tide - map.tide.rest) < 0.05, 'and the water drains: ' + state.tide);
       check(!allEnemies().some(e => e.summoned && e.mode !== 'dead' && e.mode !== 'gone'), 'his Squirtles go with him');
-      return { jet: true, squirtles: squirtles.length, tide: true, rescue: true, giant: true, stomp: true, jump: true, gate: true };
+      return { jet: true, squirtles: squirtles.length, tide: true, swim: true, giant: true, stomp: true, jump: true, gate: true };
     } finally {
       state.run = saved.run; state.openedFaces = opened; c.visits = visits;
       enterCube(oldCube, null, { arrival: saved.arrival, visit: saved.visit,

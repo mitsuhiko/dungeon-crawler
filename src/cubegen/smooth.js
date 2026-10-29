@@ -1,6 +1,6 @@
 // Smoothing: decide which neighbouring floors blend into a slope (links), then give every
 // floor four corner heights averaged over the linked floors around each corner.
-import { N, LH, DIRS, OPP, edgePts } from '../core/constants.js';
+import { N, LH, DIRS, OPP, WATER, edgePts } from '../core/constants.js';
 import { idx, inb, hash32 } from '../core/util.js';
 
 function makeLinks(ctx) {
@@ -70,8 +70,19 @@ export function smooth(ctx) {
     // A bank (a floor at a fluid's level or over it, reaching down beside it) keeps its corners
     // next to the fluid out of it: a slope sagging it under the surface would put the waterline in
     // a cell no fluid is drawn in (render/shore.js shoreIssues). Only a fluid's own cells reach
-    // under its surface.
-    return Math.max(mean, bankAt(group, X, Z));
+    // under its surface. And a low bank of water (a level over it, or less: where a swimmer climbs
+    // out, cubegen/reach.js) keeps its corners next to it no higher than its level: a slope up
+    // from it starts at the water's edge no higher than a swimmer reaches (physics/move.js).
+    return Math.max(Math.min(mean, lowBankAt(group, X, Z)), bankAt(group, X, Z));
+  }
+  function lowBankAt(group, X, Z) {
+    let cap = Infinity;
+    if (!group[0].fluid) for (const [x, z] of [[X - 1, Z - 1], [X, Z - 1], [X - 1, Z], [X, Z]]) {
+      if (!inb(x, z)) continue;
+      for (const w of ctx.cols[idx(x, z)]) if (w.fluid === WATER && group.some(g => !g.fluid && g.top >= w.surf && g.top <= w.surf + 1 && g.bottom < w.surf))
+        cap = Math.min(cap, (w.surf + 1) * LH);
+    }
+    return cap;
   }
   function bankAt(group, X, Z) {
     let bank = -Infinity;

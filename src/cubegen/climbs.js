@@ -1,7 +1,7 @@
 // Route moves that need no stairs or bridges: ladders up (or down) a cliff face, and jumps over
 // a gap of one or two cells. Ladders are kept in their own list (not structure pieces): the
 // lower floor's cell holds the ladder against the wall of the higher column.
-import { LH, DIRS, OPP } from '../core/constants.js';
+import { LH, DIRS, OPP, WATER } from '../core/constants.js';
 import { idx, inb, hash32 } from '../core/util.js';
 import { laddersOf, pickLadder } from '../themes/builds.js';
 import { themeOf } from '../themes/depth.js';
@@ -66,7 +66,7 @@ export function placeClimb(m, claims, pathEdges, ladders) {
   if (overlaps(claims[lo.c], cl)) return false;
   claims[lo.c].push(cl);
   pathEdges.add(lo.id + ':' + wall); pathEdges.add(hi.id + ':' + OPP[wall]);
-  if (!ladders.some(l => l.lo === lo && l.hi === hi)) ladders.push({ lo, hi, d: wall, hang: !!m.hang });
+  if (!ladders.some(l => l.lo === lo && l.hi === hi)) ladders.push({ lo, hi, d: wall, hang: !!m.hang });   // (lo in water: out of it, cubegen/escape.js)
   return true;
 }
 
@@ -78,7 +78,9 @@ export function ladderStyle(spec, l) {
   return pickLadder(laddersOf(themeOf(spec), spec.forceLadder), l.hang, h / 2 ** 32);
 }
 
-// what the game needs to know about a ladder (plain data)
+// what the game needs to know about a ladder (plain data); one standing in the water (out of it:
+// cubegen/escape.js addWaterEscapes) has its surface, `wet` (physics/climb.js)
 export const ladderInfo = (l, style) => ({
   c: l.lo.c, x: l.lo.x, z: l.lo.z, d: l.d, y0: l.lo.top * LH, y1: l.hi.top * LH, layer: l.lo.layer, lo: l.lo.id, hi: l.hi.id, hang: l.hang, style,
+  ...l.lo.fluid === WATER && { wet: l.lo.surf * LH },
 });

@@ -5,8 +5,8 @@
 // level again, it levels out. Every ball of mud he spits lands in it as a dome (his `drops`), a
 // puddle that holds still while the world is level and runs downhill when it tips. It goes to the
 // physics as a tide with a height of its own in each cell (physics/fluid.js setTide `ys`: waded
-// through as water, deep enough to drown in on the low side, where magic pulls one out:
-// game/fluidrescue.js; his Mud squirtles live in it) and is drawn as glossy marbled goop
+// through as water, deep enough to sink in on the low side, where the robot pulls one out:
+// game/rescue.js; his Mud squirtles live in it) and is drawn as glossy marbled goop
 // (render/mud.js).
 // Every game runs its own field from what it is shown of him: his tilt and his drops (each once, by
 // its number), so it flows alike in every game. In his intro the mire is flooded to the brim (his

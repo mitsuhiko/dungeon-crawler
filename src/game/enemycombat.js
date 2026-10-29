@@ -44,7 +44,7 @@ export const playerFloor = (height, p = player) => p.grounded && !p.swimming && 
 // a small one that does nothing else.
 export function hitPlayer(blow, fx, fz, nx, nz) {
   const p = player;
-  if (p.held) return;
+  if (p.held || p.rescue) return;   // (in the robot's hands, game/rescue.js: nothing hurts)
   if (typeof blow.grab === 'string') { grabPlayer(blow, fx, fz); return; }
   // swallowed by a Bolime coming down on us (game/engulf.js); already inside one, it only lands on us
   if (typeof blow.engulf === 'string') { if (engulfPlayer(blow)) return; blow = { ...blow, engulf: null }; }
@@ -95,7 +95,7 @@ export function hitBody(p, blow, fx, fz, nx, nz) {
 // beating's `more`: its power, its shove)
 export function strikePlayer(e, over = null) {
   const p = e.target?.here ? e.target : player, a = over ? { ...attackOf(e), ...over } : attackOf(e), dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz);
-  if (p.ragdoll || p.held || p.hp <= 0 || d > a.hitReach || Math.abs(p.y - e.y) > 0.85) return false;
+  if (p.ragdoll || p.held || p.rescue || p.hp <= 0 || d > a.hitReach || Math.abs(p.y - e.y) > 0.85) return false;
   if (d > 0.01 && Math.cos(Math.atan2(dx, dz) - e.yaw - (a.back ? Math.PI : 0)) < a.arc) return false;
   const blow = { ...blowOf(e.profile, a), by: attacker(e), ...a.grab && { grab: e.id } };   // a grab catches (game/grab.js)
   hitBody(p, blow, e.x, e.z, d ? dx / d : Math.sin(e.yaw), d ? dz / d : Math.cos(e.yaw));
@@ -152,7 +152,7 @@ function pushPlayer(dx, dz) {
 export function contactEnemies(list, dt, moveEnemies = true) {
   const p = player;
   for (const e of list) {
-    if (absent(e) || airborne(e) || p.ragdoll || p.held || p.flipping || p.engulfed?.e === e) continue;
+    if (absent(e) || airborne(e) || p.ragdoll || p.held || p.rescue || p.flipping || p.engulfed?.e === e) continue;
     const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz), body = p.r + e.profile.radius;
     if (d >= body || p.y >= e.y + e.profile.bodyHeight || p.y + p.h <= e.y) continue;
     const nx = d ? dx / d : 1, nz = d ? dz / d : 0, depth = body - d;

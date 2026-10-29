@@ -1,15 +1,17 @@
 // Animation state machine and blend trees: which clips play with what weight and at what
 // time. On land: idle -> walk -> run by speed; in water: treading water -> paddling by speed;
 // ladders use a reversible, distance-driven climb cycle; jump / fall / land / sit are one-shots;
-// sliding on a slide puzzle's ice (player.skidding, game/trials.js) skids.
+// sliding on a slide puzzle's ice (player.skidding, game/trials.js) skids; carried off by the robot
+// (player.rescue, game/rescue.js) the hero hangs from it by the hands, treading the fluid until it
+// comes.
 import { WALK_SPEED, RUN_SPEED, WALK_ANIM, RUN_ANIM, SWIM_SPEED, SIT_IMPACT } from '../core/constants.js';
 import { clamp } from '../core/util.js';
 import { player } from '../game/state.js';
 import { character } from './character.js';
 
-export const W = { idle: 1, walk: 0, run: 0, swimIdle: 0, swim: 0, skid: 0, climb: 0, jump: 0, fall: 0, land: 0, sit: 0 };
+export const W = { idle: 1, walk: 0, run: 0, swimIdle: 0, swim: 0, skid: 0, climb: 0, jump: 0, fall: 0, land: 0, sit: 0, hang: 0 };
 // learn: animation.html#modes (see learn/README.md)
-const RATE = { loco: 10, swim: 6, skid: 16, climb: 14, jump: 18, fall: 7, land: 20, sit: 14 };   // cross-fade speeds
+const RATE = { loco: 10, swim: 6, skid: 16, climb: 14, jump: 18, fall: 7, land: 20, sit: 14, hang: 9 };   // cross-fade speeds
 const seen = { jump: 0, land: 0 };
 let mode = 'loco', modeT = 0, phase = 0, swimPhase = 0, climbPhase = 0, slow = 0;
 // stretch: stride stretch for the walk / run cycle; phase: where in that cycle, run: how much
@@ -24,6 +26,15 @@ export const resetMode = () => { mode = 'loco'; };
 function nextMode(dt, speed) {
   const p = player;
   modeT += dt;
+  // In the robot's hands: treading the fluid until it comes, then hanging from it
+  if (p.rescue) {
+    const want = p.rescue.phase === 'reach' ? 'swim' : 'hang';
+    if (mode !== want) modeT = 0;
+    mode = want; slow = 0;
+    seen.jump = p.jumpCount; seen.land = p.landCount;
+    return;
+  }
+  if (mode === 'hang') { mode = 'land'; modeT = 0; seen.land = p.landCount; }
   // A ladder grab takes priority over landing / recovery; stationary climbing holds a grip.
   if (p.climb) {
     if (mode !== 'climb') { climbPhase = 0; modeT = 0; }
@@ -85,6 +96,7 @@ export function updateBlend(dt, speed, time) {
   A.swim.time = swimPhase * dur('swim');
   A.swimIdle.time = time % dur('swimIdle');
   A.skid.time = time % dur('skid');
+  A.hang.time = time % dur('hang');
   A.climb.time = climbPhase * dur('climb');
   if (mode === 'jump') A.jump.time = Math.min(modeT * 1.4, dur('jump'));
   A.fall.time = dur('fall') * (0.5 + 0.5 * Math.sin(time * 3));

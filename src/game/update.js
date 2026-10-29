@@ -8,6 +8,8 @@ import { holdPointer, followOrder, clearOrder } from './orders.js';
 import { canMoveCancel, cancelSwing, LUNGE_REACH } from '../core/combat.js';
 import { checkPortals } from './portals.js';
 import { knockDown, stepRagdoll, tickGetUp } from './ragdoll.js';
+import { tickRescue } from './rescue.js';
+import { tickSwim } from './swim.js';
 import { tickHeld } from './grab.js';
 import { tickTwirl } from './twirl.js';
 import { tickEngulf, holdInside } from './engulf.js';
@@ -41,6 +43,8 @@ export function updatePlayer(dt) {
   // a portal's charge only carries over while checkPortals sees us standing in it
   const charge = state.portalCharge;
   state.portalCharge = null;
+  // in the robot's hands (game/rescue.js): carried out of a fluid onto safe ground
+  if (player.rescue) { cancelSword(); cancelCast(tr('Portal interrupted')); clearOrder(); tickRescue(dt); return; }
   if (player.ragdoll) { cancelSword(); cancelCast(tr('Portal interrupted')); clearOrder(); stepRagdoll(dt); return; }
   // in a boss's hands (game/grab.js): carried, then thrown; or spun round in a twister (game/twirl.js)
   if (player.held) { cancelSword(); cancelCast(tr('Portal interrupted')); clearOrder(); if (player.held.twirl) tickTwirl(dt); else tickHeld(dt); return; }
@@ -93,8 +97,9 @@ export function updatePlayer(dt) {
 
   // Fluid contact takes priority over landing damage (even a high fall into water).
   if (!applyHazards(dt, gr)) return;
-  // a fall through cubes ends on the first landing, however soft
-  if (state.fallFrom && player.grounded) { landFall(); return; }
+  // a fall through cubes ends on the first landing, however soft (in water too)
+  if (state.fallFrom && (player.grounded || player.swimming)) { landFall(); return; }
+  if (tickSwim(dt)) return;   // in the water: its splash, and no way out of it (game/swim.js)
 
   // hard landings: tumble over as a ragdoll (and get hurt), or land on your bottom (not on
   // something soft, physics/move.js landingSpeed)

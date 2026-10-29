@@ -92,6 +92,8 @@ export const MOMENTS = {
   quest: { pri: 1, ttl: 10, shuffle: true },  // a quest taken
   horde: { pri: 2, ttl: 5, shuffle: true },   // a horde woke up
   fall: { pri: 1, ttl: 6, shuffle: true },    // fell through a gap into the place below
+  swim: { pri: 1, ttl: 5, shuffle: true },    // into water deep enough to swim in (game/swim.js)
+  rescue: { pri: 2, ttl: 6, shuffle: true },  // it pulls the hero out of a fluid ({ fluid }: 'lava', 'acid', 'mud', 'slime', 'water'; game/rescue.js)
   idle: { pri: 0, ttl: 3, quiet: 30, calm: true, shuffle: true },     // standing about for a while
   home: { pri: 1, ttl: 10, quiet: 10, shuffle: true },   // back in town from out there
   guardian: { pri: 2, ttl: 15, shuffle: true },          // a side guardian, or a boss's stand-in ({ what: 'near' | 'beaten' })
@@ -1351,6 +1353,29 @@ export const LINES = [
     'The hero fell through a gap.', BRIGHT),
   says('fall', null, 'fall.one-way', 'Down we go! That is one way to get somewhere.',
     'The hero fell through a gap.', CHATTY),
+  // --- in the water, and pulled out of what would kill (game/swim.js, game/rescue.js) ------------
+  says('swim', null, 'swim.sink', 'You can swim! I cannot. I would sink like a stone. A shiny stone.',
+    'The hero swims for the first time.', CHATTY),
+  says('swim', null, 'swim.dry', 'Splash! Do not worry about me, I will stay up here where it is dry.',
+    'The hero went into deep water.', BRIGHT),
+  says('swim', null, 'swim.wait', 'If you cannot find a way out of the water, just wait. I will come and get you.',
+    'The hero swims: if there is no way out, the robot comes.', KIND),
+  says('rescue', { fluid: 'lava' }, 'rescue.lava', 'Got you! Hot, hot, hot! Hold on to me!',
+    'The robot pulls the hero out of lava.', WARN, { seed: { en: 2 } }),
+  says('rescue', { fluid: 'lava' }, 'rescue.lava.wings', 'Out of the lava you come! My wings were not made for this, you know.',
+    'The robot pulls the hero out of lava again.', UNEASY),
+  says('rescue', { fluid: 'acid' }, 'rescue.acid', 'Up you come! That green stuff ate a bit of you, I think.',
+    'The robot pulls the hero out of acid.', WARN),
+  says('rescue', { fluid: 'mud' }, 'rescue.mud', 'Hold on! Pull, pull... and out you pop!',
+    'The robot pulls the hero out of a boss\'s mud.', BRIGHT),
+  says('rescue', { fluid: 'slime' }, 'rescue.slime', 'Eww, slime! Hold on, I have got you.',
+    'The robot pulls the hero out of a boss\'s slime.', BRIGHT),
+  says('rescue', { fluid: 'water' }, 'rescue.water', 'No way out of there? Grab hold of me, I will fly you out.',
+    'The robot carries the hero out of water with no way out.', KIND),
+  says('rescue', null, 'rescue.tight', 'Hold on tight! And please do not look down.',
+    'The robot pulls the hero out of something.', UNEASY),
+  says('rescue', null, 'rescue.good', 'Again? I am getting good at this.',
+    'The robot pulls the hero out again.', CHATTY),
   says('home', null, 'home.have-you', 'Home! Well, your home. I do not have one, I have you.',
     'Back in town from out there.', KIND),
   says('home', null, 'home.bread', 'The town smells of bread. Is it the same bread, do you think?',
