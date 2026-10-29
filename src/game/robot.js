@@ -113,8 +113,10 @@ export function wakeRobot(r = sleepingRobot()) {
 // The hero comes into the camp: this close, it wakes, in its scene (the camera goes to it; playing
 // together it just wakes)
 const WAKE_SEE = 6;   // cells
+let sleepOn = false;   // (tests/browser/: it stays asleep, to be hovered)
+export function keepAsleep(on) { sleepOn = !!on; }
 function wakeOnSight(r) {
-  if (state.transitioning || curtained() || scenePlaying() || introPlaying() || player.hp <= 0 || player.ragdoll) return;
+  if (sleepOn || state.transitioning || curtained() || scenePlaying() || introPlaying() || player.hp <= 0 || player.ragdoll) return;
   if (Math.hypot(r.x - player.x, r.z - player.z) > WAKE_SEE || Math.abs(r.y - player.y) > 1.5) return;
   playScene('robot', { spot: { x: r.x, y: r.y + 0.2, z: r.z }, on: { wake: () => wakeRobot(sleepingRobot() ?? undefined) } });
 }

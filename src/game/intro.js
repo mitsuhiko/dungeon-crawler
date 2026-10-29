@@ -20,6 +20,7 @@ import { WAKE_HOUSE } from '../world/town.js';
 import { playScene, scenePlaying } from './scene.js';
 import { introPlaying } from './bossintro.js';
 import { curtained } from './hud.js';
+import { filmCovers } from '../film/player.js';
 import { allEnemies } from './enemies.js';
 import { plazaShards } from '../render/shards.js';
 import { emit, soft, ring, rand } from '../render/particles.js';
@@ -81,6 +82,7 @@ let breaking = null;   // the glass breaking in its scene (its id): not taken ag
 // main.js, every frame: walking onto a thing takes it; coming into the rock's room, its glass is shown
 export function updateIntro(dt = 0) {
   dressPlaza(dt);
+  walkOut();
   if (!state.run || state.mode !== 'play' || state.transitioning || worldPaused() || player.hp <= 0 || player.ragdoll) return;
   showGlass();
   noticeRock();
@@ -201,9 +203,16 @@ export function innArrival(map, run, visited = []) {
   const d = map.doors?.find(q => q.building === WAKE_HOUSE);
   return d ? doorArrival(d) : null;
 }
-// ... and walks out of the door onto the street (core/scenes.js `wake`), remembering nothing
-export function comeOutOfInn(at) {
+// ... and walks out of the door onto the street (core/scenes.js `wake`), remembering nothing: once
+// the opening (film/player.js) no longer covers the world, as it comes up
+let inn = null;
+export function comeOutOfInn(at) { inn = { at, visit: state.visit }; }
+function walkOut() {
+  if (!inn || filmCovers()) return;
+  const { at, visit } = inn;
+  inn = null;
+  if (visit !== state.visit || state.transitioning) return;
   const ahead = { x: at.x + Math.sin(at.yaw) * 3, y: at.y, z: at.z + Math.cos(at.yaw) * 3 };
   playScene('wake', { spot: ahead, on: { out: () => sfx('door', { at: player }) },
-    done: () => setStatus(tr('You do not remember how you came here.')) });
+    done: () => setStatus(tr('You do not remember how you came here.'), 6) });
 }

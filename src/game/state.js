@@ -93,4 +93,4 @@ export const worldPaused = () => (state.inventoryOpen || state.menuOpen || !!sta
 
 // what the game just said: a short line in the chat box (game/console.js), not kept (the
 // chronicle, game/log.js, keeps what matters)
-export function setStatus(s) { state.statusMsg = s; state.statusUntil = state.time + 2.2; }
+export function setStatus(s, secs = 2.2) { state.statusMsg = s; state.statusUntil = state.time + secs; }
