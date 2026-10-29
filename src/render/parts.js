@@ -146,7 +146,7 @@ function fallSheets(m, type) {
     // across (a, -1..1): flared lower down, bulging out a little where it drops
     const point = (j, i) => {
       const [o, y, sAlong] = prof[i], a = j / ACROSS * 2 - 1, k = Math.max(0, (yTop - R - y) / Math.max(h, 0.01));
-      const half = FALL_WIDTH / 2 * (1 + 0.12 * k), out = o + 0.05 * (1 - a * a) * Math.min(1, k * 4);
+      const half = (f.width ?? FALL_WIDTH) / 2 * (1 + 0.12 * k), out = o + 0.05 * (1 - a * a) * Math.min(1, k * 4);
       return [ex + dx * out + -dz * a * half, y, ez + dz * out + dx * a * half, j / ACROSS, sAlong * 0.7];
     };
     const grid = prof.map((_, i) => Array.from({ length: ACROSS + 1 }, (_, j) => point(j, i)));

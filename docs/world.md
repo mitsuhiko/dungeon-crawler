@@ -989,6 +989,29 @@ A fire's light flickers with its flame; a prop's `flicker` makes its light flick
 with it (a shader patch, `glowMaterial`). A placement may carry its own `matrix` instead of
 x, y, z, yaw and scale (a string's sheared segments).
 
+## Waterfall hideouts (`world/waterfalls.js`, `cubegen/waterfallroom.js`)
+
+Occasionally an ordinary clear-water fall conceals a door on an already reachable, dry ledge
+behind its curtain. An independent hash admits one third of eligible cubes; only falls with
+safe body clearance and a supported, unobstructed return doorstep qualify. Bosses, trials,
+clearings, test rooms and cross-cube falls are excluded. No terrain, routes or ordinary reward
+sites are changed. The selected curtain is wider than usual (2.2 or 4.2 cells instead of 0.9),
+the visual hint; no discovery marker is added.
+
+The door uses the existing `map.doors` interaction and house-door transitions, not a second
+travel system. Its destination, `interior:waterfall:<outside key>`, is a lazily generated house
+interior with a loft, stairs, no windows, peaceful crystal/mushroom/plant dressing and one
+ordinary uncommon reward-site chest. It inherits the outside depth and biome. Its return door
+leads to the original ledge. Chest identities and contents are deterministic and use the normal
+run's opened-chest persistence, so leaving and returning cannot farm the reward. These rooms
+follow the existing interior save/menu policy (reloading from an interior starts in town).
+The town portal remains disabled indoors; the hideout specifically asks players to use its door.
+
+Developer check: open `?dev=1&seed=123`, then `/goto 3 3,3 5.5,2.01,11.7`. Walk north into the
+door under the overhang, open the chest normally, return through the door and re-enter: the
+chest must remain open. `tests/waterfalls.test.js` also checks deterministic generation, unchanged
+terrain/routes, safe arrivals, exclusions, ordinary chest loot and the actual curtain geometry.
+
 ## Reward sites (`world/sites.js`, `cubegen/sites.js`)
 
 Each stratum budgets four optional destinations, preferring branch cubes: two basic,

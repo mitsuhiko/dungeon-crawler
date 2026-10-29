@@ -10,6 +10,7 @@ import { themeOf } from '../themes/depth.js';
 import { buildFloors } from './floors.js';
 import { buildStructures } from './structures.js';
 import { buildInteriorWalls } from './interior.js';
+import { buildWaterfallDoors } from './waterfalldoors.js';
 import { lowWaterLines } from './surface.js';
 import { buildFlipGeometry } from './flipgeo.js';
 
@@ -51,6 +52,7 @@ export function buildCubeGeometry(m) {
   buildFloors(m, layers);
   buildStructures(m, layers);
   if (m.interior) buildInteriorWalls(m, layers);
+  buildWaterfallDoors(m, layers);
   const arr = b => b.pos.length ? b.arrays() : null;
   return layers.map(L => ({
     terrain: arr(L.terrain), stone: arr(L.stone), wood: arr(L.wood), flags: arr(L.flags),

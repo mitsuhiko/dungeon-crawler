@@ -17,6 +17,7 @@ import { isFaceOpen } from '../core/boundaries.js';
 import { gateLocked, portalLocked } from '../core/guardians.js';
 import { N } from '../core/constants.js';
 import { TOWN_KEY, isInterior } from '../world/town.js';
+import { waterfallOutside } from '../world/waterfalls.js';
 import { online, playerColor, together } from '../net/online.js';
 import { truePosition } from './travel.js';
 import { followedQuest } from './questpanel.js';
@@ -105,6 +106,7 @@ function spot(b, cx, Y, cz) {
 // where a friend is when not on this map
 function whereabouts(b, Y) {
   const by = isInterior(b.cube) ? NaN : parse(b.cube)[1];
+  if (waterfallOutside(b.cube)) return tr('in a waterfall hideout');
   return isInterior(b.cube) ? tr('in a house') : by === Y ? tr('far away') : tr('depth {depth}', { depth: -by });
 }
 
@@ -133,7 +135,7 @@ export function drawMinimap() {
   // a line of text under the map each: the cube and depth, being in a house, the town portal,
   // each friend off the map
   const lines = [[tr('cube {x}, {z}   depth {depth}', { x: X0, z: Z0, depth: -Y }), TEXT]];
-  if (inside) lines.push([tr('in a house'), TEXT]);
+  if (inside) lines.push([tr(state.map.waterfallRoom ? 'in a waterfall hideout' : 'in a house'), TEXT]);
   if (tp) lines.push([tr('portal open: depth {depth}', { depth: tp.depth }), '#c9a8ff']);
   for (const b of away) lines.push([tr('{name}: {where} (F: go)', { name: b.name, where: whereabouts(b, Y) }), playerColor(b.slot)]);
   const height = SIZE + 14 * lines.length;

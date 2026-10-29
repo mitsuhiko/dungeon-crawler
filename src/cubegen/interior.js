@@ -45,8 +45,8 @@ export function interiorLayout(b, front = [0, 1]) {
 }
 
 // facing: where the house's front faces in town (its door's normal there)
-export function generateInterior(spec, facing = [0, 1]) {
-  const b = houseAt(spec.key);
+export function generateInterior(spec, facing = [0, 1], building = null) {
+  const b = building ?? houseAt(spec.key);
   if (!b) throw new Error('No house for ' + spec.key);
   const L = interiorLayout(b, facing), ctx = createContext(spec.seed), { cols } = ctx;
   const { W, D, F, R, cell, rows, k } = L, G = INTERIOR_LEVEL, U = L.level, y = G * LH;

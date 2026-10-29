@@ -79,8 +79,8 @@ export function buildInteriorWalls(m, layers) {
   const uv = (u, v) => [x0 + (x1 - x0) / 2 + (u - m.interior.W / 2) * right[0] + (v - m.interior.D / 2) * front[0],
     z0 + (z1 - z0) / 2 + (u - m.interior.W / 2) * right[1] + (v - m.interior.D / 2) * front[1]];
   // windows: on the back wall upstairs, on the right wall downstairs past the stair
-  for (let u = 2.5; u < m.interior.W - 1; u += 3) windows.push([backSide, alongOf(backSide, uv(u, 0)), upper.level * LH + 0.75]);
-  for (let v = upper.rows + stair.k + 1.5; v < m.interior.D - 1; v += 3) windows.push([rightSide, alongOf(rightSide, uv(m.interior.W, v)), y + 0.85]);
+  for (let u = 2.5; !m.waterfallRoom && u < m.interior.W - 1; u += 3) windows.push([backSide, alongOf(backSide, uv(u, 0)), upper.level * LH + 0.75]);
+  for (let v = upper.rows + stair.k + 1.5; !m.waterfallRoom && v < m.interior.D - 1; v += 3) windows.push([rightSide, alongOf(rightSide, uv(m.interior.W, v)), y + 0.85]);
   for (const [side, at, wy] of windows) openings[side].push([at, 0.52, wy - 0.12, wy + 0.87]);
   openings[doorSide].push([doorAt, door.w * 0.45 + 0.14, y, y + 1.64]);
   const clear = (side, a0, a1, y0, y1) => openings[side].every(([at, hw, oy0, oy1]) => a1 <= at - hw || a0 >= at + hw || y1 <= oy0 || y0 >= oy1);

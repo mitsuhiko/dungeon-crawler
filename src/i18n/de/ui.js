@@ -1,5 +1,7 @@
 // The menus, the settings, the HUD, the keys and the chat box.
 export default {
+  'in a waterfall hideout': 'in einem Wasserfallversteck',
+  'Leave the hideout through the door first': 'Verlasse das Versteck zuerst durch die Tür',
   // index.html
   'The Glass Bird': 'Der Glasvogel',
   'Chat and what happened': 'Chat und was passiert ist',
