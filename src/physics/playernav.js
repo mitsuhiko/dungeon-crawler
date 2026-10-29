@@ -53,8 +53,9 @@ function ladderLinks(map) {
 }
 // The water's ways: a water floor (one he wades or swims in) joins the water beside it at its
 // surface (wading: WADE_COST a cell; swimming: SWIM_COST), and the ground beside it he climbs out
-// onto (up to a level over its surface) or goes into it from (a bank at most JUMP_IN levels over it:
-// the walk goes off it into the water, physics/canmove.js player.wetOK). Not under a ceiling.
+// onto (up to a level over its surface) or goes into it from (a bank at most JUMP_IN levels over deep
+// water, a level over shallow water, whose bed would not catch the fall: the walk goes off it into
+// the water, physics/canmove.js player.wetOK). Not under a ceiling.
 const SWIM_COST = RUN_SPEED / SWIM_SPEED, WADE_COST = 1.4, JUMP_IN = 3;
 const fenceOn = (map, a, b, y) => !!map.fences?.get(edgeKey(a.x, a.z, b.x, b.z))?.some(e => e.ymax > y - 0.6 && e.ymin < y + CHAR_H);
 // (free over the water from swimming height up to `top`: the head, or where it goes in from)
@@ -68,7 +69,8 @@ function waterEdges(map, f, out) {
         if (g.fluid === WATER && g.surf === f.surf && swimmable(map, g)) out.push([g, (g.surf - g.top) * LH > SWIM_DEPTH ? SWIM_COST : WADE_COST, null]);
         else if (!g.fluid && !g.kind && g.top >= f.surf && g.top <= f.surf + 1 && passable(g) && !fenceOn(map, f, g, g.top * LH)
           && EDGE_CORNERS[OPP[d]].reduce((a, k) => a + g.cs[k], 0) / 2 <= f.surf * LH - SWIM_FEET + SWIM_STEP - 0.05) out.push([g, 1.5, null]);
-      } else if (g.fluid === WATER && f.top >= g.surf && f.top <= g.surf + JUMP_IN && swimmable(map, g, f.top * LH + CHAR_H) && !fenceOn(map, f, g, f.top * LH)) out.push([g, 1.5, null]);
+      } else if (g.fluid === WATER && f.top >= g.surf && f.top <= g.surf + (g.surf - g.top >= 2 ? JUMP_IN : 1) && swimmable(map, g, f.top * LH + CHAR_H)
+        && !fenceOn(map, f, g, f.top * LH)) out.push([g, 1.5, null]);
     }
   }
 }

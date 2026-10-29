@@ -1041,6 +1041,13 @@ in game devtools for real worker, asset, shader and collision checks.
   before routing turns any fluid that still stands above its neighbour into ground up to its
   surface (`containFluids`). `tests/fluids.test.js` checks it with the renderer's heights;
   corner smoothing may still sag a bank by up to a level.
+- **Water is level with its shore**, walked into and out of: a pool's surface stands level with
+  its lowest bank (`cubegen/river.js`, `pools.js`, `streams.js`, `cascades.js`, a guardian's pond,
+  the town's), and ground beside any water a level over its surface comes down level with it, on
+  the ground layer, inside the outer ring (`shoreWater`, `cubegen/escape.js`): not a portal pad, a
+  site, a spot, a horde's camp, a ramp or a kept cell, nor ground beside higher water, nor a ridge
+  with lower ground behind it. No slope runs from a bank down under the water beside it
+  (`underWater`, `cubegen/smooth.js`): its corner would sag under the surface.
 - **Water** is mostly waded (the hero wades and swims: [combat.md](combat.md#fluids-and-falls)):
   every water cell next to a bank, or any other ground (its eight neighbours), has its bed a level
   under the surface, waded through; only those with water all round them keep theirs two levels

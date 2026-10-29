@@ -7,7 +7,7 @@ import { bankGround } from './contain.js';
 
 const TOP = (CUBE_H - BASE) / LH, BOTTOM = -BASE / LH;   // the glass box's top / bottom (levels)
 
-// a pool of radius rad around (cx, cz), surface a level below its lowest bank: [cells, S]
+// a pool of radius rad around (cx, cz), its surface level with its lowest bank: [cells, S]
 export function pool(ctx, cx, cz, rad, type) {
   const { lvl0, prot0, void0, fluid0, surf0 } = ctx, cells = [];
   for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++)
@@ -18,7 +18,7 @@ export function pool(ctx, cx, cz, rad, type) {
     S = Math.min(S, lvl0[i]);
     for (const [dx, dz] of DIRS) { const n = i + dx + dz * N; if (!set.has(n) && !void0[n]) S = Math.min(S, lvl0[n]); }
   }
-  S = Math.max(3, S - 1);
+  S = Math.max(3, S);
   for (const i of cells) { fluid0[i] = type; surf0[i] = S; lvl0[i] = S - 2; }
   return [cells, S];
 }

@@ -10,7 +10,7 @@ export const RIVER_SURF = 2;   // all rivers in the world flow at this level
 export function carveRiver(ctx) {
   const { R, ri, pickFluid, lvl0, prot0, stats, spec } = ctx;
   const fluid0 = new Uint8Array(N * N), surf0 = new Int16Array(N * N);
-  // surface one level below the lowest bank, bed two below the surface
+  // a pool's surface level with its lowest bank, bed two below the surface
   const fill = (cells, type, S) => { for (const i of cells) { fluid0[i] = type; surf0[i] = S; lvl0[i] = Math.max(0, S - 2); ctx.void0[i] = 0; } };
 
   // (a great lake, cubegen/setpieces.js, is its own lake: rivers run into it and end there)
@@ -68,7 +68,7 @@ export function carveRiver(ctx) {
         if (inb(nx, nz) && !set.has(idx(nx, nz)) && !fluid0[idx(nx, nz)]) S = Math.min(S, lvl0[idx(nx, nz)]);
       }
     }
-    fill(cells, type, Math.max(1, S - 1));
+    fill(cells, type, Math.max(1, S));   // (its surface level with its lowest bank: walked into and out of)
     stats.fluids.push(FLUID_NAME[type] + ' pool');
   }
   ctx.fluid0 = fluid0; ctx.surf0 = surf0;

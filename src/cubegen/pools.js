@@ -1,4 +1,5 @@
-// Fluid pools on upper layers, plus a generic "pool around a floor" used under waterfalls.
+// Fluid pools on upper layers, plus a generic "pool around a floor" used under waterfalls. Their
+// surface is level with their lowest bank (walked into and out of there), their bed two under it.
 import { N, HEAD, DIRS, FLUID_NAME } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 
@@ -59,7 +60,7 @@ export function addPools(ctx) {
       const g = layerFloor(idx(f.x + dx, f.z + dz), k);
       if (!set.has(g)) S = Math.min(S, g.top);
     }
-    if (flood(ctx, cells, type, S - 1)) stats.fluids.push(FLUID_NAME[type] + ' pool (L' + k + ')');
+    if (flood(ctx, cells, type, S)) stats.fluids.push(FLUID_NAME[type] + ' pool (L' + k + ')');
   }
 }
 
@@ -89,5 +90,5 @@ export function poolAround(ctx, center, rad, type) {
       S = Math.min(S, b.top);
     }
   }
-  return flood(ctx, cells, type, S - 1) ? S - 1 : 0;
+  return flood(ctx, cells, type, S) ? S : 0;
 }

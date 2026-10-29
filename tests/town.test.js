@@ -68,7 +68,8 @@ test('town is flat, has water, four permanent buildings, varied tall trees, and 
     assert.equal(m.floors.filter(f => f.fluid).length, 5);
     for (const f of m.floors) {
       if (!f.fluid) assert.deepEqual(f.cs, Array(4).fill(TOWN_LEVEL * LH));
-      else { assert.ok(f.top < f.surf && f.surf < TOWN_LEVEL); assert.ok(f.x > 0 && f.x < N - 1 && f.z > 0 && f.z < N - 1); }
+      else { assert.ok(f.top < f.surf && f.surf === TOWN_LEVEL);   // (the pond level with the ground: walked into and out of)
+ assert.ok(f.x > 0 && f.x < N - 1 && f.z > 0 && f.z < N - 1); }
     }
     const boxes = m.occluders.filter(b => b.shape === 'box');
     assert.deepEqual([...new Set(boxes.map(b => b.name))].sort(), BUILDINGS.map(b => b.name).sort());
@@ -278,7 +279,7 @@ function checkClutter(m, min) {
     const meta = propMetadata.get(p.name), c = Math.floor(p.z) * N + Math.floor(p.x);
     assert.ok(meta, p.name); assert.equal(meta.attach === 'water', pond.has(c), p.name);
     assert.ok(p.x > 0 && p.z > 0 && p.x < N && p.z < N);
-    if (meta.attach === 'water') assert.equal(p.y, (TOWN_LEVEL - 1) * LH);
+    if (meta.attach === 'water') assert.equal(p.y, TOWN_LEVEL * LH);
     else assert.ok(Math.abs(p.y - y) < .03, p.name);
     assert.ok(!inside(p.x, p.z), p.name + ' inside a building');
     if (meta.light) assert.equal(p.night, true, 'the lamps are lit at night only');

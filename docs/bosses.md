@@ -639,7 +639,7 @@ the colours of the body of fluid they are in.)
 A roster entry may keep to some themes (`where` in `core/spawns.js`: the biome, the theme's prop
 set): each kind of Squirtle lives only in its own fluid there. A guardian arena whose population
 has Squirtles gets a pond of their fluid dug into its fight zone (`cubegen/guardian.js
-digPonds`: 3.5 cells for each of them, 8 to 28, a level under the floor round it and too deep to
+digPonds`: 3.5 cells for each of them, 8 to 28, level with the lowest floor round it and too deep to
 wade (water is swum in, its banks' corners kept no higher than a level over it, so a swimmer climbs
 out anywhere); an arena with no room for one falls back to a plainer one); they are placed in it, and its
 guardian, if it is one of them (any fluid is its), guards from it. Qualmos's arena gets one too, of
@@ -1656,7 +1656,7 @@ its own with `final` set (`world/layout.js`). `cubegen/guardian.js` builds it li
 `exit`, no `portalId`, and its route ends at him (`cubegen/arenamap.js finishArena`). The core is
 dark, so braziers burn round the fight zone (`BOSS_ARENAS.qualmos`). In the fight zone lies his
 **lagoon**: a pond of deep water dug like a Squirtle arena's (`BOSS_ARENAS.qualmos.lagoon`, up to 24
-cells, `cubegen/guardian.js digPonds`), a level under the floor round it, too deep to wade. The
+cells, `cubegen/guardian.js digPonds`), level with the lowest floor round it, too deep to wade. The
 arena is still the cube it is: no dome or globe round it.
 
 He is a **prototype**: the fight is all there, but it reuses what the game has. His blows are plain

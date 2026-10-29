@@ -221,7 +221,7 @@ function clearingPlan(exit, seed, buildings, gates, relics) {
   const put = (name, candidates, { yaw: localYaw, s = .9 + R() * .2, water = false, world = false, night = false } = {}) => {
     const m = propMetadata.get(name);
     if (!m) throw new Error('Unknown clutter prop ' + name);
-    const kind = clutterKind(m), r = m.radius * s, py = water ? (TOWN_LEVEL - 1) * LH : y + (kind === 'cover' ? .008 : -.02);
+    const kind = clutterKind(m), r = m.radius * s, py = water ? TOWN_LEVEL * LH : y + (kind === 'cover' ? .008 : -.02);
     const turn = localYaw ?? R() * Math.PI * 2;
     for (const [lx, lz] of candidates) {
       const [x, z] = world ? [lx, lz] : rotateTownPoint(lx, lz, yaw);

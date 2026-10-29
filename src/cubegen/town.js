@@ -13,9 +13,10 @@ export function generateClearing(spec) {
   const plan = (camp ? merchantCampPlan : townPlan)(spec.exit, spec.seed), ctx = createContext(spec.seed);
   const wet = new Set(plan.pond), floors = [];
   for (let c = 0; c < N * N; c++) {
-    const f = ctx.mk(c, wet.has(c) ? TOWN_LEVEL - 3 : TOWN_LEVEL, 0, 0);
+    // (the pond: level with the ground round it, waded)
+    const f = ctx.mk(c, wet.has(c) ? TOWN_LEVEL - 1 : TOWN_LEVEL, 0, 0);
     f.id = c; f.cs = Array(4).fill(f.top * LH); f.split = c % 2;
-    if (wet.has(c)) { f.fluid = WATER; f.surf = TOWN_LEVEL - 1; }
+    if (wet.has(c)) { f.fluid = WATER; f.surf = TOWN_LEVEL; }
     ctx.cols[c].push(f); floors.push(f);
   }
   for (const f of floors) f.link = DIRS.map(([dx, dz]) => {

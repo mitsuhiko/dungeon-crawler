@@ -29,9 +29,29 @@ function* cubes(seeds) {
   }
 }
 
-test('the water: mostly waded, deep only away from its banks; every water got into has a way out of it', () => {
-  let water = 0, deep = 0, ladders = 0, stuck = [];
+// the bodies of water in map m (water floors joined at one surface), and the ground beside each
+function bodies(m) {
+  const seen = new Set(), out = [], D = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  for (const f of m.floors) if (f.fluid === WATER && !seen.has(f.id)) {
+    const body = [f], banks = [];
+    seen.add(f.id);
+    for (let i = 0; i < body.length; i++) for (const [dx, dz] of D) {
+      const x = body[i].x + dx, z = body[i].z + dz;
+      if (x < 0 || z < 0 || x >= N || z >= N) continue;
+      for (const g of m.cols[z * N + x]) {
+        if (g.fluid === WATER && g.surf === f.surf) { if (!seen.has(g.id)) { seen.add(g.id); body.push(g); } }
+        else if (!g.fluid && g.bottom <= f.surf && g.top >= f.surf) banks.push(g);
+      }
+    }
+    out.push({ surf: f.surf, body, banks });
+  }
+  return out;
+}
+
+test('the water: level with its shore, mostly waded, deep only away from its banks; every water got into has a way out of it', () => {
+  let water = 0, deep = 0, ladders = 0, stuck = [], flush = 0, all = 0;
   for (const { seed, k, m } of cubes([1, 2])) {
+    if (!m.guardian) for (const b of bodies(m)) { all++; if (b.banks.some(g => g.top === b.surf)) flush++; }
     for (const f of m.floors) if (f.fluid === WATER) {
       water++;
       if (f.surf - f.top >= 2 && !m.guardian) {   // (a guardian's arena has water of its own: cubegen/guardian.js)
@@ -52,6 +72,7 @@ test('the water: mostly waded, deep only away from its banks; every water got in
     for (const id of stuckInWater(ctx, true)) if (seen.has(id)) stuck.push(`${seed} ${k}: ${m.floors[id].x}, ${m.floors[id].z}`);
   }
   assert.deepEqual(stuck, [], 'stuck in the water');
+  assert.ok(flush / all > 0.8, `${flush} of ${all} bodies of water with a shore level with them`);
   assert.ok(water > 1000 && deep / water < 0.4, `${deep} of ${water} water cells deep`);
   assert.ok(ladders > 5, `${ladders} ladders out of the water`);
 });

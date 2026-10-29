@@ -5,7 +5,7 @@
 // whose banks all stand more than a level over its surface (the most a swimmer climbs out:
 // cubegen/reach.js) gets a ladder up out of it (addWaterEscapes); cubegen/index.js checks that
 // every water got to leads out.
-import { DIRS, WATER } from '../core/constants.js';
+import { N, DIRS, WATER } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 import { graph, reachFrom, reachTo, stuckInWater } from './reach.js';
 import { search, take, moveKey } from './route.js';
@@ -156,5 +156,32 @@ export function shoalWater(ctx) {
     let open = true;
     for (let dz = -1; dz <= 1 && open; dz++) for (let dx = -1; dx <= 1; dx++) if ((dx || dz) && !wet(f.x + dx, f.z + dz, f)) { open = false; break; }
     if (!open) f.top = f.surf - 1;
+  }
+}
+
+// Water is walked into and out of: where ground beside it stands a level over its surface, that
+// ground comes down level with it (a shore), on the ground layer, inside the cube's outer ring
+// (shared with the neighbours), but for what is kept as it is (portal pads, sites, spots, a horde's
+// camp, a ramp, the big height pieces' cells), ground beside other water that stands higher, and a
+// ridge with lower ground behind it (it holds the water: brought down, its slopes would sag under it).
+// Pools are made level with their lowest bank already (cubegen/river.js, pools.js, cascades.js);
+// this gives rivers, seas and lakes their shores, and pools more of them.
+export function shoreWater(ctx) {
+  if (ctx.spec.trial) return;   // (a trial room's fluids are its own: cubegen/trials/)
+  const inner = (x, z) => x > 0 && z > 0 && x < N - 1 && z < N - 1;
+  const kept = g => g.prot || g.site || g.siteBlocked || g.siteDressing || g.spot || g.ramp || g.landing || g.hordeReserved
+    || ctx.keep?.has(g.c) || ctx.siteSpace?.has(g.c) || ctx.noCross?.has(g.c);
+  const waterBeside = g => DIRS.flatMap(([dx, dz]) => inb(g.x + dx, g.z + dz) ? ctx.cols[idx(g.x + dx, g.z + dz)].filter(w => w.fluid) : []);
+  for (const col of ctx.cols) for (const f of col) {
+    if (f.fluid !== WATER || f.crust) continue;
+    for (const [dx, dz] of DIRS) {
+      const x = f.x + dx, z = f.z + dz;
+      if (!inner(x, z)) continue;
+      const g = ctx.cols[idx(x, z)].find(h => !h.fluid && h.layer === 0 && h.top === f.surf + 1 && h.bottom < f.surf);
+      if (!g || kept(g) || waterBeside(g).some(w => w.surf > f.surf || w.fluid !== WATER)) continue;
+      // (not a ridge: the ground behind it as high as the water, or its slopes would sag under it)
+      if (DIRS.some(([ex, ez]) => !inb(g.x + ex, g.z + ez) || ctx.cols[idx(g.x + ex, g.z + ez)].some(h => !h.fluid && h.layer === 0 && h.top < f.surf))) continue;
+      g.top = f.surf;
+    }
   }
 }

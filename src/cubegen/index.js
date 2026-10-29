@@ -17,7 +17,7 @@ import { spoutGround, spoutWater } from './spouts.js';
 import { containFluids } from './contain.js';
 import { makeMoves } from './moves.js';
 import { findRoute, finishRoute } from './route.js';
-import { addAccess, addEscapes, addWaterEscapes, shoalWater } from './escape.js';
+import { addAccess, addEscapes, addWaterEscapes, shoalWater, shoreWater } from './escape.js';
 import { reachTo, reachFrom, stuckInWater, isCramped } from './reach.js';
 import { placeStructures } from './place.js';
 import { smooth } from './smooth.js';
@@ -87,6 +87,7 @@ function tryGenerate(seed, spec) {
   cascadeFalls(ctx);
   spoutWater(ctx);
   containFluids(ctx);
+  shoreWater(ctx);   // (water is walked into and out of: shores level with it)
   shoalWater(ctx);   // (most water is waded: deep only away from its banks)
   indexFloors(ctx);
   if (ctx.portalFloors.some(f => !f)) return null;

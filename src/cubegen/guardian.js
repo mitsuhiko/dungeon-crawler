@@ -115,7 +115,7 @@ function pondsWanted(spec) {
 // A pond for an arena's fluid dwellers, one per fluid they live in: `per` cells for each of them
 // (`least`..`most`; smaller where that does not fit), or a boss's lagoon (pondsWanted), round, on about one level of the fight zone,
 // away from the doorways, the guardian's spot, the props that block and the ramps. Its surface lies
-// a level under the lowest floor round it and under its own, its bed two levels under that (too deep
+// level with the lowest floor round it and under its own, its bed two levels under that (too deep
 // to wade, as a pool's: cubegen/pools.js; water is swum in, its banks a level over it at most where
 // they meet it); what was put on it that does not block goes. What is
 // left of the zone must still hold together and hold the rest of the population. false: no room
@@ -143,7 +143,7 @@ function digPonds(ctx, { floors, dress, shape }, frame, ends, need) {
         }
         if (cells.length < size) continue;
         const banks = cells.flatMap(f => DIRS.map(([dx, dz]) => at(f.x + dx, f.z + dz))).filter(g => !set.has(g));
-        const S = Math.min(...cells.map(f => f.top), ...banks.map(g => g?.top ?? -Infinity)) - 1, bed = S - 2;
+        const S = Math.min(...cells.map(f => f.top), ...banks.map(g => g?.top ?? -Infinity)), bed = S - 2;
         if (bed < 1 || banks.some(g => !g || taken.has(g))) continue;
         const out = new Set([...blocked, ...cells.map(f => f.c)]), wet = new Set([...taken, ...cells].map(f => f.c));
         if (!roomFor(floors, out, start, gate, left - n)) continue;

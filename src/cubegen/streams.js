@@ -49,7 +49,7 @@ export function addStreams(ctx) {
     const st = cands[ri(0, cands.length - 1)];
     const [dx, dz] = DIRS[st.d], lx = dz, lz = dx;
 
-    // channel surface one level below its lowest bank
+    // channel surface level with its lowest bank
     let S = Infinity;
     for (const f of st.chan) {
       S = Math.min(S, f.top);
@@ -57,7 +57,6 @@ export function addStreams(ctx) {
     }
     const back = at(st.chan[0].x - dx, st.chan[0].z - dz);
     if (back) S = Math.min(S, back.top);
-    S -= 1;
     const bed = S - 2;
     if (st.chan.some(f => { const b = nextBelow(f); return !f.merged && b && b.top + HEAD > bed - 1; })) continue;
     if (!banks(ctx, st.chan, S)) continue;   // its banks have to reach as deep as the channel

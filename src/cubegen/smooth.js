@@ -12,6 +12,18 @@ function makeLinks(ctx) {
   // a spiral's railed ramp stands over its foot (cubegen/areas.js): no slope joins them, or it
   // could pull a pad's corner down with it
   const edge = (f, g) => ctx.railed?.has(f.c) && ctx.foot?.has(g.c);
+  // the highest surface of the fluids in the cells round floor f's (-Infinity: none). No slope
+  // runs from a bank down under the water beside it: a corner of it would sag under the surface
+  // (and pinned by a ladder or stair at the lower end, nothing keeps it up)
+  const near = new Map(), waterNear = f => {
+    if (near.has(f)) return near.get(f);
+    let s = -Infinity;
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (inb(f.x + dx, f.z + dz))
+      for (const w of cols[idx(f.x + dx, f.z + dz)]) if (w.fluid) s = Math.max(s, w.surf);
+    near.set(f, s);
+    return s;
+  };
+  const underWater = (f, g) => { const w = Math.max(waterNear(f), waterNear(g)); return Math.min(f.top, g.top) < w && Math.max(f.top, g.top) >= w; };
   for (const f of floors) for (const d of [0, 2]) {
     const nx = f.x + DIRS[d][0], nz = f.z + DIRS[d][1];
     if (!inb(nx, nz)) continue;
@@ -22,7 +34,7 @@ function makeLinks(ctx) {
       if (!headOK(g, f.top) || !headOK(f, g.top)) continue;
       if (dh === 0 || f.ramp || g.ramp) { setLink(f, d, g); continue; }
       if (f.prot || g.prot) continue;
-      if (deck.has(f.c) && g.top > f.top || deck.has(g.c) && f.top > g.top || edge(f, g) || edge(g, f)) continue;
+      if (deck.has(f.c) && g.top > f.top || deck.has(g.c) && f.top > g.top || edge(f, g) || edge(g, f) || underWater(f, g)) continue;
       // slopes come in patches: the noise decides how smooth a region is
       const s = slopeNoise(f.x * 0.3 + 3, f.z * 0.3 + 3);
       if (R() < (dh === 1 ? 0.3 + 0.7 * s : 0.05 + 0.55 * s)) setLink(f, d, g);
