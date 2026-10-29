@@ -17,6 +17,7 @@ import { movePlayer } from '../../src/physics/move.js';
 import { applyHazards } from '../../src/physics/hazards.js';
 import { groundAt } from '../../src/physics/collide.js';
 import { clearInput } from '../../src/game/input.js';
+import { order, orderMove } from '../../src/game/orders.js';
 import { paused } from './combat.js';
 import { answerDeath } from '../../src/game/deathask.js';
 import { fluidDeathState, tickFluidDeath } from '../../src/render/fluiddeath.js';
@@ -121,6 +122,18 @@ export async function runWaterChecks() {
       for (let i = 0; i < 240 && player.swimming; i++) { const gr = movePlayer(1 / 60, -1, 0, false, false); applyHazards(1 / 60, gr); }
       check(!player.swimming && player.grounded && player.y === 0 && player.x < 7, 'Climbs out onto the bank');
       results.push('jump into water swims, and climbs back out');
+
+      // a click across the water: in, swimming, out onto the far bank (the climb out holds the
+      // body still a while) and on to the spot, the order never given up on the way
+      reset();
+      const far = state.map.floors[6 * N + 8];
+      orderMove({ x: 8.5, y: 0, z: 6.5, s: far });
+      check(order.walk.path?.some(n => n.fluid === WATER), 'The way across goes through the water');
+      let swum = false, out = false;
+      for (let i = 0; i < 600 && order.kind; i++) { updatePlayer(1 / 60); swum ||= player.swimming; out ||= !!player.swimOut; }
+      check(swum && out, 'Swims across and climbs out');
+      check(player.support === far && Math.hypot(player.x - 8.5, player.z - 6.5) < 0.1, `Walks on to the spot: ${player.x.toFixed(2)}, ${player.z.toFixed(2)}`);
+      results.push('click to move across the water: swims, climbs out, gets there');
 
       reset(7.5, 8);
       Object.assign(player, { grounded: false, vy: -18, support: null });

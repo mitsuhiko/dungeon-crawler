@@ -179,8 +179,9 @@ export function followOrder(dt) {
   if (settle && w.done && left < 0.08) { clearOrder(); return { dx: 0, dz: 0 }; }   // (on a well, a ring, the town portal: it charges)
   // at a gate or a door: on into it, until it takes us (or, locked, the walking into it gives up)
   if (order.kind === 'way' && way.push && w.done && (order.into || left < INTO)) { order.into = true; s.dx = way.push[0]; s.dz = way.push[1]; s.end = false; }
-  // give up when walking into something for a while (not while climbing or in the air)
-  if (player.sword.active || player.stun > 0 || player.climb || !player.grounded || Math.hypot(player.x - order.lx, player.z - order.lz) > 0.2) {
+  // give up when walking into something for a while (not while climbing, in the air or climbing
+  // out of the water: game/swimout.js holds the body still meanwhile)
+  if (player.sword.active || player.stun > 0 || player.climb || player.swimOut || !player.grounded || Math.hypot(player.x - order.lx, player.z - order.lz) > 0.2) {
     order.stuck = 0; order.lx = player.x; order.lz = player.z;
   } else if ((order.stuck += dt) > 0.6) { clearOrder(); return null; }
   const ease = settle && s.end ? Math.min(1, Math.max(0.25, left / 0.5)) : 1;   // settle onto the spot
