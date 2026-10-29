@@ -15,13 +15,13 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
   offers, what players do with a quest, events, checks for saves and the network.
 - **The plan** (`core/questplan.js questPlan`): exactly the numbers of "Per depth" below (100
   slots), each with its kind and giver, from the seed and the layouts. Kinds not built yet stand
-  in as built ones (`BUILT`, `STAND_IN`: scattered pieces as a gathering or a treasure map,
-  freeing prisoners as a scouting kind). Somebody lost is always asked for by whoever lives at a
+  in as built ones (`BUILT`, `STAND_IN`: scattered pieces as a gathering or a treasure map).
+  Somebody lost is always asked for by whoever lives at a
   camp at or up to two above the depth (they will wait there together), the camp that asked least
   first and none more than `CAMP_RESCUES` (two: the places beside its resident's; else the slot is
   a find); the rest by the villagers
   (a share falling with depth) or the people of the depth and the one above.
-- **Twelve kinds:**
+- **Fifteen kinds:**
   - the scouting kinds, about what the world has anyway: `reach` (get down to a depth nobody has
     been to, one or two below the deepest), `landmark` (stand beside a depth's landmark, within
     `LANDMARK_REACH` cells of its chest), `guardian` (beat a side or descent guardian: done once
@@ -65,8 +65,18 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
     Restart in the quest menu, then again by the cart. Leaving the cube calls the raid off.
     An annex's outpost (below) is defended the same way; its quest comes from somebody living on
     the depth (else a villager) and opens the annex's sealed portal when taken (`opens`).
+  - `trial`: get through a depth's trial room (`docs/trials.md`), an event or a puzzle: done once
+    its gate is open (`trialGate`, in `run.unlockedGates`). The story says what the room is like
+    (`ROOMS`: "where the water rises"), the goal its name. Never about a room got through already.
+  - `glass`: somebody saw a bubble of the glassmaker's glass ([story.md](story.md#his-glass-in-the-depths)),
+    the hidden one of a depth (its glass spot not on the way); done once its recording is heard
+    (`run.told`, `facts.told`), back to the giver. The glass is there anyway; the quest is the
+    nudge to go and find it.
+  - `prisoners`: a depth's horde has carried somebody off. Two stages: break the horde, then
+    find them on a hiding place in its room (else another of the depth's, with a clue), who show
+    only then; talking to them ends it (`spot`), and they go home like somebody rescued.
 
-  The scouting kinds and `find` are paid back at the giver (`return`).
+  The scouting kinds, `find`, `trial` and `glass` are paid back at the giver (`return`).
 - **Families** (`kinOf`, `namesTaken`): somebody a giver speaks of (whose thing is lost, who is
   lost) is of the giver's family and kept with the quest (`kin`); the giver speaks of the same
   people again, related the same way. A new one gets a name (`KIN_NAMES`) nobody of the quests has
@@ -175,9 +185,9 @@ Steps 1 to 3 of "Order of work" below: the engine, the plan, spots and the peopl
   in that leads towards it (`questWay`): the shortest way on the depth's plan (its portals and the
   faces discovery opened), or the way down (up) when the goal is deeper (higher up). Only that
   one gate shows, so the map past it stays unknown.
-- **Dev:** `/quest <kind> [depth]` makes a quest of that kind there and takes it; `/spot`.
-- **Not yet:** the other kinds (scattered pieces, beacons, prisoners, pet chase): their slots in
-  the plan stand in as built kinds.
+- **Dev:** `/quest <kind> [depth] [twist]` makes a quest of that kind there and takes it; `/spot`.
+- **Not yet:** the other kinds (scattered pieces, beacons, pet chase): their slots in the plan
+  stand in as built kinds.
 
 ## What we want
 
@@ -490,16 +500,21 @@ A quest's depth is where it is done, not where it is given.
 
 | Kind | Quests | |
 |---|---:|---|
-| Find: an item | 18 | |
-| Find: a person | 10 | they move to their lasting place |
-| Bounty | 15 | |
-| Delivery and relay | 14 | the helper NPCs |
-| Gather | 10 | |
-| Scout, champion | 10 | cheap, on things that are there anyway |
+| Find: an item | 16 | |
+| Find: a person | 9 | they move to their lasting place |
+| Bounty | 13 | |
+| Delivery and relay | 12 | the helper NPCs |
+| Gather | 9 | |
+| Scout, champion | 9 | cheap, on things that are there anyway |
 | Defense | 9 | 6 at outposts, 3 in annexes |
-| Scattered pieces, beacons | 8 | |
-| Free the prisoners, pet chase | 6 | |
+| Trial rooms | 7 | a depth's event or puzzle room |
+| Free the prisoners | 6 | |
+| Scattered pieces, beacons | 6 | |
+| His glass | 4 | the hidden bubble of a depth |
 | | **100** | |
+
+(`MIX` in `core/questplan.js`; a slot nothing of its kind fits on its depth tries others,
+`FALLBACK`.)
 
 Difficulty: 40% easy, 40% medium, 20% hard. No two quests of the same kind and target are active
 at once; a kind the giver gave last weighs less.

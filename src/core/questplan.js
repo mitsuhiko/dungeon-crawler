@@ -16,12 +16,12 @@ export const perDepth = d => d === 0 ? 4 : d <= 3 ? 7 : d <= 11 ? 5 : d <= 19 ? 
 // the share of each kind (docs/quests.md "Kinds"). `scout` is one of the kinds about what the
 // world has anyway (reach, landmark, guardian, horde), as the giver leans.
 // (defense is not drawn: every outpost has one, at its depth, from whoever keeps it)
-export const MIX = { find: 13, treasure: 5, rescue: 10, bounty: 15, delivery: 14, gather: 10, scout: 10, pieces: 8, prisoners: 6 };
+export const MIX = { find: 11, treasure: 5, rescue: 9, bounty: 13, delivery: 12, gather: 9, scout: 9, pieces: 6, prisoners: 6, trial: 7, glass: 4 };
 export const SCOUTS = ['reach', 'landmark', 'guardian', 'horde'];
 // the kinds there are so far; a planned kind that is not yet stands in as one of these
-export const BUILT = new Set(['find', 'gather', 'treasure', 'rescue', 'scout', 'bounty', 'delivery', 'relay', 'defense']);
-// (scattered pieces are much like gathering or a treasure map; freeing prisoners like breaking a horde)
-const STAND_IN = { pieces: [['gather', 1], ['treasure', 1]], prisoners: [['scout', 1]] };
+export const BUILT = new Set(['find', 'gather', 'treasure', 'rescue', 'scout', 'bounty', 'delivery', 'relay', 'defense', 'trial', 'glass', 'prisoners']);
+// (scattered pieces are much like gathering or a treasure map)
+const STAND_IN = { pieces: [['gather', 1], ['treasure', 1]] };
 // how many people found may come to live at one camp (its places beside the resident's,
 // world/spots.js): so one giver does not lose half the world's people
 export const CAMP_RESCUES = 2;

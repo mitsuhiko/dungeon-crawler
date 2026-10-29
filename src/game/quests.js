@@ -38,9 +38,9 @@ export const questLog = () => state.run.quests;
 // do we decide about the quests (alone, or the host), or does the host (a guest)?
 export const questAuthority = () => online.role !== 'guest';
 const ctx = () => ({ seed: state.cubes.seed, layout: state.cubes.layout, gates: state.run.unlockedGates, chests: state.run.chests,
-  defeated: state.run.defeated, now: Date.now() });
+  defeated: state.run.defeated, told: state.run.told, now: Date.now() });
 // what the goals are checked against (core/quests.js goalDone)
-const facts = () => ({ gates: state.run.unlockedGates, chests: state.run.chests, defeated: state.run.defeated });
+const facts = () => ({ gates: state.run.unlockedGates, chests: state.run.chests, defeated: state.run.defeated, told: state.run.told });
 const live = () => state.mode === 'play' && !!state.cubes && !!state.run?.quests;
 
 // --- what happens ---------------------------------------------------------------------------------

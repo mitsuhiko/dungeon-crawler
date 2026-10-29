@@ -42,6 +42,9 @@ import { PROP_METADATA } from './propmetadata.js';
 import { ROLES, residentOf, isNpcGiver, spotOfGiver, keyOfSpot, personWords, roleWords, titleWords } from './npcs.js';
 import { questPlan, clueOf, lostPerson, campOf, SCOUTS } from './questplan.js';
 import { pickBounty, bountyKind, pickGuards } from './bounties.js';
+import { TRIALS, trialGate } from './trials.js';
+import { glassAt } from './glass.js';
+import { recordingLines } from './narration.js';
 import { msg, phrase, noun, tr, say, cleanWords } from '../i18n/i18n.js';
 import { told, dressed, thanksOf } from './questvoices.js';
 
@@ -108,8 +111,8 @@ export const createQuestLog = () => ({ list: [], next: {}, deepest: 0, broken: [
 export const REPEAT = { kinds: ['bounty', 'defense'], share: 0.5 };
 const repeatable = q => REPEAT.kinds.includes(q.kind) && !q.stages.some(s => s.opens);   // (an annex's defense is done once)
 const giverDepth = g => { const key = keyOfSpot(spotOfGiver(g) ?? ''); return key ? -Number(key.split(',')[1]) : 0; };
-const factsOf = f => f instanceof Set ? { gates: f, chests: new Set(), defeated: new Set() }
-  : { gates: f?.gates ?? new Set(), chests: f?.chests ?? new Set(), defeated: f?.defeated ?? new Set() };
+const factsOf = f => f instanceof Set ? { gates: f, chests: new Set(), defeated: new Set(), told: new Set() }
+  : { gates: f?.gates ?? new Set(), chests: f?.chests ?? new Set(), defeated: f?.defeated ?? new Set(), told: f?.told ?? new Set() };
 // talked to giver g for the first time: from now on it makes offers (refreshOffers)
 export function meet(log, g) {
   if (GIVERS[g] || !isNpcGiver(g) || log.met.includes(g)) return false;
@@ -562,6 +565,92 @@ KINDS.defense = {
     };
   },
 };
+// get through a trial room of a depth (core/trials.js: an event or a puzzle; resolved, its gate
+// is open: run.unlockedGates)
+const ROOMS = { flood: msg('where the water rises'), sunken: msg('where the water stands up to the ceiling'), collapse: msg('where the floor falls away'),
+  balance: msg('where you jump from stone to stone'), cold: msg('where the cold bites'), storm: msg('where the lightning strikes'),
+  siege: msg('where a beacon must be held'), chase: msg('where a warden guards a relic'), miasma: msg('where the fog sinks'),
+  slide: msg('where the ice is slippery'), mirror: msg('where mirrors bend a beam of light'), braziers: msg('where the braziers wait to be lit'),
+  crates: msg('where crates wait to be pushed onto plates'), timedgate: msg('where a gate shuts too quickly'),
+  runes: msg('where runestones wait to be pressed in order') };
+KINDS.trial = {
+  payout: 'return',
+  targets: (ctx, log, depths) => depths.filter(d => d > 0).flatMap(depth => (ctx.layout(depth).trials ?? [])
+    .filter(t => !ctx.gates.has(trialGate(t.key))).map(t => ({ id: `trial:${t.key}`, depth, key: t.key, trial: t.kind }))),
+  quest(t, ctx, R, { voice }) {
+    const w = { where: depthName(t.depth), room: phrase(ROOMS[t.trial] ?? msg('where something strange waits')),
+      trial: phrase(TRIALS[t.trial]?.name ?? msg('Trial')) };
+    return {
+      title: told(R, voice, [msg('The room on {where:the}'), msg('{trial}')], w),
+      text: told(R, voice, [
+        msg('There is a trial room on {where:the}, {room}. Nobody I know has ever got through it. Will you? Then come back and tell me how.'),
+        msg('My grandfather swore nobody could beat the trial room on {where:the}, {room}. Prove him wrong, and come back to tell me!'),
+        msg('People coming up from {where:the} talk about a trial room there, {room}. They all say it cannot be done. I say it can. Show them!'),
+        { t: msg('I have a theory about the trial room on {where:the}, {room}. The theory needs testing, and testing needs legs. Get through it, then come back with the results.'),
+          voices: ['scholar', 'alchemist'] },
+        { t: msg('The trial room on {where:the}, {room}, beat me three times. Three! Your turn. Come back and tell me the trick.'), voices: ['explorer', 'miner', 'trapper'] },
+        { t: msg('The crystal ball shows me a trial room on {where:the}, {room}, and somebody getting through it. The somebody looks a lot like you.'), voices: ['enchanter'] },
+      ], w),
+      target: { trial: t.trial },
+      stages: [{ goal: 'trial', depth: t.depth, key: t.key, trial: t.trial, text: phrase('Get through the trial room on {where:the} ({trial})', w) }],
+    };
+  },
+};
+// find a bubble of the glassmaker's glass somebody saw (core/glass.js: the hidden one of a depth)
+// and hear what it says (its recording told: run.told)
+KINDS.glass = {
+  payout: 'return',
+  targets: (ctx, log, depths) => depths.flatMap(depth => ctx.layout(depth).spotList.filter(s => s.kind === 'glass' && !s.way)
+    .map(plan => ({ id: `glass:${plan.id}`, depth, key: plan.key, spot: plan.id, part: glassAt(ctx.seed, depth)[plan.glass], plan }))
+    .filter(t => t.part && !recordingLines(t.part).some(l => ctx.told?.has(l.id)))),
+  quest(t, ctx, R, { voice }) {
+    const w = { where: depthName(t.depth), clue: clueOf(ctx.layout, t.plan, landmarkName) };
+    return {
+      title: told(R, voice, [msg('A voice in the glass'), msg('The humming bubble')], w),
+      text: told(R, voice, [
+        msg('Something shines on {where:the}, {clue}: a bubble of glass, they say, that hums when you come near. Like the one that floated over the plaza! Go and hear what it says, then tell me.'),
+        msg('A traveller swears a bubble of glass on {where:the}, {clue}, whispered to him. Whispered! Go and listen to it, and come back to tell me what it said.'),
+        { t: msg('The crystal ball keeps showing me a bubble of star-glass on {where:the}, {clue}. It wants to be heard. Go and listen, then tell me.'), voices: ['enchanter'] },
+        { t: msg('At night I see a light down on {where:the}, {clue}, like a little moon in a bubble. I am too slow to go. Would you, and tell me what it is?'),
+          voices: ['hermit', 'pilgrim', 'innkeeper'] },
+        { t: msg('Star-glass! On {where:the}, {clue}. They say it keeps what it closes round, even a voice. I must know whose. Go and listen, then come back.'),
+          voices: ['scholar', 'enchanter', 'smith'] },
+      ], w),
+      target: { spot: t.spot },
+      stages: [{ goal: 'glass', depth: t.depth, key: t.key, spot: t.spot, part: t.part, clue: w.clue, text: phrase('Find the bubble of star-glass on {where:the}', w) }],
+    };
+  },
+};
+// somebody carried off by a depth's horde: break the horde, then find them where it held them (a
+// hiding place in its room, else one of the depth's); they go home (to the camp of whoever asked)
+KINDS.prisoners = {
+  payout: 'spot',
+  targets: (ctx, log, depths) => depths.filter(d => d > 0).flatMap(depth => [...ctx.layout(depth).hordes].filter(([key]) => !log.broken.includes(key)).flatMap(([key, h]) => {
+    const hides = hidingPlaces(ctx, log, [depth]), there = hides.filter(x => x.key === key), at = (there.length ? there : hides)[0];
+    return at ? [{ id: `horde:${key}`, depth, key, enemy: h.kind, at }] : [];
+  })),
+  quest(t, ctx, R, { id, log, g, voice }) {
+    const lost = lostPerson(hash32(ctx.seed ^ hashString(id) ^ 0x9f15), namesTaken(log, g, ctx, t.depth)), here = t.at.key === t.key;
+    const w = { person: personWords(lost.name), relation: roleWords(lost.relation, lost.name), enemy: noun(ENEMY_KINDS[t.enemy]?.label ?? 'enemy'),
+      where: depthName(t.depth), clue: clueOf(ctx.layout, t.at.plan, landmarkName) };
+    return {
+      title: told(R, voice, [msg('Taken by the {enemy:pl}'), msg('Free {person}')], w),
+      kin: lost,
+      text: told(R, voice, [
+        msg('The horde of {enemy:pl} on {where:the} carried off my {relation:lower} {person}! Break the horde, every last one of them, and bring {person:him} home.'),
+        msg('{person}, my {relation:lower}, went too close to the horde of {enemy:pl} on {where:the}, and now they will not let {person:him} go. Scatter them and set {person:him} free!'),
+        { t: msg('I heard {person} calling from the middle of the horde of {enemy:pl} on {where:the}. My {relation:lower}! I could not get past them. You can. Please!'),
+          voices: ['trapper', 'explorer', 'miner', 'carter'] },
+      ], w),
+      target: { spot: t.at.spot, person: lost.name },
+      stages: [
+        { goal: 'horde', depth: t.depth, key: t.key, text: phrase('Break the horde of {enemy:pl} on {where:the}', w) },
+        { goal: 'rescue', depth: t.depth, key: t.at.key, spot: t.at.spot, person: lost, ...(here ? {} : { clue: w.clue }),
+          text: here ? phrase('Free {person} on {where:the}', w) : phrase('Find {person} on {where:the}, {clue}', w) },
+      ],
+    };
+  },
+};
 // the hiding places at these depths no quest going on is about
 function hidingPlaces(ctx, log, depths) {
   // (a treasure's spot stays its: its chest stays there, open)
@@ -571,7 +660,7 @@ function hidingPlaces(ctx, log, depths) {
     .map(plan => ({ id: `spot:${plan.id}`, depth, key: plan.key, spot: plan.id, tier: plan.tier, plan })));
 }
 // what a goal is, by name (the kinds' stages)
-export const GOALS = ['reach', 'landmark', 'guardian', 'horde', 'find', 'gather', 'rescue', 'open', 'bounty', 'deliver', 'talk', 'defend'];
+export const GOALS = ['reach', 'landmark', 'guardian', 'horde', 'find', 'gather', 'rescue', 'open', 'bounty', 'deliver', 'talk', 'defend', 'trial', 'glass'];
 export const QUEST_KINDS = Object.keys(KINDS);
 
 const range = (a, b) => Array.from({ length: Math.max(0, Math.min(b, MAX_DEPTH) - a + 1) }, (_, i) => a + i);
@@ -591,6 +680,8 @@ export function goalDone(stage, log, facts) {
     case 'open': return f.chests.has(stage.chest);
     case 'bounty': return f.defeated.has(stage.enemyId);
     case 'gather': return !!stage.got?.length && stage.got.every(Boolean);
+    case 'trial': return f.gates.has(trialGate(stage.key));
+    case 'glass': return recordingLines(stage.part).some(l => f.told.has(l.id));
     default: return false;   // landmark, find, rescue: only by being there (events)
   }
 }
@@ -624,7 +715,8 @@ const weighted = (R, list, weight) => {
 const takenTargets = log => new Set(log.list.filter(q => q.state !== 'done' || !q.target?.spot).map(q => q.target?.id).filter(Boolean));
 // the kinds to try for a slot of the plan: its own (a scout as the giver leans), then the others
 const FALLBACK = { scout: ['find', 'gather'], find: ['gather', 'treasure', 'scout'], gather: ['find', 'treasure'], treasure: ['find', 'gather'],
-  rescue: ['find', 'gather'], bounty: ['find', 'gather'], delivery: ['relay', 'find', 'gather'], relay: ['delivery', 'find', 'gather'], defense: ['find'] };
+  rescue: ['find', 'gather'], bounty: ['find', 'gather'], delivery: ['relay', 'find', 'gather'], relay: ['delivery', 'find', 'gather'], defense: ['find'],
+  trial: ['scout', 'find'], glass: ['find', 'scout'], prisoners: ['rescue', 'bounty', 'find'] };
 function kindsFor(slot, g, R) {
   const scouts = () => {
     const left = SCOUTS.map(k => [k, g.kinds[k] ?? 0.3]), out = [];
@@ -1017,7 +1109,9 @@ function checkStage(s) {
   for (const k of ['guards', 'ambush']) if (isObj(s[k]) && ENEMY_KINDS[s[k].enemy]) out[k] = { enemy: s[k].enemy, n: Math.max(1, Math.min(8, nat(s[k].n) || 2)) };
   if (s.hurt) out.hurt = true;
   if (typeof s.opens === 'string' && s.opens.startsWith('annex:')) out.opens = s.opens.slice(0, 60);
-  if (['find', 'rescue', 'open', 'bounty', 'defend'].includes(s.goal) && !out.spot) return null;
+  if (s.goal === 'trial' && TRIALS[s.trial]) out.trial = s.trial;
+  if (s.goal === 'glass') { if (typeof s.part !== 'string') return null; out.part = s.part.slice(0, 40); }
+  if (['find', 'rescue', 'open', 'bounty', 'defend', 'glass'].includes(s.goal) && !out.spot) return null;
   return out;
 }
 // somebody (lost, or living at a camp): their name, how they are related, how they look

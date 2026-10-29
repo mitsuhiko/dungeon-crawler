@@ -644,4 +644,64 @@ export default {
   '{name}: Help! Not while they are still here!': '{name}: Hilfe! Nicht, solange die noch hier sind!',
   '{name} is hurt and cannot walk. Bring a health potion!': '{name} ist verletzt und kann nicht laufen. Bring einen Heiltrank!',
   'Something is guarded here...': 'Hier wird etwas bewacht …',
+
+  // the trial rooms (core/quests.js KINDS.trial): where they are, as said after "a room"
+  'where the water rises': 'wo das Wasser steigt',
+  'where the water stands up to the ceiling': 'wo das Wasser bis zur Decke steht',
+  'where the floor falls away': 'wo der Boden wegbricht',
+  'where you jump from stone to stone': 'wo man von Stein zu Stein springt',
+  'where the cold bites': 'wo die Kälte beißt',
+  'where the lightning strikes': 'wo der Blitz einschlägt',
+  'where a beacon must be held': 'wo ein Leuchtfeuer gehalten werden muss',
+  'where a warden guards a relic': 'wo ein Wärter ein Relikt bewacht',
+  'where the fog sinks': 'wo der Nebel sinkt',
+  'where the ice is slippery': 'wo das Eis glatt ist',
+  'where mirrors bend a beam of light': 'wo Spiegel einen Lichtstrahl lenken',
+  'where the braziers wait to be lit': 'wo Feuerschalen darauf warten, entzündet zu werden',
+  'where crates wait to be pushed onto plates': 'wo Kisten darauf warten, auf Platten geschoben zu werden',
+  'where a gate shuts too quickly': 'wo ein Tor zu schnell zufällt',
+  'where runestones wait to be pressed in order': 'wo Runensteine darauf warten, der Reihe nach gedrückt zu werden',
+  'where something strange waits': 'wo etwas Seltsames wartet',
+  Trial: 'Prüfung',
+  'The room on {where:the}': 'Der Raum auf {where:dem}',
+  '{trial}': '{trial}',
+  'There is a trial room on {where:the}, {room}. Nobody I know has ever got through it. Will you? Then come back and tell me how.':
+    'Auf {where:dem} gibt es einen Prüfungsraum, {room}. Niemand, den ich kenne, hat ihn je geschafft. Schaffst du es? Dann komm zurück und erzähl mir, wie.',
+  'My grandfather swore nobody could beat the trial room on {where:the}, {room}. Prove him wrong, and come back to tell me!':
+    'Mein Großvater hat geschworen, dass niemand den Prüfungsraum auf {where:dem} schafft, {room}. Beweis ihm das Gegenteil und komm zurück, um es mir zu erzählen!',
+  'People coming up from {where:the} talk about a trial room there, {room}. They all say it cannot be done. I say it can. Show them!':
+    'Die Leute, die von {where:dem} heraufkommen, reden von einem Prüfungsraum dort, {room}. Alle sagen, das geht nicht. Ich sage, es geht. Zeig es ihnen!',
+  'I have a theory about the trial room on {where:the}, {room}. The theory needs testing, and testing needs legs. Get through it, then come back with the results.':
+    'Ich habe eine Theorie über den Prüfungsraum auf {where:dem}, {room}. Die Theorie muss geprüft werden, und dafür braucht es Beine. Schaff ihn, dann komm mit den Ergebnissen zurück.',
+  'The trial room on {where:the}, {room}, beat me three times. Three! Your turn. Come back and tell me the trick.':
+    'Der Prüfungsraum auf {where:dem}, {room}, hat mich dreimal geschlagen. Dreimal! Du bist dran. Komm zurück und verrat mir den Trick.',
+  'The crystal ball shows me a trial room on {where:the}, {room}, and somebody getting through it. The somebody looks a lot like you.':
+    'Die Kristallkugel zeigt mir einen Prüfungsraum auf {where:dem}, {room}, und jemanden, der ihn schafft. Dieser Jemand sieht dir sehr ähnlich.',
+  'Get through the trial room on {where:the} ({trial})': 'Schaff den Prüfungsraum auf {where:dem} ({trial})',
+
+  // the glassmaker's glass (core/quests.js KINDS.glass)
+  'The humming bubble': 'Die summende Blase',
+  'Something shines on {where:the}, {clue}: a bubble of glass, they say, that hums when you come near. Like the one that floated over the plaza! Go and hear what it says, then tell me.':
+    'Auf {where:dem} leuchtet etwas, {clue}: eine Blase aus Glas, sagt man, die summt, wenn man näher kommt. Wie die, die über dem Platz schwebte! Geh hin und hör, was sie sagt, dann erzähl es mir.',
+  'A traveller swears a bubble of glass on {where:the}, {clue}, whispered to him. Whispered! Go and listen to it, and come back to tell me what it said.':
+    'Ein Reisender schwört, eine Blase aus Glas auf {where:dem} hätte ihm etwas zugeflüstert, {clue}. Geflüstert! Geh hin und hör zu, und komm zurück, um mir zu sagen, was sie gesagt hat.',
+  'The crystal ball keeps showing me a bubble of star-glass on {where:the}, {clue}. It wants to be heard. Go and listen, then tell me.':
+    'Die Kristallkugel zeigt mir immer wieder eine Blase aus Sternglas auf {where:dem}, {clue}. Sie will gehört werden. Geh hin und hör zu, dann erzähl es mir.',
+  'At night I see a light down on {where:the}, {clue}, like a little moon in a bubble. I am too slow to go. Would you, and tell me what it is?':
+    'Nachts sehe ich unten auf {where:dem} ein Licht, {clue}, wie ein kleiner Mond in einer Blase. Ich bin zu langsam, um hinzugehen. Gehst du und sagst mir, was es ist?',
+  'Star-glass! On {where:the}, {clue}. They say it keeps what it closes round, even a voice. I must know whose. Go and listen, then come back.':
+    'Sternglas! Auf {where:dem}, {clue}. Man sagt, es bewahrt, was es umschließt, sogar eine Stimme. Ich muss wissen, wessen. Geh hin und hör zu, dann komm zurück.',
+  'Find the bubble of star-glass on {where:the}': 'Finde die Blase aus Sternglas auf {where:dem}',
+
+  // somebody held by a horde (core/quests.js KINDS.prisoners)
+  'Taken by the {enemy:pl}': 'Von den {enemy:pl} verschleppt',
+  'Free {person}': 'Befrei {person}',
+  'The horde of {enemy:pl} on {where:the} carried off my {relation:lower} {person}! Break the horde, every last one of them, and bring {person:him} home.':
+    'Die Horde {enemy:pl} auf {where:dem} hat {relation:meinen} {person} verschleppt! Zerschlag die Horde, bis zum letzten, und bring {person:ihn} nach Hause.',
+  '{person}, my {relation:lower}, went too close to the horde of {enemy:pl} on {where:the}, and now they will not let {person:him} go. Scatter them and set {person:him} free!':
+    '{person}, {relation:mein}, ist der Horde {enemy:pl} auf {where:dem} zu nahe gekommen, und jetzt lassen sie {person:ihn} nicht mehr gehen. Verjag sie und befrei {person:ihn}!',
+  'I heard {person} calling from the middle of the horde of {enemy:pl} on {where:the}. My {relation:lower}! I could not get past them. You can. Please!':
+    'Ich habe {person} mitten aus der Horde {enemy:pl} auf {where:dem} rufen hören. {relation:Mein}! Ich bin nicht an ihnen vorbeigekommen. Du schaffst das. Bitte!',
+  'Free {person} on {where:the}': 'Befrei {person} auf {where:dem}',
+  'Find {person} on {where:the}, {clue}': 'Finde {person} auf {where:dem}, {clue}',
 };

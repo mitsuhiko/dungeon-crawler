@@ -82,8 +82,9 @@ test('offers follow the plan and are about what the world has, never two about o
       if (q.kind === 'guardian') assert.ok(L.guardians.has(s.key));
       if (q.kind === 'horde') assert.ok(L.hordes.has(s.key));
       if (q.kind === 'landmark') assert.ok(L.sitePlans.get(s.key)?.[0]?.landmark);
-      if (s.spot) assert.ok(L.spotList.some(p => p.id === s.spot && p.kind === (s.goal === 'defend' ? 'outpost' : 'hide') && p.key === s.key),
-        'on a hiding place (a defense: at its outpost)');
+      if (s.spot) assert.ok(L.spotList.some(p => p.id === s.spot && p.kind === (s.goal === 'defend' ? 'outpost' : s.goal === 'glass' ? 'glass' : 'hide') && p.key === s.key),
+        'on a hiding place (a defense: at its outpost; his glass: on its spot)');
+      if (q.kind === 'trial') assert.ok(L.trials.some(t => t.key === s.key));
       if (s.item) assert.equal(ITEMS[s.item].category, 'quest');
       if (s.goal === 'gather') s.spots.forEach((id, i) => assert.ok(L.spotList.some(p => p.id === id && p.kind === 'hide' && p.key === s.keys[i])));
       const words = [q.title, q.text, s.text].map(say).join(' ');
@@ -559,4 +560,50 @@ test('twists: guards round a hiding place, an ambush, somebody hurt, a bounty wi
   const twisted = log.list.filter(q => q.stages.some(s => s.guards || s.ambush || s.hurt)).length;
   assert.ok(twisted >= 8 && twisted <= 40, `${twisted} twisted`);
   assert.ok(!log.list.some(q => q.depth === 0 && q.stages.some(s => s.guards || s.ambush)), 'no quest spawns on the road out of town');
+});
+
+test('a trial room: getting through it (its gate open) is the goal', async () => {
+  const { trialGate } = await import('../src/core/trials.js');
+  const depth = [1, 2, 3, 4, 5, 6].find(d => ctxOf(7).layout(d).trials?.length);
+  const { log, q } = questOf(7, 'trial', depth);
+  const s = q.stages[0];
+  assert.ok(ctxOf(7).layout(depth).trials.some(t => t.key === s.key && t.kind === s.trial));
+  accept(log, q.id);
+  settle(log, new Set());
+  assert.equal(q.state, 'active');
+  settle(log, new Set([trialGate(s.key)]));
+  assert.equal(q.state, 'ready', 'through');
+  const none = createQuestLog();
+  none.deepest = depth - 1;
+  assert.equal(makeQuest(none, { ...ctxOf(7), gates: new Set(ctxOf(7).layout(depth).trials.map(t => trialGate(t.key))) }, 'innkeeper',
+    { id: `${depth}:96`, depth, kind: 'trial', force: true }), null, 'never about a room got through already');
+  assert.deepEqual(checkQuestLog(roundTrip(packQuestLog(log))).list[0].stages, roundTrip(q.stages));
+});
+
+test('his glass: a bubble somebody saw; hearing its recording is the goal', async () => {
+  const { recordingLines } = await import('../src/core/narration.js');
+  const { log, q } = questOf(7, 'glass', 3);
+  const s = q.stages[0], plan = ctxOf(7).layout(3).spotList.find(p => p.id === s.spot);
+  assert.ok(plan?.kind === 'glass' && !plan.way, 'the hidden one');
+  accept(log, q.id);
+  settle(log, { told: new Set() });
+  assert.equal(q.state, 'active');
+  settle(log, { told: new Set([recordingLines(s.part)[0].id]) });
+  assert.equal(q.state, 'ready', 'heard');
+  assert.deepEqual(checkQuestLog(roundTrip(packQuestLog(log))).list[0].stages, roundTrip(q.stages));
+});
+
+test('prisoners: break the horde that holds somebody, then they go home', () => {
+  const depth = [3, 5, 8, 9].find(d => ctxOf(7).layout(d).hordes.size);
+  const { log, q } = questOf(7, 'prisoners', depth);
+  assert.deepEqual(q.stages.map(s => s.goal), ['horde', 'rescue']);
+  assert.ok(ctxOf(7).layout(depth).hordes.has(q.stages[0].key));
+  accept(log, q.id);
+  assert.equal(questGoalsIn(log, q.stages[1].key).some(g => g.stage.goal === 'rescue'), false, 'not there while the horde stands');
+  questEvent(log, { kind: 'horde', key: q.stages[0].key });
+  assert.equal(q.stage, 1);
+  assert.ok(questGoalsIn(log, q.stages[1].key).some(g => g.stage.goal === 'rescue'), 'then they are');
+  const paid = questEvent(log, { kind: 'rescued', quest: q.id });
+  assert.deepEqual(paid.map(x => x.id), [q.id], 'paid on the spot');
+  assert.equal(q.state, 'done');
 });
