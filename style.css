@@ -24,7 +24,8 @@
    surface puts its own. The surfaces: the panels, what is pressed or typed into on them (not a .plain button), the wells
    sunk into them, the dropdown's list. */
 :where(.glass:not(.glass-back), .glass :is(button, input:not([type=range], [type=color]), select, .title-link):not(.plain), .dropdown-list,
-  #inventory-hero, #inventory-details, #inventory-act, #quests-details, #quests-talk, .coin-slot, #menu-room, #skin-view, #effects .fx, #chat-popup, #quest-track),
+  #inventory-hero, #inventory-details, #inventory-act, #quests-details, #quests-talk, .coin-slot, #menu-room, #skin-view, #effects .fx, #chat-popup, #quest-track,
+  #tutorial),
   .glass.glass-back::before {
   --c1: 5px; --c2: 5px; --c3: 5px; --c4: 5px; --glow-at: 50% 115%; --glint-color: var(--glass-hi);
   --face: #18201f; --edge-hi: #4d6a64; --edge-lo: #263231;
@@ -93,7 +94,7 @@
 body.calm :is(.glass, .glass *) { --glint-color: transparent; }
 /* the UI scale (the settings, game/uiscale.js): the HUD and the menus zoomed as a whole, offsets from the window's edges and all.
    Inside them nothing uses vw / vh (browsers disagree on whether zoom scales those): percentages of the window instead. */
-:is(#quickbar, #effects, #teleport-menu, #chat, #minimap, #quest-track, #trial-hud, #boss-bar, #trial-banner, #loading, #look-hint, #crosshair, #teach-pace,
+:is(#quickbar, #effects, #teleport-menu, #chat, #minimap, #quest-track, #tutorial, #trial-hud, #boss-bar, #trial-banner, #loading, #look-hint, #crosshair, #teach-pace,
   #menu-overlay, #leave-overlay, #death-overlay, #settings-overlay, #inventory-overlay, #title-logo, #title-panel, #title-hero b, #title-hero small) { zoom: var(--ui); }
 html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(ellipse at 50% 35%, #2a3140 0%, #12151c 70%, #0b0d12 100%); font: 16px/1.35 var(--font-body); color: #d8dde6; }
 /* the type (vendor/fonts/fonts.css): Cinzel on what is pressed and what names things, Crimson Text for the rest,
@@ -815,6 +816,25 @@ li.title-form, .title-rename { flex-direction: column; }
 body.touch #quest-track { top: calc(2px + 148px * var(--map, 1) + env(safe-area-inset-top)); width: 150px; font-size: 14px; }
 body.touch.ui-w640 #quest-track { top: calc(82px + 96px * var(--map, 1) + env(safe-area-inset-top)); }
 body.touch.ui-w540 #quest-track { top: calc(72px + 96px * var(--map, 1) + env(safe-area-inset-top)); width: 130px; font-size: 13px; }
+/* the tutorial's card (game/tutorial.js, docs/ui.md "The tutorial"): what to do here and with which keys, on glass like the
+   quest followed, at the left; a step done is ticked and dims */
+#tutorial { --c1: 10px; --c2: 2px; --c3: 10px; --c4: 2px; --face: #0e1312cc; --edge-hi: #5e7f78; --edge-lo: #1f2b29;
+  position: fixed; top: calc(30% + var(--safe-t)); left: calc(16px + var(--safe-l)); width: 290px; z-index: 5;
+  padding: 8px 12px 6px; font: 16px/1.35 var(--font-body); color: #dbe5e1; transition: opacity .4s; }
+#tutorial[hidden] { display: none; }
+#tutorial > b { display: block; margin-bottom: 4px; color: var(--ember-hi); font: 14px/1.5 var(--font-display); letter-spacing: .04em; }
+#tutorial ul { margin: 0; padding: 0; list-style: none; }
+#tutorial li { position: relative; margin: 0 0 6px; padding-left: 20px; transition: color .4s; }
+#tutorial li::before { content: ''; position: absolute; left: 2px; top: .45em; width: 8px; height: 8px; border: 1px solid #6f948c; transform: rotate(45deg); }
+#tutorial li.done { color: #8c9a96; }
+#tutorial li.done::before { background: var(--ember); border-color: var(--ember-hi); box-shadow: 0 0 6px var(--ember); }
+#tutorial kbd { margin: 0 1px; font-size: 12px; line-height: 1.5; vertical-align: 1px; }
+#tutorial kbd.none { color: #b98e7e; font-style: italic; }
+#tutorial .keys { white-space: nowrap; }
+#tutorial-skip { display: block; margin: 2px 0 0 auto; padding: 2px 0; background: none; border: 0; color: #8fa9a3; font: 12px/1.4 var(--font-display);
+  cursor: pointer; }
+#tutorial-skip:hover, #tutorial-skip:focus-visible { color: var(--ember-hi); }
+body.touch #tutorial { top: calc(26% + env(safe-area-inset-top)); width: 230px; font-size: 14px; }
 /* the boss bar (game/bossbar.js, docs/ui.md "The boss bar"): a boss's health along the top, a strip of glass with his name in
    amber over an amber fill; behind the fill the damage strip, pale, lagging after a hit. It fades in and out (.on). On touch the
    quick bar is up there: it goes under it. */
@@ -853,7 +873,7 @@ body.touch #boss-bar { top: calc(74px + env(safe-area-inset-top)); width: min(42
   text-shadow: 0 1px 3px #000, 0 0 10px #000a; opacity: 0; transition: opacity .6s .4s; }
 #boss-intro.on span { opacity: 1; }
 body.calm #boss-intro b, body.calm #boss-intro b::after { transition: none; }
-body.cinematic :is(#quickbar, #effects, #minimap, #quest-track, #chat, #trial-hud, #loot-labels, #crosshair, #look-hint, #lock-marker, #touch,
+body.cinematic :is(#quickbar, #effects, #minimap, #quest-track, #tutorial, #chat, #trial-hud, #loot-labels, #crosshair, #look-hint, #lock-marker, #touch,
   #teleport-menu, #dev) { opacity: 0 !important; pointer-events: none !important; transition: opacity .4s; }
 /* a trial room (game/trials.js): its name and what it needs while it runs, the banner as it arms */
 #trial-hud { position: fixed; top: calc(14px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none;

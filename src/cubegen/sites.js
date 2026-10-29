@@ -197,7 +197,8 @@ export function prepareSites(ctx) {
       f.siteDressing = true;
       site.dressing.push({ name, c, s, yaw, blocking: !!p.blocking });
     };
-    add('treasure_chest', site.anchorCell, 0.8, -site.turn * Math.PI / 2 + Math.PI);
+    // (the beginning's rock holds the glassmaker's glass there, no chest: cubegen/index.js firstGlassOf)
+    if (site.spawn !== 'glass') add('treasure_chest', site.anchorCell, 0.8, -site.turn * Math.PI / 2 + Math.PI);
     if (site.landmark) {
       // the landmark, and a few small things of the theme's around the chest
       placeLandmark(ctx, site);

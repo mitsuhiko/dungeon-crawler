@@ -42,6 +42,8 @@ import { updatePortalBar } from './render/portalbar.js';
 import { updateCastBar } from './render/castbar.js';
 import { updateBossBar } from './game/bossbar.js';
 import { updateBossIntro, updateIntroCard, introFull } from './game/bossintro.js';
+import { updateScene, sceneFull } from './game/scene.js';
+import { updateTutorial } from './game/tutorial.js';
 import { updateQuickbar } from './game/quickbar.js';
 import { updateTeleportMenu } from './game/teleportmenu.js';
 import { updateLeave } from './game/leavefight.js';
@@ -171,6 +173,8 @@ function frame(now = performance.now()) {
     if (!state.transitioning) updateTrial(dt);   // a trial room's clock, its rising fluid (game/trials.js)
   }
   updateBossIntro(dt);   // a boss's intro: him appearing, the camera's shots (game/bossintro.js; after the enemies)
+  updateScene(dt);   // a scene of the story: the robot waking, his first glass (game/scene.js)
+  updateTutorial();   // the tutorial's card in the beginning (game/tutorial.js)
 
   // smooth out small vertical snaps (steps), but not falls
   player.visY += (player.y - player.visY) * Math.min(1, dt * 25);
@@ -238,7 +242,7 @@ function frame(now = performance.now()) {
   updateLightPool(focusPoint(lit.x, lit.y + 1, lit.z));
   // (the close view's camera stays out of the solids: nothing of the neighbours is cut either)
   cullNeighbors(player.x, player.z, !state.transitioning && !closeView() && !cineView(), state.showNeighbors, player.visY + (player.swimming ? 0.6 : 0.3));
-  updatePlayerBar(closeView(), introFull());   // (not in a boss's intro)
+  updatePlayerBar(closeView(), introFull() || sceneFull());   // (not in a boss's intro, nor a scene)
   updateOnline();   // playing together: send our pose, follow, show the partner (net/session.js)
   updatePortalBar();
   updateCastBar();

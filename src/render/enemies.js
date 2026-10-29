@@ -910,7 +910,7 @@ function introLook(v, e, dt) {
     v.group.visible = a > 0.01;
     v.veiled = true;
   } else if (v.veiled) { v.veiled = false; v.material.opacity = 1; v.material.depthWrite = true; }
-  if (state.intro?.full) v.bar.visible = v.label.visible = v.mark.visible = false;   // (nothing over anybody's head meanwhile)
+  if (state.intro?.full || state.scene) v.bar.visible = v.label.visible = v.mark.visible = false;   // (nothing over anybody's head meanwhile)
   // `clipBelow` (a height): nothing of him under it is drawn (Foggery under his lava, which is
   // see-through; Monteur coming up out of the floor, Qualmos out of his lagoon)
   const clip = e.clipBelow ?? null;

@@ -1,10 +1,12 @@
 // The robot in the world (docs/story.md "The robot"; what it does: core/robot.js, how it looks:
 // render/robot.js). It lies asleep on its back in the merchant camp (robotLies), its core only
-// glimmering, until the hero clicks it (hovered and labelled like everything clicked:
-// game/lootlabels.js; the click walks them up to it, game/orders.js) or uses it with the action key
-// beside it (game/action.js). Then it wakes (wakeRobot): whatever is being said is cut short
-// (game/narrator.js cut), it opens its eyes, lifts off and shakes itself (WAKE s), and says hello
-// (core/narration.js `robot`) as it does; only then it follows. From then on, and whenever the
+// glimmering, the glassmaker's sword in the ground beside it, until the hero comes into the camp
+// (WAKE_SEE): in a short scene (game/scene.js, core/scenes.js `robot`) the camera goes to it and it
+// wakes (wakeRobot). A click on it (hovered and labelled like everything clicked:
+// game/lootlabels.js; the click walks them up to it, game/orders.js) or the action key beside it
+// (game/action.js) wakes it too. Waking, whatever is being said is cut short (game/narrator.js cut),
+// it opens its eyes, lifts off and shakes itself (WAKE s), and says hello (core/narration.js
+// `robot`) as it does, then tells the hero to take the sword; only then it follows. From then on, and whenever the
 // world is played again, it is with them: it comes in at their side as they enter it (game/flow.js
 // settleIn).
 //
@@ -44,6 +46,9 @@ import { ROBOT_CLIPS } from '../net/protocol.js';
 import { camera } from '../render/scene.js';
 import { closeView } from './camera.js';
 import { rescuePose } from './rescue.js';
+import { playScene, scenePlaying } from './scene.js';
+import { introPlaying } from './bossintro.js';
+import { curtained } from './hud.js';
 
 const SIDE = 0.5;        // cells to the side of the way it keeps
 const NEAR = 1.1;        // cells: never closer to the hero than this
@@ -99,7 +104,17 @@ export function wakeRobot(r = sleepingRobot()) {
   robot = { way, at: { k, x: r.x, y: r.y, z: r.z }, yaw: r.yaw, wait: 0, side: 1, t: 0, waking: WAKE };
   robotWake();
   narrate('robot', { what: 'hello' }, { delay: HELLO_AFTER });
+  narrate('robot', { what: 'sword' }, { delay: HELLO_AFTER });   // (said after its hello: the sword beside it)
   return true;
+}
+
+// The hero comes into the camp: this close, it wakes, in its scene (the camera goes to it; playing
+// together it just wakes)
+const WAKE_SEE = 6;   // cells
+function wakeOnSight(r) {
+  if (state.transitioning || curtained() || scenePlaying() || introPlaying() || player.hp <= 0 || player.ragdoll) return;
+  if (Math.hypot(r.x - player.x, r.z - player.z) > WAKE_SEE || Math.abs(r.y - player.y) > 1.5) return;
+  playScene('robot', { spot: { x: r.x, y: r.y + 0.2, z: r.z }, on: { wake: () => wakeRobot(sleepingRobot() ?? undefined) } });
 }
 
 const look = new THREE.Vector3();
@@ -183,7 +198,11 @@ const scene = new THREE.Vector3(), ZERO = new THREE.Vector3();
 // main.js, every frame of play (dt: game time, 0 while paused)
 export function updateRobot(dt) {
   const asleep = sleepingRobot();
-  if (asleep) { drawRobot(scene.set(asleep.x, asleep.y, asleep.z).add(drawnAt(state.cubeKey)?.at ?? ZERO), asleep.yaw, 1, 'dormant', dt); return; }
+  if (asleep) {
+    drawRobot(scene.set(asleep.x, asleep.y, asleep.z).add(drawnAt(state.cubeKey)?.at ?? ZERO), asleep.yaw, 1, 'dormant', dt);
+    if (dt > 0) wakeOnSight(asleep);
+    return;
+  }
   if (!robot || state.mode !== 'play' || !state.map) { hideRobot(); return; }
   // carrying the hero out of a fluid (game/rescue.js): there, and on from there once it lets go
   const carry = !(robot.waking > 0) && rescuePose();

@@ -14,7 +14,13 @@
 // for everyone, and a recording one of us sets off plays for everyone at once (heardStory).
 import { player, state, setStatus, worldPaused } from './state.js';
 import { INTRO_GATES, glassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../core/intro.js';
-import { meetRobot } from '../core/robot.js';
+import { meetRobot, robotMet } from '../core/robot.js';
+import { doorArrival } from '../core/doors.js';
+import { WAKE_HOUSE } from '../world/town.js';
+import { playScene, scenePlaying } from './scene.js';
+import { introPlaying } from './bossintro.js';
+import { curtained } from './hud.js';
+import { allEnemies } from './enemies.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
 import { equipItem } from '../core/inventory.js';
 import { sfx } from '../audio/sfx.js';
@@ -69,20 +75,54 @@ function open(gate) {
 }
 
 let refused = false;   // the sword did not fit into the bag: said once, until the hero steps away
-// main.js, every frame: walking onto a thing takes it
+let breaking = null;   // the glass breaking in its scene (its id): not taken again meanwhile
+// main.js, every frame: walking onto a thing takes it; coming into the rock's room, its glass is shown
 export function updateIntro() {
   if (!state.run || state.mode !== 'play' || state.transitioning || worldPaused() || player.hp <= 0 || player.ragdoll) return;
+  showGlass();
+  noticeRock();
   let near = false;
   for (const p of introThingsHere()) {
     if (Math.hypot(p.x - player.x, p.z - player.z) > REACH || Math.abs(p.y - player.y) > 1) continue;
     near = true;
-    if (p.story === 'glass') findGlass(p); else takeSword(p);
+    if (p.story === 'glass') { if (p.id !== breaking) findGlass(p); } else takeSword(p);
   }
   if (!near) refused = false;
 }
 
-// a glass of his breaks: its recording plays (once: it is told then, and the glass is gone)
+// The rock's room (core/intro.js), the first time a world comes into it with his glass still on top:
+// a scene shows it (core/scenes.js `glass`), and the robot says what it is (core/narration.js
+// `robot` 'rock'); once a world (run.met keeps it, like a boss met)
+const SHOWN = 'scene:glass';
+function showGlass() {
+  const map = state.map, g = map.firstGlass;
+  if (!g || !glassThere(state.run) || state.run.met.has(SHOWN) || curtained() || scenePlaying() || introPlaying()) return;
+  state.run.met.add(SHOWN);
+  const spot = { x: g.glass.x, y: g.glass.y + GLASS_LIFT, z: g.glass.z };
+  playScene('glass', { spot, anchors: { ladder: g.ladder }, on: { glint: () => {
+    storyBurst(state.world, spot.x, spot.y + 0.9, spot.z, AMBER, 14);
+    sfx('pickup', { pitch: 1.6, volume: 0.5 });
+    if (robotMet(state.run)) narrate('robot', { what: 'rock' });
+  } } });
+}
+// the snakes at the rock's foot beaten, or the hero at the ladder: the robot points up it (once)
+const LADDER_NEAR = 2.5;
+function noticeRock() {
+  const map = state.map, g = map?.firstGlass;
+  if (!g || !glassThere(state.run) || !robotMet(state.run) || scenePlaying()) return;
+  const foes = allEnemies().some(e => e.hp > 0 && e.mode !== 'dead' && e.profile?.species === 'snake');
+  if (!foes || Math.hypot(player.x - g.ladder.x, player.z - g.ladder.z) < LADDER_NEAR) narrate('robot', { what: 'ladder' });
+}
+
+// a glass of his breaks: its recording plays (once: it is told then, and the glass is gone). The
+// rock's, the first, in a scene (core/scenes.js `break`): close on it as it bursts.
 function findGlass(p) {
+  if (p.part !== 'glass') { breakGlass(p); return; }
+  breaking = p.id;
+  playScene('break', { spot: { x: p.x, y: p.y + GLASS_LIFT, z: p.z }, hero: false, on: { burst: () => breakGlass(p) },
+    done: () => { breaking = null; } });
+}
+function breakGlass(p) {
   storyBurst(state.world, p.x, p.y + 1, p.z, AMBER, 26);
   sfx('shatter');
   if (p.part === 'glass') {
@@ -90,6 +130,7 @@ function findGlass(p) {
     setStatus(tr('The glass broke, and a voice came out of it. The gate on along the road is open.'));
   } else setStatus(tr('The glass broke, and a voice came out of it.'));
   narrate('recording', { part: p.part });
+  if (p.part === 'glass' && robotMet(state.run)) narrate('robot', { what: 'heard' });   // (after his words)
   relay.story?.(p.part);
 }
 
@@ -129,4 +170,19 @@ export function settleIntro(run, layout0, visited = [], dev = false, params = ne
   const skip = dev && params.get('intro') !== '1';
   if (skip || pastIntro(visited, layout0)) skipIntro(run);
   if (skip) meetRobot(run);
+}
+
+// A new hero in a world nobody has been in yet comes out of the inn as it comes up (game/flow.js
+// newWorld): where they stand, on its doorstep facing out (null: not now: a world played before,
+// the dev tools, the beginning done)
+export function innArrival(map, run, visited = []) {
+  if (visited.length || !map?.town || run.unlockedGates.has(INTRO_GATES.sword)) return null;
+  const d = map.doors?.find(q => q.building === WAKE_HOUSE);
+  return d ? doorArrival(d) : null;
+}
+// ... and walks out of the door onto the street (core/scenes.js `wake`), remembering nothing
+export function comeOutOfInn(at) {
+  const ahead = { x: at.x + Math.sin(at.yaw) * 3, y: at.y, z: at.z + Math.cos(at.yaw) * 3 };
+  playScene('wake', { spot: ahead, on: { out: () => sfx('door', { at: player }) },
+    done: () => setStatus(tr('You do not remember how you came here.')) });
 }

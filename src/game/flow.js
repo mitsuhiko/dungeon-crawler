@@ -52,7 +52,7 @@ import { setFluidPalettes } from '../render/fluidpal.js';
 import { tr } from '../i18n/i18n.js';
 import { askRespawn, forgetDeath } from './deathask.js';
 import { narrate, arrived, stopNarrator } from './narrator.js';
-import { settleIntro } from './intro.js';
+import { settleIntro, innArrival, comeOutOfInn } from './intro.js';
 import { robotArrived, forgetRobot } from './robot.js';
 
 export function spawnAt(x, y, z) {
@@ -419,8 +419,13 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
     .then(([c]) => {
       if (state.cubes !== cubes) return;
       slowFade();   // the world comes up slowly the first time (game/hud.js)
-      if (spot && c.key === spot.cube) enterCube(c, null, null, spot.arrival); else enterCube(c);
+      // (a new hero in a world nobody has been in comes out of the inn: game/intro.js)
+      const inn = !spot && innArrival(c.map, state.run, restore?.visited);
+      if (spot && c.key === spot.cube) enterCube(c, null, null, spot.arrival);
+      else if (inn) { enterCube(c, null, null, inn); player.yaw = inn.yaw; }
+      else enterCube(c);
       state.transitioning = false;
+      if (inn) comeOutOfInn(inn);
       if (restore) for (const k of restore.visited) shareVisit(k);   // the map comes back, nearest first
     });
 }

@@ -44,6 +44,7 @@ export default {
   Minimap: 'Minikarte',
   'Item names': 'Namen der Gegenstände',
   'Damage numbers': 'Schadenszahlen',
+  Tutorial: 'Einführung',
   Fullscreen: 'Vollbild',
   Volume: 'Lautstärke',
   'Quiet in the background': 'Still im Hintergrund',
@@ -760,6 +761,30 @@ export default {
   'The glass broke, and a voice came out of it.': 'Das Glas ist zerbrochen, und eine Stimme kam heraus.',
   'You pulled {item:the} out of the ground': 'Du hast {item:den} aus dem Boden gezogen',
   'The gate to the road is open.': 'Das Tor zur Straße ist offen.',
+  'You do not remember how you came here.': 'Du weißt nicht mehr, wie du hierhergekommen bist.',
+  // the tutorial's card (core/tutorial.js, game/tutorial.js): what to do in the beginning, with the keys
+  'Getting about': 'Unterwegs',
+  'Walk with {k0}, or click the ground where you want to go': 'Lauf mit {k0}, oder klick auf den Boden, wo du hinwillst',
+  'Walk with the stick at the lower left, or tap the ground where you want to go':
+    'Lauf mit dem Stick unten links, oder tipp auf den Boden, wo du hinwillst',
+  'Turn the view with {k0} and {k1}': 'Dreh die Ansicht mit {k0} und {k1}',
+  'Turn the view with the buttons at the sides': 'Dreh die Ansicht mit den Knöpfen an den Seiten',
+  'Go through the gate out of the town': 'Geh durch das Tor aus der Stadt',
+  'The robot': 'Der Roboter',
+  'Walk to the sword, or click it, to pull it out of the ground': 'Geh zum Schwert, oder klick es an, um es aus dem Boden zu ziehen',
+  'Walk to the sword, or tap it, to pull it out of the ground': 'Geh zum Schwert, oder tipp es an, um es aus dem Boden zu ziehen',
+  'The rock': 'Der Felsen',
+  'Hold {k0} to fight whatever is in reach, or click an enemy': 'Halt {k0} gedrückt, um zu kämpfen, was in Reichweite ist, oder klick ein Monster an',
+  'Hold the big button to fight whatever is in reach, or tap an enemy':
+    'Halt den großen Knopf gedrückt, um zu kämpfen, was in Reichweite ist, oder tipp ein Monster an',
+  'Click the top of the rock: you find the way up, ladders and all': 'Klick oben auf den Felsen: Du findest den Weg hinauf, Leitern und alles',
+  'Tap the top of the rock: you find the way up, ladders and all': 'Tipp oben auf den Felsen: Du findest den Weg hinauf, Leitern und alles',
+  'Walk into the glass': 'Geh in das Glas hinein',
+  'His words': 'Seine Worte',
+  'His words are kept: open the bag with {k0} and look at the memories': 'Seine Worte bleiben: Öffne die Tasche mit {k0} und sieh dir die Erinnerungen an',
+  'His words are kept: open the bag and look at the memories': 'Seine Worte bleiben: Öffne die Tasche und sieh dir die Erinnerungen an',
+  'not bound': 'nicht belegt',
+  'Skip the tutorial': 'Einführung überspringen',
   // the memories (game/memorypanel.js): the glassmaker's recordings heard
   'Nothing heard yet. The glassmaker blows his words into glass: listen for them.':
     'Noch nichts gehört. Der Glasmacher bläst seine Worte in Glas: Hör auf sie.',

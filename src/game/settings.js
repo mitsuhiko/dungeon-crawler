@@ -101,6 +101,7 @@ const settings = {
   music: storedMusic, quietBehind: typeof stored.quietBehind === 'boolean' ? stored.quietBehind : !embedded,
   masterVolume: volume(stored.masterVolume), musicVolume: volume(stored.musicVolume), soundVolume: volume(stored.soundVolume),
   voiceVolume: volume(stored.voiceVolume), subtitles: stored.subtitles !== false,
+  tutorial: stored.tutorial !== false,
   keys: resolveBindings(stored.keys),
 };
 
@@ -212,6 +213,10 @@ export const voiceVolume = () => settings.voiceVolume;
 export function setVoiceVolume(v) { settings.voiceVolume = volume(v); changed(); }
 export const subtitles = () => settings.subtitles;
 export function setSubtitles(on) { settings.subtitles = !!on; changed(); }
+// the tutorial's card (game/tutorial.js): on until it is done or skipped; turned on again, it shows
+// again in the next beginning
+export const tutorialOn = () => settings.tutorial;
+export function setTutorial(on) { settings.tutorial = !!on; changed(); }
 
 // --- keys ---------------------------------------------------------------------------------------
 

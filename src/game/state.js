@@ -57,6 +57,7 @@ export const state = {
   cubes: null, cubeKey: '', arrival: null, portalLock: 0, portalCharge: null, showNeighbors: true, lookDepth: 0,   // showNeighbors: tests only
   openedFaces: new Set(), boundaryLock: -1,   // shared side faces unlocked this world
   enemyGrace: 0,     // s left before enemies may attack (game/enemies.js ENTRY_GRACE)
+  scene: false,      // a scene of the story with its camera or black bars under way (game/scene.js)
   dark: 0,           // 1 while a boss keeps this cube dark (Totnar, game/totnar.js)
   lookDark: 0,       // how dark it looks, following `dark` (main.js, render/look.js)
   mist: 0,           // 1 while a boss's fog rolls in (Squarlo growing, game/squarlo.js)

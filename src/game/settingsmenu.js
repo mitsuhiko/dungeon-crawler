@@ -3,7 +3,8 @@
 // last one shown):
 //   General   the language (a dropdown, game/dropdown.js), the UI scale (game/uiscale.js: taken
 //             when the slider is let go, as the panel itself grows or shrinks with it), the
-//             minimap's size, the item names on the floor, the damage numbers, fullscreen (where
+//             minimap's size, the item names on the floor, the damage numbers, the tutorial's card
+//             (game/tutorial.js: on again shows it again), fullscreen (where
 //             the browser can: game/display.js); the music on or off, the volume of everything,
 //             the music's, the sounds' and the narrator's, her subtitles, and being quiet in the
 //             background
@@ -29,7 +30,7 @@ import {
   lookSpeed, setLookSpeed, invertLook, setInvertLook, clickMove, setClickMove, invertZoom, setInvertZoom,
   startZoomStep, setStartZoomStep, startZoom,
   musicOn, setMusic, masterVolume, setMasterVolume, musicVolume, setMusicVolume, soundVolume, setSoundVolume, quietBehind, setQuietBehind,
-  voiceVolume, setVoiceVolume, subtitles, setSubtitles,
+  voiceVolume, setVoiceVolume, subtitles, setSubtitles, tutorialOn, setTutorial,
   keysOf, bindKey, unbindKey, resetKeys, nameOf, onSettingsChange, languageNow, chooseLanguage,
 } from './settings.js';
 import { tr, tc, LANGUAGES, onLanguageChange } from '../i18n/i18n.js';
@@ -103,6 +104,7 @@ function choice(box, options, current) {
 // the switches: on or off
 const TOGGLES = {
   'settings-numbers': [damageNumbers, setDamageNumbers],
+  'settings-tutorial': [tutorialOn, setTutorial],
   'settings-fullscreen': [isFullscreen, setFullscreen],
   'settings-music': [musicOn, setMusic],
   'settings-quiet': [quietBehind, setQuietBehind],
