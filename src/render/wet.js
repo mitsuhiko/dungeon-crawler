@@ -13,7 +13,7 @@
 // wetSlope: the proxies show them too); the structures (stairs, bridges, ladders, fences, posts)
 // darken themselves where the water has just been (wetMaterial), by the same wet line.
 import * as THREE from 'three';
-import { N, LH, WATER, LAVA, ACID } from '../core/constants.js';
+import { N, LH, WATER, LAVA, ACID, drawnFluid } from '../core/constants.js';
 import { BOXES, waterBoxes } from './shore.js';
 import { restY, FLUID_MOTION } from './surface.js';
 import { PAL_TEX, PAL_GLSL } from './fluidpal.js';
@@ -32,7 +32,7 @@ export function waterUniforms(m) {
   const fixed = new Float32Array(N * N * 4);
   for (let c = 0; c < N * N; c++) {
     const f = m.cols[c].filter(g => g.fluid && !g.crust).at(-1);
-    fixed.set(f ? [restY(f.surf * LH), Math.min(...f.cs), f.fluid, f.pal ?? m.fluidRows?.[f.fluid] ?? palRow(m.depth ?? 0, f.fluid, 0)] : [-1e4, 0, 0, 0], c * 4);
+    fixed.set(f ? [restY(f.surf * LH), Math.min(...f.cs), drawnFluid(f), f.pal ?? m.fluidRows?.[f.fluid] ?? palRow(m.depth ?? 0, drawnFluid(f), 0)] : [-1e4, 0, 0, 0], c * 4);
   }
   return {
     level: { value: -1e9 }, box: { value: new THREE.Vector4(0, 0, N, N) },
@@ -53,7 +53,7 @@ export function wetMaterial(mat, water) {
       uFixedTide: FIXED_TIDE, uFixedWet: FIXED_WET, uPalTex: PAL_TEX, uCellTime: WIND });
     sh.vertexShader = 'varying vec3 vWetP, vWetN;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       vWetP = position * length(modelMatrix[0].xyz); vWetN = normal;`);
-    sh.fragmentShader = 'varying vec3 vWetP, vWetN;\nuniform highp sampler2D uWetFixed;\nuniform vec4 uWetStand, uWetBox;\nuniform vec2 uWetStandKind;\nuniform vec3 uFixedTide, uFixedWet;\nuniform float uCellTime;\n' + PAL_GLSL
+    sh.fragmentShader = 'varying vec3 vWetP, vWetN;\nuniform highp sampler2D uWetFixed;\nuniform vec4 uWetStand, uWetBox;\nuniform vec2 uWetStandKind;\nuniform vec4 uFixedTide, uFixedWet;\nuniform float uCellTime;\n' + PAL_GLSL
       + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       vec3 wetGlow = vec3(0.0);
       {

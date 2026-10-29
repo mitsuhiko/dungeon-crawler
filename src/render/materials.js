@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { N, WATER, LAVA, ACID, MUD } from '../core/constants.js';
 import { CELLS, useCells } from './watercells.js';
+import { GOOP_GLSL } from './goop.js';
 import { PAL_TEX, PAL_GLSL } from './fluidpal.js';
 import { FALL_WIDTH } from './parts.js';
 import { WET_LIFT, BOXES } from './shore.js';
@@ -32,9 +33,10 @@ export const FLUID_LOOK = {
   [ACID]: { style: 'sludge', clear: true, emissiveIntensity: 0.8, roughness: 0.3, metalness: 0, motion: {}, rides: true,
     cells: FLUID_MOTION[ACID],
     fall: { emissiveIntensity: 1, cells: { glow: 0.35, flow: 3.2 } } },
-  // Sollmeldon's mud (a look of a standing fluid only, core/constants.js MUD): black and glossy,
-  // bubbling, not see-through; it never falls
-  [MUD]: { style: 'sludge', clear: false, emissiveIntensity: 0.2, roughness: 0.18, metalness: 0, motion: {}, rides: true,
+  // mud (a look of water, core/constants.js MUD: a mud pool's, cubegen/mudpools.js): the marbled goop
+  // of Sollmeldon's (render/goop.js), glossy, bubbling (the sludge's pattern: its cells texture,
+  // render/watercells.js), not see-through; it never falls
+  [MUD]: { style: 'goop', pattern: 'sludge', clear: false, emissiveIntensity: 0.2, roughness: 0.18, metalness: 0, motion: {}, rides: true,
     cells: FLUID_MOTION[MUD], fall: { emissiveIntensity: 0.2, cells: null } },
 };
 
@@ -107,12 +109,9 @@ const TAU = Math.PI * 2;
 // of the cubes' own fluids are still wet (render/surface.js stepWet). Set by tickTides once a
 // frame, shared by every cube and proxy.
 export const WET_LINE = Object.fromEntries(Object.entries(FLUID_LOOK).filter(([, L]) => L.cells).map(([t]) => [t, { value: 0, wet: null }]));
-// and where their tide stands now and their wet line, per fluid (x water, y lava, z acid), for the
-// structures standing in them (render/wet.js wetMaterial)
-export const FIXED_TIDE = { value: new THREE.Vector3() }, FIXED_WET = { value: new THREE.Vector3() };
-// how far over its level (world units, under it: < 0) clear water is drawn now: its rest height
-// and its tide (render/surface.js; what floats in it, the swimmer: render/animator.js, game/swim.js)
-export const waterShownAt = () => tideY(FLUID_LOOK[WATER].cells, WIND.value) - SINK;
+// and where their tide stands now and their wet line, per fluid (x water, y lava, z acid, w mud), for
+// the structures standing in them (render/wet.js wetMaterial)
+export const FIXED_TIDE = { value: new THREE.Vector4() }, FIXED_WET = { value: new THREE.Vector4() };
 let tidesAt = null;
 export function tickTides() {
   const dt = tidesAt == null ? 0 : Math.max(0, WIND.value - tidesAt);
@@ -120,7 +119,7 @@ export function tickTides() {
   for (const [t, u] of Object.entries(WET_LINE)) {
     const S = FLUID_LOOK[t].cells;
     u.value = u.wet = stepWet(S, u.wet, tideY(S, WIND.value), dt);
-    if (t <= ACID) { FIXED_TIDE.value.setComponent(t - 1, tideY(S, WIND.value)); FIXED_WET.value.setComponent(t - 1, u.value); }   // (the mud is no cube's own)
+    FIXED_TIDE.value.setComponent(t - 1, tideY(S, WIND.value)); FIXED_WET.value.setComponent(t - 1, u.value);
   }
 }
 // GLSL: how far p is from the boxes round its cell where they stand out of the water (at
@@ -214,13 +213,13 @@ const TRIAL_SHORES = `
 // cube: the active cube's water (render/wet.js waterUniforms; not the proxies'): the foam also
 // goes round the small things standing in the water (its boxes), and the cube's own fluids under
 // a standing one (its level and box) are not drawn there: it is (render/surface.js ownUnder).
-const STYLE_ID = { water: 0, sludge: 1, crust: 2 };
+const STYLE_ID = { water: 0, sludge: 1, crust: 2, goop: 3 };
 export function cellMaterial(mat, t, trial = null, cube = null) {
   const over = !trial && cube;
   const L = FLUID_LOOK[t], S = L.cells;
   if (!S) return mat;
-  const C = CELLS[L.style];
-  useCells(mat, L.style);
+  const C = CELLS[L.pattern ?? L.style];
+  useCells(mat, L.pattern ?? L.style);
   const uniforms = { uCellTime: WIND, uCellTex: C.tex, uPalTex: PAL_TEX, uWetLine: trial ? trial.wet : WET_LINE[t],
     ...trial && { uTrialLevel: trial.level, uShoreGround: trial.shore }, ...over && { uOverLevel: cube.level, uOverBox: cube.box },
     ...cube && { uWaterBoxes: cube.boxes } };
@@ -254,7 +253,7 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
         vCellN = normal; vPalRows = pal.xy; vShore = shore;
       }`);
     sh.fragmentShader = '#define CELL_STYLE ' + STYLE_ID[L.style] + '\nflat varying vec2 vPalRows;\nvarying vec2 vCellP, vCellW, vCellUv;\nvarying vec3 vCellN;\nvarying float vCellWave, vCellY;\nvarying vec4 vShore;\nuniform float uCellTime, uWetLine;\nuniform sampler2D uCellTex;\n'
-      + PAL_GLSL + (trial ? 'uniform float uTrialLevel;\nuniform sampler2D uShoreGround;\n' : '') + (over ? 'uniform float uOverLevel;\nuniform vec4 uOverBox;\n' : '') + (cube ? BOXES_GLSL : '') + swellGLSL(S) + `
+      + PAL_GLSL + (L.style === 'goop' ? GOOP_GLSL : '') + (trial ? 'uniform float uTrialLevel;\nuniform sampler2D uShoreGround;\n' : '') + (over ? 'uniform float uOverLevel;\nuniform vec4 uOverBox;\n' : '') + (cube ? BOXES_GLSL : '') + swellGLSL(S) + `
       float shoreMin(float a, float b) { float h = max(0.14 - abs(a - b), 0.0) / 0.14; return min(a, b) - h * h * 0.035; }
       // how far p is from the walls round its cell, 9 if none near
       float wallDist(vec2 p, float code) {
@@ -328,6 +327,13 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
           col = mix(mix(pBody, mid, 0.35), col, top);
           cellHeat = (1.0 - crust) * mix(0.8, 1.0, t2 * top);
           col *= 0.6;   // (lit mostly by itself, below: the sun must not wash it out)
+        #elif CELL_STYLE == 3
+          // mud: the goop (render/goop.js), riding the slow swell, and the sludge's bubbles blowing up
+          // and popping in it, pale brown
+          col = goopColor(vCellW + g * 0.03, tm) * wave;
+          float ab = fwidth(c.a) * 0.7 + 1e-3, bub = smoothstep(0.5 - ab, 0.5 + ab, c.a) * top;
+          col = mix(col, pLine, bub * 0.7);
+          cellLine = bub * 0.4;
         #else
           // (the cells' gaps thin out and give way to the foam at the shore)
           float thin = 0.55 * (1.0 - smoothstep(0.15, 0.55, sd));
@@ -368,7 +374,7 @@ export function cellMaterial(mat, t, trial = null, cube = null) {
             cellLine = 1.0; cellHeat = 1.0;
           #else
             // dark (acid: a green stain), paler higher up
-            diffuseColor.rgb = ${L.style === 'sludge' ? 'diffuse * pDark * 0.3' : 'vec3(0.02, 0.035, 0.045)'};
+            diffuseColor.rgb = ${L.style === 'sludge' || L.style === 'goop' ? 'diffuse * pDark * 0.3' : 'vec3(0.02, 0.035, 0.045)'};
             diffuseColor.a = ${S.wet.toFixed(3)} * mix(1.0, 0.6, k);
             cellLine = 0.0; cellBand = 1.0;
           #endif

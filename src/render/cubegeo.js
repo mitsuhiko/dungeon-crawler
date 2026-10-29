@@ -2,7 +2,7 @@
 // layer, and packed into the parts it is drawn from (render/parts.js). Runs in the world worker;
 // the main thread only wraps the parts into meshes, for the active cube as well as for the
 // low-detail neighbours.
-import { N, BASE, FLUIDS } from '../core/constants.js';
+import { N, BASE, DRAWN_FLUIDS } from '../core/constants.js';
 import { packParts } from './parts.js';
 import { GeoBuilder } from './builder.js';
 import { BEDROCK, usePalette } from './palette.js';
@@ -37,13 +37,13 @@ export function buildCubeGeometry(m) {
   const cutAt = waterCuts(m);
   const layers = Array.from({ length: m.K }, () => ({
     terrain: new GeoBuilder({ cutAt }), stone: new GeoBuilder({ cutAt }), wood: new GeoBuilder({ cutAt }), flags: new GeoBuilder({ sway: true }),
-    fluids: Object.fromEntries(FLUIDS.map(t => [t, new GeoBuilder({ uvs: true })])),
+    fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, new GeoBuilder({ uvs: true })])),
   }));
   // bedrock under every column that is not open to the depth below
   // (inside houses the floors reach down themselves, render/interior.js)
   // Flip's box: its cells, nothing else (render/flipgeo.js)
   if (m.flip) { buildFlipGeometry(m, layers); return layers.map(L => ({ terrain: L.terrain.pos.length ? L.terrain.arrays() : null,
-    stone: L.stone.pos.length ? L.stone.arrays() : null, wood: L.wood.pos.length ? L.wood.arrays() : null, flags: null, fluids: Object.fromEntries(FLUIDS.map(t => [t, null])) })); }
+    stone: L.stone.pos.length ? L.stone.arrays() : null, wood: L.wood.pos.length ? L.wood.arrays() : null, flags: null, fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, null])) })); }
   const solid = (x, z) => !m.interior && x >= 0 && z >= 0 && x < N && z < N && m.cols[z * N + x].some(f => f.layer === 0 || f.merged && f.bottom === 0);
   for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) if (solid(x, z))
     layers[0].terrain.box(x, -BASE, z, x + 1, 0, z + 1, BEDROCK[0], BEDROCK[1],
@@ -54,7 +54,7 @@ export function buildCubeGeometry(m) {
   const arr = b => b.pos.length ? b.arrays() : null;
   return layers.map(L => ({
     terrain: arr(L.terrain), stone: arr(L.stone), wood: arr(L.wood), flags: arr(L.flags),
-    fluids: Object.fromEntries(FLUIDS.map(t => [t, arr(L.fluids[t])])),
+    fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, arr(L.fluids[t])])),
   }));
 }
 

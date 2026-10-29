@@ -7,7 +7,7 @@
 // sides; falling apart it sinks in jolts, each one a thud that shakes the ground, chunks tumbling
 // off its edges, dust rolling out at its foot. In the active cube's group (its fade, its cutaway).
 import * as THREE from 'three';
-import { FLUIDS, LH, DIRS } from '../core/constants.js';
+import { DRAWN_FLUIDS, LH, DIRS } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 import { MOUNTAIN } from '../core/mountains.js';
 import { GeoBuilder } from './builder.js';
@@ -34,12 +34,12 @@ function geometry(plan, base) {
     link: m.link.map(l => l?.f ?? null) }]));
   const m = { ...base, floors: [...up.values()], cols: base.cols.map((col, c) => up.has(c) ? [up.get(c)] : col), falls: [], town: null, merchantCamp: null, interior: false };
   const layers = Array.from({ length: base.K ?? 1 }, () => ({ terrain: new GeoBuilder(), stone: new GeoBuilder(), wood: new GeoBuilder(),
-    flags: new GeoBuilder({ sway: true }), fluids: Object.fromEntries(FLUIDS.map(t => [t, new GeoBuilder({ uvs: true })])) }));
+    flags: new GeoBuilder({ sway: true }), fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, new GeoBuilder({ uvs: true })])) }));
   buildFloors(m, layers);
   for (const l of plan.ladders) buildLadder(l, layers[l.layer] ?? layers[0]);
   const arr = b => b.pos.length ? b.arrays() : null;
   return packParts(layers.map(L => ({ terrain: arr(L.terrain), stone: arr(L.stone), wood: arr(L.wood), flags: arr(L.flags),
-    fluids: Object.fromEntries(FLUIDS.map(t => [t, arr(L.fluids[t])])) })), m);
+    fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, arr(L.fluids[t])])) })), m);
 }
 
 // the cracks it rises out of: jagged lines out from its middle, forking

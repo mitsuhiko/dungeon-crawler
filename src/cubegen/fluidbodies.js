@@ -1,6 +1,7 @@
 // Which colours the fluids in a cube take (themes/fluids.js palettes): one palette row per kind
 // of fluid for the whole cube, so its water is all of one colour, falls and pools alike. Every
 // fluid floor gets its row (f.pal), every fall the rows at its top and at its foot (fall.pal).
+// A pool of mud (water with the look of mud: cubegen/mudpools.js) takes the mud's (MUD_ROW).
 //   - a fluid that runs on into another cube (a river or a sea at the cube's edge, a spout's
 //     channel or the pool under a spout from beside, a fall out through the bottom) or that a
 //     trial raises through the room: its depth's running fluid (slot 0, the same through a
@@ -11,10 +12,10 @@
 // A fall from above into a cube whose fluid runs on keeps the upper depth's colour at its top and
 // turns into this cube's on the way down (the same, unless the theme changes between the two
 // depths). From the map alone, so it can be worked out again for any cube (world/world.js cube).
-import { N } from '../core/constants.js';
+import { N, MUD } from '../core/constants.js';
 import { hash32 } from '../core/util.js';
 import { depthOf } from '../themes/depth.js';
-import { palRow, PAL_SLOTS } from '../themes/fluids.js';
+import { palRow, PAL_SLOTS, MUD_ROW } from '../themes/fluids.js';
 
 const strHash = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193); return hash32(h >>> 0); };
 
@@ -22,7 +23,7 @@ const strHash = s => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) h 
 export function fluidRows(m) {
   const depth = m.depth ?? depthOf(m.key ?? '0,0,0'), runsOn = new Set(), fromAbove = new Set(), kinds = new Set();
   for (const f of m.floors || []) {
-    if (!f.fluid || f.crust) continue;
+    if (!f.fluid || f.crust || f.look === MUD) continue;
     kinds.add(f.fluid);
     if (f.x === 0 || f.z === 0 || f.x === N - 1 || f.z === N - 1) runsOn.add(f.fluid);
   }
@@ -40,7 +41,7 @@ export function fluidRows(m) {
 
 export function stampFluidBodies(m) {
   const depth = m.depth ?? depthOf(m.key ?? '0,0,0'), rows = m.fluidRows = fluidRows(m);
-  for (const f of m.floors || []) if (f.fluid && !f.crust) f.pal = rows[f.fluid];
+  for (const f of m.floors || []) if (f.fluid && !f.crust) f.pal = f.look === MUD ? MUD_ROW : rows[f.fluid];
   for (const fl of m.falls || []) fl.pal = [fl.in ? palRow(depth - 1, fl.type, 0) : rows[fl.type], rows[fl.type]];
   return m;
 }

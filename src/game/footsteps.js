@@ -3,7 +3,8 @@
 // and a heavier one on landing. On a ladder each hand and foot knocks on its rung (or scuffs in
 // its hold, rustles its vines ...) as the climb cycle (up or down) passes its grip. The sounds are audio/footsteps.js.
 // On slime each step leaves a wet print (render/footprints.js), and so does each for a while after
-// coming out of the water (or Sollmeldon's mud), fainter step by step as the feet dry.
+// coming out of the water (or mud: a mud pool, Sollmeldon's, a pocket of it, game/muddy.js),
+// fainter step by step as the feet dry. In a pocket of mud the steps squelch.
 import { player, state } from './state.js';
 import { character } from '../render/character.js';
 import { blend, W } from '../render/blendtree.js';
@@ -14,6 +15,7 @@ import { LADDER_STYLES } from '../themes/builds.js';
 import { footprint } from '../render/footprints.js';
 import { groundAt } from '../physics/collide.js';
 import { standingAt } from '../physics/fluid.js';
+import { pocketAt } from './muddy.js';
 import { MUD } from '../core/constants.js';
 
 let prev = null, prevClimb = null, landCount = 0, surface = null;
@@ -25,9 +27,11 @@ let wet = 0, soaked = 'wet', soakedAt = 0;
 const ahead = (from, to) => ((to - from) % 1 + 1) % 1;   // how far forwards round the cycle
 const mixPhase = (a, b, t) => (a + (((b - a) % 1 + 1.5) % 1 - 0.5) * t + 1) % 1;
 
-// While travelling the support still belongs to the cube we left: keep its surface
+// While travelling the support still belongs to the cube we left: keep its surface (in a pocket of
+// mud: mud, game/muddy.js)
+let pocket = false;
 function underfoot() {
-  if (!state.transitioning) surface = surfaceAt(player.support, state.map, themeOf(state.map).props, player.x, player.z);
+  if (!state.transitioning) surface = pocket ? 'mud' : surfaceAt(player.support, state.map, themeOf(state.map).props, player.x, player.z);
   return surface;
 }
 
@@ -47,17 +51,20 @@ function climbing() {
   else if (passed(hand)) footstep(sound, 'walk', { volume: 0.7 });
 }
 
-// the feet in the water (swimming, wading) soak; out of it they dry
+// the feet in the water (swimming, wading) soak, in mud (a mud pool, his, a pocket of it) with
+// mud; out of it they dry
 function soak(p) {
   const dt = Math.max(0, state.time - soakedAt);
   soakedAt = state.time;
-  if (p.swimming || p.wade > 0.02) { wet = 1; soaked = (p.swimming ? p.swimLook : standingAt(p.x, p.z)?.look) === MUD ? 'mud' : 'wet'; }
+  pocket = !p.swimming && !p.ragdoll && pocketAt(p.x, p.y, p.z) > -Infinity;
+  if (pocket) { wet = 1; soaked = 'mud'; }
+  else if (p.swimming || p.wade > 0.02) { wet = 1; soaked = (p.swimming ? p.swimLook : p.support?.look || standingAt(p.x, p.z)?.look) === MUD ? 'mud' : 'wet'; }
   else wet = Math.max(0, wet - dt / DRIP);
 }
 // a print of the foot `side` coming down where the hero stands on `s` (its surface)
 function print(p, s, side) {
   if (s === 'slime') footprint(p.x, p.y, p.z, p.yaw, side);   // (render/footprints.js)
-  else if (wet > 0 && !(p.wade > 0)) footprint(p.x, p.y, p.z, p.yaw, side, 1, soaked, wet);
+  else if (wet > 0 && !(p.wade > 0) && !pocket) footprint(p.x, p.y, p.z, p.yaw, side, 1, soaked, wet);
 }
 
 export function updateFootsteps() {

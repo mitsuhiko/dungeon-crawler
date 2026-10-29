@@ -32,7 +32,7 @@ export const PARTS = 3;
 // fluid: the fluid it lives in (its look); parts: the model's parts (render/enemymodel.js), the
 // one named SquirtleBody drawn as the fluid, the others in their own colours
 export function squirtleMaterial(fluid, parts) {
-  const L = FLUID_LOOK[fluid] ?? FLUID_LOOK[WATER], goop = fluid === MUD, style = goop ? 'goop' : L.style, C = CELLS[L.style], F = FLOW[L.style];
+  const L = FLUID_LOOK[fluid] ?? FLUID_LOOK[WATER], goop = fluid === MUD, style = goop ? 'goop' : L.style, pattern = L.pattern ?? L.style, C = CELLS[pattern], F = FLOW[pattern];
   const S = FLUID_MOTION[fluid] ?? FLUID_MOTION[WATER];
   const colors = Array.from({ length: PARTS }, (_, i) => parts[i]?.color.clone() ?? new THREE.Color(1, 1, 1));
   const u = {
@@ -42,7 +42,7 @@ export function squirtleMaterial(fluid, parts) {
   };
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, roughness: style === 'crust' ? 0.6 : goop ? 0.18 : 0.4, metalness: 0,
     transparent: true, forceSinglePass: true });
-  useCells(mat, L.style);
+  useCells(mat, pattern);
   const K = (C.perUnit * F.fine / C.tile).toFixed(4), flow = F.flow.toFixed(3);
   mat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, u);

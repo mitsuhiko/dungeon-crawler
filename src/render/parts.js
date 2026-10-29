@@ -3,7 +3,7 @@
 // surface and each fluid's falls). Runs in the world worker (no three.js renderer here); the main
 // thread only wraps the arrays (render/partmeshes.js) and decides how each part looks
 // (render/materials.js). A new part added here shows up in both the cube and its proxy.
-import { N, LH, DIRS, FLUIDS, FLUID_NAME } from '../core/constants.js';
+import { N, LH, DIRS, FLUIDS, DRAWN_FLUIDS, FLUID_NAME } from '../core/constants.js';
 import { palRow } from '../themes/fluids.js';
 import { restY } from './surface.js';
 import { layoutLightmap } from './lightmap.js';
@@ -17,7 +17,7 @@ export const PARTS = [
   { name: 'stone', kind: 'solid', cap: 'stone', lit: true },
   { name: 'wood', kind: 'solid', cap: 'wood', lit: true },
   { name: 'flags', kind: 'solid', cap: 'wood', sway: true },   // prayer flags (render/bridges.js)
-  ...FLUIDS.map(t => ({ name: FLUID_NAME[t], kind: 'fluid', fluid: t })),
+  ...DRAWN_FLUIDS.map(t => ({ name: FLUID_NAME[t], kind: 'fluid', fluid: t })),   // (mud: a look of water, core/constants.js)
   ...FLUIDS.map(t => ({ name: FLUID_NAME[t] + '-fall', kind: 'fall', fluid: t })),
 ];
 

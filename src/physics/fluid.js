@@ -61,7 +61,7 @@ export function waterAt(gr) {
   const f = gr.s, s = standing(gr.i ?? -1);
   const own = f && !f.kind && f.fluid === WATER ? f.surf * LH : -Infinity, over = s?.fluid === WATER ? s.y : -Infinity;
   if (own === -Infinity && over === -Infinity) return null;
-  return over > own ? { y: over, look: s.look ?? 0 } : { y: own, look: 0 };
+  return over > own ? { y: over, look: s.look ?? 0 } : { y: own, look: f.look ?? 0 };   // (a mud pool's: cubegen/mudpools.js)
 }
 // is a water of this look (0: clear) swum in? Clear water and Sollmeldon's mud; Slomo's slime holds
 // the body and pulls it under

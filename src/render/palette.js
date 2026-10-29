@@ -1,6 +1,6 @@
 // Colours used by the world meshes.
 import * as THREE from '../../vendor/three/three.core.js';   // plain path, no renderer: also loads in the world worker
-import { WATER, LAVA } from '../core/constants.js';
+import { WATER, LAVA, MUD } from '../core/constants.js';
 import { buildOf, ICE as ICE_DEFAULT, VINE as VINE_DEFAULT } from '../themes/builds.js';
 import { TOWN } from '../themes/index.js';
 import { surfacesOf } from '../themes/surfaces.js';
@@ -40,8 +40,8 @@ export function surfaceColors(theme) {
     [k, { top: C(r.top), alt: C(r.alt), side: r.side.map(C), under: C(r.under) }])));
   return surfaceCache.get(theme);
 }
-export const fluidBed = t => C(t === WATER ? '#7d6f52' : t === LAVA ? '#2b1d1a' : '#3e4a2a');
-export const fluidBank = t => C(t === WATER ? '#c9b98a' : t === LAVA ? '#3a2a22' : '#a4a64a');
+export const fluidBed = t => C(t === WATER ? '#7d6f52' : t === LAVA ? '#2b1d1a' : t === MUD ? '#2e261f' : '#3e4a2a');
+export const fluidBank = t => C(t === WATER ? '#c9b98a' : t === LAVA ? '#3a2a22' : t === MUD ? '#5e4c3a' : '#a4a64a');
 
 // structures: shades of the theme's stone, wood, rope, iron, ice and vines (themes/builds.js);
 // bark is the wood's darker outside, leaves the vines' lighter green

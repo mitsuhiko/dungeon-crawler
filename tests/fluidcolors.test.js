@@ -3,11 +3,11 @@
 // keeps its colour. And fires under a trial's water go out (core/douse.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, DIRS, WATER, LAVA, ACID } from '../src/core/constants.js';
+import { N, DIRS, WATER, LAVA, ACID, MUD, drawnFluid } from '../src/core/constants.js';
 import { World } from '../src/world/world.js';
 import { parse, step } from '../src/world/coords.js';
 import { worldThemes, MAX_DEPTH } from '../src/themes/depth.js';
-import { worldPalettes, palRow, rowDepth, rowSlot, rowFluid, linearToOklch, familyOf, ANCHORS, PAL_ROWS, PAL_SLOTS, HUE, HUE_GAP } from '../src/themes/fluids.js';
+import { worldPalettes, palRow, rowDepth, rowSlot, rowFluid, MUD_ROW, linearToOklch, familyOf, ANCHORS, PAL_ROWS, PAL_SLOTS, HUE, HUE_GAP } from '../src/themes/fluids.js';
 import { stampFluidBodies } from '../src/cubegen/fluidbodies.js';
 import { doused, douses } from '../src/core/douse.js';
 
@@ -115,15 +115,16 @@ test('generated worlds: one colour per fluid in a cube, and whatever crosses a f
     const body = row => rows[row].hex.body;
     for (let depth = 0; depth <= 12; depth++) for (const k of w.layout(depth).exists) {
       const m = w.cube(k).map;
-      // one colour per kind of fluid in a cube, its falls landing in it too
-      for (const t of [WATER, LAVA, ACID]) {
-        const rows = new Set([...m.floors.filter(f => f.fluid === t).map(f => f.pal), ...m.falls.filter(fl => fl.type === t).map(fl => fl.pal[1])]);
+      // one colour per kind of fluid in a cube, its falls landing in it too (a mud pool: the mud's,
+      // cubegen/mudpools.js)
+      for (const t of [WATER, LAVA, ACID, MUD]) {
+        const rows = new Set([...m.floors.filter(f => f.fluid && drawnFluid(f) === t).map(f => f.pal), ...m.falls.filter(fl => fl.type === t).map(fl => fl.pal[1])]);
         if (rows.size > 1) bad.push(`${k}: ${rows.size} colours of fluid ${t}`);
       }
       for (const f of m.floors) {
         if (!f.fluid) continue;
         if (f.pal == null) { bad.push(`${k}: a fluid floor without colours`); continue; }
-        if (rowFluid(f.pal) !== f.fluid) bad.push(`${k} (${f.x},${f.z}): another fluid's colours`);
+        if (f.look === MUD ? f.pal !== MUD_ROW : rowFluid(f.pal) !== f.fluid) bad.push(`${k} (${f.x},${f.z}): another fluid's colours`);
         const edge = [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0];
         edge.forEach((on, d) => {
           if (!on) return;

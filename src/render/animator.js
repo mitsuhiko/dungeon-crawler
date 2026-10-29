@@ -22,8 +22,7 @@ import { groundAt } from '../physics/collide.js';
 import { allEnemies } from '../game/enemies.js';
 import { hoveredEnemy } from '../game/pointer.js';
 import { slidingCubes } from '../game/travel.js';
-import { waterShownAt } from './materials.js';
-import { waterlineAt, drawnSurface } from './waterline.js';
+import { waterlineAt, drawnSurface, NONE } from './waterline.js';
 
 // learn: animation.html#getup (see learn/README.md)
 const MORPH = 0.3;       // s from the ragdoll pose into the get-up clip
@@ -51,10 +50,11 @@ function restorePose() { for (const [b, q, p] of clean) { b.quaternion.copy(q); 
 function keepPose() { for (const [b, q, p] of clean) { q.copy(b.quaternion); p.copy(b.position); } }
 
 // A swimmer floats on the water as it is drawn: physics holds the body at the water's level, its
-// surface rests under that and rises and falls with the tide (render/surface.js), and the Swim
-// clips put the water line just under the shoulders. Mud is drawn at its level (render/mud.js).
+// surface rests under that and rises and falls with the tide (render/surface.js; a mud pool's
+// hardly), and the Swim clips put the water line just under the shoulders. Sollmeldon's mud is
+// drawn at its level (render/mud.js). (render/waterline.js)
 function floatOffset(dt, p) {
-  const want = p.swimming && !p.swimLook ? waterShownAt() : 0;
+  const at = p.swimming ? waterlineAt(p.x, p.y, p.z) : NONE, want = at > NONE ? at - p.swimY : 0;
   afloat += (want - afloat) * Math.min(1, dt * 6);
   return afloat;
 }

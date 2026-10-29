@@ -16,10 +16,9 @@ import { dieInFluid } from './ragdoll.js';
 import { sweptAway } from './trials.js';
 import { blend } from '../render/blendtree.js';
 import { sfx } from '../audio/sfx.js';
-import { waterShownAt } from '../render/materials.js';
 import { emit, soft, rand, ring } from '../render/particles.js';
 import { ripple } from '../render/ripples.js';
-import { fluidAround } from '../render/waterline.js';
+import { fluidAround, waterlineAt, NONE } from '../render/waterline.js';
 import { narrate } from './narrator.js';
 import { tr } from '../i18n/i18n.js';
 
@@ -30,8 +29,8 @@ let splashes = 0, look = 0, trapped = 0, call = 0, stroke = 0, collar = 0, wake 
 // its foam's, render/ripples.js)
 const SPRAY = { 0: ['#e8f6ff', '#9fd2ff', '#f2fbff'], [MUD]: ['#5a4e43', '#3a3129', '#6b5d4f'] };
 const sprayOf = look => SPRAY[look] ?? SPRAY[0];
-// where its surface is drawn (clear water under its level, render/materials.js waterShownAt)
-const shown = p => p.swimY + (p.swimLook ? 0 : waterShownAt());
+// where its surface is drawn (under its level, with its tide: render/waterline.js)
+const shown = p => { const y = waterlineAt(p.x, p.y, p.z); return y > NONE ? y : p.swimY; };
 
 // a splash of `size` (0..1) where the body went into the water
 function splash(x, y, z, size, c) {
@@ -49,7 +48,7 @@ function splash(x, y, z, size, c) {
 function wadeRings(p, dt) {
   if (!(p.wade > 0.03) || p.ragdoll || p.climb) return;
   const w = fluidAround(p.x, p.y, p.z);
-  if (!w || w.fluid !== WATER || !swum(w.look)) return;
+  if (!w || (w.fluid !== WATER && w.fluid !== MUD) || !swum(w.look)) return;
   const speed = Math.hypot(p.vx, p.vz), r = 0.12 + 0.1 * Math.min(1, p.wade / SWIM_DEPTH);
   collar += dt;
   if (collar > (speed > 0.3 ? 0.3 : 0.7)) {

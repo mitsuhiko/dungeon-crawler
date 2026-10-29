@@ -825,6 +825,20 @@ fainter, its lines leaning towards teal (never into the greens).
   caustics play on what lies there: water's baked cells again, where the sunlight through the
   surface lands, softer and fainter deeper down. `UNDERWATER.shift` / `.glow` (uniforms) tune or
   turn off either live.
+- **Mud** (`cubegen/mudpools.js`, `core/constants.js MUD`): a theme's `mud` (root caves 0.25, the
+  fungal swamp 0.5, the jungle cenote 0.3, the badlands 0.2, the dark forest 0.3) is the share of
+  its pools of water that are mud: a body of water standing on its own in the cube (not a river or
+  a sea running on into the next cube, nor one a fall pours into or out of). Its floors stay water
+  (`f.fluid`: waded and swum in alike, a way out of it like any) and get the look (`f.look = MUD`,
+  `drawnFluid`): the mud's palette (`MUD_ROW`), drawn as a part of its own (`render/parts.js`,
+  `DRAWN_FLUIDS`) in the marbled goop of Sollmeldon's (`FLUID_LOOK[MUD]` style `goop`,
+  `render/goop.js`) with the sludge's bubbles, not see-through. Round 60% of them (`POCKETS`)
+  1–3 **pockets of mud** lie on the dry ground up to 3 cells out and up to 3 levels over its
+  surface (no structure, portal, ramp, site or the outer ring; no props in them): a dome of mud
+  each (`map.mudPockets`: x, z, its ground y, radius, volume), a few centimetres deep. In the game
+  each is a little field of mud as his are (`core/sollmeldon.js`), settled once and holding still,
+  drawn as his are (`render/mud.js mudSheet`) (`game/muddy.js`). Decided at the very end of a
+  cube on a random stream of its own: worlds without mud come out as they did.
 - **Dev:** `?palette=classic` (the old look) or `?palette=<seed>` (another world's),
   `/palette [seed|classic]` re-rolls them live and names the ones here;
   `tests/browser/palettes.html?seed=<n>` shows a world's palettes. **Checks:**

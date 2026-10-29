@@ -1,6 +1,6 @@
 // Deterministic ambient placement, independent of the terrain RNG. Destination arrangements
 // are emitted by the worker; ambient blockers stay away from routes and reservations.
-import { N, LH, BASE, DIRS, EDGE_CORNERS, FLUID_NAME, CHAR_H } from '../core/constants.js';
+import { N, LH, BASE, DIRS, EDGE_CORNERS, FLUID_NAME, CHAR_H, drawnFluid } from '../core/constants.js';
 import { mulberry32, hash32, idx, inb, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { restY } from './surface.js';
@@ -105,7 +105,7 @@ export function placeProps(m, theme) {
     }
 
     if (f.fluid && !pieces.length && !focal && R() < 0.12 * CLUTTER) {
-      const p = pick('water', p => !p.blocking && p.fluid === FLUID_NAME[f.fluid]);
+      const p = pick('water', p => !p.blocking && p.fluid === FLUID_NAME[drawnFluid(f)]);   // (none on mud)
       if (p && f.surf * LH + p.maxY * s + 0.2 < ceiling)
         add(p, f.x + 0.5, restY(f.surf * LH), f.z + 0.5, R() * Math.PI * 2, s);   // (on its surface: render/surface.js)
     }

@@ -17,7 +17,7 @@ const ROOTS = T('Root caves', {
   arche: { plain: 2, sinkhole: 2, chasm: 1, crater: 1 },
   top: [[0, '#4a3e2e'], [6, '#5e4c35'], [12, '#705c40'], [20, '#82704e']],
   side: [[0, '#352a20'], [8, '#46352a'], [14, '#574332'], [22, '#68523c']],
-  soft: '#6a8a3a', lip: '#4a5a2a', under: '#1e1712', bed: ['#1a1614', '#151210'], fluids: [0.8, 0.05, 0.15], river: WATER,
+  soft: '#6a8a3a', lip: '#4a5a2a', under: '#1e1712', bed: ['#1a1614', '#151210'], fluids: [0.8, 0.05, 0.15], mud: 0.25, river: WATER,
   tiles: { highland: 1.5, gorge: 2 },
   light: { sky: ['#3a3428', '#12100c', '#5a5038', '#28383c'], hemi: ['#c4c4c8', '#4a3826', 1.15], sun: ['#f0e2c4', 1.5], fog: 0.15, lamp: 0.45 },
 });
@@ -43,7 +43,7 @@ const SWAMP = T('Fungal swamp', {
   arche: { archipelago: 3, plain: 2, crater: 1, mesa: 1 },
   top: [[0, '#3a4826'], [6, '#4b5a2e'], [12, '#5c6a36'], [20, '#6d7a3e']],
   side: [[0, '#272d1b'], [8, '#333b22'], [14, '#3f4728'], [22, '#4b532e']],
-  soft: '#6a8a3a', lip: '#5a7a30', under: '#14170e', bed: ['#151712', '#11130e'], fluids: [0.45, 0.05, 0.5], river: ACID,
+  soft: '#6a8a3a', lip: '#5a7a30', under: '#14170e', bed: ['#151712', '#11130e'], fluids: [0.45, 0.05, 0.5], mud: 0.5, river: ACID,
   tiles: { lake: 2, river: 1.5 },
   light: { sky: ['#1a2416', '#060906', '#3e4a30', '#2a3a26'], stars: 0.15, hemi: ['#a8b894', '#24301a', 1.0], sun: ['#d0e4b0', 1.3], fog: 0.28, lamp: 0.55 },
 });
@@ -178,7 +178,7 @@ const CENOTE = T('Jungle cenote', {
   arche: { sinkhole: 3, mesa: 2, crater: 1, plain: 1 },
   top: [[0, '#3a5a2a'], [6, '#4a6e32'], [12, '#5e823c'], [20, '#7a9648']],
   side: [[0, '#4a4434'], [8, '#5e5640'], [14, '#746a4e'], [22, '#8a7e5e']],
-  soft: '#5a9a44', lip: '#3a7a2e', under: '#1a180e', bed: ['#161812', '#12140e'], fluids: [0.75, 0.15, 0.1], river: WATER,
+  soft: '#5a9a44', lip: '#3a7a2e', under: '#1a180e', bed: ['#161812', '#12140e'], fluids: [0.75, 0.15, 0.1], mud: 0.3, river: WATER,
   tiles: { lake: 2, gorge: 1.3 },
   light: { sky: ['#1e3a26', '#06100a', '#4a6a40', '#2e4a30'], stars: 0.2, hemi: ['#b0cc98', '#1e2a14', 0.95], sun: ['#ecffb8', 1.35], fog: 0.25, lamp: 0.5 },
 });

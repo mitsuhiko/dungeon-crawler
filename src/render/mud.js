@@ -1,6 +1,7 @@
-// Sollmeldon's mud (game/mud.js runs it, core/sollmeldon.js has how it flows): glossy goop lying on
-// the ground of his mire. One look for all of it, his pool and the balls of mud he throws alike: it
-// is all one field of mud (core/sollmeldon.js MUD_RES samples a cell), drawn as one sheet.
+// Mud lying on the ground, as a field of mud (core/sollmeldon.js MUD_RES samples a cell): Sollmeldon's
+// (game/mud.js runs it, core/sollmeldon.js has how it flows), glossy goop in his mire, his pool and
+// the balls of mud he throws alike, all one field drawn as one sheet (drawMudField); and the
+// pockets of mud round a mud pool (game/muddy.js: a field each, holding still: mudSheet).
 // The field goes to the GPU as a small texture (per sample: the mud's surface, how deep it is); a
 // fine sheet over it reads both smoothed (a cubic B-spline over the samples round each point), its
 // vertices at the surface (it runs downhill as it flows, swells where it gathers), its pixels cut
@@ -20,10 +21,6 @@ import { GOOP_GLSL, GOOP_RIM } from './goop.js';
 
 const SUB = 3;   // sheet vertices a sample, each way
 const LIFT = '0.03';   // world units it stays over the (smoothed) ground at least
-let mesh = null, field = null, tex = null, data = null, time = 0;
-const drift = new THREE.Vector2();
-const uniforms = { uMudTex: { value: null }, uMudSize: { value: new THREE.Vector2(1, 1) }, uMudOrigin: { value: new THREE.Vector2() },
-  uMudTime: { value: 0 }, uMudDrift: { value: drift }, uMudEdge: { value: MUD_FLOW.wet * 1.4 } };
 
 // (the field, smoothed: a cubic B-spline over the 4 × 4 samples round p, cube coordinates; and its
 // slope along x and z, from the spline's own derivative; and the sheet's height there, never down on
@@ -62,7 +59,7 @@ const FIELD = `
     return mix(b, a, h) + k * h * (1.0 - h);
   }
 `;
-function material() {
+function material(uniforms) {
   // (and drawn a little towards the camera, like a decal: where it is thin it lies close on the ground)
   const mat = inject(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.18, metalness: 0, transparent: true, depthWrite: true,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }),
@@ -105,72 +102,88 @@ function material() {
   return mat;
 }
 
-// the sheet over a field's box: SUB vertices a sample each way (only where they are: the shader
-// puts them at the surface)
-function build(f) {
-  const nx = f.w * SUB + 1, nz = f.h * SUB + 1, pos = new Float32Array(nx * nz * 3), idx = [];
-  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
-    const k = j * nx + i;
-    pos[k * 3] = f.x0 + i / (SUB * MUD_RES); pos[k * 3 + 2] = f.z0 + j / (SUB * MUD_RES);
-  }
-  for (let j = 0; j + 1 < nz; j++) for (let i = 0; i + 1 < nx; i++) {
-    const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
-    idx.push(a, c, b, b, c, d);
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setIndex(idx);
-  data = new Float32Array(f.w * f.h * 4);
-  tex = new THREE.DataTexture(data, f.w, f.h, THREE.RGBAFormat, THREE.FloatType);
-  tex.magFilter = tex.minFilter = THREE.NearestFilter;
-  uniforms.uMudTex.value = tex;
-  uniforms.uMudSize.value.set(f.w, f.h);
-  uniforms.uMudOrigin.value.set(f.x0, f.z0);
-  const m = new THREE.Mesh(geo, material());
-  m.frustumCulled = false; m.renderOrder = 4; m.receiveShadow = true;
-  return m;
-}
-// The texture: per sample its surface (a dry one: carried on from the wet ones round it, a few
-// rings out, else well under its ground), how deep it is and the ground
-const surf = [];
-function upload(f) {
-  const { w, h, ground: G, depth: D } = f, n = w * h, wet = MUD_FLOW.wet;
-  if (surf.length !== n) surf.length = n;
-  for (let k = 0; k < n; k++) surf[k] = D[k] > wet && Number.isFinite(G[k]) ? G[k] + D[k] : NaN;
-  for (let ring = 0; ring < 3; ring++) {
-    const add = [];
-    for (let k = 0; k < n; k++) {
-      if (!Number.isNaN(surf[k])) continue;
-      const i = k % w, j = Math.floor(k / w);
-      let sum = 0, c = 0;
-      for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) {
-        const ii = i + a, jj = j + b;
-        if ((a || b) && ii >= 0 && jj >= 0 && ii < w && jj < h && !Number.isNaN(surf[jj * w + ii])) { sum += surf[jj * w + ii]; c++; }
-      }
-      if (c) add.push([k, sum / c]);
+// A sheet of mud over a field: { draw(f, dt, off, tilt), clear() }. still: the field never changes
+// (a pocket's): its samples go to the GPU once.
+export function mudSheet({ still = false } = {}) {
+  let mesh = null, field = null, tex = null, data = null, time = 0;
+  const drift = new THREE.Vector2();
+  const uniforms = { uMudTex: { value: null }, uMudSize: { value: new THREE.Vector2(1, 1) }, uMudOrigin: { value: new THREE.Vector2() },
+    uMudTime: { value: 0 }, uMudDrift: { value: drift }, uMudEdge: { value: MUD_FLOW.wet * 1.4 } };
+
+  // the sheet over a field's box: SUB vertices a sample each way (only where they are: the shader
+  // puts them at the surface)
+  function build(f) {
+    const nx = f.w * SUB + 1, nz = f.h * SUB + 1, pos = new Float32Array(nx * nz * 3), idx = [];
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+      const k = j * nx + i;
+      pos[k * 3] = f.x0 + i / (SUB * MUD_RES); pos[k * 3 + 2] = f.z0 + j / (SUB * MUD_RES);
     }
-    for (const [k, y] of add) surf[k] = y;
+    for (let j = 0; j + 1 < nz; j++) for (let i = 0; i + 1 < nx; i++) {
+      const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
+      idx.push(a, c, b, b, c, d);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    data = new Float32Array(f.w * f.h * 4);
+    tex = new THREE.DataTexture(data, f.w, f.h, THREE.RGBAFormat, THREE.FloatType);
+    tex.magFilter = tex.minFilter = THREE.NearestFilter;
+    uniforms.uMudTex.value = tex;
+    uniforms.uMudSize.value.set(f.w, f.h);
+    uniforms.uMudOrigin.value.set(f.x0, f.z0);
+    const m = new THREE.Mesh(geo, material(uniforms));
+    m.frustumCulled = false; m.renderOrder = 4; m.receiveShadow = true;
+    return m;
   }
-  for (let k = 0; k < n; k++) {
-    const g = Number.isFinite(G[k]) ? G[k] : 0;
-    data[k * 4] = Number.isNaN(surf[k]) ? g - 0.3 : surf[k];
-    data[k * 4 + 1] = Number.isFinite(G[k]) ? D[k] : 0;
-    data[k * 4 + 2] = Number.isFinite(G[k]) ? G[k] : data[k * 4] - 1;
+  // The texture: per sample its surface (a dry one: carried on from the wet ones round it, a few
+  // rings out, else well under its ground), how deep it is and the ground
+  const surf = [];
+  function upload(f) {
+    const { w, h, ground: G, depth: D } = f, n = w * h, wet = MUD_FLOW.wet;
+    if (surf.length !== n) surf.length = n;
+    for (let k = 0; k < n; k++) surf[k] = D[k] > wet && Number.isFinite(G[k]) ? G[k] + D[k] : NaN;
+    for (let ring = 0; ring < 3; ring++) {
+      const add = [];
+      for (let k = 0; k < n; k++) {
+        if (!Number.isNaN(surf[k])) continue;
+        const i = k % w, j = Math.floor(k / w);
+        let sum = 0, c = 0;
+        for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) {
+          const ii = i + a, jj = j + b;
+          if ((a || b) && ii >= 0 && jj >= 0 && ii < w && jj < h && !Number.isNaN(surf[jj * w + ii])) { sum += surf[jj * w + ii]; c++; }
+        }
+        if (c) add.push([k, sum / c]);
+      }
+      for (const [k, y] of add) surf[k] = y;
+    }
+    for (let k = 0; k < n; k++) {
+      const g = Number.isFinite(G[k]) ? G[k] : 0;
+      data[k * 4] = Number.isNaN(surf[k]) ? g - 0.3 : surf[k];
+      data[k * 4 + 1] = Number.isFinite(G[k]) ? D[k] : 0;
+      data[k * 4 + 2] = Number.isFinite(G[k]) ? G[k] : data[k * 4] - 1;
+    }
+    tex.needsUpdate = true;
   }
-  tex.needsUpdate = true;
+  // every frame: the field's mud now (none: gone), how it is tipped (its swirls drift downhill)
+  function draw(f, dt, off = { x: 0, y: 0, z: 0 }, tilt = [0, 0]) {
+    const fresh = f !== field;
+    if (fresh) { clear(); field = f; if (f) { mesh = build(f); scene.add(mesh); } }
+    if (!mesh) return;
+    time += dt;
+    drift.x -= tilt[0] * dt * 0.2; drift.y -= tilt[1] * dt * 0.2;   // (the pattern moves the way the mud runs)
+    uniforms.uMudTime.value = time;
+    if (fresh || !still) upload(f);
+    mesh.position.set(off.x, off.y, off.z);
+  }
+  function clear() {
+    if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
+    tex?.dispose();
+    mesh = null; field = null; tex = null;
+  }
+  return { draw, clear, mesh: () => mesh };
 }
-// every frame: the field's mud now (none: gone), how it is tipped (its swirls drift downhill)
-export function drawMudField(f, map, dt, off = { x: 0, y: 0, z: 0 }, tilt = [0, 0]) {
-  if (f !== field) { clearMudField(); field = f; if (f) { mesh = build(f); scene.add(mesh); } }
-  if (!mesh) return;
-  time += dt;
-  drift.x -= tilt[0] * dt * 0.2; drift.y -= tilt[1] * dt * 0.2;   // (the pattern moves the way the mud runs)
-  uniforms.uMudTime.value = time;
-  upload(f);
-  mesh.position.set(off.x, off.y, off.z);
-}
-export function clearMudField() {
-  if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
-  tex?.dispose();
-  mesh = null; field = null; tex = null;
-}
+
+// Sollmeldon's: every frame the field's mud now (none: gone), how it is tipped (game/mud.js)
+const his = mudSheet();
+export const drawMudField = (f, map, dt, off, tilt) => his.draw(f, dt, off, tilt);
+export const clearMudField = () => his.clear();

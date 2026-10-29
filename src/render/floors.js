@@ -1,5 +1,5 @@
 // Terrain geometry for every floor: smooth top, cliff walls, slab underside, fluid volume.
-import { N, LH, DIRS, OPP, DIRV, EDGE_CORNERS, edgePts } from '../core/constants.js';
+import { N, LH, DIRS, OPP, DIRV, EDGE_CORNERS, edgePts, drawnFluid } from '../core/constants.js';
 import { idx, inb, hash32 } from '../core/util.js';
 import { C, gradient, TOP_STOPS, UNDERSIDE, SOFT, SURFACE, fluidBed, fluidBank } from './palette.js';
 import { cliffWall, wallRegion } from './walls.js';
@@ -17,17 +17,17 @@ const shade = (x, z) => ((x + z) & 1 ? 1.0 : 0.95) * (0.97 + (hash32(x * 31 + z 
 function topColor(m, f) {
   const cs = f.cs;
   if (f.surface) return SURFACE[f.surface][f.surface === 'paving' && (f.x + f.z) & 1 ? 'alt' : 'top'].clone().multiplyScalar(shade(f.x, f.z) * (0.92 + (hash32(f.c * 7 + Math.round(cs[0] * 4)) % 100) / 600));
-  if (f.fluid) return fluidBed(f.fluid);
+  if (f.fluid) return fluidBed(drawnFluid(f));
   if (f.soft) return SOFT.clone().multiplyScalar(shade(f.x, f.z));   // a plunge's landing
   if (f.ice) return ICE_TOP.clone().multiplyScalar(shade(f.x, f.z));   // a slide puzzle's ice (cubegen/trials/slide.js)
   const top = gradient(TOP_STOPS, (cs[0] + cs[1] + cs[2] + cs[3]) / 4 / LH).multiplyScalar(shade(f.x, f.z));
   // sandy / scorched banks next to fluids
-  for (const g of f.link) if (g && g.fluid) top.lerp(fluidBank(g.fluid), 0.4);
+  for (const g of f.link) if (g && g.fluid) top.lerp(fluidBank(drawnFluid(g)), 0.4);
   for (let d = 0; d < 4; d++) {
     const nx = f.x + DIRS[d][0], nz = f.z + DIRS[d][1];
     if (!inb(nx, nz)) continue;
     const wf = m.cols[idx(nx, nz)].find(g => g.fluid && Math.abs(g.surf - f.top) <= 2);
-    if (wf) top.lerp(fluidBank(wf.fluid), 0.35);
+    if (wf) top.lerp(fluidBank(drawnFluid(wf)), 0.35);
   }
   return top;
 }
@@ -121,7 +121,7 @@ function fluidVolume(m, f, b) {
   for (let d = 0; d < 4; d++) if (bank(x + DIRS[d][0], z + DIRS[d][1], EDGE_CORNERS[OPP[d]])) shores |= 1 << d;
   DIAG.forEach(([dx, dz], i) => { if (bank(x + dx, z + dz, [(dx > 0 ? 0 : 1) + (dz > 0 ? 0 : 2)])) shores |= 16 << i; });
   const white = C('#ffffff');
-  b.palNow = f.pal ?? m.fluidRows?.[f.fluid] ?? palRow(m.depth ?? 0, f.fluid, 0);   // its colours (cubegen/fluidbodies.js)
+  b.palNow = f.pal ?? m.fluidRows?.[f.fluid] ?? palRow(m.depth ?? 0, drawnFluid(f), 0);   // its colours (cubegen/fluidbodies.js)
   b.uvNow = [(z * N + x) * 256 + shores, sy];
   // the ground under every corner (render/shore.js): the bed, or a stair or landing standing in
   // the water over it; its quads split along the bed's own diagonal, so that the bed's height
@@ -179,7 +179,7 @@ export function buildFloors(m, layers) {
     walls(m, f, B);
     const fb = f.bottom * LH;
     B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
-    if (f.fluid) fluidVolume(m, f, L.fluids[f.fluid]);
+    if (f.fluid) fluidVolume(m, f, L.fluids[drawnFluid(f)]);   // (a mud pool: its own part, render/parts.js)
   }
   const clearing = m.town || m.merchantCamp;
   if (clearing) buildClearingPaths(m, clearing.paths, layers[0].terrain);

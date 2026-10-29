@@ -43,7 +43,7 @@ const COMMON = `
   uniform highp sampler2D uUwFixed;
   uniform vec4 uUwStand, uUwBox;
   uniform vec2 uUwStandKind;
-  uniform vec3 uUwTide;
+  uniform vec4 uUwTide;
   uniform float uUwTime, uUwShift, uUwGlow;
   bool uwClear(float kind) { return abs(kind - ${WATER}.0) < 0.5 || abs(kind - ${ACID}.0) < 0.5; }
   vec4 uwCell(vec2 q) { return texelFetch(uUwFixed, clamp(ivec2(floor(q)), ivec2(0), ivec2(${N - 1})), 0); }

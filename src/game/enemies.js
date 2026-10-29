@@ -36,6 +36,7 @@ import { monteurs, resetMonteurs, updateMonteurs, detachMonteurs } from './monte
 import { followRoll } from './roll.js';
 import { followTilt } from './tilt.js';
 import { drawMud } from './mud.js';
+import { updateMuddy, drawMuddy } from './muddy.js';
 import { updateMountains, resetMountains } from './mountains.js';
 import { qualmoses, resetQualmoses, updateQualmoses, detachQualmoses } from './qualmos.js';
 import { updateRewind, resetRewind, drawRewind } from './rewind.js';
@@ -252,6 +253,7 @@ export function updateEnemies(dt) {
   updateTide(allEnemies(), dt);
   if (state.tide != null) drownEnemies(allEnemies());
   floatSwimmers(allEnemies());
+  updateMuddy(allEnemies(), dt);   // (the mud pools and the pockets of mud round them slow who wades through: game/muddy.js)
   updateProjectiles(dt); updateBeams(dt); updateQuakes(allEnemies(), dt); updateGusts(allEnemies(), dt); updateTwisters(allEnemies(), dt); updateBlackHoles(allEnemies(), dt); updateBurning(dt); updateChill(dt); updateToxic(dt);
   passEngulfers(allEnemies());   // a Bolime that came down on nobody spits out at once (game/engulf.js)
   if (!turning()) contactEnemies(allEnemies(), dt);   // (all frozen while Flip's world turns)
@@ -287,7 +289,7 @@ function followEnemies(dt) {
 }
 export function drawEnemies(dt, off = { x: 0, y: 0, z: 0 }) {
   animateEnemies(allEnemies(), dt, off); drawAllProjectiles(dt, off); drawAllBeams(dt, off); drawQuakes(dt, off); drawTwisters(twisters, dt, off); drawJets(dt);
-  drawAllShots(dt, off); drawThrows(dt, off); drawRewind(dt, off); drawAllMeteors(dt, off); drawMud(dt, off);
+  drawAllShots(dt, off); drawThrows(dt, off); drawRewind(dt, off); drawAllMeteors(dt, off); drawMud(dt, off); drawMuddy(dt, off);
 }
 function detachSpawned() { const list = spawned; spawned = []; return list; }
 // projectiles and shots in flight do not travel along

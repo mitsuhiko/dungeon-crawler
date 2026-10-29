@@ -11,6 +11,7 @@ import { carveRiver } from './river.js';
 import { buildSlabs } from './slabs.js';
 import { addRamps, addSupports } from './supports.js';
 import { addPools } from './pools.js';
+import { muddyWater } from './mudpools.js';
 import { addStreams } from './streams.js';
 import { cascadeGround, cascadeFalls } from './cascades.js';
 import { spoutGround, spoutWater } from './spouts.js';
@@ -142,12 +143,16 @@ function tryGenerate(seed, spec) {
   sites.siteReservations.push(...spots.spots.flatMap(s => s.cells.map(c => ({ c, layer: s.layer }))));
   sites.siteFailures.push(...spots.spotFailures);
   sites.siteReservations.push(...trial.reservations || [], ...clues.reservations);   // (no props on a trial's own ground, nor the tablet's)
+  // some pools are mud, with pockets of it round them (cubegen/mudpools.js; on their own random stream)
+  const mudPockets = muddyWater(ctx, new Set(sites.siteReservations.map(r => r.c)));
+  sites.siteReservations.push(...mudPockets.map(p => ({ c: p.c, layer: p.layer })));   // (no props in them)
   const { K, B, cols, floors, pieces, runs, falls, fences, fenceList, stats, moves } = ctx;
   const portals = ctx.portals.map(p => ({ id: p.id, kind: p.kind, dir: p.dir, layer: p.layer, cells: p.cells,
     x: p.c % N, z: (p.c / N) | 0, y: p.level * LH, floor: p.floor }));
   return {
     seed, K, B, cols, floors, pieces, runs, falls, fences, fenceList, stats, moves, portals, ...sites, horde, spots: spots.spots,
     vignettes: vignettes.list,   // the theme's little set pieces (cubegen/vignettes.js): [{ name, x, y, z, yaw }]
+    mudPockets,   // pockets of mud on the ground round a mud pool (cubegen/mudpools.js): [{ x, z, y, r, vol }]
     roomRole: spec.roomRole, biome: spec.biome, populationScale: spec.populationScale, annexRoom: !!spec.annexRoom,
     trialRoom: !!spec.trial, trialFaces: spec.trialFaces || [null, null, null, null],   // (world/trials.js)
     trial: trial.trial,   // what the trial is built of (cubegen/trials/)

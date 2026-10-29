@@ -19,6 +19,8 @@
 //     still shows as many themes, the others a little less often: themes/depth.js worldThemes)
 //   top / side: colour stops by height in levels (grass tops, cliff strata)
 //   fluids: weights [water, lava, acid] for pools and falls; river: fluid of the rivers
+//   mud: the share of its pools of water that are mud (cubegen/mudpools.js: water with the look of
+//     mud, some with pockets of mud lying round them)
 //   soft: the colour of a plunge's soft landing (world/heights.js: hay, sand, snow, moss, web, ash)
 //   surfaces: its own colours for built ground by role, any part of any role (themes/surfaces.js:
 //     masonry, paving, trim, crust); else made from its structures' stone, its rock and `under`
@@ -152,7 +154,7 @@ const BADLANDS = T('Badlands', {
   arche: { chasm: 3, mesa: 3, spire: 1, plain: 1 },
   top: [[0, '#9a6a3c'], [6, '#b9864f'], [12, '#d3a466'], [20, '#e8cf9a']],
   side: [[0, '#5e3520'], [8, '#80502f'], [14, '#a06f46'], [22, '#bf9468']],
-  soft: '#dcb87c', lip: '#b0824e', under: '#432818', bed: ['#2a2220', '#231c1a'], fluids: [0.5, 0.3, 0.2], river: WATER,
+  soft: '#dcb87c', lip: '#b0824e', under: '#432818', bed: ['#2a2220', '#231c1a'], fluids: [0.5, 0.3, 0.2], mud: 0.2, river: WATER,
   tiles: { gorge: 3, highland: 1.5, meadow: 0.7, river: 0.8 },
   light: { sky: ['#40282e', '#110a0c', '#6a4a44', '#4a2a42'], stars: 0.6, hemi: ['#f0b890', '#3a2418', 0.8], sun: ['#ffb37a', 1.6], fog: 0.25 },
 });
@@ -226,7 +228,7 @@ const DARKFOREST = T('Dark forest', {
   arche: { plain: 3, mesa: 2, chasm: 2, crater: 1, sinkhole: 1 },
   top: [[0, '#1e3326'], [4, '#253e2b'], [8, '#2d4831'], [12, '#3a5236'], [16, '#4a5848'], [20, '#5e6660']],
   side: [[0, '#2a221c'], [6, '#3a2e24'], [11, '#48423c'], [20, '#5c5854']],
-  soft: '#3e5e32', lip: '#24402a', under: '#1a1612', bed: ['#14161a', '#101215'], fluids: [0.95, 0, 0.05], river: WATER,
+  soft: '#3e5e32', lip: '#24402a', under: '#1a1612', bed: ['#14161a', '#101215'], fluids: [0.95, 0, 0.05], mud: 0.3, river: WATER,
   tiles: { slope: 2, highland: 1.3, gorge: 1.4, river: 1.3, lake: 0.6 },
   light: { sky: ['#060a12', '#020406', '#0e1822', '#120e22'], stars: 0.4, hemi: ['#7084b4', '#0a0e0a', 0.55], sun: ['#9ab0e8', 0.55], fog: 0.45, lamp: 1,
     // by day a deep blue twilight under the trees, never more

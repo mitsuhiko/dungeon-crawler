@@ -508,11 +508,15 @@ The other kinds: [sword](img/loadout-sword.jpg),
   a collar of little ones where the body cuts it, a wake behind a swimmer, a bigger one with each
   stroke and where they went in, smaller ones round the legs of a wader; no fall into water hurts. The robot says a line about it the first few times. The swimmer is drawn floating on the
   water as it is drawn (its surface rests under the level physics swims at and rises and falls
-  with the tide: `render/animator.js`, `render/materials.js waterShownAt`): head and shoulders out
+  with the tide: `render/animator.js`, `render/waterline.js`): head and shoulders out
   of it, the hands paddling under the surface. The hero's silhouette (shown where something hides
   the body) is cut off under the surface they swim or wade in (`render/figure.js ghostMaterial`,
   `render/waterline.js`): the water hides the body, but it is no wall. Sollmeldon's mud is swum in too
   (`physics/fluid.js swum`), slowing the strokes like his mud slows a wader; Slomo's slime is not.
+  So are the **mud pools** of some themes (water with the look of mud, [world.md](world.md#the-fluids-colours-themesfluidsjs-cubegenfluidbodiesjs-renderfluidpaljs)):
+  wading or swimming in one slows like his mud (`game/muddy.js`), and so does wading through a
+  **pocket of mud** round one, the player and the enemies alike (not those of the mud, nor what
+  floats); a pocket's steps squelch, rings spread round the feet, and brown prints follow.
 - **Out of the water**: a swimmer (or one wading at least `WADE_CLIMB` deep) steps up onto a bank
   up to `SWIM_STEP` (1.1) over the feet: a level over the water's surface. Under a bridge they swim
   on (a structure only a plain step over the feet), if its deck leaves room for the head. Onto a
