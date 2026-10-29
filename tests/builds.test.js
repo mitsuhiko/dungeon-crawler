@@ -9,7 +9,7 @@ import { THEMES } from '../src/themes/index.js';
 import { World } from '../src/world/world.js';
 import { roomOver } from '../src/cubegen/shape.js';
 import { buildCubeGeometry } from '../src/render/cubegeo.js';
-import { N, LH } from '../src/core/constants.js';
+import { N, LH, DIRS } from '../src/core/constants.js';
 
 // every situation a bridge is picked in (cubegen/shape.js, world/spans.js)
 const WHERE = {
@@ -165,6 +165,26 @@ test('ladders in generated worlds keep to their theme\'s styles and are drawn', 
     buildLadder({ c: 5, x: 5, z: 0, d: 2, y0: 1, y1: 4.5, hang, style }, L);
     const pos = [...L.terrain.pos, ...L.wood.pos];
     assert.ok(pos.length && pos.every(Number.isFinite), `${style}: drawn`);
+  }
+});
+
+// a hanging ladder has only air behind its lower part: no bridge or stair runs through that air
+// under its platform (it would cross the ladder, or a bridge would lead straight into it). These
+// cubes had one before the ladder claimed the air (cubegen/climbs.js placeClimb).
+test('no bridge or stair runs under a hanging ladder\'s platform', () => {
+  const cubes = { 1: ['-1,-3,4'], 2: ['3,-6,3'], 3: ['3,-10,-2'], 4: ['0,-12,3'], 6: ['-2,-17,0'], 10: ['4,-2,-1'], 11: ['3,-4,1'],
+    12: ['-4,-1,3', '2,-2,3'] };
+  for (const [seed, keys] of Object.entries(cubes)) {
+    const w = new World(+seed);
+    for (const k of keys) {
+      const m = w.cube(k).map;
+      for (const l of m.ladders) {
+        if (!l.hang) continue;
+        const behind = (l.z + DIRS[l.d][1]) * N + l.x + DIRS[l.d][0];
+        for (const r of m.runs) for (const p of r.pieces) if (p.c === behind)
+          assert.ok(Math.min(p.y0, p.y1) >= l.y1 || Math.max(p.y0, p.y1) <= l.y0 - 1, `${seed} ${k}: a ${r.kind} under the ladder at ${l.x},${l.z}`);
+      }
+    }
   }
 });
 

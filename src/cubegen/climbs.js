@@ -50,7 +50,9 @@ export function jumpMoves(ctx, f, d, out) {
 }
 
 // placement: a ladder claims the space in front of its wall, a jump the air over its gap
-// (nothing else may cross there), and the edges they use never get fences
+// (nothing else may cross there), and the edges they use never get fences. A hanging ladder has
+// no wall behind its lower part, only the air under the platform: it claims that too, or a bridge
+// or stair under the platform would run through the ladder (or right behind it)
 const overlaps = (list, cl) => list.some(o => !(o.hi + 2 <= cl.lo || cl.hi + 2 <= o.lo));
 export function placeClimb(m, claims, pathEdges, ladders) {
   if (m.kind === 'jump') {
@@ -62,9 +64,10 @@ export function placeClimb(m, claims, pathEdges, ladders) {
     return true;
   }
   const { lo, hi } = m, wall = lo === m.from ? m.d : OPP[m.d];
-  const cl = { c: lo.c, lo: lo.top, hi: hi.top + 1 };
-  if (overlaps(claims[lo.c], cl)) return false;
-  claims[lo.c].push(cl);
+  const cls = [{ c: lo.c, lo: lo.top, hi: hi.top + 1 }];
+  if (m.hang) cls.push({ c: hi.c, lo: lo.top, hi: hi.bottom });
+  if (cls.some(cl => overlaps(claims[cl.c], cl))) return false;
+  for (const cl of cls) claims[cl.c].push(cl);
   pathEdges.add(lo.id + ':' + wall); pathEdges.add(hi.id + ':' + OPP[wall]);
   if (!ladders.some(l => l.lo === lo && l.hi === hi)) ladders.push({ lo, hi, d: wall, hang: !!m.hang });   // (lo in water: out of it, cubegen/escape.js)
   return true;

@@ -919,7 +919,9 @@ Routes can now also use these moves:
   ladder stands in the lower cell against the higher column's wall.
   - Both floor edges are pinned flat, so the ladder meets them exactly, and fences stay off
     them.
-  - The ladder claims the space in front of the wall.
+  - The ladder claims the space in front of the wall. One hanging from a floating platform
+    also claims the air under the platform behind it, so no bridge or stair runs through the
+    ladder there (or leads straight into it).
   - You get on by pushing into the wall at its foot, or by walking over the edge above it.
   - Pushing towards the wall climbs, pulling away climbs down, and Space lets go.
   - At the top you step onto the upper floor.
