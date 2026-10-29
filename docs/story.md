@@ -60,9 +60,10 @@ scientists, no space and no rockets; there are star-readers, the sky and winged 
 - **The glassmaker**: a man, a craftsman, who went up with the pieces on the ark, fell with it to
   the core and is held there by the creature. He is
   never seen; you only hear his recordings. His name is still open.
-- **The robot**: a clockwork robot of star-glass, built by the star-readers (it only has a distant
-  inkling that the glassmaker made it). It lies asleep in the merchant camp and wakes as you come.
-  From then on it goes with you, lights the way, and will help you, bring you back when you die and tell the story as you play (below, "The robot").
+- **The robot**: a clockwork robot of star-glass, built by the star-readers (hearing the glassmaker's
+  voice, it has a distant inkling that he made it). It lies asleep in the merchant camp and wakes as you come.
+  From then on it goes with you, lights the way, and will help you, bring you back when you die
+  and tell the story as you play (below, "The robot").
 - **The creature**: the last boss, waiting at the core. Clever, speaks the people's language, and
   wanted to escape. It was brought on board as something to be used, which makes it a prisoner too.
   For now the boss at the core is Qualmos, a prototype of the fight ([bosses.md](bosses.md#qualmos)):
@@ -89,23 +90,26 @@ Decided:
   bringing the hero back (rises, turns, spreads its wings, the core flares), cheering (a hop and
   a somersault) and carrying the hero (`RobotCarry`: straining, the wings beating hard and wide, the
   eyes squeezed, the core bright; the hero hangs from it by both hands, their clip `Hang`).
-- **How it wakes** (being changed: it is to wake on its own as the hero comes into the camp, in a
-  short scene, with the sword beside it, and its hello is to be rewritten: "The beginning". Built
-  so far: `src/core/robot.js`, `src/game/robot.js`, `src/render/robot.js`): it
-  lies on its back in the merchant camp, across the road from the camp's glass as the hero comes
-  in (`CAMP_ROBOT`, `world/town.js`), asleep (its clip `RobotDormant`), its core only glimmering,
-  labelled "Robot of star-glass". It does nothing until the hero wakes it: a click on it walks them
-  up to it (or the action key beside it, "Wake the robot"). Then whatever is being said is cut
-  short (the camp's recording too), and it wakes (`RobotWake`, 3.6 s: its eyes flicker open, it
-  lifts off and shakes itself) and says hello as it does (`robot`, `core/narration.js`, in its
-  voice): oh, the hero woke it, it has been lying here a long, long time; the star-readers made it,
-  of glass and clockwork; it had a name once but cannot find it any more; it will come along and
-  light the way, further down it gets dark. Once it is up it follows. It says nothing else before
-  its hello is over. (A first try at its character: cheerful and eager, a little forgetful. Its
-  name stays open: it cannot find it.) The world keeps that it woke (its hello, told: `run.told`),
-  so from then on it is with the hero as they come into the world, in the town too. A world played
-  before it lay in the camp has it lying there until it is woken; the dev tools (`?dev=1`) skip
-  its waking with the beginning (`&intro=1`: it lies there).
+- **How it wakes** (built: `src/core/robot.js`, `src/game/robot.js`, `src/render/robot.js`; the
+  scene `robot`, `core/scenes.js`): it lies on its back in the merchant camp, a few steps in from
+  the town's side, beside the road (`CAMP_ROBOT`, `world/town.js`), the glassmaker's old sword
+  stuck in the ground beside it, asleep (its clip `RobotDormant`), its core only glimmering,
+  labelled "Robot of star-glass". As the hero comes into the camp (six cells from it) it wakes in a
+  short scene (`game/scene.js`): the hero walks on a step and stops, black bars come in, the camera
+  goes to it lying there, and whatever is being said is cut short. It wakes (`RobotWake`, 3.6 s:
+  its eyes flicker open, it lifts off and shakes itself) and says hello as it does (`robot`
+  'hello', `core/narration.js`, in its voice): oh, hello, where is it, how did it end up in the
+  grass?; it cannot remember a thing, not even its name, only that it is made of glass; whoever the
+  hero is, it will come along and light the way. Then it points out the sword in the ground right
+  next to it: take it, it will be needed out there (`'sword'`, while it is in the ground). After
+  the glassmaker's first recording it knows that voice from somewhere, and thinks he made it, out
+  of his glass; that is all it can find (`'heard'`). Once it is up it follows. (A click on it, or the action key beside it, "Wake the
+  robot", wakes it too.) Its character: cheerful and eager, forgetful. Its name stays open: it does
+  not remember it. The world keeps that it woke (its hello, told: `run.told`; any of its lines, so
+  a world that heard an older hello keeps it), so from then on it is with the hero as they come
+  into the world, in the town too. A world played before it lay in the camp has it lying there
+  until the hero comes by; the dev tools (`?dev=1`) skip its waking with the beginning
+  (`&intro=1`: it lies there).
 - **How it follows**: along the hero's way, not straight at them: where they went, a trail of
   crumbs, and it flies along it 1.6 cells behind them, a little to the side, never right on them,
   hovering at their shoulders. It flies a little slower than the hero runs, and faster the further
@@ -261,6 +265,9 @@ boss's fight or after a death; only the story's scenes, a depth, an arena, a bos
 wait), and what comes while it keeps quiet is not said (it may come another time). Every line once in a world; what happens again and again (a death, a chest, standing about)
 is said in another order in every world (`shuffle`), so playing again brings other lines.
 
+- **The beginning** (`robot`, [The beginning](#the-beginning)): its hello as it wakes in the
+  merchant camp, the sword beside it, his first glass on its rock and the snakes at its foot, the
+  ladder up it, and his voice, which it knows from somewhere: it thinks he made it.
 - **A depth reached** (every one, down to the core), **a theme's first place** (every theme),
   **wandering** about a place not seen before (the sky, the caves of act II, the deep, the core).
   Acts II and III are a first sketch.
@@ -278,15 +285,15 @@ is said in another order in every world (`shuffle`), so playing again brings oth
 
 ## The beginning
 
-Being rebuilt: this is the plan (it replaces the beginning built before, where the glass floated
-over the town's plaza, a second glass in the merchant camp told where the sword fell, and the robot
-was woken by a click). It is the game's tutorial too: the first three rooms teach how to play, the
-robot tells the story of it once it is awake, and cards (not voiced) show the keys.
+Built (`src/core/intro.js`, `src/game/intro.js`; the scenes `core/scenes.js`, `game/scene.js`;
+the tutorial's card `core/tutorial.js`, `game/tutorial.js`). It is the game's tutorial too: the
+first three rooms teach how to play, the robot tells the story of it once it is awake, and a card
+(not voiced) shows the keys.
 
 **What happened.** Shortly before the game begins, a big glass of the glassmaker's came up out of
 the dark (the opening film ends with it rising into this piece) and burst over the town. Most of it
 shattered on the town's plaza; the robot and his old sword (tied to it) were thrown into the
-merchant camp; the orb with his first recording came down on a hill out on the road. The hero
+merchant camp; the orb with his first recording came down on a rock out on the road. The hero
 remembers nothing: not who they are, nor how they came to be here. Nor does the robot. Neither
 mystery is answered yet; the glassmaker's recordings mention neither of them (he only knows he tied
 his sword to a glass).
@@ -295,39 +302,51 @@ his sword to a glass).
 (`world/layout.js`: its first rooms run straight), and these are the beginning's:
 
 1. **The town.** After the opening the town comes up slowly out of the black, at noon (a world's
-   clock starts there: `core/daycycle.js` `START_CLOCK`), and the hero steps out of a house beside
-   the plaza, empty-handed. On the plaza lies what is left of the big glass: a ring of shards, still
-   glowing amber and fading, scorched cobbles, a little smoke, and a streak in the sky towards the
-   road. A line (not voiced) says the hero does not remember how they came here. The tutorial's
-   first card shows how to move (the move keys, or a click on the floor), turn the view and go
-   through the gate; the town's gate is open from the start. Nothing else happens here.
+   clock starts there: `core/daycycle.js` `START_CLOCK`), and a new hero in a world nobody has
+   been in yet walks out of the inn's door onto its step (`WAKE_HOUSE`, `world/town.js`; the scene
+   `wake`), empty-handed. On the plaza lies what is left of the big glass (`TOWN_SHARDS`,
+   `render/shards.js`): shards of teal glass strewn round a scorched patch, some stuck in the
+   cobbles, a few amber glints still in them and a little smoke rising, until the robot is awake;
+   then they only glint dimly. A line (not voiced) says the hero does not remember how they came
+   here. The tutorial's first card shows how to walk (the move keys, or a click on the ground), turn
+   the view and go through the gate; the town's gate is open from the start. Nothing else happens
+   here.
 2. **The merchant camp: the robot wakes.** The robot lies asleep in the camp with the sword
-   standing in the ground beside it. Coming into the camp the hero walks on a few steps and stops,
+   standing in the ground beside it. Coming into the camp the hero walks on a step and stops,
    and a short scene plays: black bars, the camera goes to the robot, it wakes (`RobotWake`) and
-   the camera comes back. It says hello as it wakes: it remembers nothing, only that it is made of
-   glass, and it has a distant inkling that the glassmaker made it (whether he did, or only blew
-   its glass round the star-readers' clockwork, stays open). Then it tells the hero to take the
-   sword beside it (a card: walk to it, or click it). Pulled out, the sword is the hero's (the
+   the camera comes back. It says hello as it wakes: where is it, how did it end up in the grass;
+   it remembers nothing, not even its name, only that it is made of glass; whoever the hero is, it
+   will come along and light the way. Then it points out the sword in the ground right next to it
+   (a card: walk to it, or click it). Pulled out, the sword is the hero's (the
    **Glassmaker's Old Sword**, in hand if nothing is) and the camp's gate out to the road opens.
    A hero who comes with his sword in the bag already (from another world) gets no second one: the
    one pulled out takes its place (in hand or on the quick bar, if it was). It says nothing: it is
    no glass.
 3. **The first glass.** The third room is a flat field with a steep block of rock in it, a ladder
    up its side and the orb on top (the set piece `peak`, `cubegen/setpieces.js`). Three grass
-   snakes wait at the foot of the rock, between the hero and the ladder. Coming in, a short scene
-   shows it: the camera goes from the hero over the snakes, up the rock to the orb glinting on top,
-   and back. The robot says it: glass up there, like itself; it thinks those are important, but it
-   does not remember them being here. The cards and the robot teach fighting (hold the attack key,
-   or click an enemy), walking somewhere far with a click (the hero finds the way) and climbing the
-   ladder. Walking into the orb breaks it (a short close-up), and his first recording plays
+   snakes wait at the foot of the rock, between the hero and the ladder (`FIRST_GLASS`,
+   `core/spawns.js`). Coming in, a short scene shows it (`glass`, once a world): the camera goes
+   from over the hero's shoulder past the snakes, up the rock to the orb glinting on top, and back.
+   The robot says it (`'rock'`): something glowing up there, glass, like itself; it thinks glass
+   like that is important, but cannot remember why, and does not remember any of it lying about out
+   here; they have to get up there, watch out for the snakes, keep swinging. With the snakes beaten,
+   or at the rock's foot, it points out the ladder: you climb, it flies (`'ladder'`).
+   The card teaches fighting (hold the attack key, or click an enemy), walking somewhere far with a
+   click (the hero finds the way, ladders and all) and walking into the glass. Walking into the orb
+   breaks it (a short close-up, `break`), and his first recording plays
    (`'glass'`, `RECORDINGS` in `core/narration.js`): his glass found someone; it keeps his words,
    to hear again (the Memories tab opens); the world is in pieces, and where the pieces meet there
    are gates of his glass; they open for whoever carries it, so carry it and go on. And the room's
    gate on along the road opens (a gate of his glass, like a guardian's, kept with the world).
+   After his words the robot knows that voice from somewhere: it thinks he made it, out of his
+   glass (a distant inkling: whether he did, or only blew its glass round the star-readers'
+   clockwork, stays open), and that is all it can find (`'heard'`). The last card says his words
+   are kept in the bag's memories.
 
-From there the story goes on as before. The recording that was the camp's (`'camp'`: his old sword
-rose with his glass, tied to it; it is old and plain but honest; listen for more of his glass) is
-the first of his glass further down the road, on depth 0's way (`core/glass.js`).
+From there the story goes on as before. The recording that came up with his sword (`'camp'`: his
+old sword rose with one of his glasses, tied to it, whoever finds it, it is theirs; it is old and
+plain but honest; listen for more of his glass) is the first of his glass further down the road, in
+the first room of the way past the rock (`world/spots.js`, a third glass at depth 0).
 
 **The scenes** (the robot waking, the orb shown, the orb breaking) are played by the boss intros'
 machinery, made general (`core/bossintro.js`, `game/bossintro.js`): its camera shots on named
@@ -335,13 +354,16 @@ points (the hero, the robot, the orb, the ladder), the black bars, holding the h
 on, and a click, Space or Enter skipping it. Like a boss's intro, a scene plays whole only for a hero
 alone; with others there, it is short (the robot just wakes; the orb is just there).
 
-**The tutorial's cards**: a card above the quick bar with a step or a few, each ticked off as it is
-done (or done already: a hero who clicks to walk has walked). The keys it shows are the player's own
-(`core/keybinds.js`, named on their keyboard), and on a touch screen the stick and buttons instead.
-It never holds anything up: no gate waits for a card. It can be skipped (on the card, in the Esc
-menu, in the settings, which can show it again), and once done or skipped it is not shown again in
-that browser. Not with the dev tools, nor in the guide; a guest who joins a friend's game does not
-get it unless they ask for it.
+**The tutorial's card** (`core/tutorial.js`, `game/tutorial.js`; how it looks: [ui.md](ui.md)):
+at the left, the steps of where the hero is in the beginning (the town: walking, turning the view,
+the gate; the camp, the robot awake: the sword; the rock, once shown: fighting, the way up, the
+glass; his words heard: the memories), each ticked off as it is done (or done already: a hero who
+clicks to walk has walked). The keys it shows are the player's own (`core/keybinds.js`, named on
+their keyboard), and on a touch screen the stick and buttons instead. It never holds anything up:
+no gate waits for a step. It can be skipped (on the card, or in the settings, "Tutorial", which can
+show it again), and once its last step is done or it is skipped it is not shown again in that
+browser. Not with the dev tools (`?tutorial=1` shows it), nor in the guide, nor with
+`?tutorial=0`; nor for a guest playing in a friend's world.
 
 Nobody has to stand about and listen. A recording counts as heard whole the moment it begins (the
 Memories have all of it), the next recording cuts it short, and leaving its place does too: see
@@ -353,9 +375,10 @@ wherever that is. Playing together, the orb's gate one player opens opens for ev
 recording plays for everyone at once, its glass gone for everyone (`story` messages,
 [online.md](online.md)); every player wakes a robot of their own and pulls a sword of their own. The
 sword stays for a hero without any weapon, so a friend who joins empty-handed is never without one.
-A world saved before the beginning, somebody already past the camp, has its gates open; so have the
-dev tools (`?dev=1`; `&intro=1` plays it). A world saved during the beginning before, the town's
-glass found, has the orb's gate open and the orb gone (its recording was heard).
+A world saved before the beginning, somebody already past the rock (further along the road, or
+deeper), has its gates open; so have the dev tools (`?dev=1`; `&intro=1` plays it). A world saved
+during the beginning as it was before, the town's glass found, has the orb's gate open and the orb
+gone (its recording was heard).
 
 ## The ending
 

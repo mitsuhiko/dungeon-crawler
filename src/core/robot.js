@@ -2,9 +2,11 @@
 // when it comes, and how it follows; game/robot.js puts it in the world, render/robot.js draws it.
 //
 // It lies on its back in the merchant camp, asleep (map.relics.robot, world/town.js CAMP_ROBOT:
-// robotLies), until the hero clicks it (or uses it with the action key) and comes up to it (WAKE_REACH).
+// robotLies), the glassmaker's sword beside it, until the hero comes into the camp (game/robot.js:
+// in a short scene), or clicks it (or uses it with the action key) and comes up to it (WAKE_REACH).
 // Then it wakes (its clip RobotWake, WAKE s), cutting short whatever is being said, and says hello
-// (core/narration.js, the moment `robot`, HELLO_AFTER s in). From then on it goes wherever they go.
+// (core/narration.js, the moment `robot`, HELLO_AFTER s in): it remembers nothing, only that it is
+// glass. From then on it goes wherever they go.
 // The world keeps that it woke: its hello told (run.told, saved with the world), so it is there
 // with the hero from then on, in the town too.
 //
@@ -41,8 +43,9 @@ export const WAKE = 3.6;         // s it takes to wake (its clip RobotWake: blen
 export const HELLO_AFTER = 1.3;  // s into waking it says hello (its eyes are open: RobotWake's wake_frame)
 
 // what it says when it comes (core/narration.js): the world keeps that it came by keeping these told
+// (all of them at once; one is enough: a world saved before its hello changed told the old lines)
 export const HELLO = LINES.filter(l => l.on === 'robot' && l.when?.what === 'hello');
-export const robotMet = run => HELLO.length > 0 && HELLO.every(l => run.told.has(l.id));
+export const robotMet = run => HELLO.some(l => run.told.has(l.id));
 // it came already (the dev tools skip the beginning, and with it its coming: game/intro.js)
 export function meetRobot(run) { for (const l of HELLO) run.told.add(l.id); }
 // does it lie asleep in this map (the merchant camp, where it lies: map.relics.robot), for a world

@@ -109,6 +109,23 @@ everyone's heads.
 Its checks: `node --test tests/bossbar.test.js`, and in the game (`?dev=1`)
 `await (await import('./tests/browser/bossbar.js')).runBossBarChecks()`.
 
+The story's scenes in the beginning (the robot waking, the glassmaker's first glass shown and
+breaking: `src/game/scene.js`, [story.md](story.md#the-beginning)) look the same: the black bars,
+the HUD faded out, nothing over anybody's head, but no name.
+
+## The tutorial
+
+In the beginning ([story.md](story.md#the-beginning)) a card at the left of the screen says what
+to do here and how (`#tutorial`, `src/game/tutorial.js`; its steps `src/core/tutorial.js`), on glass
+like the quest followed: the stage's title in amber Cinzel, its steps under it, each with a small
+diamond that fills with amber and dims its line once the step is done, and a plain "Skip the
+tutorial" at its foot. The keys in a step are the player's own, as keycaps (`kbd`): the four move
+keys side by side, the others their primary key (or "not bound"), named as their keyboard says
+(a German keyboard's KeyZ is Y). On a touch screen a step names the stick, the buttons or a tap
+instead. It is redrawn when the keys, the language or the touch controls change, and hides in a
+scene, behind the curtain and between cubes. Settings, General: "Tutorial" turns it off, or on
+again.
+
 ## The guide
 
 The kids' guide (`learn/`) wears the same glass: `learn/kids.css` repeats the palette and the

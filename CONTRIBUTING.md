@@ -51,14 +51,19 @@ The game is plain ES modules and a vendored three.js; there is no build step.
   - Quests (`src/core/quests.js`, `src/game/quests.js`, the inventory's Quests tab in
     `src/game/questpanel.js`, U): the villagers give quests, shared by everyone in the world and
     saved with it (`docs/quests.md`).
-  - The beginning (`src/core/intro.js`, `src/game/intro.js`, `docs/story.md` "The beginning"): a
-    new world comes up at noon; the hero, empty-handed, finds the glassmaker's glass floating over
-    the town's plaza (`src/render/glassbubble.js`), which plays his recording and opens the town's
-    gate, and his old sword stuck in the ground in the merchant camp, which opens the camp's gate to
-    the road.
+  - The beginning (`src/core/intro.js`, `src/game/intro.js`, `docs/story.md` "The beginning"), the
+    game's tutorial too: a new world comes up at noon; the hero, empty-handed and remembering
+    nothing, comes out of the inn, shards of a big glass on the plaza (`src/render/shards.js`);
+    in the merchant camp the robot wakes as they come and points out the glassmaker's old sword in
+    the ground beside it, which opens the camp's gate to the road; in the room after it his first
+    glass (`src/render/glassbubble.js`) waits on top of a rock (`cubegen/setpieces.js` `peak`), up
+    a ladder past three snakes, plays his recording and opens the gate on. Short scenes show the
+    robot waking and the glass, on the boss intros' camera (`src/core/scenes.js`,
+    `src/game/scene.js`), and a card shows each step with the player's own keys
+    (`src/core/tutorial.js`, `src/game/tutorial.js`; skipped on it or in the settings).
   - The robot (`src/core/robot.js`, `src/game/robot.js`, its view `src/render/robot.js`, its model
     `blender/robot.py`; `docs/story.md` "The robot"): a little clockwork of star-glass lies asleep
-    in the merchant camp until the hero clicks it; it wakes and says hello; from then on it follows them
+    in the merchant camp until the hero comes by; it wakes and says hello; from then on it follows them
     along their way, a little behind, through gates and doors and into other cubes, catching up
     once they stop, and lights the way. It is in no fight and nobody's target. It pulls the hero out
     of what would kill them in a fluid, lava, acid, a boss's slime, water or mud with no way out, and flies

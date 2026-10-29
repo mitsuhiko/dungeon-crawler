@@ -30,18 +30,11 @@
         "hash": "02c2a25c8a6bae29"
       },
       "recording.camp.tied": {
-        "text": "My old sword rose with this glass, tied to it. If the knot came loose, it did not fall far.",
-        "source": "My old sword rose with this glass, tied to it. If the knot came loose, it did not fall far.",
+        "text": "My old sword rose with one of my glasses, tied to it. Whoever finds it, it is yours.",
+        "source": "My old sword rose with one of my glasses, tied to it. Whoever finds it, it is yours.",
         "seed": 0,
-        "dur": 8.15,
-        "hash": "baf1b431691a944b"
-      },
-      "recording.camp.point": {
-        "text": "A sword falls point first. Look for one standing in the ground, and pull it out.",
-        "source": "A sword falls point first. Look for one standing in the ground, and pull it out.",
-        "seed": 0,
-        "dur": 5.74,
-        "hash": "51fd2fba76718a40"
+        "dur": 7.22,
+        "hash": "2e78ca53b10b49ed"
       },
       "recording.camp.honest": {
         "text": "It is old and plain, but it is honest. It never broke on me.",
@@ -58,25 +51,74 @@
         "hash": "5b9ed903c5bbd506"
       },
       "robot.hello.there": {
-        "text": "Oh! You woke me up! I have been lying here for a long, long time.",
-        "source": "Oh! You woke me up! I have been lying here for a long, long time.",
+        "text": "Oh! Hello! Where am I? How did I end up in the grass?",
+        "source": "Oh! Hello! Where am I? How did I end up in the grass?",
         "seed": 0,
-        "dur": 7.21,
-        "hash": "c0ee4d0a847dfc27"
+        "dur": 7.29,
+        "hash": "6d3ad95e53c7d70e"
       },
-      "robot.hello.who": {
-        "text": "The star-readers made me, of glass and clockwork. I had a name once, but I cannot find it any more.",
-        "source": "The star-readers made me, of glass and clockwork. I had a name once, but I cannot find it any more.",
+      "robot.hello.glass": {
+        "text": "I cannot remember a thing, not even my name. Only that I am made of glass.",
+        "source": "I cannot remember a thing, not even my name. Only that I am made of glass.",
         "seed": 0,
-        "dur": 8.97,
-        "hash": "5d58c1b889c2c141"
+        "dur": 7.71,
+        "hash": "e936a9a4ac0bc6bc"
       },
       "robot.hello.come": {
-        "text": "So I will come with you, and light the way. Further down, it gets dark.",
-        "source": "So I will come with you, and light the way. Further down, it gets dark.",
+        "text": "Well, whoever you are, I will come with you. I can light the way.",
+        "source": "Well, whoever you are, I will come with you. I can light the way.",
         "seed": 0,
-        "dur": 6.91,
-        "hash": "c592471f127839e9"
+        "dur": 5.58,
+        "hash": "d599875b78bcd0e5"
+      },
+      "robot.sword.take": {
+        "text": "And look, a sword, stuck in the ground right next to me! Take it, you will need it out there.",
+        "source": "And look, a sword, stuck in the ground right next to me! Take it, you will need it out there.",
+        "seed": 0,
+        "dur": 6.85,
+        "hash": "5df07db6a2772c5f"
+      },
+      "robot.rock.up": {
+        "text": "Look, up on that rock! Something is glowing. It is glass, like me!",
+        "source": "Look, up on that rock! Something is glowing. It is glass, like me!",
+        "seed": 0,
+        "dur": 7.32,
+        "hash": "a9300cb7432c764c"
+      },
+      "robot.rock.important": {
+        "text": "I think glass like that is important, but I cannot remember why. And I do not remember any of it lying about out here.",
+        "source": "I think glass like that is important, but I cannot remember why. And I do not remember any of it lying about out here.",
+        "seed": 0,
+        "dur": 14.55,
+        "hash": "a522da19904fc6d2"
+      },
+      "robot.rock.snakes": {
+        "text": "We have to get up there! Watch out for the snakes at the bottom, and keep swinging.",
+        "source": "We have to get up there! Watch out for the snakes at the bottom, and keep swinging.",
+        "seed": 0,
+        "dur": 5.61,
+        "hash": "c951f32e57e344d5"
+      },
+      "robot.ladder.up": {
+        "text": "There is a ladder up the side of the rock. You climb, I fly!",
+        "source": "There is a ladder up the side of the rock. You climb, I fly!",
+        "seed": 0,
+        "dur": 5.25,
+        "hash": "42a5fdc988efb2a6"
+      },
+      "robot.heard.voice": {
+        "text": "That voice! I know it from somewhere.",
+        "source": "That voice! I know it from somewhere.",
+        "seed": 0,
+        "dur": 3.23,
+        "hash": "1a07a27947074037"
+      },
+      "robot.heard.maker": {
+        "text": "I think he made me, out of his glass. That is all I can find.",
+        "source": "I think he made me, out of his glass. That is all I can find.",
+        "seed": 0,
+        "dur": 7.27,
+        "hash": "0888adcca02761de"
       },
       "recording.breath.begins": {
         "text": "Every glass begins as a breath. Mine have, for forty years.",
@@ -3840,18 +3882,11 @@
         "hash": "5679ed2e751d3361"
       },
       "recording.camp.tied": {
-        "text": "Mein altes Schwert stieg mit diesem Glas auf, daran festgebunden. Wenn der Knoten aufgegangen ist, fiel es nicht weit.",
-        "source": "Mein altes Schwert stieg mit diesem Glas auf, daran festgebunden. Wenn der Knoten aufgegangen ist, fiel es nicht weit.",
+        "text": "Mein altes Schwert stieg mit einem meiner Gläser auf, daran festgebunden. Wer es findet, dem gehört es.",
+        "source": "Mein altes Schwert stieg mit einem meiner Gläser auf, daran festgebunden. Wer es findet, dem gehört es.",
         "seed": 0,
-        "dur": 9.31,
-        "hash": "59943a383595ece3"
-      },
-      "recording.camp.point": {
-        "text": "Ein Schwert fällt mit der Spitze voran. Such eins, das im Boden steckt, und zieh es heraus.",
-        "source": "Ein Schwert fällt mit der Spitze voran. Such eins, das im Boden steckt, und zieh es heraus.",
-        "seed": 2,
-        "dur": 6.62,
-        "hash": "d8eef998e004f233"
+        "dur": 8.17,
+        "hash": "1b874f3435c74da1"
       },
       "recording.camp.honest": {
         "text": "Es ist alt und schlicht, aber ehrlich. Es ist mir nie zerbrochen.",
@@ -3868,25 +3903,74 @@
         "hash": "ad6a33f8db557bcc"
       },
       "robot.hello.there": {
-        "text": "Oh! Du hast mich aufgeweckt! Ich liege hier schon ganz, ganz lange.",
-        "source": "Oh! Du hast mich aufgeweckt! Ich liege hier schon ganz, ganz lange.",
+        "text": "Oh! Hallo! Wo bin ich? Wie bin ich denn ins Gras gekommen?",
+        "source": "Oh! Hallo! Wo bin ich? Wie bin ich denn ins Gras gekommen?",
         "seed": 0,
-        "dur": 5.94,
-        "hash": "7a089a2b2fb2d24a"
+        "dur": 6.43,
+        "hash": "624de44b93fec90a"
       },
-      "robot.hello.who": {
-        "text": "Die Sternleser haben mich gebaut, aus Glas und Uhrwerk. Ich hatte einmal einen Namen, aber ich finde ihn nicht mehr.",
-        "source": "Die Sternleser haben mich gebaut, aus Glas und Uhrwerk. Ich hatte einmal einen Namen, aber ich finde ihn nicht mehr.",
+      "robot.hello.glass": {
+        "text": "Ich weiß gar nichts mehr, nicht mal meinen Namen. Nur, dass ich aus Glas bin.",
+        "source": "Ich weiß gar nichts mehr, nicht mal meinen Namen. Nur, dass ich aus Glas bin.",
         "seed": 0,
-        "dur": 10.93,
-        "hash": "c31c56bd39e05fc0"
+        "dur": 7.46,
+        "hash": "3b9184e8fba7111f"
       },
       "robot.hello.come": {
-        "text": "Also komme ich mit dir und leuchte dir den Weg. Weiter unten wird es dunkel.",
-        "source": "Also komme ich mit dir und leuchte dir den Weg. Weiter unten wird es dunkel.",
+        "text": "Na, wer du auch bist, ich komme mit dir. Ich kann dir den Weg leuchten.",
+        "source": "Na, wer du auch bist, ich komme mit dir. Ich kann dir den Weg leuchten.",
         "seed": 0,
-        "dur": 6.46,
-        "hash": "ba8b49e61ce90d54"
+        "dur": 5.04,
+        "hash": "04cdeddee99d3b93"
+      },
+      "robot.sword.take": {
+        "text": "Und schau, ein Schwert, gleich neben mir im Boden! Nimm es, da draußen wirst du es brauchen.",
+        "source": "Und schau, ein Schwert, gleich neben mir im Boden! Nimm es, da draußen wirst du es brauchen.",
+        "seed": 0,
+        "dur": 7.21,
+        "hash": "961d738d407c2b68"
+      },
+      "robot.rock.up": {
+        "text": "Schau, oben auf dem Felsen! Da leuchtet etwas. Das ist Glas, wie ich!",
+        "source": "Schau, oben auf dem Felsen! Da leuchtet etwas. Das ist Glas, wie ich!",
+        "seed": 0,
+        "dur": 6.71,
+        "hash": "bf397dd6a69fc5f8"
+      },
+      "robot.rock.important": {
+        "text": "Ich glaube, solches Glas ist wichtig, aber ich weiß nicht mehr, warum. Und ich weiß nichts davon, dass hier draußen welches herumliegt.",
+        "source": "Ich glaube, solches Glas ist wichtig, aber ich weiß nicht mehr, warum. Und ich weiß nichts davon, dass hier draußen welches herumliegt.",
+        "seed": 0,
+        "dur": 16.98,
+        "hash": "fb32f8c7bdc915b7"
+      },
+      "robot.rock.snakes": {
+        "text": "Da müssen wir hinauf! Pass unten auf die Schlangen auf, und schlag immer weiter zu.",
+        "source": "Da müssen wir hinauf! Pass unten auf die Schlangen auf, und schlag immer weiter zu.",
+        "seed": 0,
+        "dur": 5.64,
+        "hash": "53c0ef185ee9c3e2"
+      },
+      "robot.ladder.up": {
+        "text": "An der Seite vom Felsen geht eine Leiter hinauf. Du kletterst, ich fliege!",
+        "source": "An der Seite vom Felsen geht eine Leiter hinauf. Du kletterst, ich fliege!",
+        "seed": 0,
+        "dur": 7.28,
+        "hash": "2477c8bf6c339c22"
+      },
+      "robot.heard.voice": {
+        "text": "Diese Stimme! Die kenne ich irgendwoher.",
+        "source": "Diese Stimme! Die kenne ich irgendwoher.",
+        "seed": 0,
+        "dur": 3.82,
+        "hash": "bcba26ae8efc52bf"
+      },
+      "robot.heard.maker": {
+        "text": "Ich glaube, er hat mich gemacht, aus seinem Glas. Mehr finde ich nicht.",
+        "source": "Ich glaube, er hat mich gemacht, aus seinem Glas. Mehr finde ich nicht.",
+        "seed": 0,
+        "dur": 6.25,
+        "hash": "508268d6bde92e47"
       },
       "recording.breath.begins": {
         "text": "Jedes Glas beginnt mit einem Atemzug. Meine schon seit vierzig Jahren.",

@@ -121,14 +121,17 @@ being helped up and getting back in. Up to four players, co-op.
   a portal turned into an open wall), the others can as well.
 - Joining (and getting back in) both send what they have: the host in `welcome`, a guest that
   keeps its world after a lost connection in `visited` and `faces`.
-- The beginning ([story.md](story.md#the-beginning)) is shared too (`story`): whoever finds the
-  glassmaker's glass on the plaza opens the town's gate for everyone, and his recording plays for
-  everyone at the same moment, wherever they are; whoever finds his glass in the merchant camp
-  sets its recording playing, for everyone (and it is gone for everyone); whoever takes his sword
-  opens the camp's gate for everyone (each recording cutting short the one before). Each player takes a sword of their own: it stays in the ground for a hero with no
-  weapon at all (one who joins empty-handed).
+- The beginning ([story.md](story.md#the-beginning)) is shared too (`story`): whoever takes his
+  sword opens the camp's gate for everyone; whoever finds the glassmaker's glass on the rock past
+  it opens that room's gate for everyone, and his recording plays for everyone at the same moment,
+  wherever they are; whoever finds his glass on the road after it sets its recording playing, for
+  everyone (and it is gone for everyone), each recording cutting short the one before. Each player
+  takes a sword of their own: it stays in the ground for a hero with no weapon at all (one who joins
+  empty-handed). The beginning's scenes (the robot waking, the glass shown) play whole only for a
+  player alone in their cube, else what they do happens at once; the tutorial's card is each
+  player's own, and a guest gets none.
 - The robot ([story.md](story.md#the-robot)): every player has their own, which lies asleep in
-  the merchant camp until they wake it (a guest's too, in a world where the host's woke long ago:
+  the merchant camp until they come by (a guest's too, in a world where the host's woke long ago:
   what the narrator said is not sent), says hello only to them and follows only them. Everyone sees everyone's: each game flies its own
   and sends where it is in its `me` (`robot`: cube, place, yaw, fade, clip, `protocol.js
   robotOf`, `game/robot.js robotWord`); the others draw it there, ~110 ms in the past like the

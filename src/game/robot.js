@@ -47,6 +47,7 @@ import { camera } from '../render/scene.js';
 import { closeView } from './camera.js';
 import { rescuePose } from './rescue.js';
 import { playScene, scenePlaying } from './scene.js';
+import { INTRO_GATES } from '../core/intro.js';
 import { introPlaying } from './bossintro.js';
 import { curtained } from './hud.js';
 
@@ -104,7 +105,8 @@ export function wakeRobot(r = sleepingRobot()) {
   robot = { way, at: { k, x: r.x, y: r.y, z: r.z }, yaw: r.yaw, wait: 0, side: 1, t: 0, waking: WAKE };
   robotWake();
   narrate('robot', { what: 'hello' }, { delay: HELLO_AFTER });
-  narrate('robot', { what: 'sword' }, { delay: HELLO_AFTER });   // (said after its hello: the sword beside it)
+  // (said after its hello: the sword beside it, while it is still in the ground)
+  if (!state.run.unlockedGates.has(INTRO_GATES.sword)) narrate('robot', { what: 'sword' }, { delay: HELLO_AFTER });
   return true;
 }
 

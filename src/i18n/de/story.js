@@ -7,8 +7,8 @@ export default {
   // his recordings (core/narration.js RECORDINGS)
   'A voice in the glass': 'Eine Stimme im Glas',
   'Found on a rock by the road': 'Gefunden auf einem Felsen an der Straße',
-  'Where the sword fell': 'Wo das Schwert hinfiel',
-  // the glass on the town plaza
+  'His old sword': 'Sein altes Schwert',
+  // his first glass, on the rock past the merchant camp
   'So my glass found someone. Good.': 'Mein Glas hat also jemanden gefunden. Gut.',
   'This glass keeps my words. Keep them with you, and listen again whenever you need to.':
     'Dieses Glas bewahrt meine Worte. Behalte sie bei dir, und hör sie wieder an, wann immer du sie brauchst.',
@@ -16,23 +16,36 @@ export default {
     'Die Welt ist jetzt in Stücken. Wo die Stücke sich treffen, stehen Tore aus meinem Glas.',
   'They know my glass, and they open for whoever carries it. So carry it, and go on.':
     'Sie kennen mein Glas, und sie öffnen sich für jeden, der es bei sich trägt. Also trag es bei dir und geh weiter.',
-  // the glass in the merchant camp: where the sword fell
-  'My old sword rose with this glass, tied to it. If the knot came loose, it did not fall far.':
-    'Mein altes Schwert stieg mit diesem Glas auf, daran festgebunden. Wenn der Knoten aufgegangen ist, fiel es nicht weit.',
-  'A sword falls point first. Look for one standing in the ground, and pull it out.':
-    'Ein Schwert fällt mit der Spitze voran. Such eins, das im Boden steckt, und zieh es heraus.',
+  // his glass on the road past the rock: his old sword
+  'My old sword rose with one of my glasses, tied to it. Whoever finds it, it is yours.':
+    'Mein altes Schwert stieg mit einem meiner Gläser auf, daran festgebunden. Wer es findet, dem gehört es.',
   'It is old and plain, but it is honest. It never broke on me.':
     'Es ist alt und schlicht, aber ehrlich. Es ist mir nie zerbrochen.',
   'And listen for more of my glass. I will keep talking, for as long as I can.':
     'Und hör auf mehr von meinem Glas. Ich rede weiter, solange ich kann.',
 
-  // the robot (core/narration.js `robot`): a little clockwork of star-glass, a child's voice, cheerful
-  'Oh! You woke me up! I have been lying here for a long, long time.':
-    'Oh! Du hast mich aufgeweckt! Ich liege hier schon ganz, ganz lange.',
-  'The star-readers made me, of glass and clockwork. I had a name once, but I cannot find it any more.':
-    'Die Sternleser haben mich gebaut, aus Glas und Uhrwerk. Ich hatte einmal einen Namen, aber ich finde ihn nicht mehr.',
-  'So I will come with you, and light the way. Further down, it gets dark.':
-    'Also komme ich mit dir und leuchte dir den Weg. Weiter unten wird es dunkel.',
+  // the robot in the beginning (core/narration.js `robot`): a little clockwork of star-glass, a child's
+  // voice, cheerful; it remembers nothing
+  'Oh! Hello! Where am I? How did I end up in the grass?':
+    'Oh! Hallo! Wo bin ich? Wie bin ich denn ins Gras gekommen?',
+  'I cannot remember a thing, not even my name. Only that I am made of glass.':
+    'Ich weiß gar nichts mehr, nicht mal meinen Namen. Nur, dass ich aus Glas bin.',
+  'Well, whoever you are, I will come with you. I can light the way.':
+    'Na, wer du auch bist, ich komme mit dir. Ich kann dir den Weg leuchten.',
+  'And look, a sword, stuck in the ground right next to me! Take it, you will need it out there.':
+    'Und schau, ein Schwert, gleich neben mir im Boden! Nimm es, da draußen wirst du es brauchen.',
+  'Look, up on that rock! Something is glowing. It is glass, like me!':
+    'Schau, oben auf dem Felsen! Da leuchtet etwas. Das ist Glas, wie ich!',
+  'I think glass like that is important, but I cannot remember why. And I do not remember any of it lying about out here.':
+    'Ich glaube, solches Glas ist wichtig, aber ich weiß nicht mehr, warum. Und ich weiß nichts davon, dass hier draußen welches herumliegt.',
+  'We have to get up there! Watch out for the snakes at the bottom, and keep swinging.':
+    'Da müssen wir hinauf! Pass unten auf die Schlangen auf, und schlag immer weiter zu.',
+  'There is a ladder up the side of the rock. You climb, I fly!':
+    'An der Seite vom Felsen geht eine Leiter hinauf. Du kletterst, ich fliege!',
+  'That voice! I know it from somewhere.':
+    'Diese Stimme! Die kenne ich irgendwoher.',
+  'I think he made me, out of his glass. That is all I can find.':
+    'Ich glaube, er hat mich gemacht, aus seinem Glas. Mehr finde ich nicht.',
 
   // his recordings in the depths (core/glass.js), their titles and where they were found
   'Found on the road out of town': 'Gefunden auf dem Weg aus der Stadt',
