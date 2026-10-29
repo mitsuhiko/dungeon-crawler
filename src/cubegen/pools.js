@@ -1,7 +1,8 @@
 // Fluid pools on upper layers, plus a generic "pool around a floor" used under waterfalls. Their
 // surface is level with their lowest bank (walked into and out of there), their bed two under it.
-import { N, HEAD, DIRS, FLUID_NAME } from '../core/constants.js';
+import { N, HEAD, DIRS, FLUID_NAME, WATER } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
+import { WIDER } from './river.js';
 
 // The slabs walling in a fluid body (surface S, bed 2 levels lower) reach down as deep as its
 // own slab, so its sides never show under a thinner ledge next to it. null if one of them
@@ -46,7 +47,7 @@ export function addPools(ctx) {
       if (all) centers.push(c);
     }
     if (!centers.length) continue;
-    const c0 = centers[ri(0, centers.length - 1)], rad = 1 + R() * 0.7;
+    const c0 = centers[ri(0, centers.length - 1)], rad = 1 + R() * 0.7 + (type === WATER ? WIDER : 0);
     const cells = [];
     for (let c = 0; c < N * N; c++) {
       if (!ok(c) || Math.hypot(c % N - c0 % N, ((c / N) | 0) - ((c0 / N) | 0)) > rad) continue;

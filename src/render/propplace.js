@@ -186,7 +186,8 @@ function grove(m, theme, add, out, blockers, { walkCols, reserved, nearSite, nea
       const branches = anchors.filter(a => a[3] > 0.12), lantern = props.byName.get(`${theme.props}_hanging_lantern_${R() < 0.5 ? 'a' : 'b'}`);
       if (lantern && branches.length && R() < (G.lanterns ?? 0)) {
         const [ax, ay, az] = branches[Math.floor(R() * branches.length)];
-        if (ay + lantern.minY - y >= CHAR_H + 0.15) add(lantern, ax, ay, az, R() * Math.PI * 2, 1);
+        // (never off the cube: a tree on its rim may reach out over the next one)
+        if (ay + lantern.minY - y >= CHAR_H + 0.15 && ax >= 0 && az >= 0 && ax < N && az < N) add(lantern, ax, ay, az, R() * Math.PI * 2, 1);
       }
     }
   }

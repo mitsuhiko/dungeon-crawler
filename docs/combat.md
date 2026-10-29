@@ -504,7 +504,11 @@ The other kinds: [sword](img/loadout-sword.jpg),
   rising or falling carries them along. No weapon swings while swimming (`core/combat.js`); the
   weapon is hidden. A jump out of it is a hop. Into the water there is a splash
   (louder the harder the plunge), strokes slosh (`paddle`) and ripples spread (`game/swim.js`);
-  no fall into water hurts. The robot says a line about it the first few times.
+  no fall into water hurts. The robot says a line about it the first few times. The swimmer is
+  drawn floating on the water as it is drawn (its surface rests under the level physics swims at
+  and rises and falls with the tide: `render/animator.js`, `render/materials.js waterShownAt`): head
+  and shoulders out of it, the hands paddling under the surface. Sollmeldon's mud is swum in too
+  (`physics/fluid.js swum`), slowing the strokes like his mud slows a wader; Slomo's slime is not.
 - **Out of the water**: a swimmer (or one wading at least `WADE_CLIMB` deep) steps up onto a bank
   up to `SWIM_STEP` (1.1) over the feet: a level over the water's surface. Under a bridge they swim
   on (a structure only a plain step over the feet), if its deck leaves room for the head. A ladder
@@ -517,16 +521,16 @@ The other kinds: [sword](img/loadout-sword.jpg),
   into deep water and swims. Jumps, knockbacks and airborne falls can still enter any of them.
   Bridges and dry floors above fluids remain walkable. A mouse order's way may go through the
   water ([clickmove.md](clickmove.md)).
-- **What kills** (`physics/fluid.js peril`): lava and acid on contact, and a boss's mud or slime
-  (a standing water with a look of its own) over the head. With the robot along (woken in the
+- **What kills** (`physics/fluid.js peril`): lava and acid on contact, and a boss's slime (a
+  standing water with a look of its own, Slomo's) over the head. With the robot along (woken in the
   merchant camp) it pulls the hero out instead (`game/rescue.js`, `core/rescue.js`; [story.md](story.md#the-robot)):
   a quarter of their most health, and it flies them to safe ground (where they last stood safely,
   else the nearest floor that leads on: in a boss's arena a floor of the fight, well over a fluid
   that comes and goes if any is, else just over it, else a platform). Only if that quarter is all
   they have left does it kill. Without the robot it kills (`dieInFluid` in `game/ragdoll.js`): you
-  burn up in lava, dissolve in acid, sink in the mud or the slime. The player ragdolls, slowed
+  burn up in lava, dissolve in acid, sink in the slime. The player ragdolls, slowed
   down and sinking, for at least 2.2 s, then respawns at the cube entry with full health. A
-  ragdoll that tumbles in dies the same way (or is pulled out); one knocked into deep water swims
+  ragdoll that tumbles in dies the same way (or is pulled out); one knocked into deep water (or his mud) swims
   on. Enemies drown once a standing fluid is over their `bodyHeight`, unless they `swim` (Squarlo,
   the Squirtles); things on the floor are lost in water over the head (`inFluid`).
 - There are no dedicated death animations; `render/fluiddeath.js` layers an effect

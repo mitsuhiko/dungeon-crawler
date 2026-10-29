@@ -798,10 +798,12 @@ def jump_params():
 
 
 # ----------------------------------------------------------------------------
-# swimming.  The game swims chest deep: the feet are 0.5 game units below the
-# surface, i.e. WATER_Z in rig units at CHAR_SCALE 0.55.  In water most of
-# gravity is cancelled by buoyancy and the limbs feel strong drag relative to
-# the water, which streams backwards past the in-place swimmer.
+# swimming.  The water line is WATER_Z: the feet (the root) are 0.5 game units
+# below the surface, i.e. WATER_Z in rig units at CHAR_SCALE 0.55.  The body
+# floats in it to the shoulders, the head out, and the hands (put there by IK)
+# stay under the surface all the time: nothing paddles in the air.  In water
+# most of gravity is cancelled by buoyancy and the limbs feel strong drag
+# relative to the water, which streams backwards past the in-place swimmer.
 # ----------------------------------------------------------------------------
 WATER_Z = 0.91
 SWIM_FRAMES, SWIM_SPEED = 24, 1.6
@@ -813,47 +815,52 @@ def water_env(speed):
 
 
 def swim_params(n):
-    """Doggy paddle: body inclined forward, head up, hands paddle alternately
-    in circles at the surface in front of the chest, legs pedal underneath."""
-    pitch, lean = math.radians(42), math.radians(8)
+    """Doggy paddle: the body lies forward in the water with the shoulders at the surface and
+    the head up out of it; the hands paddle alternately under the surface in front of the
+    chest (reach forward just under it, pull down and back, draw up to the chest and reach
+    again), the legs flutter behind."""
+    pitch, lean = math.radians(50), math.radians(10)
 
     def params(f):
         w = 2 * math.pi * ((f / n) % 1)
         arms, legs = {}, {}
         for side, s, off in (("L", 1, 0.0), ("R", -1, math.pi)):
             a = w + off
-            # reach forward with a long arm over the surface, pull down and back with a bent
-            # elbow.  Swing is relative to the chest, which leans forward by pitch + lean, so
-            # world angle from straight down = swing - (pitch + lean): ~55..100 degrees.
-            arms[side] = (pitch + lean + D(78) + D(24) * math.cos(a), D(24) + D(6) * math.sin(a),
-                          D(40) - D(25) * math.cos(a))
-            b = w + off + 1.2
-            legs[side] = Vector((s * figure.LEG_X, 0.12 + 0.12 * math.sin(b), -0.52 + 0.08 * math.cos(b)))
+            a += 0.35 * math.sin(a)   # (the pull, the hand going back deep, quicker than the reach)
+            # the fist (armature space) on a loop in front of the chest, all of it under the
+            # water: front and shallow at a = 0, deepest pulling back, high drawing forward
+            hand = Vector((s * (0.30 + 0.06 * math.sin(a)), -0.62 - 0.24 * math.cos(a),
+                           WATER_Z - 0.28 - 0.14 * math.sin(a)))
+            arms[side] = IK(hand, Vector((s * 1.0, 0.3, -0.4)), 1.0, side_sign=s)
+            b = w + off
+            legs[side] = Vector((s * figure.LEG_X, 0.04 + 0.14 * math.sin(b), -0.66 + 0.02 * math.cos(2 * b)))
         return pose_params(
-            hips_pos=Vector((0, 0.10, 0.65 + 0.02 * math.cos(2 * w))),
-            hips_rot=(pitch, D(4) * math.sin(w), D(5) * math.cos(w)),
-            spine_lean=lean, spine_twist=-D(8) * math.cos(w),
-            head_pitch=-(pitch + lean) * 0.85, head_twist=D(4) * math.cos(w),
+            hips_pos=Vector((0, 0.20, 0.62 + 0.015 * math.cos(2 * w))),
+            hips_rot=(pitch, D(3) * math.sin(w), D(4) * math.cos(w)),
+            spine_lean=lean, spine_twist=-D(7) * math.cos(w),
+            head_pitch=-(pitch + lean) * 0.85, head_twist=D(3) * math.cos(w),
             feet_local=legs, feet_local_w=1.0, arms=arms,
         )
     return params
 
 
 def swim_idle_params(n):
-    """Treading water: upright, hands sculling in and out at the surface,
-    legs eggbeater underneath, a slow bob."""
+    """Treading water: upright, in the water up to the shoulders, the hands sculling in and
+    out under the surface in front of the chest, legs eggbeater underneath, a slow bob."""
     def params(f):
         w = 2 * math.pi * ((f / n) % 1)
         arms, legs = {}, {}
         for side, s, off in (("L", 1, 0.0), ("R", -1, math.pi)):
             a = 2 * w   # two sculls per cycle, both hands together
-            arms[side] = (D(32), D(42) + D(18) * math.sin(a), D(45) + D(10) * math.cos(a))
+            hand = Vector((s * (0.40 + 0.13 * math.sin(a)), -0.34 + 0.07 * math.cos(a),
+                           WATER_Z - 0.30 + 0.03 * math.cos(a)))
+            arms[side] = IK(hand, Vector((s * 1.0, 0.6, -0.2)), 1.0, side_sign=s)
             b = w + off
-            legs[side] = Vector((s * (0.20 + 0.05 * math.cos(b)), -0.05 + 0.10 * math.sin(b), -0.50))
+            legs[side] = Vector((s * (0.20 + 0.05 * math.cos(b)), -0.05 + 0.10 * math.sin(b), -0.45))
         return pose_params(
-            hips_pos=Vector((0, 0, 0.62 + 0.025 * math.sin(2 * w))),
-            hips_rot=(D(8), 0.0, D(3) * math.sin(w)),
-            spine_lean=D(3), head_pitch=-D(8),
+            hips_pos=Vector((0, 0.04, 0.40 + 0.025 * math.sin(2 * w))),
+            hips_rot=(D(10), 0.0, D(3) * math.sin(w)),
+            spine_lean=D(4), head_pitch=-D(12),
             feet_local=legs, feet_local_w=1.0, arms=arms,
         )
     return params

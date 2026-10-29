@@ -650,11 +650,12 @@ water, his lagoon (`BOSS_ARENAS.qualmos.lagoon`: up to 24 cells; see [Qualmos](#
 Lava and acid kill on contact (unless the robot pulls the hero out: [combat.md](combat.md#fluids-and-falls)).
 Clear water drowns no hero: it is waded through while shallow, slowed by up to 45% the deeper it is
 (`WADE_SLOW`, `physics/move.js`), and swum in once deeper than `SWIM_DEPTH` (0.6 cells). An enemy
-drowns once it goes over its `bodyHeight` (`physics/fluid.js enemyUnder`), unless it swims. Water
-with a look of its own, a boss's mud or slime (Sollmeldon's, Slomo's), is never swum in: it is
-waded through, and over the head (`HEAD_Y`, 0.79 cells: the rig's head bone, 1.44 rig units up, at
-`CHAR_SCALE`) it holds the body and pulls it under: the robot pulls the hero out for a quarter of
-their health, else it kills (`physics/fluid.js peril`, `game/rescue.js`). The rising water of a
+drowns once it goes over its `bodyHeight` (`physics/fluid.js enemyUnder`), unless it swims.
+Sollmeldon's mud (water with a look of its own) is waded through and swum in like clear water
+(`physics/fluid.js swum`), slowing. Slomo's slime is never swum in: it is waded through, and over
+the head (`HEAD_Y`, 0.79 cells: the rig's head bone, 1.44 rig units up, at `CHAR_SCALE`) it holds
+the body and pulls it under: the robot pulls the hero out for a quarter of their health, else it
+kills (`physics/fluid.js peril`, `game/rescue.js`). The rising water of a
 flood trial and Squarlo's tide are waded through, then swum in. That water writes depth
 (`render/trials.js`), so what of a wading body is under its surface stays hidden (the hero is drawn
 after it); and the cutaway never cuts lower than its surface where the hero stands in it
@@ -1458,9 +1459,12 @@ world tips. His death drains it back to what it was at first (`drainMud`) and th
 
 It goes to the physics as a tide with a height of its own in each cell (`physics/fluid.js setTide`
 `ys`: the mean surface of the wet samples of a cell, `cellSurfaces`): waded through as water,
-slowing (`mud.wade`), never swum in, and over the head it pulls you under: the robot pulls you out
-onto dry ground (over all of the mud if any is) for a quarter of your health ("Stuck in the mud!",
-`game/rescue.js`), else it kills ("Sank in the mud!"). Every game runs its own field from what it
+slowing (`mud.wade`), and swum in where it is deeper than `SWIM_DEPTH` (on the low side when the
+world tips, or where enough of it came together), slowing the strokes too (`physics/fluid.js
+swum`, `game/swim.js`: brown splashes and ripples). A swimmer climbs out of it onto ground a step
+over the feet, as out of water; with no way out (`physics/swimout.js wayOut`) the robot pulls them
+out onto dry ground (over all of the mud if any is) for a quarter of their health ("Stuck in the
+mud!", `game/rescue.js`), else they tire and sink ("Sank in the mud!"). Every game runs its own field from what it
 is shown of him (his tilt and his `drops`, below).
 
 It is drawn as one sheet over the basin (`render/mud.js`): the field goes to the GPU as a texture

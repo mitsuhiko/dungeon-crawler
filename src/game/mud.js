@@ -5,9 +5,8 @@
 // level again, it levels out. Every ball of mud he spits lands in it as a dome (his `drops`), a
 // puddle that holds still while the world is level and runs downhill when it tips. It goes to the
 // physics as a tide with a height of its own in each cell (physics/fluid.js setTide `ys`: waded
-// through as water, deep enough to sink in on the low side, where the robot pulls one out:
-// game/rescue.js; his Mud squirtles live in it) and is drawn as glossy marbled goop
-// (render/mud.js).
+// through as water, and swum in where it is deep, on the low side: physics/fluid.js swum; his Mud
+// squirtles live in it) and is drawn as glossy marbled goop (render/mud.js).
 // Every game runs its own field from what it is shown of him: his tilt and his drops (each once, by
 // its number), so it flows alike in every game. In his intro the mire is flooded to the brim (his
 // `flood`, game/bossreveals.js: he rises out of the mud) and drains down to its mud after it. Without him (beaten, or none here) it drains back to
@@ -77,11 +76,11 @@ function level0(y) {
   for (let k = 0; k < field.depth.length; k++) field.depth[k] = Number.isFinite(field.ground[k]) ? Math.max(0, y - field.ground[k]) : 0;
   field.qx.fill(0); field.qz.fill(0);
 }
-// Mud slows whoever wades through it, a puddle too: the player; the enemies we run that are not his
-// (the mud is his own, and his Mud squirtles live in it)
+// Mud slows whoever wades or swims through it, a puddle too: the player; the enemies we run that are
+// not his (the mud is his own, and his Mud squirtles live in it)
 function wade(list) {
   const p = player, inMud = b => depthAt(field, b.x, b.z) > MUD_FLOW.wet * 2 && surfaceAt(field, b.x, b.z) > b.y - 0.05;
-  if (p.hp > 0 && !p.ragdoll && p.grounded !== false && inMud(p)) slowPlayer(G.mud.wade);
+  if (p.hp > 0 && !p.ragdoll && (p.grounded !== false || p.swimming) && inMud(p)) slowPlayer(G.mud.wade);
   if (mirroring()) return;
   for (const e of list) {
     if (e.mode === 'dead' || e.boss === 'sollmeldon' || e.profile?.mudborn || e.profile?.hover || e.profile?.dwells) continue;

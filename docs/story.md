@@ -119,8 +119,8 @@ Decided:
 - **Its light**: its amber core lights what is round it (a moving light, about four cells).
 - **It pulls you out** (built: `src/core/rescue.js`, `src/game/rescue.js`, the spot
   `src/physics/rescuespot.js`): once it is with the hero, what would kill them in a fluid does not.
-  Fallen into lava or acid, sunk in a boss's mud or slime over the head, or swimming in water with
-  no way out of it (2 s of it), the hero treads in it while the robot zips over (0.5 s; from far
+  Fallen into lava or acid, sunk in a boss's slime over the head, or swimming in water (or his mud)
+  with no way out of it (2 s of it), the hero treads in it while the robot zips over (0.5 s; from far
   off, or another cube, it blinks in over them), grabs hold of it with both hands over their head
   and is pulled up out of it, and it flies them along an arc (kept under the roof; where even that
   would go through rock, it blinks there) onto safe ground: where they last stood safely, else the
@@ -260,7 +260,7 @@ is said in another order in every world (`shuffle`), so playing again brings oth
   it (`trial` `puzzle`), done and failed.
 - Low health, a long fight, enemies beaten, a level, a chest, a rare find, a quest taken, a horde
   waking, a fall, the first swims, coming home, standing about.
-- **Pulling the hero out** of lava, acid, a boss's mud or slime, or water with no way out (`rescue`).
+- **Pulling the hero out** of lava, acid, a boss's slime, or water or mud with no way out (`rescue`).
 
 ## The beginning
 

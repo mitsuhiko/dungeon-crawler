@@ -1,4 +1,4 @@
-// The world's water (docs/world.md "Water"): most of it waded, deep only away from its banks, and
+// The world's water (docs/world.md "Water"): waded by its banks, deep only away from them, and
 // every water the hero can get into has a way out of it (a bank a level over its surface, or a
 // ladder up out of it: cubegen/escape.js), which the click to move finds too (physics/playernav.js).
 import { test } from 'node:test';
@@ -48,7 +48,7 @@ function bodies(m) {
   return out;
 }
 
-test('the water: level with its shore, mostly waded, deep only away from its banks; every water got into has a way out of it', () => {
+test('the water: level with its shore, waded by its banks, deep only away from them; every water got into has a way out of it', () => {
   let water = 0, deep = 0, ladders = 0, stuck = [], flush = 0, all = 0;
   for (const { seed, k, m } of cubes([1, 2])) {
     if (!m.guardian) for (const b of bodies(m)) { all++; if (b.banks.some(g => g.top === b.surf)) flush++; }
@@ -56,8 +56,8 @@ test('the water: level with its shore, mostly waded, deep only away from its ban
       water++;
       if (f.surf - f.top >= 2 && !m.guardian) {   // (a guardian's arena has water of its own: cubegen/guardian.js)
         deep++;
-        // deep only with water all round it
-        for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        // deep only with water on all four sides
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const x = f.x + dx, z = f.z + dz;
           if (x >= 0 && z >= 0 && x < N && z < N) assert.ok(m.cols[z * N + x].some(g => g.fluid === WATER && g.surf === f.surf), `${seed} ${k}: deep by a bank at ${f.x}, ${f.z}`);
         }
@@ -73,7 +73,7 @@ test('the water: level with its shore, mostly waded, deep only away from its ban
   }
   assert.deepEqual(stuck, [], 'stuck in the water');
   assert.ok(flush / all > 0.8, `${flush} of ${all} bodies of water with a shore level with them`);
-  assert.ok(water > 1000 && deep / water < 0.4, `${deep} of ${water} water cells deep`);
+  assert.ok(water > 1000 && deep / water > 0.25 && deep / water < 0.5, `${deep} of ${water} water cells deep`);
   assert.ok(ladders > 5, `${ladders} ladders out of the water`);
 });
 

@@ -10,7 +10,7 @@ import { wornTotals } from '../core/gear/stats.js';
 import { pushStep, pushControl } from '../core/gusts.js';
 import { surfaceAt, mireOf } from '../core/footing.js';
 import { themeById } from '../themes/depth.js';
-import { swimWater, wading } from './fluid.js';
+import { swimWater, waterAt, wading } from './fluid.js';
 
 // how much faster the boots worn make you (not swimming)
 const feet = p => p.swimming ? 0 : wornTotals(p.inventory).moveSpeed / 100;
@@ -136,6 +136,7 @@ function swim(dt, gr, water) {
   p.y += p.vy * dt;
   if (p.y < gr.h) { p.y = gr.h; p.vy = Math.max(0, p.vy); }
   p.swimY = water;
+  p.swimLook = waterAt(gr)?.look ?? 0;   // (clear water, or Sollmeldon's mud: physics/fluid.js swum)
 }
 
 // returns the ground info plus `landed` (impact speed of a landing this step, else 0)

@@ -144,18 +144,17 @@ export function addWaterEscapes(ctx) {
   return added;
 }
 
-// Clear water rarely stands deep everywhere: its cells next to a bank (or any other ground) have
-// their bed a level under the surface, waded through (physics/move.js: shallower than SWIM_DEPTH);
-// only those with water all round them keep theirs two under it, deep enough to swim. Raising a
-// bed only thickens its slab. (Before the moves: a route never walks on a fluid floor.)
+// Clear water does not stand deep everywhere: its cells beside a bank (or any other ground, on one
+// of their four sides) have their bed a level under the surface, waded through (physics/move.js:
+// shallower than SWIM_DEPTH); those with water on all four sides keep theirs two under it, deep
+// enough to swim (a bank only across a corner leaves a cell deep). Raising a bed only thickens its
+// slab. (Before the moves: a route never walks on a fluid floor.)
 export function shoalWater(ctx) {
   if (ctx.spec.trial) return;   // (a trial room's fluids are its own: cubegen/trials/)
   const wet = (x, z, f) => !inb(x, z) || ctx.cols[idx(x, z)].some(g => g.fluid === WATER && g.surf === f.surf && g.layer === f.layer);
   for (const col of ctx.cols) for (const f of col) {
     if (f.fluid !== WATER || f.crust || f.top !== f.surf - 2) continue;
-    let open = true;
-    for (let dz = -1; dz <= 1 && open; dz++) for (let dx = -1; dx <= 1; dx++) if ((dx || dz) && !wet(f.x + dx, f.z + dz, f)) { open = false; break; }
-    if (!open) f.top = f.surf - 1;
+    if (!DIRS.every(([dx, dz]) => wet(f.x + dx, f.z + dz, f))) f.top = f.surf - 1;
   }
 }
 

@@ -1,9 +1,9 @@
 // Fluid contact uses the exposed landing surface, not just the column's fluid.
 // Lava burns and acid dissolves on entry. The hero swims in clear water (physics/move.js): wading
 // while it is shallow, slowed by it, and swimming once it is deeper than SWIM_DEPTH (`swimWater`).
-// What takes the hero (`peril`): lava and acid on contact, and a standing fluid with a look of its
-// own (Sollmeldon's mud, Slomo's slime) once it is over the head: it holds the body and pulls it
-// under (game/rescue.js: the robot pulls them out, else it kills). Things (loot) and enemies are
+// What takes the hero (`peril`): lava and acid on contact, and Slomo's slime (a standing water with
+// a look of its own) once it is over the head: it holds the body and pulls it under (game/rescue.js:
+// the robot pulls them out, else it kills). Sollmeldon's mud is swum in like clear water (`swum`). Things (loot) and enemies are
 // lost in water over their heads (`inFluid`): an enemy wades through water shallower than its body
 // is tall (`headOf`); one that `swims` (Squarlo, the Squirtles) never drowns, and one that is
 // `lavaproof` (Foggery, his Fire-cats) is not burned by lava.
@@ -63,22 +63,25 @@ export function waterAt(gr) {
   if (own === -Infinity && over === -Infinity) return null;
   return over > own ? { y: over, look: s.look ?? 0 } : { y: own, look: 0 };
 }
-// The surface of the clear water a body over the ground gr swims in: water deeper than `depth`
-// there (SWIM_DEPTH to start swimming; less to keep on: physics/move.js), else null
+// is a water of this look (0: clear) swum in? Clear water and Sollmeldon's mud; Slomo's slime holds
+// the body and pulls it under
+export const swum = look => !look || look === MUD;
+// The surface of the water a body over the ground gr swims in (clear, or mud: `swum`): water deeper
+// than `depth` there (SWIM_DEPTH to start swimming; less to keep on: physics/move.js), else null
 export function swimWater(gr, depth = SWIM_DEPTH) {
   const w = waterAt(gr);
-  return w && !w.look && w.y - gr.h > depth ? w.y : null;
+  return w && swum(w.look) && w.y - gr.h > depth ? w.y : null;
 }
 // What takes the hero, with their feet at y over the ground gr: lava or acid they touch, or a
-// standing water with a look of its own (mud, slime) over their head: { fluid, look, y: its surface }
-// or null. Clear water takes nobody: it is swum in.
+// standing water with a look of its own that is not swum in (slime) over their head: { fluid, look,
+// y: its surface } or null. Clear water and mud take nobody: they are swum in.
 export function peril(gr, y) {
   const f = gr.s;
   if (f && !f.kind && f.fluid && f.fluid !== WATER && f.surf * LH > y) return { fluid: f.fluid, look: 0, y: f.surf * LH };
   const s = standing(gr.i ?? -1);
   if (!s) return null;
   if (s.fluid !== WATER) return s.y > y ? { fluid: s.fluid, look: 0, y: s.y } : null;
-  return s.look && s.y - y > HEAD_Y ? { fluid: s.fluid, look: s.look, y: s.y } : null;
+  return !swum(s.look) && s.y - y > HEAD_Y ? { fluid: s.fluid, look: s.look, y: s.y } : null;
 }
 
 // how deep the water the feet at y stand in is (0: dry; for the slowing of wading)
@@ -110,7 +113,7 @@ export const WADE_MARGIN = 0.05;
 // lava or acid; under water as deep as the head stands but for WADE_MARGIN, measured where the
 // foot goes (a sloping bed is waded down as far as that, not judged by its cell's deepest corner):
 // from dry land a jump goes into deeper water. Already in the water (wet: wading, or swimming) it
-// walks on into any clear water, and swims; never into mud or slime over the head.
+// walks on into any clear water or mud, and swims; never into slime over the head.
 const DRY_DEPTH = HEAD_Y - WADE_MARGIN;
 export function wadeable(gr, wet = false) {
   const f = gr.s;
@@ -119,7 +122,7 @@ export function wadeable(gr, wet = false) {
   if (!s) return true;
   const d = s.y - gr.h - 0.02;
   if (s.fluid !== WATER) return d <= 0;
-  return s.look ? d <= DRY_DEPTH : wet || d <= DRY_DEPTH;
+  return !swum(s.look) ? d <= DRY_DEPTH : wet || d <= DRY_DEPTH;
 }
 
 // how high an enemy's head stands over its feet: its body

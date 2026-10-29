@@ -209,7 +209,7 @@ test('a swimmer goes under a bridge, not up through its deck', () => {
   assert.ok(player.x < 9, 'swam on');
 });
 
-test('what takes the hero: lava and acid on contact, a boss\'s mud or slime over the head; clear water never', () => {
+test('what takes the hero: lava and acid on contact, a boss\'s slime over the head; clear water and his mud never (swum in)', () => {
   for (const fluid of [WATER, LAVA, ACID]) {
     const f = bank(1, 0, fluid), gr = groundAt(6.5, 5.5, 10, 0), surface = f.surf * LH;
     assert.equal(peril(gr, surface + 0.1), null, 'over it');
@@ -219,11 +219,13 @@ test('what takes the hero: lava and acid on contact, a boss\'s mud or slime over
   flatMap();
   const gr = groundAt(5.5, 5.5, 10, 0);
   gr.i = 5 * N + 5;
-  for (const look of [0, MUD, ACID]) {
+  for (const look of [0, MUD, ACID]) {   // (clear, Sollmeldon's mud, Slomo's slime)
+    const swum = look !== ACID;
     setTide({ y: 1, fluid: WATER, look, box: [0, 0, N, N] });
     assert.equal(peril(gr, 0.5), null, 'waded');
-    assert.equal(peril(gr, 1 - HEAD_Y - 0.05)?.look ?? null, look ? look : null, `over the head: ${look}`);
-    assert.equal(swimWater(gr) !== null, !look, 'only clear water is swum in');
+    assert.equal(peril(gr, 1 - HEAD_Y - 0.05)?.look ?? null, swum ? null : look, `over the head: ${look}`);
+    assert.equal(swimWater(gr) !== null, swum, 'clear water and mud are swum in, slime is not');
+    assert.equal(wadeable(gr, true), swum, 'wading on into it deep');
   }
   setTide(null);
   assert.ok(SWIM_DEPTH < HEAD_Y);

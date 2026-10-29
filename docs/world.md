@@ -1048,11 +1048,16 @@ in game devtools for real worker, asset, shader and collision checks.
   site, a spot, a horde's camp, a ramp or a kept cell, nor ground beside higher water, nor a ridge
   with lower ground behind it. No slope runs from a bank down under the water beside it
   (`underWater`, `cubegen/smooth.js`): its corner would sag under the surface.
-- **Water** is mostly waded (the hero wades and swims: [combat.md](combat.md#fluids-and-falls)):
-  every water cell next to a bank, or any other ground (its eight neighbours), has its bed a level
-  under the surface, waded through; only those with water all round them keep theirs two levels
-  under it, deep enough to swim (`shoalWater`, `cubegen/escape.js`). So a lake is deep in its
-  middle, a river of three cells or more down its middle, a pool or a narrow river not at all. Lava
+- **Water** is waded along its banks and swum in its middle (the hero wades and swims:
+  [combat.md](combat.md#fluids-and-falls)): every water cell beside a bank, or any other ground (on
+  one of its four sides), has its bed a level under the surface, waded through; those with water on
+  all four sides keep theirs two levels under it, deep enough to swim (`shoalWater`,
+  `cubegen/escape.js`; a bank only across a corner leaves a cell deep). So a lake or a pool is deep
+  in its middle, a river of three cells or more down its middle, a narrow river not at all. Water
+  spreads wider than lava or acid (`WIDER`, `cubegen/river.js`: its pools, lakes and the pools under
+  a stream's fall, `cubegen/pools.js`, `streams.js`, have a radius 0.6 cells bigger), so most
+  bodies of water have deep water to swim in; every one of them still has a way out (below,
+  "Ways out of the water"). Lava
   and acid keep their beds (deep or not, they kill), as do trial rooms' fluids and arenas'. Corner
   smoothing keeps a low bank's corners next to water (a level over it or less) no higher than its
   level, so a slope up from the water starts where a swimmer reaches (`lowBankAt`,
@@ -1105,7 +1110,7 @@ The world guarantees that from anywhere you can arrive, you can get to depth 20.
   (not a route: the routes keep out of the water) and dropped like the escapes when it does not fit.
   Its `map.ladders` entry carries the water's surface (`wet`): it is taken hold of swimming
   (`physics/climb.js`), and climbing down it lets go into the water. `tests/swim.test.js` checks
-  that no cube's water traps anyone, that most of it is shallow, and that a swimmer anywhere in it
+  that no cube's water traps anyone, that a quarter to half of it is deep, and that a swimmer anywhere in it
   gets out with a click.
 - **No jump after a drop:** a route never jumps right after dropping the same way, because
   the fall carries you into the gap.

@@ -181,7 +181,7 @@ function setup(gltf) {
   const defs = {
     idle: part(J, 'Idle', 0, 2),          // the neutral standing pose
     walk: clips.Walk, run: clips.Run,
-    swim: clips.Swim, swimIdle: clips.SwimIdle,   // authored for floating chest deep
+    swim: clips.Swim, swimIdle: clips.SwimIdle,   // authored for floating shoulder deep, the hands under the surface
     skid: clips.Skid,   // side-on on the ice, arms out (a loop)
     climb: clips.Climb,   // in-place ladder grips and steps
     jump: part(J, 'JumpUp', 15, 27),      // push-off into the rising pose

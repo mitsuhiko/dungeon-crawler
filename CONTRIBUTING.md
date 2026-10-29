@@ -61,12 +61,12 @@ The game is plain ES modules and a vendored three.js; there is no build step.
     in the merchant camp until the hero clicks it; it wakes and says hello; from then on it follows them
     along their way, a little behind, through gates and doors and into other cubes, catching up
     once they stop, and lights the way. It is in no fight and nobody's target. It pulls the hero out
-    of what would kill them in a fluid, lava, acid, a boss's mud, water with no way out, and flies
+    of what would kill them in a fluid, lava, acid, a boss's slime, water or mud with no way out, and flies
     them to safe ground (`src/core/rescue.js`, `src/game/rescue.js`).
   - Swimming (`src/physics/move.js`, `src/game/swim.js`; `docs/combat.md` "Fluids and falls"): the
-    hero wades through shallow water and swims in deep water, climbing out onto a bank a level over
-    it; the generator keeps most water shallow and gives every water a way out
-    (`src/cubegen/escape.js`, `docs/world.md`).
+    hero wades through shallow water and swims in deep water (and in Sollmeldon's mud), climbing out
+    onto a bank a level over it; the generator keeps water shallow along its banks, deep in its
+    middle, and gives every water a way out (`src/cubegen/escape.js`, `docs/world.md`).
   - The narrator (`docs/story.md`, `docs/narration.md`): the glassmaker's recordings (the
     beginning's, and his glass in the depths with a boss, a chapter of the before time a depth,
     `src/core/glass.js`) and the robot (its hello, then what it sees: places, enemies, bosses and

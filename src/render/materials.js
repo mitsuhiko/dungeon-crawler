@@ -110,6 +110,9 @@ export const WET_LINE = Object.fromEntries(Object.entries(FLUID_LOOK).filter(([,
 // and where their tide stands now and their wet line, per fluid (x water, y lava, z acid), for the
 // structures standing in them (render/wet.js wetMaterial)
 export const FIXED_TIDE = { value: new THREE.Vector3() }, FIXED_WET = { value: new THREE.Vector3() };
+// how far over its level (world units, under it: < 0) clear water is drawn now: its rest height
+// and its tide (render/surface.js; what floats in it, the swimmer: render/animator.js, game/swim.js)
+export const waterShownAt = () => tideY(FLUID_LOOK[WATER].cells, WIND.value) - SINK;
 let tidesAt = null;
 export function tickTides() {
   const dt = tidesAt == null ? 0 : Math.max(0, WIND.value - tidesAt);

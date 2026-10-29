@@ -1,11 +1,16 @@
 // Layer 0 fluids: rivers that enter through the cube faces (their crossings are shared with the
-// neighbours) and meet at a junction, a lake for lake cubes, plus a few pools.
-import { N, DIRS, FLUID_NAME } from '../core/constants.js';
+// neighbours) and meet at a junction, a lake for lake cubes, plus a few pools. Water spreads wider
+// than lava or acid (WIDER): a pool, a lake of it is bigger, and so deep in more of its middle
+// (cubegen/escape.js shoalWater), to swim in.
+import { N, DIRS, FLUID_NAME, WATER } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 import { edgeCell } from './portals.js';
 import { bankGround } from './contain.js';
 
 export const RIVER_SURF = 2;   // all rivers in the world flow at this level
+// how much wider a body of water is than one of lava or acid (its radius, cells)
+export const WIDER = 0.6;
+const wider = type => type === WATER ? WIDER : 0;
 
 export function carveRiver(ctx) {
   const { R, ri, pickFluid, lvl0, prot0, stats, spec } = ctx;
@@ -31,7 +36,7 @@ export function carveRiver(ctx) {
       }
     }
     if (lake || ends.length === 1 && !spec.lake) {   // a lake, or a pool where a lone river ends
-      const rad = lake ? 3.4 + R() * 1.8 : 1.8 + R() * 0.8;
+      const rad = (lake ? 3.4 + R() * 1.8 : 1.8 + R() * 0.8) + wider(spec.fluid);
       for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) if (Math.hypot(x - jx, z - jz) < rad) cells.add(idx(x, z));
     }
     fill([...cells].filter(i => !prot0[i]), spec.fluid, RIVER_SURF);
@@ -49,7 +54,7 @@ export function carveRiver(ctx) {
   // (nor in a trial room, cubegen/trials/: the trial decides its fluids)
   for (let p = spec.area?.role === 'summit' || spec.peak || spec.trial ? 0 : ri(1, 3); p > 0; p--) {
     const type = pickFluid();
-    const cx = 3 + R() * (N - 6), cz = 3 + R() * (N - 6), rad = 1.1 + R() * 1.4;
+    const cx = 3 + R() * (N - 6), cz = 3 + R() * (N - 6), rad = 1.1 + R() * 1.4 + wider(type);
     const cells = [];
     for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) {
       const i = idx(x, z);

@@ -21,6 +21,7 @@ import { groundAt } from '../physics/collide.js';
 import { allEnemies } from '../game/enemies.js';
 import { hoveredEnemy } from '../game/pointer.js';
 import { slidingCubes } from '../game/travel.js';
+import { waterShownAt } from './materials.js';
 
 // learn: animation.html#getup (see learn/README.md)
 const MORPH = 0.3;       // s from the ragdoll pose into the get-up clip
@@ -28,6 +29,7 @@ const GET_UP_OUT = 10;   // fade-out rate of a get-up cut short by walking
 let clean = null;        // [bone, quaternion, position]: the pose the mixer produced last
 let getUp = null;        // the player.getUp being played
 let upAction = null;     // ... and its clip (kept while it fades out)
+let afloat = 0;          // how far the swimmer is drawn under the level physics swims at (floatOffset)
 let morph = null;        // { t, list, quats, hips }: the ragdoll pose (world space)
 let ragdolled = false;   // the hero was a ragdoll last frame
 // the attack being played: its serial, its action and the one before it (a chained attack
@@ -44,6 +46,15 @@ const _q = new THREE.Quaternion(), _w = new THREE.Quaternion(), _v = new THREE.V
 // put the mixer's last pose back before every update and remember the new one after it
 function restorePose() { for (const [b, q, p] of clean) { b.quaternion.copy(q); b.position.copy(p); } }
 function keepPose() { for (const [b, q, p] of clean) { q.copy(b.quaternion); p.copy(b.position); } }
+
+// A swimmer floats on the water as it is drawn: physics holds the body at the water's level, its
+// surface rests under that and rises and falls with the tide (render/surface.js), and the Swim
+// clips put the water line just under the shoulders. Mud is drawn at its level (render/mud.js).
+function floatOffset(dt, p) {
+  const want = p.swimming && !p.swimLook ? waterShownAt() : 0;
+  afloat += (want - afloat) * Math.min(1, dt * 6);
+  return afloat;
+}
 
 // remember the ragdoll pose in world space; the model is turned and moved under it
 // learn: animation.html#getup (see learn/README.md)
@@ -103,7 +114,7 @@ export function animateCharacter(dt, time) {
   else if (p.climb) { const [dx, dz] = DIRS[p.climb.l.d]; yaw = angleTo(yaw, Math.atan2(dx, dz), Math.min(1, dt * 12)); }
   else if (speed > 0.2 && p.stun <= 0) yaw = angleTo(yaw, Math.atan2(p.vx, p.vz), Math.min(1, dt * (p.swimming ? 5 : 12)));
   p.yaw = yaw;
-  ch.group.position.set(p.x, p.visY, p.z);
+  ch.group.position.set(p.x, p.visY + floatOffset(dt, p), p.z);
   ch.group.rotation.y = yaw;
   squash(ch.group, p, dt);
   ch.group.updateMatrixWorld(true);
