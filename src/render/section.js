@@ -184,7 +184,7 @@ function wallFloors(map) {
   if (map === floorsOf) return;
   floorsOf = map;
   a.fill(0);
-  if (!map?.walled || map.interior) return;
+  if (!(map?.walled || map?.walls?.some(Boolean)) || map.interior) return;
   // (in Flip's box only the fight's floors: what stands out of its walls overhead is wall)
   const tops = map.cols.map(col => Math.max(0, ...col.filter(f => !map.flip || f.encounter).map(f => f.fluid ? f.surf * LH : Math.min(...f.cs))));
   for (const r of map.runs) for (const p of r.pieces) tops[p.z * N + p.x] = Math.max(tops[p.z * N + p.x], Math.min(p.y0, p.y1));
@@ -206,10 +206,12 @@ export function setCut(y, map, px, py, pz, walls = true) {
   if (room) { U.uWallBox.value.set(room.x0 - t, room.x1 + t, room.z0 - t, room.z1 + t); U.uWallBand.value = t + WALL_CUT; U.uFrontKinds.value.set(0, 1, 0, 0); U.uFrontCorners.value = 0; }
   // (Flip's box: what stands out of its walls comes down with them, cubegen/fliparena.js)
   else { U.uWallBox.value.set(0, N, 0, N); U.uWallBand.value = map?.flip ? 3.6 : 2.2; U.uFrontKinds.value.set(1, 1, 1, 1); U.uFrontCorners.value = 1; }
-  const box = U.uWallBox.value, walled = walls && (!!map?.walled || !!room);
+  // (a cube walled only along some faces, a walled trial room's under the sky and its neighbours:
+  // those faces, map.walls)
+  const box = U.uWallBox.value, walled = d => walls && (!!map?.walled || !!room || !!map?.walls?.[d]);
   const cx = camera.position.x - (box.x + box.y) / 2, cz = camera.position.z - (box.z + box.w) / 2;
   wallFloors(map);
-  U.uFront.value.set(walled && cx > 6 ? 1 : 0, walled && cx < -6 ? 1 : 0, walled && cz > 6 ? 1 : 0, walled && cz < -6 ? 1 : 0);
+  U.uFront.value.set(walled(0) && cx > 6 ? 1 : 0, walled(1) && cx < -6 ? 1 : 0, walled(2) && cz > 6 ? 1 : 0, walled(3) && cz < -6 ? 1 : 0);
   // the cut-away part as glass (ghosts.js): inside a cut, and where cave and canyon walls come down
   const f = U.uFront.value;
   U.uWallGlass.value = !room && f.x + f.y + f.z + f.w > 0 ? 1 : 0;
