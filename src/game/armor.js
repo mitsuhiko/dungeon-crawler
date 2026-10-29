@@ -46,7 +46,7 @@ export function updateArmor(time) {
   if (inv !== seen || inv.version !== seenVersion || bow !== seenBow || missing) {
     seen = inv; seenVersion = inv.version; seenBow = bow;
     refreshMaxHp(player);
-    missing = character.ready && dress(wanted(inv));
+    missing = !character.ready || dress(wanted(inv));   // (not loaded yet: dressed once it is)
   }
   if (character.ready) animateWorn(character, time);
 }
