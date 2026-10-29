@@ -42,6 +42,9 @@ and the room under a shaft. Do not bring it back.
 
 ## Starting town (`world/town.js`, `cubegen/town.js`)
 
+A plan replaces this town and the merchant camp with a town of 12 tiles, known from the start
+and crossed without seams: [town.md](town.md) (not built yet).
+
 The spawn cube `(0,0,0)` is an authored clearing, rotated to match its **single
 outgoing side portal**. It contains the four permanent `assets/town.glb`
 buildings: inn, stable, pet shop and blacksmith. They stand on the cube grid (quarter

@@ -98,7 +98,7 @@ function roomFor(floors, blocked, entrance, gate, need) {
 function dwellers(spec) {
   const out = new Map();
   if (spec.guardian?.boss && (spec.guardian.role ?? 'descent') === 'descent') return out;   // (a boss brings his own)
-  for (const [type, p] of population({ seed: spec.seed, depth: spec.depth, guardian: true, biome: spec.biome })) {
+  for (const [type, p] of population({ seed: spec.seed, depth: spec.depth, level: spec.level, guardian: true, biome: spec.biome })) {
     const kinds = Object.entries(p.kinds ?? { [type]: 1 }).filter(([k]) => ENEMY_KINDS[k]?.dwells), total = kinds.reduce((s, [, w]) => s + w, 0);
     for (const [k, w] of kinds) out.set(ENEMY_KINDS[k].dwells[0], (out.get(ENEMY_KINDS[k].dwells[0]) ?? 0) + p.count * w / total);
   }
@@ -232,7 +232,7 @@ export function generateGuardian(spec) {
   for (const p of ctx.portals) for (const c of p.cells) flatten(...xz(c), 1);
   flatten(U[0], U[1], 1);
   let need = 0;
-  for (const [, p] of population({ seed: spec.seed, depth: spec.depth, guardian: true, biome: spec.biome })) need += p.count;
+  for (const [, p] of population({ seed: spec.seed, depth: spec.depth, level: spec.level, guardian: true, biome: spec.biome })) need += p.count;
   const R = mulberry32(hash32(spec.seed ^ 0xa7e4a));
   const frame = { level, need, flat, R, noise: makeNoise(R), noise2: makeNoise(R),
     E: inward([ex, ez], entry.dir), U, G: exit < 4 ? inward([px, pz], exit) : [px, pz] };

@@ -104,7 +104,7 @@ merchant camp have no enemies (`enemyFreeAt` in `src/world/town.js`: `Y = 0` and
 A roster entry is `species chance count (packs) [kinds]`:
 
 - **chance**: how likely a cube is to have the species at all. No percentage means always.
-- **count**: how many spawn when it is there.
+- **count**: how many spawn when it is there, before the budget (below) scales them.
 - **packs**: the biggest group it spawns in. No value means each one spawns on its own.
   **troops of 3**: always exactly three together, all of one kind (the Flimmers: their count is
   rounded to whole troops).
@@ -119,6 +119,23 @@ A roster entry is `species chance count (packs) [kinds]`:
   everywhere but there (`'!theme'`: the ordinary spiders of depths 2 to 6 and the Flimmers of
   depths 4 to 6 leave the forest to its own).
 
+- **(world level ≥ N)**: a guest of worlds of a higher level only ([progression.md](progression.md#world-level)):
+  the road out of town and the first depths have a few more kinds for a hero who has been down
+  before. A world of level 1 rolls as if they were not there.
+
+**The budget.** What a cube's enemies are worth together, their level-1 XP (about how tough
+they are, all told), is `BUDGET[depth]` (`src/core/spawns.js`), give or take 20% (`SPREAD`): 60
+on the road out of town, 120 at depth 1, 200 at 2, 280 at 3, then about 30 to 50 more each depth,
+980 at 19, and 1500 in the core. A cube rolls its species and counts from the row as the table
+says, then the counts are scaled to its budget (`fitBudget`): the rows say who lives where, and
+in what proportions; the budget says how much of it a room holds. A depth whose species happen
+to be cheap (spider swarms at 3, 14 and 15) or dear (Triangles and Stunders at 16) no longer
+makes a room worth much more or less than its neighbours'. The ranged species are only ever
+scaled down, so they stay few (a room of shooters alone stays under its budget); the others take
+up what is left, up to half again the most their row says (`GROW_MOST`; in a guardian's arena,
+which holds them twice over, no more than the row says), and never fewer than one pack (a herd of
+Moose stays a herd).
+
 `mix` is the most species a single cube can hold. The Squirtles live in fluids
 (`src/physics/dwell.js`): they are only put down in a fluid of their kind's, so a cube without
 one has none, whatever the roster says (and a guardian arena has a pond dug for them,
@@ -126,9 +143,9 @@ one has none, whatever the roster says (and a guardian arena has a pond dug for 
 
 | Depth | mix | Roster |
 |---:|---:|---|
-| 0 | 1 | snakes 1–2 |
-| 1 | 2 | snakes 2–4, Stunders 20% 1, Wolks 25% 1, Squirtles 60% 1–2 (Lagoon isles only), spiders 70% 2–4 (packs ≤2) [Gloom spider] (Dark forest only), Fire-faces 30% 1 [Lantern-face] (Dark forest only) |
-| 2 | 3 | snakes 2–5 [75% Grass snake, 25% Sand viper], spiders 60% 2–4 (packs ≤2) (not the Dark forest), Stunders 25% 1, Wolks 35% 1–2, Tornados 30% 1, Squirtles 60% 1–3 (Lagoon isles only), Flimmers 35% 3 (troops of 3), spiders 80% 3–5 (packs ≤2) [75% Gloom spider, 25% Spider] (Dark forest only), Fire-faces 40% 1–2 [Lantern-face] (Dark forest only), Moose 40% 2 (packs ≤2) (Dark forest, Prayer highlands only), Moose 40% 2 (packs ≤2) [Frost moose] (Snowy peaks only) |
+| 0 | 2 | snakes 1–2, spiders 50% 2–4 (packs ≤2) (world level ≥ 3), Wolks 30% 1 (world level ≥ 5), Stunders 25% 1 (world level ≥ 7) |
+| 1 | 2 | snakes 2–4, Stunders 20% 1, Wolks 25% 1, Squirtles 60% 1–2 (Lagoon isles only), spiders 70% 2–4 (packs ≤2) [Gloom spider] (Dark forest only), Fire-faces 30% 1 [Lantern-face] (Dark forest only), spiders 50% 2–4 (packs ≤2) (not the Dark forest; world level ≥ 3), Tornados 30% 1 (world level ≥ 5) |
+| 2 | 3 | snakes 2–5 [75% Grass snake, 25% Sand viper], spiders 60% 2–4 (packs ≤2) (not the Dark forest), Stunders 25% 1, Wolks 35% 1–2, Tornados 30% 1, Squirtles 60% 1–3 (Lagoon isles only), Flimmers 35% 3 (troops of 3), spiders 80% 3–5 (packs ≤2) [75% Gloom spider, 25% Spider] (Dark forest only), Fire-faces 40% 1–2 [Lantern-face] (Dark forest only), Moose 40% 2 (packs ≤2) (Dark forest, Prayer highlands only), Moose 40% 2 (packs ≤2) [Frost moose] (Snowy peaks only), Shraps 20% 1 (world level ≥ 5), Triangles 15% 1 (world level ≥ 7) |
 | 3 | 3 | spiders 8–14 (packs ≤3) [Frost spider] (not the Dark forest), Stunders 70% 1–2 [Frost stunder], Shraps 30% 1, Wolks 50% 1–2 [67% Storm wolk, 33% Wolk], snakes 70% 2–4 (packs ≤2) [Frost adder], Triangles 20% 1, Tornados 35% 1–2 [67% Frost tornado, 33% Tornado], Squirtles 60% 1–3 (Lagoon isles only), Flimmers 45% 3 (troops of 3) [Frost flimmer], spiders 80% 4–6 (packs ≤2) [67% Gloom spider, 33% Spider] (Dark forest only), Fire-faces 40% 1–2 [Lantern-face] (Dark forest only), Moose 45% 2–3 (packs ≤3) (Dark forest, Prayer highlands only), Moose 50% 2–3 (packs ≤3) [Frost moose] (Snowy peaks only) |
 | 4 | 3 | snakes 3–6 (packs ≤2) [Sand viper], spiders 80% 4–8 (packs ≤3) [80% Spider, 20% Redback] (not the Dark forest), Stunders 60% 1–2 [50% Stone stunder, 50% Stunder], Wolks 50% 1–2 [Dust wolk], Tornados 40% 1–2 [67% Dust tornado, 33% Tornado], Squirtles 60% 2–3 (packs ≤2) (Lagoon isles only), Flimmers 45% 3–6 (troops of 3) [67% Haze flimmer, 33% Flimmer] (not the Dark forest), Flimmers 35% 3 (troops of 3) [Shadow flimmer] (Dark forest only), spiders 80% 4–7 (packs ≤3) [67% Gloom spider, 33% Spider] (Dark forest only), Fire-faces 45% 1–2 [Lantern-face] (Dark forest only), Moose 50% 2–3 (packs ≤3) (Dark forest, Prayer highlands only), Moose 50% 2–3 (packs ≤3) [Frost moose] (Snowy peaks only) |
 | 5 | 3 | snakes 4–7 (packs ≤2) [Sand viper], spiders 80% 5–9 (packs ≤3) [80% Spider, 20% Redback] (not the Dark forest), Stunders 60% 1–2 [50% Stone stunder, 50% Stunder], Wolks 40% 1–2 [50% Dust wolk, 50% Storm wolk], Wollas 30% 1–2, Tornados 35% 1–2 [50% Dust tornado, 50% Tornado], Squirtles 60% 2–3 (packs ≤2) (Lagoon isles only), Flimmers 45% 3–6 (troops of 3) [67% Haze flimmer, 33% Flimmer] (not the Dark forest), Flimmers 35% 3 (troops of 3) [Shadow flimmer] (Dark forest only), spiders 80% 5–8 (packs ≤3) [67% Gloom spider, 33% Spider] (Dark forest only), Fire-faces 50% 1–2 [Lantern-face] (Dark forest only), Moose 50% 2–4 (packs ≤3) (Dark forest, Prayer highlands only), Moose 50% 2–4 (packs ≤3) [Frost moose] (Snowy peaks only) |
@@ -192,7 +209,8 @@ The design rules behind the table:
   but not from three sides. The Wolk, whose lightning also stuns, comes alone or in twos, and so
   does the Tornado, whose twisters lift you and throw you down.
 - **Melee species get more numerous.** Spiders go from 2–4 at depth 2 to 8–14 at 3, 20–28 in
-  the nests, and up to 26 in the core. They spawn in packs, and the packs get bigger the
+  the nests, and up to 26 in the core (before the budget: a room of cheap spiders holds many of
+  them, one with a Stunder besides fewer). They spawn in packs, and the packs get bigger the
   deeper you go. Snakes grow the same way, but more slowly.
 
 ### Variety within a depth
@@ -240,20 +258,20 @@ enemies' own levels, before the player's level scales it.
 
 | Depth | Enemies | Max | XP | Depth | Enemies | Max | XP |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 0 | 2.8 | 7 | 163 | 11 | 16.6 | 36 | 2511 |
-| 1 | 4.6 | 12 | 236 | 12 | 18.0 | 44 | 3056 |
-| 2 | 7.9 | 18 | 423 | 13 | 18.1 | 30 | 3809 |
-| 3 | 13.9 | 28 | 737 | 14 | 30.3 | 64 | 3795 |
-| 4 | 12.6 | 26 | 890 | 15 | 28.1 | 58 | 3840 |
-| 5 | 14.1 | 30 | 1155 | 16 | 12.4 | 32 | 3986 |
-| 6 | 15.3 | 36 | 1492 | 17 | 18.6 | 40 | 5629 |
-| 7 | 17.1 | 32 | 1478 | 18 | 16.1 | 50 | 6148 |
-| 8 | 18.8 | 42 | 1812 | 19 | 12.2 | 24 | 6358 |
-| 9 | 13.0 | 30 | 1812 | 20 | 16.8 | 33 | 7304 |
-| 10 | 14.6 | 32 | 2373 |  |  |  |  |
+| 0 | 2.1 | 7 | 70 | 11 | 13.7 | 36 | 2257 |
+| 1 | 3.9 | 12 | 140 | 12 | 13.9 | 32 | 2576 |
+| 2 | 6.7 | 18 | 278 | 13 | 12.4 | 28 | 2563 |
+| 3 | 8.4 | 26 | 464 | 14 | 25.2 | 54 | 3703 |
+| 4 | 9.1 | 24 | 609 | 15 | 27.5 | 62 | 4010 |
+| 5 | 9.4 | 22 | 748 | 16 | 12.5 | 36 | 4378 |
+| 6 | 10.7 | 26 | 952 | 17 | 16.0 | 44 | 4911 |
+| 7 | 14.2 | 36 | 1089 | 18 | 13.3 | 36 | 5738 |
+| 8 | 16.1 | 34 | 1560 | 19 | 10.6 | 24 | 6181 |
+| 9 | 11.6 | 30 | 1763 | 20 | 11.2 | 26 | 6943 |
+| 10 | 11.2 | 32 | 1815 |  |  |  |  |
 
-The enemy count drops at a theme change that brings in stronger species (9, 16, 19). The
-XP per cube keeps rising (or holds, at 7 and 9 and 14, where the theme changes).
+The enemy count follows the species (many cheap spiders in the nests, few dear ones at 16 and
+19), the XP per cube rises with the budget and the levels, depth after depth.
 
 ## Enemy levels
 

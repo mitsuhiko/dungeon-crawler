@@ -155,7 +155,7 @@ function tryGenerate(seed, spec) {
     seed, K, B, cols, floors, pieces, runs, falls, fences, fenceList, stats, moves, portals, ...sites, horde, spots: spots.spots,
     vignettes: vignettes.list,   // the theme's little set pieces (cubegen/vignettes.js): [{ name, x, y, z, yaw }]
     mudPockets,   // pockets of mud on the ground round a mud pool (cubegen/mudpools.js): [{ x, z, y, r, vol }]
-    roomRole: spec.roomRole, biome: spec.biome, populationScale: spec.populationScale, annexRoom: !!spec.annexRoom,
+    roomRole: spec.roomRole, biome: spec.biome, level: spec.level ?? 1, populationScale: spec.populationScale, annexRoom: !!spec.annexRoom,
     trialRoom: !!spec.trial, trialFaces: spec.trialFaces || [null, null, null, null],   // (world/trials.js)
     trial: trial.trial,   // what the trial is built of (cubegen/trials/)
     clues: clues.clues,   // rune rooms' tablets: [{ key (the trial's room), x, y, z, glyphs (in order) }]

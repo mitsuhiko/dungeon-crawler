@@ -12,6 +12,9 @@
 //       Stronger kinds take over deeper down, and each theme leans on the kinds that suit it: a
 //       species' kinds take turns down the depths, so that each turns up about as often as the
 //       others (tools/palette.html measures it), each where its look and name fit.
+//     world: the least world level (map.level, core/enemies.js depthLevel) it comes at: guests the
+//       road out of town and the first depths only have for a hero who has been down before (worlds
+//       of level 1 roll as if they were not there)
 //     where: the themes (map.biome, the theme's prop set) the species lives in, if not all of the
 //       depth's (the Squirtles keep to the fluids, each kind to its own: the blue ones to the water
 //       of the lagoons, the sunken grotto and the cenote, the Moss ones to the slime marsh's acid,
@@ -26,27 +29,43 @@
 //     always-present species are kept first, the others in a random order weighted by chance.
 //   The lead: one present species (picked by chance) dominates the cube. It draws its count
 //     from the top half of its range, every other species from the bottom half.
+//   The budget: what a cube is worth, its enemies' level-1 XP (about how tough they are together),
+//     is BUDGET[depth] give or take SPREAD. The counts rolled above are scaled to it (the ranged
+//     species only ever down: they stay few), so the rows say who lives where and in what
+//     proportions, and the budget how much of it a room holds: no depth gets a room's worth more
+//     or less because its species happen to be cheap or dear (fitBudget).
 // Ranged species (Fire-face, Triangle, Shraps, Spicy, Wolla, Wolk, Squirtle, Tornado, Slug) stay at a few per cube; the melee ones, the spiders
 // above all, come in larger and larger packs further down.
 import { mulberry32, hash32 } from './util.js';
-import { ENEMY_KINDS, STAGE_PROFILES } from './enemies.js';
+import { ENEMY_KINDS, STAGE_PROFILES, isRanged, cleanWorldLevel } from './enemies.js';
 
-export const D = (mix, ...roster) => ({ mix, roster: roster.map(([type, chance, lo, hi, pack = 1, kinds = { [type]: 1 }, where = null]) =>
-  ({ type, chance, lo, hi, pack, kinds, where })) });
+export const D = (mix, ...roster) => ({ mix, roster: roster.map(([type, chance, lo, hi, pack = 1, kinds = { [type]: 1 }, where = null, world = 1]) =>
+  ({ type, chance, lo, hi, pack, kinds, where, world })) });
+
+// What an ordinary room is worth at each depth (its enemies' level-1 XP; docs/depths.md, "The
+// budget"): a smooth climb, a little steeper at first, and the core above it all. SPREAD: how much
+// one room may be off it, either way.
+export const BUDGET = [60, 120, 200, 280, 340, 390, 430, 460, 490, 520, 550, 590, 630, 680, 730, 780, 830, 880, 930, 980, 1500];
+export const SPREAD = 0.2;
+export const budgetAt = depth => BUDGET[Math.min(BUDGET.length - 1, Math.max(0, depth | 0))];
 
 // who waits at the foot of the beginning's rock, in front of his first glass (docs/story.md "The
 // beginning"): the hero's first fight (game/enemyspawn.js firstGlassSpots)
 export const FIRST_GLASS = { type: 'snake', count: 3 };
 
 export const DEPTH_SPAWNS = [
-  /*  0 road out of town */ D(1, ['snake', 1, 1, 2]),
+  /*  0 road out of town */ D(2, ['snake', 1, 1, 2],
+    // (for a hero who has been down before: worlds of a higher level)
+    ['spider', .5, 2, 4, 2, { spider: 1 }, null, 3], ['wolk', .3, 1, 1, 1, { wolk: 1 }, null, 5], ['stunder', .25, 1, 1, 1, { stunder: 1 }, null, 7]),
   /*  1 act I */ D(2, ['snake', 1, 2, 4], ['stunder', .2, 1, 1], ['wolk', .25, 1, 1],
     ['squirtle', .6, 1, 2, 1, { squirtle: 1 }, ['lagoon']],
-    ['spider', .7, 2, 4, 2, { gloomspider: 1 }, ['darkforest']], ['fireface', .3, 1, 1, 1, { lanternface: 1 }, ['darkforest']]),
+    ['spider', .7, 2, 4, 2, { gloomspider: 1 }, ['darkforest']], ['fireface', .3, 1, 1, 1, { lanternface: 1 }, ['darkforest']],
+    ['spider', .5, 2, 4, 2, { spider: 1 }, ['!darkforest'], 3], ['tornado', .3, 1, 1, 1, { tornado: 1 }, null, 5]),
   /*  2 act I */ D(3, ['snake', 1, 2, 5, 1, { snake: 3, sandviper: 1 }], ['spider', .6, 2, 4, 2, { spider: 1 }, ['!darkforest']],
     ['stunder', .25, 1, 1], ['wolk', .35, 1, 2], ['tornado', .3, 1, 1], ['squirtle', .6, 1, 3, 1, { squirtle: 1 }, ['lagoon']], ['flimmer', .35, 3, 3, 3],
     ['spider', .8, 3, 5, 2, { gloomspider: 3, spider: 1 }, ['darkforest']], ['fireface', .4, 1, 2, 1, { lanternface: 1 }, ['darkforest']],
-    ['moose', .4, 2, 2, 2, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .4, 2, 2, 2, { frostmoose: 1 }, ['peaks']]),
+    ['moose', .4, 2, 2, 2, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .4, 2, 2, 2, { frostmoose: 1 }, ['peaks']],
+    ['shraps', .2, 1, 1, 1, { shraps: 1 }, null, 5], ['triangle', .15, 1, 1, 1, { triangle: 1 }, null, 7]),
   /*  3 act I */ D(3, ['spider', 1, 8, 14, 3, { frostspider: 1 }, ['!darkforest']], ['stunder', .7, 1, 2, 1, { froststunder: 1 }],
     ['shraps', .3, 1, 1], ['wolk', .5, 1, 2, 1, { stormwolk: 2, wolk: 1 }], ['snake', .7, 2, 4, 2, { frostadder: 1 }], ['triangle', .2, 1, 1],
     ['tornado', .35, 1, 2, 1, { frosttornado: 2, tornado: 1 }], ['squirtle', .6, 1, 3, 1, { squirtle: 1 }, ['lagoon']],
@@ -146,6 +165,8 @@ export const DEPTH_SPAWNS = [
 // does a roster entry's species live in a theme (map.biome)? (`where`, above)
 export const livesIn = (e, biome) => !e.where
   || (e.where.every(w => w.startsWith('!')) ? !e.where.includes('!' + biome) : e.where.includes(biome));
+// ... and in a world of map.level (`world`, above)?
+export const comesTo = (e, map) => livesIn(e, map.biome) && (e.world ?? 1) <= cleanWorldLevel(map.level);
 export const spawnsAt = depth => DEPTH_SPAWNS[Math.min(DEPTH_SPAWNS.length - 1, Math.max(0, depth | 0))];
 
 const SALT = 0x3e1a5c7;
@@ -174,20 +195,49 @@ export function population(map) {
   if (map.firstGlass) return new Map([[FIRST_GLASS.type, { count: FIRST_GLASS.count, pack: FIRST_GLASS.count, lead: true, kinds: { [FIRST_GLASS.type]: 1 } }]]);
   const R = mulberry32(hash32(map.seed ^ SALT)), row = map.spawns ?? spawnsAt(map.depth || 0);
   const rolled = [];
-  for (const e of row.roster) if (livesIn(e, map.biome) && R() < e.chance) rolled.push({ e, key: e.chance >= 1 ? 1 + R() : R() ** (1 / e.chance) });
+  for (const e of row.roster) if (comesTo(e, map) && R() < e.chance) rolled.push({ e, key: e.chance >= 1 ? 1 + R() : R() ** (1 / e.chance) });
   let present = rolled.sort((a, b) => b.key - a.key).slice(0, row.mix).map(r => r.e);
   // (none rolled: the first that lives here)
-  if (!present.length) present = [row.roster.find(e => livesIn(e, map.biome)) ?? row.roster[0]];
+  if (!present.length) present = [row.roster.find(e => comesTo(e, map)) ?? row.roster[0]];
   let w = R() * present.reduce((n, e) => n + e.chance, 0), lead = present[present.length - 1];
   for (const e of present) if ((w -= e.chance) < 0) { lead = e; break; }
-  return new Map(present.map(e => {
+  const counts = present.map(e => {
     const mid = (e.lo + e.hi) / 2, lo = e === lead ? Math.ceil(mid) : e.lo, hi = e === lead ? e.hi : Math.floor(mid);
-    const rolledCount = lo + Math.floor(R() * (hi - lo + 1));
-    let count = Math.max(1, Math.round(rolledCount * (map.populationScale ?? 1)));
+    return lo + Math.floor(R() * (hi - lo + 1));
+  });
+  // (a test arena's own row, map.spawns: as it says)
+  const fitted = map.spawns ? counts : fitBudget(present, counts, budgetAt(map.depth || 0) * (1 + SPREAD * (2 * R() - 1)), R, map.guardian ? 1 : GROW_MOST);
+  return new Map(present.map((e, i) => {
+    let count = Math.max(1, Math.round(fitted[i] * (map.populationScale ?? 1)));
     const troop = ENEMY_KINDS[e.type]?.troop;
     if (troop) count = Math.max(1, Math.round(count / troop)) * troop;
     return [e.type, { count: count * (map.guardian ? 2 : 1), pack: e.pack, lead: e === lead, kinds: e.kinds }];
   }));
+}
+
+// what one of a roster entry is worth: its kinds' level-1 XP, as likely as they are drawn
+export const entryWorth = e => {
+  const kinds = Object.entries(e.kinds), total = kinds.reduce((n, [, w]) => n + w, 0);
+  return kinds.reduce((n, [k, w]) => n + ENEMY_KINDS[k].xp * w, 0) / total;
+};
+// The counts of the species present scaled to be worth `budget` together (the budget, above): the
+// ranged ones are only scaled down (they stay few: docs/depths.md; a room of nothing else stays
+// under its budget), the others take up what is left, up to half again the most their row says
+// (`grow`, GROW_MOST: a room holds only so many; a guardian's arena, which holds them twice over,
+// no more than the row says); each count rounded up or down by chance, as near as it gets on
+// average, and never under one pack of it (a herd stays a herd).
+export const GROW_MOST = 1.5;
+export function fitBudget(present, counts, budget, R, grow = GROW_MOST) {
+  const worth = present.map(entryWorth), ranged = present.map(e => isRanged(ENEMY_KINDS[e.type]));
+  const sum = which => counts.reduce((n, c, i) => n + (which(i) ? c * worth[i] : 0), 0);
+  const all = sum(() => true), near = sum(i => !ranged[i]), far = all - near;
+  if (all <= 0) return counts;
+  const scale = counts.map((_, i) => budget <= all ? budget / all : ranged[i] ? 1 : near > 0 ? (budget - far) / near : 1);
+  return counts.map((c, i) => {
+    const x = c * scale[i], n = Math.floor(x);
+    const e = present[i], most = Math.max(c, Math.ceil(e.hi * grow));
+    return Math.min(most, Math.max(Math.min(e.lo, e.pack), n + (R() < x - n ? 1 : 0)));
+  });
 }
 
 // the kinds a cube's enemies can be: its population's and the kinds its packs draw from (a

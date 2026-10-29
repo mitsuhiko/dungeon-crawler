@@ -134,7 +134,8 @@ test('double the full local roster with exactly one promoted guardian, without o
       assert.equal(guard.level, guardianLevel(d, g.role));
       assert.equal(guard.level, depthLevel(d) + (d ? g.role === 'descent' ? 2 : 1 : 0));
       for (const [type, p] of pop) {
-        assert.equal(p.count, ordinary.get(type).count * 2);
+        // (the same species, twice over: never more than twice the ordinary room's, core/spawns.js fitBudget)
+        assert.ok(p.count % 2 === 0 && p.count <= ordinary.get(type).count * 2, `${type}: ${p.count}`);
         const cfg = ENEMY_PROFILES.find(p => p.species === type), placed = enemySpots(map, cfg).length;
         // (a fluid dweller: as many as its pond holds, most of them)
         if (cfg.dwells) assert.ok(placed <= p.count && placed >= p.count * 0.6, `${type}: ${placed} of ${p.count}`);

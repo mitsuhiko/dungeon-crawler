@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { N, LH } from '../src/core/constants.js';
 import { edgeKey } from '../src/core/util.js';
 import { flatMap, state } from './fixtures.js';
-import { SPIDER, STUNDER, ENEMY_PROFILES, makeEnemy } from '../src/core/enemies.js';
+import { SPIDER, STUNDER, ENEMY_PROFILES, ENEMY_KINDS, makeEnemy, isRanged } from '../src/core/enemies.js';
 import { enemySpots } from '../src/game/enemyspawn.js';
-import { DEPTH_SPAWNS, population, livesIn } from '../src/core/spawns.js';
+import { DEPTH_SPAWNS, population, livesIn, comesTo, entryWorth, budgetAt, SPREAD } from '../src/core/spawns.js';
 import { walkable, neighbors, findPath, pathToward, stepEnemy, clearLine } from '../src/physics/enemynav.js';
 import { topOf } from '../src/core/surfaces.js';
 import { World } from '../src/world/world.js';
@@ -114,26 +114,31 @@ test('real generated levels keep the population cap and species clearance', () =
     for (const e of spots) assert.ok(walkable(e.f, STUNDER.height));
   }
 });
-test('each depth draws its species from its own roster, within the counts and the mix', () => {
+test('each depth draws its species from its own roster, within the mix, worth about its budget', () => {
   const index = new Map(ENEMY_PROFILES.map(p => [p.type, p]));
   for (const [depth, row] of DEPTH_SPAWNS.entries()) {
     const seen = new Set();
-    for (const e of row.roster) assert.ok(index.has(e.type) && e.lo >= 1 && e.hi >= e.lo && e.pack >= 1 && e.chance > 0, `${depth} ${e.type}`);
-    // (a species that keeps to some themes, `where`: cubes of those and of others)
+    let worth = 0, cubes = 0;
+    for (const e of row.roster) assert.ok(index.has(e.type) && e.lo >= 1 && e.hi >= e.lo && e.pack >= 1 && e.chance > 0 && e.world >= 1, `${depth} ${e.type}`);
+    // (a species that keeps to some themes, `where`: cubes of those and of others; one that comes
+    // to worlds of a higher level only, `world`: worlds of level 1 and of level 10)
     const biomes = [undefined, ...new Set(row.roster.flatMap(e => (e.where ?? []).map(w => w.replace(/^!/, ''))))];
     for (let seed = 0; seed < 200; seed++) {
-      const map = Object.assign(at(seed, depth), { biome: biomes[seed % biomes.length] }), pop = population(map);
+      const map = Object.assign(at(seed, depth), { biome: biomes[seed % biomes.length], level: seed % 3 ? 1 : 10 }), pop = population(map);
       // (a species with entries of its own in and out of a theme: only the one that lives here)
-      for (const e of row.roster) if (!livesIn(e, map.biome) && row.roster.every(o => o.type !== e.type || !livesIn(o, map.biome)))
-        assert.ok(!pop.has(e.type), `${e.type} out of its waters`);
+      for (const e of row.roster) if (!comesTo(e, map) && row.roster.every(o => o.type !== e.type || !comesTo(o, map)))
+        assert.ok(!pop.has(e.type), `${e.type} out of its waters, or its world`);
       assert.deepEqual([...pop], [...population(map)]);
       assert.ok(pop.size >= 1 && pop.size <= row.mix, `depth ${depth}`);
       assert.equal([...pop.values()].filter(p => p.lead).length, 1);
       for (const [type, { count }] of pop) {
-        const e = row.roster.find(e => e.type === type && livesIn(e, map.biome));
-        assert.ok(e && count >= e.lo && count <= e.hi, `${type} at depth ${depth}: ${count}`);
+        const e = row.roster.find(e => e.type === type && comesTo(e, map));
+        // (the shooters stay few: never more than the row says)
+        assert.ok(e && count >= 1 && (!isRanged(ENEMY_KINDS[type]) || count <= e.hi), `${type} at depth ${depth}: ${count}`);
+        worth += count * entryWorth(e);
         seen.add(type);
       }
+      cubes++;
       for (const p of ENEMY_PROFILES) {
         const spots = enemySpots(map, p);
         assert.ok(spots.length <= (pop.get(p.type)?.count ?? 0));
@@ -141,6 +146,9 @@ test('each depth draws its species from its own roster, within the counts and th
       }
     }
     assert.deepEqual([...seen].sort(), [...new Set(row.roster.map(e => e.type))].sort(), `depth ${depth}`);
+    // (on average: the rooms of shooters alone stay under it, see core/spawns.js fitBudget)
+    const mean = worth / cubes, budget = budgetAt(depth);
+    assert.ok(mean > budget * (1 - SPREAD) && mean < budget * (1 + SPREAD), `depth ${depth}: ${mean.toFixed(0)} for ${budget}`);
   }
   assert.equal(new Set(ENEMY_PROFILES.map(p => p.seedSalt)).size, ENEMY_PROFILES.length);
   assert.equal(new Set(ENEMY_PROFILES.map(p => p.type)).size, ENEMY_PROFILES.length);
@@ -148,7 +156,10 @@ test('each depth draws its species from its own roster, within the counts and th
 test('the surface rosters: snakes, a rare Stunder and a lonely Wolk first, then a few spiders, then a lot', () => {
   const share = (depth, type) => { let n = 0; for (let s = 0; s < 400; s++) n += population(at(s, depth)).has(type); return n / 400; };
   const mean = (depth, type) => { let n = 0; for (let s = 0; s < 400; s++) n += population(at(s, depth)).get(type)?.count ?? 0; return n / 400; };
-  assert.deepEqual(DEPTH_SPAWNS[1].roster.map(e => e.type), ['snake', 'stunder', 'wolk', 'squirtle', 'spider', 'fireface']);
+  // (in a world of level 1: the guests of the higher ones, `world`, aside)
+  const first = d => DEPTH_SPAWNS[d].roster.filter(e => e.world === 1);
+  assert.deepEqual(first(1).map(e => e.type), ['snake', 'stunder', 'wolk', 'squirtle', 'spider', 'fireface']);
+  assert.deepEqual(first(0).map(e => e.type), ['snake']);
   // the dark forest has spiders and Lantern-faces of its own (and only its own spiders)
   for (const d of [1, 2]) for (const e of DEPTH_SPAWNS[d].roster) if (e.kinds.gloomspider || e.kinds.lanternface)
     assert.deepEqual(e.where, ['darkforest']);
@@ -162,7 +173,7 @@ test('the surface rosters: snakes, a rare Stunder and a lonely Wolk first, then 
   // the Wolk lives under the open sky only (the meadows, the snowy peaks, the canyons), alone or in twos
   assert.ok(share(1, 'wolk') > 0.1 && share(1, 'wolk') < 0.35);
   assert.ok(share(3, 'wolk') > share(1, 'wolk'));
-  assert.deepEqual(DEPTH_SPAWNS.flatMap((r, d) => r.roster.some(e => e.type === 'wolk') ? [d] : []), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(DEPTH_SPAWNS.flatMap((r, d) => r.roster.some(e => e.type === 'wolk' && e.world === 1) ? [d] : []), [1, 2, 3, 4, 5, 6]);
   assert.ok(Math.max(...DEPTH_SPAWNS.map(r => r.roster.find(e => e.type === 'wolk')?.hi ?? 0)) <= 2);
   assert.ok(mean(2, 'spider') > 0.5 && mean(2, 'spider') < 3);
   assert.equal(share(3, 'spider'), 1);

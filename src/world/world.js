@@ -1,6 +1,7 @@
 // The world: a lazily grown set of cubes. Preparing a cube collapses its whole depth (WFC, once
 // per depth), decides its faces, and then generates its map from a spec built out of those faces.
 import { hash32 } from '../core/util.js';
+import { cleanWorldLevel } from '../core/enemies.js';
 import { WATER, LAVA } from '../core/constants.js';
 import { worldNoise } from '../core/wnoise.js';
 import { generate } from '../cubegen/index.js';
@@ -37,7 +38,8 @@ function archetype(theme, kind, R) {
 export class World {
   // opts.arche: force one archetype everywhere (dev); opts.themes: theme ids that win every depth
   // they may appear at (dev, tests; themes/depth.js worldThemes); opts.bridge / opts.ladder: one
-  // bridge / ladder style wherever it fits (dev, tests; themes/builds.js)
+  // bridge / ladder style wherever it fits (dev, tests; themes/builds.js); opts.level: the world's
+  // level (core/enemies.js depthLevel), every cube's spec and map says it
   constructor(seed, opts = {}) {
     this.seed = seed;
     this.opts = opts;
@@ -98,6 +100,7 @@ export class World {
       && faces.every(f => !f.spout) && R() < heightsOf(theme).tunnel;
     return {
       key: k, X, Y, Z, kind: t.kind, exit: this.layout(-Y).exit.get(k) ?? null, K: t.K, B: LAYER_BASE.slice(0, t.K), faces, portals,
+      level: cleanWorldLevel(this.opts.level),   // the world's level (core/enemies.js depthLevel)
       spawn: k === this.start, town: isTown(k), merchantCamp: isMerchantCamp(k, this.seed), enemyFree: enemyFreeAt(k), noise: this.noise, depth: -Y, cave: theme.cave, walled: theme.cave || !!theme.walls,
       biome: theme.props, guardian: this.layout(-Y).guardians.get(k) || null,
       horde: this.layout(-Y).hordes.get(k) || null, populationScale: this.layout(-Y).populationScale.get(k) ?? 1,

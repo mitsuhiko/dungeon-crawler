@@ -400,7 +400,8 @@ not be clear, but it should be **hopeful**.
 | The last boss at the core | The creature that kidnapped the glassmaker |
 | The splash screen, the bird breaking | The ending |
 
-Still open: what the town is (each part of the world's own town?), what dying and getting up again
+Still open: what the town is (each part of the world's own town? A plan: the big piece where the
+people live, [town.md](town.md)), what dying and getting up again
 means, and what the glass faces opening between two visited cubes are.
 
 ## Ideas, not decided
