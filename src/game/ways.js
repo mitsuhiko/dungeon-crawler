@@ -22,7 +22,7 @@ function portalWay(q) {
     walk, push: kind === 'side' ? DIRS[q.dir] : null };
 }
 // a door: walked up to on its doorstep, then into it
-const doorWay = d => ({ way: true, key: 'door:' + d.id + ':' + d.to, kind: 'door', label: LABEL.door, door: d, x: d.x, y: d.y + 0.8, z: d.z,
+const doorWay = d => ({ way: true, key: 'door:' + d.id + ':' + d.to, kind: 'door', label: d.swim ? LABEL.side : LABEL.door, door: d, x: d.x, y: d.y + 0.8, z: d.z,
   walk: { x: d.x + d.nx * 0.45, y: d.y, z: d.z + d.nz * 0.45 }, push: [-d.nx, -d.nz] });
 
 const made = new WeakMap();   // map -> its portals' and doors' ways

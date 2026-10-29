@@ -20,6 +20,8 @@ import { bridgesOf } from '../themes/builds.js';
 import { trialFaces } from './trials.js';
 import { isTestRoom, testRoomOf } from './testrooms.js';
 import { generateTestRoom } from '../cubegen/testrooms.js';
+import { addWaterfallHideout, waterfallOutside } from './waterfalls.js';
+import { generateWaterfallRoom } from '../cubegen/waterfallroom.js';
 
 // how much each WFC kind leans towards an archetype (times the theme's weights)
 const LEAN = { highland: { mesa: 2, spire: 2, archipelago: 0.3 }, lake: { archipelago: 3, crater: 2 }, gorge: { chasm: 3 },
@@ -137,6 +139,12 @@ export class World {
       c = { key: k, map: stampFluidBodies(generateTestRoom({ key: k, depth: d, seed: hash32(this.seed ^ hashKey(k)), biome: this.layout(d).theme.props, arena })), visits: 0 };
       this.cubes.set(k, c);
     }
+    if (!c && waterfallOutside(k)) {
+      const outside = this.cube(waterfallOutside(k)).map, door = outside.doors?.find(d => d.to === k);
+      if (!door) throw new Error('No waterfall door leads to ' + k);
+      c = { key: k, map: stampFluidBodies(generateWaterfallRoom({ key: k, seed: hash32(outside.seed ^ 0x7a7ef411) }, outside, door)), visits: 0 };
+      this.cubes.set(k, c);
+    }
     if (!c && isInterior(k)) {
       // turned the way the house stands in town (the town turns with its exit)
       const door = this.cube(this.start).map.doors.find(d => d.to === k);
@@ -147,7 +155,7 @@ export class World {
     if (!c) {
       this.prepare(k);
       // (and the colour of each body of fluid in it: cubegen/fluidbodies.js)
-      c = { key: k, map: stampFluidBodies(generate(this.spec(k))), visits: 0 };
+      c = { key: k, map: addWaterfallHideout(stampFluidBodies(generate(this.spec(k)))), visits: 0 };
       this.cubes.set(k, c);
     }
     return c;

@@ -26,6 +26,7 @@ import { clearMouseInput } from './orders.js';
 import { takeTownPortal } from './townportal.js';
 import { shaftOf } from '../world/heights.js';
 import { TRIALS } from '../core/trials.js';
+import { tr } from '../i18n/i18n.js';
 
 const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
 const D = [[1, 0], [-1, 0], [0, 1], [0, -1]], NAMES = ['east', 'west', 'south', 'north'];
@@ -289,8 +290,9 @@ export async function goTestRoom(name, depth) {
     if (state.cubes !== cubes) return;
     const { arrival: a, note } = c.map.testRoom;
     enterCube(c, null, null, a);
+    if (c.map.swimArrival) Object.assign(player, c.map.swimArrival, { visY: c.map.swimArrival.y, swimming: true, grounded: false, vy: 0 });
     player.yaw = a.yaw;
-    setStatus(`Test room ${name} · ${c.map.biome} (depth ${depth}) · ${note}`);
+    setStatus(`Test room ${name} · ${c.map.biome} (depth ${depth}) · ${tr(note)}`);
   } finally { if (state.cubes === cubes) state.transitioning = false; }
 }
 // back to where /testroom was used (in another world: its town)
