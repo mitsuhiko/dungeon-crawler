@@ -5,7 +5,9 @@
 // one), and through the water (he wades and swims: physics/move.js; in and out over a bank no
 // more than a level over its surface going out, JUMP_IN going in). The cheapest way wins (cells
 // walked; climbing, jumping and swimming cost more), or, when there is none, the way to the
-// reached node closest to the target.
+// reached node closest to the target. A trial's crust that is gone for now (a sunk stone, one of
+// the balance's rhythm stones under: game/trials.js) is not on the way while it is: when it comes
+// up, it is only on a way planned anew (the jumps themselves are found with it there).
 // Along walked steps it cuts corners where the straight line keeps to the way's nodes by walking
 // (never onto a stair or bridge from its side, under a bridge for over it, over a ledge). Before a
 // ladder or a jump it stops cutting: it gets onto a ladder in front of it (or over its top) and
@@ -20,6 +22,7 @@ import { Heap } from '../core/heap.js';
 import { player, state } from '../game/state.js';
 import { navNeighbor, structureLinks, columnClear } from './floornav.js';
 import { walkable, groundY } from './enemynav.js';
+import { goneNow } from './collide.js';
 import { leapsFrom, cellFrame, cellPoint, runStart, airSteer, LATE, ALIGN, DROP_START, DROP_PACE } from './leaps.js';
 
 // can the hero stand on node f: headroom, and the body fits in the middle of the cell
@@ -81,8 +84,9 @@ function edges(map, f) {
   if (!f.kind && !f.landing) waterEdges(map, f, out);
   for (const e of ladderLinks(map).get(f) || []) if (passable(e.g)) out.push([e.g, e.cost, e]);
   if (f.fluid) return out;
-  for (let d = 0; d < 4; d++) { const g = navNeighbor(map, f, d, CHAR_H, passable); if (g) out.push([g, 1, null]); }
-  for (const e of leapsFrom(map, f, passable)) out.push([e.g, e.cost, e]);
+  for (let d = 0; d < 4; d++) { const g = navNeighbor(map, f, d, CHAR_H, passable); if (g && !goneNow(g)) out.push([g, 1, null]); }
+  // (not onto a trial's crust while it is gone: a stone sunk for now, physics/collide.js)
+  for (const e of leapsFrom(map, f, passable)) if (!goneNow(e.g)) out.push([e.g, e.cost, e]);
   return out;
 }
 

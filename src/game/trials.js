@@ -8,7 +8,7 @@ import { step } from '../world/coords.js';
 import { camera } from '../render/scene.js';
 import { pointer } from './pointer.js';
 import { TRIALS, ARM_DISTANCE, ARM_TIME, PART_REACH, fogY, fogLevel, fogHurt, COLD, coldStep, STORM, stormPhase, newTrial, stepTrial, resolveTrial, resetTrial, trialFluidLevel,
-  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, STONE_TIME, spendTrial, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
+  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, stoneLeft, stoneTime, spendTrial, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
   traceBeam, beamDone, allLit, pressBrazier, pushTarget, clueMark } from '../core/trials.js';
 import { groundAt } from '../physics/collide.js';
 import { setTrialFluid } from '../physics/fluid.js';
@@ -49,7 +49,7 @@ const PUZZLE_HINT = {
 const HOW = {
   flood: msg('The water is coming. Climb to the summit and press the button.'),
   collapse: msg('The floor crumbles behind you. Run for the far side!'),
-  balance: msg('Jump from stone to stone! Each sinks three seconds after you land on it.'),
+  balance: msg('Jump from stone to stone! A grey one sinks three seconds after you land on it, a pale one sooner. The dark ones rise and sink to a beat of their own: watch them.'),
   miasma: msg('Poison fog sinks from above. Get down to the vent valve!'),
   cold: msg('The cold sets in. Light the braziers on your way to the great fire!'),
   storm: msg('Gusts tear off the hill. Climb in the lulls, wait out the gusts behind the boulders, pull the lightning rod on top!'),
@@ -77,7 +77,7 @@ function stepCrust(m, s, dt) {
   if (!m.crust) return;
   if (m.kind === 'balance' && player.hp > 0 && player.grounded && player.support) {
     const q = m.crust.find(q => q.f === player.support.id);
-    if (q && s.stones?.[q.stone] == null) {
+    if (q && s.stones?.[q.stone] == null && m.slabs?.[q.stone]?.kind !== 'rhythm') {
       if (mirroring()) {
         if (!stoneAsked.has(q.stone)) { stoneAsked.add(q.stone); relay.trialAct?.({ key: s.key, act: 'part', id: `stone:${q.stone}` }); }
       } else touchStone(m, s, q.stone);
@@ -85,9 +85,9 @@ function stepCrust(m, s, dt) {
   }
   let fell = 0;
   for (const q of m.crust) {
-    const now = crustState(m, s, q);
-    if (now === 'gone' && !gone.has(q.f)) { gone.add(q.f); fell++; }
-    if (now !== 'gone') gone.delete(q.f);
+    const now = crustState(m, s, q), under = now === 'gone' || now === 'rising';   // (a rhythm stone coming up is not there yet)
+    if (under && !gone.has(q.f)) { gone.add(q.f); fell++; }
+    if (!under) gone.delete(q.f);
     crust.set(q.c, now);
   }
   if (fell) sfx('rumble', { volume: 0.35, pitch: 1.3 });
@@ -215,7 +215,8 @@ let awayAsked = false, awayFrom = false;
 export function updateTrial(dt) {
   const s = state.trial, m = mapTrial();
   if (!s || !m) return;
-  const away = player.hp > 0 && !!state.arrival && Math.hypot(player.x - state.arrival.x, player.z - state.arrival.z) > ARM_DISTANCE;
+  // (not while the robot carries them: back to the start for a new try, it arms once they step off)
+  const away = player.hp > 0 && !player.rescue && !!state.arrival && Math.hypot(player.x - state.arrival.x, player.z - state.arrival.z) > ARM_DISTANCE;
   let happened = null;
   if (mirroring()) {
     if (s.phase === 'armed' || s.phase === 'running') { s.t += dt; if (s.phase === 'armed' && s.t >= ARM_TIME) { s.phase = 'running'; happened = 'running'; } }
@@ -471,9 +472,11 @@ function hud() {
     fill = m.crust.length ? gone.size / m.crust.length : 0;
   }
   if (s.kind === 'balance') {
-    const q = player.grounded && m.crust.find(q => q.f === player.support?.id), at = q && s.stones?.[q.stone];
-    line = at == null ? tr('Jump from stone to stone!') : tr('Jump! This stone sinks in {n} s', { n: Math.max(0, Math.ceil(STONE_TIME - s.t + at)) });
-    fill = at == null ? 0 : Math.min(1, (s.t - at) / STONE_TIME);
+    // (the stone underfoot: how long it has; a rhythm stone's beat runs whether stood on or not)
+    const q = player.grounded && m.crust.find(q => q.f === player.support?.id), left = q ? stoneLeft(m, s, q.stone) : null;
+    const slab = q && m.slabs?.[q.stone], of = slab?.kind === 'rhythm' ? slab.up : q ? stoneTime(m, q.stone) : 1;
+    line = left == null ? tr('Jump from stone to stone! The dark ones rise and sink to a beat: watch them') : tr('Jump! This stone sinks in {n} s', { n: Math.ceil(left) });
+    fill = left == null ? 0 : Math.min(1, 1 - left / of);
   }
   // spent (the robot carried the hero back to the start): over until they leave the room
   if (s.phase === 'spent') { line = tr('Over: leave the room and come back to try again'); fill = 0; }
@@ -630,6 +633,16 @@ export function trialSpends() {
   const s = state.trial;
   return !!s && !!mapTrial() && trialSealed(s) && !mirroring() && !online.buddies.some(b => b.here && !b.out && b.hp > 0);
 }
+// ... but in a kind that `retries` (the balance: core/trials.js TRIALS) it is put back as built
+// instead, for a new try from the start: it arms again once the hero steps off it (trialRetries:
+// would it be; retryTrialHere: it is)
+export const trialRetries = () => trialSpends() && !!TRIALS[state.trial.kind]?.retries;
+export function retryTrialHere() {
+  if (!trialRetries()) return false;
+  restartTrial();
+  jingle('trialfailed');
+  return true;
+}
 export function spendTrialHere() {
   const s = state.trial, m = mapTrial();
   if (!trialSpends()) return false;
@@ -675,8 +688,8 @@ function solveLens() {
   const pts = m.check.path.map(p => ({ x: p.x, y: p.y, z: p.z }));
   teachPath(pts, { id: 'trial-solve', color: TRIALS[m.kind].color, width: 0.07, head: true, ttl: 60 });
   m.check.path.forEach((p, i) => {
-    if (i % 3 && i !== m.check.path.length - 1) return;
-    teachLabel({ x: p.x, y: p.y, z: p.z }, `${p.t.toFixed(1)} s${p.dl != null ? ` · under at ${p.dl.toFixed(1)} s` : ' · safe'}`,
+    if (i % 3 && i !== m.check.path.length - 1 && p.go == null) return;   // (every take-off: the balance's, cubegen/trials/balance.js)
+    teachLabel({ x: p.x, y: p.y, z: p.z }, `${p.t.toFixed(1)} s${p.go != null ? ` · jump at ${p.go.toFixed(1)} s` : ''}${p.dl != null ? ` · under at ${p.dl.toFixed(1)} s` : ' · safe'}`,
       { id: `trial-solve-${i}`, size: 0.16, ttl: 60 });
   });
   return `The way up: ${m.check.path.at(-1).t.toFixed(1)} s walking, slack ${m.check.slack} s (shown for a minute)`;

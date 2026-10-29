@@ -208,7 +208,7 @@
     "src/physics/move.js#LEAP": "58d96809",
     "src/physics/move.js#movePlayer": "8fb3a563",
     "src/physics/playernav.js#findWay": "bc6ba835",
-    "src/physics/playernav.js#header": "1b4de8b5",
+    "src/physics/playernav.js#header": "58a72ad1",
     "src/physics/ragdoll.js#BONES": "bd429e5e",
     "src/physics/ragdoll.js#ITERS": "91668061",
     "src/physics/ragdoll.js#solve": "0541494c",

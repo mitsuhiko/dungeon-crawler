@@ -14,7 +14,7 @@ import { search, take } from '../route.js';
 import { reachFrom, reachTo, graph } from '../reach.js';
 import { shapeFlood, floodGoal, floodRoute } from './flood.js';
 import { shapeCollapse, collapseGoal, collapseRoute } from './collapse.js';
-import { shapeBalance, balanceGoal, balanceRoute } from './balance.js';
+import { shapeBalance, balanceGoal, balanceRoute, balanceSlabs } from './balance.js';
 import { puzzleGoal, slideRoute } from './slide.js';
 import { shapeSunken, sunkenGoal } from './sunken.js';
 import { gridRecord } from './grid.js';
@@ -26,8 +26,8 @@ import { shapeCold, coldGoal, coldRoute } from './cold.js';
 import { shapeStorm, stormGoal, stormRoute } from './storm.js';
 import { shapeSiege, siegeGoal, RING } from './siege.js';
 import { shapeChase, chaseGoal, chaseRoute } from './chase.js';
-import { arrivals, pathOf, checkDeadlines, floorLevel, USE_TIME, RUN_UP } from './timing.js';
-import { ARM_TIME, SLACK, REACT, slowTime, fitFlood, floodTime, FLOOD, WAVE, crumbleTime, STONE_TIME, FOG, COLD, STORM, stormAllowance, HUNTER, runeOrder } from '../../core/trials.js';
+import { arrivals, pathOf, checkDeadlines, floorLevel, USE_TIME } from './timing.js';
+import { ARM_TIME, SLACK, REACT, slowTime, fitFlood, floodTime, FLOOD, WAVE, crumbleTime, FOG, COLD, STORM, stormAllowance, HUNTER, runeOrder } from '../../core/trials.js';
 
 const KINDS = {
   flood: { shape: shapeFlood, goal: floodGoal, costs: floodRoute, finish: finishFlood },
@@ -388,34 +388,21 @@ function finishCollapse(ctx, t, out) {
     check: { ...margins(check), path: checkPath(path, arr, deadline) } };
 }
 
-// The ordinary reach graph must prove the jumps, not an assumed distance between drawings.
-// Check the slow player's stay up to take-off, including the full standard run-up. The stone
-// can sink during the flight: the next stone's clock does not start until the landing.
+// The slabs' kinds and the timed way across (cubegen/trials/balance.js balanceSlabs): the jumps
+// the reach graph's own, not an assumed distance between drawings.
 function finishBalance(ctx, t) {
-  const arr = arrivals(ctx, t.entry), path = pathOf(arr, t.goal);
-  if (!path) return null;
-  const first = new Map(), cells = [], checks = [];
-  for (let i = 0; i < path.length - 1; i++) {
-    const n = path[i], q = !n.landing && t.crust.get(n.c);
-    if (!q) continue;
-    if (!first.has(q.stone)) first.set(q.stone, arr.time.get(n.id));
-    const next = path[i + 1], move = ctx.moves.find(m => m.from === n && m.to === next);
-    const leave = move?.kind === 'jump' ? arr.time.get(n.id) + RUN_UP : arr.time.get(next.id);
-    const stay = (leave - first.get(q.stone)) * SLACK;
-    if (stay >= STONE_TIME) return null;
-    checks.push({ stone: q.stone, stay });
-  }
-  if (first.size < 2) return null;
+  const floorOf = c => ctx.cols[c].find(f => f.layer === 0 && !f.fluid);
+  const made = balanceSlabs(ctx, t, floorOf);
+  if (!made) return null;
+  const cells = [];
   for (const [c, q] of t.crust) {
-    const f = ctx.cols[c].find(f => f.layer === 0 && !f.fluid);
-    if (!f) return null;
+    const f = floorOf(c);
     f.crust = true; f.noSpawn = true;
     cells.push({ c, f: f.id, stone: q.stone, form: q.form });
   }
   const goal = t.goal;
-  return { basin: t.basin, crust: cells, entryApron: t.entryApron, exitApron: t.exitApron,
-    keystone: { x: goal.x + 0.5, y: floorY(goal, 0.5, 0.5), z: goal.z + 0.5 },
-    check: { stones: checks, path: checkPath(path, arr, () => null) } };
+  return { basin: t.basin, crust: cells, slabs: made.slabs, entryApron: t.entryApron, exitApron: t.exitApron,
+    keystone: { x: goal.x + 0.5, y: floorY(goal, 0.5, 0.5), z: goal.z + 0.5 }, check: made.check };
 }
 
 // --- puzzles -----------------------------------------------------------------------------------------

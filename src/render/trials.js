@@ -6,11 +6,11 @@
 // crate: TRIAL_PROPS). buildTrialView adds them to a cube being built (render/world.js);
 // game/trials.js sets the level and the parts' state every frame.
 import * as THREE from 'three';
-import { N, BASE, LH, DIRS, OPP } from '../core/constants.js';
+import { N, BASE, LH, DIRS, OPP, ACID } from '../core/constants.js';
 import { EDGE_CORNERS, edgePts } from '../core/constants.js';
 import { fluidMaterial, cellMaterial, FLUID_LOOK, solidMaterial } from './materials.js';
 import { restY, tideY, stepWet } from './surface.js';
-import { TRIALS } from '../core/trials.js';
+import { TRIALS, RHYTHM } from '../core/trials.js';
 import { GeoBuilder } from './builder.js';
 import { gradient } from './palette.js';
 import { cutMaterial, setTrialWaterCap, WATER_OWN, WATER_SHORE } from './section.js';
@@ -241,10 +241,12 @@ function barrier(p) {
 
 // a crust cell of the crumbling floor (cubegen/trials/collapse.js): its column of rock, drawn
 // on its own (render/floors.js leaves it out) round its centre, so it can shake and fall
-function crustCell(m, f, theme) {
+// (the balance's slabs, by kind: core/trials.js, grey steady, pale quick, dark rhythm)
+const SLAB_TOP = { steady: '#827d76', quick: '#c4ad8a', rhythm: '#46414e' };
+function crustCell(m, f, theme, kind = null) {
   const b = new GeoBuilder(), cs = f.cs, slab = m.trial?.kind === 'balance',
     y0 = slab ? Math.min(...cs) - 0.35 : f.bottom * LH, cx = f.x + 0.5, cz = f.z + 0.5;
-  const avg = (cs[0] + cs[1] + cs[2] + cs[3]) / 4, top = (slab ? new THREE.Color('#827d76') : gradient(theme.top, avg / LH)).multiplyScalar(0.92);
+  const avg = (cs[0] + cs[1] + cs[2] + cs[3]) / 4, top = (slab ? new THREE.Color(SLAB_TOP[kind] ?? SLAB_TOP.steady) : gradient(theme.top, avg / LH)).multiplyScalar(0.92);
   const P = [[-0.5, cs[0], -0.5], [0.5, cs[1], -0.5], [-0.5, cs[2], 0.5], [0.5, cs[3], 0.5]];
   b.tri(P[0], P[1], P[3], top, [0, 1, 0]); b.tri(P[0], P[3], P[2], top, [0, 1, 0]);
   for (let d = 0; d < 4; d++) {
@@ -303,9 +305,9 @@ export function buildTrialView(m, group, over = null) {
   if (t.crust) {
     const theme = themeOf(m);
     view.crust = new Map(t.crust.map(q => {
-      const f = m.floors[q.f], mesh = crustCell(m, f, theme);
+      const f = m.floors[q.f], kind = t.slabs?.[q.stone]?.kind ?? null, mesh = crustCell(m, f, theme, kind);
       group.add(mesh);
-      return [q.c, { mesh, f, state: 'whole', t: 0, base: mesh.material.color.clone() }];
+      return [q.c, { mesh, f, kind, state: 'whole', t: 0, base: mesh.material.color.clone() }];
     }));
   }
   for (const p of m.portals) if (p.kind === 'side') { const b = barrier(p); group.add(b); view.barriers.set(p.dir, b); }
@@ -540,15 +542,19 @@ export function setTrialWater(world, y, phase) {
   if (v.waterTide) v.waterTide.level.value = restY(y);
 }
 
-// the crust as the trial says (states: cell -> 'whole' | 'shaking' | 'gone'): a cell shakes, cracks
-// and drops dust, then falls away into the basin; resolved, the fallen ones rise back whole
+// the crust as the trial says (states: cell -> 'whole' | 'shaking' | 'gone' | 'rising'): a cell
+// shakes, cracks and drops dust, then falls away into the basin; resolved, the fallen ones rise
+// back whole. A rhythm stone under the basin (core/trials.js) sends up bubbles where it lies, and
+// comes up in the RHYTHM.rise s before it is there.
 export function setCrust(world, states, dt, resolved = false) {
   const v = world?.trialView;
   if (!v?.crust) return;
   for (const [c, cell] of v.crust) {
     const want = resolved ? 'whole' : states.get(c) ?? 'whole', m = cell.mesh;
     if (want === 'gone' && cell.state !== 'falling' && cell.state !== 'gone') { cell.state = 'falling'; cell.t = 0; dust(m, 10); }
-    else if (want === 'whole' && (cell.state === 'falling' || cell.state === 'gone')) { cell.state = 'rising'; cell.t = 0; }
+    else if (want === 'rising' && cell.state !== 'rising') { cell.state = 'rising'; cell.t = 0; cell.rise = RHYTHM.rise; }
+    else if (want === 'whole' && (cell.state === 'falling' || cell.state === 'gone')) { cell.state = 'rising'; cell.t = 0; cell.rise = 1.2; }
+    if (cell.kind === 'rhythm' && (cell.state === 'gone' || cell.state === 'falling') && v.level != null && Math.random() < dt * 2) bubble(cell.f, v.level, v.water?.userData.fluid);
     else if (want === 'shaking' && cell.state === 'whole') { cell.state = 'shaking'; cell.t = 0; }
     else if (want === 'whole' && cell.state === 'shaking') cell.state = 'whole';
     cell.t += dt;
@@ -564,12 +570,17 @@ export function setCrust(world, states, dt, resolved = false) {
       if (cell.t > 1.4) { cell.state = 'gone'; m.visible = false; }
     } else if (cell.state === 'rising') {
       m.visible = true; m.rotation.set(0, 0, 0);
-      const k = Math.min(1, cell.t / 1.2);
+      const k = Math.min(1, cell.t / (cell.rise ?? 1.2));
       p.set(cell.f.x + 0.5, -4 * (1 - k) * (1 - k), cell.f.z + 0.5);
       m.material.color.copy(cell.base);
       if (k >= 1) cell.state = 'whole';
     } else if (cell.state === 'whole') { p.set(cell.f.x + 0.5, 0, cell.f.z + 0.5); m.material.color.copy(cell.base); }
   }
+}
+// a dark bubble of the basin's fluid (lava, or acid) over cell f, its surface at y (world units)
+function bubble(f, y, fluid) {
+  emit(soft, f.x + rand(0.15, 0.85), y + 0.04, f.z + rand(0.15, 0.85),
+    { v: [0, 0.35, 0], spread: 0.1, life: 0.9, size: 0.2, grow: 1.4, color: fluid === ACID ? '#1f3a10' : '#3a1c10', alpha: 0.75, gravity: 0, drag: 1.5 });
 }
 function dust(mesh, n) {
   const at = new THREE.Vector3();

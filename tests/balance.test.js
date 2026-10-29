@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { World } from '../src/world/world.js';
-import { TRIALS, STONE_TIME, newTrial, stepTrial, touchStone, crustState, spendTrial, resolveTrial, resetTrial, trialFluidLevel, trialSealed } from '../src/core/trials.js';
+import { TRIALS, STONE_TIME, QUICK_TIME, RHYTHM, stoneTime, stoneLeft, rhythmWindow, newTrial, stepTrial, touchStone, crustState, spendTrial, resolveTrial, resetTrial, trialFluidLevel, trialSealed } from '../src/core/trials.js';
 import { TrialOwner, trialMessage, followTrial } from '../src/net/trials.js';
 import { N, LH, CHAR_R, CHAR_H, LAVA, ACID } from '../src/core/constants.js';
 import { movePlayer } from '../src/physics/move.js';
@@ -33,13 +33,49 @@ test('a whole slab sinks exactly three seconds after first contact, independentl
   assert.equal(trialFluidLevel(m, s), m.basin);
   resolveTrial(s);
   assert.equal(crustState(m, s, m.crust[0]), 'whole');
-  assert.equal(trialFluidLevel(m, s), null);
+  assert.equal(trialFluidLevel(m, s), m.basin, 'resolved, the basin stays at its level');
   resetTrial(s);
   assert.deepEqual(s.stones, {});
   assert.equal(crustState(m, s, m.crust[0]), 'whole');
 });
 
-test('a miss the robot pulls them out of spends the attempt: unsealed, the sunk stones stay sunk, the rest hold, it never arms again', () => {
+// a steady slab (0), a quick one (1) and a rhythm stone (2): up 4 s of every 7, 1 s into its beat at 0
+const kinds = () => ({ ...model(), crust: [...model().crust, { c: 9, f: 9, stone: 2 }],
+  slabs: [{ kind: 'steady' }, { kind: 'quick' }, { kind: 'rhythm', up: 4, period: 7, offset: 1 }] });
+test('a pale slab sinks sooner, a dark one rises and sinks to its beat whoever stands on it', () => {
+  const m = kinds(), s = newTrial(m), rhythm = m.crust[3];
+  assert.equal(stoneTime(m, 0), STONE_TIME); assert.equal(stoneTime(m, 1), QUICK_TIME);
+  assert.equal(crustState(m, s, rhythm), 'whole', 'idle: as its beat has it at the start');
+  stepTrial(s, 0, { away: true });
+  assert.equal(touchStone(m, s, 2), false, 'no clock of its own');
+  touchStone(m, s, 1);
+  stepTrial(s, QUICK_TIME - 0.01);
+  assert.equal(crustState(m, s, m.crust[2]), 'shaking');
+  assert.equal(crustState(m, s, rhythm), 'shaking', `${RHYTHM.shake} s before it goes under`);
+  assert.ok(Math.abs(stoneLeft(m, s, 2) - (3 - s.t)) < 1e-9);
+  const w = rhythmWindow(m.slabs[2], s.t);
+  assert.ok(Math.abs(w.from + 1) < 1e-9 && Math.abs(w.to - 3) < 1e-9, 'up from -1 s to 3 s');
+  stepTrial(s, 0.02);
+  assert.equal(crustState(m, s, m.crust[2]), 'gone');
+  stepTrial(s, 1);
+  assert.equal(crustState(m, s, rhythm), 'gone');
+  assert.equal(rhythmWindow(m.slabs[2], s.t), null);
+  assert.equal(stoneLeft(m, s, 2), 0);
+  stepTrial(s, 7 - 1 - RHYTHM.rise + 0.05 - s.t);   // (just into its rise)
+  assert.equal(crustState(m, s, rhythm), 'rising', 'coming up: seen, not there yet');
+  stepTrial(s, RHYTHM.rise);
+  assert.equal(crustState(m, s, rhythm), 'whole', 'up again a beat later');
+  assert.equal(stoneLeft(m, s, 0), null, 'a steady slab nobody landed on has no clock');
+  spendTrial(s);
+  assert.equal(crustState(m, s, rhythm), 'gone', 'spent: it sinks with the rest');
+  resolveTrial(s);
+  assert.equal(crustState(m, s, rhythm), 'whole');
+});
+
+// (the robot's rescue puts the balance back for a new try, TRIALS.balance.retries: game/rescue.js;
+// spent only where it cannot, playing together, and then for good)
+test('a spent attempt: unsealed, every slab sunk, it never arms again; a rescue is a new try instead', () => {
+  assert.ok(TRIALS.balance.retries);
   const m = model(), s = newTrial(m);
   assert.equal(spendTrial(s), false, 'an idle trial is not spent');
   stepTrial(s, 0, { away: true });
@@ -51,8 +87,7 @@ test('a miss the robot pulls them out of spends the attempt: unsealed, the sunk 
   assert.equal(spendTrial(s, trialFluidLevel(m, s)), true);
   assert.equal(s.phase, 'spent');
   assert.equal(trialSealed(s), false, 'the seals open: they can leave to start it over');
-  assert.equal(crustState(m, s, m.crust[0]), 'gone', 'what sank stays sunk');
-  assert.equal(crustState(m, s, m.crust[2]), 'whole', 'what shook holds');
+  assert.deepEqual(m.crust.map(q => crustState(m, s, q)), ['gone', 'gone', 'gone'], 'every slab sinks: nobody crosses to a shut door');
   assert.equal(trialFluidLevel(m, s), m.basin, 'the basin stays');
   assert.equal(touchStone(m, s, 1), false);
   const t = s.t;
@@ -116,14 +151,19 @@ test('generated rooms have small safe aprons, varied slab sizes and silhouettes,
     for (const [c, stone] of owner) for (const dc of [1, -1, N, -N])
       assert.ok(!owner.has(c + dc) || owner.get(c + dc) === stone, 'no walking between slabs');
     assert.ok(tr.check.stones.length >= 2);
-    assert.ok(tr.check.stones.every(q => q.stay < STONE_TIME));
+    assert.equal(tr.slabs.length, groups.size);
+    assert.ok(tr.check.stones.every(q => q.spare >= 0 && q.stay < (q.kind === 'quick' ? QUICK_TIME : q.kind === 'rhythm' ? tr.slabs[q.stone].up : STONE_TIME)));
+    assert.ok(tr.check.stones.some(q => q.kind === 'rhythm'), 'nobody gets across without watching a beat');
+    for (const q of tr.slabs.filter(q => q.kind === 'rhythm')) assert.ok(q.up >= 4 && q.period - q.up >= 2 && q.offset >= 0 && q.offset <= q.period);
     n++;
   }
   assert.ok(n >= 8, `checked ${n} rooms`);
 });
 
 // Like trials.test.js' collapse runner: the actual character, acceleration, run-up, collision,
-// jump arc and fluid contact, rather than teleporting between the generator's checked points.
+// jump arc and fluid contact, rather than teleporting between the generator's checked points. It
+// waits for the plan's take-offs (the rhythm stones' beats), setting off LEAD s before each.
+const LEAD = 0.8;
 test('the real player can jump the checked way before the locally triggered slabs sink', () => {
   const DT = 1 / 60;
   let n = 0;
@@ -135,7 +175,7 @@ test('the real player can jump the checked way before the locally triggered slab
         grounded: true, swimming: false, fluid: 0, stun: 0, coyote: 0, jumpBuf: 0, r: CHAR_R, h: CHAR_H, support: null, climb: null });
       stepTrial(s, 0, { away: true });
       setTrialFluid({ y: tr.basin * LH, fluid: tr.fluid });
-      setGoneFloors(f => tr.crust.some(q => q.f === f.id && crustState(tr, s, q) === 'gone'));
+      setGoneFloors(f => tr.crust.some(q => q.f === f.id && ['gone', 'rising'].includes(crustState(tr, s, q))));
       const tick = (dx, dz, run, jump) => {
         movePlayer(DT, dx, dz, run, jump); stepTrial(s, DT);
         const q = player.grounded && tr.crust.find(q => q.f === player.support?.id);
@@ -147,6 +187,8 @@ test('the real player can jump the checked way before the locally triggered slab
         const q = pts[j], gap = Math.hypot(q.x - player.x, q.z - player.z) > 1.5;
         let steps = 0, jumped = false;
         if (gap) {
+          // the plan's take-off (go): set off about a run-up before it
+          while (s.t < pts[j - 1].go - LEAD) tick(0, 0, false, false);
           const dist = Math.hypot(q.x - player.x, q.z - player.z), ux = (q.x - player.x) / dist, uz = (q.z - player.z) / dist;
           if (player.vx * ux + player.vz * uz < 2) for (let k = 0; k < 24; k++) tick(-ux, -uz, false, false);
         }

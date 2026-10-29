@@ -102,9 +102,11 @@ has been visited.
   and the chronicle notes it (`trial` entry, told to friends).
 - **spent:** the attempt is over without a death: the robot carried the hero back to the start
   ("Failing and dying"). The seals open, the clock stops, the water drains back (the fog lifts)
-  in a second (`SPENT_DRAIN`), and what crumbled or sank stays gone; the rest of the crust holds.
-  Nothing in the room can be used, and it never arms again: walking out and back in starts it
-  over (a new `idle`, as built). The HUD says so; the chronicle notes a failed trial.
+  in a second (`SPENT_DRAIN`), and the crust all falls away (the balance's slabs sink), so nobody
+  crosses to an exit that stays shut. Nothing in the room can be used, and it never arms again:
+  walking out and back in starts it over (a new `idle`, as built). The HUD says so; the chronicle
+  notes a failed trial. (A kind that `retries`, the balance, is not spent by the robot: it puts
+  the room back to `idle` instead, "Failing and dying".)
 
 ### Sealing (events only)
 
@@ -137,9 +139,13 @@ back stays open.
   any trial room not resolved, it carries them back to the start: where the room was entered.
   It costs what it costs anywhere (a quarter of the most health; clear water nothing), and it does
   not put the trial back: a puzzle stays as it was, and an event that is armed or running is
-  **spent** (no new attempt, no checkpoint). To try again, leave the room and come back. Playing
+  **spent** (no new attempt, no checkpoint). To try again, leave the room and come back. The
+  balance (`TRIALS.balance.retries`) is the exception: there it puts the room back as built
+  (`idle`, every slab up, no clocks, each beat at its start) for a new try, which arms once the
+  hero steps off the start again (not while carried: `game/trials.js retryTrialHere`). Playing
   together, while a friend in the room still runs the event, it goes on (and the one carried
-  back waits, sealed in); the last one in spends it (`game/trials.js spendTrialHere`). With no
+  back waits, sealed in); the last one in spends it (`game/trials.js spendTrialHere`), or puts the
+  balance back. With no
   robot yet, swimming in a running flood's or basin's water still loses the trial (back in the
   room before, `sweptAway`), and lava or acid kill.
 
@@ -333,7 +339,8 @@ The floor breaks up behind you in a wave from the entry; outrun it to the exit.
 - **Rules:** falling into the basin ends the attempt: its lava or acid kills (a death: the room
   before), and with the robot along it pulls the hero out (or carries them out of its water, or
   catches them out of the void; a trial room has no cube below) back to the start, the attempt
-  spent ("Failing and dying"). With no robot, swimming in its water loses the trial.
+  spent: the rest of the crust falls away ("Failing and dying"). With no robot, swimming in its
+  water loses the trial.
 - **Goal:** stepping onto the exit apron stops the wave (the keystone) and opens the seals.
 - **Check:** deadlines: a crust cell's deadline is its crumble time; the aprons have none.
   Each dead end must be one: no path leaves it.
@@ -354,37 +361,64 @@ The floor breaks up behind you in a wave from the entry; outrun it to the exit.
 
 ### `balance`: Balance
 
-Stones float over lava or acid, and each sinks three seconds after you first land on it. Jump
-from stone to stone to the far side.
+Stones float over lava or acid. The grey ones sink three seconds after you first land on them,
+the pale ones sooner; the dark ones rise and sink to a beat of their own. Jump from stone to
+stone to the far side, and watch the beat.
 
 - **Room:** the crumbling floor's (walled in, its two 3×3 aprons), but no causeway: 3–10
   separate stone slabs at one level over a basin of the depth's fluid (lava where the depth's is
-  water, `world/world.js spec`). Each slab is a 2×2 core grown into a rectangle, an L or a 3×3
-  square, with two cells of basin between slabs and round the aprons, so every step is a running
-  jump. A room has at least two shapes and two sizes.
-- **Stones:** a stone's first grounded landing starts its clock (`STONE_TIME`, 3 s, all its cells
-  on one clock). It shakes and darkens, then sinks and is not there for the physics any more.
-  Leaving it, coming back or a friend landing on it never buys more time; a stone nobody has
-  stood on waits. The HUD counts down the stone underfoot.
+  water, `world/world.js spec`) on a way from the entry apron to the exit's, and one to three
+  more a jump off them: other ways across, or dead ends. Each slab is a 2×2 core grown into a
+  rectangle, an L or a 3×3 square, with a cell of basin between slabs and round the aprons, so
+  every step is a running jump. A room has at least two shapes and two sizes.
+- **Stones** (`core/trials.js`, `map.trial.slabs[stone].kind`):
+  - *steady* (grey): its first grounded landing starts its clock (`STONE_TIME`, 3 s, all its
+    cells on one clock). It shakes and darkens, then sinks and is not there for the physics any
+    more. Leaving it, coming back or a friend landing on it never buys more time; a stone nobody
+    has stood on waits.
+  - *quick* (pale): the same, in `QUICK_TIME` (2 s); from depth 5 on, up to two in a room.
+  - *rhythm* (dark): up for `up` s (4.2–5) of every `period` (6.4–8.2: one beat for the whole
+    room, each stone at its own point in it, `offset`), on the trial's clock, whoever stands on
+    it. It shakes the last `RHYTHM.shake` s (1.2) before it sinks; under, it sends up bubbles,
+    and it is seen coming up `RHYTHM.rise` s (0.8) before it is there. Before the trial arms it
+    stands as its beat has it at 0.
+  Every way across has a rhythm stone on it (they cut the slabs' graph between the aprons; in a
+  room whose shortest way has four slabs or more, half the time one more), rather not the first
+  slab of a way. So a click on the far apron (click to move plans the jumps: `game/orders.js`)
+  is not a way across: it meets the dark stone under as often as not. Click to move does not
+  plan over a stone while it is under (`physics/playernav.js`): the walk stops short of it. The
+  HUD counts down the stone underfoot (a rhythm stone: till its beat takes it under).
 - **Rules:** a miss is a fall into the basin's lava or acid, as anywhere: with no robot it kills
   (the room before); with the robot along it pulls the hero out for a quarter of their health
-  and carries them back to the start (where the room was entered), the attempt spent: the sunk stones stay sunk, the
-  rest hold, and only leaving and coming back starts it over ("Failing and dying"). No
-  checkpoint, no free retry.
+  and carries them back to the start (where the room was entered), and the room is put back as
+  built for a new try: every slab up, no clocks, the beat from its start; it arms when they step
+  off ("Failing and dying"). The price of a miss is the health. Playing together, while a friend
+  is still on the stones, the attempt goes on and the one carried back waits at the start.
 - **Goal:** stepping onto the exit apron (the keystone) opens the seals.
-- **Check:** the jumps are the reach graph's own (after smoothing). Along the checked path the slow
-  player's stay on each stone, from its first landing to the take-off off it (with the jump's
-  run-up, `RUN_UP`), times `SLACK`, is under `STONE_TIME` (`check.stones`); the flight may outlast
-  the stone it left.
-- **After:** the stones rise and hold.
+- **Check** (`cubegen/trials/balance.js balanceSlabs`): a search on the trial's clock over the
+  slabs proves a slow player gets across. The jumps are the reach graph's own floors
+  (`cubegen/climbs.js jumpMoves`, not over a fence), the way only ever a jump nearer the exit
+  apron (no slab twice). On the ground before the slabs the player may wait as long as they like
+  (every take-off over a whole beat is tried); on a slab, only until `MARGIN` (0.3 s) before it
+  sinks, a rhythm stone `SINK` (0.4 s). A walk across a slab and the run-up (`RUN_UP`) take
+  `SLACK` times as long as running; the flight is `JUMP_TIME`. A rhythm stone landed on has been up
+  `EARLY` (0.5 s) already, for one who jumps early. Of the ways there are, the one with the most
+  time to spare on its slabs is kept (`check.path`, its take-offs `go`; `check.stones`: each
+  slab's `stay` and `spare`); the kinds are drawn again (16 times) while that is under 0.4 s, and
+  the room is built again when nothing works or the shortest way across has fewer than three
+  slabs.
+- **After:** the stones rise and hold (the dark ones too); the basin's fluid stays at its level
+  (over the room's own sea, which lies lower: `core/trials.js trialFluidLevel`).
 - **Population:** none.
 - **As built** (`cubegen/trials/balance.js`, `index.js finishBalance`; `core/trials.js
-  touchStone`, `crustState`): a depth-first search over 2×2 cores three cells apart (sideways by
-  up to a cell, so the portals need not sit on one grid), from one beside the entry apron to one
-  beside the exit apron; then each slab grows a shape where it stays two cells from everything
-  else. The stones are the collapse's crust, drawn and taken away the same way, in one grey. The
-  stones' clocks (`state.trial.stones`, on the trial's clock) go with the trial's state; a guest's
-  landing goes to the owner as the part press `stone:<n>`.
+  touchStone`, `crustState`, `rhythmState`): a depth-first search over 2×2 cores three cells
+  apart (sideways by up to a cell, so the portals need not sit on one grid), from one beside the
+  entry apron to one beside the exit apron; the more slabs on cores a jump off those; then each
+  slab grows a shape where it stays two cells from everything else. The stones are the
+  collapse's crust, drawn and taken away the same way, in their kind's colour. The stones'
+  clocks (`state.trial.stones`, on the trial's clock) go with the trial's state; a rhythm stone's
+  beat is the trial's clock's, nothing to send. A guest's landing on a steady or quick stone goes
+  to the owner as the part press `stone:<n>`.
 
 ### `cold`: Cold snap
 
@@ -756,11 +790,12 @@ volcanic fire shrine; candles stay as they are, too small for it).
 - `tests/browser/trials.js`: each kind entered through its portal, run, failed and resolved;
   seals; town portal refused while running; two players (one failing, the event going on).
 - `tests/balance.test.js`, `tests/browser/balance.js` (`?dev=1&trial=balance`, then
-  `await (await import('./tests/browser/balance.js')).runBalanceChecks()`): the stones' clocks,
-  a spent attempt, the generated rooms and the real character jumping the checked way; in the
+  `await (await import('./tests/browser/balance.js')).runBalanceChecks()`): the stones' clocks
+  and beats, a spent attempt (every slab sunk), the generated rooms (a rhythm stone on the checked way) and the
+  real character jumping the checked way at its take-offs; in the
   browser, `/trial balance`, a stone sinking, a miss the robot pulls them out of (a quarter of
-  their health, back at the start, the attempt spent and the sunk stone still gone; out
-  and back in, a new attempt) and the exit apron.
+  their health, back at the start, the room as built for a new try, not armed while carried;
+  out and back in, a new attempt), a rhythm stone's beat and the exit apron.
 
 ## Implementation order
 

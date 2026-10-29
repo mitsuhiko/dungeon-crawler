@@ -6,8 +6,9 @@ export default {
   'Crumbling floor': 'Bröckelnder Boden',
   'Balance': 'Balance',
   'Over: leave the room and come back to try again': 'Vorbei: Verlass den Raum und komm wieder, um es noch einmal zu versuchen',
-  'Jump from stone to stone! Each sinks three seconds after you land on it.': 'Spring von Platte zu Platte! Jede sinkt drei Sekunden nach deiner Landung.',
-  'Jump from stone to stone!': 'Spring von Platte zu Platte!',
+  'Jump from stone to stone! A grey one sinks three seconds after you land on it, a pale one sooner. The dark ones rise and sink to a beat of their own: watch them.':
+    'Spring von Platte zu Platte! Eine graue sinkt drei Sekunden nach deiner Landung, eine helle früher. Die dunklen steigen und sinken in ihrem eigenen Takt: Pass sie ab.',
+  'Jump from stone to stone! The dark ones rise and sink to a beat: watch them': 'Spring von Platte zu Platte! Die dunklen steigen und sinken im Takt: Pass sie ab',
   'Jump! This stone sinks in {n} s': 'Spring! Diese Platte sinkt in {n} s',
   'You made it across: the stones rise and hold.': 'Du bist drüben: Die Platten kommen hoch und halten.',
   'Cold snap': 'Kälteeinbruch',

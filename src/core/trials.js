@@ -20,8 +20,9 @@ export const TRIALS = {
     population: 0.3, combines: 2 },
   collapse: { name: msg('Crumbling floor'), family: 'event', sealed: true, timed: true, depths: [1, 19], themes: null, weight: 1, color: '#e0a050', built: true,
     population: 0.3 },
+  // (retries: a miss the robot pulls the hero out of puts the room back for a new try, game/rescue.js)
   balance: { name: msg('Balance'), family: 'event', sealed: true, timed: true, depths: [1, 19],
-    themes: ['swamp', 'nests', 'ruins', 'volcanic', 'abyss', 'ossuary', 'forge'], weight: 1, color: '#e09050', built: true, population: 0 },
+    themes: ['swamp', 'nests', 'ruins', 'volcanic', 'abyss', 'ossuary', 'forge'], weight: 1, color: '#e09050', built: true, population: 0, retries: true },
   cold: { name: msg('Cold snap'), family: 'event', sealed: true, timed: true, depths: [1, 13], themes: ['peaks', 'frozen'], weight: 1.5, color: '#9fe8ff', built: true,
     population: 0.5 },
   storm: { name: msg('The storm'), family: 'event', sealed: true, timed: true, depths: [1, 6],
@@ -229,8 +230,9 @@ export const clueMark = key => `clue:${key}`;
 //   resolved  the goal is met; `done` counts the s since (the water drains back)
 //   spent     the attempt is over without a death: the robot carried the hero back to the start
 //             (game/rescue.js). The seals open, the clock stops, the water drains back (the fog
-//             lifts) as when resolved, what crumbled or sank stays gone, and it does not arm again:
-//             leaving the room and coming back starts it over (a new state, game/trials.js enterTrial)
+//             lifts) as when resolved, the crust all falls away, and it does not arm again:
+//             leaving the room and coming back starts it over (a new state, game/trials.js enterTrial).
+//             (Not a kind that `retries`: there the robot puts it back to idle for a new try.)
 // One state per trial room a game is in: { key, kind, phase, t, done, at (the water's level when
 // it was resolved or spent) }. Puzzles never arm: they are just there.
 
@@ -290,7 +292,9 @@ export const BASIN = 2;   // the collapse's basin: its fluid's surface (cubegen/
 export function trialFluidLevel(m, s) {
   if (!m || !s) return null;
   if (m.kind === 'sunken') return sunkenLevel(m, s);
-  if (m.kind === 'balance') return s.phase === 'resolved' ? null : m.basin;
+  // the balance: its basin stands over the room's own sea (cubegen/river.js RIVER_SURF, under the
+  // stones' level) in every phase, resolved too: it must not drop when the stones rise and hold
+  if (m.kind === 'balance') return m.basin;
   // the collapse: what falls through the crust is in the basin's fluid (its surface over every hole)
   if (m.kind === 'collapse') return s.phase === 'armed' || s.phase === 'running' || s.phase === 'spent' ? BASIN : null;
   if (m.kind !== 'flood') return null;
@@ -319,24 +323,58 @@ export const WAVE = { speed: 1.3, fastest: 2.8, margin: 0.3, most: 8, shake: 1.5
 export const crumbleTime = (wave, d) => ARM_TIME + wave.delay + d / wave.speed;
 
 // is crust cell q ({ d }) of trial m gone at state s? (shaking: the SHAKE s before)
+// ('rising': a rhythm stone coming up, not there yet for the physics, like 'gone')
 export function crustState(m, s, q) {
-  if (!s || s.phase === 'idle' || s.phase === 'resolved') return 'whole';
-  // spent: what was gone stays gone, the rest holds (it shakes no more)
-  if (s.phase === 'spent') return crustState(m, { ...s, phase: 'running' }, q) === 'gone' ? 'gone' : 'whole';
+  if (!s || s.phase === 'resolved') return 'whole';
+  const slab = m.kind === 'balance' ? m.slabs?.[q.stone] : null;
+  // (a rhythm stone stands as its beat has it at the start while nobody has set off)
+  if (s.phase === 'idle') return slab?.kind === 'rhythm' ? rhythmState(slab, 0) : 'whole';
+  // spent: all of it falls away (the slabs sink), so nobody crosses a room that can no longer be won
+  if (s.phase === 'spent') return 'gone';
   if (m.kind === 'balance') {
+    if (slab?.kind === 'rhythm') return rhythmState(slab, s.t);
     const at = s.stones?.[q.stone];
-    return at == null ? 'whole' : s.t >= at + STONE_TIME ? 'gone' : 'shaking';
+    return at == null ? 'whole' : s.t >= at + stoneTime(m, q.stone) ? 'gone' : 'shaking';
   }
   const at = crumbleTime(m.wave, q.d);
   return s.t >= at ? 'gone' : s.t >= at - WAVE.shake ? 'shaking' : 'whole';
 }
 
-// Each floating slab has its own clock, started by the first grounded landing. Leaving it,
-// landing again or another player arriving never buys more time. The clock runs while airborne.
-export const STONE_TIME = 3;
+// The balance's stones come in three kinds (map.trial.slabs[stone].kind, cubegen/trials/index.js
+// finishBalance):
+//   steady  grey: sinks STONE_TIME s after its first grounded landing
+//   quick   pale: the same, but QUICK_TIME s
+//   rhythm  dark: rises and sinks on a beat of its own on the trial's clock, whoever stands on it:
+//           up for `up` s of every `period` (shaking the last RHYTHM.shake of them), then under,
+//           coming up (seen, not yet there) the last RHYTHM.rise s before it is up again;
+//           `offset`: where in its beat it is at the trial's 0
+// A steady or quick slab's clock starts at its first grounded landing. Leaving it, landing again
+// or another player arriving never buys more time. The clock runs while airborne.
+export const STONE_TIME = 3, QUICK_TIME = 2;
+export const RHYTHM = { shake: 1.2, rise: 0.8 };
+export const stoneTime = (m, stone) => m?.slabs?.[stone]?.kind === 'quick' ? QUICK_TIME : STONE_TIME;
+// where rhythm stone `slab` is in its beat at t (s since it was last up)
+export const beatAt = (slab, t) => ((t + slab.offset) % slab.period + slab.period) % slab.period;
+export function rhythmState(slab, t) {
+  const u = beatAt(slab, t);
+  return u < slab.up - RHYTHM.shake ? 'whole' : u < slab.up ? 'shaking' : u < slab.period - RHYTHM.rise ? 'gone' : 'rising';
+}
+// the time the rhythm stone that is up at t came up and goes under ({ from, to }), or null (it is not up)
+export function rhythmWindow(slab, t) {
+  const u = beatAt(slab, t);
+  return u < slab.up ? { from: t - u, to: t - u + slab.up } : null;
+}
+// how long the stone has before it sinks (s; null: no clock running on it)
+export function stoneLeft(m, s, stone) {
+  const slab = m?.slabs?.[stone];
+  if (slab?.kind === 'rhythm') { const w = rhythmWindow(slab, s.t); return w ? w.to - s.t : 0; }
+  const at = s?.stones?.[stone];
+  return at == null ? null : Math.max(0, at + stoneTime(m, stone) - s.t);
+}
 export function touchStone(m, s, stone) {
   if (m?.kind !== 'balance' || !s || (s.phase !== 'armed' && s.phase !== 'running')
-    || !Number.isInteger(stone) || !m.crust.some(q => q.stone === stone) || s.stones?.[stone] != null) return false;
+    || !Number.isInteger(stone) || !m.crust.some(q => q.stone === stone) || s.stones?.[stone] != null
+    || m.slabs?.[stone]?.kind === 'rhythm') return false;
   (s.stones ??= {})[stone] = s.t;
   return true;
 }

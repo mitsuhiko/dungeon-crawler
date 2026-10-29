@@ -626,6 +626,7 @@ export default {
   'Fell through the void! The robot carries you back up': 'Durch die Leere gefallen! Der Roboter trägt dich wieder hinauf',
   'The robot carries you back to the start: leave the room and come back to try again':
     'Der Roboter trägt dich zurück zum Start: Verlass den Raum und komm wieder, um es noch einmal zu versuchen',
+  'The robot carries you back to the start: try again!': 'Der Roboter trägt dich zurück zum Start: Versuch es noch einmal!',
   'Could not save the game (is the storage full?)': 'Konnte das Spiel nicht speichern (ist der Speicher voll?)',
   'The water is rising! Get up a hill!': 'Das Wasser steigt! Rauf auf einen Hügel!',
   'No weapon equipped': 'Keine Waffe ausgerüstet',

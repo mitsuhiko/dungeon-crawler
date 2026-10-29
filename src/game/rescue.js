@@ -19,7 +19,8 @@
 //
 // In a trial room not resolved it takes them back to its start, where the room was entered, and the
 // trial is not put back: a running event is over, its seals open, until they leave the room
-// (game/trials.js trialStart, spendTrialHere; docs/trials.md "Failing and dying").
+// (game/trials.js trialStart, spendTrialHere; docs/trials.md "Failing and dying"). But the balance
+// (a kind that `retries`) is put back as built, for a new try from the start (retryTrialHere).
 import { WATER, LAVA, ACID, MUD, SWIM_FEET } from '../core/constants.js';
 import { RESCUE, GRIP, shareOf, FALL_SHARE, lossOf, flight, along } from '../core/rescue.js';
 import { beside } from '../core/robot.js';
@@ -30,7 +31,7 @@ import { takeDamage } from '../core/progression.js';
 import { groundAt, ceilingAt, insideSolid } from '../physics/collide.js';
 import { spotFor, spotAt } from '../physics/rescuespot.js';
 import { respawnPoint } from '../physics/respawn.js';
-import { trialStart, trialSpends, spendTrialHere } from './trials.js';
+import { trialStart, trialSpends, spendTrialHere, trialRetries, retryTrialHere } from './trials.js';
 import { truePosition, travelling } from './travel.js';
 import { knockDown } from './ragdoll.js';
 import { liftBack } from './fall.js';
@@ -59,6 +60,7 @@ const SAYS = {
 // a fall through the void; and what is said in a trial room the robot takes them back to the start of
 const FALL = { reason: msg('Fell through the void!'), status: msg('Fell through the void! The robot carries you back up') };
 const BACK = msg('The robot carries you back to the start: leave the room and come back to try again');
+const AGAIN = msg('The robot carries you back to the start: try again!');
 const SHIMMER = ['#ffffff', '#ffe9a0', '#9fdcff'];   // (the robot's light: where it grabs them, where it sets them down)
 const saysOf = (fluid, look) => fluid === WATER && look ? SAYS[look === MUD ? MUD : 'slime'] : SAYS[fluid] ?? SAYS[LAVA];
 // what the robot's line says it pulled them out of (core/narration.js `rescue`)
@@ -82,10 +84,10 @@ export function rescue(fluid, look, surface) {
   if (!robotCanRescue() || player.hp <= 0) return false;
   const lose = lossOf(player.maxHp, shareOf(fluid, look));
   if (lose > 0 && player.hp <= lose) return false;
-  const spent = trialSpends(), to = destination(player.x, player.y, player.z, spent);
+  const spent = trialSpends(), again = trialRetries(), to = destination(player.x, player.y, player.z, spent && !again);
   if (!to) return false;
   rouseRobot();
-  if (spent) spendTrialHere();
+  if (again) retryTrialHere(); else if (spent) spendTrialHere();
   const says = saysOf(fluid, look), x = player.x, z = player.z;
   const hold = fluid === WATER && !look ? SWIM_FEET : HOLD;
   const from = { x, y: Math.max(groundAt(x, z, surface, 0).h, surface - hold), z };
@@ -106,7 +108,7 @@ export function rescue(fluid, look, surface) {
   player.rescue = { phase: 'reach', t: 0, fluid, look, surface, from, up, to, path: blink ? hop(up, to) : path, blink,
     robot: robotStart(), colors: says.colors, drip: 0 };
   state.enemyGrace = Math.max(state.enemyGrace, RESCUE.reach + RESCUE.lift + player.rescue.path.time + RESCUE.grace);
-  setStatus(tr(spent ? BACK : says.status));
+  setStatus(tr(again ? AGAIN : spent ? BACK : says.status));
   narrate('rescue', { fluid: nameOf(fluid, look) });
   return true;
 }
@@ -121,11 +123,11 @@ export function catchFall(below = false) {
   rouseRobot();
   const lose = lossOf(player.maxHp, FALL_SHARE);
   if (player.hp <= lose && !player.god) { knockDown({ damage: lose, reason: FALL.reason }); return true; }
-  const spent = !below && trialSpends();
+  const spent = !below && trialSpends(), again = spent && trialRetries();
   player.lastHurt = { reason: FALL.reason, by: null };
   takeDamage(player, lose, state.time);
   flash();
-  if (spent) spendTrialHere();
+  if (again) retryTrialHere(); else if (spent) spendTrialHere();
   const x = player.x, y = player.y, z = player.z;
   Object.assign(player, { ragdoll: null, ragdollThen: null, fluidDeath: 0, climb: null, getUp: null, swimming: false, grounded: false,
     engulfed: null, held: null, gust: null, pull: null, vx: 0, vy: 0, vz: 0, stun: 0, visY: y });
@@ -139,7 +141,7 @@ export function catchFall(below = false) {
   // no enemy strikes while it carries them (set again for the flight, once it is known)
   state.enemyGrace = Math.max(state.enemyGrace, RESCUE.dive + RESCUE.lift + RESCUE.carry[1] + RESCUE.grace + (below ? 2 : 0));
   sfx('rescue', { at: { x, y: y + 1, z } });
-  setStatus(tr(spent ? BACK : FALL.status));
+  setStatus(tr(again ? AGAIN : spent ? BACK : FALL.status));
   narrate('fall');
   return true;
 }

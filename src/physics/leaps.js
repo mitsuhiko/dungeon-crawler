@@ -12,7 +12,7 @@ import { idx, inb, edgeKey } from '../core/util.js';
 import { topOf } from '../core/surfaces.js';
 import { effectMod } from '../core/potions.js';
 import { player, state } from '../game/state.js';
-import { groundAt } from './collide.js';
+import { groundAt, asBuilt } from './collide.js';
 import { movePlayer, landingSpeed, jumpPowers } from './move.js';
 import { peril } from './fluid.js';
 
@@ -157,6 +157,6 @@ export function leapsFrom(map, n, ok) {
   let byNode = byPowers.get(key);
   if (!byNode) byPowers.set(key, byNode = new Map());
   let list = byNode.get(n);
-  if (!list) byNode.set(n, list = find(map, n, ok, pw));
+  if (!list) byNode.set(n, list = asBuilt(() => find(map, n, ok, pw)));   // (with the crust as built: physics/collide.js)
   return list;
 }

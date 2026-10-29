@@ -279,7 +279,7 @@ test('spent (the robot carried the hero back to the start): unsealed, stopped, d
   stepTrial(k, 0, { away: true }); stepTrial(k, crumbleTime(c.wave, 20) - WAVE.shake / 2);
   assert.deepEqual(c.crust.map(q => crustState(c, k, q)), ['gone', 'shaking']);
   spendTrial(k, trialFluidLevel(c, k));
-  assert.deepEqual(c.crust.map(q => crustState(c, k, q)), ['gone', 'whole']);
+  assert.deepEqual(c.crust.map(q => crustState(c, k, q)), ['gone', 'gone'], 'spent: all of the crust falls away');
   assert.equal(trialFluidLevel(c, k), BASIN, 'the basin stays under the holes');
   resetTrial(k); assert.equal(k.phase, 'idle');
 });

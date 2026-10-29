@@ -8,6 +8,7 @@
 import { player, state } from '../../src/game/state.js';
 import { goTrial, takePortal } from '../../src/game/dev.js';
 import { hurt } from '../../src/game/flow.js';
+import { groundAt } from '../../src/physics/collide.js';
 import { checkPortals } from '../../src/game/portals.js';
 import { useTownPortal } from '../../src/game/townportal.js';
 import { useRoomPortal } from '../../src/game/roomportal.js';
@@ -360,6 +361,10 @@ export async function runTrialChecks(kind = 'flood') {
     check(state.trial.phase === 'spent' && !sealedIn(), 'the attempt is spent, the seals open');
     check(Math.hypot(player.x - state.arrival.x, player.z - state.arrival.z) < 0.6, 'back at the start');
     check(!trialFluid() || kind === 'collapse', 'its water drained');
+    if (kind === 'collapse') {   // (all of the crust falls away: nobody crosses to the exit that stays shut)
+      await delay(300);
+      check(state.map.trial.crust.every(q => { const f = state.map.floors[q.f]; return groundAt(f.x + .5, f.z + .5, Math.max(...f.cs) + .1, 0).s !== f; }), 'the crust all gone');
+    }
     player.autoDir = [ax, az]; await delay(800); player.autoDir = null;
     check(state.trial.phase === 'spent', 'stepping off the pad arms nothing');
     takePortal(state.map.portals.find(p => p.dir === (t.fromDir ^ 1)));

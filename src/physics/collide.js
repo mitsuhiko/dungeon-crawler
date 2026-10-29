@@ -17,6 +17,15 @@ const pieceBottom = (p, top) => p.kind === 'bridge' ? top - 0.2 : p.base;
 let gone = null;
 export const setGoneFloors = fn => { gone = fn; };
 const here = (f, map = state.map) => !f.open && !(gone && f.crust && map === state.map && gone(f));
+// is floor f of the active cube's crust gone for now?
+export const goneNow = f => !!(gone && f.crust && gone(f));
+// fn() with every crust floor there, as built (physics/leaps.js: the jumps the hero can make are
+// found once, sunk stones or not)
+export function asBuilt(fn) {
+  const was = gone;
+  gone = null;
+  try { return fn(); } finally { gone = was; }
+}
 // ... and its parts that stand in the way (a gate while shut, a crate): per cell, like map.blockers
 let parts = null;
 export const setPartBlockers = cells => { parts = cells; };
