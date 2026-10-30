@@ -84,7 +84,7 @@
     "src/core/inventory.js#spendCopper": "75baf707",
     "src/core/inventory.js#takeItem": "e1216159",
     "src/core/items.js#COINS": "18ccb172",
-    "src/core/items.js#WEAPONS": "e611b86c",
+    "src/core/items.js#WEAPONS": "c7605eee",
     "src/core/lightcells.js#lightCells": "45a17e77",
     "src/core/progression.js#awardKill": "9a0db2d3",
     "src/core/progression.js#awardXP": "1ec056d4",

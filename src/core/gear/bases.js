@@ -4,9 +4,10 @@
 // To add a dropping weapon: define the item (with its model), then list it here.
 // The glassmaker's old sword is never dropped: it waits in the merchant camp (core/intro.js).
 // Every kind but the flails and the tridents has a light base from item level 1 and heavier ones
-// further down; the flails only from item level 7 (Renew's, the time boss, who always drops one:
-// he is the first to hand you one), the tridents from 3 (Squarlo's, who drops them more often). A kind's weights add up to the same, so each kind is about as likely as
-// the others once all of it drops.
+// further down, the heaviest from about item level 12 to 16, so something new turns up all the way
+// down; the flails only from item level 7 (Renew's, the time boss, who always drops one: he is the
+// first to hand you one), the tridents from 3 (Squarlo's, who drops them more often). A kind's
+// weights add up to the same, so each kind is about as likely as the others once all of it drops.
 // Rolls lean towards the kind the player fights with (`favor`, FAVOR times its weight): about
 // half of the weapons are of that kind, so whatever you use keeps finding upgrades while the
 // other kinds still turn up.
@@ -20,38 +21,38 @@ const base = (itemId, minLevel, weight = 1, extra = []) => {
 export const BASES = [
   base('weapon_sword_short', 1),
   base('weapon_sword_medium', 1),
-  base('weapon_sword_long', 2),
-  base('weapon_sword_broad', 4),
-  base('weapon_sword_greatsword', 6, 1, ['two-handed']),
+  base('weapon_sword_long', 4),
+  base('weapon_sword_broad', 8),
+  base('weapon_sword_greatsword', 12, 1, ['two-handed']),
   base('weapon_flail_ball', 7),
-  base('weapon_flail_morningstar', 7),
-  base('weapon_flail_twin', 8),
-  base('weapon_flail_knight', 9),
-  base('weapon_flail_triple', 10),
+  base('weapon_flail_morningstar', 9),
+  base('weapon_flail_twin', 11),
+  base('weapon_flail_knight', 13),
+  base('weapon_flail_triple', 15),
   // tridents (melee and ranged: they stab and throw lightning) from depth 3 on, three of them:
   // as likely as a kind of five together (Squarlo's lean towards them: core/gear/drops.js)
   base('weapon_trident_fisher', 3, 5 / 3, ['ranged']),
-  base('weapon_trident_sea', 5, 5 / 3, ['ranged']),
-  base('weapon_trident_storm', 8, 5 / 3, ['ranged']),
+  base('weapon_trident_sea', 7, 5 / 3, ['ranged']),
+  base('weapon_trident_storm', 12, 5 / 3, ['ranged']),
   base('weapon_bow_short', 1),
   base('weapon_bow_hunting', 1),
-  base('weapon_bow_recurve', 3),
-  base('weapon_bow_long', 5),
-  base('weapon_bow_war', 7),
+  base('weapon_bow_recurve', 4),
+  base('weapon_bow_long', 8),
+  base('weapon_bow_war', 12),
   base('weapon_crossbow_hand', 1),
-  base('weapon_crossbow_light', 2),
-  base('weapon_crossbow_heavy', 4),
+  base('weapon_crossbow_light', 3),
   base('weapon_crossbow_repeating', 6),
-  base('weapon_crossbow_arbalest', 8),
+  base('weapon_crossbow_heavy', 9),
+  base('weapon_crossbow_arbalest', 14),
   // eight staffs, the lightning staffs from further down: as likely as a kind of five together
   base('weapon_staff_gnarled', 1, 5 / 8),
   base('weapon_staff_oak', 2, 5 / 8),
-  base('weapon_staff_ember', 4, 5 / 8),
-  base('weapon_staff_spark', 5, 5 / 8),
-  base('weapon_staff_crystal', 6, 5 / 8),
-  base('weapon_staff_arcane', 8, 5 / 8),
-  base('weapon_staff_lightning', 8, 5 / 8),
-  base('weapon_staff_thunder', 11, 5 / 8),
+  base('weapon_staff_ember', 5, 5 / 8),
+  base('weapon_staff_spark', 7, 5 / 8),
+  base('weapon_staff_crystal', 9, 5 / 8),
+  base('weapon_staff_arcane', 12, 5 / 8),
+  base('weapon_staff_lightning', 13, 5 / 8),
+  base('weapon_staff_thunder', 16, 5 / 8),
 ];
 export const BASE = Object.fromEntries(BASES.map(b => [b.itemId, b]));
 // tags for any weapon or armor, including those that never drop

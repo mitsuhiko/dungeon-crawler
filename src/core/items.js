@@ -57,14 +57,16 @@ export const WEAPONS = [
   sword('weapon_sword_old', "Glassmaker's Old Sword", 30, .42, .85, 1, true),   //  71 damage per second
   sword('weapon_sword_short', 'Short Sword', 23, .32, .72),         //  72, the fastest
   sword('weapon_sword_medium', 'Medium Sword', 34, .42, .85),       //  81
-  sword('weapon_sword_long', 'Long Sword', 39, .48, 1.05),          //  81, long reach
-  sword('weapon_sword_broad', 'Broadsword', 46, .54, .88, 1.25),    //  85, a wide sweep
-  sword('weapon_sword_greatsword', 'Greatsword', 60, .66, 1.15, 1.3), // 91, wide and long
-  flail('weapon_flail_ball', 'Ball and Chain', 46, .58, .95, 1.4),          //  79
+  sword('weapon_sword_long', 'Long Sword', 41, .48, 1.05),          //  85, long reach
+  sword('weapon_sword_broad', 'Broadsword', 48, .54, .88, 1.25),    //  89, a wide sweep
+  sword('weapon_sword_greatsword', 'Greatsword', 61, .66, 1.15, 1.3), // 92, wide and long
+  // (a flail sweeps wider and shoves harder than the swords: it hits a little less per second
+  // than the sword it comes with, core/gear/bases.js)
+  flail('weapon_flail_ball', 'Ball and Chain', 49, .58, .95, 1.4),          //  84
   flail('weapon_flail_morningstar', 'Morning Star', 53, .62, 1, 1.45),     //  85
-  flail('weapon_flail_twin', 'Twin Morning Star', 32, .68, 1, 1.5, 2),     //  94 (two balls), the widest
-  flail('weapon_flail_knight', 'Knight\'s Flail', 62, .7, 1.15, 1.35),     //  89, the longest chain
-  flail('weapon_flail_triple', 'Triple Flail', 24, .74, .95, 1.55, 3),     //  97 (three balls)
+  flail('weapon_flail_twin', 'Twin Morning Star', 30, .68, 1, 1.5, 2),     //  88 (two balls), the widest
+  flail('weapon_flail_knight', 'Knight\'s Flail', 63, .7, 1.15, 1.35),     //  90, the longest chain
+  flail('weapon_flail_triple', 'Triple Flail', 23, .74, .95, 1.55, 3),     //  93 (three balls)
   trident('weapon_trident_fisher', "Fisher's Trident", 38, .52, 1.25, { range: 4.5 }, '#ffd76a'),        //  73 stabbing, 44 throwing
   trident('weapon_trident_sea', 'Trident', 48, .58, 1.35, { range: 5 }, '#9fd0ff'),                       //  83, 50
   trident('weapon_trident_storm', 'Storm Trident', 58, .66, 1.45, { range: 5.5, jumps: 1 }, '#c48cff'),   //  88, 53 (and a jump)

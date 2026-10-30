@@ -113,13 +113,13 @@ test('stats: item level grows base damage, rarity scales it, affixes add on top'
   assert.deepEqual(itemStats({ itemId: OLD_SWORD.id }), itemStats(old), 'a weapon without gen is vanilla');
   const gen = (rarity, affixes, ilvl = 10, itemId = 'weapon_sword_long') => ({ itemId, count: 1, gen: { v: 1, rarity, ilvl, affixes, name: 'x' } });
   assert.equal(ilvlDamage(1), 1); assert.equal(ilvlDamage(11), 1.5);
-  assert.equal(itemStats(gen('vanilla', [], 1)).damage, 39);
-  assert.equal(itemStats(gen('vanilla', [], 11)).damage, Math.round(39 * 1.5), 'ten item levels: half again');
-  assert.equal(itemStats(gen('crap', [])).damage, Math.round(39 * ilvlDamage(10) * 0.75));
-  assert.equal(itemStats(gen('omg', [])).damage, Math.round(39 * ilvlDamage(10) * 1.4));
+  assert.equal(itemStats(gen('vanilla', [], 1)).damage, 41);
+  assert.equal(itemStats(gen('vanilla', [], 11)).damage, Math.round(41 * 1.5), 'ten item levels: half again');
+  assert.equal(itemStats(gen('crap', [])).damage, Math.round(41 * ilvlDamage(10) * 0.75));
+  assert.equal(itemStats(gen('omg', [])).damage, Math.round(41 * ilvlDamage(10) * 1.4));
   const s = itemStats(gen('fabled', [{ id: 'sharp', tier: 3, value: 10 }, { id: 'brutal', tier: 3, value: 20 },
     { id: 'swift', tier: 3, value: 10 }, { id: 'reach', tier: 3, value: 0.15 }]));
-  assert.equal(s.damage, Math.round((39 * ilvlDamage(10) * 1.24 + 10) * 1.2));
+  assert.equal(s.damage, Math.round((41 * ilvlDamage(10) * 1.24 + 10) * 1.2));
   assert.equal(s.interval, 0.432); assert.equal(s.range, 1.2);
   const t = itemStats(gen('remarkable', [{ id: 'vicious', tier: 2, value: 6 }, { id: 'precision', tier: 2, value: 25 },
     { id: 'leech', tier: 2, value: 3 }, { id: 'force', tier: 2, value: 40 }, { id: 'sweeping', tier: 2, value: 20 }]));
@@ -171,7 +171,7 @@ test('bows, crossbows and staffs: five bases each (eight staffs), ranged, weaker
   // drops lean towards the kind you fight with: about three in eight of them once every kind drops
   const kinds = WEAPON_KINDS.length;
   const share = (favor, n = 8000) => { const R2 = mulberry32(5); let k = 0;
-    for (let i = 0; i < n; i++) if (ITEMS[rollWeapon(R2, 12, { favor }).itemId].weapon.kind === (favor ?? 'bow')) k++;
+    for (let i = 0; i < n; i++) if (ITEMS[rollWeapon(R2, 16, { favor }).itemId].weapon.kind === (favor ?? 'bow')) k++;
     return k / n; };
   assert.ok(Math.abs(share(null) - 1 / kinds) < 0.02 && Math.abs(share('bow') - FAVOR / (FAVOR + kinds - 1)) < 0.02, `${share(null)} ${share('bow')}`);
   assert.deepEqual(weaponDrops({ id: 'g', level: 9, guardian: true, guardianRole: 'side' }, 4, 'staff'),
@@ -309,7 +309,7 @@ test('crits multiply damage, life on hit heals up to the maximum', () => {
   const inv = p.inventory;
   equipItem(inv, addInstance(inv, { itemId: 'weapon_sword_long', count: 1, gen: { v: 1, rarity: 'vanilla', ilvl: 5, name: 'x',
     affixes: [{ id: 'vicious', tier: 2, value: 10 }, { id: 'leech', tier: 2, value: 3 }, { id: 'precision', tier: 2, value: 50 }] } }));
-  const stats = combatStats(p), hit = Math.round(39 * ilvlDamage(5));
+  const stats = combatStats(p), hit = Math.round(41 * ilvlDamage(5));
   assert.equal(stats.crit, CRIT_CHANCE + 0.1); assert.equal(stats.critDamage, 2); assert.equal(stats.damage, hit);
   const swing = () => { p.sword.cool = 0; startSwing(p); advanceSwing(p, stats.activeStart + .001); };
   p.hp = 50;

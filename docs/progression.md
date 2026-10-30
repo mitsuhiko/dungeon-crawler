@@ -204,9 +204,9 @@ ranged kinds attack: [combat.md](combat.md#bows-crossbows-and-staffs), the flail
 | Glassmaker's Old Sword | 30 | .42 | 71 | .85 | ×1 | never |
 | Short | 23 | .32 | 72 | .72 | ×1 | 1 |
 | Medium | 34 | .42 | 81 | .85 | ×1 | 1 |
-| Long | 39 | .48 | 81 | 1.05 | ×1 | 2 |
-| Broad | 46 | .54 | 85 | .88 | ×1.25 | 4 |
-| Greatsword | 60 | .66 | 91 | 1.15 | ×1.3 | 6 |
+| Long | 41 | .48 | 85 | 1.05 | ×1 | 4 |
+| Broad | 48 | .54 | 89 | .88 | ×1.25 | 8 |
+| Greatsword | 61 | .66 | 92 | 1.15 | ×1.3 | 12 |
 
 Damage is at item level 1; it grows 5% per item level. The interval is the real time from one
 swing to the next when chaining (the attack speed). All use the existing Slash clip, scaled in
@@ -222,16 +222,18 @@ Morning stars: one, two or three spiked balls on chains, swung like a sword (the
 `FLAIL` timing: slower to come round, a longer active window, [combat.md](combat.md#flails)),
 sweeping wider than any sword and shoving half again as hard (`knockback` ×1.5). With more than
 one ball each strikes in turn, so the damage is a ball's and the damage per second counts them
-all. They only drop from item level 7, Renew's level: he always drops one
-([bosses.md](bosses.md#renew)).
+all. Because they reach that wide, each hits a little less per second than the sword that comes
+with it (the Broadsword at 8, the Greatsword at 12). They only drop from item level 7, Renew's
+level: he always drops one, of any of them ([bosses.md](bosses.md#renew)); the heavier ones
+come one by one down to item level 15.
 
 | Flail | Damage | Balls | Interval | Per second | Reach | Arc | Drops from |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Ball and Chain | 46 | 1 | .58 | 79 | .95 | ×1.4 | 7 |
-| Morning Star | 53 | 1 | .62 | 85 | 1 | ×1.45 | 7 |
-| Twin Morning Star | 32 | 2 | .68 | 94 | 1 | ×1.5 | 8 |
-| Knight's Flail | 62 | 1 | .70 | 89 | 1.15 | ×1.35 | 9 |
-| Triple Flail | 24 | 3 | .74 | 97 | .95 | ×1.55 | 10 |
+| Ball and Chain | 49 | 1 | .58 | 84 | .95 | ×1.4 | 7 |
+| Morning Star | 53 | 1 | .62 | 85 | 1 | ×1.45 | 9 |
+| Twin Morning Star | 30 | 2 | .68 | 88 | 1 | ×1.5 | 11 |
+| Knight's Flail | 63 | 1 | .70 | 90 | 1.15 | ×1.35 | 13 |
+| Triple Flail | 23 | 3 | .74 | 93 | .95 | ×1.55 | 15 |
 
 ### Tridents
 
@@ -244,8 +246,8 @@ and drop from item level 3; Squarlo (depth 2) drops one half the time for each o
 | Trident | Damage | Interval | Per second (stab, lightning) | Reach | Lightning range | Jumps | Drops from |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Fisher's Trident | 38 | .52 | 73, 44 | 1.25 | 4.5 | 0 | 3 |
-| Trident | 48 | .58 | 83, 50 | 1.35 | 5 | 0 | 5 |
-| Storm Trident | 58 | .66 | 88, 53 | 1.45 | 5.5 | 1 | 8 |
+| Trident | 48 | .58 | 83, 50 | 1.35 | 5 | 0 | 7 |
+| Storm Trident | 58 | .66 | 88, 53 | 1.45 | 5.5 | 1 | 12 |
 
 ### Bows, crossbows and staffs
 
@@ -258,25 +260,25 @@ damage to everything else there).
 |---|---:|---:|---:|---:|---:|
 | Short Bow | 22 | .44 | 50 | 5 | 1 |
 | Hunting Bow | 30 | .56 | 54 | 6 | 1 |
-| Recurve Bow | 35 | .62 | 56 | 6.5 | 3 |
-| Longbow | 44 | .74 | 59 | 8 | 5 |
-| War Bow | 54 | .84 | 64 | 7 | 7 |
+| Recurve Bow | 35 | .62 | 56 | 6.5 | 4 |
+| Longbow | 44 | .74 | 59 | 8 | 8 |
+| War Bow | 54 | .84 | 64 | 7 | 12 |
 
 | Crossbow | Damage | Interval | Per second | Range | Pierces | Drops from |
 |---|---:|---:|---:|---:|---:|---:|
 | Hand Crossbow | 34 | .66 | 52 | 4.5 | 0 | 1 |
-| Light Crossbow | 46 | .84 | 55 | 5.5 | 1 | 2 |
-| Heavy Crossbow | 64 | 1.04 | 62 | 6 | 1 | 4 |
+| Light Crossbow | 46 | .84 | 55 | 5.5 | 1 | 3 |
 | Repeating Crossbow | 27 | .45 | 60 | 5 | 0 | 6 |
-| Arbalest | 86 | 1.28 | 67 | 7 | 2 | 8 |
+| Heavy Crossbow | 64 | 1.04 | 62 | 6 | 1 | 9 |
+| Arbalest | 86 | 1.28 | 67 | 7 | 2 | 14 |
 
 | Staff | Damage | Interval | Per second | Range | Burst, cells | Spell | Drops from |
 |---|---:|---:|---:|---:|---:|---|---:|
 | Gnarled Staff | 27 | .58 | 47 | 4.5 | .5 | green | 1 |
 | Oak Staff | 33 | .62 | 53 | 5 | .6 | blue | 2 |
-| Ember Staff | 41 | .70 | 59 | 5 | .85 | orange | 4 |
-| Crystal Staff | 47 | .74 | 64 | 5.5 | .7 | ice | 6 |
-| Arcane Staff | 58 | .84 | 69 | 6 | 1 | violet | 8 |
+| Ember Staff | 41 | .70 | 59 | 5 | .85 | orange | 5 |
+| Crystal Staff | 47 | .74 | 64 | 5.5 | .7 | ice | 9 |
+| Arcane Staff | 58 | .84 | 69 | 6 | 1 | violet | 12 |
 
 The lightning staffs (the staff itself a bolt of lightning) cast lightning instead: it strikes
 almost at once and jumps on to more enemies nearby, each jump for 70% of the one before
@@ -284,9 +286,9 @@ almost at once and jumps on to more enemies nearby, each jump for 70% of the one
 
 | Lightning staff | Damage | Interval | Per second | Range | Jumps | Lightning | Drops from |
 |---|---:|---:|---:|---:|---:|---|---:|
-| Spark Staff | 38 | .64 | 59 | 5.5 | 1 | yellow | 5 |
-| Lightning Staff | 48 | .72 | 67 | 6 | 2 | blue | 8 |
-| Thunderbolt | 55 | .80 | 69 | 6.5 | 3 | violet | 11 |
+| Spark Staff | 38 | .64 | 59 | 5.5 | 1 | yellow | 7 |
+| Lightning Staff | 48 | .72 | 67 | 6 | 2 | blue | 13 |
+| Thunderbolt | 55 | .80 | 69 | 6.5 | 3 | violet | 16 |
 
 Each kind plays its own clip (Shoot, CrossbowShot, Cast; a trident Thrust), scaled in time like
 Slash, and is carried in its own hold pose.

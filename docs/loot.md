@@ -103,16 +103,17 @@ the item level allows comes down to the best it does allow. `node tools/loot-tab
 prints the odds per level and per guardian (and `n` sample weapons per rarity).
 
 **Bases** (`core/gear/bases.js`): five of each kind (eight staffs, three tridents), a light one
-or two from item level 1 and heavier ones further down (swords: short and medium from 1, long 2,
-broad 4, greatsword 6; bows: short and hunting 1, recurve 3, longbow 5, war bow 7; crossbows:
-hand 1, light 2, heavy 4, repeating 6, arbalest 8; staffs: gnarled 1, oak 2, ember 4, crystal 6,
-arcane 8, and the lightning staffs spark 5, lightning 8, thunderbolt 11). A kind's weights add up
+or two from item level 1 and heavier ones further down, the heaviest from item level 12 to 16, so
+something new turns up all the way down (swords: short and medium from 1, long 4, broad 8,
+greatsword 12; bows: short and hunting 1, recurve 4, longbow 8, war bow 12; crossbows: hand 1,
+light 3, repeating 6, heavy 9, arbalest 14; staffs: gnarled 1, oak 2, ember 5, crystal 9, arcane
+12, and the lightning staffs spark 7, lightning 13, thunderbolt 16). A kind's weights add up
 to the same (each staff weighs 5/8, each trident 5/3), so each kind is as likely as the others
-once all of it drops. The tridents from item level 3 (fisher's 3, trident 5, storm 8): Squarlo
+once all of it drops. The tridents from item level 3 (fisher's 3, trident 7, storm 12): Squarlo
 (depth 2) leans towards them, each of his weapons a trident half the time, any of the three
 (`leansTo`). The flails
-only from item level 7, Renew's (ball and chain and morning star 7, twin morning star 8,
-knight's flail 9, triple flail 10): he always drops one first, any of the five
+only from item level 7, Renew's (ball and chain 7, morning star 9, twin morning star 11,
+knight's flail 13, triple flail 15): he always drops one first, any of the five
 (`ownWeapon`), so he is the first to hand you one. The Glassmaker's Old Sword never drops. Their stats are in [progression.md](progression.md#weapons). A base's damage
 grows **5% per item level** (`ILVL_DAMAGE`), so a weapon from ten depths further down hits half
 again as hard as the same one from the top.

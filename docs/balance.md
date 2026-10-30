@@ -100,8 +100,10 @@ held it in place for good, guardians included.
 (+5% a level, `ILVL_DAMAGE`), scaled by rarity, then changed by affixes. `interval` is the real
 time between chained swings (the attack speed); every swing time scales with it. Every weapon
 crits 5% of the time for ×1.5 before affixes. Damage per second rises a little with weight
-(short 72, medium 81, long 81, broad 85, greatsword 91 at item level 1), while heavier bases
-reach further or sweep wider but plant you longer, and only drop deeper down. Bows, crossbows
+(short 72, medium 81, long 85, broad 89, greatsword 92 at item level 1), while heavier bases
+reach further or sweep wider but plant you longer, and only drop deeper down (the heaviest of
+each kind from item level 12 to 16). The flails sweep wider and shove harder than any sword, so
+each hits a little less per second than the sword of its depth (84 to 93). Bows, crossbows
 and staffs shoot from afar, which is safer, so they deal less per second (47 to 69 at item level
 1, see [progression.md](progression.md#bows-crossbows-and-staffs)); spells' bursts and bolts'
 piercing make some of that back in packs. Drops lean towards the kind the player fights with
