@@ -1427,15 +1427,16 @@ town's seams, "The town" above):
   Back the other way it is `PAST` again, so walking along a side does not hand over and back.
   The cube is got ready ahead (`game/flow.js readyAhead`, and its bake made ahead,
   `game/bakeahead.js`); until it is, the hero stands past the side. Not in a swim out of the
-  water or a fall through cubes (they stand on past the side until it is over).
+  water (they stand on past the side until it is over); during a fall through cubes no side is
+  walked across.
 - **What is seen**: the cube left dissolves into its proxy and the one taken over out of its
   own (`FADE`, 0.3 s), where they stand (complementary dither, as in the slide), its enemies
   with it. Out of the town the overview pans over to the new cube in 0.7 s
   (`game/camera.js panCamera`), so the view does not jump a cube's width; in town it follows
   the hero anyway.
-- **What keeps the side shut**, as a wall: a trial room sealed (`game/trials.js sealedOut`),
-  a guardian's gate locked, a guardian still standing in its arena, Umbra's water (the diving
-  suit), Flip's box turned. Steering out over it says why (`game/portals.js`), or asks whether
+- **What keeps the side shut**, as a wall: travel, a fall through cubes, a trial room sealed
+  (`game/trials.js sealedOut`), a guardian's gate locked, a guardian still standing in its arena,
+  Umbra's water (the diving suit), Flip's box turned. Steering out over it says why (`game/portals.js`), or asks whether
   to leave the fight (`game/leavefight.js`); leaving goes through with the slide.
 - **Click to walk**: the floor under the cursor is found on the ground of a cube beyond a side
   walked across too, when the ray meets none in the cube (`game/pointer.js pickFloor`); the
@@ -1456,7 +1457,7 @@ not past a corner, a cliff or a rail), enemy containment and the town's seams. F
 browser's devtools, run
 `await (await import('./tests/browser/boundary.js')).runBoundaryChecks()` for
 all four side orientations: the first crossing's slide, walking back across (no slide, no jump,
-no bounce), rebuilds, airborne crossings, a solid past the side,
+no bounce), a click across, rebuilds, airborne crossings, a solid past the side,
 generation failure, reset, gated neighbours discovered by another route and vertical travel. `runModifierKeyChecks()` in that
 module checks the Ctrl (walk) and Shift (auto-attack) modifiers and input clearing; the movement
 ramp and auto-attack themselves are checked by `runControlChecks()` in `tests/browser/combat.js`.

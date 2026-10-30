@@ -46,10 +46,10 @@ const past = (p, d) => [p.x - N, -p.x, p.z - N, -p.z][d];
 // (null: none, or its map not here yet): the town's seams and the open faces, but not while
 // something holds the hero in (Flip's box turned, under Umbra's water, a trial room sealed, a
 // guardian's gate locked or a guardian still standing: game/portals.js says so at the face, and
-// asks to leave the fight), nor while travel goes on.
+// asks to leave the fight), nor while travel or a fall through cubes goes on.
 export function crossable() {
   const m = state.map, k = state.cubeKey, cubes = state.cubes?.cubes;
-  if (!m || !cubes || state.transitioning || m.flipKey || diveSealed()) return DIRS.map(() => null);
+  if (!m || !cubes || state.transitioning || state.fallFrom || m.flipKey || diveSealed()) return DIRS.map(() => null);
   const sealed = sealedOut();
   return DIRS.map((_, d) => {
     if (!m.seams?.[d] && !isFaceOpen(state.openedFaces, k, d)) return null;
@@ -62,9 +62,9 @@ export function refreshAcross() { setAcross(state.map, crossable()); }
 
 // game/portals.js, every step of play: past a side walked across, the cube beyond takes over.
 // true if it did. Not while the hero is held in what knows the cube's coordinates (a swim out of
-// the water, a fall through cubes): they stand on past the side until that is over.
+// the water): they stand on past the side until that is over.
 export function checkHandover() {
-  if (state.transitioning || !state.cubes || player.swimOut || state.fallFrom) return false;
+  if (state.transitioning || !state.cubes || player.swimOut) return false;
   const beyond = acrossOf(state.map);
   for (let d = 0; d < 4; d++) {
     if (!beyond[d] || past(player, d) <= PAST) continue;

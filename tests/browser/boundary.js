@@ -13,6 +13,7 @@ import { startTravel, travelling, updateTravel } from '../../src/game/travel.js'
 import { startFall } from '../../src/game/fall.js';
 import { PAST, endHandover } from '../../src/game/handover.js';
 import { groundAt } from '../../src/physics/collide.js';
+import { orderMove, order } from '../../src/game/orders.js';
 import { detachNeighbors, adoptNeighbors } from '../../src/render/neighbors.js';
 import { setInventoryOpen } from '../../src/game/inventory.js';
 import { wantsWalk, autoAttackHeld, clearInput } from '../../src/game/input.js';
@@ -62,6 +63,22 @@ async function walkAcross(d, steps = 120) {
   return { steps: i, last, after };
 }
 const handPast = (p, d) => [p.x - N, -p.x, p.z - N, -p.z][d];
+// Click the ground of the cube beyond side d, 2.5 cells past it, `along` it (as pickFloor finds
+// it: x, z in this cube's coordinates), from 3 cells in: the hero walks there, into that cube.
+async function clickAcross(d, along) {
+  const from = state.cubeKey, next = step(from, d), [dx, dz] = DIRS[d], b = state.cubes.cubes.get(next).map;
+  for (let i = 0; i < 100 && !state.cubes.cubes.get(next)?.ready; i++) await delay(20);
+  const [sx, sz] = faceSpot(d, along, 3);
+  spawnAt(sx, groundAt(sx, sz, 99, 0).h, sz);
+  const [lx, lz] = faceSpot(OPP6[d], along, 2.5), g = groundAt(lx, lz, 99, 0, b);
+  check(g.s, 'No ground beyond the side to click');
+  const hit = { x: lx + dx * N, y: g.h, z: lz + dz * N, s: g.s, across: d };
+  orderMove(hit);
+  check(order.kind === 'way', 'A click beyond the side must walk over it');
+  for (let i = 0; i < 600 && (state.cubeKey === from || order.kind); i++) updatePlayer(1 / 60);
+  check(state.cubeKey === next && !travelling(), 'A click beyond the side must take the hero into the cube beyond');
+  check(!order.kind && Math.hypot(player.x - lx, player.z - lz) < 0.3, 'The walk must go on to the spot clicked: ' + JSON.stringify([player.x, player.z, lx, lz]));
+}
 
 // Modifier state: left Ctrl (walk; right Ctrl is the action key) and Shift (auto-attack), left and
 // right, blur and modal isolation.
@@ -138,8 +155,11 @@ async function sealedSectionCheck() {
 }
 
 // Discover both ends without crossing their gate (as when arriving by another route).
-// the town's gate tile (world/town.js: a new world starts in the inn's), entered
+// the town's gate tile (world/town.js: a new world starts in the inn's), entered, once the whole
+// town is known (game/flow.js knowTown: its tiles' maps come in one by one, opening its seams)
 async function gateTile() {
+  const keys = state.cubes.town.keys;
+  for (let i = 0; i < 200 && keys.some(k => !state.cubes.cubes.get(k)?.visits); i++) await delay(25);
   const t = await state.cubes.get(state.cubes.town.gate);
   enterCube(t, null, null, { x: N / 2, y: t.map.floors[0].top * 0.5, z: N / 2 });
   return t;
@@ -218,6 +238,10 @@ export async function runBoundaryChecks() {
         for (let i = 0; i < 60 && handPast(player, dir) > -0.4; i++) updatePlayer(1 / 60);
         player.autoDir = null;
         check(state.cubeKey === town.key, 'Stepping over a side by less than PAST must not hand over');
+        // A click on the ground beyond the side (game/pointer.js pickFloor's `across`): walked up
+        // to it, over it, and on in the cube beyond to the spot clicked
+        await clickAcross(dir, elsewhere);
+        endHandover();
         // Explicit rebuild/re-entry uses the same state, without reopening a gate.
         enterCube(town);
         check(!state.world.portalFx.some(fx => fx.obj.userData.portal.kind === 'side'), 'Re-entry must not restore an opened gate');
@@ -247,7 +271,7 @@ export async function runBoundaryChecks() {
           player.autoDir = null;
           check(!state.transitioning && state.cubeKey === roadKey && state.map === road.map && handPast(player, opposite) < 0, 'A solid past the side must block the way without changing the active cube');
         } finally { blockers.splice(blockers.indexOf(blocker), 1); }
-        results.push('side ' + dir + ': first crossing slides / both glass copies / walked back across, handed over / no bounce / rebuild / airborne motion / solid past the side');
+        results.push('side ' + dir + ': first crossing slides / both glass copies / walked back across, handed over / no bounce / clicked across / rebuild / airborne motion / solid past the side');
       }
 
       await newWorld(3); clearInput();
