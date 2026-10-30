@@ -24,7 +24,7 @@ const wind = { value: 0 };
 export const tickProps = (t, night = 0) => { wind.value = t; setNight(night); };
 
 // a lit window: its warm light, how bright, how far it reaches; and a lamp post's glass by day
-const WINDOW = { color: '#ffb866', gain: 1.5, reach: 3.6 }, LAMP_BY_DAY = 0.12;
+export const WINDOW = { color: '#ffb866', gain: 1.5, reach: 3.6 }, LAMP_BY_DAY = 0.12;
 const isWindow = m => m.name.endsWith('_window');
 
 // a loaded library: its props' parts (and an animated prop's node tree and clips) into their catalog entries
@@ -129,15 +129,16 @@ export function propMatrix(q, target = new THREE.Matrix4()) {
 const placeMatrix = (q, target) => q.matrix ? target.fromArray(q.matrix) : propMatrix(q, target);
 
 // A prop's parts as one plain geometry for the proxies' batch (render/neighbors.js): position,
-// normal, color (vertex colour times the part's colour) and glow (its emissive light times
-// `glow`), so glowing windows and braziers still glow in the surroundings.
-export function propBatchGeometry(p, glow) {
+// normal, color (vertex colour times the part's colour), glow (its emissive light times `glow`)
+// and pane (1: a house's window, lit at night only; the batch's shader lights it, and a night
+// lamp's glass, as the night goes: render/night.js), so glowing windows and braziers still glow
+// in the surroundings.
+export function propBatchGeometry(p, glow = 1) {
   const parts = (p.wholeParts ?? p.parts).map(({ geometry, material }) => {
     const g = geometry.index ? geometry.toNonIndexed() : geometry.clone(), n = g.attributes.position.count;
-    const base = material.color || new THREE.Color(1, 1, 1);
-    // (a window is lit at night only: dark in the surroundings)
-    const light = (material.emissive || new THREE.Color(0, 0, 0)).clone().multiplyScalar(isWindow(material) ? 0 : (material.emissiveIntensity ?? 1) * glow);
-    const src = g.attributes.color, color = new Float32Array(n * 3), lit = new Float32Array(n * 3);
+    const base = material.color || new THREE.Color(1, 1, 1), isPane = isWindow(material) ? 1 : 0;
+    const light = (material.emissive || new THREE.Color(0, 0, 0)).clone().multiplyScalar((material.emissiveIntensity ?? 1) * glow);
+    const src = g.attributes.color, color = new Float32Array(n * 3), lit = new Float32Array(n * 3), panes = new Float32Array(n).fill(isPane);
     for (let i = 0; i < n; i++) {
       color[i * 3] = (src ? src.getX(i) : 1) * base.r; color[i * 3 + 1] = (src ? src.getY(i) : 1) * base.g; color[i * 3 + 2] = (src ? src.getZ(i) : 1) * base.b;
       lit[i * 3] = light.r; lit[i * 3 + 1] = light.g; lit[i * 3 + 2] = light.b;
@@ -148,6 +149,7 @@ export function propBatchGeometry(p, glow) {
     out.setAttribute('normal', new THREE.Float32BufferAttribute(vec3(g.attributes.normal), 3));
     out.setAttribute('color', new THREE.Float32BufferAttribute(color, 3));
     out.setAttribute('glow', new THREE.Float32BufferAttribute(lit, 3));
+    out.setAttribute('pane', new THREE.Float32BufferAttribute(panes, 1));
     g.dispose();
     return out;
   });
@@ -159,6 +161,9 @@ export function propBatchGeometry(p, glow) {
 
 const LOWEST = 0.3;   // a ground prop's light at least this high over its foot
 const fireSeed = q => (q.x * 1.7 + q.z * 2.3) % 6.28;   // (a fire's flame and light flicker as one)
+// a glowing part's seed, as glowMaterial's shader has it (GLSL's mod: never below 0): when it
+// comes on at night (render/night.js litAt)
+export const glowSeed = q => { const v = (q.x * 1.7 + q.z * 2.3) % 6.28; return v < 0 ? v + 6.28 : v; };
 // placed: [{ name, x, y, z, yaw, s, tint, night }] -> instanced meshes (and light sources) in
 // group (night: a lamp lit at night only, render/night.js); water: the cube's (render/wet.js
 // waterUniforms): what lies all under it wavers with the bed (render/underwater.js)

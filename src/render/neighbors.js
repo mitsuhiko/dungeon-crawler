@@ -18,7 +18,8 @@ import { glassState, glassBatch, setGlassFaces, setGlassShut, setGlassSeams } fr
 import { inject } from './cutshader.js';
 import { capLight } from './section.js';
 import { LAYER as GHOSTS, glassLook, glassRim } from './ghosts.js';
-import { props, loadPropSets, propSetLoaded, propMatrix, propBatchGeometry } from './props.js';
+import { props, loadPropSets, propSetLoaded, propMatrix, propBatchGeometry, glowSeed, LAMP_BY_DAY } from './props.js';
+import { nightGlow, LIT_GLSL } from './night.js';
 
 let current = [];   // [{ key, source, group, cull, glass, geometry, base, instances, landmarks }]
 const live = new Set(), cache = new Map();   // cache keyed by worker geometry identity
@@ -76,9 +77,19 @@ function batchMaterial(mat, data, key, edit = sh => sh, cut = REVEAL) {
   return mat;
 }
 
-// The landmarks' batch lights each vertex by its own glow (props.js propBatchGeometry).
+// The landmarks' batch lights each vertex by its own glow (props.js propBatchGeometry): dimmed with
+// its cube (PROXY.glow of it at its whole dim), a house's window at night only and a night lamp's
+// glass faintly by day, each coming on at its own moment of the dusk as in the cube played in
+// (render/night.js; its seed and whether it is a night lamp: the instance's second texel)
 const glowing = sh => {
-  sh.vertexShader = 'attribute vec3 glow;\nvarying vec3 vGlow;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vGlow = glow;');
+  sh.uniforms.uNight = nightGlow;
+  sh.vertexShader = `attribute vec3 glow;\nattribute float pane;\nvarying vec3 vGlow;\nuniform float uNight;\n${LIT_GLSL}\n` + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+  vec4 lamp = vec4(0.0);
+  #ifdef USE_BATCHING
+    lamp = texelFetch(uProxyData, ivec2(int(getIndirectIndex(gl_DrawID)), 1), 0);
+  #endif
+  float on = pane > 0.5 ? litAt(uNight, lamp.x) : lamp.y > 0.5 ? mix(${LAMP_BY_DAY.toFixed(3)}, 1.0, litAt(uNight, lamp.x)) : 1.0;
+  vGlow = glow * on * mix(${PROXY.glow.toFixed(3)}, 1.0, vProxy.w);`);
   sh.fragmentShader = 'varying vec3 vGlow;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vGlow;');
 };
 
@@ -88,6 +99,8 @@ class Batch {
   // glass: draw what the cut takes away again as glass (solids)
   constructor(material, order, key, edit, glass = false) {
     this.capacity = 64; this.vertices = 1 << 14; this.indices = 1 << 15;
+    // (the fade texture: a texel an instance in its first row, its fades; in its second what the
+    // instance is besides, setLamp)
     this.data = { value: this.fadeTexture(this.capacity) };
     this.mesh = new THREE.BatchedMesh(this.capacity, this.vertices, this.indices, batchMaterial(material, this.data, key, edit));
     // cullNeighbors culls whole cubes; transparent parts are sorted back to front among themselves
@@ -110,10 +123,20 @@ class Batch {
     return standIn;
   }
   fadeTexture(width, old) {
-    const tex = new THREE.DataTexture(new Float32Array(width * 4), width, 1, THREE.RGBAFormat, THREE.FloatType);
-    if (old) { tex.image.data.set(old.image.data); old.dispose(); }
+    const tex = new THREE.DataTexture(new Float32Array(width * 8), width, 2, THREE.RGBAFormat, THREE.FloatType);
+    if (old) {
+      const d = old.image.data, w = old.image.width * 4;
+      tex.image.data.set(d.subarray(0, w)); tex.image.data.set(d.subarray(w, 2 * w), width * 4);
+      old.dispose();
+    }
     tex.needsUpdate = true;
     return tex;
+  }
+  // a landmark's lamp (the glowing shader): its seed (props.js glowSeed), whether it is lit at night only
+  setLamp(id, seed, night) {
+    const d = this.data.value.image.data, o = (this.capacity + id) * 4;
+    d[o] = seed; d[o + 1] = night ? 1 : 0;
+    this.dirty = true;
   }
   addGeometry(geometry) {
     const v = geometry.attributes.position.count, i = geometry.index.count, mesh = this.mesh;
@@ -207,7 +230,7 @@ export function proxyWarmup(geo, landmarks = []) {
   for (const L of landmarks) {
     const p = props.byName.get(L.name);
     if (!p?.parts || landmarkGeometry.has(L.name)) continue;
-    landmarkGeometry.set(L.name, landmarkBatch().addGeometry(propBatchGeometry(p, PROXY.glow)));
+    landmarkGeometry.set(L.name, landmarkBatch().addGeometry(propBatchGeometry(p)));
   }
   if (landmarkGeometry.size) out.push(landmarkBatch().mesh);
   return [...out, ...glassFor().objects];
@@ -259,8 +282,10 @@ function addLandmarks(g) {
     const p = props.byName.get(L.name);
     if (!p?.parts) continue;
     const batch = landmarkBatch();
-    if (!landmarkGeometry.has(L.name)) landmarkGeometry.set(L.name, batch.addGeometry(propBatchGeometry(p, PROXY.glow)));
-    g.instances.push({ batch, id: batch.addInstance(landmarkGeometry.get(L.name)), local: propMatrix(L), at: null });
+    if (!landmarkGeometry.has(L.name)) landmarkGeometry.set(L.name, batch.addGeometry(propBatchGeometry(p)));
+    const id = batch.addInstance(landmarkGeometry.get(L.name));
+    batch.setLamp(id, glowSeed(L), !!L.night);
+    g.instances.push({ batch, id, local: propMatrix(L), at: null });
   }
 }
 

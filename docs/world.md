@@ -1435,7 +1435,8 @@ animated, 'proxy' is Lambert and darker). So lava stays lava and acid stays acid
 falls pour there too, and a new part or fluid shows in both or neither.
 
 `render/neighbors.js` draws every proxy as instances in shared `BatchedMesh`es, one per part
-plus one for all landmarks (the only props shown; their glowing parts still glow), without
+plus one for all landmarks (the only props shown; their glowing parts still glow, dimmed with the
+cube, the town's windows and street lamps lit at night as in the cube played in), without
 enemies, lights or shadows. Every proxy's glass box is one instanced draw for the panes and one
 for the outlines (`render/glass.js glassBatch`). All the surroundings take at most a dozen draw
 calls, however many cubes they are. A proxy's fades (travel dissolve, inverted cross-fade and
