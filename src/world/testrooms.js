@@ -11,7 +11,7 @@ import { BOSSES } from '../core/bosses.js';
 
 export const TEST_ROOMS = Object.freeze({
   water_hill: 'a hill standing in a lake to halfway up; a shallow shelf to wade on, deep water past it',
-  fluids: 'a waterfall into a lake, a lava pool and an acid pool',
+  fluids: 'a waterfall into a lake, a lava pool, an acid pool and a mud pool with pockets of mud round it',
   climb: 'every ladder style: up towers, and hanging from a floating platform',
   enemies: 'every species and kind (and the bosses\' minions) lined up, idle',
   guardians: 'every side guardian lined up, idle',

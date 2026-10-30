@@ -7,7 +7,7 @@
 // some; the `enemies` and `guardians` rooms line every kind up, game/devspawn.js): nothing leads
 // in or out but /testroom. The `boss` room is the exception: the generator's own descent arena of
 // its depth (bossRoom), its boss in the lineup.
-import { N, LH, DIRS, OPP, EDGE_CORNERS, WATER, LAVA, ACID, FLUID_NAME } from '../core/constants.js';
+import { N, LH, DIRS, OPP, EDGE_CORNERS, WATER, LAVA, ACID, MUD, FLUID_NAME } from '../core/constants.js';
 import { idx } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { indexBlockers } from '../core/blockers.js';
@@ -17,6 +17,7 @@ import { shapeStructures } from './shape.js';
 import { testRoomOf } from '../world/testrooms.js';
 import { ENEMY_KINDS } from '../core/enemies.js';
 import { generateGuardian } from './guardian.js';
+import { mudPocket } from './mudpools.js';
 
 const flat = top => Array(4).fill(top * LH);
 const corners = (H, x, z) => [H(x, z), H(x + 1, z), H(x, z + 1), H(x + 1, z + 1)];
@@ -42,13 +43,15 @@ function start(spec) {
     return ctx.put(x, z, { top: Math.round(lv.reduce((a, b) => a + b) / 4), cs });
   };
   // a pool of `fluid` (surface S, bed two levels under it) in the cells whose centres lie within
-  // r of (cx, cz), with flat banks a level over its surface
-  ctx.pool = (cx, cz, r, fluid, S) => {
+  // r of (cx, cz), with flat banks a level over its surface; look: a look of its own (MUD: water
+  // drawn and waded as mud, cubegen/mudpools.js)
+  ctx.pool = (cx, cz, r, fluid, S, look = 0) => {
     for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) if (Math.hypot(x + 0.5 - cx, z + 0.5 - cz) < r) {
       ctx.cols[idx(x, z)] = [];
-      ctx.put(x, z, { top: S - 2, fluid, surf: S });
+      const f = ctx.put(x, z, { top: S - 2, fluid, surf: S });
+      if (look) f.look = look;
     }
-    ctx.stats.fluids.push(FLUID_NAME[fluid] + ' pool');
+    ctx.stats.fluids.push(FLUID_NAME[look || fluid] + ' pool');
   };
   ctx.ladder = (lo, hi, style) => {
     const d = DIRS.findIndex(([dx, dz]) => lo.x + dx === hi.x && lo.z + dz === hi.z);
@@ -83,7 +86,7 @@ function finish(ctx, spec, { K = 1, B = [0], arrival, note, lineup = [], shape =
   Object.assign(ctx.stats, { layers: K, mode: `test room (${name})` });
   return {
     seed: spec.seed, attempts: 1, K, B, cols: ctx.cols, floors, pieces: ctx.pieces ?? Array.from({ length: N * N }, () => []),
-    runs: ctx.runs ?? [], falls: ctx.falls, fences: new Map(), fenceList: [], stats: ctx.stats, moves: [], portals: [], exit: null,
+    runs: ctx.runs ?? [], falls: ctx.falls, mudPockets: ctx.mudPockets ?? [], fences: new Map(), fenceList: [], stats: ctx.stats, moves: [], portals: [], exit: null,
     ladders: ctx.ladders.map(l => ladderInfo(l, l.style)),
     gateKeys: [null, null, null, null], trialFaces: [null, null, null, null], trial: null, clues: [],
     safe: new Uint8Array(floors.length).fill(1),
@@ -123,11 +126,15 @@ function waterHill(spec) {
 
 // Flat ground (level 4) before a cliff along the north (level 14, up a ladder in its west end):
 // a channel on top pours over its edge as a waterfall into a lake below, deep under the fall
-// and shelving up to its shores; a lava pool and an acid pool in the south corners.
-const FLUIDS_ROOM = { G: 4, cliff: 14, lake: 3, chan: 8 };
+// and shelving up to its shores; a lava pool and an acid pool in the south corners, a pool of mud
+// (water with the look of mud, cubegen/mudpools.js) between them, and pockets of mud lying on the
+// ground round it (as round a mud pool in the wild: game/muddy.js): { x, z, r, deep } (cells, the
+// depth in world units), off the ways the tests wade (tests/testrooms.test.js).
+const FLUIDS_ROOM = { G: 4, cliff: 14, lake: 3, chan: 8, mud: { x: 8, z: 13, r: 1.6 },
+  pockets: [{ x: 10.3, z: 10.3, r: 0.55, deep: 0.12 }, { x: 4.6, z: 9.4, r: 0.45, deep: 0.1 }, { x: 10.4, z: 14.3, r: 0.4, deep: 0.08 }] };
 const lakeHeight = (X, Z) => Math.min(FLUIDS_ROOM.G, Math.max(1, 1 + 1.1 * (Math.hypot((X - 8) / 1.5, Z - 4.2) - 1)));
 function fluids(spec) {
-  const ctx = start(spec), { G, cliff, lake, chan } = FLUIDS_ROOM;
+  const ctx = start(spec), { G, cliff, lake, chan, mud, pockets } = FLUIDS_ROOM;
   for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) {
     if (z <= 2) {
       if (x === chan && z) ctx.put(x, z, { top: cliff - 3, fluid: WATER, surf: cliff - 1 });   // the channel
@@ -137,6 +144,8 @@ function fluids(spec) {
   }
   ctx.pool(3.5, 12, 1.7, LAVA, G - 1);
   ctx.pool(12.5, 12, 1.7, ACID, G - 1);
+  ctx.pool(mud.x, mud.z, mud.r, WATER, G - 1, MUD);
+  ctx.mudPockets = pockets.map(p => mudPocket(ctx.cols[idx(Math.floor(p.x), Math.floor(p.z))].at(-1), p.x, p.z, p.r, p.deep));
   ctx.falls.push({ c: idx(chan, 3), d: 2, top: cliff - 1, bot: lake, type: WATER, layer: 0 });
   ctx.stats.fluids.push('water channel', 'waterfall', 'water lake');
   ctx.ladder(ctx.cols[idx(1, 3)][0], ctx.cols[idx(1, 2)][0], 'wood');

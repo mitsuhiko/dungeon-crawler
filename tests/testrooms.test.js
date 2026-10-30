@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, LH, CHAR_R, HEAD_Y, WATER, LAVA, ACID, SWIM_DEPTH, SWIM_FEET } from '../src/core/constants.js';
+import { N, LH, CHAR_R, HEAD_Y, WATER, LAVA, ACID, MUD, SWIM_DEPTH, SWIM_FEET } from '../src/core/constants.js';
+import { MUD_ROW } from '../src/themes/fluids.js';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { interiorKey } from '../src/world/town.js';
@@ -107,9 +108,18 @@ test('water hill: walking down the shelf wades ever deeper until the water lifts
   assert.ok(!player.swimming && player.grounded && player.z < 1, `onto the rim: ${player.x}, ${player.z}`);
 });
 
-test('fluids: a waterfall into a lake, lava and acid pools', () => {
+test('fluids: a waterfall into a lake, lava, acid and mud pools', () => {
   const m = new World(2).cube(testRoomKey('fluids', 3)).map, kinds = new Set(m.floors.map(f => f.fluid));
   assert.ok(kinds.has(WATER) && kinds.has(LAVA) && kinds.has(ACID));
+  // the mud pool: water with the look of mud, in the mud's colours, with pockets of mud on the dry
+  // ground round it
+  const mud = m.floors.filter(f => f.look === MUD);
+  assert.ok(mud.length > 4 && mud.every(f => f.fluid === WATER && f.pal === MUD_ROW && tooDeep(f)));
+  assert.ok(m.mudPockets.length >= 2);
+  for (const p of m.mudPockets) {
+    const g = m.cols[p.c].at(-1);
+    assert.ok(!g.fluid && Math.abs(g.top * LH - p.y) < 0.01 && p.c === Math.floor(p.z) * N + Math.floor(p.x), `pocket at ${p.x}, ${p.z}`);
+  }
   assert.equal(m.falls.length, 1);
   const fall = m.falls[0], foot = m.cols[fall.c].at(-1);
   assert.equal(foot.fluid, WATER); assert.equal(foot.surf, fall.bot);

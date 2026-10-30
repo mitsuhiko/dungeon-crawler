@@ -47,6 +47,13 @@ export function pocketGround(ctx, f, reserved) {
   return Math.max(...cs) - Math.min(...cs) < 0.3;
 }
 
+// a pocket of mud centred at (x, z) on floor g, of radius r (cells), `deep` deep in the middle (world
+// units): a dome (render/mud.js, core/sollmeldon.js depositMud)
+export function mudPocket(g, x, z, r, deep) {
+  const cs = g.cs ?? [g.top * LH];
+  return { x, z, y: cs.reduce((a, b) => a + b, 0) / cs.length, r, vol: Math.PI * r * r * deep / 2, c: g.c, layer: g.layer };
+}
+
 // spec.mud: the share of the pools that are mud; reserved: cells kept free (sites, spots, a trial's)
 // -> the pockets
 export function muddyWater(ctx, reserved = new Set()) {
@@ -73,9 +80,7 @@ export function muddyWater(ctx, reserved = new Set()) {
       const g = near.splice(Math.floor(R() * near.length), 1)[0];
       const r = POCKETS.r[0] + R() * (POCKETS.r[1] - POCKETS.r[0]), deep = POCKETS.deep[0] + R() * (POCKETS.deep[1] - POCKETS.deep[0]);
       const k = Math.max(0, 0.5 - r * 0.6), x = g.x + 0.5 + (R() * 2 - 1) * k, z = g.z + 0.5 + (R() * 2 - 1) * k;
-      const cs = g.cs ?? [g.top * LH];
-      // (a dome: as deep as `deep` in its middle; render/mud.js core/sollmeldon.js depositMud)
-      pockets.push({ x, z, y: cs.reduce((a, b) => a + b, 0) / cs.length, r, vol: Math.PI * r * r * deep / 2, c: g.c, layer: g.layer });
+      pockets.push(mudPocket(g, x, z, r, deep));
     }
   }
   return pockets;
