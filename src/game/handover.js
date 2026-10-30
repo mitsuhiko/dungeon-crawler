@@ -7,19 +7,16 @@
 // moves by a cube's width, so nothing on the screen jumps.
 import { N, DIRS, STEP } from '../core/constants.js';
 import { step } from '../world/coords.js';
-import { openedSides, portalsOnly } from '../core/boundaries.js';
-import { gateLocked } from '../core/guardians.js';
-import { townPadIn } from '../core/townportal.js';
-import { buildWorld, disposeWorld } from '../render/world.js';
+import { portalsOnly } from '../core/boundaries.js';
+import { disposeWorld } from '../render/world.js';
 import { setGlassShut } from '../render/glass.js';
 import { shiftParticles } from '../render/particles.js';
 import { shiftFloatText } from '../render/floattext.js';
 import { shiftHeroFeet } from '../render/animator.js';
 import { groundAt } from '../physics/collide.js';
 import { player, state } from './state.js';
-import { portalSeen, beginVisit, visitedNeighbors, prefetchTown } from './flow.js';
+import { beginVisit, visitedNeighbors, prefetchTown, buildCube } from './flow.js';
 import { showNeighbors } from '../render/neighbors.js';
-import { questWorld } from './questworld.js';
 import { enterTrial } from './trials.js';
 import { resetEnemies } from './enemies.js';
 import { clearOrder } from './orders.js';
@@ -57,9 +54,9 @@ function handOver(c, d) {
   shiftParticles(sx, 0, sz); shiftFloatText(sx, 0, sz); shiftHeroFeet(sx, 0, sz);
   clearOrder();   // (a walk planned in the tile left: the mouse held down plans it again)
   state.cubeKey = k; state.map = c.map;
-  questWorld(c.map);   // the people living here, and what the quests put here (game/questworld.js)
-  state.world = buildWorld(c.map, state.showPath, portalSeen(k, c.map), c.geo, openedSides(state.openedFaces, k),
-    gateLocked(c.map, state.run), townPadIn(c.map, state.run), state.run.chests);
+  // the people living here, and what the quests put here (game/flow.js buildCube); its bake
+  // most likely made ahead (game/bakeahead.js), its shadows there at once
+  state.world = buildCube(c);
   setGlassShut(state.world.glass, portalsOnly(c.map, state.run));
   disposeWorld(old);
   enterTrial(c.map);

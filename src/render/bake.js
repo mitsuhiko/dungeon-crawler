@@ -26,7 +26,8 @@
 // done them), while the cube is still faded out (entering through a
 // portal it fades in after a moment; render/fade.js). Its lights stay dark until then and come on
 // over FADE_IN, the baked shadows with them. A cube built again as it was (the quests' changes,
-// a prop set come late) takes the bake it had at once (CACHE).
+// a prop set come late) takes the bake it had at once (CACHE), and so does one walked into that
+// was baked ahead, while the hero was still next door (game/bakeahead.js: `ahead`).
 import * as THREE from 'three';
 import { renderer, sun } from './scene.js';
 import { BAKE, MAX_BAKED, SETS, NO_SUN, NO_VOL, lightTable, CELLS, CELL0, CELL_MAX, EDGE } from './lighthook.js';
@@ -43,6 +44,7 @@ const FADE_IN = 350;            // ms: a cube's lights and baked shadows come on
 // where the screen is touched (phones, tablets): fewer bakes kept (memory: ~10-28 MB each)
 const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 const CACHE = touch ? 1 : 3;    // bakes of cubes no longer shown, kept to be taken again
+export const AHEAD = touch ? 1 : 3;   // cubes next door baked ahead (game/bakeahead.js)
 
 // How finely a cube is baked (game/quality.js: for the cube baked next; the lightmap's texels
 // a unit are the world worker's, chosen when the world starts: bakeDensity):
@@ -245,8 +247,10 @@ function release(owned) {
 export const baked = world => !world?.bake || world.bake.ready || world.bake.failed || world.bake.flip;
 
 // Bake what is shown a little each frame: the cube played in first, then the others (a cube
-// travelled into is the one played in from the start). Before drawing (main.js), after anything
-// that builds the cube again. hidden: nothing shows (game/hud.js curtained): all at once.
+// travelled into is the one played in from the start), then those built to be baked ahead
+// (`ahead`: never shown, game/bakeahead.js; their suns follow the time of day like the others').
+// Before drawing (main.js), after anything that builds the cube again. hidden: nothing shows
+// (game/hud.js curtained): all at once.
 //
 // How many steps a frame: as many as the GPU keeps up with. A fence goes in after a frame's
 // steps; while INFLIGHT frames' steps are not done yet, no more are given (a step is a few ms on a
@@ -269,9 +273,11 @@ function gpuDone() {
 // learn: light.html#bake (see learn/README.md)
 export function tickBakes(current, hidden = false) {
   const start = performance.now();
-  const order = [current?.bake, ...live].filter((b, i, a) => b && a.indexOf(b) === i && !b.ready && !b.failed && !b.flip && b.group.parent);
+  const bakes = [current?.bake, ...live].filter((b, i, a) => b && a.indexOf(b) === i && (b.group.parent || b.ahead))
+    .sort((a, b) => (a.ahead ? 1 : 0) - (b.ahead ? 1 : 0));
+  const order = bakes.filter(b => !b.ready && !b.failed && !b.flip);
   // (none to bake: the sun's next places where it moves, the cube played in first: updateSun)
-  const suns = order.length ? [] : [current?.bake, ...live].filter((b, i, a) => b && a.indexOf(b) === i && b.ready && b.sun.job && b.group.parent);
+  const suns = order.length ? [] : bakes.filter(b => b.ready && b.sun.job);
   if (suns.length && gpuDone()) bakeSun(suns[0], start, hidden);
   if (order.length && gpuDone()) for (const bake of order) {
     if (!bake.job) {

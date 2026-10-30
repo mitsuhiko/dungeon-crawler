@@ -280,10 +280,8 @@ export function enterCube(c, from = null, back = null, at = null) {
   // (a cut, behind the curtain: what was in the air was in the old cube's place)
   clearParticles(); clearFloatText();
   state.cubeKey = k; state.map = c.map; state.lookDepth = c.map.depth;
-  questWorld(c.map);   // the people living here, and what the quests put here (game/questworld.js)
-  warnTrials(c.map);   // the portals into trial rooms not resolved yet warn of them (game/trials.js)
   disposeWorld(state.world);
-  state.world = buildWorld(c.map, state.showPath, portalSeen(k, c.map), c.geo, openedSides(state.openedFaces, k), gateLocked(c.map, state.run), townPadIn(c.map, state.run), state.run.chests);
+  state.world = buildCube(c);
   setGlassShut(state.world.glass, portalsOnly(c.map, state.run));
   enterTrial(c.map);   // its trial, as built (or resolved for good: game/trials.js)
   if (back) {
@@ -400,14 +398,24 @@ onPropSet(set => {
   if (!state.world?.missingSets.includes(set) || state.transitioning) return;
   rebuildWorld();
 });
+// Cube c built as it is now: the people living there and what the quests put there
+// (game/questworld.js), its portals into trial rooms not resolved yet warning of them
+// (game/trials.js), its portals and faces as they stand (open: its sides open, if not as they
+// stand now). The cube played in, and one baked ahead (game/bakeahead.js): built the same way, so
+// the bake made ahead is the one it takes.
+export function buildCube(c, open = openedSides(state.openedFaces, c.key)) {
+  const k = c.key, m = c.map;
+  questWorld(m);
+  warnTrials(m);
+  return buildWorld(m, state.showPath, portalSeen(k, m), c.geo, open, gateLocked(m, state.run), townPadIn(m, state.run), state.run.chests);
+}
+
 // the cube we are in, built again as it is now (its props, the quests' part: game/questworld.js)
 export function rebuildWorld() {
   const c = state.cubes.cubes.get(state.cubeKey);
   if (c?.map !== state.map) return;
-  questWorld(c.map);
-  warnTrials(c.map);
   disposeWorld(state.world);
-  state.world = buildWorld(c.map, state.showPath, portalSeen(state.cubeKey, c.map), c.geo, openedSides(state.openedFaces, state.cubeKey), gateLocked(c.map, state.run), townPadIn(c.map, state.run), state.run.chests);
+  state.world = buildCube(c);
   setGlassShut(state.world.glass, portalsOnly(c.map, state.run));
   refreshTrialView();
 }

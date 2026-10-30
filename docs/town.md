@@ -49,8 +49,9 @@ still to come.
 
 - **More than one tile in full.** The tiles next to the hero drawn in full (their lamps and
   windows lighting them as in the tile played in, baked light and shadows), built ahead and swapped
-  in, not built at the seam. Their people, the crash and the robot already show there, as in any
-  surroundings ([world.md](world.md): "The people of the surroundings").
+  in, not built at the seam. (Their bakes are made ahead already, `game/bakeahead.js`: the tile
+  built at the seam takes its own at once.) Their people, the crash and the robot already show
+  there, as in any surroundings ([world.md](world.md): "The people of the surroundings").
 - **Across the seams**: the physics, the pointer and click-to-walk only know the tile played in
   (a click beyond a seam finds no ground; the physics reads a cell past a seam as the edge's), and
   a tile's baked shadows and lamps stop at its edge. Looking into the neighbour's map would lift

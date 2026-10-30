@@ -5,10 +5,10 @@
 import * as THREE from 'three';
 import { N, CUBE_H, BASE, STEP, SWIM_STEP, SNAP } from '../core/constants.js';
 import { isFaceOpen, openedSides, boundaryArrival, portalsOnly } from '../core/boundaries.js';
-import { portalLocked, gateLocked, guardianLockMessage, lockMessage } from '../core/guardians.js';
+import { portalLocked, guardianLockMessage, lockMessage } from '../core/guardians.js';
 import { guardianKind } from './enemyspawn.js';
 import { step, D6, OPP6, faceKey } from '../world/coords.js';
-import { buildWorld, setWorldOpenFaces } from '../render/world.js';
+import { setWorldOpenFaces } from '../render/world.js';
 import { setGlassFaces, setGlassShut } from '../render/glass.js';
 import { blockedAt, groundAt } from '../physics/collide.js';
 import { railedFace } from '../physics/canmove.js';
@@ -27,15 +27,13 @@ import { whenReady } from './hud.js';
 import { resetEnemies, detachEnemies, drawEnemies, allEnemies } from './enemies.js';
 import { cancelSword } from './sword.js';
 import { clearMouseInput } from './orders.js';
-import { arrivalPoint, portalSeen, spawnAt, settleIn, visitedNeighbors, discover, beginVisit, devShores } from './flow.js';
-import { enterTrial, warnTrials } from './trials.js';
+import { arrivalPoint, spawnAt, settleIn, visitedNeighbors, discover, beginVisit, devShores, buildCube } from './flow.js';
+import { enterTrial } from './trials.js';
 import { slideVisuals, endVisuals } from './travelfx.js';
 import { fallPoint } from './fall.js';
 import { catchFall, liftArrived } from './rescue.js';
-import { townPadIn } from '../core/townportal.js';
 import { cancelCast } from './townportal.js';
 import { tr } from '../i18n/i18n.js';
-import { questWorld } from './questworld.js';
 
 const GAP = CUBE_H + BASE;   // vertical distance between strata while sliding
 let trip = null;
@@ -133,12 +131,12 @@ function slide(p, c, cloud) {
     state.boundaryLock = p.kind === 'side' ? OPP6[p.dir] : -1;
   }
   trip.A0 = A;
-  // the people living here and what the quests put here, before it is built (else the quests
-  // found it changed once the slide ended and built the whole cube again: game/quests.js)
-  questWorld(m);
-  warnTrials(m);   // (the portals into trial rooms warn of them)
   devShores(m);
-  state.world = buildWorld(m, state.showPath, portalSeen(k, m), c.geo, openedSides(state.openedFaces, k), gateLocked(m, state.run), townPadIn(m, state.run), state.run.chests);
+  // with the people living here and what the quests put here (else the quests found it changed
+  // once the slide ended and built the whole cube again: game/quests.js), and the portals into
+  // trial rooms warning of them (game/flow.js buildCube); its bake most likely made ahead
+  // (game/bakeahead.js)
+  state.world = buildCube(c);
   setGlassShut(state.world.glass, portalsOnly(m, state.run));
   enterTrial(m);   // its trial, as built or resolved (game/trials.js)
   // Live crossings retain their height/motion; the death entry must be supported and dry.

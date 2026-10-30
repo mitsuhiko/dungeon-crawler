@@ -57,8 +57,19 @@ first (`main.js`, last before drawing: whatever builds the cube again during the
 quests, has done so). A cube's lights stay dark until it is baked and then come on over 0.35 s,
 its baked shadows with them (`uBakeR`); a bake that fails leaves them on, without shadows.
 
+- **Ahead** (`game/bakeahead.js`): once the cube played in is baked, the cubes behind its
+  nearest ways out (the town's seams, its portals: `AHEAD`, 3, one where the screen is touched,
+  the nearest to the hero) are built off-screen as they will be entered (`game/flow.js
+  buildCube`; behind a side portal with that face open, as going through opens it), never shown,
+  and baked after everything shown, one at a time; their suns follow the time of day like the
+  cube's own (each one's bake in memory: about 35 MB on High). Entered (or no longer among the nearest) one is thrown away and its bake kept, and
+  the cube built as the hero comes in takes it in that frame (`signature`, below). Walking from
+  one of the town's tiles into the next nothing covers the bake (`game/handover.js`): without
+  this the sun's shadows of its houses came in a second or so later (the sun's first place alone
+  is 33 steps on High and Medium: its lightmap is baked in strips).
 - **Through a portal** the new cube is faded out for its first moments (`game/travelfx.js`):
-  it is baked by then on a desktop (about 10 frames for the dark forest's 40 lights).
+  one not baked ahead is baked by then on a desktop (about 10 frames for the dark forest's 40
+  lights).
 - **Behind the curtain** (`game/hud.js fadeOut`: dying, doors, the town portal, loading) up to
   `HIDDEN_STEPS` (16) a frame and 12 ms, and nothing else is drawn meanwhile (`main.js`); the
   curtain lifts once it is baked (`fadeIn` waits, at most 2 s). (All at once in one frame was 5 s
@@ -67,7 +78,7 @@ its baked shadows with them (`uBakeR`); a bake that fails leaves them on, withou
 - **A cube built again** as it was (a prop set that came late, a quest's change: `game/flow.js
   rebuildWorld`) takes its bake at once: the last three cubes' bakes are kept (one where the
   screen is touched), by geometry, and taken if the lights and props are where they were
-  (`signature`).
+  (`signature`); so does one baked ahead.
 - **How finely** (`BAKE_DETAIL`, by the quality level, `game/quality.js`): High and Medium as
   below; Low 1024² for the sun, 512² cube maps, 2 volume samples a unit, 8 lightmap texels a unit
   (a quarter of the memory); Lowest the same without a volume. The lightmap's texels are the world

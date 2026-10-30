@@ -6,6 +6,7 @@ import { FILMS } from './film/films.js';
 import * as THREE from 'three';
 import { renderer, scene, camera, fitView } from './render/scene.js';
 import { tickBakes, updateBakes, setCurrentBake, baked } from './render/bake.js';
+import { tickAhead } from './game/bakeahead.js';
 import { animateWorld } from './render/world.js';
 import { updateStandins } from './game/standins.js';
 import { animateCharacter } from './render/animator.js';
@@ -258,7 +259,9 @@ function frame(now = performance.now()) {
   tickSky(performance.now() / 1000);   // real time: the stars shimmer on while paused
   tickQuality(elapsed);   // what the lighting's level draws, its changes fading in (game/quality.js)
   // the cube's fixed lights: baked a little each frame, and where they shine now (render/bake.js;
-  // last before drawing: anything above may have built the cube again)
+  // last before drawing: anything above may have built the cube again), then the cubes next door
+  // ahead (game/bakeahead.js)
+  tickAhead();
   tickBakes(state.world, curtained()); updateBakes(); setCurrentBake(state.world?.bake);
   // behind the curtain (game/hud.js) while the cube bakes nothing is drawn: the GPU bakes instead
   const draw = !(curtained() && !baked(state.world));
@@ -305,6 +308,7 @@ function menuFrame(dt, start) {
   updateLightPool(menuFocus);
   tickSky(performance.now() / 1000);
   tickQuality(dt);
+  tickAhead();   // (out of play: none baked ahead)
   tickBakes(state.world, curtained()); updateBakes(); setCurrentBake(state.world?.bake);
   fitView();
   const draw = !splashCovers() && !filmCovers();   // (behind the splash screen or a film nothing shows: game/splash.js, film/player.js)
