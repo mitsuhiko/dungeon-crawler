@@ -20,8 +20,14 @@ still to come.
 ## Decided
 
 - **Tiles.** The town is 12 ordinary cubes of 16 × 16 cells, 3 across and 4 deep (48 × 64 cells),
-  on the depth-0 grid round its gate's tile `(0,0,0)` and turned with it. A building, a tree trunk
-  or the pond lies wholly in one tile, and nothing that stands in the way comes near a seam.
+  on the depth-0 grid round its gate's tile `(0,0,0)` and turned with it. A building or a tree
+  trunk lies wholly in one tile, and nothing that stands in the way comes near a seam.
+- **A land of its own.** Every world's town lies in its own land, the generator's ground (whole
+  levels, cliffs, stairs, bridges, water): the lower town round the gate, the water across the
+  whole town, the upper town half a cube over it on its cliff. The street crosses the water and
+  climbs the cliff by a stair; a long span comes down over the lake; the river falls over the
+  cliff; a hill with a tent on its top, a hollow with a tent at its bottom, a forest round it, the
+  people's homes along every way ([world.md](world.md#the-town-worldtownjs-cubegentownjs-gamehandoverjs)).
 - **Known from the start.** All the town's tiles count as visited when the world begins: on the
   map, drawn as surroundings, their faces open. The town is home. This is the one exception to
   "Only where you have been" ([world.md](world.md#only-where-you-have-been)).

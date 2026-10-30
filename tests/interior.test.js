@@ -4,7 +4,7 @@ import { N, LH, CHAR_R } from '../src/core/constants.js';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { step } from '../src/world/coords.js';
-import { BUILDINGS, MERCHANTS, TOWN_LEVEL, interiorKey, isInterior, townOf } from '../src/world/town.js';
+import { BUILDINGS, MERCHANTS, interiorKey, isInterior, townOf } from '../src/world/town.js';
 
 // the town's doors, each with the map of its tile (world/town.js: the houses stand in different tiles)
 const townDoors = w => townOf(w.seed).keys.flatMap(k => { const m = w.cube(k).map; return m.doors.map(d => ({ d, m, k })); });
@@ -66,7 +66,7 @@ test('every house door in town can be walked up to and takes you in, for every e
       assert.ok(supportedPoint(a.x, a.y, a.z), d.building + ': the doorstep is dry, supported, unblocked ground');
       assert.equal(atDoor(player, d), false, 'arriving on the doorstep does not take you back');
       assert.notEqual(pushInto(d), null, d.building + ': walking into the door takes you through');
-      assert.equal(player.y, TOWN_LEVEL * LH);
+      assert.equal(player.y, m.town.level * LH);
     }
   }
   assert.deepEqual([...exits].sort(), [0, 1, 2, 3]);

@@ -7,8 +7,10 @@ import { N, LH, CHAR_R, EDGE_CORNERS, DIRS } from '../src/core/constants.js';
 import { containsXZ, viewBlockedAt } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { step, faceKey } from '../src/world/coords.js';
-import { BUILDINGS, MERCHANTS, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
-  enemyFreeAt, townOf, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
+import { BUILDINGS, MERCHANTS, HOMES, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
+  PORTAL_TILE, START_TILE, enemyFreeAt, townOf, townLand, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
+import { INN_STAIR, UPPER } from '../src/world/townland.js';
+import { floorY } from '../src/core/surfaces.js';
 import { ITEMS, outfitOf } from '../src/core/items.js';
 import { state } from './fixtures.js';
 import { ENEMY_PROFILES } from '../src/core/enemies.js';
@@ -26,6 +28,15 @@ const overlaps = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.z0 < b.z1 && a.z1 > b
 const signature = m => ({ town: m.town, portals: m.portals.map(p => [p.kind, p.dir, p.x, p.z]),
   ground: m.floors.map(f => [f.top, f.fluid, f.cs]), routes: m.routes, seams: m.seams });
 const quarterTurn = yaw => Math.abs(Math.sin(yaw * 2)) < 1e-9;
+const LEVEL = TOWN_LEVEL * LH;
+// the height of map m's ground (a water cell's bed) at (x, z)
+const groundOf = (m, x, z) => {
+  const cx = Math.min(N - 1, Math.max(0, Math.floor(x))), cz = Math.min(N - 1, Math.max(0, Math.floor(z)));
+  return floorY(m.cols[cz * N + cx][0], x - cx, z - cz);
+};
+// is the ground of map m level at (x, z), at height y (its own level, units)?
+const level = (m, x, z, y = m.town.level * LH) => m.cols[Math.floor(z) * N + Math.floor(x)][0].cs.every(h => Math.abs(h - y) < 1e-9);
+const isHome = name => name in HOMES;
 // the town's tiles of a world: [{ k, i, j, m }]
 const tilesOf = w => townOf(w.seed).keys.map(k => ({ k, ...townOf(w.seed).tiles.get(k), m: w.cube(k).map }));
 
@@ -35,23 +46,28 @@ function checkStraightPaths(m) {
     assert.ok(Math.abs(a[0] - b[0]) < 1e-9 || Math.abs(a[1] - b[1]) < 1e-9, 'paths run along the grid');
     for (let t = 0; t <= 1; t += .1) {
       const x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t;
-      assert.ok(!new Set(m.staticBlockers.flat()).values().some(b => containsXZ(b, x, z, CHAR_R + .03)), 'path must clear bodies and clutter, not just look connected');
+      const hit = new Set(m.staticBlockers.flat()).values().find(b => containsXZ(b, x, z, CHAR_R + .03));
+      assert.ok(!hit, `path must clear bodies and clutter, not just look connected: ${hit?.name} at ${x}, ${z} on ${m.key}`);
       const c = Math.min(N - 1, Math.max(0, Math.floor(z))) * N + Math.min(N - 1, Math.max(0, Math.floor(x)));
-      assert.equal(m.cols[c][0].fluid, 0);
+      // (over water only on a bridge, or a ford)
+      const f = m.cols[c][0];
+      if (f.fluid) assert.ok(m.pieces[c].some(p => p.kind === 'bridge') || f.surf - f.top <= 1, `a way into the water at ${x}, ${z} on ${m.key}`);
     }
   }
 }
 
 function checkWalkingRoutes(m) {
   state.map = m;
-  Object.assign(player, { y: TOWN_LEVEL * LH, visY: TOWN_LEVEL * LH, h: .85, r: CHAR_R, grounded: true, swimming: false });
+  Object.assign(player, { y: LEVEL, visY: LEVEL, h: .85, r: CHAR_R, grounded: true, swimming: false });
   for (const route of m.routes) for (const [i, b] of route.slice(1).entries()) {
     const a = route[i];
     player.x = a.x; player.z = a.z; player.support = m.cols[Math.floor(a.z) * N + Math.floor(a.x)][0];
+    player.y = player.visY = groundOf(m, a.x, a.z);
     for (let t = .1; t <= 1.001; t += .1) {
       const nx = a.x + (b.x - a.x) * t, nz = a.z + (b.z - a.z) * t;
-      assert.equal(canMove(nx, nz, a.x === b.x ? 'z' : 'x', Math.sign(b.x - a.x || b.z - a.z)), true);
-      player.x = nx; player.z = nz;
+      assert.equal(canMove(nx, nz, a.x === b.x ? 'z' : 'x', Math.sign(b.x - a.x || b.z - a.z)), true,
+        `${m.key}: from ${a.x}, ${a.z} to ${nx.toFixed(2)}, ${nz.toFixed(2)} (${m.cols[Math.floor(a.z) * N + Math.floor(a.x)][0].cs}) -> (${m.cols[Math.floor(nz) * N + Math.floor(nx)][0].cs}) ${m.cols[Math.floor(nz) * N + Math.floor(nx)][0].fluid}`);
+      player.x = nx; player.z = nz; player.y = groundOf(m, nx, nz);
     }
   }
 }
@@ -80,7 +96,7 @@ test('the town is TOWN_ACROSS by TOWN_DEEP tiles of the depth-0 grid round its g
   assert.deepEqual([...exits].sort(), [0, 1, 2, 3]);
 });
 
-test('every tile is flat, safe and authored; the buildings, the tents and the pond each in their own tile', () => {
+test('every tile is safe and authored, the town level where it stands; the buildings, the tents and the lake each in their own tile', () => {
   for (let seed = 0; seed < 40; seed++) {
     const w = new World(seed, { arche: 'chasm' }), t = townOf(seed);   // debug archetypes cannot destroy town
     const placed = new Map();
@@ -89,37 +105,64 @@ test('every tile is flat, safe and authored; the buildings, the tents and the po
       assert.equal(m.town.tile.name, TILE_NAMES[j][i]);
       assert.equal(m.K, 1); assert.equal(m.attempts, 1); assert.equal(m.enemyFree, true);
       assert.equal(m.floors.length, N * N); assert.ok(m.cols.every(c => c.length === 1));
-      assert.equal(m.falls.length, 0); assert.equal(m.runs.length, 0);
+      // the stream's falls: from one level of it down to the next, into water
+      for (const fl of m.falls) {
+        const below = m.cols[fl.c][0], [dx, dz] = DIRS[fl.d], above = m.cols[fl.c - dz * N - dx][0];
+        assert.ok(fl.top > fl.bot && below.fluid && below.surf === fl.bot && above.fluid && above.surf === fl.top, `${k}: a fall`);
+      }
       // portals: the gate only in the gate's tile, the spawn only in the start's
       assert.deepEqual(m.portals.filter(p => p.kind === 'side').map(p => p.dir), k === t.gate ? [t.exit] : []);
       assert.equal(m.portals.filter(p => p.kind === 'spawn').length, k === t.start ? 1 : 0);
       assert.equal(m.portals.length, (k === t.gate) + (k === t.start));
-      for (const f of m.floors) {
-        if (!f.fluid) assert.deepEqual(f.cs, Array(4).fill(TOWN_LEVEL * LH));
-        else { assert.ok(f.top < f.surf && f.surf === TOWN_LEVEL); assert.ok(f.x > 1 && f.x < N - 2 && f.z > 1 && f.z < N - 2); }
+      for (const f of m.floors) if (f.fluid) assert.ok(f.top < f.surf && f.surf - f.top <= 2 && f.top >= 0);
+      // the ground: two dry floors joined where they meet (a slope), never over a wall
+      for (const f of m.floors) for (const d of [0, 2]) {
+        const g = m.floors.find(g => g.x === f.x + DIRS[d][0] && g.z === f.z + DIRS[d][1]);
+        if (!g || f.fluid || g.fluid) continue;
+        const step = Math.max(...EDGE_CORNERS[d].map((c, i) => Math.abs(f.cs[c] - g.cs[EDGE_CORNERS[d ^ 1][i]])));
+        if (f.link[d] === g) assert.ok(step < .01, `${k} ${f.x},${f.z} side ${d}`);
+        if (step > .29) assert.notEqual(f.link[d], g);
       }
-      assert.equal(m.floors.filter(f => f.fluid).length, m.town.tile.name === 'garden' ? 5 : 0);
-      for (const p of m.authoredProps) if ([...BUILDINGS, ...MERCHANTS].some(b => b.name === p.name)) {
-        assert.ok(!placed.has(p.name), p.name + ' twice'); placed.set(p.name, k);
+      if (m.town.tile.name === 'garden') assert.ok(m.floors.filter(f => f.fluid && f.surf - f.top === 2).length >= 4, 'the lake, deep in its middle');
+      for (const p of m.authoredProps) if ([...BUILDINGS, ...MERCHANTS].some(b => b.name === p.name) || isHome(p.name)) {
+        if (!isHome(p.name)) { assert.ok(!placed.has(p.name), p.name + ' twice'); placed.set(p.name, k); }
         assert.ok(quarterTurn(p.yaw), 'buildings stand on the grid');
+        if (!isHome(p.name)) assert.equal(p.y, m.town.level * LH);
       }
+      // the town stands level: its buildings at the row's level, each home at its own, its people, the
+      // crash, the portal; its ways without a step (level, or a ramp)
+      for (const b of m.occluders.filter(b => b.shape === 'box' && ([...BUILDINGS, ...MERCHANTS].some(q => q.name === b.name) || isHome(b.name)))) {
+        // (a home's door is where a ramp meets it: its middle level)
+        const y = isHome(b.name) ? b.bottom : m.town.level * LH, e = isHome(b.name) ? .6 : .1;
+        for (let x = b.x0 + e; x < b.x1 - e + .01; x += .4) for (let z = b.z0 + e; z < b.z1 - e + .01; z += .4)
+          assert.ok(Math.abs(groundOf(m, x, z) - y) < (isHome(b.name) ? .02 : 1e-9), `${k}: ${b.name} at ${x}, ${z}`);
+      }
+      for (const path of m.town.paths) for (const [i, b] of path.points.slice(1).entries()) for (let t = 0; t < 1; t += .05) {
+        const a = path.points[i], at = t => [Math.min(N - .01, Math.max(0, a[0] + (b[0] - a[0]) * t)), Math.min(N - .01, Math.max(0, a[1] + (b[1] - a[1]) * t))];
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const wet = [at(t), at(t + .05)].some(([x, z]) => m.cols[Math.floor(z) * N + Math.floor(x)][0].fluid);
+        assert.ok(wet || Math.abs(groundOf(m, ...at(t)) - groundOf(m, ...at(t + .05))) <= 1.2 * len * .05 + .02, `${k}: a step on a path at ${at(t)}`);
+      }
+      for (const q of [...m.villagers, ...Object.values(m.relics), ...m.town.portal ? [m.town.portal] : []]) assert.ok(level(m, q.x, q.z));
       const boxes = m.occluders.filter(b => b.shape === 'box');
       for (const box of boxes) {
         assert.ok(box.x0 > 0 && box.z0 > 0 && box.x1 < N && box.z1 < N);
         for (const other of boxes) if (box.name !== other.name) assert.equal(overlaps(box, other), false, `${box.name}/${other.name}`);
-        for (const c of m.town.pond) assert.equal(containsXZ(box, c % N + .5, Math.floor(c / N) + .5), false);
+        for (const c of m.town.water) assert.equal(containsXZ(box, c % N + .5, Math.floor(c / N) + .5), false);
       }
       for (const p of m.town.frontages) assert.equal(m.safe[Math.floor(p.z) * N + Math.floor(p.x)], 1, p.name);
       for (const p of ENEMY_PROFILES) assert.deepEqual(enemySpots(m, p), []);
       checkWalkingRoutes(m); checkStraightPaths(m);
-      assert.ok(m.occluders.filter(b => b.shape === 'ellipsoid').every(b => b.top > TOWN_LEVEL * LH + 4.8));
+      assert.ok(m.occluders.filter(b => b.shape === 'ellipsoid').every(b => b.top > b.bottom && b.bottom > groundOf(m, b.x, b.z) + 1.5));
       assert.deepEqual(signature(m), signature(new World(seed).cube(k).map));
     }
     assert.deepEqual([...placed.keys()].sort(), [...BUILDINGS, ...MERCHANTS].map(b => b.name).sort());
     for (const b of [...BUILDINGS, ...MERCHANTS]) assert.equal(placed.get(b.name), t.at(...b.tile), b.name);
-    const trees = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => p.name.startsWith('town_tree_')));
-    assert.ok(trees.length >= 24, `${trees.length} trees`);
-    assert.equal(new Set(trees.map(p => p.name)).size, 3);
+    const trees = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => /tree/.test(p.name)));
+    assert.ok(trees.length >= 100, `${trees.length} trees`);
+    assert.equal(new Set(trees.filter(p => p.name.startsWith('town_tree_')).map(p => p.name)).size, 3);
+    const homes = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => isHome(p.name)));
+    assert.ok(homes.length >= 3, `${homes.length} homes`);
   }
 });
 
@@ -152,10 +195,22 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
   // is solid as anywhere outside
   const w = new World(3), t = townOf(3), m = state.map = w.cube(t.at(1, 1)).map;
   assert.deepEqual(m.seams, [true, true, true, true]);
-  Object.assign(player, { y: TOWN_LEVEL * LH, visY: TOWN_LEVEL * LH, h: .85, r: CHAR_R, grounded: true, swimming: false });
   for (const [x, z] of [[N + .4, 8.2], [-.4, 8.2], [8.2, N + .4], [8.2, -.4]]) {
     assert.ok(cellAt(x, z) >= 0);
-    assert.equal(groundAt(x, z, TOWN_LEVEL * LH + .1, .3).h, TOWN_LEVEL * LH);
+    // (as the cell on this side, which is as the one beyond)
+    const ex = Math.min(N - .01, Math.max(.01, x)), ez = Math.min(N - .01, Math.max(.01, z)), y = groundOf(m, ex, ez);
+    assert.ok(Math.abs(groundAt(x, z, y + .1, .3).h - y) < 1e-9);
+  }
+  // across every seam the ground goes on as it is: the two tiles' edge cells alike
+  for (const { k, m: a } of tilesOf(w)) for (let d = 0; d < 4; d++) {
+    if (!a.seams[d]) continue;
+    const b = w.cube(step(k, d)).map;
+    for (let i = 0; i < N; i++) {
+      const [ax, az] = [[N - 1, i], [0, i], [i, N - 1], [i, 0]][d], [bx, bz] = [[0, i], [N - 1, i], [i, 0], [i, N - 1]][d];
+      const fa = a.cols[az * N + ax][0], fb = b.cols[bz * N + bx][0];
+      assert.equal(!!fa.fluid, !!fb.fluid, `${k} side ${d} at ${i}`);
+      if (!fa.fluid) assert.deepEqual([...fa.cs].sort(), [...fb.cs].sort(), `${k} side ${d} at ${i}`);
+    }
   }
   assert.equal(cellAt(N + 1.5, 8.2), -1, 'not further than a cell');
   const corner = state.map = w.cube(t.at(0, 0)).map;
@@ -164,6 +219,7 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
   // a body at the middle of a seam steps across it
   state.map = m;
   player.x = N - .5; player.z = STREET; player.support = m.cols[Math.floor(STREET) * N + N - 1][0];
+  player.y = player.visY = groundOf(m, player.x, player.z);
   assert.equal(canMove(N + .3, STREET, 'x', 1), true);
 });
 
@@ -209,7 +265,7 @@ test('the town portal\'s spot: dry, reachable and uncluttered, in the plaza\'s t
     for (const k of t.keys) if (k !== t.portal) assert.equal(w.cube(k).map.town.portal, undefined, 'only the plaza has one');
     const cell = Math.floor(at.z) * N + Math.floor(at.x);
     ends.add(t.exit);
-    assert.equal(at.y, TOWN_LEVEL * LH);
+    assert.equal(at.y, m.town.level * LH);
     assert.deepEqual([at.x, at.z].map(v => +v.toFixed(6)), rotateTownPoint(...TOWN_PORTAL_SPOT, m.town.yaw).map(v => +v.toFixed(6)));
     assert.equal(m.safe[cell], 1, 'reachable');
     assert.ok(!m.occluders.filter(b => b.shape !== 'ellipsoid').some(b => containsXZ(b, at.x, at.z, 1.1)));
@@ -233,8 +289,9 @@ function walkable(m) {
     }
     clear[j * W + i] = ok;
   }
-  const start = m.routes[0][0], queue = [Math.floor(start.z * S) * W + Math.floor(start.x * S)];
-  seen[queue[0]] = 1;
+  // (from where every route starts: the tile's seams, its spawn)
+  const queue = [...new Set(m.routes.map(r => Math.floor(r[0].z * S) * W + Math.floor(r[0].x * S)))].filter(k => clear[k]);
+  for (const k of queue) seen[k] = 1;
   while (queue.length) {
     const k = queue.pop(), i = k % W, j = (k - i) / W;
     for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -262,7 +319,7 @@ test('villagers stand at their trades, as colliders, dressed and within reach', 
       for (const v of m.villagers) {
         all.push(v.name);
         const spec = VILLAGERS.find(s => s.name === v.name), home = placed.find(p => p.name === spec.at);
-        assert.equal(v.y, TOWN_LEVEL * LH);
+        assert.equal(v.y, m.town.level * LH);
         assert.ok(v.x > .5 && v.z > .5 && v.x < N - .5 && v.z < N - .5, v.name);
         assert.ok(Math.abs(Math.hypot(v.x - home.x, v.z - home.z) - Math.hypot(spec.x, spec.z)) < 1e-9, 'beside their building');
         assert.ok(Math.abs(Math.sin(v.yaw - home.yaw - spec.facing)) < 1e-9 && Math.cos(v.yaw - home.yaw - spec.facing) > 0);
@@ -284,12 +341,12 @@ test('villagers stand at their trades, as colliders, dressed and within reach', 
 });
 
 function checkClutter(m, min) {
-  const plan = m.town, y = TOWN_LEVEL * LH, pond = new Set(plan.pond);
-  const clutter = plan.placements.filter(p => !p.name.startsWith('town_'));
+  const plan = m.town, water = new Set(plan.water);
+  const clutter = plan.placements.filter(p => !p.name.startsWith('town_tree_') && ![...BUILDINGS, ...MERCHANTS].some(b => b.name === p.name) && !isHome(p.name));
   assert.ok(clutter.length >= min, `only ${clutter.length} clutter props`);
   // Oriented footprints: the axis-aligned collider envelopes have empty corners.
-  const footprints = [...BUILDINGS, ...MERCHANTS].flatMap(b => plan.placements.filter(p => p.name === b.name)
-    .map(p => ({ p, bounds: b.bounds })));
+  const footprints = [...[...BUILDINGS, ...MERCHANTS].flatMap(b => plan.placements.filter(p => p.name === b.name)
+    .map(p => ({ p, bounds: b.bounds }))), ...plan.placements.filter(p => isHome(p.name)).map(p => ({ p, bounds: propMetadata.get(p.name).bounds }))];
   const inside = (x, z) => footprints.some(({ p, bounds: [x0, z0, x1, z1] }) => {
     const dx = x - p.x, dz = z - p.z, c = Math.cos(p.yaw), s = Math.sin(p.yaw);
     const lx = dx * c - dz * s, lz = dx * s + dz * c;
@@ -297,36 +354,55 @@ function checkClutter(m, min) {
   });
   for (const p of clutter) {
     const meta = propMetadata.get(p.name), c = Math.floor(p.z) * N + Math.floor(p.x);
-    assert.ok(meta, p.name); assert.equal(meta.attach === 'water', pond.has(c), p.name);
+    assert.ok(meta, p.name); if (meta.attach !== 'lip') assert.equal(meta.attach === 'water', water.has(c), p.name);
     assert.ok(p.x > 0 && p.z > 0 && p.x < N && p.z < N);
-    if (meta.attach === 'water') assert.equal(p.y, TOWN_LEVEL * LH);
-    else assert.ok(Math.abs(p.y - y) < .03, p.name);
+    // on the ground: on the water, lying on it, or standing sunk to its lowest under it
+    const g = groundOf(m, p.x, p.z);
+    if (meta.attach === 'water') assert.equal(p.y, m.cols[c][0].surf * LH);
+    else if (meta.attach === 'lip') {
+      const round = [-1, 0, 1].flatMap(dz => [-1, 0, 1].map(dx => m.cols[Math.min(N - 1, Math.max(0, Math.floor(p.z) + dz)) * N + Math.min(N - 1, Math.max(0, Math.floor(p.x) + dx))][0]));
+      assert.ok(round.some(f => f.cs.some(h => Math.abs(h - p.y) < 1e-6)) && p.y < 15, p.name);
+      continue;
+    }
+    else if (p.normal || meta.cover || meta.height < .2) assert.ok(Math.abs(p.y - g - .008) < .01, p.name);
+    else assert.ok(p.y <= g - .015 && p.y > g - 1, `${p.name} at ${p.y} over ${g}`);
     assert.ok(!inside(p.x, p.z), p.name + ' inside a building');
     if (meta.light) assert.equal(p.night, true, 'the lamps are lit at night only');
     if (meta.blocking) {
-      assert.ok(m.staticBlockers[c].some(b => b.name === p.name && b.x === p.x && b.z === p.z), p.name + ' needs a collider');
+      const bodies = m.staticBlockers[c].filter(b => b.name === p.name && (b.shape === 'box' ? containsXZ(b, p.x, p.z) : b.x === p.x && b.z === p.z));
+      assert.ok(bodies.length, p.name + ' needs a collider');
       // and off the seams by SEAM_CLEAR
-      const gap = Math.min(...[0, 1, 2, 3].filter(d => m.seams[d]).map(d => [N - p.x, p.x, N - p.z, p.z][d]));
-      assert.ok(gap >= meta.radius * p.s + SEAM_CLEAR - 1e-6, `${p.name} ${gap} from a seam`);
+      for (const b of bodies) {
+        const [x0, z0, x1, z1] = b.shape === 'box' ? [b.x0, b.z0, b.x1, b.z1] : [b.x - b.r, b.z - b.r, b.x + b.r, b.z + b.r];
+        const gap = Math.min(...[0, 1, 2, 3].filter(d => m.seams[d]).map(d => [N - x1, x0, N - z1, z0][d]));
+        assert.ok(gap >= SEAM_CLEAR - 1e-6, `${p.name} ${gap} from a seam`);
+      }
     }
   }
 }
 
 test('the tiles are dressed with varied clutter that stays off paths, water, buildings and seams', () => {
+  const seen = new Set();
   for (let seed = 0; seed < 16; seed++) {
     const w = new World(seed), tiles = tilesOf(w);
     for (const { m } of tiles) checkClutter(m, 50);
     const names = new Set(tiles.flatMap(({ m }) => m.town.placements.map(p => p.name.replace(/_[ab]$/, ''))));
     assert.ok(names.size >= 30, 'clutter must be varied');
     const garden = tiles.find(({ m }) => m.town.tile.name === 'garden').m;
+    for (const name of ['town_garden_bed_', 'town_flower_pots_', 'town_street_lamp_', 'darkforest_dark_fir_tree_', 'peaks_expedition_camp_a', 'highlands_nomad_tent_a'])
+      assert.ok(tiles.some(({ m }) => m.town.placements.some(p => p.name.startsWith(name))), name);
+    for (const p of tiles.flatMap(({ m }) => m.town.placements)) seen.add(p.name.replace(/_[ab]$/, ''));
     assert.ok(garden.town.placements.some(p => p.name.startsWith('meadow_lily_pads_')));
     assert.ok(garden.town.placements.some(p => p.name.startsWith('meadow_cattails_') || p.name.startsWith('any_shore_stones_')));
     for (const [tile, prop] of [['camp', 'relics_old_campfire_'], ['windmill', 'meadow_windmill_'], ['green', 'town_well_']])
       assert.ok(tiles.find(({ m }) => m.town.tile.name === tile).m.town.placements.some(p => p.name.startsWith(prop)), `${tile}: ${prop}`);
   }
+  // the homes' yards and the street's things, somewhere in all of them
+  for (const name of ['town_fence', 'town_garden_bed', 'town_laundry_line', 'town_market_stall',
+    'town_planter', 'town_cottage']) assert.ok([...seen].some(n => n.startsWith(name)), name);
 });
 
-test('the street runs straight from the gate to the green, and paths lead to every frontage', () => {
+test('the street runs from the gate over the water and up the cliff\'s stair to the green, and paths lead to every frontage', () => {
   for (let seed = 0; seed < 4; seed++) {
     const w = new World(seed), t = townOf(seed);
     for (const { m } of tilesOf(w)) for (const p of m.town.frontages) assert.ok(m.town.paths.some(path => {
@@ -334,26 +410,32 @@ test('the street runs straight from the gate to the green, and paths lead to eve
     }), p.name);
     for (let j = 0; j < TOWN_DEEP; j++) {
       const m = w.cube(t.at(1, j)).map, local = m.town.paths.map(p => p.points.map(([x, z]) => rotateTownPoint(x, z, -m.town.yaw)));
-      const street = local.find(pts => pts.every(([x]) => Math.abs(x - STREET) < 1e-6) && pts.some(([, z]) => Math.abs(z) < 1e-6));
-      assert.ok(street, `the street in ${j}`);
-      assert.ok(street.some(([, z]) => Math.abs(z - (j < TOWN_DEEP - 1 ? N : 8)) < 1e-6), 'on through the tile, to the green');
+      const along = z => local.some(pts => pts.some(([x, pz]) => Math.abs(x - STREET) < 1e-6 && Math.abs(pz - z) < 1e-6));
+      assert.ok(along(0), `the street in ${j}`);
+      // (in the inn's tile onto the quay, and on from the top of the stair up the cliff)
+      assert.ok(along(j < TOWN_DEEP - 1 ? N : 8), 'on through the tile, to the green');
+      if (j === START_TILE[1]) {
+        const stair = m.runs.find(r => r.kind === 'stair' && r.k === INN_STAIR.top - INN_STAIR.foot - 1);
+        assert.ok(stair && stair.to.top - stair.from.top === UPPER, 'the stair up the cliff');
+      }
+      // (over the water: on its bridges, either side of the pier on the seam)
+      if (j === START_TILE[1] - 1 || j === START_TILE[1]) assert.ok(m.runs.some(r => r.kind === 'bridge' && !r.span), 'the street\'s bridge');
     }
   }
 });
 
-test('path ribbons are grid-aligned rectangles, stay inside the cube, and never pave over the pond', () => {
+test('path ribbons are grid-aligned rectangles, stay inside the cube, and never pave over the water', () => {
   for (let seed = 0; seed < 4; seed++) {
     const w = new World(seed);
     for (const { m } of tilesOf(w)) {
       const { pos, nor } = buildCubeGeometry(m)[0].terrain;
       let pathVertices = 0;
       for (let i = 0; i < pos.length; i += 9) {
-        if (Math.abs(pos[i + 1] - (TOWN_LEVEL * LH + .012)) > 1e-5) continue;
+        // (on the ground, a hair over it)
+        // (the ribbon's own: lying on the ground, a hair over it, facing up; a stair's steps aside)
+        if (nor[i + 1] <= .5 || [0, 3, 6].some(k => Math.abs(pos[i + k + 1] - groundOf(m, Math.min(N - .001, pos[i + k]), Math.min(N - .001, pos[i + k + 2])) - .012) > 1e-4)) continue;
         pathVertices += 3;
-        for (let j = i; j < i + 9; j += 3) {
-          assert.ok(pos[j] >= 0 && pos[j] <= N && pos[j + 2] >= 0 && pos[j + 2] <= N);
-          assert.equal(nor[j + 1], 1);
-        }
+        for (let j = i; j < i + 9; j += 3) assert.ok(pos[j] >= 0 && pos[j] <= N && pos[j + 2] >= 0 && pos[j + 2] <= N);
         const xs = new Set([pos[i], pos[i + 3], pos[i + 6]].map(v => v.toFixed(4)));
         const zs = new Set([pos[i + 2], pos[i + 5], pos[i + 8]].map(v => v.toFixed(4)));
         assert.ok(xs.size <= 2 && zs.size <= 2, 'path quads are axis-aligned');
@@ -382,13 +464,13 @@ test('the town alone has no enemies: the road has them from the room past its ga
 });
 
 test('building boxes collide in every covered cell; canopy occlusion is separate from trunk collision', () => {
-  const w = new World(3), t = townOf(3), m = state.map = w.cube(t.houses.town_inn_a).map;
-  Object.assign(player, { y: 2, visY: 2, h: .85, r: CHAR_R, grounded: true, swimming: false });
+  const w = new World(3), t = townOf(3), m = state.map = w.cube(t.houses.town_inn_a).map, y = m.town.level * LH;
+  Object.assign(player, { y, visY: y, h: .85, r: CHAR_R, grounded: true, swimming: false });
   const box = m.occluders.find(b => b.name === 'town_inn_a');
   for (let x = box.x0 + .1; x < box.x1; x += .7) for (let z = box.z0 + .1; z < box.z1; z += .7) {
-    assert.equal(blockedAt(x, z, 2, .3), true);
-    assert.equal(insideSolid(x, z, 2.5), true);
-    assert.equal(ceilingAt(x, z, 1.9), 2);
+    assert.equal(blockedAt(x, z, y, .3), true);
+    assert.equal(insideSolid(x, z, y + .5), true);
+    assert.equal(ceilingAt(x, z, y - .1), y);
   }
   checkWalkingRoutes(m);
   const edge = state.map = w.cube(t.at(0, 0)).map;
@@ -396,7 +478,8 @@ test('building boxes collide in every covered cell; canopy occlusion is separate
   assert.equal(viewBlockedAt(edge, crown.x, crown.y, crown.z), true);
   assert.ok(mapInfo(edge).top > Math.max(...edge.occluders.map(b => b.top)));
   const inward = Math.sign(N / 2 - crown.x) || 1;
-  assert.equal(insideSolid(crown.x + inward * crown.rx * .8, crown.z, 2.5), false, 'only the trunk stands in the way');
+  const [cx, cz] = [crown.x + inward * crown.rx * .8, crown.z];
+  assert.equal(insideSolid(cx, cz, groundOf(edge, cx, cz) + .5), false, 'only the trunk stands in the way');
 });
 
 const glb = file => readGlb(resolve(assets, file)).json;
@@ -424,4 +507,51 @@ test('grove assets have flat coloured geometry, ground pivots and explicit trunk
       assert.ok(j.accessors[p.indices].count / 3 < 900);
     }
   }
+});
+
+test('every world\'s town lies in a land of its own: the lower town, the water and the upper town half a cube over it, the span over the lake, the river with its fall, the hill and the hollow with their tents', () => {
+  const kinds = new Set();
+  let falls = 0, bridges = 0;
+  for (let seed = 0; seed < 12; seed++) {
+    const w = new World(seed), land = townLand(seed), tiles = tilesOf(w), { W } = land;
+    kinds.add(JSON.stringify([land.hill.tile, land.hollow.tile, land.lake.cells.length, land.spans.map(s => s.top), land.river.length]));
+    // three bands: the gate's rows, the water across the whole town on the seam between the plaza's
+    // row and the inn's (but its pier and the span's rock), the upper town half a cube over them
+    assert.equal(land.rows[0], TOWN_LEVEL);
+    assert.equal(land.rows.at(-1), TOWN_LEVEL + UPPER);
+    for (const { j, m } of tiles) assert.equal(m.town.level, land.rows[j]);
+    const seam = START_TILE[1] * N;
+    for (let x = 0; x < W; x++) for (const z of [seam - 1, seam]) assert.ok(land.water(x, z) || land.platforms.has(z * W + x), `the water at ${x}, ${z}`);
+    for (let x = 0; x < W; x++) assert.ok((land.water(x, land.edge[x]) || land.level(x, land.edge[x]) >= land.rows.at(-1) - 1) && land.edge[x] > seam, 'the cliff out of the water (but where the river falls)');
+    // the cliff: a cliff, not a slope (the generator's own walls)
+    const inn = tiles.find(({ i, j }) => i === START_TILE[0] && j === START_TILE[1]).m;
+    assert.ok(inn.floors.some(f => !f.fluid && f.link.some((g, d) => !g && inn.floors.some(h => h.x === f.x + DIRS[d][0] && h.z === f.z + DIRS[d][1] && h.top - f.top >= UPPER - 2))));
+    // the span: from the upper town's edge over the lake to a rock on the seam, on down to the
+    // lower town's shore, a run in each tile
+    assert.equal(land.spans.length, 2);
+    const [top, down] = land.spans;
+    assert.ok(top.cells.length >= 7, `${top.cells.length} cells over the lake`);
+    assert.equal(Math.floor(top.land / W), seam); assert.equal(Math.floor(down.top / W), seam - 1);
+    assert.equal(land.platforms.get(top.land), land.platforms.get(down.top));
+    for (const c of top.cells) assert.ok(land.water(c % W, Math.floor(c / W))?.lake, 'over the lake');
+    for (const { m } of tiles) for (const r of m.runs) {
+      assert.ok(r.pieces.length === r.k && r.pieces.every(p => Number.isFinite(p.y0) && Number.isFinite(p.y1)));
+      if (r.kind === 'bridge' && r.span) assert.ok(Math.abs(r.y0 - r.y1) > LH && Math.abs(r.y0 - r.y1) / (r.k + 1) <= 1.5 * LH, 'a span comes down gently');
+      if (r.kind === 'bridge' && !r.span) { bridges++; assert.ok(r.pieces.every(p => m.cols[p.c][0].fluid), 'a bridge over the water'); }
+    }
+    // the hill high over the upper town, a tent on its top; the hollow under the lower, a tent in it
+    const at = ([i, j]) => tiles.find(t => t.i === i && t.j === j).m;
+    const hill = at(land.hill.tile), hollow = at(land.hollow.tile);
+    assert.ok(Math.max(...hill.floors.map(f => Math.max(...f.cs))) >= (land.rows.at(-1) + 3) * LH, 'the hill');
+    assert.ok(Math.min(...hollow.floors.map(f => Math.min(...f.cs))) <= (TOWN_LEVEL - 2) * LH, 'the hollow');
+    assert.ok(hill.town.placements.some(p => p.name === 'peaks_expedition_camp_a'), 'a tent on the hill');
+    assert.ok(hollow.town.placements.some(p => p.name === 'highlands_nomad_tent_a'), 'a tent in the hollow');
+    // the river: across the upper town, falling down its cliff into the water
+    assert.ok(land.lake.cells.length >= 100 && land.river.length >= 15);
+    falls += land.falls.length;
+    for (const { m } of tiles) for (const f of m.falls) assert.equal(f.top - f.bot, UPPER);
+  }
+  assert.ok(kinds.size >= 10, `${kinds.size} kinds of land in 12 worlds`);
+  assert.ok(falls >= 12, `${falls} falls`);
+  assert.ok(bridges >= 24, `${bridges} bridges`);
 });

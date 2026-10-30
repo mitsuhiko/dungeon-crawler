@@ -75,6 +75,8 @@ function bridgesIn(style, themes, seeds = [1]) {
     const w = new World(seed, { bridge: style, themes });
     for (let d = 0; d <= 20; d++) for (const k of w.layout(d).exists) {
       const m = w.cube(k).map;
+      // (the town's own spans down its escarpment are its own: world/townland.js)
+      if (m.town) continue;
       for (const r of m.runs) if (r.kind === 'bridge' && r.style === style) out.push({ m, r, span: w.layout(d).spans.find(s => s.keys.includes(k)) });
     }
   }

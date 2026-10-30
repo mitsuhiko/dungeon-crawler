@@ -59,8 +59,11 @@ export function surfaceAt(support, map, props, x, z) {
   if (paths?.some(p => polylineDistance(p.points, x, z) <= p.width)) return 'dirt';
   const bank = support.link?.find(g => g?.fluid);
   if (bank) return bank.fluid === LAVA ? 'gravel' : 'mud';
-  return terrain(props, support.top);
+  return terrain(props, map?.town ? townShade(support.top) : support.top);
 }
+// The town (docs/town.md) is a meadow all over, its upper town half a cube up and its hill too: the
+// level its ground looks and sounds like (render/floors.js)
+export const townShade = level => 4 + (level - 4) * .3;
 
 // How much the ground slows whoever walks on it: the slime marsh's slime (its theme's `mire`,
 // themes/index.js) holds every foot a little, the player's (physics/move.js) and the enemies'

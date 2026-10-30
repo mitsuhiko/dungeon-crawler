@@ -114,8 +114,8 @@ export class World {
       firstGlass,   // the beginning's third room: his first glass on the peak (core/intro.js)
       // islands without pillars: lakes, the sky islands near the top and the abyss
       // the town's tile (world/town.js): its place in the town, the way the town turns, which sides
-      // are seams, and its gate
-      town: town && { ...town, exit: townOf(this.seed).exit, seams: townSeams(k, this.seed), gate: k === townOf(this.seed).gate },
+      // are seams, its gate, and the world's seed (the town's land is the world's: world/townland.js)
+      town: town && { ...town, exit: townOf(this.seed).exit, seams: townSeams(k, this.seed), gate: k === townOf(this.seed).gate, world: this.seed },
       enemyFree: !!town,
       floating: !town && !firstGlass && (t.kind === 'lake' || ((-Y <= 3 || -Y >= 19) && this.wfc.rng(k, 0xf10a7)() < 0.5)),
       seed: hash32(this.seed ^ hashKey(k)),

@@ -6,10 +6,16 @@ import { cliffWall, wallRegion } from './walls.js';
 import { palRow } from '../themes/fluids.js';
 import { buildInteriorFloors } from './interior.js';
 import { restY } from './surface.js';
+import { floorY } from '../core/surfaces.js';
+import { townShade } from '../core/footing.js';
 import { groundAt, slopeAt, triangleSlope, waterSolids, WET_LIFT } from './shore.js';
 
 const ICE_TOP = C('#cfe8f4');
 const shade = (x, z) => ((x + z) & 1 ? 1.0 : 0.95) * (0.97 + (hash32(x * 31 + z * 977) % 100) / 1600);
+
+// how high ground of `level` looks: by its height, but the town's (docs/town.md: its upper town half
+// a cube up, its hill) a meadow all over, lighter the higher (core/footing.js TOWN_SHADE)
+const groundShade = (m, level) => m.town ? townShade(level) : level;
 
 // A built floor (its `surface`: a role, themes/surfaces.js; Foggery's tower and the floor of his
 // caldera, cubegen/towerarena.js; Mansk's museum, cubegen/arenashapes.js `stage`) is the theme's
@@ -20,7 +26,7 @@ function topColor(m, f) {
   if (f.fluid) return fluidBed(drawnFluid(f));
   if (f.soft) return SOFT.clone().multiplyScalar(shade(f.x, f.z));   // a plunge's landing
   if (f.ice) return ICE_TOP.clone().multiplyScalar(shade(f.x, f.z));   // a slide puzzle's ice (cubegen/trials/slide.js)
-  const top = gradient(TOP_STOPS, (cs[0] + cs[1] + cs[2] + cs[3]) / 4 / LH).multiplyScalar(shade(f.x, f.z));
+  const top = gradient(TOP_STOPS, groundShade(m, (cs[0] + cs[1] + cs[2] + cs[3]) / 4 / LH)).multiplyScalar(shade(f.x, f.z));
   // sandy / scorched banks next to fluids
   for (const g of f.link) if (g && g.fluid) top.lerp(fluidBank(drawnFluid(g)), 0.4);
   for (let d = 0; d < 4; d++) {
@@ -116,7 +122,8 @@ function fluidVolume(m, f, b) {
     && g.bottom * LH < low && Math.min(...corners.map(k => g.cs[k])) >= sy);
   const hidden = d => {
     const nx = x + DIRS[d][0], nz = z + DIRS[d][1];
-    if (!inb(nx, nz)) return false;
+    // (past a town's seam the water goes on as it is here: world/townland.js)
+    if (!inb(nx, nz)) return !!m.seams?.[d];
     return !!bank(nx, nz, EDGE_CORNERS[OPP[d]], by + 0.02) || m.cols[idx(nx, nz)].some(g => !g.crust && g.fluid && g.surf >= f.surf && g.top * LH <= sy);
   };
   let shores = 0;
@@ -186,17 +193,30 @@ export function buildFloors(m, layers) {
   if (m.town) buildClearingPaths(m, m.town.paths, layers[0].terrain);
 }
 
-// Flat clearings use narrow straight ribbons along the grid, not whole-cell paving. Each run
-// is a rectangle reaching `width` to either side and past both ends, so corners close up.
-// These are baked into the worker's terrain mesh, so cutaways, shadows and neighbour proxies agree.
+// The town's paths are narrow straight ribbons along the grid, not whole-cell paving, lying on the
+// ground (level where the town stands): each run a strip reaching `width` to either side and past
+// both ends, so corners close up, in pieces so it follows the ground; none over water (a bridge
+// carries the way over it). These are baked into the worker's terrain mesh, so cutaways, shadows and
+// neighbour proxies agree.
 function buildClearingPaths(m, paths, builder) {
-  const y = m.floors[0].top * LH + .012, color = C('#b3a58a');
+  const color = C('#b3a58a');
   const bounded = v => Math.max(0, Math.min(N, v));
+  const floorAt = (x, z) => m.cols[idx(Math.min(N - 1, Math.max(0, Math.floor(x))), Math.min(N - 1, Math.max(0, Math.floor(z))))][0];
+  const ground = (x, z) => {
+    const f = floorAt(x, z), cx = Math.min(N - 1, Math.max(0, Math.floor(x))), cz = Math.min(N - 1, Math.max(0, Math.floor(z)));
+    return floorY(f, Math.min(1, Math.max(0, x - cx)), Math.min(1, Math.max(0, z - cz))) + .012;
+  };
   for (const { points, width } of paths) for (let i = 1; i < points.length; i++) {
-    const [ax, az] = points[i - 1], [bx, bz] = points[i], len = Math.hypot(bx - ax, bz - az);
+    const [ax0, az0] = points[i - 1], [bx0, bz0] = points[i], len = Math.hypot(bx0 - ax0, bz0 - az0);
     if (len < 1e-6) continue;
-    const ux = (bx - ax) / len * width, uz = (bz - az) / len * width;
-    const corner = (x, z, side) => [bounded(x - uz * side), y, bounded(z + ux * side)];
-    builder.quad(corner(ax - ux, az - uz, 1), corner(ax - ux, az - uz, -1), corner(bx + ux, bz + uz, -1), corner(bx + ux, bz + uz, 1), [0, 1, 0], color);
+    const ux = (bx0 - ax0) / len * width, uz = (bz0 - az0) / len * width;
+    const corner = (x, z, side) => { const p = [bounded(x - uz * side), 0, bounded(z + ux * side)]; p[1] = ground(p[0], p[2]); return p; };
+    const n = Math.max(1, Math.ceil((len + 2 * width) / .5));
+    for (let k = 0; k < n; k++) {
+      const t0 = -width / len + (1 + 2 * width / len) * k / n, t1 = -width / len + (1 + 2 * width / len) * (k + 1) / n;
+      const ax = ax0 + (bx0 - ax0) * t0, az = az0 + (bz0 - az0) * t0, bx = ax0 + (bx0 - ax0) * t1, bz = az0 + (bz0 - az0) * t1;
+      if ([[ax, az], [bx, bz], [(ax + bx) / 2, (az + bz) / 2]].some(([x, z]) => floorAt(x, z).fluid)) continue;
+      builder.quad(corner(ax, az, 1), corner(ax, az, -1), corner(bx, bz, -1), corner(bx, bz, 1), [0, 1, 0], color);
+    }
   }
 }

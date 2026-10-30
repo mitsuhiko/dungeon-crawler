@@ -82,12 +82,12 @@ Every tile has an authored plan of its own (`TILES` in `world/town.js`, in the t
 |---|---|---|---|
 | **0** (the gate's row) | an orchard | the market: the three tents along the street, the gate | the traders' camp: a fire ring, their stock |
 | **1** | the stable, the groom | the plaza: the crash (`CRASH`: the shards of the glassmaker's big glass, the robot asleep and his sword beside it), the town portal's spot | the smithy, the smith |
-| **2** | the garden with the pond | the inn (the spawn, its door to the street) | the pet shop, the keeper |
+| **2** | the garden by the lake | the inn (the spawn, its door to the street) | the pet shop, the keeper |
 | **3** | a grove with a wishing well | the green with the town's well | the windmill |
 
 The street (`STREET`, town-local x = 8.5) runs from the gate straight back through the middle
-column to the green; lanes cross the plaza's row (`LANE_1`) and the inn's (`LANE_2`) to the
-houses either side. They are laid out alike in every tile, as wide on both sides of a seam, so
+column to the green (over the water and up the cliff, below); lanes cross the plaza's row
+(`LANE_1`) and the inn's (`LANE_2`) to the houses either side. They are laid out alike in every tile, as wide on both sides of a seam, so
 they meet there; rendered as grid-aligned ribbons rather than whole-cell paving.
 
 - **Buildings** (`BUILDINGS`, `MERCHANTS`: each with its `tile` and its place in it) stand on the
@@ -106,26 +106,54 @@ they meet there; rendered as grid-aligned ribbons rather than whole-cell paving.
   reveal the player as the camera turns.
 - **Dressing**: each tile's set pieces (signposts, street lamps, wells, benches, the notice board,
   flower pots, hay bales and hand carts, barrels/crates/sacks by each trade, the blacksmith's
-  planks and coal, the pond's reeds/stones/lily pads, the traders' campfire with log seats and a
+  planks and coal, the lake's reeds/stones/lily pads, the traders' campfire with log seats and a
   woodpile, the windmill) and seeded meadow ground cover, from `props/`/`clutter/` models and the
   town's own (`assets/town_clutter.glb`, docs/assets/town.md), `put`/`group`/`scatter`. A set
   piece tries its candidates in order (`near`: the spots round a place, nearest first) and is
   skipped if none fits. Every prop avoids the oriented building footprints, trunks, other
-  clutter, the pond (except water/shore props) and the path ribbons; blocking props get circle
+  clutter, the water (except water/shore props) and the path ribbons; blocking props get circle
   colliders and keep clear of the gate, the spawn and doorsteps by a full character width.
 - **The seams stay clear**: nothing that stands in the way (a building, a trunk, a villager, a
   blocking prop) comes closer to a seam than `SEAM_CLEAR` (0.9) plus its radius, so a body
   crossing never runs into something the tile played in does not know.
 
-Every tile is pinned to a lowland socket and one layer **before the surface collapses**. All dry
-ground is exactly level 4 (2 game units); the garden's five-cell pond has a lower bed and water
-surface. Every face touching the town is flat at that level, and neighbouring terrain's shared
-boundary corners are pinned during smoothing. No tile depends on generation retries, exploration
-order or the `?arche=` debug override. A tile is checked as it is made (`cubegen/town.js`): a
-body-radius-aware flood fill reaches its gate and spawn (if it has them), every cell along its
-seams, every frontage and doorstep, the town portal's spot and the beginning's things; the way
-between two cell centres must be clear too, with a little room to spare, so a crate cannot pinch
-a route shut.
+**The land** (`world/townland.js`, `makeLand`): the ground under all twelve tiles at once, from
+the world's seed, so what runs across a seam runs on and every world's town is a land of its own.
+It is the generator's own ground: a whole level per cell (`cubegen/smooth.js` makes slopes of the
+small steps and leaves the big ones as cliffs), its stairs and bridges runs (`cubegen/shape.js`),
+its water fluid floors and where the river comes down a fall (`core/falls.js`). Each tile is built
+from it (`tileGround` in `world/town.js`).
+
+- **Three bands.** The lower town round the gate (the first rows, level 4), the water across the
+  whole town (from the back of the plaza's row, `WATER_FROM`, into the inn's row, `WATER_TO`) and
+  the upper town half a cube over it (`UPPER`, 16 levels), its cliff rising straight out of the
+  water and winding a cell in and out, a strand at its foot here and there (in every tile a way
+  out of the deep water: `physics/swimout.js`).
+- **The street** crosses the water on two bridges, a pier between them on the seam, to a quay at
+  the cliff's foot in the inn's tile and climbs the cliff by a deep stair along it (`INN_STAIR`).
+- **The lake.** In the garden the water broadens to a bay; a long span comes down over it from the
+  upper town's edge to a rock standing in it on the seam (a run in each tile: a run never crosses a
+  seam), and on down to the lower town's shore.
+- **The river** comes in from the back of the town across the upper town, two cells wide, and
+  falls over the cliff's edge into the water (where the cliff runs straight); waded, bridged where
+  a way crosses it.
+- **The hill** in a back corner (a tent on its top, the corner's set piece on a knoll on its
+  shoulder), **the hollow** in a front corner (a tent at its bottom), trails up and down to them, a
+  forest round the outer sides and woods here and there.
+- **What stands level**: the buildings, streets, lanes and paths, the people, the crash, the
+  spawn and the gate keep the level they stand on; the wild ground round them rolls a level or two.
+  The people's homes (`HOMES`, `plotTown`) are laid out round the land's big things along every way.
+- **Seams**: the cells either side of one stand alike and level, dry or as deep in water (the
+  physics reads a cell past a seam as the edge's), and nothing stands near one.
+
+Every tile is pinned to a lowland socket and one layer **before the surface collapses**. Every face
+touching the town is flat at the lower town's level, and neighbouring terrain's shared boundary
+corners are pinned during smoothing. No tile depends on generation retries, exploration order or
+the `?arche=` debug override. A tile is checked as it is made (`cubegen/town.js`): a
+body-radius-aware flood fill (`townReach`: walking, wading, swimming the deep water) reaches its
+gate and spawn (if it has them), every cell along its seams, every frontage and doorstep, the town
+portal's spot and the beginning's things; the way between two cell centres must be clear too, with
+a little room to spare, so a crate cannot pinch a route shut.
 
 **At night** (the world's days and nights below) the town lights up: the street lamps (placed
 with `night`) and the houses' windows (their panes' own material) come on through the dusk, each
@@ -144,8 +172,10 @@ are generated in the worker, independent of download timing; rendering cannot ac
 them.
 
 `npm test` includes town checks across seeds and all four exit orientations
-(`tests/town.test.js`): the tiles round the gate, flat dry ground, the pond in the garden, every
-building and tent once and in its tile, the seams (flat, no portal, nothing standing near,
+(`tests/town.test.js`): the tiles round the gate, the land (its three bands, the street's bridges
+and stair, the span over the lake, the river's fall, the hill and the hollow with their tents, a
+land of its own for every world), every building and tent once and in its tile, the seams (flat,
+no portal, nothing standing near,
 reached all along, walked across), only the gate joining the town to what lies round it,
 non-overlapping assets, dry reachable gates/frontages using actual movement probes,
 generation-order-independent boundaries, grid-aligned buildings and straight paths, clutter

@@ -1,8 +1,9 @@
 // Builds (and animates) all meshes for one generated map.
 import * as THREE from 'three';
+import { N } from '../core/constants.js';
 import { scene } from './scene.js';
 import { waterUniforms } from './wet.js';
-import { FLUID_LOOK, fluidGlow, tickTides, WIND } from './materials.js';
+import { FLUID_LOOK, fluidGlow, tickTides, WIND, CELL_ORIGIN } from './materials.js';
 import { partMeshes } from './partmeshes.js';
 import { bakeCells } from './watercells.js';
 import { buildCubeParts } from './cubegeo.js';
@@ -70,7 +71,7 @@ export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = []
   if (!flip) keepFixedOutOfSun(group);
   bakeMaterials(group, bake);
   scene.add(group);
-  const world = { group, glass, fluidMeshes, splashes, crowns, lights, villagers, missingSets, trialView, flip, movers, bake, ...markers };
+  const world = { key: m.key, group, glass, fluidMeshes, splashes, crowns, lights, villagers, missingSets, trialView, flip, movers, bake, ...markers };
   setTownPortal(world, townPad);
   return world;
 }
@@ -124,6 +125,8 @@ export function animateWorld(world, dt, time) {
     if (FLUID_LOOK[t].motion.pulse) m.material.emissiveIntensity = fluidGlow(t, time);
   }
   WIND.value = time;
+  // (the world's coordinates of the scene's origin: the fluids' patterns go on across faces)
+  if (world.key) { const [kx, , kz] = world.key.split(',').map(Number); if (Number.isFinite(kx + kz)) CELL_ORIGIN.value.set(kx * N - world.group.position.x, kz * N - world.group.position.z); }
   tickTides();
   bakeCells(time);
   world.splashes.forEach((s, i) => { const k = 1 + Math.sin(time * 9 + i) * 0.08; s.scale.set(k, 1, k); });
