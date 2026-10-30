@@ -44,7 +44,7 @@ function spotsOf(m) {
   if (!spots.has(m)) spots.set(m, m.floors.filter(f => !f.fluid && !f.kind && !m.pieces[f.c].length && m.cols[f.c].at(-1) === f));
   return spots.get(m);
 }
-const allowed = m => !!m && !m.town && !m.merchantCamp && !m.interior && !m.testRoom && !m.trialRoom && !m.guardian?.boss && !m.enemyFree;
+const allowed = m => !!m && !m.town && !m.interior && !m.testRoom && !m.trialRoom && !m.guardian?.boss && !m.enemyFree;
 // open to the sky over (x, y, z)?
 const open = (x, y, z) => ceilingAt(x, z, y + 0.2) > y + METEOR.sky * 0.5;
 

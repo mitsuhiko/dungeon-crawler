@@ -82,7 +82,7 @@ export function drawQuests() {
   }
   const shown = lists[filter].filter(q => !mine.includes(q));
   $('quests-list').innerHTML = shown.length ? shown.map(q => entry(q, q.id === selected)).join('')
-    : `<div class="quest-empty">${esc({ active: () => mine.length ? tr('Nothing else going on.') : tr('No quests going on. Talk to the villagers in town and in the merchant camp: a ! over one means a quest for you.'),
+    : `<div class="quest-empty">${esc({ active: () => mine.length ? tr('Nothing else going on.') : tr('No quests going on. Talk to the villagers in town: a ! over one means a quest for you.'),
       done: () => tr('No quests done yet.'), archived: () => tr('Nothing archived. Archive a quest to put it away; it waits here until you bring it back.') }[filter]())}</div>`;
   // the selected quest
   const q = all.find(x => x.id === selected) ?? null;

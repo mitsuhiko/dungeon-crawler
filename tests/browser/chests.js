@@ -18,7 +18,6 @@ import { chatOpen, closeChat } from '../../src/game/console.js';
 import { setInventoryOpen } from '../../src/game/inventory.js';
 import { pendingAction } from '../../src/game/action.js';
 import { shopOf } from '../../src/core/shops.js';
-import { merchantCampKey } from '../../src/world/town.js';
 import { updateLootLabels, hoveredChest } from '../../src/game/lootlabels.js';
 import { updatePointer } from '../../src/game/pointer.js';
 import { order } from '../../src/game/orders.js';
@@ -95,9 +94,9 @@ export const runActionKeyChecks = () => atRewardSite(async (c, entry, site, resu
   check(!pendingAction(), 'with nothing to do there is no use button');
   press('KeyF');
   check(!chatOpen(), 'with nothing to do F does nothing');
-  // the trading villager in the merchant camp (the alchemist): F beside them opens their shop
-  const seed = state.cubes.seed;   // the camp lies seed % 4 from town: in from that side
-  enterCube(await state.cubes.get(merchantCampKey(seed)), (seed % 4) ^ 1);
+  // the trading villager at the market in town (the alchemist): F beside them opens their shop
+  const market = await state.cubes.get(state.cubes.town.houses.town_merchant_c);
+  enterCube(market, null, null, { x: 8, y: market.map.floors[0].top * 0.5, z: 8 });
   const trader = state.map.villagers.find(shopOf);
   check(trader, 'a trader in town');
   spawnAt(trader.x + Math.sin(trader.yaw) * 0.85, trader.y, trader.z + Math.cos(trader.yaw) * 0.85);

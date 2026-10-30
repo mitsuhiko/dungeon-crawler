@@ -6,7 +6,7 @@
 // by the hands (they hang from it: their clip Hang, its RobotCarry), pulls them up out of it (LIFT)
 // and flies them along an arc over to safe ground (SPEED, at most RISE over the higher end, kept
 // under the ceiling), lowers them onto it (SET) and lets go. Only if that share is all they have
-// left does it kill, as it does a hero with no robot yet (it lies asleep in the merchant camp).
+// left does it kill, as it does a hero with no robot yet (it lies asleep at the crash in town).
 //
 // It catches them out of the void too (game/rescue.js catchFall): a fall through a hole into the
 // piece below (once that is found: game/fall.js), or out of a piece with nothing below. They slow

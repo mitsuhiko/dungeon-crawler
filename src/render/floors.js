@@ -50,9 +50,11 @@ export function wallPieces(m, f, d) {
   pieces.push({ lows: [[fb, fb], gl], ups: [topLine, [1e9, 1e9]] });
   return { d, P0, P1, topLine, pieces };
 }
-// our side faces minus whatever the neighbouring columns cover
+// our side faces minus whatever the neighbouring columns cover (none on a seam of the town: the
+// ground goes on in the next tile, docs/town.md; its edge would show as a line)
 function walls(m, f, b) {
   for (let d = 0; d < 4; d++) {
+    if (m.seams?.[d] && !inb(f.x + DIRS[d][0], f.z + DIRS[d][1])) continue;
     const w = wallPieces(m, f, d);
     for (const p of w.pieces) {
       if (f.surface) builtWall(b, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], SURFACE[f.surface].side, f.c + d);
@@ -181,8 +183,7 @@ export function buildFloors(m, layers) {
     B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
     if (f.fluid) fluidVolume(m, f, L.fluids[drawnFluid(f)]);   // (a mud pool: its own part, render/parts.js)
   }
-  const clearing = m.town || m.merchantCamp;
-  if (clearing) buildClearingPaths(m, clearing.paths, layers[0].terrain);
+  if (m.town) buildClearingPaths(m, m.town.paths, layers[0].terrain);
 }
 
 // Flat clearings use narrow straight ribbons along the grid, not whole-cell paving. Each run

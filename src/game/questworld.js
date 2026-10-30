@@ -22,7 +22,7 @@ import { hash32 } from '../core/util.js';
 import { hashString } from '../core/gear/drops.js';
 import { bountyKind, bountyLevel } from '../core/bounties.js';
 import { residentsOf, spotOfGiver, keyOfSpot } from '../core/npcs.js';
-import { TOWN_KEY, isInterior } from '../world/town.js';
+import { VILLAGERS, isInterior } from '../world/town.js';
 import { isIntroGate } from '../core/intro.js';
 import { parse, step, faceKey } from '../world/coords.js';
 import { tr, noun, say } from '../i18n/i18n.js';
@@ -231,7 +231,9 @@ export function questTarget(q, cubes = state.cubes) {
 function questGoal(q) {
   if (!q || q.archived) return null;
   const resident = giver => { const id = spotOfGiver(giver), key = id && keyOfSpot(id); return key && { key, depth: -parse(key)[1], resident: id }; };
-  if (q.state === 'ready') return spotOfGiver(q.giver) ? resident(q.giver) : { key: TOWN_KEY, depth: 0, villager: q.giver };
+  // (a villager stands in the town's tile with their trade's building: world/town.js)
+  const villagerKey = name => state.cubes?.town.houses[VILLAGERS.find(v => v.name === name)?.at] ?? state.cubes?.start;
+  if (q.state === 'ready') return spotOfGiver(q.giver) ? resident(q.giver) : { key: villagerKey(q.giver), depth: 0, villager: q.giver };
   if (q.state !== 'active' && q.state !== 'failed') return null;
   const stage = q.stages[q.stage];
   if (!stage) return null;

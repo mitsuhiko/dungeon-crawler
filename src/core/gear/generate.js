@@ -46,6 +46,6 @@ export function rollArmor(rng, ilvl, opts = {}) {
   return { itemId, count: 1, gen: { v: GEN_VERSION, rarity: rarity.id, ilvl, affixes, name: itemName(rarity.id, def.name, rng, true) } };
 }
 
-// a fixed item, not rolled (the glassmaker's old sword, found in the merchant camp)
+// a fixed item, not rolled (the glassmaker's old sword, found at the crash in town)
 export const fixedWeapon = (itemId, rarity = 'vanilla', name = ITEMS[itemId].name) =>
   ({ itemId, count: 1, gen: { v: GEN_VERSION, rarity, ilvl: 1, affixes: [], name } });

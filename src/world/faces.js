@@ -9,7 +9,7 @@ import { cascade } from './cascades.js';
 import { spout } from './spouts.js';
 import { spanFace } from './spans.js';
 import { areaPad, isInnerFace } from './areas.js';
-import { isTown, isMerchantCamp, townExitPosition } from './town.js';
+import { isTown, townExitPosition } from './town.js';
 import { MAX_DEPTH } from '../themes/depth.js';
 import { trialPortalLayer, trialPortalPos } from './trials.js';
 import { BOSS_ARENAS } from '../core/bosses.js';
@@ -41,11 +41,10 @@ function sideFace(world, k, d, withPortal) {
   // face opens, the area reads as one place (until then it is a face like any other, a portal on it)
   const wall = () => isInnerFace(world, fk) ? null : caveWall(world, fk, f);
   if (!withPortal) { f.spout = guardian ? null : spout(world, fk, f, LAYER_BASE); f.wall = wall(); return f; }
-  const townDir = isTown(k) ? d : isTown(step(k, d)) ? d ^ 1 : null;
-  const campDir = isMerchantCamp(k, world.seed) ? d : isMerchantCamp(step(k, d), world.seed) ? d ^ 1 : null;
+  // (the town's gate: where its street meets the face)
+  const townDir = isTown(k, world.seed) ? d : isTown(step(k, d), world.seed) ? d ^ 1 : null;
   let pos;
   if (townDir !== null) pos = townExitPosition(townDir);
-  else if (campDir !== null) pos = townExitPosition(campDir);
   else do pos = 3 + Math.floor(R() * 10); while (f.river && Math.abs(pos - f.river.pos - (f.river.w - 1) / 2) < 3.5);
   if (spanFace(world, fk)?.kind === 'cross') pos = spanFace(world, fk).span.pos;   // one straight bridge
   pos = areaPad(world, fk)?.pos ?? pos;   // where a large area's ramp or ridge meets the face

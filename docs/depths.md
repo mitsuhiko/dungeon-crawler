@@ -97,9 +97,9 @@ Every layer also has one coordinated [wild horde pack](hordes.md), replacing tha
 ordinary roster with 6–24 light enemies. The table below is for ordinary rooms; a quieter
 approach room may halve its counts. Guardian arenas still use their doubled roster.
 
-Each depth has its own roster (`DEPTH_SPAWNS` in `src/core/spawns.js`). The town and the
-merchant camp have no enemies (`enemyFreeAt` in `src/world/town.js`: `Y = 0` and
-`max(|X|, |Z|) ≤ 1`). The rest of the depth-0 road uses the row for depth 0.
+Each depth has its own roster (`DEPTH_SPAWNS` in `src/core/spawns.js`). The town's tiles have no
+enemies (`enemyFreeAt` in `src/world/town.js`). The depth-0 road, from the room past its gate,
+uses the row for depth 0.
 
 A roster entry is `species chance count (packs) [kinds]`:
 

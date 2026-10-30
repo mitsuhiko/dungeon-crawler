@@ -2,11 +2,11 @@
 // cutaway walls and the fades. Resets the world before and after. From the devtools console:
 //   await (await import('./tests/browser/interior.js')).runInteriorChecks()
 import { player, state, view } from '../../src/game/state.js';
-import { newWorld, spawnAt } from '../../src/game/flow.js';
+import { newWorld, spawnAt, enterCube } from '../../src/game/flow.js';
 import { updatePlayer } from '../../src/game/update.js';
 import { clearInput } from '../../src/game/input.js';
 import { doorArrival } from '../../src/core/doors.js';
-import { TOWN_KEY, interiorKey } from '../../src/world/town.js';
+import { interiorKey } from '../../src/world/town.js';
 import { U } from '../../src/render/cutshader.js';
 import { paused } from './combat.js';
 
@@ -29,7 +29,11 @@ export async function runInteriorChecks() {
     await paused(async () => {
       for (const seed of [0, 1, 2, 3]) {
         await newWorld(seed); clearInput();
-        for (const d of state.map.doors) {
+        // (the houses stand in the town's different tiles: world/town.js)
+        let houses = 0;
+        for (const tile of new Set(Object.values(state.cubes.town.houses))) for (const d of (await state.cubes.get(tile)).map.doors) {
+          if (state.cubeKey !== tile) { const c = await state.cubes.get(tile); enterCube(c, null, null, doorArrival(d)); }
+          houses++;
           const a = doorArrival(d);
           spawnAt(a.x, a.y, a.z);
           walkInto(d);
@@ -48,13 +52,13 @@ export async function runInteriorChecks() {
           check(U.uFrontKinds.value.y === 1 && U.uFrontKinds.value.x === 0 && U.uFrontKinds.value.z === 0, 'Only the walls are cut, not the floors or the stair');
           check(document.getElementById('minimap'), 'Minimap still draws');
           walkInto(inside);
-          await arrived(TOWN_KEY);
+          await arrived(tile);
           check(Math.hypot(player.x - a.x, player.z - a.z) < .3, 'Back out on the doorstep');
           check(Math.abs(player.yaw - Math.atan2(d.nx, d.nz)) < 1e-6, 'Facing away from the door');
           check(state.cubes.cubes.get(interiorKey(d.building)), 'The interior stays cached');
         }
         check(U.uFrontKinds.value.x === 1, 'Outside, caves cut every kind again');
-        results.push(`seed ${seed}: in and out of ${state.map.doors.length} houses`);
+        results.push(`seed ${seed}: in and out of ${houses} houses`);
       }
     });
     return results;

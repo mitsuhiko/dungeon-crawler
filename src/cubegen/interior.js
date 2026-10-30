@@ -11,7 +11,7 @@ import { edgeKey } from '../core/util.js';
 import { runY } from '../core/surfaces.js';
 import { indexBlockers } from '../core/blockers.js';
 import { createContext } from './context.js';
-import { BUILDINGS, TOWN_KEY, interiorKey } from '../world/town.js';
+import { BUILDINGS, interiorKey } from '../world/town.js';
 
 export const INTERIOR_SCALE = 3.8;   // cells per model unit, shared so the inn stays the biggest
 export const INTERIOR_LEVEL = 2;     // the ground floor's level
@@ -108,7 +108,7 @@ export function generateInterior(spec, facing = [0, 1]) {
   const staticBlockers = indexBlockers(walls);
   // the door, on the front wall; you stand on its inner side
   const [dx, dz] = L.at(L.door, D);
-  const door = { id: 'out', building: b.name, to: TOWN_KEY, x: dx, z: dz, nx: -F[0], nz: -F[1], w: 1, y };
+  const door = { id: 'out', building: b.name, to: spec.outside, x: dx, z: dz, nx: -F[0], nz: -F[1], w: 1, y };
 
   // for the test bots: in through the door, up the stair and along the upper floor
   const pt = (pu, pv, h) => { const [x, z] = L.at(pu, pv); return { x, y: h + 0.12, z }; };
@@ -122,7 +122,7 @@ export function generateInterior(spec, facing = [0, 1]) {
     kind: 'interior', archetype: 'plain', key: spec.key, depth: 0, cave: false, enemyFree: true, biome: 'meadow',
     staticBlockers, blockers: staticBlockers, occluders: walls, authoredProps: [], doors: [door],
     // front / right: the house's +Z / +X in the map; sides index DIRS (the wall on that side)
-    interior: { building: b.name, outside: TOWN_KEY, room: L.room, wall: T, wallTop, W, D, front: F, right: R,
+    interior: { building: b.name, outside: spec.outside, room: L.room, wall: T, wallTop, W, D, front: F, right: R,
       upper: { rows, level: U }, stair: { cells, k }, door },
     routes: [route],
   };

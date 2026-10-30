@@ -1,8 +1,8 @@
 // In devtools (?dev=1&intro=1: the beginning not skipped): await (await import('./tests/browser/hover.js')).runHoverChecks()
 // Everything clicked in the world shows the pointer where it is, not only where its label hangs
-// (game/lootlabels.js bodyOf): in the town (the villagers, the gate), in the merchant camp (his
+// (game/lootlabels.js bodyOf): in the town (the villagers, the gate; at the crash on its plaza his
 // sword standing in the ground, the robot lying asleep: kept asleep, game/robot.js keepAsleep) and
-// on the rock past it (his glass floating on top), seen from close up and from far off. Each thing is pointed at in
+// on the rock past its gate (his glass floating on top), seen from close up and from far off. Each thing is pointed at in
 // the middle of its body and low on it;
 // there the cursor must be a pointer, and the thing (or one in front of it) hovered. Then the
 // cursor goes to the empty sky: nothing hovered, no pointer. Plays in a fresh world, then puts
@@ -69,15 +69,14 @@ export async function runHoverChecks() {
     state.run.unlockedGates.clear();   // (the beginning not done: the sword and the glass are there)
     keepAsleep(true);
     state.run.met.add('scene:glass');   // (its scene shown: game/intro.js)
-    const town = state.cubes.cubes.get(state.cubeKey);
     await frames(10);
     results.push(...await checkHere('town', []));
-    const camp = await state.cubes.get(step(town.key, town.map.exit));
-    enterCube(camp, town.map.exit ^ 1);
+    const plaza = await state.cubes.get(state.cubes.town.portal), near = plaza.map.relics.robot;
+    enterCube(plaza, null, null, { x: near.x - 2.5, y: near.y, z: near.z });
     await frames(10);
-    results.push(...await checkHere('camp', ['story:sword', 'robot']));
-    const rock = await state.cubes.get(step(camp.key, camp.map.exit));
-    enterCube(rock, camp.map.exit ^ 1);
+    results.push(...await checkHere('plaza', ['story:sword', 'robot']));
+    const { gate, exit } = state.cubes.town, rock = await state.cubes.get(step(gate, exit));
+    enterCube(rock, exit ^ 1);
     await frames(10);
     results.push(...await checkHere('rock', ['story:glass']));
     return results;

@@ -50,7 +50,7 @@ export function waterfallDoors(m) {
 }
 
 export function addWaterfallHideout(m) {
-  if (m.depth <= 0 || m.town || m.merchantCamp || m.interior || m.testRoom || m.guardian || m.trial || m.doors?.length) return m;
+  if (m.depth <= 0 || m.town || m.interior || m.testRoom || m.guardian || m.trial || m.doors?.length) return m;
   // Independent of generator retry RNG: no rerolling ordinary rooms, enemies or rewards.
   if (hash32(m.seed ^ 0x7a7ef411) % 3 !== 0) return m;
   const choice = waterfallDoors(m)[0];

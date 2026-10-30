@@ -1,8 +1,8 @@
 // The robot (docs/story.md, "The robot"): the hero's companion, a clockwork of star-glass. Pure:
 // when it comes, and how it follows; game/robot.js puts it in the world, render/robot.js draws it.
 //
-// It lies on its back in the merchant camp, asleep (map.relics.robot, world/town.js CAMP_ROBOT:
-// robotLies), the glassmaker's sword beside it, until the hero comes into the camp (game/robot.js:
+// It lies on its back in the grass at the crash in town, asleep (map.relics.robot, world/town.js
+// CRASH_ROBOT: robotLies), the glassmaker's sword beside it, until the hero comes near (game/robot.js:
 // in a short scene), or clicks it (or uses it with the action key) and comes up to it (WAKE_REACH).
 // Then it wakes (its clip RobotWake, WAKE s), cutting short whatever is being said, and says hello
 // (core/narration.js, the moment `robot`, HELLO_AFTER s in): it remembers nothing, only that it is
@@ -48,9 +48,9 @@ export const HELLO = LINES.filter(l => l.on === 'robot' && l.when?.what === 'hel
 export const robotMet = run => HELLO.some(l => run.told.has(l.id));
 // it came already (the dev tools skip the beginning, and with it its coming: game/intro.js)
 export function meetRobot(run) { for (const l of HELLO) run.told.add(l.id); }
-// does it lie asleep in this map (the merchant camp, where it lies: map.relics.robot), for a world
+// does it lie asleep in this map (the town's tile with the crash, where it lies: map.relics.robot), for a world
 // where it has not woken yet (run)?
-export const robotLies = (map, run) => !!map?.merchantCamp && !!map.relics?.robot && !!run && !robotMet(run);
+export const robotLies = (map, run) => !!map?.town && !!map.relics?.robot && !!run && !robotMet(run);
 
 // From cube `from` to cube `to` beside it on the same depth (a side's neighbour): what to add to a
 // point in `from`'s coordinates to have it in `to`'s ([dx, dy, dz]); null for any other two (a house,

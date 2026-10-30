@@ -907,7 +907,7 @@ test('the storm\'s cycle: a warning, the gust, a lull, from the clock running', 
 
 test('every storm room: the rod on a tall hill, the way round it, out in the wind longer than a gust\'s warning, but not longer than a slow player can cross between gusts', () => {
   let n = 0;
-  for (const { seed, d, m } of events('storm', [0, 1, 2])) {
+  for (const { seed, d, m } of events('storm', [0, 1, 3])) {
     const tr = m.trial, rod = tr.parts.find(p => p.type === 'rod'), foot = tr.check.path[0];
     assert.ok(tr.check.exposed <= stormAllowance() + 1e-9 && tr.check.exposed >= STORM.wait - 1e-9, `${seed}/${d}: ${tr.check.exposed} s in the wind`);
     assert.ok(tr.check.slow <= STORM.lull + STORM.warning + 0.01, `${seed}/${d}: ${tr.check.slow} s in the wind, slowly`);

@@ -61,7 +61,7 @@ export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = []
   addGhosts(group);
   const trialView = buildTrialView(m, group, water);   // a trial room's parts and rising fluid (render/trials.js)
   const movers = m.movers ? buildMoverView(m, group) : null;   // the platforms round Foggery's tower (render/movers.js)
-  const glass = makeGlass(1, open);
+  const glass = makeGlass(1, open, m.seams);   // (the town's tiles: one hull, render/glass.js)
   glass.visible = !m.interior;   // inside a house: walls, no glass box
   group.add(glass);
   adoptLights(group, bake);

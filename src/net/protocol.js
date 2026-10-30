@@ -88,9 +88,9 @@
 // The beginning (core/intro.js, game/intro.js):
 //   story   { what, seed }             to all: in world `seed` I found the glassmaker's glass
 //                                      ('glass'), took his sword ('sword'): its gate opens and its
-//                                      recording plays for everyone at once; came into the
-//                                      merchant camp with the glass found ('camp'): its recording
-//                                      plays for everyone
+//                                      recording plays for everyone at once; found his glass on
+//                                      the road past the rock ('camp'): its recording plays for
+//                                      everyone
 // and between a guest and the host only:
 //   ping    { clock? }                 both ways, every second, also from a background tab (the
 //                                      host's: its play time now, game/worldclock.js)

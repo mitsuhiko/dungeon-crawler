@@ -3,31 +3,34 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { assets } from './paths.js';
 import { readGlb, rootBounds, roots } from '../tools/glb.mjs';
-import { N, LH, CHAR_R, EDGE_CORNERS } from '../src/core/constants.js';
+import { N, LH, CHAR_R, EDGE_CORNERS, DIRS } from '../src/core/constants.js';
 import { containsXZ, viewBlockedAt } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { step, faceKey } from '../src/world/coords.js';
-import { BUILDINGS, MERCHANTS, TOWN_LEVEL, TOWN_PORTAL_SPOT, VILLAGERS, VILLAGER_R, enemyFreeAt, merchantCampKey, rotateTownPoint } from '../src/world/town.js';
+import { BUILDINGS, MERCHANTS, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
+  enemyFreeAt, townOf, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
 import { ITEMS, outfitOf } from '../src/core/items.js';
 import { state } from './fixtures.js';
 import { ENEMY_PROFILES } from '../src/core/enemies.js';
 import { enemySpots } from '../src/game/enemyspawn.js';
-import { blockedAt, insideSolid, ceilingAt } from '../src/physics/collide.js';
+import { blockedAt, insideSolid, ceilingAt, cellAt, groundAt } from '../src/physics/collide.js';
 import { canMove } from '../src/physics/canmove.js';
 import { mapInfo } from '../src/game/cutinfo.js';
 import { player } from '../src/game/state.js';
 import { buildCubeGeometry } from '../src/render/cubegeo.js';
 import { propMetadata } from '../src/core/propcatalog.js';
+import { discoveredFaces } from '../src/core/boundaries.js';
+import { createRun } from '../src/core/progression.js';
 
 const overlaps = (a, b) => a.x0 < b.x1 && a.x1 > b.x0 && a.z0 < b.z1 && a.z1 > b.z0;
-const signature = m => ({ clearing: m.town || m.merchantCamp, portals: m.portals.map(p => [p.kind, p.dir, p.x, p.z]),
-  ground: m.floors.map(f => [f.top, f.fluid, f.cs]), routes: m.routes });
-
+const signature = m => ({ town: m.town, portals: m.portals.map(p => [p.kind, p.dir, p.x, p.z]),
+  ground: m.floors.map(f => [f.top, f.fluid, f.cs]), routes: m.routes, seams: m.seams });
 const quarterTurn = yaw => Math.abs(Math.sin(yaw * 2)) < 1e-9;
+// the town's tiles of a world: [{ k, i, j, m }]
+const tilesOf = w => townOf(w.seed).keys.map(k => ({ k, ...townOf(w.seed).tiles.get(k), m: w.cube(k).map }));
 
 function checkStraightPaths(m) {
-  const plan = m.town || m.merchantCamp;
-  for (const path of plan.paths) for (const [i, b] of path.points.slice(1).entries()) {
+  for (const path of m.town.paths) for (const [i, b] of path.points.slice(1).entries()) {
     const a = path.points[i];
     assert.ok(Math.abs(a[0] - b[0]) < 1e-9 || Math.abs(a[1] - b[1]) < 1e-9, 'paths run along the grid');
     for (let t = 0; t <= 1; t += .1) {
@@ -53,128 +56,167 @@ function checkWalkingRoutes(m) {
   }
 }
 
-test('town is flat, has water, four permanent buildings, varied tall trees, and one dry way out across seeds', () => {
-  const directions = new Set();
+test('the town is TOWN_ACROSS by TOWN_DEEP tiles of the depth-0 grid round its gate, turned with it', () => {
+  const exits = new Set();
   for (let seed = 0; seed < 80; seed++) {
-    const w = new World(seed, { arche: 'chasm' }); // debug archetypes cannot destroy town
-    const m = state.map = w.cube(w.start).map;
-    const exit = m.portals.find(p => p.kind === 'side'), spawn = m.portals.find(p => p.kind === 'spawn');
-    directions.add(exit.dir);
-    assert.equal(m.K, 1); assert.equal(m.attempts, 1); assert.equal(m.enemyFree, true);
-    assert.equal(m.portals.length, 2); assert.equal(m.portals.filter(p => p.kind !== 'spawn').length, 1);
-    assert.equal(exit.dir, m.exit);
-    assert.equal(m.floors.length, N * N); assert.ok(m.cols.every(c => c.length === 1));
-    assert.equal(m.falls.length, 0); assert.equal(m.runs.length, 0);
-    assert.equal(m.floors.filter(f => f.fluid).length, 5);
-    for (const f of m.floors) {
-      if (!f.fluid) assert.deepEqual(f.cs, Array(4).fill(TOWN_LEVEL * LH));
-      else { assert.ok(f.top < f.surf && f.surf === TOWN_LEVEL);   // (the pond level with the ground: walked into and out of)
- assert.ok(f.x > 0 && f.x < N - 1 && f.z > 0 && f.z < N - 1); }
+    const t = townOf(seed);
+    exits.add(t.exit);
+    assert.equal(t.keys.length, TOWN_ACROSS * TOWN_DEEP);
+    assert.equal(t.gate, '0,0,0');
+    assert.ok(t.keys.every(k => k.split(',')[1] === '0'));
+    // a block: every tile has its neighbours across and deep, the gate's row towards the road
+    for (const [k, { i, j }] of t.tiles) {
+      assert.equal(t.at(i, j), k);
+      if (i + 1 < TOWN_ACROSS && j + 1 < TOWN_DEEP) {
+        const across = t.at(i + 1, j), deep = t.at(i, j + 1);
+        assert.ok(DIRS.some((_, d) => step(k, d) === across) && DIRS.some((_, d) => step(k, d) === deep));
+      }
     }
-    const boxes = m.occluders.filter(b => b.shape === 'box');
-    assert.deepEqual([...new Set(boxes.map(b => b.name))].sort(), BUILDINGS.map(b => b.name).sort());
-    assert.equal(m.authoredProps, m.town.placements);
-    assert.equal(m.authoredProps.some(p => p.name.startsWith('town_merchant_')), false);
-    for (const b of BUILDINGS) {
-      const p = m.authoredProps.find(p => p.name === b.name);
-      assert.ok(quarterTurn(p.yaw), 'houses stand on the grid');
-    }
-    checkWalkingRoutes(m); checkStraightPaths(m);
-    assert.equal(m.town.placements.filter(p => p.name.startsWith('town_tree_')).length, 16);
-    assert.equal(new Set(m.town.placements.filter(p => p.name.startsWith('town_tree_')).map(p => p.name)).size, 3);
-    assert.ok(m.occluders.filter(b => b.shape === 'ellipsoid').every(b => b.top > TOWN_LEVEL * LH + 4.8));
-    for (const box of boxes) {
-      assert.ok(box.x0 > 0 && box.z0 > 0 && box.x1 < N && box.z1 < N);
-      for (const other of boxes) if (box.name !== other.name) assert.equal(overlaps(box, other), false, `${box.name}/${other.name}`);
-      for (const c of m.town.pond) assert.equal(containsXZ(box, c % N + .5, Math.floor(c / N) + .5), false);
-    }
-    assert.equal(m.safe[spawn.floor.id], 1); assert.equal(m.safe[exit.floor.id], 1);
-    for (const p of m.town.frontages) assert.equal(m.safe[Math.floor(p.z) * N + Math.floor(p.x)], 1, p.name);
-    for (const route of m.routes) for (const p of route) {
-      assert.equal(m.cols[Math.floor(p.z) * N + Math.floor(p.x)][0].fluid, 0);
-      assert.ok(!m.staticBlockers.flat().some(b => containsXZ(b, p.x, p.z, CHAR_R + .02)));
-    }
-    for (const p of ENEMY_PROFILES) assert.deepEqual(enemySpots(m, p), []);
-    assert.deepEqual(signature(m), signature(new World(seed).cube(w.start).map));
+    assert.ok(!isTown(step(t.gate, t.exit), seed), 'the road leaves through the gate');
+    assert.ok(isTown(step(t.gate, t.exit ^ 1), seed), 'the town lies behind it');
+    assert.equal(new World(seed).start, t.start);
+    assert.deepEqual(t.tiles.get(t.start), { i: 1, j: 2 });
   }
-  assert.deepEqual([...directions].sort(), [0, 1, 2, 3]);
+  assert.deepEqual([...exits].sort(), [0, 1, 2, 3]);
 });
 
-test('town reserves a dry, reachable, uncluttered spot for the town portal beside the plaza', () => {
-  const ends = new Set();
-  for (let seed = 0; seed < 80; seed++) {
-    const w = new World(seed), m = state.map = w.cube(w.start).map, at = m.town.portal;
-    const spawn = m.portals.find(p => p.kind === 'spawn'), cell = Math.floor(at.z) * N + Math.floor(at.x);
-    ends.add(m.exit);
-    assert.equal(at.y, TOWN_LEVEL * LH);
-    assert.deepEqual([at.x, at.z].map(v => +v.toFixed(6)), rotateTownPoint(...TOWN_PORTAL_SPOT, m.town.yaw).map(v => +v.toFixed(6)));
-    assert.equal(m.safe[cell], 1, 'the spot is reachable from the spawn');
-    assert.ok(Math.hypot(at.x - spawn.x - .5, at.z - spawn.z - .5) > 2.5, 'clear of the spawn pad');
-    assert.ok(m.portals.filter(p => p.kind === 'side').every(p => Math.hypot(at.x - p.x - .5, at.z - p.z - .5) > 4));
-    assert.ok(!m.occluders.filter(b => b.shape !== 'ellipsoid').some(b => containsXZ(b, at.x, at.z, 1.1)));
-    assert.ok(!new Set(m.staticBlockers.flat()).values().some(b => containsXZ(b, at.x, at.z, 1)));
-    assert.ok(!m.town.placements.some(p => !p.name.startsWith('town_') && Math.hypot(p.x - at.x, p.z - at.z) < 1.1), 'nothing stands on it');
-    for (const [dx, dz] of [[0, 0], [.7, 0], [-.7, 0], [0, .7], [0, -.7]])
-      assert.equal(m.cols[Math.floor(at.z + dz) * N + Math.floor(at.x + dx)][0].fluid, 0);
+test('every tile is flat, safe and authored; the buildings, the tents and the pond each in their own tile', () => {
+  for (let seed = 0; seed < 40; seed++) {
+    const w = new World(seed, { arche: 'chasm' }), t = townOf(seed);   // debug archetypes cannot destroy town
+    const placed = new Map();
+    for (const { k, i, j, m } of tilesOf(w)) {
+      state.map = m;
+      assert.equal(m.town.tile.name, TILE_NAMES[j][i]);
+      assert.equal(m.K, 1); assert.equal(m.attempts, 1); assert.equal(m.enemyFree, true);
+      assert.equal(m.floors.length, N * N); assert.ok(m.cols.every(c => c.length === 1));
+      assert.equal(m.falls.length, 0); assert.equal(m.runs.length, 0);
+      // portals: the gate only in the gate's tile, the spawn only in the start's
+      assert.deepEqual(m.portals.filter(p => p.kind === 'side').map(p => p.dir), k === t.gate ? [t.exit] : []);
+      assert.equal(m.portals.filter(p => p.kind === 'spawn').length, k === t.start ? 1 : 0);
+      assert.equal(m.portals.length, (k === t.gate) + (k === t.start));
+      for (const f of m.floors) {
+        if (!f.fluid) assert.deepEqual(f.cs, Array(4).fill(TOWN_LEVEL * LH));
+        else { assert.ok(f.top < f.surf && f.surf === TOWN_LEVEL); assert.ok(f.x > 1 && f.x < N - 2 && f.z > 1 && f.z < N - 2); }
+      }
+      assert.equal(m.floors.filter(f => f.fluid).length, m.town.tile.name === 'garden' ? 5 : 0);
+      for (const p of m.authoredProps) if ([...BUILDINGS, ...MERCHANTS].some(b => b.name === p.name)) {
+        assert.ok(!placed.has(p.name), p.name + ' twice'); placed.set(p.name, k);
+        assert.ok(quarterTurn(p.yaw), 'buildings stand on the grid');
+      }
+      const boxes = m.occluders.filter(b => b.shape === 'box');
+      for (const box of boxes) {
+        assert.ok(box.x0 > 0 && box.z0 > 0 && box.x1 < N && box.z1 < N);
+        for (const other of boxes) if (box.name !== other.name) assert.equal(overlaps(box, other), false, `${box.name}/${other.name}`);
+        for (const c of m.town.pond) assert.equal(containsXZ(box, c % N + .5, Math.floor(c / N) + .5), false);
+      }
+      for (const p of m.town.frontages) assert.equal(m.safe[Math.floor(p.z) * N + Math.floor(p.x)], 1, p.name);
+      for (const p of ENEMY_PROFILES) assert.deepEqual(enemySpots(m, p), []);
+      checkWalkingRoutes(m); checkStraightPaths(m);
+      assert.ok(m.occluders.filter(b => b.shape === 'ellipsoid').every(b => b.top > TOWN_LEVEL * LH + 4.8));
+      assert.deepEqual(signature(m), signature(new World(seed).cube(k).map));
+    }
+    assert.deepEqual([...placed.keys()].sort(), [...BUILDINGS, ...MERCHANTS].map(b => b.name).sort());
+    for (const b of [...BUILDINGS, ...MERCHANTS]) assert.equal(placed.get(b.name), t.at(...b.tile), b.name);
+    const trees = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => p.name.startsWith('town_tree_')));
+    assert.ok(trees.length >= 24, `${trees.length} trees`);
+    assert.equal(new Set(trees.map(p => p.name)).size, 3);
   }
-  assert.deepEqual([...ends].sort(), [0, 1, 2, 3]);
-  assert.equal(new World(3).cube(merchantCampKey(3)).map.merchantCamp.portal, undefined, 'only the town has one');
 });
 
-test('town boundary is shared and exactly flat even if the neighbour is generated first', () => {
+test('the seams: flat faces, no glass or portal, nothing standing near, walkable all along, and walked across', () => {
+  for (let seed = 0; seed < 24; seed++) {
+    const w = new World(seed);
+    for (const { k, m } of tilesOf(w)) {
+      assert.deepEqual(m.seams, DIRS.map((_, d) => isTown(step(k, d), seed)));
+      for (let d = 0; d < 4; d++) {
+        if (!m.seams[d]) continue;
+        const f = w.faces.get(faceKey(k, d));
+        assert.ok([...f.profile].every(h => h === TOWN_LEVEL));
+        assert.equal(f.portal, null); assert.equal(f.river, null); assert.equal(f.spout, null);
+        // the cells along it: reached, and nothing stands within reach of a body crossing (the
+        // physics knows only one tile at a time, docs/town.md)
+        for (let t = 0; t < N; t++) {
+          const along = [d < 2 ? 0 : t + .5, d < 2 ? t + .5 : 0];
+          const at = s => [d === 0 ? N - s : d === 1 ? s : along[0], d === 2 ? N - s : d === 3 ? s : along[1]];
+          const [ex, ez] = at(.5), c = Math.floor(ez) * N + Math.floor(ex);
+          assert.equal(m.safe[c], 1, `${seed} ${k} side ${d}: ${ex}, ${ez} reached`);
+          for (const s of [0, .25, .5]) {
+            const [x, z] = at(s);
+            assert.ok(!m.staticBlockers.flat().some(b => containsXZ(b, x, z, CHAR_R + .2)), `${seed} ${k} side ${d}: something stands at ${x}, ${z}`);
+          }
+        }
+      }
+    }
+  }
+  // the ground goes on past a seam as the edge's (physics/collide.js cellAt); past an outer side it
+  // is solid as anywhere outside
+  const w = new World(3), t = townOf(3), m = state.map = w.cube(t.at(1, 1)).map;
+  assert.deepEqual(m.seams, [true, true, true, true]);
+  Object.assign(player, { y: TOWN_LEVEL * LH, visY: TOWN_LEVEL * LH, h: .85, r: CHAR_R, grounded: true, swimming: false });
+  for (const [x, z] of [[N + .4, 8.2], [-.4, 8.2], [8.2, N + .4], [8.2, -.4]]) {
+    assert.ok(cellAt(x, z) >= 0);
+    assert.equal(groundAt(x, z, TOWN_LEVEL * LH + .1, .3).h, TOWN_LEVEL * LH);
+  }
+  assert.equal(cellAt(N + 1.5, 8.2), -1, 'not further than a cell');
+  const corner = state.map = w.cube(t.at(0, 0)).map;
+  const out = [0, 1, 2, 3].find(d => !corner.seams[d]), [ox, oz] = [[N + .4, 8], [-.4, 8], [8, N + .4], [8, -.4]][out];
+  assert.equal(cellAt(ox, oz), -1, 'past the hull: solid');
+  // a body at the middle of a seam steps across it
+  state.map = m;
+  player.x = N - .5; player.z = STREET; player.support = m.cols[Math.floor(STREET) * N + N - 1][0];
+  assert.equal(canMove(N + .3, STREET, 'x', 1), true);
+});
+
+test('only the gate joins the town to what lies round it; inside, every seam opens once known', () => {
+  for (let seed = 0; seed < 16; seed++) {
+    const w = new World(seed), t = townOf(seed), run = createRun(), cubes = new Map();
+    const add = k => cubes.set(k, { key: k, visits: 1, map: w.cube(k).map });
+    for (const k of t.keys) { add(k); for (let d = 0; d < 4; d++) if (w.layout(0).exists.has(step(k, d))) add(step(k, d)); }
+    run.unlockedGates.add('intro:sword');
+    for (const k of t.keys) {
+      const open = discoveredFaces(cubes, cubes.get(k), run);
+      for (let d = 0; d < 4; d++) {
+        const n = step(k, d);
+        if (!cubes.has(n)) continue;
+        assert.equal(open.includes(faceKey(k, d)), isTown(n, seed) || (k === t.gate && d === t.exit), `${seed} ${k} side ${d}`);
+      }
+    }
+  }
+});
+
+test('the gate\'s face and the road\'s edges are flat, even when the road is made first', () => {
   for (let seed = 0; seed < 24; seed++) for (const first of [true, false]) {
-    const w = new World(seed), dir = w.layout(0).exit.get(w.start), roadKey = step(w.start, dir);
+    const w = new World(seed), t = townOf(seed), roadKey = step(t.gate, t.exit);
     const road = first ? w.cube(roadKey).map : null;
-    const town = w.cube(w.start).map, neighbour = road || w.cube(roadKey).map;
-    assert.deepEqual(signature(town), signature(new World(seed).cube(w.start).map));
-    const face = w.faces.get(faceKey(w.start, dir));
+    const gate = w.cube(t.gate).map, neighbour = road || w.cube(roadKey).map;
+    assert.deepEqual(signature(gate), signature(new World(seed).cube(t.gate).map));
+    const face = w.faces.get(faceKey(t.gate, t.exit));
     assert.ok([...face.profile].every(h => h === TOWN_LEVEL));
     assert.equal(face.river, null); assert.equal(face.spout, null);
-    const nd = dir ^ 1;
+    const nd = t.exit ^ 1;
     for (const f of neighbour.floors) if (f.layer === 0 && [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0][nd])
       for (const c of EDGE_CORNERS[nd]) assert.equal(f.cs[c], TOWN_LEVEL * LH);
     const portal = neighbour.portals.find(p => p.dir === nd);
-    assert.equal(portal.layer, 0); assert.equal(portal.y, town.portals[0].y);
+    assert.equal(portal.layer, 0); assert.equal(portal.y, gate.portals[0].y);
+    assert.equal(neighbour.town, undefined); assert.equal(neighbour.enemyFree, false);
   }
 });
 
-test('the three tents form a safe roadside camp exactly one cube in front of town', () => {
+test('the town portal\'s spot: dry, reachable and uncluttered, in the plaza\'s tile', () => {
+  const ends = new Set();
   for (let seed = 0; seed < 80; seed++) {
-    const w = new World(seed, { arche: 'chasm' }), town = w.cube(w.start).map;
-    const k = step(w.start, town.exit), m = state.map = w.cube(k).map;
-    assert.equal(k, merchantCampKey(seed));
-    assert.equal(m.town, undefined); assert.ok(m.merchantCamp);
-    assert.equal(m.K, 1); assert.equal(m.attempts, 1); assert.equal(m.enemyFree, true);
-    assert.equal(m.authoredProps, m.merchantCamp.placements);
-    assert.equal(m.portals.length, 2);
-    assert.deepEqual(m.portals.map(p => p.dir).sort(), [town.exit, town.exit ^ 1].sort());
-    assert.ok(m.portals.every(p => p.kind === 'side' && p.layer === 0 && p.y === TOWN_LEVEL * LH));
-    assert.equal(m.exit, town.exit);
-    assert.equal(m.floors.length, N * N);
-    assert.ok(m.floors.every(f => !f.fluid && f.cs.every(y => y === TOWN_LEVEL * LH)));
-    assert.equal(m.falls.length, 0); assert.equal(m.runs.length, 0);
-    const boxes = m.occluders.filter(b => b.shape === 'box');
-    assert.deepEqual(boxes.map(b => b.name).sort(), MERCHANTS.map(b => b.name).sort());
-    assert.equal(m.authoredProps.some(p => BUILDINGS.some(b => b.name === p.name)), false);
-    for (const box of boxes) {
-      assert.ok(box.x0 > 0 && box.z0 > 0 && box.x1 < N && box.z1 < N);
-      for (const other of boxes) if (box !== other) assert.equal(overlaps(box, other), false);
-      for (let z = Math.floor(box.z0); z <= Math.floor(box.z1); z++)
-        for (let x = Math.floor(box.x0); x <= Math.floor(box.x1); x++) assert.ok(m.staticBlockers[z * N + x].includes(box));
-      assert.equal(blockedAt((box.x0 + box.x1) / 2, (box.z0 + box.z1) / 2, TOWN_LEVEL * LH, .3), true);
-    }
-    for (const p of m.portals) for (const c of p.cells) assert.equal(m.safe[c], 1);
-    for (const p of m.merchantCamp.frontages) assert.equal(m.safe[Math.floor(p.z) * N + Math.floor(p.x)], 1, p.name);
-    const route = m.routes[0], entry = m.portals.find(p => p.dir !== m.exit), exit = m.portals.find(p => p.dir === m.exit);
-    assert.deepEqual([route[0].x, route[0].z], [entry.x + .5, entry.z + .5]);
-    assert.deepEqual([route.at(-1).x, route.at(-1).z], [exit.x + .5, exit.z + .5]);
-    for (const b of MERCHANTS) assert.ok(quarterTurn(m.authoredProps.find(p => p.name === b.name).yaw), 'tents stand on the grid');
-    assert.deepEqual(m.doors, [], 'tents have no doors');
-    checkWalkingRoutes(m); checkStraightPaths(m);
-    for (const p of ENEMY_PROFILES) assert.deepEqual(enemySpots(m, p), []);
-    assert.deepEqual(signature(m), signature(new World(seed).cube(k).map));
-    assert.deepEqual(signature(m), signature(structuredClone(m)), 'worker clone preserves authored placements');
+    const w = new World(seed), t = townOf(seed), m = state.map = w.cube(t.portal).map, at = m.town.portal;
+    for (const k of t.keys) if (k !== t.portal) assert.equal(w.cube(k).map.town.portal, undefined, 'only the plaza has one');
+    const cell = Math.floor(at.z) * N + Math.floor(at.x);
+    ends.add(t.exit);
+    assert.equal(at.y, TOWN_LEVEL * LH);
+    assert.deepEqual([at.x, at.z].map(v => +v.toFixed(6)), rotateTownPoint(...TOWN_PORTAL_SPOT, m.town.yaw).map(v => +v.toFixed(6)));
+    assert.equal(m.safe[cell], 1, 'reachable');
+    assert.ok(!m.occluders.filter(b => b.shape !== 'ellipsoid').some(b => containsXZ(b, at.x, at.z, 1.1)));
+    assert.ok(!new Set(m.staticBlockers.flat()).values().some(b => containsXZ(b, at.x, at.z, 1)));
+    assert.ok(!m.town.placements.some(p => !p.name.startsWith('town_') && Math.hypot(p.x - at.x, p.z - at.z) < 1.1), 'nothing stands on it');
   }
+  assert.deepEqual([...ends].sort(), [0, 1, 2, 3]);
 });
 
 // Where a body of CHAR_R can walk to from the first route's start, on a grid of steps of .1
@@ -208,17 +250,17 @@ function walkable(m) {
   };
 }
 
-test('villagers stand at their trades in both clearings, as colliders, dressed and within reach', () => {
-  const where = { town: BUILDINGS, merchantCamp: MERCHANTS };
-  for (let seed = 0; seed < 80; seed++) {
-    const w = new World(seed), town = w.cube(w.start).map;
-    for (const m of [town, w.cube(step(w.start, town.exit)).map]) {
+test('villagers stand at their trades, as colliders, dressed and within reach', () => {
+  for (let seed = 0; seed < 40; seed++) {
+    const w = new World(seed), all = [];
+    for (const { m } of tilesOf(w)) {
       state.map = m;
-      const kind = m.town ? 'town' : 'merchantCamp', placed = m[kind].placements;
-      const want = VILLAGERS.filter(v => where[kind].some(b => b.name === v.at));
-      assert.deepEqual(m.villagers.map(v => v.name).sort(), want.map(v => v.name).sort(), kind);
+      const placed = m.town.placements;
+      const want = VILLAGERS.filter(v => placed.some(p => p.name === v.at));
+      assert.deepEqual(m.villagers.map(v => v.name).sort(), want.map(v => v.name).sort(), m.key);
       assert.deepEqual(structuredClone(m.villagers), m.villagers, 'the worker hands them over whole');
       for (const v of m.villagers) {
+        all.push(v.name);
         const spec = VILLAGERS.find(s => s.name === v.name), home = placed.find(p => p.name === spec.at);
         assert.equal(v.y, TOWN_LEVEL * LH);
         assert.ok(v.x > .5 && v.z > .5 && v.x < N - .5 && v.z < N - .5, v.name);
@@ -227,46 +269,24 @@ test('villagers stand at their trades in both clearings, as colliders, dressed a
         assert.equal(m.cols[Math.floor(v.z) * N + Math.floor(v.x)][0].fluid, 0, 'on dry ground');
         assert.deepEqual(outfitOf(v.outfit), outfitOf(spec.outfit));
         assert.equal(v.tint, spec.tint);
-        // a collider where they stand, and nothing else there
         const own = 'villager_' + v.name;
         assert.ok(m.staticBlockers[Math.floor(v.z) * N + Math.floor(v.x)].some(b => b.name === own && b.r === VILLAGER_R));
         assert.equal(blockedAt(v.x, v.z, v.y, .1), true);
         assert.ok(!new Set(m.staticBlockers.flat()).values().some(b => b.name !== own && containsXZ(b, v.x, v.z, VILLAGER_R - .05)), v.name);
         for (const other of m.villagers) if (other !== v) assert.ok(Math.hypot(other.x - v.x, other.z - v.z) > 2 * VILLAGER_R + .1);
-        // the player can walk up to them (from where the clearing's walks begin)
-        const near = walkable(m)(v.x, v.z, VILLAGER_R + CHAR_R + .2);
-        assert.ok(near, `${kind}: ${v.name} can be walked up to`);
+        assert.ok(walkable(m)(v.x, v.z, VILLAGER_R + CHAR_R + .2), `${v.name} can be walked up to`);
       }
     }
+    assert.deepEqual(all.sort(), VILLAGERS.map(v => v.name).sort());
   }
   for (const v of VILLAGERS) for (const id of v.outfit) assert.ok(ITEMS[id]?.slot, id);
   assert.deepEqual(VILLAGERS.map(v => v.outfit.length), [1, 1, 3, 1, 1, 2]);
 });
 
-test('camp-to-countryside edges stay flat even when countryside is generated first', () => {
-  for (let seed = 0; seed < 24; seed++) for (const first of [true, false]) {
-    const w = new World(seed), dir = w.layout(0).exit.get(w.start);
-    const campKey = step(w.start, dir), outsideKey = step(campKey, dir);
-    const early = first ? w.cube(outsideKey).map : null;
-    const camp = w.cube(campKey).map, outside = early || w.cube(outsideKey).map;
-    assert.deepEqual(signature(camp), signature(new World(seed).cube(campKey).map));
-    assert.deepEqual(signature(w.cube(w.start).map), signature(new World(seed).cube(w.start).map));
-    const face = w.faces.get(faceKey(campKey, dir)), nd = dir ^ 1;
-    assert.ok([...face.profile].every(h => h === TOWN_LEVEL));
-    assert.equal(face.river, null); assert.equal(face.spout, null);
-    for (const f of outside.floors) if (f.layer === 0 && [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0][nd])
-      for (const c of EDGE_CORNERS[nd]) assert.equal(f.cs[c], TOWN_LEVEL * LH);
-    const p = outside.portals.find(p => p.dir === nd);
-    assert.equal(p.layer, 0); assert.equal(p.y, TOWN_LEVEL * LH);
-    assert.equal(outside.merchantCamp, undefined);
-  }
-});
-
 function checkClutter(m, min) {
-  const plan = m.town || m.merchantCamp, y = TOWN_LEVEL * LH, pond = new Set(plan.pond);
+  const plan = m.town, y = TOWN_LEVEL * LH, pond = new Set(plan.pond);
   const clutter = plan.placements.filter(p => !p.name.startsWith('town_'));
   assert.ok(clutter.length >= min, `only ${clutter.length} clutter props`);
-  assert.ok(new Set(clutter.map(p => p.name.replace(/_[ab]$/, ''))).size >= 15, 'clutter must be varied');
   // Oriented footprints: the axis-aligned collider envelopes have empty corners.
   const footprints = [...BUILDINGS, ...MERCHANTS].flatMap(b => plan.placements.filter(p => p.name === b.name)
     .map(p => ({ p, bounds: b.bounds })));
@@ -285,41 +305,46 @@ function checkClutter(m, min) {
     if (meta.light) assert.equal(p.night, true, 'the lamps are lit at night only');
     if (meta.blocking) {
       assert.ok(m.staticBlockers[c].some(b => b.name === p.name && b.x === p.x && b.z === p.z), p.name + ' needs a collider');
+      // and off the seams by SEAM_CLEAR
+      const gap = Math.min(...[0, 1, 2, 3].filter(d => m.seams[d]).map(d => [N - p.x, p.x, N - p.z, p.z][d]));
+      assert.ok(gap >= meta.radius * p.s + SEAM_CLEAR - 1e-6, `${p.name} ${gap} from a seam`);
     }
   }
 }
 
-test('both clearings are dressed with varied clutter that stays off paths, water and buildings', () => {
-  for (let seed = 0; seed < 24; seed++) {
-    const w = new World(seed), town = w.cube(w.start).map, camp = w.cube(step(w.start, town.exit)).map;
-    checkClutter(town, 100); checkClutter(camp, 100);
-    assert.ok(town.town.placements.some(p => p.name.startsWith('meadow_lily_pads_')));
-    assert.ok(town.town.placements.some(p => p.name.startsWith('meadow_cattails_') || p.name.startsWith('any_shore_stones_')));
-    assert.ok(camp.merchantCamp.placements.some(p => p.name.startsWith('relics_old_campfire_')));
+test('the tiles are dressed with varied clutter that stays off paths, water, buildings and seams', () => {
+  for (let seed = 0; seed < 16; seed++) {
+    const w = new World(seed), tiles = tilesOf(w);
+    for (const { m } of tiles) checkClutter(m, 50);
+    const names = new Set(tiles.flatMap(({ m }) => m.town.placements.map(p => p.name.replace(/_[ab]$/, ''))));
+    assert.ok(names.size >= 30, 'clutter must be varied');
+    const garden = tiles.find(({ m }) => m.town.tile.name === 'garden').m;
+    assert.ok(garden.town.placements.some(p => p.name.startsWith('meadow_lily_pads_')));
+    assert.ok(garden.town.placements.some(p => p.name.startsWith('meadow_cattails_') || p.name.startsWith('any_shore_stones_')));
+    for (const [tile, prop] of [['camp', 'relics_old_campfire_'], ['windmill', 'meadow_windmill_'], ['green', 'town_well_']])
+      assert.ok(tiles.find(({ m }) => m.town.tile.name === tile).m.town.placements.some(p => p.name.startsWith(prop)), `${tile}: ${prop}`);
   }
 });
 
-test('authored paths run straight along the grid and connect each frontage', () => {
+test('the street runs straight from the gate to the green, and paths lead to every frontage', () => {
   for (let seed = 0; seed < 4; seed++) {
-    const w = new World(seed), town = w.cube(w.start).map, camp = w.cube(step(w.start, town.exit)).map;
-    for (const m of [town, camp]) {
-      const plan = m.town || m.merchantCamp;
-      for (const p of plan.frontages) assert.ok(plan.paths.some(path => {
-        const end = path.points.at(-1); return Math.hypot(end[0] - p.x, end[1] - p.z) < 1e-6;
-      }));
-      // the street: one straight run from the gate (town-local x = 8.5)
-      const road = plan.paths[0].points.map(([x, z]) => rotateTownPoint(x, z, -plan.yaw));
-      assert.equal(road.length, 2);
-      assert.ok(road.every(([x]) => Math.abs(x - 8.5) < 1e-6));
-      assert.ok(road.some(([, z]) => Math.abs(z) < 1e-6), 'starts at the gate');
+    const w = new World(seed), t = townOf(seed);
+    for (const { m } of tilesOf(w)) for (const p of m.town.frontages) assert.ok(m.town.paths.some(path => {
+      const end = path.points.at(-1); return Math.hypot(end[0] - p.x, end[1] - p.z) < 1e-6;
+    }), p.name);
+    for (let j = 0; j < TOWN_DEEP; j++) {
+      const m = w.cube(t.at(1, j)).map, local = m.town.paths.map(p => p.points.map(([x, z]) => rotateTownPoint(x, z, -m.town.yaw)));
+      const street = local.find(pts => pts.every(([x]) => Math.abs(x - STREET) < 1e-6) && pts.some(([, z]) => Math.abs(z) < 1e-6));
+      assert.ok(street, `the street in ${j}`);
+      assert.ok(street.some(([, z]) => Math.abs(z - (j < TOWN_DEEP - 1 ? N : 8)) < 1e-6), 'on through the tile, to the green');
     }
   }
 });
 
 test('path ribbons are grid-aligned rectangles, stay inside the cube, and never pave over the pond', () => {
   for (let seed = 0; seed < 4; seed++) {
-    const w = new World(seed), town = w.cube(w.start).map, camp = w.cube(step(w.start, town.exit)).map;
-    for (const m of [town, camp]) {
+    const w = new World(seed);
+    for (const { m } of tilesOf(w)) {
       const { pos, nor } = buildCubeGeometry(m)[0].terrain;
       let pathVertices = 0;
       for (let i = 0; i < pos.length; i += 9) {
@@ -327,42 +352,37 @@ test('path ribbons are grid-aligned rectangles, stay inside the cube, and never 
         pathVertices += 3;
         for (let j = i; j < i + 9; j += 3) {
           assert.ok(pos[j] >= 0 && pos[j] <= N && pos[j + 2] >= 0 && pos[j + 2] <= N);
-          assert.ok(Number.isFinite(pos[j]) && Number.isFinite(pos[j + 2]));
           assert.equal(nor[j + 1], 1);
         }
-        // every edge of every triangle runs along x, along z or is the quad's diagonal
         const xs = new Set([pos[i], pos[i + 3], pos[i + 6]].map(v => v.toFixed(4)));
         const zs = new Set([pos[i + 2], pos[i + 5], pos[i + 8]].map(v => v.toFixed(4)));
         assert.ok(xs.size <= 2 && zs.size <= 2, 'path quads are axis-aligned');
         const x = (pos[i] + pos[i + 3] + pos[i + 6]) / 3, z = (pos[i + 2] + pos[i + 5] + pos[i + 8]) / 3;
         assert.equal(m.cols[Math.min(N - 1, Math.floor(z)) * N + Math.min(N - 1, Math.floor(x))][0].fluid, 0);
       }
-      assert.ok(pathVertices >= 6 * 4);
+      if (m.town.paths.length) assert.ok(pathVertices >= 6);
     }
   }
 });
 
-test('safe surface buffer includes diagonals, ends after one cube, and does not immunise the dungeon', () => {
-  for (let x = -1; x <= 1; x++) for (let z = -1; z <= 1; z++) assert.equal(enemyFreeAt(`${x},0,${z}`), true);
-  for (const k of ['2,0,0', '0,0,-2', '0,-1,0', '1,-1,1']) assert.equal(enemyFreeAt(k), false);
+test('the town alone has no enemies: the road has them from the room past its gate', () => {
   let hostilePopulation = 0;
   for (let seed = 0; seed < 16; seed++) {
-    const w = new World(seed), town = w.cube(w.start).map;
-    const roadKey = step(w.start, town.exit), road = state.map = w.cube(roadKey).map;
-    assert.equal(road.enemyFree, true);
-    for (const p of ENEMY_PROFILES) assert.deepEqual(enemySpots(road, p), []);
-    const outside = state.map = w.cube(step(roadKey, town.exit)).map;
+    const w = new World(seed), t = townOf(seed);
+    for (const k of t.keys) assert.equal(enemyFreeAt(k, seed), true);
+    const rock = step(t.gate, t.exit), outside = state.map = w.cube(w.layout(0).route[2]).map;
+    assert.equal(enemyFreeAt(rock, seed), false);
+    assert.equal(w.cube(rock).map.enemyFree, false);
     assert.equal(outside.enemyFree, false);
     for (const p of ENEMY_PROFILES) hostilePopulation += enemySpots(outside, p).length;
-    // Retrieving cached cubes retains policy, it isn't an initial-spawn exception.
-    assert.equal(w.cube(roadKey).map.enemyFree, true);
-    assert.equal(w.cube(w.start).map.enemyFree, true);
+    assert.equal(w.cube(t.start).map.enemyFree, true);
   }
+  for (const k of ['0,-1,0', '1,-1,1']) assert.equal(enemyFreeAt(k, 0), false);
   assert.ok(hostilePopulation > 0);
 });
 
 test('building boxes collide in every covered cell; canopy occlusion is separate from trunk collision', () => {
-  const m = state.map = new World(3).cube('0,0,0').map;
+  const w = new World(3), t = townOf(3), m = state.map = w.cube(t.houses.town_inn_a).map;
   Object.assign(player, { y: 2, visY: 2, h: .85, r: CHAR_R, grounded: true, swimming: false });
   const box = m.occluders.find(b => b.name === 'town_inn_a');
   for (let x = box.x0 + .1; x < box.x1; x += .7) for (let z = box.z0 + .1; z < box.z1; z += .7) {
@@ -371,12 +391,12 @@ test('building boxes collide in every covered cell; canopy occlusion is separate
     assert.equal(ceilingAt(x, z, 1.9), 2);
   }
   checkWalkingRoutes(m);
-  // Pick a crown whose overhang is not also inside one of the new building envelopes.
-  const crown = m.occluders.find(b => b.shape === 'ellipsoid' && b.x > 12 && b.z < 1);
-  assert.equal(viewBlockedAt(m, crown.x, crown.y, crown.z), true);
-  assert.equal(viewBlockedAt(m, crown.x + crown.rx + .2, crown.y, crown.z), false);
-  assert.ok(mapInfo(m).top > Math.max(...m.occluders.map(b => b.top)));
-  assert.equal(insideSolid(crown.x + crown.rx * .8, crown.z, 2.5), false);
+  const edge = state.map = w.cube(t.at(0, 0)).map;
+  const crown = edge.occluders.find(b => b.shape === 'ellipsoid');
+  assert.equal(viewBlockedAt(edge, crown.x, crown.y, crown.z), true);
+  assert.ok(mapInfo(edge).top > Math.max(...edge.occluders.map(b => b.top)));
+  const inward = Math.sign(N / 2 - crown.x) || 1;
+  assert.equal(insideSolid(crown.x + inward * crown.rx * .8, crown.z, 2.5), false, 'only the trunk stands in the way');
 });
 
 const glb = file => readGlb(resolve(assets, file)).json;

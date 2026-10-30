@@ -8,8 +8,8 @@
 // A trial's parts the action key uses (levers, runestones, braziers, a rune room's tablet ...;
 // game/trials.js usableParts) are hovered too, labelled with what using them does, and clicked to
 // go and use them. The ways out of the cube (portals, the town portal, house doors: game/ways.js)
-// too, labelled with where they go, and clicked to walk up to them and through. The robot asleep in
-// the merchant camp (game/robot.js sleepingRobot) too, clicked to walk up to it and wake it.
+// too, labelled with where they go, and clicked to walk up to them and through. The robot asleep at
+// the crash in town (game/robot.js sleepingRobot) too, clicked to walk up to it and wake it.
 // Labels that would overlap are pushed upwards into a stack. Runs after the camera moved.
 //
 // Everything clicked in the world (but the enemies: game/pointer.js) is hovered here, and the cursor

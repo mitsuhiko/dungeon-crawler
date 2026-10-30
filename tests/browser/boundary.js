@@ -116,9 +116,16 @@ async function sealedSectionCheck() {
 }
 
 // Discover both ends without crossing their gate (as when arriving by another route).
+// the town's gate tile (world/town.js: a new world starts in the inn's), entered
+async function gateTile() {
+  const t = await state.cubes.get(state.cubes.town.gate);
+  enterCube(t, null, null, { x: N / 2, y: t.map.floors[0].top * 0.5, z: N / 2 });
+  return t;
+}
+
 async function discoveredGateCheck() {
   await newWorld(3); clearInput();
-  const town = state.cubes.cubes.get(state.cubeKey), portal = town.map.portals.find(p => p.kind === 'side');
+  const town = await gateTile(), portal = town.map.portals.find(p => p.kind === 'side');
   const dir = portal.dir, opposite = OPP6[dir], road = await state.cubes.get(step(town.key, dir));
   check(!road.visits && !isFaceOpen(state.openedFaces, town.key, dir), 'Prefetching a neighbour must not open its face');
   enterCube(road, opposite);
@@ -126,7 +133,7 @@ async function discoveredGateCheck() {
   check(!state.world.portalFx.some(fx => fx.obj.userData.portal.kind === 'side' && fx.obj.userData.portal.dir === opposite), 'Discovered gate must disappear');
   panes(state.world.glass, openedSides(state.openedFaces, road.key));
   for (const proxy of neighbors()) panes(proxy.glass, openedSides(state.openedFaces, proxy.key));
-  const along = dir < 2 ? portal.z + 0.5 : portal.x + 0.5, elsewhere = along < N / 2 ? N - 2.5 : 2.5;
+  const along = dir < 2 ? portal.z + 0.5 : portal.x + 0.5, elsewhere = along + (along < N / 2 ? 3 : -3);
   atFace(opposite, elsewhere, 2, 0.7);
   checkPortals();   // release the arrival boundary lock
   atFace(opposite, elsewhere, 2);
@@ -145,8 +152,11 @@ export async function runBoundaryChecks() {
       // These four seeds give the town each of the four exit orientations.
       for (const seed of [0, 1, 2, 3]) {
         await newWorld(seed); clearInput();
-        check(state.openedFaces.size === 0 && state.boundaryLock === -1, 'New world must clear opened faces/locks');
-        const town = state.cubes.cubes.get(state.cubeKey), portal = town.map.portals.find(p => p.kind === 'side');
+        // (only the seams between the town's tiles are open: it is known from the start, docs/town.md)
+        const { tiles } = state.cubes.town;
+        check([...state.openedFaces].every(f => { const [k, d] = f.split('/'); return tiles.has(k) && tiles.has(step(k, +d)); }) && state.boundaryLock === -1,
+          'New world must clear opened faces/locks but the town\'s seams');
+        const town = await gateTile(), portal = town.map.portals.find(p => p.kind === 'side');
         const dir = portal.dir, opposite = OPP6[dir], roadKey = step(town.key, dir);
         const road = await state.cubes.get(roadKey), back = road.map.portals.find(p => p.dir === opposite);
         const originalPortals = town.map.portals;
@@ -172,7 +182,7 @@ export async function runBoundaryChecks() {
         for (const proxy of neighbors()) panes(proxy.glass, openedSides(state.openedFaces, proxy.key));
 
         // Return on the ground far from the old portal (the town boundary is flat).
-        const elsewhere = along < N / 2 ? N - 2.5 : 2.5;
+        const elsewhere = along + (along < N / 2 ? 3 : -3);
         atFace(opposite, elsewhere, 2);
         state.boundaryLock = opposite;
         check(!checkPortals(...DIRS[opposite]), 'Arrival boundary lock must prevent immediate re-entry');
@@ -223,12 +233,13 @@ export async function runBoundaryChecks() {
       }
 
       await newWorld(3); clearInput();
-      const sourceKey = state.cubeKey, exit = state.map.portals.find(p => p.kind === 'side'), get = state.cubes.get;
+      await gateTile();
+      const sourceKey = state.cubeKey, exit = state.map.portals.find(p => p.kind === 'side'), get = state.cubes.get, before = state.openedFaces.size;
       state.cubes.get = () => Promise.reject(Error('test generation failure'));
       try {
         startTravel(exit);
         for (let i = 0; i < 100 && state.transitioning; i++) await delay(20);
-        check(!state.transitioning && state.cubeKey === sourceKey && state.openedFaces.size === 0, 'Failed travel must not open a face');
+        check(!state.transitioning && state.cubeKey === sourceKey && state.openedFaces.size === before, 'Failed travel must not open a face');
       } finally { state.cubes.get = get; }
       results.push('generation failure does not unlock / new-world reset');
 

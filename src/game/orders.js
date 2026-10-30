@@ -3,7 +3,7 @@
 // it (with a bow, crossbow or staff: until it is in range and in sight, then shoot), click an item on the floor (or its label) to go and pick it up, click a treasure chest to
 // go and open it, click a villager to walk up and talk (their quests or wares: game/inventory.js talkTo), click a trial's
 // part (a lever, a runestone, a tablet ...) to walk up and use it, as the action key does (game/trials.js usePart), the robot
-// asleep in the merchant camp to walk up to it and wake it (game/robot.js wakeRobot). Holding the button
+// asleep at the crash in town to walk up to it and wake it (game/robot.js wakeRobot). Holding the button
 // keeps walking towards the cursor / keeps attacking. WASD cancels.
 // Orders steer only; the speed (run, or walk with Ctrl) is up to update.js, but for jumps (always
 // at a run, as they were found).

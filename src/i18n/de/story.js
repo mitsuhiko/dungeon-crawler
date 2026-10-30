@@ -8,7 +8,7 @@ export default {
   'A voice in the glass': 'Eine Stimme im Glas',
   'Found on a rock by the road': 'Gefunden auf einem Felsen an der Straße',
   'His old sword': 'Sein altes Schwert',
-  // his first glass, on the rock past the merchant camp
+  // his first glass, on the rock past the town's gate
   'So my glass found someone. Good.': 'Mein Glas hat also jemanden gefunden. Gut.',
   'This glass keeps my words. Keep them with you, and listen again whenever you need to.':
     'Dieses Glas bewahrt meine Worte. Behalte sie bei dir, und hör sie wieder an, wann immer du sie brauchst.',

@@ -4,7 +4,7 @@
 
 Potions are stackable items (`core/items.js POTIONS`, category `potion`) in two families:
 drinks put a timed effect on you, flasks are thrown. They drop from enemies, lie in chests and
-are sold by the alchemist in the merchant camp. Their rules are pure (`core/potions.js`,
+are sold by the alchemist at the market in town. Their rules are pure (`core/potions.js`,
 `core/status.js`, `core/throws.js`, `core/shops.js`); the game runs them in `game/quickbar.js`,
 `game/throws.js`, `game/statuses.js` and `game/inventory.js`.
 
@@ -94,7 +94,7 @@ like the Smith's and the Enchanter's prices (`shopPrice`: + 75% of it for every 
 deepest depth anyone got to in the world, `shopLevel`, the world's level counted in), so a potion
 costs about as much of what a depth pays all the way down: a health potion 40 copper (4s) on the
 road out of town, 34s at depth 11 of a world of level 1 and 61s at the core. Bought potions go on the quick bar like
-found ones. The alchemist in the wizard hat (merchant camp, `town_merchant_c`) sells every
+found ones. The alchemist in the wizard hat (the market in town, `town_merchant_c`) sells every
 potion and flask. With `?dev=1` a run starts with 5000 gold. The enchanter and the smith trade
 too, working on weapons instead ([loot.md](loot.md#enchanting-and-re-rolling)).
 

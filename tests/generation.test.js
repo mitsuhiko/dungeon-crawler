@@ -70,8 +70,10 @@ test('reward destinations remain accessible, framed and collider-safe across dep
       const m = w.cube(key).map;
       checkSites(m);
       requested += intent.length; realized += m.rewardSites.length;
-      assert.equal(m.rewardSites.length + m.siteFailures.length, intent.length);
-      for (const s of [...m.rewardSites, ...m.siteFailures]) {
+      // (a quest's spot that found no place is reported there too: tests/spots.test.js)
+      const failed = m.siteFailures.filter(s => s.id.includes(':site:'));
+      assert.equal(m.rewardSites.length + failed.length, intent.length);
+      for (const s of [...m.rewardSites, ...failed]) {
         assert.equal(s.id, intent[0].id); assert.equal(s.prestige, intent[0].prestige);
       }
     }

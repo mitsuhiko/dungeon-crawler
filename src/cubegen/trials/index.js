@@ -492,7 +492,8 @@ function finishTimed(ctx, t, out) {
 
 // The rune rooms' tablets in an ordinary room before them (spec.clues, world/trials.js): each on the
 // dry, flat ground nearest the room's middle that leads to the exit, off the portals' pads and the
-// spots, apart; no props on them. Chosen without the generator's random stream (the room is as it
+// spots, apart; no props on them. On the ground's layer where there is room, else on a layer above
+// (a room whose way runs high over a ground it never leads to). Chosen without the generator's random stream (the room is as it
 // would be without them).
 export function placeClues(ctx, safe) {
   const out = { clues: [], reservations: [] };
@@ -504,13 +505,13 @@ export function placeClues(ctx, safe) {
 }
 function placeClue(ctx, safe, clue, taken) {
   const pads = new Set(ctx.portals.flatMap(p => p.cells || []));
-  const ok = f => !f.fluid && f.layer === 0 && !f.landing && !pads.has(f.c) && (!safe || safe.has(f.id)) && Math.max(...f.cs) - Math.min(...f.cs) <= 0.2
+  const ok = f => !f.fluid && !f.landing && !pads.has(f.c) && (!safe || safe.has(f.id)) && Math.max(...f.cs) - Math.min(...f.cs) <= 0.2
     && !ctx.pieces[f.c].length && !(ctx.spots || []).some(s => s.cells?.includes(f.c)) && taken.every(t => Math.hypot(t.x - f.x - 0.5, t.z - f.z - 0.5) >= 2.5);
-  const f = ctx.floors.filter(ok).sort((a, b) => Math.hypot(a.x - 7.5, a.z - 7.5) - Math.hypot(b.x - 7.5, b.z - 7.5))[0];
+  const f = ctx.floors.filter(ok).sort((a, b) => (a.layer > 0) - (b.layer > 0) || Math.hypot(a.x - 7.5, a.z - 7.5) - Math.hypot(b.x - 7.5, b.z - 7.5))[0];
   if (!f) return null;
   f.noSpawn = true;
   const { glyphs, order } = runeOrder(clue.id, clue.depth);
-  return { clue: { key: clue.key, x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5, glyphs: order.map(i => glyphs[i]) }, reservations: [{ c: f.c, layer: 0 }] };
+  return { clue: { key: clue.key, x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5, glyphs: order.map(i => glyphs[i]) }, reservations: [{ c: f.c, layer: f.layer }] };
 }
 
 // --- sunken ------------------------------------------------------------------------------------------

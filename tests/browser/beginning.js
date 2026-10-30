@@ -1,8 +1,9 @@
 // In devtools (?dev=1&intro=1&tutorial=1): await (await import('./tests/browser/beginning.js')).runBeginningChecks()
 // The beginning, played through (docs/story.md "The beginning"; core/intro.js, game/intro.js,
-// game/scene.js, game/tutorial.js): in a fresh world the hero comes out of the inn, shards lie on
-// the plaza and the tutorial's card shows the player's keys; coming into the merchant camp the robot
-// wakes in its scene and says hello; the sword taken, the camp's gate opens; coming into the rock's
+// game/scene.js, game/tutorial.js): in a fresh world the hero comes out of the inn and the
+// tutorial's card shows the player's keys; coming to the crash on the plaza (another of the town's
+// tiles, docs/town.md) the robot wakes in its scene and says hello; the sword taken, the town's gate
+// opens; coming into the rock's
 // room his glass is shown in its scene, three snakes wait at the rock's foot; walking into the
 // glass breaks it in its close-up, his recording plays, the gate on opens and the card says where
 // his words are kept. Plays in a fresh world, then puts the one played back.
@@ -35,33 +36,32 @@ export async function runBeginningChecks() {
   const seed = state.cubes.seed, out = [];
   try {
     await newWorld(11); clearInput();
-    // the town: out of the inn, the shards, the card with the keys
+    // the town: out of the inn, the card with the keys
     const inn = state.map.doors.find(d => d.building === WAKE_HOUSE);
     check(Math.hypot(state.arrival.x - inn.x, state.arrival.z - inn.z) < 1, 'came out of the inn');
-    check(state.world.group.userData.shards || (await wait(0.5), state.world.group.userData.shards), 'shards on the plaza');
     await until(() => !document.getElementById('tutorial').hidden, 8, 'the tutorial\'s card');
     const card = document.getElementById('tutorial').textContent;
     check(card.includes(nameOf(keysOf('turnLeft')[0])), 'the card names the player\'s keys');
     check(!state.run.unlockedGates.has(INTRO_GATES.sword) && !robotMet(state.run), 'the beginning not begun');
     out.push('town: out of the inn, the card shown');
-    // the camp: the robot wakes in its scene
-    const town = state.cubes.cubes.get(state.cubeKey);
-    const camp = await state.cubes.get(step(town.key, town.map.exit));
-    enterCube(camp, town.map.exit ^ 1);
+    // the plaza: the shards of the crash, the robot wakes in its scene
+    const plaza = await state.cubes.get(state.cubes.town.portal), near = plaza.map.relics.robot;
+    enterCube(plaza, null, null, { x: near.x - 2, y: near.y, z: near.z });
+    check(state.world.group.userData.shards || (await wait(0.5), state.world.group.userData.shards), 'shards on the plaza');
     await until(() => sceneNow()?.name === 'robot', 5, 'the robot\'s scene');
     check(document.body.classList.contains('cinematic'), 'the black bars and no HUD');
     await until(() => robotMet(state.run) && robotHere(), 4, 'the robot awake');
     await until(() => !sceneNow(), 8, 'its scene over');
     check(!document.body.classList.contains('cinematic'), 'the HUD back');
-    out.push('camp: the robot woke in its scene');
+    out.push('plaza: the crash, the robot woke in its scene');
     // the sword
     const sword = state.map.relics.sword;
     spawnAt(sword.x, sword.y, sword.z);
     await until(() => state.run.unlockedGates.has(INTRO_GATES.sword), 3, 'the sword taken');
-    out.push('camp: the sword taken, the gate open');
+    out.push('plaza: the sword taken, the gate open');
     // the rock: its scene, the snakes, the glass
-    const rock = await state.cubes.get(step(camp.key, camp.map.exit));
-    enterCube(rock, camp.map.exit ^ 1);
+    const gate = state.cubes.town.gate, exit = state.cubes.town.exit, rock = await state.cubes.get(step(gate, exit));
+    enterCube(rock, exit ^ 1);
     await until(() => sceneNow()?.name === 'glass', 5, 'the glass\'s scene');
     const g = state.map.firstGlass;
     check(allEnemies().filter(e => e.profile?.species === 'snake' && e.hp > 0).length === 3, 'three snakes');

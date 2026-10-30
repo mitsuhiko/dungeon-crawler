@@ -1,5 +1,5 @@
-// What is left of the big glass that burst over the town before the game began (docs/story.md "The
-// beginning"; world/town.js TOWN_SHARDS: map.relics.shards): shards of the glassmaker's teal
+// What is left of the big glass that came down on the town before the game began (docs/story.md "The
+// beginning"; world/town.js CRASH: map.relics.shards): shards of the glassmaker's teal
 // star-glass strewn over the plaza round a scorched patch, some lying flat, some stuck in the
 // cobbles, a few with an amber glint still in them. Made here, not loaded, in the glass of his
 // bubbles (render/glassbubble.js). Nothing to take or click: only to see that something happened.

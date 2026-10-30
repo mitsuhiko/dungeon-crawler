@@ -557,7 +557,6 @@ export default {
   'Down! {who} can help you up': 'Am Boden! {who} kann dir aufhelfen',
   'Back on your feet!': 'Wieder auf den Beinen!',
   Town: { text: 'Stadt', g: 'f' },
-  'Merchant camp': { text: 'Händlerlager', g: 'n' },
   Inn: { text: 'Gasthaus', g: 'n' },
   Smithy: { text: 'Schmiede', g: 'f' },
   'Pet shop': { text: 'Tierhandlung', g: 'f' },
@@ -758,11 +757,11 @@ export default {
 
   'The way across is blocked': 'Der Weg hinüber ist versperrt',
 
-  // the beginning (core/intro.js, game/intro.js): his sword in the merchant camp, his glass on the rock after it
+  // the beginning (core/intro.js, game/intro.js): his sword at the crash in town, his glass on the rock past the gate
   'The gate will not open yet. Something glints on top of the rock.': 'Das Tor geht noch nicht auf. Oben auf dem Felsen glitzert etwas.',
   'The gate will not open yet. Take the sword from the ground first.': 'Das Tor geht noch nicht auf. Zieh zuerst das Schwert aus dem Boden.',
   'Bubble of star-glass': 'Blase aus Sternglas',
-  // the robot asleep in the merchant camp (game/robot.js): its label, and the action key's
+  // the robot asleep at the crash in town (game/robot.js): its label, and the action key's
   'Robot of star-glass': 'Roboter aus Sternglas',
   'Wake the robot': 'Weck den Roboter',
   'The glass broke, and a voice came out of it. The gate on along the road is open.':

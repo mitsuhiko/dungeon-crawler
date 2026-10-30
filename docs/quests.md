@@ -309,8 +309,8 @@ with each depth's layout (`layout.spots`, `layout.spotList`), on a random stream
 nothing else in the world changes:
 
 - per depth 6–8 hiding places, 2 seats, and on depths 1, 4, 7, ..., 19 a camp in the first room of
-  the route (where the depth begins). Only in rooms the ordinary generator makes: not the town and
-  the merchant camp, not guardian arenas, not a span's gorge cubes, not a large area's rooms but
+  the route (where the depth begins). Only in rooms the ordinary generator makes: not the town's
+  tiles, not guardian arenas, not a span's gorge cubes, not a large area's rooms but
   its foot and a hairpin's summit. The spots spread over the rooms (fewest first).
 - an outpost on six depths, one in each stretch (`OUTPOST_BANDS`: 1-3, 4-6, 7-9, 10-12, 13-15,
   16-19; which depth from the seed), in a plain room on the way (not at its ends, not the horde's,
@@ -542,7 +542,7 @@ Every depth plans more spots than its quests need, so the generator has a choice
 | Outpost | on 6 depths, about one per band from depth 1 to 19 | 6 | defense |
 | Annex | on 3 depths, where the branch budget has room | 3 | defense (later maybe a find or a bounty) |
 
-The town's surface buffer stays enemy-free: no outposts, bounties or quest spawns there.
+The town stays enemy-free: no outposts, bounties or quest spawns there.
 
 ### When they are offered
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { World } from '../src/world/world.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { planSpots, SPOT_KINDS, MAX_TIER, SEATS, HIDES, campDepth, OUTPOST_BANDS } from '../src/world/spots.js';
-import { isClearing } from '../src/world/town.js';
+import { isTown } from '../src/world/town.js';
 import { glassAt } from '../src/core/glass.js';
 import { N } from '../src/core/constants.js';
 import { placeProps } from '../src/render/propplace.js';
@@ -33,7 +33,7 @@ test('every depth plans its spots from the seed: hiding places, two seats, a cam
       for (const s of list) {
         assert.ok(SPOT_KINDS.includes(s.kind) && s.tier >= 0 && s.tier <= MAX_TIER && s.depth === d);
         assert.ok(l.exists.has(s.key), 'in a room of the depth');
-        assert.ok(!isClearing(s.key, seed) && !l.guardians.has(s.key), 'not in the town, the camp or an arena');
+        assert.ok(!isTown(s.key, seed) && !l.guardians.has(s.key), 'not in the town or an arena');
         assert.notEqual(l.spanCells.get(s.key)?.role, 'gorge');
         assert.deepEqual(l.spots.get(s.key).filter(x => x.id === s.id), [s]);
       }

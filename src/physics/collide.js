@@ -1,14 +1,24 @@
 // World queries against floors, structure pieces and pillars.
-import { LH } from '../core/constants.js';
+import { LH, N } from '../core/constants.js';
 import { idx, inb, clamp } from '../core/util.js';
 import { floorY, runY, topOf } from '../core/surfaces.js';
 import { player, state } from '../game/state.js';
 import { containsXZ } from '../core/blockers.js';
 
-export function cellAt(x, z) {
-  const cx = Math.floor(x), cz = Math.floor(z);
+// The cell of the active cube's map at (x, z), or -1 (outside it: solid). Across a seam of the town
+// (map.seams: another of its tiles beyond, walked on without a portal, game/handover.js) the ground
+// goes on as the edge's: the town keeps its seams flat and clear (world/town.js SEAM_CLEAR), so a
+// body crossing, half in the next tile, stands and moves as there.
+export function cellAt(x, z, map = state.map) {
+  let cx = Math.floor(x), cz = Math.floor(z);
+  if (inb(cx, cz)) return idx(cx, cz);
+  const s = map?.seams;
+  if (!s) return -1;
+  if (cx >= N && cx <= N + SEAM_REACH && s[0]) cx = N - 1; else if (cx < 0 && cx >= -1 - SEAM_REACH && s[1]) cx = 0;
+  if (cz >= N && cz <= N + SEAM_REACH && s[2]) cz = N - 1; else if (cz < 0 && cz >= -1 - SEAM_REACH && s[3]) cz = 0;
   return inb(cx, cz) ? idx(cx, cz) : -1;
 }
+const SEAM_REACH = 0;   // cells past a seam read as its edge (beyond: solid, as anywhere outside)
 const pieceBottom = (p, top) => p.kind === 'bridge' ? top - 0.2 : p.base;
 
 // A trial's crumbling crust (game/trials.js): floors that are gone for now (gone(floor) -> true)
@@ -47,7 +57,7 @@ export const groundAt = (x, z, y, step, map = state.map) => ground(x, z, y, step
 // ... but not the platforms: the ground that stays (what loot rests on, physics/rest.js)
 export const stillGroundAt = (x, z, y, step, map = state.map) => ground(x, z, y, step, map, false);
 function ground(x, z, y, step, map, moving) {
-  const i = cellAt(x, z);
+  const i = cellAt(x, z, map);
   if (i < 0) return { h: -Infinity, s: null, i };
   const [fx, fz] = local(x, z);
   let h = -Infinity, s = null;

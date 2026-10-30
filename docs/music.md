@@ -179,8 +179,8 @@ so a switch is heard within about 0.2 s. A leaving voice fades out from the next
 
 ## Songs
 
-Each theme names its song (`music:` in `src/themes/`); the town and the merchant camp
-(`map.enemyFree`) play `town` and depth 20 plays `core` (`songFor` in `src/game/music.js`). The
+Each theme names its song (`music:` in `src/themes/`); the town
+(`map.enemyFree`: its tiles) plays `town` and depth 20 plays `core` (`songFor` in `src/game/music.js`). The
 main menu plays `title` (`openMainMenu` in `src/game/menu.js`), always in `explore`.
 A boss with a song of his own plays it in his arena (above). `SONGS` in `src/themes/index.js`
 lists them all, for the test and `tools/player.html`; the
@@ -189,7 +189,7 @@ test also checks that every score in `music/` is one of them.
 | Song | Themes (act) | Key, tempo, meter | Sound | `sense` drums |
 |---|---|---|---|---|
 | `title` | main menu | A minor (Westworld's, with Bb and G#), 67, 6/8 | The Glass Bird: a kid's toy tune on crystal over a rocking crystal ostinato, the bird's calls and answers, glass harmonica, singing bowl, glass heartbeat, fretless bass; it cracks and shatters like the splash screen's bird (knock, ring, shatter, a swell onto D), then the pieces ring; explore only | — |
-| `town` | town, merchant camp | D minor, 92, 3/4 | a dark waltz: clarinet opening on the toy tune (D E F A G), accordion off-beats, music box picking high; explore and treasure only | — |
+| `town` | the town | D minor, 92, 3/4 | a dark waltz: clarinet opening on the toy tune (D E F A G), accordion off-beats, music box picking high; explore and treasure only | — |
 | `overworld` | the meadows, cloud kingdom, lagoon isles, karst terraces, dark forest (I) | A minor, 76 | flute opening on the toy tune (A B C, E D, C), marimba rocking on the step above each root, bassoon line | low toms, shaker |
 | `peaks` | snowy peaks, prayer highlands (I) | E Phrygian (A minor's notes on E), 60 | a theremin sliding like wind, crystal quarters, low harp | bodhran, triangle |
 | `badlands` | salt flats, badlands, deep canyon (I) | A minor, Andalusian (Am G F E), 60, 6/8 | lonely fiddle, strummed guitar, harp high | woodblock gallop, low tom |

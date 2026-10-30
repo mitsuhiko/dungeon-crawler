@@ -2,7 +2,7 @@
 // holds the feet (mireOf). Built
 // structures say what they are made of; terrain goes by the depth's theme and the height (as
 // its colours do, render/palette.js), fluid banks are mud (scorched gravel by lava) and the
-// paths through the town and the merchant camp are dirt.
+// paths through the town are dirt.
 import { LAVA } from './constants.js';
 import { BRIDGE_STYLES } from '../themes/builds.js';
 
@@ -54,7 +54,7 @@ export function surfaceAt(support, map, props, x, z) {
   }
   if (map?.interior) return 'wood';   // plank floors inside houses
   if (support.surface) return BUILT[support.surface] ?? 'stone';   // built ground (themes/surfaces.js)
-  const paths = (map?.town ?? map?.merchantCamp)?.paths;
+  const paths = map?.town?.paths;
   // a path ribbon reaches `width` to either side (render/floors.js buildClearingPaths)
   if (paths?.some(p => polylineDistance(p.points, x, z) <= p.width)) return 'dirt';
   const bank = support.link?.find(g => g?.fluid);

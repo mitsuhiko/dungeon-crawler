@@ -42,8 +42,9 @@ export function discoveredFaces(cubes, c, run) {
   if (c.visits) for (let d = 0; d < 4; d++) {
     const neighbor = cubes.get(step(c.key, d));
     if (!neighbor?.visits) continue;
-    // an annex and an unresolved trial room join only through their own portals (portalsOnly)
-    if ((portalsOnly(c.map, run) || portalsOnly(neighbor.map, run)) && !c.map.portals.some(p => p.dir === d)) continue;
+    // an annex and an unresolved trial room join only through their own portals (portalsOnly); so
+    // does the town with what lies round it (only its gate leads out: docs/town.md)
+    if ((portalsOnly(c.map, run) || portalsOnly(neighbor.map, run) || !!c.map.town !== !!neighbor.map.town) && !c.map.portals.some(p => p.dir === d)) continue;
     const a = c.map?.routeIndex, b = neighbor.map?.routeIndex;
     if (a != null && b != null && !c.map.portals.some(p => p.dir === d) && !sectionsJoined(cubes, c.map, neighbor.map, run)) continue;
     if (run && (portalLocked(c.map, run, { dir: d }) || portalLocked(neighbor.map, run, { dir: d ^ 1 }))) continue;

@@ -1,19 +1,19 @@
-// The beginning of every world (docs/story.md, "The beginning"): the first three rooms of the road
-// (the town, the merchant camp, a rock with his first glass on top), which are the game's tutorial
-// too. Pure: the world's layout puts the gates in and says which room is the rock's
-// (world/layout.js firstGlass), the camp says where the sword lies (world/town.js CAMP_RELIC:
-// map.relics), the rock's cube where his glass floats (cubegen/index.js map.firstGlass), and
-// game/intro.js puts them there and does what they do.
+// The beginning of every world (docs/story.md, "The beginning"): the town (its tiles, docs/town.md)
+// and the first room of the road past its gate (a rock with his first glass on top), which are the
+// game's tutorial too. Pure: the world's layout puts the gates in and says which room is the rock's
+// (world/layout.js firstGlass), the plaza's tile says where the crash is and the sword lies
+// (world/town.js CRASH, CRASH_SWORD: map.relics), the rock's cube where his glass floats
+// (cubegen/index.js map.firstGlass), and game/intro.js puts them there and does what they do.
 //
 // The glassmaker's memories are always in his glass: a recording plays when its bubble is found,
 // never for coming somewhere or doing something (core/narration.js RECORDINGS).
 //
-// - The town: what is left of the big glass that burst over it lies on its plaza; nothing to take
-//   (render/shards.js), and its gate is open.
-// - The sword: his old sword (core/items.js OLD_SWORD), stuck in the ground in the merchant camp
-//   beside the robot (which wakes as the hero comes: core/robot.js). Pulled out it is the hero's and
-//   the camp's gate out to the road opens (no words: it is no glass).
-// - The glass: a bubble of star-glass on top of the rock in the room after the camp, up a ladder,
+// - The town: what is left of the big glass that came down on it lies on its plaza, a crater;
+//   nothing to take (render/shards.js).
+// - The sword: his old sword (core/items.js OLD_SWORD), stuck in the ground at the crash beside the
+//   robot (which wakes as the hero comes: core/robot.js). Pulled out it is the hero's and the town's
+//   gate out to the road opens (no words: it is no glass).
+// - The glass: a bubble of star-glass on top of the rock in the room past the gate, up a ladder,
 //   three snakes at its foot (core/spawns.js FIRST_GLASS). Picked up, it breaks and his words play
 //   (core/narration.js RECORDINGS 'glass'), the memories open (the inventory's Memories tab,
 //   game/memorypanel.js: his recordings heard, to hear again), and the room's gate on along the
@@ -55,7 +55,7 @@ export function skipIntro(run) {
 export const pastIntro = (visited, layout0) => visited.some(k => {
   if (isInterior(k)) return false;
   const [, y] = k.split(',').map(Number);
-  return y !== 0 || (layout0.routeIndex.get(k) ?? -1) >= 3;
+  return y !== 0 || (layout0.routeIndex.get(k) ?? -1) >= 2;
 });
 
 // is his glass on the rock still there (run: the world's)?

@@ -579,8 +579,8 @@ The other kinds: [sword](img/loadout-sword.jpg),
   Bridges and dry floors above fluids remain walkable. A mouse order's way may go through the
   water ([clickmove.md](clickmove.md)).
 - **What kills** (`physics/fluid.js peril`): lava and acid on contact, and a boss's slime (a
-  standing water with a look of its own, Slomo's) over the head. With the robot along (woken in the
-  merchant camp) it pulls the hero out instead (`game/rescue.js`, `core/rescue.js`; [story.md](story.md#the-robot)):
+  standing water with a look of its own, Slomo's) over the head. With the robot along (woken at the
+  crash in town) it pulls the hero out instead (`game/rescue.js`, `core/rescue.js`; [story.md](story.md#the-robot)):
   a quarter of their most health, and it flies them to safe ground (where they last stood safely,
   else the nearest floor that leads on: in a boss's arena a floor of the fight, well over a fluid
   that comes and goes if any is, else just over it, else a platform). Only if that quarter is all

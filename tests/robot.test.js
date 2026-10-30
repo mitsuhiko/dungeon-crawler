@@ -50,11 +50,11 @@ function run(w, start, legs, after = 0) {
 // the hero walks across the east side into the next cube: the same point, in its coordinates
 const east = (k, x, y, z) => { const [X, Y, Z] = k.split(',').map(Number); return { k: `${X + 1},${Y},${Z}`, x: x - N, y, z }; };
 
-test('the robot lies asleep in the merchant camp until it is woken, and the world keeps its hello', () => {
+test('the robot lies asleep by the crash in town until it is woken, and the world keeps its hello', () => {
   assert.ok(HELLO.length > 0 && HELLO.every(l => l.voice === 'robot'));
   assert.ok(HELLO_AFTER > 0 && HELLO_AFTER < WAKE, 'it says hello as it wakes');
-  const run = createRun(), camp = { merchantCamp: {}, relics: { robot: { x: 7, y: 0, z: 12 } } };
-  for (const map of [{ town: true, relics: {} }, { interior: 'town_inn_a' }, { merchantCamp: {}, relics: {} }, { depth: 3 }, null]) assert.ok(!robotLies(map, run), JSON.stringify(map));
+  const run = createRun(), camp = { town: {}, relics: { robot: { x: 7, y: 0, z: 12 } } };
+  for (const map of [{ town: {}, relics: {} }, { interior: 'town_inn_a' }, { relics: { robot: { x: 7, y: 0, z: 12 } } }, { depth: 3 }, null]) assert.ok(!robotLies(map, run), JSON.stringify(map));
   assert.ok(robotLies(camp, run));
   assert.ok(!robotMet(run));
   meetRobot(run);

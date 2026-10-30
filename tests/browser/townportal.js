@@ -11,7 +11,6 @@ import { dropFromBag } from '../../src/game/loot.js';
 import { TOWN_PORTAL } from '../../src/core/items.js';
 import { barEntry } from '../../src/core/inventory.js';
 import { CAST_TIME } from '../../src/core/townportal.js';
-import { TOWN_KEY } from '../../src/world/town.js';
 import { paused } from './combat.js';
 import { N } from '../../src/core/constants.js';
 
@@ -101,13 +100,13 @@ export async function runTownPortalChecks() {
       results.push('5 s cast / interrupts (move, hurt, key, inventory) / portal opens');
 
       stepIn(tp.pad);
-      await arrived(TOWN_KEY);
+      await arrived(state.cubes.town.portal);
       const end = state.map.town.portal;
       check(state.run.townPortal === tp && townFx().length === 1 && townFx()[0].obj.userData.portal.x === end.x,
         'In town the other end stands on its spot, the portal stays open');
       check(Math.hypot(player.x - end.x, player.z - end.z) > 0.8, 'You arrive beside it, not in it');
       steps(15);
-      check(state.cubeKey === TOWN_KEY && !state.transitioning, 'Arriving does not send you straight back');
+      check(state.cubeKey === state.cubes.town.portal && !state.transitioning, 'Arriving does not send you straight back');
       results.push('to town / arrival beside the town end');
 
       stepIn(end);

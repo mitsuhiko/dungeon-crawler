@@ -40,7 +40,7 @@ test('one stable main-route horde on every depth, outside safe/entry/guardian/re
       assert.equal(L.hordes.size, 1);
       for (const [key, horde] of L.hordes) {
         const i = L.route.indexOf(key);
-        assert.ok(i >= (depth === 0 ? 4 : 2) && i < L.route.length - 1);
+        assert.ok(i >= (depth === 0 ? 3 : 2) && i < L.route.length - 1);
         assert.ok(!L.guardians.has(key) && !L.sitePlans.has(key));
         assert.notEqual(L.roles.get(key), 'horde');
         assert.ok(ENEMY_KINDS[horde.kind] && horde.count >= 6 && horde.count <= 24);

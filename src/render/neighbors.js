@@ -14,7 +14,7 @@ import { PARTS } from './parts.js';
 import { partGeometry } from './partmeshes.js';
 import { partMaterial, fluidLook, fluidGlow, PROXY } from './materials.js';
 import { makeFadable, setFade, dither } from './fade.js';
-import { glassState, glassBatch, setGlassFaces, setGlassShut } from './glass.js';
+import { glassState, glassBatch, setGlassFaces, setGlassShut, setGlassSeams } from './glass.js';
 import { inject } from './cutshader.js';
 import { capLight } from './section.js';
 import { LAYER as GHOSTS, glassLook, glassRim } from './ghosts.js';
@@ -67,6 +67,9 @@ function batchMaterial(mat, data, key, edit = sh => sh, cut = REVEAL) {
     sh.vertexShader = 'uniform highp sampler2D uProxyData;\nflat varying vec4 vProxy;\n' + sh.vertexShader.replace('#include <batching_vertex>',
       '#include <batching_vertex>\n#ifdef USE_BATCHING\n  vProxy = texelFetch(uProxyData, ivec2(int(getIndirectIndex(gl_DrawID)), 0), 0);\n#else\n  vProxy = vec4(1.0, 0.0, 1.0, 0.0);\n#endif');
     sh.fragmentShader = 'uniform float uProxyReveal, uProxyFloor;\nflat varying vec4 vProxy;\n' + sh.fragmentShader.replace('void main()', BESIDE_WALL + 'void main()');
+    // lifted (vProxy.w: the town's tiles, docs/town.md): its own colours, not the proxies' darker tint
+    if (cut === REVEAL) sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>',
+      '#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb / max(diffuse, vec3(0.02)), vProxy.w);');
     edit(sh);
   };
   return mat;
@@ -135,12 +138,13 @@ class Batch {
     return id;
   }
   removeInstance(id) { this.mesh.deleteInstance(id); this.count--; }
-  // matrix: null to keep the last one
+  // matrix: null to keep the last one; fade: [fade, inverted, range fade, lift] (render/fade.js; lift:
+  // drawn in its own colours, the town's)
   set(id, matrix, fade, visible) {
     if (matrix) this.mesh.setMatrixAt(id, matrix);
     const d = this.data.value.image.data, f = Math.fround;   // (stored as 32-bit floats)
-    if (d[id * 4] !== f(fade[0]) || d[id * 4 + 1] !== f(fade[1]) || d[id * 4 + 2] !== f(fade[2])) {
-      d[id * 4] = fade[0]; d[id * 4 + 1] = fade[1]; d[id * 4 + 2] = fade[2];
+    if (d[id * 4] !== f(fade[0]) || d[id * 4 + 1] !== f(fade[1]) || d[id * 4 + 2] !== f(fade[2]) || d[id * 4 + 3] !== f(fade[3])) {
+      d[id * 4] = fade[0]; d[id * 4 + 1] = fade[1]; d[id * 4 + 2] = fade[2]; d[id * 4 + 3] = fade[3];
       this.dirty = true;
     }
     if (this.mesh.getVisibleAt(id) !== visible) this.mesh.setVisibleAt(id, visible);
@@ -242,7 +246,10 @@ function geometryFor(geo) {
 
 // what of a cube's props shows in the surroundings: its landmarks (map.rewardSites[].landmark) and
 // its theme's little set pieces (map.vignettes, cubegen/vignettes.js), [{ name, x, y, z, yaw }]
-export const shownFar = map => [...(map.rewardSites || []).map(s => s.landmark).filter(Boolean), ...(map.vignettes || [])];
+// (the town's tiles: all they are dressed with, its houses and trees too: the town is one place,
+// docs/town.md)
+export const shownFar = map => map.town ? map.town.placements
+  : [...(map.rewardSites || []).map(s => s.landmark).filter(Boolean), ...(map.vignettes || [])];
 
 // landmarks: shownFar(map); their geometry is the catalog's
 function addLandmarks(g) {
@@ -272,15 +279,17 @@ function proxy(geo, open, landmarks = []) {
 // dispose/fade only the departing proxies. The full source/destination keep their own fades.
 // shut: its room joins only through its portals (its glass glows, render/glass.js)
 export function buildNeighbors(list, reuse = []) {
-  return list.map(({ key, geo, dx, dz, open, shut, landmarks }) => {
+  return list.map(({ key, geo, dx, dz, open, shut, landmarks, seams = null, lift = 0 }) => {
     const index = reuse.findIndex(g => g.key === key && g.source === geo);
     const g = index < 0 ? { key, source: geo, ...proxy(geo, open, landmarks), base: new THREE.Vector3() }
       : reuse.splice(index, 1)[0];
     g.continuing = index >= 0;
     g.base.set(dx * N, 0, dz * N);
     g.group.position.copy(g.base);
+    setGlassSeams(g.glass, seams);
     setGlassFaces(g.glass, open);
     setGlassShut(g.glass, shut);
+    g.lift = lift;
     live.add(g);
     return g;
   });
@@ -302,9 +311,12 @@ export function clearNeighborCache() {
   // Call after clearing proxies on world reset. Live travel geometry is never invalidated.
   for (const [source, entry] of cache) if (!entry.refs) release(source, entry);
 }
-export function showNeighbors(list) {
+// instant: the new ones are there at once, not fading in (the town's tile handed over: what was
+// the cube played in shows on as one of them, game/handover.js)
+export function showNeighbors(list, instant = false) {
   const old = detachNeighbors();
   current = buildNeighbors(list, old);
+  if (instant) for (const g of current) if (!g.continuing) setFade(g.group, 1);
   disposeNeighbors(old);
 }
 export const showsNeighbor = key => current.some(g => g.key === key);
@@ -356,7 +368,7 @@ function sync() {
   for (const g of live) {
     const { position, userData } = g.group;
     const shown = g.cull.visible && g.group.visible;
-    const fade = [userData.fadeU.value, userData.fadeInv.value, userData.rangeFadeU.value];
+    const fade = [userData.fadeU.value, userData.fadeInv.value, userData.rangeFadeU.value, g.lift ?? 0];
     for (const inst of g.instances) {
       const moved = !inst.at || !inst.at.equals(position);
       if (moved) { inst.at = position.clone(); place.makeTranslation(position.x, position.y, position.z).multiply(inst.local); }

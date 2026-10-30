@@ -11,7 +11,7 @@ import { decideFaces, LAYER_BASE } from './faces.js';
 import { worldThemes } from '../themes/depth.js';
 import { makeLayouts } from './layout.js';
 import { voidAllowed, fallMask } from './voids.js';
-import { isTown, isMerchantCamp, isClearing, enemyFreeAt, isInterior } from './town.js';
+import { isTown, townTile, townOf, townSeams, isInterior } from './town.js';
 import { generateInterior } from '../cubegen/interior.js';
 import { stampFluidBodies } from '../cubegen/fluidbodies.js';
 import { spanSpec } from './spans.js';
@@ -49,7 +49,7 @@ export class World {
     this.noise = worldNoise(seed);
     this.faces = new Map();
     this.cubes = new Map();
-    this.start = key(0, 0, 0);
+    this.start = townOf(seed).start;   // the inn's tile (world/town.js)
   }
 
   // learn: architecture.html#cube-journey (see learn/README.md)
@@ -67,7 +67,7 @@ export class World {
     const faces = [0, 1, 2, 3].map(d => {
       const f = this.faces.get(faceKey(k, d));
       return { sock: t.sock[d], profile: Int16Array.from(f.profile), river: f.river, portal: f.portal, wall: f.wall, spout: f.spout,
-        clearingBoundary: isClearing(k, this.seed) || isClearing(step(k, d), this.seed) };
+        clearingBoundary: isTown(k, this.seed) || isTown(step(k, d), this.seed) };
     });
     const portals = [];
     faces.forEach((f, d) => { if (f.portal) portals.push({ dir: d, ...f.portal }); });
@@ -79,7 +79,8 @@ export class World {
     const trial = L.trialCells?.get(k) || null;   // a trial room (world/trials.js, cubegen/trials/)
     // (the balance's stones stand over lava or acid, never over harmless water)
     const fluid = trial?.kind === 'balance' && theme.river === WATER ? LAVA : theme.river;
-    const special = isClearing(k, this.seed) || L.guardians.has(k) || span || height || area || trial;
+    const town = townTile(k, this.seed);
+    const special = !!town || L.guardians.has(k) || span || height || area || trial;
     // a needle with a reward site on top (heights.js), where no river runs
     const R = this.wfc.rng(k, 0x9e1d7), top = heightsOf(theme).top;
     const pinnacle = L.pinnacle === k && !special && !t.sock.includes('W')
@@ -101,7 +102,7 @@ export class World {
     return {
       key: k, X, Y, Z, kind: t.kind, exit: this.layout(-Y).exit.get(k) ?? null, K: t.K, B: LAYER_BASE.slice(0, t.K), faces, portals,
       level: cleanWorldLevel(this.opts.level),   // the world's level (core/enemies.js depthLevel)
-      spawn: k === this.start, town: isTown(k), merchantCamp: isMerchantCamp(k, this.seed), enemyFree: enemyFreeAt(k), noise: this.noise, depth: -Y, cave: theme.cave, walled: theme.cave || !!theme.walls,
+      spawn: k === this.start, noise: this.noise, depth: -Y, cave: theme.cave, walled: theme.cave || !!theme.walls,
       biome: theme.props, guardian: this.layout(-Y).guardians.get(k) || null,
       horde: this.layout(-Y).hordes.get(k) || null, populationScale: this.layout(-Y).populationScale.get(k) ?? 1,
       routeIndex: this.layout(-Y).routeIndex.get(k), route: this.layout(-Y).route,
@@ -114,7 +115,11 @@ export class World {
       area, peak, lake, sparse: !!(peak || lake),   // sparse: mostly empty (few props, render/propplace.js)
       firstGlass,   // the beginning's third room: his first glass on the peak (core/intro.js)
       // islands without pillars: lakes, the sky islands near the top and the abyss
-      floating: !isClearing(k, this.seed) && !firstGlass && (t.kind === 'lake' || ((-Y <= 3 || -Y >= 19) && this.wfc.rng(k, 0xf10a7)() < 0.5)),
+      // the town's tile (world/town.js): its place in the town, the way the town turns, which sides
+      // are seams, and its gate
+      town: town && { ...town, exit: townOf(this.seed).exit, seams: townSeams(k, this.seed), gate: k === townOf(this.seed).gate },
+      enemyFree: !!town,
+      floating: !town && !firstGlass && (t.kind === 'lake' || ((-Y <= 3 || -Y >= 19) && this.wfc.rng(k, 0xf10a7)() < 0.5)),
       seed: hash32(this.seed ^ hashKey(k)),
       trial: trial && { id: trial.id, key: trial.key, kind: trial.kind, role: trial.role, from: trial.from, fromDir: trial.fromDir,
         exit: trial.exit, gate: trial.gate, stages: trial.stages || null, depth: trial.depth, entry: trial.fromDir ^ 1 },
@@ -152,10 +157,11 @@ export class World {
       this.cubes.set(k, c);
     }
     if (!c && isInterior(k)) {
-      // turned the way the house stands in town (the town turns with its exit)
-      const door = this.cube(this.start).map.doors.find(d => d.to === k);
+      // turned the way the house stands in town (the town turns with its exit), in its tile
+      const outside = townOf(this.seed).houses[k.slice('interior:'.length)];
+      const door = outside && this.cube(outside).map.doors.find(d => d.to === k);
       if (!door) throw new Error('No door leads to ' + k);
-      c = { key: k, map: generateInterior({ key: k, seed: hash32(this.seed ^ hashKey(k)) }, [door.nx, door.nz]), visits: 0 };
+      c = { key: k, map: generateInterior({ key: k, seed: hash32(this.seed ^ hashKey(k)), outside }, [door.nx, door.nz]), visits: 0 };
       this.cubes.set(k, c);
     }
     if (!c) {

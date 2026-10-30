@@ -29,7 +29,7 @@ const WALK = 4;   // cells walked: walking learned
 // what was done in this world's beginning (each step's id), and what is watched for the steps
 let run = null, done = new Set(), walked = 0, last = null, yaw = null, snakes = null, finished = false, shown = '';
 
-const at = map => map?.town || map?.interior ? 'town' : map?.merchantCamp ? 'camp' : map?.firstGlass ? 'rock' : null;
+const at = map => map?.town || map?.interior ? 'town' : map?.firstGlass ? 'rock' : null;
 
 // main.js, every frame of play
 export function updateTutorial() {

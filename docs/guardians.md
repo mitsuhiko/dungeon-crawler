@@ -11,8 +11,8 @@ on (`final`, [bosses.md](bosses.md#qualmos)).
 counting the entry and descent rooms: **18–24 rooms** near the surface, shorter
 further down, down to **9–16** at depths 16–19 (`ROUTE_ROOMS`). The core's
 entry-to-centre route is always 9 rooms. Optional one-room branches fit inside
-the band's most rooms per stratum. The safe town → merchant camp → countryside
-prefix is preserved.
+the band's most rooms per stratum. The town's gate → the rock →
+the next room prefix is preserved.
 
 Side arenas have one entrance and one onward side gate; descent arenas have one
 entrance and a well. There are no portal loops around arenas. Discovered adjacent

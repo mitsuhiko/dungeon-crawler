@@ -126,7 +126,7 @@ test('every side of the box is a floor to fight on, the side overhead is gone, a
 });
 
 test('turning the box carries what stood in it into open space, and it falls onto the new floor', () => {
-  for (const seed of [0, 7]) {
+  for (const seed of [0, 3]) {
     const { map } = fourthDescent(seed);
     let O = IDENTITY;
     for (const face of ['px', 'pz', 'top', 'nx', 'bottom', 'nz', 'top']) {

@@ -64,7 +64,7 @@ export const GATHER = 3;
 export const LANDMARK_REACH = 3.5;
 
 // Who gives quests, and which kinds they lean towards (weights); where they are, as words. The six villagers of the town
-// and the merchant camp (world/town.js VILLAGERS, by name); and the people living at the seats
+// (world/town.js VILLAGERS, by name); and the people living at the seats
 // and camps out in the world (core/npcs.js), 'npc:' + their spot's id, who ask about their own
 // depth and the one below. A giver once talked to (log.met) makes offers like the villagers.
 export const GIVERS = {
@@ -72,8 +72,8 @@ export const GIVERS = {
   groom: { title: 'Groom', where: phrase('at the stable in town'), kinds: { reach: 2, landmark: 2, guardian: 1 } },
   smith: { title: 'Smith', where: phrase('at the anvil in town'), kinds: { guardian: 3, horde: 2 } },
   keeper: { title: 'Pet keeper', where: phrase('by the pet shop in town'), kinds: { landmark: 3, reach: 1, horde: 1 } },
-  alchemist: { title: 'Alchemist', where: phrase('in the merchant camp'), kinds: { landmark: 2, guardian: 1, horde: 1 } },
-  enchanter: { title: 'Enchanter', where: phrase('in the merchant camp'), kinds: { landmark: 3, reach: 2, guardian: 1 } },
+  alchemist: { title: 'Alchemist', where: phrase('at the market in town'), kinds: { landmark: 2, guardian: 1, horde: 1 } },
+  enchanter: { title: 'Enchanter', where: phrase('at the market in town'), kinds: { landmark: 3, reach: 2, guardian: 1 } },
 };
 export const giverOf = villager => villager?.giver ?? (GIVERS[villager?.name] ? villager.name : null);
 export const isGiver = g => !!GIVERS[g] || isNpcGiver(g);

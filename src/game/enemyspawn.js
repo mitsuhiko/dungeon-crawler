@@ -118,7 +118,7 @@ function dwellerSpots(map, profile, spec) {
 }
 
 // The beginning's rock (core/intro.js, core/spawns.js FIRST_GLASS): its snakes wait round the foot of
-// its ladder, on the side the hero comes from (the room's way in from the merchant camp), a little
+// its ladder, on the side the hero comes from (the room's way in from the town's gate), a little
 // apart, facing that way: they stand between the hero and his glass.
 const FOOT = [1.2, 3.6];   // cells from the ladder's foot
 function firstGlassSpots(map) {

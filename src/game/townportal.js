@@ -7,7 +7,7 @@
 import { N, STEP, DIRS } from '../core/constants.js';
 import { isFaceOpen, faceDistance } from '../core/boundaries.js';
 import { CAST_TIME, PAD_RADIUS, padOffsets } from '../core/townportal.js';
-import { TOWN_KEY, isTown, isInterior } from '../world/town.js';
+import { isInterior } from '../world/town.js';
 import { groundAt, blockedAt } from '../physics/collide.js';
 import { respawnPoint, supportedPoint } from '../physics/respawn.js';
 import { setTownPortal } from '../render/world.js';
@@ -35,7 +35,7 @@ function castBlocked() {
   const p = player;
   if (!state.map || state.transitioning) return tr('Not now');
   if (state.map?.waterfallRoom) return tr('Swim back through the small waterfall first');
-  if (isTown(state.cubeKey) || isInterior(state.cubeKey)) return tr('You are already in town');
+  if (state.map.town || isInterior(state.cubeKey)) return tr('You are already in town');
   if (sealedIn()) return tr(SEALED_MESSAGE);   // a trial room while its event runs (game/trials.js)
   if (state.fallFrom || p.hp <= 0 || p.ragdoll || p.getUp || p.climb || p.swimming || !p.grounded) return tr('You need firm ground to open a portal');
   if (p.stun > 0 || p.sword.active) return tr('Finish your current action first');
@@ -127,10 +127,9 @@ function openTownPortal() {
   setStatus(tr('A portal to town opens'));
 }
 
-// where you stand in town: beside the town end, towards the plaza
+// where you stand in town: beside the town end, towards the middle of the plaza (its tile's)
 function townArrival(m, pad) {
-  const sp = m.portals.find(p => p.kind === 'spawn');
-  const dx = sp.x + .5 - pad.x, dz = sp.z + .5 - pad.z, d = Math.hypot(dx, dz) || 1;
+  const dx = N / 2 - pad.x, dz = N / 2 - pad.z, d = Math.hypot(dx, dz) || 1;
   return { x: pad.x + dx / d * 1.4, y: pad.y, z: pad.z + dz / d * 1.4, yaw: Math.atan2(dx, dz) };
 }
 
@@ -138,13 +137,13 @@ function townArrival(m, pad) {
 export function takeTownPortal() {
   const tp = state.run.townPortal;
   if (!tp || state.transitioning) return false;
-  const toTown = !isTown(state.cubeKey), cubes = state.cubes, run = state.run;
+  const toTown = !state.map?.town, cubes = state.cubes, run = state.run;
   state.transitioning = true;
   state.portalCharge = null;
   cancelCast(); cancelSword(true); clearMouseInput();
   sfx('portal');
   fadeOut();
-  setTimeout(() => whenReady(cubes.get(toTown ? TOWN_KEY : tp.key)).then(c => {
+  setTimeout(() => whenReady(cubes.get(toTown ? cubes.town.portal : tp.key)).then(c => {
     if (state.cubes !== cubes || state.run !== run) return;
     const at = toTown ? townArrival(c.map, c.map.town.portal) : { ...tp.back };
     if (!toTown) run.townPortal = null;   // back through: both ends close

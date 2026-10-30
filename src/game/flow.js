@@ -1,6 +1,6 @@
 // Level flow: the world of cubes, entering a cube, travelling through portals, spawning and
 // taking damage.
-import { DIRS } from '../core/constants.js';
+import { DIRS, N, LH } from '../core/constants.js';
 import { isFaceOpen, openedSides, discoveredFaces, visitedFaces, portalsOnly } from '../core/boundaries.js';
 import { setGlassShut } from '../render/glass.js';
 import { showNeighbors, clearNeighbors, clearNeighborCache, shownFar } from '../render/neighbors.js';
@@ -36,7 +36,7 @@ import { lootMark, forgetLoot, takeLoot } from './loot.js';
 import { townPadIn } from '../core/townportal.js';
 import { shoreIssues } from '../render/shore.js';
 import { cancelCast } from './townportal.js';
-import { isInterior, isTown } from '../world/town.js';
+import { isInterior } from '../world/town.js';
 import { isTestRoom } from '../world/testrooms.js';
 import { online, relay } from '../net/online.js';
 import { log, logDeath, noteDepth } from './log.js';
@@ -73,6 +73,13 @@ export function arrivalPoint(p) {
     : p.kind === 'spawn' ? [p.x + 0.5, p.z + 0.5] : [p.x + 1.5, p.z + 0.5];
   const y = groundAt(x, z, p.y + 0.3, 0).h;
   return respawnPoint({ x, z, y: Number.isFinite(y) ? y : p.y });
+}
+
+// the safe ground nearest a map's middle (a cube come into with no portal to come in by)
+function middleOf(m) {
+  const f = m.floors.filter(f => m.safe?.[f.id] && !f.fluid)
+    .sort((a, b) => Math.hypot(a.x + .5 - N / 2, a.z + .5 - N / 2) - Math.hypot(b.x + .5 - N / 2, b.z + .5 - N / 2))[0] ?? m.floors[0];
+  return { x: f.x + .5, y: f.top * LH, z: f.z + .5 };
 }
 
 // back to where you came into this cube (after a death: the potions you drank wore off)
@@ -266,7 +273,7 @@ export const portalSeen = (k, m) => Object.fromEntries(m.portals.map(p => [p.id,
 export function enterCube(c, from = null, back = null, at = null) {
   const k = c.key;
   // back in town from out there: the Smith has forged new armor (core/shops.js smithStock)
-  if (c.map.town && state.cubeKey && !isTown(state.cubeKey) && !isInterior(state.cubeKey)) state.run.smith = { visit: state.run.smith.visit + 1, sold: [] };
+  if (c.map.town && state.map && !state.map.town && !state.map.interior) state.run.smith = { visit: state.run.smith.visit + 1, sold: [] };
   devShores(c.map);
   if (!back) discover(c);
   // (a cut, behind the curtain: what was in the air was in the old cube's place)
@@ -287,9 +294,10 @@ export function enterCube(c, from = null, back = null, at = null) {
     beginVisit();
   } else {
     const p = c.map.portals.find(q => from === null ? q.kind === 'spawn' : q.dir === from);
-    state.arrival = arrivalPoint(p);
-    state.portalLock = isFaceOpen(state.openedFaces, k, p.dir) ? 0 : p.id;
-    state.boundaryLock = p.kind === 'side' ? p.dir : -1;
+    // (none: a town's tile without the spawn, docs/town.md: on its safe ground nearest the middle)
+    state.arrival = p ? arrivalPoint(p) : middleOf(c.map);
+    state.portalLock = p && !isFaceOpen(state.openedFaces, k, p.dir) ? p.id : 0;
+    state.boundaryLock = p?.kind === 'side' ? p.dir : -1;
     beginVisit();
   }
   resetEnemies();
@@ -311,10 +319,30 @@ export function settleIn(neighbors = true) {
   const deeper = noteDepth(c.map, state.cubes.seed);
   if (deeper) actJingle(c.map.depth);
   arrived(c.map, state.cubeKey, c.visits, deeper);   // what the narrator has to say about it (game/narrator.js)
-  robotArrived();   // woken before, the robot comes in with us; else it may lie asleep in the camp (game/robot.js)
+  robotArrived();   // woken before, the robot comes in with us; else it may lie asleep at the crash (game/robot.js)
   if (neighbors) showNeighbors(visitedNeighbors(state.cubeKey));
   if (gateLocked(state.map, state.run)) setStatus(guardianLockMessage(state.map, guardianKind(state.map)));
+  c.ready = true;
   prefetchAround(c);
+}
+
+// The town (world/town.js, docs/town.md) is known from the start: all its tiles count as visited
+// (on the map, drawn round the hero, the seams between them open), once their maps are here. Its
+// tiles are made and loaded ahead, so walking from one into the next (game/handover.js) is at once.
+function knowTown() {
+  const cubes = state.cubes;
+  for (const k of cubes.town.keys) cubes.map(k).then(c => {
+    if (state.cubes !== cubes || c.visits) return;
+    c.visits = 1;
+    if (openDiscoveredFaces() && state.world) setWorldOpenFaces(state.world, openedSides(state.openedFaces, state.cubeKey));
+    updateNeighbors();
+  }, () => {});
+}
+export function prefetchTown() {
+  const cubes = state.cubes;
+  if (!cubes || cubes.townAsked) return;
+  cubes.townAsked = true;
+  for (const k of cubes.town.keys) cubes.get(k, { urgent: false }).then(c => { c.ready = true; }, () => { cubes.townAsked = false; });
 }
 
 // the jingle of the act (themes/index.js ACTS) that starts at depth d, or of the core
@@ -337,6 +365,7 @@ function prefetchAround(c, since = performance.now()) {
     setTimeout(() => { if (state.cubeKey === c.key) prefetchAround(c, since); }, 100);
     return;
   }
+  if (c.map.town) prefetchTown();   // (the town's other tiles: walked into without a portal)
   const cubes = state.cubes, near = [...beyond(c, p => p.kind !== 'spawn'), ...(c.map.doors || []).map(d => d.to)];
   cubes.prefetch(near);
   for (const k of near) cubes.map(k).then(n => {
@@ -349,9 +378,13 @@ function prefetchAround(c, since = performance.now()) {
 export function visitedNeighbors(k) {
   if (!state.showNeighbors || isInterior(k)) return [];   // inside a house: nothing around
   // (landmarks show in the surroundings too: they are what you find your way by)
-  return discoveredCubes(state.cubes.cubes, k).map(c => ({ ...c, open: openedSides(state.openedFaces, c.key),
-      shut: portalsOnly(state.cubes.cubes.get(c.key).map, state.run),
-      landmarks: shownFar(state.cubes.cubes.get(c.key).map) }));
+  // (the town's tiles: one place under one glass; from inside it in their own colours, docs/town.md)
+  const inTown = !!state.cubes.cubes.get(k)?.map.town;
+  return discoveredCubes(state.cubes.cubes, k).map(c => {
+    const map = state.cubes.cubes.get(c.key).map;
+    return { ...c, open: openedSides(state.openedFaces, c.key), shut: portalsOnly(map, state.run),
+      landmarks: shownFar(map), seams: map.seams ?? null, lift: inTown && map.town ? 1 : 0 };
+  });
 }
 
 export function updateNeighbors() {
@@ -427,6 +460,7 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
       else if (inn) { enterCube(c, null, null, inn); player.yaw = inn.yaw; }
       else enterCube(c);
       state.transitioning = false;
+      knowTown();
       if (inn) comeOutOfInn(inn);
       if (restore) for (const k of restore.visited) shareVisit(k);   // the map comes back, nearest first
     });

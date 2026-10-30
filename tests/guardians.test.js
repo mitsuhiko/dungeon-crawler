@@ -34,7 +34,8 @@ test('every descent is guarded, with one or two mandatory seeded side guardians'
       const L = get(d);
       assert.equal(L.guardian, guardianDepth(seed, d));
       assert.deepEqual(L, same(d));
-      assert.equal(L.exit.size, L.exists.size - (d === 20 ? 1 : 0));
+      // (the town's tiles but its gate are no rooms of the road: world/town.js)
+      assert.equal(L.exit.size, L.exists.size - (d === 20 ? 1 : 0) - (d === 0 ? L.town.keys.length - 1 : 0));
       if (L.guardian) {
         assert.ok(d >= 0 && d < 20);
         assert.equal(L.guardians.get(L.down).role, 'descent');

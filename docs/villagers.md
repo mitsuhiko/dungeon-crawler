@@ -13,8 +13,8 @@ any character can wear them; for now only the villagers do (and the player throu
 | groom | in front of the stable's horses | a coil of rope |
 | smith | at the anvil under the blacksmith's lean-to | welding mask, hammer and pliers |
 | keeper | by the pet shop's rabbit pen | a feed bag |
-| alchemist | in front of the potion tent (merchant camp) | wizard hat |
-| enchanter | in front of the herb tent (merchant camp) | headscarf, a floating crystal ball |
+| alchemist | in front of the potion tent (the market inside the town's gate) | wizard hat |
+| enchanter | in front of the herb tent (the market) | headscarf, a floating crystal ball |
 
 There is no enchanting tent yet; the enchanter keeps the herb stall (`town_merchant_b`). Three
 of them trade (`core/shops.js`): the alchemist sells potions ([potions.md](potions.md)), the
@@ -70,7 +70,7 @@ the rig and the villagers' things before the first cube; if they fail to load, t
 are built without villagers.
 
 `npm test` checks that the villagers stand where their spec says, on dry ground, as colliders
-that nothing else overlaps, and that the player can walk up to each one from the town's spawn
-or the camp's gate (`tests/town.test.js`); and that every wearable's model sits on the bone of its slot with a
+that nothing else overlaps, and that the player can walk up to each one in the town's tile they
+stand in (`tests/town.test.js`); and that every wearable's model sits on the bone of its slot with a
 hold clip in the rig (`tests/assets.test.js`). `Blender -b --python blender/loadout.py --
 --villagers` renders the picture above.

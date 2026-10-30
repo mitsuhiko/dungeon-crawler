@@ -12,7 +12,7 @@ import { INTRO_GATES, skipIntro } from '../src/core/intro.js';
 function rooms(L) {
   return new Map([...L.exists].map(k => [k, { key: k, visits: 1, map: {
     key: k, exit: L.exit.get(k), guardian: L.guardians.get(k), routeIndex: L.routeIndex.get(k), route: L.route, annexRoom: L.annex?.key === k,
-    trialRoom: !!L.trialCells?.has(k),
+    trialRoom: !!L.trialCells?.has(k), town: L.town?.tiles.has(k) ? {} : undefined,
     gateKeys: [0, 1, 2, 3].map(d => L.gateFaces.get(faceKey(k, d))),
     portals: [0, 1, 2, 3].filter(d => L.portals.has(faceKey(k, d))).map(dir => ({ dir, kind: 'side' })),
   } }]));
@@ -50,13 +50,14 @@ test('all depths have routes within their band, the core all nine rooms; discove
       if (d < 20) assert.equal(goal, L.down);
       for (const k of L.guardians.keys()) run.unlockedGates.add(k);
       for (const t of L.trials) run.unlockedGates.add(t.gate);   // (trial rooms, world/trials.js: resolved)
-      // the beginning (core/intro.js): the town's gate is open, the merchant camp's shut until the
-      // sword is taken, the rock's room's until his glass on it is found
+      // the beginning (core/intro.js): the town (all its tiles, world/town.js) is walked through, its
+      // gate shut until the sword is taken, the rock's room's until his glass on it is found
       if (d === 0) {
-        assert.equal(distances(L, cubes, run, entry).size, 2, `seed ${seed}: the camp's gate is shut`);
+        assert.equal(entry, L.town.gate);
+        assert.equal(distances(L, cubes, run, entry).size, L.town.keys.length, `seed ${seed}: the town's gate is shut`);
         run.unlockedGates.add(INTRO_GATES.sword);
         const reach = distances(L, cubes, run, entry);
-        assert.ok(reach.has(L.route[2]) && !reach.has(L.route[3]), `seed ${seed}: the rock's gate is shut`);
+        assert.ok(reach.has(L.route[1]) && !reach.has(L.route[2]), `seed ${seed}: the rock's gate is shut`);
         skipIntro(run);
       }
       // an annex (a quest's room beside the way) is sealed until a quest opens it
@@ -66,9 +67,9 @@ test('all depths have routes within their band, the core all nine rooms; discove
       }
       const forward = distances(L, cubes, run, entry), back = distances(L, cubes, run, goal);
       assert.equal(forward.size, L.exists.size); assert.equal(back.size, L.exists.size);
-      // Fully explored and unlocked, every pair of neighbouring rooms is joined (an annex and a trial
-      // room only through their own portals).
-      const apart = (a, b) => a.annexRoom || b.annexRoom || a.trialRoom || b.trialRoom;
+      // Fully explored and unlocked, every pair of neighbouring rooms is joined (an annex, a trial
+      // room and the town only through their own portals).
+      const apart = (a, b) => a.annexRoom || b.annexRoom || a.trialRoom || b.trialRoom || !!a.town !== !!b.town;
       for (const c of cubes.values()) for (let dir = 0; dir < 4; dir++)
         if (cubes.has(step(c.key, dir)) && !(apart(c.map, cubes.get(step(c.key, dir)).map) && !L.portals.has(faceKey(c.key, dir)) && !L.portals.has(faceKey(step(c.key, dir), dir ^ 1))))
           assert.ok(discoveredFaces(cubes, c, run).includes(faceKey(c.key, dir)), `seed ${seed}, depth ${d}: ${c.key} ${dir} sealed`);

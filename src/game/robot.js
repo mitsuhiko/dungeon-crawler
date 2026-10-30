@@ -1,6 +1,6 @@
 // The robot in the world (docs/story.md "The robot"; what it does: core/robot.js, how it looks:
-// render/robot.js). It lies asleep on its back in the merchant camp (robotLies), its core only
-// glimmering, the glassmaker's sword in the ground beside it, until the hero comes into the camp
+// render/robot.js). It lies asleep on its back by the crash in town (robotLies), its core only
+// glimmering, the glassmaker's sword in the ground beside it, until the hero comes near
 // (WAKE_SEE): in a short scene (game/scene.js, core/scenes.js `robot`) the camera goes to it and it
 // wakes (wakeRobot). A click on it (hovered and labelled like everything clicked:
 // game/lootlabels.js; the click walks them up to it, game/orders.js) or the action key beside it
@@ -88,11 +88,21 @@ function come() {
 
 // It asleep where it lies in this cube, as a thing to click (game/lootlabels.js: its body, its
 // label; game/orders.js, game/action.js wake it): { id, robot, x, y, z, yaw, title, labelY }, or null
-const SLEEPER_YAW = 2.2;   // (how it lies: turned towards the road from the town's side, the camp turned with it)
+const SLEEPER_YAW = 2.2;   // (how it lies: turned towards the street from the crash, the town turned with it)
 export function sleepingRobot() {
   if (robot || state.mode !== 'play' || !robotLies(state.map, state.run)) return null;
   const { x, y, z } = state.map.relics.robot;
-  return { id: 'robot', robot: true, x, y, z, yaw: SLEEPER_YAW + (state.map.merchantCamp.yaw ?? 0), title: msg('Robot of star-glass'), labelY: 0.75 };
+  return { id: 'robot', robot: true, x, y, z, yaw: SLEEPER_YAW + (state.map.town.yaw ?? 0), title: msg('Robot of star-glass'), labelY: 0.75 };
+}
+// ... in the town's tile beside the one played in, where it shows: where it lies, in this one's
+// coordinates (null: not there)
+function sleepingNearby() {
+  const k = state.cubes?.town?.portal, m = k && k !== state.cubeKey && state.map?.town ? state.cubes.cubes.get(k)?.map : null;
+  if (!m || !robotLies(m, state.run) || !showsNeighbor(k)) return null;
+  const o = beside(k, state.cubeKey);
+  if (!o) return null;
+  const { x, y, z } = m.relics.robot;
+  return { x: x + o[0], y: y + o[1], z: z + o[2], yaw: SLEEPER_YAW + (m.town.yaw ?? 0) };
 }
 // can the hero wake it from where they stand?
 export const canWakeRobot = r => !!r && Math.hypot(r.x - player.x, r.z - player.z) <= WAKE_REACH && Math.abs(r.y - player.y) < 1;
@@ -110,7 +120,7 @@ export function wakeRobot(r = sleepingRobot()) {
   return true;
 }
 
-// The hero comes into the camp: this close, it wakes, in its scene (the camera goes to it; playing
+// The hero comes by the crash: this close, it wakes, in its scene (the camera goes to it; playing
 // together it just wakes)
 const WAKE_SEE = 6;   // cells
 let sleepOn = false;   // (tests/browser/: it stays asleep, to be hovered)
@@ -207,6 +217,9 @@ export function updateRobot(dt) {
     if (dt > 0) wakeOnSight(asleep);
     return;
   }
+  // asleep in the town's tile beside this one (docs/town.md): seen there, among the surroundings
+  const far = !robot && sleepingNearby();
+  if (far) { drawRobot(scene.set(far.x, far.y, far.z), far.yaw, 1, 'dormant', dt); return; }
   if (!robot || state.mode !== 'play' || !state.map) { hideRobot(); return; }
   // carrying the hero out of a fluid (game/rescue.js): there, and on from there once it lets go
   const carry = !(robot.waking > 0) && rescuePose();

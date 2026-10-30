@@ -172,12 +172,14 @@ test('ladders in generated worlds keep to their theme\'s styles and are drawn', 
 // under its platform (it would cross the ladder, or a bridge would lead straight into it). These
 // cubes had one before the ladder claimed the air (cubegen/climbs.js placeClimb).
 test('no bridge or stair runs under a hanging ladder\'s platform', () => {
-  const cubes = { 1: ['-1,-3,4'], 2: ['3,-6,3'], 3: ['3,-10,-2'], 4: ['0,-12,3'], 6: ['-2,-17,0'], 10: ['4,-2,-1'], 11: ['3,-4,1'],
-    12: ['-4,-1,3', '2,-2,3'] };
-  for (const [seed, keys] of Object.entries(cubes)) {
+  // (the depths where one did, once: every room of them; the worlds have changed since)
+  const cubes = { 1: [3], 2: [6], 3: [10], 4: [12], 6: [17], 10: [2], 11: [4], 12: [1, 2] };
+  let hanging = 0;
+  for (const [seed, depths] of Object.entries(cubes)) {
     const w = new World(+seed);
-    for (const k of keys) {
+    for (const k of depths.flatMap(d => [...w.layout(d).exists])) {
       const m = w.cube(k).map;
+      hanging += m.ladders.filter(l => l.hang).length;
       for (const l of m.ladders) {
         if (!l.hang) continue;
         const behind = (l.z + DIRS[l.d][1]) * N + l.x + DIRS[l.d][0];
@@ -186,6 +188,7 @@ test('no bridge or stair runs under a hanging ladder\'s platform', () => {
       }
     }
   }
+  assert.ok(hanging > 5, `only ${hanging} hanging ladders`);
 });
 
 test('a forced ladder style goes wherever it fits', () => {

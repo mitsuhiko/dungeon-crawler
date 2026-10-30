@@ -2,7 +2,9 @@
 
 The game has two views. The **overview** (the default) looks down at 44° from far away with a
 narrow lens (28°), so the whole cube shows like a model on a table; zoomed in it follows the
-hero. The **close view** sits behind the hero with a wide lens (60°; 50° to 90° in the settings), the mouse looking around
+hero. In the town (many cubes walked across without a seam, [town.md](town.md)) it follows the hero
+all the way, at any zoom, eased in and out as they come and go: framing the cube played in, it
+would jump a cube's width as the next one takes over (`game/camera.js` `townFollow`). The **close view** sits behind the hero with a wide lens (60°; 50° to 90° in the settings), the mouse looking around
 (captured, as in other third-person games). It is meant for finding the way through tunnels,
 caves and the deep, where the overview's cutaway gets busy, and it works everywhere: cubes,
 tunnels, house interiors, while travelling.

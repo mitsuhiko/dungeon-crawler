@@ -63,7 +63,7 @@ Plan encounters over the layer's route, rather than independently rolling a hord
 in every cube:
 
 - One guaranteed wild pack in an ordinary main-route cube at every depth, including the core.
-  On depth 0 it is beyond the town, merchant camp and first countryside skirmish.
+  On depth 0 it is beyond the town, the rock past its gate and the room after it.
 - On longer routes (10+ rooms), consider a second horde; optional branches may
   contain a bonus horde. Initial limit: three per layer, including branches.
 - Never assign hordes to safe rooms, arrival rooms or guardian arenas. Do not put

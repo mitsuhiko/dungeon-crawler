@@ -362,7 +362,7 @@ const seen = { foes: new Set(), boss: new Map(), villagers: new Set(), fight: 0,
 
 function notice(dt) {
   const map = state.map;
-  // the villagers passed (the town, the merchant camp)
+  // the villagers passed (in the town's tile the hero is in)
   for (const v of map.villagers ?? []) {
     if (seen.villagers.has(v.name) || Math.hypot(v.x - player.x, v.z - player.z) > NEAR_VILLAGER) continue;
     if (narrate('town', { who: v.name }) || !queue.length) seen.villagers.add(v.name);
@@ -419,10 +419,9 @@ export function arrived(map, key, visits, deeper) {
   cut(line => outOfPlace(line, map));   // a recording of the place left is cut short (core/narration.js `where`)
   if (map.testRoom || map.interior) return;
   if (map.town) {
-    if (from && !from.town && !from.interior && !from.merchantCamp) narrate('home');
+    if (from && !from.town && !from.interior) narrate('home');
     return;
   }
-  if (map.merchantCamp) { narrate('camp'); return; }
   const depth = map.depth ?? 0;
   if (deeper) narrate('depth', { depth });
   // a trial room's puzzle not solved yet (an event says its piece when it seals the room)

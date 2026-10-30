@@ -6,7 +6,7 @@
 //
 // Two voices say them. The glassmaker's recordings (RECORDINGS): the beginning's two in the town,
 // and his glass in the depths (core/glass.js), a chapter of the before time a depth. And the robot
-// (docs/story.md, "The robot"), who lies asleep in the merchant camp until the hero wakes it, and
+// (docs/story.md, "The robot"), who lies asleep by the crash in town until the hero wakes it, and
 // from then on talks about what it sees: the places, the enemies met, the bosses and how to beat
 // them, the puzzles, a death. Its lines are said only once it has woken and said its hello
 // (robotMet, core/robot.js; its hello itself, the moment `robot`, is how it wakes), and paced
@@ -74,12 +74,11 @@ export const SIBLING = { m: { sib: 'm' }, f: { sib: 'f' } };
 //   shuffle the line that fits best, of those one picked by the world's seed (linesFor)
 export const MOMENTS = {
   recording: { pri: 3, all: true, cuts: true, whole: true },   // one of the glassmaker's recordings found ({ part }: RECORDINGS)
-  // the robot in the beginning ({ what }, docs/story.md "The beginning"): 'hello' as it wakes in the
-  // merchant camp (core/robot.js; told: it woke), 'sword' the sword beside it, 'rock' his first glass
+  // the robot in the beginning ({ what }, docs/story.md "The beginning"): 'hello' as it wakes by the
+  // crash in town (core/robot.js; told: it woke), 'sword' the sword beside it, 'rock' his first glass
   // shown on its rock (and the snakes at its foot), 'ladder' the way up it, 'heard' after his words
   robot: { pri: 3, all: true, whole: true },
   town: { pri: 1, ttl: 6, quiet: 4 },         // close to one of the villagers ({ who }: world/town.js VILLAGERS)
-  camp: { pri: 2, ttl: 25 },                  // in the merchant camp, the first time
   road: { pri: 2, ttl: 25 },                  // out on the road, where the enemies start
   wander: { pri: 0, ttl: 8, quiet: 35, calm: true, shuffle: true },   // a place not seen before ({ act, depth })
   theme: { pri: 2, ttl: 20 },                 // a theme's first place ({ theme }: its id)
@@ -141,8 +140,8 @@ export const robotMayTalk = (pri, quiet) => quiet >= (ROBOT_REST[pri] ?? 0);
 // are a first sketch; the core's is the ending's, still to come. They tell his story, never what
 // is where the glass lies; now and then one touches on the depth it rests
 // at, sideways (breath where Gusto breathes, the dark where Totnar makes it, a tide where Squarlo
-// calls his ...). `depth`: where it lies; `where` { depth }: leaving the depth (for the town, the
-// camp or another depth) cuts it short.
+// calls his ...). `depth`: where it lies; `where` { depth }: leaving the depth (for the town or
+// another depth) cuts it short.
 const FOUND_ROAD = msg('Found on the road out of town'), FOUND_DEEP = msg('Found at depth {depth}');
 const deep = (id, title) => { const depth = depthOfGlass(id); return { id, title, found: depth ? FOUND_DEEP : FOUND_ROAD, depth, where: { depth } }; };
 export const RECORDINGS = [
@@ -215,10 +214,10 @@ export const recordingLines = id => LINES.filter(l => l.on === 'recording' && l.
 export const recordingsHeard = told => RECORDINGS.filter(r => recordingLines(r.id).some(l => told.has(l.id)));
 // the recording a line is of (undefined: not a recording's)
 export const recordingOf = line => line.on === 'recording' ? RECORDINGS.find(r => r.id === line.when?.part) : undefined;
-// the place a map is, for a recording's `where`: 'town' (its houses too), 'camp', or null (out there)
-export const placeOf = map => map?.town || map?.interior ? 'town' : map?.merchantCamp ? 'camp' : null;
+// the place a map is, for a recording's `where`: 'town' (its tiles and houses), or null (out there)
+export const placeOf = map => map?.town || map?.interior ? 'town' : null;
 // is line out of its place where the hero is now (map)? (game/narrator.js cuts it) A place is
-// 'town' or 'camp' (placeOf), or { depth }: out there at that depth
+// 'town' (placeOf), or { depth }: out there at that depth
 export function outOfPlace(line, map) {
   const w = recordingOf(line)?.where;
   if (!w) return false;
@@ -265,7 +264,7 @@ const G_HUSH = 'Speak low and hushed, slowly, as if afraid to wake something.';
 const G_PROUD = 'Speak low and steady, with a craftsman\'s quiet pride.';
 
 export const LINES = [
-  // --- the glass on the rock past the merchant camp: the first of his a hero finds (core/intro.js) ---
+  // --- the glass on the rock past the town's gate: the first of his a hero finds (core/intro.js) ---
   recording('glass', 'found', 'So my glass found someone. Good.',
     'The first words of the bubble of star-glass the hero just broke open on top of a rock by the road, the first of his they find. He recorded it long ago, down in the dark, and has no idea who hears it. Quietly glad, a little surprised.',
     'Speak low and calm, quietly glad, like an old man in the dark.'),
@@ -281,7 +280,7 @@ export const LINES = [
 
   // --- the glass on the road past the rock: his old sword ------------------------------------------
   recording('camp', 'tied', 'My old sword rose with one of my glasses, tied to it. Whoever finds it, it is yours.',
-    'A second bubble of his, found on the road out of town, after the hero pulled his old sword out of the ground in the merchant camp (he cannot know that). He tied the sword to a glass so whoever found it would not go out empty-handed. Plain, generous.',
+    'A second bubble of his, found on the road out of town, after the hero pulled his old sword out of the ground by the crash in town (he cannot know that). He tied the sword to a glass so whoever found it would not go out empty-handed. Plain, generous.',
     'Speak low and thoughtful, plainly, a little warm on the second sentence.'),
   recording('camp', 'honest', 'It is old and plain, but it is honest. It never broke on me.',
     'About the sword, which the hero may not have found yet. Fond of it, the way a craftsman is fond of a good tool.',
@@ -290,10 +289,10 @@ export const LINES = [
     'The end of this recording: more of his bubbles lie somewhere, he does not know where. Tired, but he will not stop.',
     'Speak low and tired, slowing down at the end, a little hopeful.', { seed: 3 }),   // (the others pause long: "Und hör auf.")
 
-  // --- the robot wakes as the hero comes into the merchant camp (core/robot.js, docs/story.md "The
+  // --- the robot wakes as the hero comes by the crash in town (core/robot.js, docs/story.md "The
   // beginning"): it remembers nothing, only that it is glass ---------------------------------------
   robot('hello', 'there', 'Oh! Hello! Where am I? How did I end up in the grass?',
-    'The robot\'s first words. It lay asleep on its back in the merchant camp, and woke as the hero came close: it opens its eyes, lifts off and shakes itself as it says this. Surprised, confused, delighted to see someone.',
+    'The robot\'s first words. It lay asleep on its back in the grass by the crash in town, and woke as the hero came close: it opens its eyes, lifts off and shakes itself as it says this. Surprised, confused, delighted to see someone.',
     'Speak brightly and quickly, surprised and a little confused, like an eager child just woken.'),
   robot('hello', 'glass', 'I cannot remember a thing, not even my name. Only that I am made of glass.',
     'It looks itself over: it remembers nothing, not where it came from, not its name, only what it is made of. Puzzled, but not sad.',
@@ -302,9 +301,9 @@ export const LINES = [
     'It decides on the spot to go along with the hero, whom it does not know either; its amber core glows, and it will light the way down into the dark. A small, warm promise.',
     'Speak warmly and brightly, like a small promise.'),
   robot('sword', 'take', 'And look, a sword, stuck in the ground right next to me! Take it, you will need it out there.',
-    'Right after its hello: the glassmaker\'s old sword stands in the ground beside where it lay, and the hero has nothing to fight with. Snakes wait on the road beyond the camp.',
+    'Right after its hello: the glassmaker\'s old sword stands in the ground beside where it lay, and the hero has nothing to fight with. Snakes wait on the road beyond the town\'s gate.',
     'Speak brightly and quickly, like a child pointing something out.'),
-  // --- his first glass on the rock past the camp (core/intro.js): shown as the hero comes in ---------
+  // --- his first glass on the rock past the gate (core/intro.js): shown as the hero comes in ---------
   robot('rock', 'up', 'Look, up on that rock! Something is glowing. It is glass, like me!',
     'As the camera shows the glassmaker\'s first glass glinting on top of a tall rock. It sees something made of what it is made of.',
     'Speak with excited wonder, like a child spotting something.'),

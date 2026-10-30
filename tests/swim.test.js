@@ -116,7 +116,7 @@ test('a swimmer anywhere in a cube\'s water finds a way out, and a click takes t
   assert.ok(failed.length <= Math.ceil(tried / 20), `${out} of ${tried} out: ${failed.join('; ')}`);
 });
 
-test('the water of the guardians\' arenas (their dwellers\' ponds, a boss\'s lagoon), the town and the camp has a way out too', () => {
+test('the water of the guardians\' arenas (their dwellers\' ponds, a boss\'s lagoon) and the town has a way out too', () => {
   let deep = 0;
   const bad = [];
   for (const seed of [1, 2]) {
@@ -124,7 +124,7 @@ test('the water of the guardians\' arenas (their dwellers\' ponds, a boss\'s lag
     for (let d = 0; d <= 20; d++) for (const k of w.layout(d).exists) {
       w.prepare(k);
       const spec = w.spec(k);
-      if (!spec.guardian && !spec.town && !spec.merchantCamp) continue;
+      if (!spec.guardian && !spec.town) continue;
       const m = w.cube(k).map;
       state.map = m;
       for (const f of m.floors) if (f.fluid === WATER && f.surf * LH - Math.min(...f.cs) > 0.6) {

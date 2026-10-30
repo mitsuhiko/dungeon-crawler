@@ -193,7 +193,7 @@ function firstGlassOf(ctx, sites) {
 // spec: what the world fixes for this cube (faces, portals, layers; see world/world.js)
 // learn: architecture.html#cube-journey #cube-map, world.html#generate-code #inspector (see learn/README.md)
 export function generate(spec) {
-  if (spec.town || spec.merchantCamp) return generateClearing(spec);
+  if (spec.town) return generateClearing(spec);
   if (spec.guardian) return generateGuardian(spec);
   let best = null;
   for (let a = 0; a < 200; a++) {

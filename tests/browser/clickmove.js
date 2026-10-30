@@ -9,7 +9,7 @@ import { idx } from '../../src/core/util.js';
 import { topOf } from '../../src/core/surfaces.js';
 import { SIT_IMPACT } from '../../src/core/constants.js';
 import { player, state } from '../../src/game/state.js';
-import { newWorld } from '../../src/game/flow.js';
+import { newWorld, enterCube } from '../../src/game/flow.js';
 import { updatePlayer } from '../../src/game/update.js';
 import { clearInput } from '../../src/game/input.js';
 import { order, orderMove, orderWay, clearOrder } from '../../src/game/orders.js';
@@ -18,7 +18,6 @@ import { hoveredWay, updateLootLabels } from '../../src/game/lootlabels.js';
 import { pointAt, updatePointer } from '../../src/game/pointer.js';
 import { goTo, goTestRoom } from '../../src/game/dev.js';
 import { camera } from '../../src/render/scene.js';
-import { TOWN_KEY } from '../../src/world/town.js';
 import { step } from '../../src/world/coords.js';
 import { portalLocked } from '../../src/core/guardians.js';
 import * as THREE from 'three';
@@ -111,18 +110,21 @@ export async function runWayChecks() {
   const results = [];
   await newWorld(3); clearInput();
   try {
-    check(state.cubeKey === TOWN_KEY, 'A new world starts in town');
+    const { start, gate: gateTile } = state.cubes.town;
+    check(state.cubeKey === start, 'A new world starts in town');
     // a house's door, and the door back out
     await through(() => waysHere().find(w => w.kind === 'door'), 'Into a house');
-    check(state.cubeKey !== TOWN_KEY, 'Inside the house');
+    check(state.cubeKey !== start, 'Inside the house');
     await through(() => waysHere().find(w => w.kind === 'door'), 'Out of the house');
-    check(state.cubeKey === TOWN_KEY, 'Back in town');
+    check(state.cubeKey === start, 'Back in town');
     results.push('door in / door out');
-    // a town gate, hovered and clicked
+    // the town's gate (in the gate's tile), hovered and clicked
+    const g = await state.cubes.get(gateTile);
+    enterCube(g, null, null, { x: 8, y: g.map.floors[0].top * 0.5, z: 8 });
     let dir = null;
     await through(() => waysHere().find(w => w.kind === 'side' && !portalLocked(state.map, state.run, w.portal)), 'Through the town gate',
       gate => { check(hover(gate) === gate, 'The cursor on a gate hovers it'); dir = gate.portal.dir; });
-    check(state.cubeKey === step(TOWN_KEY, dir), 'Into the cube beyond the gate');
+    check(state.cubeKey === step(gateTile, dir), 'Into the cube beyond the gate');
     results.push('gate: hovered, walked through');
     // a well down guarded by the depth's boss: walked onto, it says so, and nothing happens
     await goTo('down', false);

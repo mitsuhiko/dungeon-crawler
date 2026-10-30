@@ -1,5 +1,5 @@
 // The story's scenes (core/scenes.js has their timings and shots; docs/story.md "The beginning"):
-// the robot waking in the merchant camp, the glassmaker's first glass shown on its rock and breaking,
+// the robot waking at the crash in town, the glassmaker's first glass shown on its rock and breaking,
 // a new hero coming out of the inn. Played like a boss's intro (game/bossintro.js), with the same
 // free camera (game/camera.js setCine), the same shots kept out of the way (game/cineshots.js) and
 // the same black bars: the hero walks on a few steps and stops, with no control, the HUD goes, the

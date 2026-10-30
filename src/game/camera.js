@@ -40,8 +40,13 @@ export const closeArm = () => arm;
 
 const quatLooking = (q, from, to) => q.setFromRotationMatrix(m4.lookAt(from, to, camera.up));
 
-function overview() {
-  const follow = clamp((1 - view.zoom) / 0.6, 0, 1) * 0.9;
+// In the town (docs/town.md) the overview follows the hero all the way: the town is many cubes walked
+// across without a seam, and a view framing the one played in would jump a cube's width as the
+// next takes over (game/handover.js). Eased in and out as the hero comes and goes.
+let townFollow = 0;
+function overview(dt = 0) {
+  townFollow += ((state.map?.town ? 1 : 0) - townFollow) * Math.min(1, dt * 3);
+  const follow = Math.max(clamp((1 - view.zoom) / 0.6, 0, 1) * 0.9, townFollow);
   target.copy(cubeCenter).lerp(focus.set(player.x, player.visY + 0.5, player.z), follow);
   // distance that fits the cube's bounding sphere into the narrower field of view
   const fovV = THREE.MathUtils.degToRad(OVERVIEW_FOV);
@@ -225,7 +230,7 @@ export function updateCamera(dt) {
   // hit kicks spring back
   const decay = Math.exp(-dt * 16);
   kick.x *= decay; kick.y *= decay; kick.z *= decay;
-  overview();
+  overview(dt);
   if (blend > 0) close(dt);
   else arm = null;
   const t = ease(blend);

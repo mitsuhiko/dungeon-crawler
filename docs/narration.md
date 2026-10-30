@@ -3,8 +3,8 @@
 Status: the pipeline and the narrator are built. The lines ([story.md](story.md)) are rendered
 ahead into audio files with a text-to-speech model, and the game plays them as things happen, one
 after the other, with subtitles (`src/game/narrator.js`, "In the game" below). The lines so far are
-the glassmaker's recordings (`RECORDINGS`: the beginning's, the glass on the rock past the merchant
-camp and the glass on the road after it, story.md "The beginning"; and his glass in the depths, a chapter a
+the glassmaker's recordings (`RECORDINGS`: the beginning's, the glass on the rock past the town's
+gate and the glass on the road after it, story.md "The beginning"; and his glass in the depths, a chapter a
 depth down to the one above the core, story.md "His glass in the depths"), in the `glassmaker` voice, worn like
 an old recording, which the inventory's Memories tab plays again ("The memories" below); and the
 robot's, in its own voice: in the beginning (`robot`: its hello, the sword, his first glass on its
@@ -462,8 +462,8 @@ cannot need, and the tool says "ran to the limit: try another seed".
 | Moment | When | Data |
 |---|---|---|
 | `recording` | one of the glassmaker's recordings found (game/intro.js): all its lines | `part`: the recording (`RECORDINGS`) |
-| `town` | close to one of the villagers (the town, the merchant camp) | `who`: the villager (`VILLAGERS` in `world/town.js`) |
-| `camp`, `road` | the merchant camp; the first place on the road with enemies | |
+| `town` | close to one of the villagers (in the town) | `who`: the villager (`VILLAGERS` in `world/town.js`) |
+| `road` | the first place on the road with enemies | |
 | `wander` | a place not seen before, after a quiet while, no enemy about | `act`, `depth` |
 | `theme` | a place of a theme (below the town) | `theme`: its id (`props`) |
 | `depth` | a depth reached for the first time | `depth` |
@@ -511,8 +511,7 @@ narrator looks for itself every frame. `MOMENTS` in `core/narration.js` says how
   recording) cuts short another of the same moment still going: its lines waiting are dropped,
   the one being said fades out (0.35 s) with its subtitle, and after the usual pause the new
   scene starts. Leaving a recording's place cuts it short too (`where` in `RECORDINGS`: the
-  glass's is the town, its houses too, the camp's the merchant camp, his glass in the depths its
-  depth; `arrived` in `game/narrator.js`). `cut(which)` cuts short whatever lines `which` picks, for whatever else
+  beginning's two and his glass in the depths: their depth, which the town is not part of; `arrived` in `game/narrator.js`). `cut(which)` cuts short whatever lines `which` picks, for whatever else
   should.
 - **Told whole.** A scene of a moment that is `whole` (a recording) counts as told as a whole the
   moment it begins: all its lines go into `run.told` at once, even with the narrator off. Cut
@@ -536,7 +535,7 @@ narrator, telling what happens there.
 Not in the guide's game window; `?narration=0` turns it off. With `?dev=1`, `/narrate <id>` says
 a line now, `/narrate forget` forgets what was said in this world.
 
-Playing together, a recording one player sets off (a glass of his found: the town's, the camp's,
+Playing together, a recording one player sets off (a glass of his found: the rock's, the one on the road,
 one in the depths) plays for everyone at once, cutting short what was playing there (`story` messages,
 [online.md](online.md)).
 
@@ -545,7 +544,7 @@ one in the depths) plays for everyone at once, cutting short what was playing th
 The inventory's **Memories** tab (`src/game/memorypanel.js`), next to the Quests, is there once the
 glassmaker's first glass is found (or a recording was heard). It lists his recordings begun in this
 world (`recordingsHeard`: a line of it in `run.told`; one begun is told whole, so all of it is
-there however little was heard; in the story's order), where each was found (the town, the camp,
+there however little was heard; in the story's order), where each was found (a rock by the road,
 the road out of town, depth N: `foundText`), and all its words; **Listen** plays it
 from the start (`hearAgain` in `src/game/narrator.js`), the line being
 said lit up. The world stays paused meanwhile (the inventory is open): the voice plays on its own,

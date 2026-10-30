@@ -22,7 +22,9 @@ import { checkSkin } from './skin.js';
 // heroes in one entry, the worlds one entry each (they grow) plus an index for the menu, and
 // the hero chosen in the menu. What is read is checked: a damaged or unknown entry is left out
 // (and left alone), an item the game no longer knows leaves the bag. `v` says which version
-// wrote it: migrate brings older ones up.
+// wrote it: migrate brings older ones up. A world from before version 2 (before the town was a
+// place of many tiles, docs/town.md: every depth of a seed came out different) starts again, as
+// new, keeping its seed, name and level; its heroes keep all they carry.
 import { ITEMS, COINS, ARMOR_SLOTS, OLD_SWORD, isGear } from './items.js';
 import { BAG_SIZE, BAR_SIZE, createInventory, whole } from './inventory.js';
 import { createPlayerStats, carryTools, levelFromXP, fullHealth } from './progression.js';
@@ -33,7 +35,7 @@ import { packKills, unpackKills } from './respawn.js';
 import { START_CLOCK } from './daycycle.js';
 import { cleanWorldLevel } from './enemies.js';
 
-export const SAVE_VERSION = 1, MAX_HEROES = 3, MAX_WORLDS = 8, NAME_MAX = 16;
+export const SAVE_VERSION = 2, MAX_HEROES = 3, MAX_WORLDS = 8, NAME_MAX = 16;
 // a hero's gender: the first is what a hero has that never said
 export const GENDERS = ['m', 'f'];
 export const cleanGender = g => GENDERS.includes(g) ? g : GENDERS[0];
@@ -157,6 +159,7 @@ export function checkWorld(w) {
     if (isId(hero) && typeof s.cube === 'string' && arrival) spots[hero] = { cube: s.cube, arrival };
   }
   const copy = Number.isInteger(w.copy) && w.copy > 0 ? w.copy : 1;
+  if (w.v < 2) return { ...createWorld(w.seed, { copy, level: w.level, id: w.id, now: time(w.created) }), updated: time(w.updated) };
   return { v: SAVE_VERSION, id: w.id, seed: w.seed, copy, name: savedWorldName(w.seed, copy), level: cleanWorldLevel(w.level),
     created: time(w.created), updated: time(w.updated), deepest: Number.isInteger(w.deepest) && w.deepest > 0 ? w.deepest : 0,
     run: { defeated: strings(run.defeated), gates: strings(run.gates), chests: strings(run.chests), dropped: strings(run.dropped),

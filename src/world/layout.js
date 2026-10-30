@@ -16,6 +16,7 @@ import { AREA_SIZE, templateCells, planArea, indexAreas } from './areas.js';
 import { planTrials, planPuzzles, indexTrials } from './trials.js';
 import { TRIALS } from '../core/trials.js';
 import { INTRO_GATES } from '../core/intro.js';
+import { townOf } from './town.js';
 
 // [first depth, fewest, most] rooms on the route. The core always walks all nine rooms of
 // its 3x3, so the route above it ends on a corner (an edge start cannot reach the centre
@@ -107,12 +108,14 @@ function build(seed, d, above, theme, opts = {}) {
   const K = c => key(c[0], Y, c[1]);
   const candidates = [];
   let prefix;
+  // the town (world/town.js, docs/town.md): its tiles are no rooms of the road; its gate tile is
+  // the route's first room, the road out of it runs straight past the beginning's rock
+  const town = d === 0 ? townOf(seed) : null, inTown = c => !!town?.tiles.has(K(c));
   if (d === 0) {
-    const a = AXES[seed % 4];
-    // Preserve the authored town -> camp -> countryside road before it bends.
-    prefix = Array.from({ length: 4 }, (_, i) => [a[0] * i, a[1] * i]);
-    for (let z = -4; z <= 4; z++) for (let x = -4; x <= 4; x++)
-      if (cheb([x, z]) >= 2) candidates.push([x, z]);
+    const a = AXES[town.exit];
+    prefix = Array.from({ length: 3 }, (_, i) => [a[0] * i, a[1] * i]);
+    for (let z = -5; z <= 5; z++) for (let x = -5; x <= 5; x++)
+      if (!inTown([x, z])) candidates.push([x, z]);
   } else {
     prefix = [above.end];
     for (let z = -r - 1; z <= r + 1; z++) for (let x = -r - 1; x <= r + 1; x++)
@@ -157,7 +160,7 @@ function build(seed, d, above, theme, opts = {}) {
   if (d < MAX_DEPTH) {
     const boss = bossAt(d);   // a real boss in place of the placeholder (core/bosses.js)
     guardians.set(K(end), { role: 'descent', exit: 4, bossPlaceholder: !boss, ...boss && { boss } });
-    const count = 1 + Math.floor(R() * 2), first = d === 0 ? 3 : 2;
+    const count = 1 + Math.floor(R() * 2), first = 2;
     const skip = new Set(area ? Array.from({ length: area.size + 1 }, (_, j) => area.at + j) : []);
     for (const index of guardianIndices(spine.length, count, first, skip)) {
       const k = K(spine[index]), dir = exit.get(k);
@@ -168,20 +171,20 @@ function build(seed, d, above, theme, opts = {}) {
     // the core's last cube: its boss's arena, the end of the world (`final`: no way on, cubegen/guardian.js)
     guardians.set(K(end), { role: 'descent', exit: 4, bossPlaceholder: false, boss: bossAt(d), final: true });
   }
-  // the beginning (core/intro.js, docs/story.md "The beginning"): the merchant camp's gate out to
-  // the road opens for the glassmaker's sword, the next room's (his first glass, on a rock) for his glass
+  // the beginning (core/intro.js, docs/story.md "The beginning"): the town's gate out to the road
+  // opens for the glassmaker's sword, the next room's (his first glass, on a rock) for his glass
   if (d === 0) {
-    gateFaces.set(faceKey(K(spine[1]), exit.get(K(spine[1]))), INTRO_GATES.sword);
-    gateFaces.set(faceKey(K(spine[2]), exit.get(K(spine[2]))), INTRO_GATES.glass);
+    gateFaces.set(faceKey(K(spine[0]), exit.get(K(spine[0]))), INTRO_GATES.sword);
+    gateFaces.set(faceKey(K(spine[1]), exit.get(K(spine[1]))), INTRO_GATES.glass);
   }
   const hordes = planHordes(seed, d, spine.map(K), guardians, k => areaRooms.some(a => K(a) === k));
-  // One-room branches only, never attached to arenas or the safe surface prefix.
+  // One-room branches only, never attached to arenas or the town.
   // No loops: all sideways guardians are articulation points on the required route.
   const used = new Set(cells.map(id)), allowed = new Set(candidates.map(id));
   const annexes = above?.annexes ?? 0, wantAnnex = d >= 2 && d < MAX_DEPTH && annexes < ANNEX_FROM.length && d >= ANNEX_FROM[annexes];
   const branchBudget = Math.min(4, max - cells.length) - (wantAnnex ? 1 : 0);
   // gorge spans (spans.js): on the route, and maybe a lonely island branch over a bridge
-  const free = c => !used.has(id(c)) && !(d === 0 && cheb(c) <= 1);
+  const free = c => !used.has(id(c)) && !inTown(c);
   // (nor next to a boss's arena of its own shape, core/bosses.js BOSS_ARENAS: Flip's box, Foggery's
   // caldera, whose ground does not meet a gorge's at their face)
   const shaped = [...guardians].filter(([, g]) => BOSS_ARENAS[g.boss]?.type).map(([k]) => k.split(',').map(Number).filter((_, i) => i !== 1));
@@ -263,7 +266,7 @@ function build(seed, d, above, theme, opts = {}) {
   // the beginning's third room (core/intro.js): a lone peak (cubegen/setpieces.js) with his first
   // glass on top, where a discovery would be (its site: no chest, the glass instead)
   if (d === 0) {
-    const k = layout.firstGlass = K(spine[2]);
+    const k = layout.firstGlass = K(spine[1]);
     layout.sitePlans.set(k, [{ ...siteIntent(seed, k, theme.props, 'basic'), spawn: 'glass' }]);
     layout.roles.set(k, 'discovery');
   }
@@ -272,7 +275,7 @@ function build(seed, d, above, theme, opts = {}) {
   layout.populationScale = new Map();
   for (const k of hordes.keys()) {
     const i = layout.route.indexOf(k), before = layout.route[i - 1];
-    if (i > (d === 0 ? 4 : 2) && !guardians.has(before)) layout.populationScale.set(before, .5);
+    if (i > (d === 0 ? 3 : 2) && !guardians.has(before)) layout.populationScale.set(before, .5);
   }
   // a trial room: its kind says how many live there (core/trials.js)
   for (const t of trialPlan.list) { layout.roles.set(t.key, 'trial'); layout.populationScale.set(t.key, TRIALS[t.kind].population ?? 1); }
@@ -281,6 +284,9 @@ function build(seed, d, above, theme, opts = {}) {
   // places kept free for whoever or whatever the quests put there (world/spots.js)
   const spots = planSpots(seed, layout);
   layout.spots = spots.spots; layout.spotList = spots.list;
+  // the town's other tiles exist too (World.prepare), but are no rooms of the road: nothing above
+  // planned anything in them
+  if (town) { layout.town = town; for (const k of town.keys) layout.exists.add(k); }
   return layout;
 }
 

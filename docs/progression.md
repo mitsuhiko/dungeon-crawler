@@ -30,7 +30,7 @@
 
 A new hero starts with level 1, 0 XP, 100 HP, empty-handed, the Town Portal Scroll on quick bar
 slot 1, three health potions on slot 2 and the Room Portal Scroll on slot 6. Its first weapon is the
-Vanilla **Glassmaker's Old Sword**, stuck in the ground in the merchant camp of every world
+Vanilla **Glassmaker's Old Sword**, stuck in the ground by the crash in the town of every world
 ([story.md](story.md#the-beginning), `core/intro.js`). With `?dev=1` the sword is in hand already,
 with 5000 gold (`createPlayerStats`, `core/progression.js`: its `armed` is the sword in hand, as the
 tests' heroes have it). Every hero carries both scrolls: a hero saved
@@ -116,7 +116,7 @@ reference into the bag, not an item (`inventory.bar`, `assignBar` / `barEntry` i
 Enemies are level `depth`, 1 on the surface (`depthLevel`), plus the world's level − 1 (below).
 From depth 2, seeded variation is −1 / 0 / +1 with weights 25% / 50% / 25%, clamped at level 1.
 Difficulty never follows the player's level while playing: only the world's level, fixed when the
-world was made. Town and its surface buffer remain enemy-free. Animation timing, movement,
+world was made. The town remains enemy-free. Animation timing, movement,
 body size and knockback do not scale with level. Guardians stand a level (side) or two
 (descent) above the depth from depth 1 on ([guardians.md](guardians.md)).
 

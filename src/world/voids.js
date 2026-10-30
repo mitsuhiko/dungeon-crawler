@@ -4,12 +4,12 @@
 import { N } from '../core/constants.js';
 import { key, parse } from './coords.js';
 import { MAX_DEPTH } from '../themes/depth.js';
-import { isClearing } from './town.js';
+import { isTown } from './town.js';
 import { shaftAbove } from './heights.js';
 
 export function voidAllowed(world, k) {
   const [X, Y, Z] = parse(k), d = -Y;
-  return !isClearing(k, world.seed) && !world.layout(d).guardians.has(k) && !world.layout(d).spanCells?.has(k)
+  return !isTown(k, world.seed) && !world.layout(d).guardians.has(k) && !world.layout(d).spanCells?.has(k)
     && !world.layout(d).heightCells?.has(k) && !world.layout(d).areaCells?.has(k) && world.layout(d).peak !== k && world.layout(d).lake !== k
     && d < MAX_DEPTH && world.layout(d).theme.void > 0 && world.layout(d + 1).exists.has(key(X, Y - 1, Z))
     // a trial room (world/trials.js) has no void, and nothing falls into one from above

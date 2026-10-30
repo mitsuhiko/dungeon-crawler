@@ -45,7 +45,7 @@ export default {
   'at the stable in town': 'am Stall in der Stadt',
   'at the anvil in town': 'am Amboss in der Stadt',
   'by the pet shop in town': 'bei der Tierhandlung in der Stadt',
-  'in the merchant camp': 'im Händlerlager',
+  'at the market in town': 'auf dem Markt in der Stadt',
 
   // places: the themes' names are the guide's too (learn/deck.js themeLabel)
   'road out of town': { text: 'Weg aus der Stadt', g: 'm' },
@@ -340,8 +340,8 @@ export default {
   'Nothing for you just now. Come back when you have been further down.': 'Gerade habe ich nichts für dich. Komm wieder, wenn du weiter unten warst.',
   "{name}'s quests": 'Aufträge von {name}',
   'Nothing else going on.': 'Sonst läuft nichts.',
-  'No quests going on. Talk to the villagers in town and in the merchant camp: a ! over one means a quest for you.':
-    'Gerade läuft kein Auftrag. Sprich mit den Leuten in der Stadt und im Händlerlager: Ein ! über jemandem heißt, da gibt es einen Auftrag für dich.',
+  'No quests going on. Talk to the villagers in town: a ! over one means a quest for you.':
+    'Gerade läuft kein Auftrag. Sprich mit den Leuten in der Stadt: Ein ! über jemandem heißt, da gibt es einen Auftrag für dich.',
   'No quests done yet.': 'Noch keine Aufträge erledigt.',
   'Nothing archived. Archive a quest to put it away; it waits here until you bring it back.': 'Nichts abgelegt. Leg einen Auftrag ab, um ihn wegzupacken; er wartet hier, bis du ihn zurückholst.',
   'Select a quest to read it.': 'Wähl einen Auftrag, um ihn zu lesen.',

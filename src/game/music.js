@@ -1,5 +1,5 @@
 // Which song plays and in which mood (audio/music.js plays it; music/README.md has the moods):
-// the town's waltz in the town and the merchant camp, the core's theme at the bottom of the
+// the town's waltz in the town (its tiles and houses), the core's theme at the bottom of the
 // world, and everywhere else the song of the depth's theme (themes/: music). A boss with a song of
 // his own (core/bossmusic.js) has it played while he lives in the cube, and its moods are his
 // fight's phases instead of these:

@@ -53,7 +53,7 @@ const trident = (id, name, damage, interval, range, zap, color) =>
   weapon(id, name, 'trident', damage, interval, range, { arc: 0.3, knockback: 1.2, zap: { share: 0.6, jumps: 0, ...zap }, color });
 // learn: combat.html#chain (see learn/README.md)
 export const WEAPONS = [
-  // the glassmaker's own (core/intro.js): found in the merchant camp, stuck in the ground
+  // the glassmaker's own (core/intro.js): found at the crash in town, stuck in the ground
   sword('weapon_sword_old', "Glassmaker's Old Sword", 30, .42, .85, 1, true),   //  71 damage per second
   sword('weapon_sword_short', 'Short Sword', 23, .32, .72),         //  72, the fastest
   sword('weapon_sword_medium', 'Medium Sword', 34, .42, .85),       //  81

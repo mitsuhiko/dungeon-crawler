@@ -16,7 +16,7 @@ import { state, player, view } from './state.js';
 import { isFaceOpen } from '../core/boundaries.js';
 import { gateLocked, portalLocked } from '../core/guardians.js';
 import { N } from '../core/constants.js';
-import { TOWN_KEY, isInterior } from '../world/town.js';
+import { isInterior } from '../world/town.js';
 import { waterfallOutside } from '../world/waterfalls.js';
 import { online, playerColor, together } from '../net/online.js';
 import { truePosition } from './travel.js';
@@ -206,7 +206,7 @@ export function drawMinimap() {
     if (onMap(p, 2)) draw(p);
   }
   // the open town portal: a violet dot where it stands (in town too, at its other end)
-  for (const [k, pad] of tp ? [[tp.key, tp.pad], [TOWN_KEY, W.cubes.get(TOWN_KEY)?.map.town?.portal]] : []) {
+  for (const [k, pad] of tp ? [[tp.key, tp.pad], [W.town.portal, W.cubes.get(W.town.portal)?.map.town?.portal]] : []) {
     const [x, y, z] = parse(k);
     if (!pad || y !== Y) continue;
     const u = x + pad.x / N - cx, v = z + pad.z / N - cz;

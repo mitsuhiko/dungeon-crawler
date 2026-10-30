@@ -21,7 +21,7 @@
 // one for a branch room, one for a room with a reward site, two for the high places (a
 // tableland, a pinnacle, a lone peak, a great lake's islet, a large area, a span's island).
 import { hash32, mulberry32 } from '../core/util.js';
-import { isClearing } from './town.js';
+import { isTown } from './town.js';
 import { key, hashKey } from './coords.js';
 import { glassAt } from '../core/glass.js';
 
@@ -43,12 +43,12 @@ export function planSpots(seed, layout) {
     .concat([...layout.hordes.keys()]).map(k => route.indexOf(k));
   const high = k => k === layout.pinnacle || k === layout.peak || k === layout.lake || layout.heightCells?.has(k)
     || layout.areaCells?.has(k) || layout.spanCells?.get(k)?.role === 'island';
-  // only rooms made by the ordinary generator (not the town and the camp, nor guardian arenas),
+  // only rooms made by the ordinary generator (not the town's, nor guardian arenas),
   // not the gorge cubes of a span (mostly air)
   // nor the rooms of a large area but its foot and a hairpin's summit (the rest is ramp and rim,
   // world/areas.js)
   const open = k => { const a = layout.areaCells?.get(k); return !a || a.i === 0 || (a.piece.kind === 'hairpin' && a.i === 5); };
-  const rooms = layout.cells.map(([x, z]) => key(x, -d, z)).filter(k => !isClearing(k, seed) && !layout.guardians.has(k)
+  const rooms = layout.cells.map(([x, z]) => key(x, -d, z)).filter(k => !isTown(k, seed) && !layout.guardians.has(k)
     && layout.spanCells?.get(k)?.role !== 'gorge' && open(k) && k !== layout.annex?.key   // (an annex has only its outpost)
     && !layout.trialCells?.has(k));   // (nor a trial room, world/trials.js)
   const info = rooms.map(k => {
@@ -123,7 +123,7 @@ export function planSpots(seed, layout) {
   // the recording that came up with his sword (core/narration.js 'camp'): the first glass of his on
   // the road past the beginning's rock (layout.firstGlass), in the first room of the way there is
   if (d === 0) {
-    const room = info.filter(r => !r.branch && r.at >= 3 && !layout.hordes.has(r.key)).sort((a, b) => a.at - b.at)[0];
+    const room = info.filter(r => !r.branch && r.at >= 2 && !layout.hordes.has(r.key)).sort((a, b) => a.at - b.at)[0];
     if (room) Object.assign(add(room, 'glass'), { part: 'camp', way: true });
   }
   for (const r of info) if (r.spots.length) plans.set(r.key, r.spots);

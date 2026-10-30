@@ -9,7 +9,7 @@ import { mulberry32, hash32 } from '../core/util.js';
 import { TILES, layersOf } from './tiles.js';
 import { OPP6, step, hashKey } from './coords.js';
 import { depthOf } from '../themes/depth.js';
-import { TOWN_KEY, merchantCampKey } from './town.js';
+import { townOf } from './town.js';
 import { spanPins } from './spans.js';
 import { heightPins } from './heights.js';
 import { areaPins } from './areas.js';
@@ -24,9 +24,9 @@ export class WFC {
     this.seed = seed;
     this.layout = layout;
     this.depths = new Set();
-    // Pin both clearings before any collapse, even when countryside is visited first.
+    // Pin the town's tiles before any collapse, even when countryside is visited first.
     const meadow = TILES.find(t => t.kind === 'meadow' && t.sock.every(s => s === 'L'));
-    this.tiles = new Map([TOWN_KEY, merchantCampKey(seed)].map(k => [k, { ...meadow, K: 1 }]));
+    this.tiles = new Map(townOf(seed).keys.map(k => [k, { ...meadow, K: 1 }]));
   }
 
   // learn: world.html#wfc-code (see learn/README.md)

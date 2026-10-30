@@ -1,11 +1,11 @@
 // The beginning (core/intro.js, docs/story.md "The beginning"): the glassmaker's old sword stuck in
-// the ground in the merchant camp, his first glass on top of the rock in the room after it, and his
-// glass further on. They are drawn like a quest's things (render/loot.js: glowing gold, always
+// the ground by the crash in town, his first glass on top of the rock in the room past the town's
+// gate, and his glass further on. They are drawn like a quest's things (render/loot.js: glowing gold, always
 // labelled; clicked, the hero walks there), and walking onto one takes it:
 // - a glass breaks and its recording plays (game/narrator.js): the rock's opens the memories (the
 //   inventory's Memories tab, game/memorypanel.js) and the rock's gate on along the road;
 // - the sword goes into the bag (in hand, if nothing is; one of his in the bag already is replaced
-//   by it, core/intro.js pullSword) and the camp's gate out to the road opens.
+//   by it, core/intro.js pullSword) and the town's gate out to the road opens.
 // His words only ever come out of his glass: coming somewhere or taking the sword says nothing.
 // Each recording cuts short the one before, and leaving its place cuts it short (core/narration.js
 // RECORDINGS: the narrator does it, game/narrator.js).
@@ -14,7 +14,7 @@
 // for everyone, and a recording one of us sets off plays for everyone at once (heardStory).
 import { player, state, setStatus, worldPaused } from './state.js';
 import { INTRO_GATES, glassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../core/intro.js';
-import { meetRobot, robotMet } from '../core/robot.js';
+import { meetRobot, robotMet, beside } from '../core/robot.js';
 import { doorArrival } from '../core/doors.js';
 import { WAKE_HOUSE } from '../world/town.js';
 import { playScene, scenePlaying } from './scene.js';
@@ -23,6 +23,8 @@ import { curtained } from './hud.js';
 import { filmCovers } from '../film/player.js';
 import { allEnemies } from './enemies.js';
 import { plazaShards } from '../render/shards.js';
+import { showsNeighbor } from '../render/neighbors.js';
+import { scene } from '../render/scene.js';
 import { emit, soft, ring, rand } from '../render/particles.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
 import { equipItem } from '../core/inventory.js';
@@ -52,7 +54,7 @@ export function introThingsHere() {
   const glass = (q, id, part) => ({ ...thing(q), id, story: 'glass', part, itemId: GLASS_VIEW, title: msg('Bubble of star-glass'), lift: GLASS_LIFT, labelY: 1.35 });
   const out = depthGlassHere();
   if (map.firstGlass && glassThere(run)) out.push(glass(map.firstGlass.glass, 'story:glass', 'glass'));
-  if (map.merchantCamp && map.relics?.sword && swordThere(run, weapons()))
+  if (map.relics?.sword && swordThere(run, weapons()))
     out.push({ ...thing(map.relics.sword), id: 'story:sword', story: 'sword', itemId: OLD_SWORD.id, title: OLD_SWORD.name, stuck: true, labelY: 1.1 });
   return out;
 }
@@ -95,10 +97,11 @@ export function updateIntro(dt = 0) {
   if (!near) refused = false;
 }
 
-// The town's plaza: the shards of the big glass that burst over it (render/shards.js), put into its
+// The town's plaza: the shards of the big glass that came down there (render/shards.js), put into its
 // world as it is built; glowing and smoking a little until the robot is awake, then only dimly
 let smoke = 0;
 function dressPlaza(dt) {
+  farPlaza();
   const w = state.world, at = state.map?.relics?.shards;
   if (!w || !state.map.town || !at || !state.run) return;
   let shards = w.group.userData.shards;
@@ -111,6 +114,21 @@ function dressPlaza(dt) {
   const o = w.group.position, [dx, dz] = ring(0.9);
   emit(soft, at.x + o.x + dx, at.y + o.y + 0.05, at.z + o.z + dz, { v: [rand(-0.05, 0.05), rand(0.25, 0.45), rand(-0.05, 0.05)],
     life: rand(2.2, 3.4), size: rand(0.18, 0.3), grow: 0.25, color: '#5a5550', alpha: 0.22, drag: 0.4 });
+}
+
+// ... and seen from the tile beside the plaza's (the town is one place, docs/town.md: the plaza's
+// tile is one of the surroundings there, render/neighbors.js), where it shows
+let far = null;   // { cubes, group }
+function farPlaza() {
+  const cubes = state.cubes, k = cubes?.town?.portal, at = k && cubes.cubes.get(k)?.map.relics?.shards;
+  const o = at && state.map?.town && state.run && k !== state.cubeKey && showsNeighbor(k) ? beside(k, state.cubeKey) : null;
+  if (far && (far.cubes !== cubes || !o)) { far.group.removeFromParent(); far.group.visible = false; if (far.cubes !== cubes) far = null; }
+  if (!o) return;
+  if (!far) far = { cubes, group: plazaShards(0, 0, 0, cubes.seed) };
+  if (!far.group.parent) { scene.add(far.group); far.group.visible = true; }
+  far.group.position.set(at.x + o[0], at.y + o[1], at.z + o[2]);
+  far.group.userData.glow(robotMet(state.run) ? 0.3 : 1);
+  far.group.userData.tick(state.time ?? 0);
 }
 
 // The rock's room (core/intro.js), the first time a world comes into it with his glass still on top:
@@ -193,7 +211,7 @@ export function heardStory(what) {
 // game/flow.js newWorld: the beginning done already in a world saved before it existed (somebody
 // has been out past the rock; layout0: depth 0's layout), and with the dev tools (?intro=1: played
 // anyway). The dev tools skip the robot's waking too: it is with the hero from the start
-// (core/robot.js). A world saved before there was a robot has it lie asleep in the merchant camp
+// (core/robot.js). A world saved before there was a robot has it lie asleep by the crash in town
 // until the hero comes by.
 export function settleIntro(run, layout0, visited = [], dev = false, params = new URLSearchParams()) {
   const skip = dev && params.get('intro') !== '1';

@@ -61,7 +61,7 @@ export function xpProgress(p) {
 // (dev: true) also DEV_GOLD gold, OMG item-level-99 plate armor, a staff and triple flail,
 // with the staff equipped, both weapons on the quick bar, and god mode.
 // A new hero in the game starts empty-handed
-// (armed: false; core/save.js createHero, game/flow.js): the sword is found in the merchant camp
+// (armed: false; core/save.js createHero, game/flow.js): the sword is found at the crash in town
 // (core/intro.js). The tests' heroes and the dev tools' have it in hand.
 export const START_POTIONS = 3, DEV_GOLD = 5000;
 const BAR_SLOTS = { [TOWN_PORTAL.id]: 0, [ROOM_PORTAL.id]: 5 };

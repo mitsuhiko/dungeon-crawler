@@ -7,10 +7,10 @@
 // someone waits for it) goes first. opts.lightmap: the lightmap's texels a unit (render/bake.js
 // bakeDensity), for every cube of this world. opts.level: the world's level (core/enemies.js
 // depthLevel), 1 if not given: every map the worker makes says it (map.level), for the enemies.
-import { key } from './coords.js';
 import { cleanWorldLevel } from '../core/enemies.js';
 import { makeLayouts } from './layout.js';
 import { worldThemes } from '../themes/depth.js';
+import { townOf } from './town.js';
 
 // learn: architecture.html#worker (see learn/README.md)
 export class WorldClient {
@@ -18,7 +18,8 @@ export class WorldClient {
     this.seed = seed;
     this.level = cleanWorldLevel(level);
     this.load = load; this.warm = warm;
-    this.start = key(0, 0, 0);
+    this.start = townOf(seed).start;   // the inn's tile (world/town.js)
+    this.town = townOf(seed);
     this.layout = makeLayouts(seed, worldThemes(seed, opts.themes || []), { trial: opts.trial });   // which cubes exist (cheap, also needed here)
     this.cubes = new Map();
     this.waiting = new Map();   // key -> { list: [resolve, reject][], urgent }

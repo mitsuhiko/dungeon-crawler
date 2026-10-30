@@ -71,7 +71,7 @@ already found; `v` is the generator version. `enchant` (optional) is the Enchant
 enchantment, its strength follows from the weapon (see below). `core/gear/stats.js` `itemStats` turns an item
 into the stats combat reads; nothing else looks at base weapon stats. A weapon without `gen`
 (dev grants, tests) counts as Vanilla. The first weapon is a Vanilla **Glassmaker's Old Sword**,
-found in the merchant camp ([story.md](story.md#the-beginning)).
+found by the crash in town ([story.md](story.md#the-beginning)).
 
 ## Generation
 
@@ -228,7 +228,7 @@ every coin and crystal with its picture and how many you have (red when it is no
 the weapon, at the Smith what one re-roll of the selected weapon costs (the alchemist's wares
 show their price the same way).
 
-**The Enchanter** (merchant camp, by the herb stall) puts one enchantment on a weapon. Her
+**The Enchanter** (the market in town, by the herb stall) puts one enchantment on a weapon. Her
 column shows the five, each as its crystal (dimmed when you cannot have it now, ringed when the
 weapon has it); one selected says what it would do on that weapon and what it costs, and
 **Enchant** (Enter, a double-click) does it. A weapon has one enchantment at most: a new one

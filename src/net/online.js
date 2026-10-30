@@ -54,7 +54,7 @@ export const playerColor = slot => PLAYER_COLORS[slot] ?? PLAYER_COLORS[0];
 //   trialDone({ key, gate, time })               a trial resolved here: its gate opens for everyone
 //   trialStage({ key, stage })                a sunken room drained a stage further: for everyone
 // and the beginning (game/intro.js, core/intro.js STORY_NEWS):
-//   story(what)                               the glass found, the sword taken, the camp reached:
+//   story(what)                               the glass found, the sword taken, his glass on the road found:
 //                                             the gate opens and the recording plays for everyone
 export const relay = { hit: null, afflict: null, launch: null, landed: null, shoot: null, toss: null, defeated: null, visited: null,
   drop: null, take: null, forget: null, chat: null, news: null, quests: null, questAct: null, questReward: null,

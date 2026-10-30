@@ -13,6 +13,7 @@ import { startTravel } from './travel.js';
 import { townPadIn, onPad, TOWN_PORTAL_CHARGE } from '../core/townportal.js';
 import { takeTownPortal } from './townportal.js';
 import { checkDoors } from './doors.js';
+import { checkHandover } from './handover.js';
 import { sealedIn } from './trials.js';
 import { SEALED_MESSAGE } from '../core/trials.js';
 import { tr } from '../i18n/i18n.js';
@@ -61,8 +62,11 @@ export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge
   if (state.map.flipKey) return false;   // Flip's box turned: its portals are in the walls (game/flipworld.js)
   if (state.boundaryLock >= 0 && faceDistance(player, state.boundaryLock) > player.r + 0.25) state.boundaryLock = -1;
   const sealed = sealedIn();   // a trial room while its event runs (game/trials.js): nothing takes you out
+  // the town's seams: walked across, the tile beyond takes over (game/handover.js)
+  if (checkHandover()) return true;
   // open side faces take you across anywhere along them, whether they ever had a gate or not
   for (let d = 0; d < 4; d++) {
+    if (state.map.seams?.[d]) continue;
     if (!isFaceOpen(state.openedFaces, state.cubeKey, d) || state.boundaryLock === d || !approachingFace(player, d, dx, dz)) continue;
     if (railedAcross(d)) continue;
     if (sealed) { setStatus(tr(SEALED_MESSAGE)); continue; }

@@ -25,7 +25,7 @@ export const clearChronicle = () => clearLog(chronicle);
 
 // the name of the place a cube is in, as words (said in the reader's language: core/chronicle.js)
 const BUILDINGS = { town_inn_a: msg('Inn'), town_blacksmith_a: msg('Smithy'), town_pet_shop_a: msg('Pet shop'), town_stable_a: msg('Stable') };
-export const placeOf = map => !map ? '' : map.town ? msg('Town') : map.merchantCamp ? msg('Merchant camp')
+export const placeOf = map => !map ? '' : map.town ? msg('Town')
   : map.interior ? phrase('inside {building:the}', { building: noun(BUILDINGS[map.interior.building] ?? msg('House')) }) : themeOf(map).name;
 
 // We died (game/flow.js die): what did it is the last blow that hurt us (player.lastHurt,

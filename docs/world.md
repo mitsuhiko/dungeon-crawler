@@ -40,97 +40,119 @@ browser `runProxyIntegrityChecks()` and `runShaftViewChecks()` (`tests/browser/n
 The span's far side was shown early once (and taken out again); so were the area's other cubes
 and the room under a shaft. Do not bring it back.
 
-## Starting town (`world/town.js`, `cubegen/town.js`)
+## The town (`world/town.js`, `cubegen/town.js`, `game/handover.js`)
 
-A plan replaces this town and the merchant camp with a town of 12 tiles, known from the start
-and crossed without seams: [town.md](town.md) (not built yet).
+The town is not one cube but a place of `TOWN_ACROSS` × `TOWN_DEEP` (3 × 4) **tiles**: ordinary
+16 × 16 cubes of the depth-0 grid, laid out together round its gate and turned with it (the road
+leaves the town `seed % 4`: `townOf(seed)`, its `tiles` by their place `{ i, j }`, `j` counted from
+the gate's row). The gate's tile is `(0,0,0)`; a new world starts in the inn's tile (`World.start`,
+`START_TILE`). The idea, and what is still to come, is in [town.md](town.md).
 
-The spawn cube `(0,0,0)` is an authored clearing, rotated to match its **single
-outgoing side portal**. It contains the four permanent `assets/town.glb`
-buildings: inn, stable, pet shop and blacksmith. They stand on the cube grid (quarter
-turns, like the rest of the world) at staggered positions around an asymmetric clearing.
-The inn, the blacksmith and the pet shop have doors and colliders that follow their walls
-and attached props (`parts` in `world/town.js`), so you can walk right up to the door and
-in (see House interiors below); the stable, without a door, collides with its whole
-footprint. Spawn is in the central clearing; one straight street runs from the grove's
-opening past the plaza, and straight paths branch off it at right angles to each doorstep
-or frontage. Paths are rendered as grid-aligned ribbons rather than whole-cell paving. No well,
-voids or extra exits exist inside town. East of the plaza a spot is kept free for the town
-portal's other end (see Travel below). The walkability flood fill also requires the way between
-two cell centres to be clear, not just the centres, so a crate cannot pinch a route shut.
+- **Known from the start.** All its tiles count as visited when a world begins (`game/flow.js
+  knowTown`): on the map, drawn round the hero, the faces between them open. The town is home: the
+  one exception to "Only where you have been" above.
+- **One cube at a time.** Only the tile the hero is in is played and drawn in full; the others are
+  its surroundings (`render/neighbors.js`), drawn in their own colours (`lift`: not the proxies'
+  darker tint) and with all they are dressed with, houses and trees too (`shownFar`). From outside
+  the town they look like any other surroundings.
+- **No seams.** Between two tiles (a tile's `map.seams`, the sides with another tile beyond) there
+  is no portal, no glass and no step in the ground: their faces are flat at the town's level (as
+  every face touching the town). Each tile's glass draws only its share of one hull round the whole
+  town: no pane on a seam, none of the edges on it, the brighter corners only at the hull's own
+  (`setGlassSeams`, `render/glass.js`). Walking across a seam, the physics reads the ground past
+  it as the edge's (`physics/collide.js cellAt`, up to a cell beyond), and once the hero's middle
+  is `PAST` (0.25) beyond it, the tile beyond takes over at once (`game/handover.js`): it becomes
+  the cube played in, and the hero, what is in the air and the planted feet move by a cube's width,
+  so nothing on the screen jumps. No slide, no fade; the surroundings are built again round the new
+  tile at once. The tiles are made and loaded ahead (`prefetchTown`); until one is, the hero stands
+  on the seam. The overview camera follows the hero all the way in town (`game/camera.js`), else it
+  would jump a cube's width at every seam.
+- **Still seams for now:** the villagers, the shards of the crash and the robot asleep are drawn
+  only in the tile played in, the surroundings have no lights at night and no baked shadows, and
+  a friend in another tile is not drawn (`render/partner.js`). Drawing more than one tile in full
+  comes later ([town.md](town.md)).
+- **Only the gate leads out.** The town's outer faces never open, whatever lies beyond and however
+  much of it was visited (`core/boundaries.js discoveredFaces`); its gate is the first portal of
+  depth 0's route.
 
-All three merchant tents are in a separate **merchant camp one cube in front of
-town**, along its outgoing road: `step(TOWN_KEY, seed % 4)`. They face a straight
-through-road from both sides, on the grid like the houses. Tents have no doors. The camp has two side portals, one
-back to town and one onward; it has no spawn portal, pond or permanent houses.
-Authored prop placements are shared by worker metadata and rendering without
-marking the camp as town. Both gates and every building/tent frontage are validated
-by a body-radius-aware flood-fill before rendering.
+Every tile has an authored plan of its own (`TILES` in `world/town.js`, in the tile's frame: local
+`z = 0` towards the gate's side, `+x` the next tile across), made from the tile's seed:
 
-Both clearing tiles are pinned to lowland sockets and one layer **before the surface
-collapses**. All dry ground is exactly level 4 (2 game units); the town's reserved
-five-cell pond has a lower bed and water surface. Clearing face profiles and corner
-levels are fixed, and neighbouring terrain's shared boundary corners are pinned
-during smoothing, including the camp-to-countryside edge. Neither clearing depends
-on generation retries, exploration order or the `?arche=` debug override. Buildings,
-pond, spawn and paths are reserved before placing vegetation or validating
-reachability.
+| | 0 | 1 | 2 |
+|---|---|---|---|
+| **0** (the gate's row) | an orchard | the market: the three tents along the street, the gate | the traders' camp: a fire ring, their stock |
+| **1** | the stable, the groom | the plaza: the crash (`CRASH`: the shards of the glassmaker's big glass, the robot asleep and his sword beside it), the town portal's spot | the smithy, the smith |
+| **2** | the garden with the pond | the inn (the spawn, its door to the street) | the pet shop, the keeper |
+| **3** | a grove with a wishing well | the green with the town's well | the windmill |
 
-Villagers stand at the trades (`VILLAGERS` in `world/town.js`, see
-[villagers.md](villagers.md)): the innkeeper on the inn's porch, a groom in front of the
-horses, the smith at the anvil, the pet keeper by the rabbit pen, and in the camp the
-alchemist and the enchanter in front of the potion and herb tents. Each is a body-sized
-circle collider, placed before the clutter, so props keep clear of them and the walkability
-checks include them.
+The street (`STREET`, town-local x = 8.5) runs from the gate straight back through the middle
+column to the green; lanes cross the plaza's row (`LANE_1`) and the inn's (`LANE_2`) to the
+houses either side. They are laid out alike in every tile, as wide on both sides of a seam, so
+they meet there; rendered as grid-aligned ribbons rather than whole-cell paving.
 
-Sixteen large oak/elm/birch trees from `assets/town_trees.glb` form an irregular
-perimeter grove, with smaller shrubs and flowers in reserved pockets. The trees
-are 6–7 units tall, higher than the inn; their crowns may overhang the clearing,
-but only the trunks block movement. Tree species and scale/yaw vary deterministically.
-The existing cutaway includes building and canopy occlusion volumes, independently
-of body colliders, so foreground roofs/foliage reveal the player as the camera turns.
+- **Buildings** (`BUILDINGS`, `MERCHANTS`: each with its `tile` and its place in it) stand on the
+  cube grid (quarter turns), each wholly in its tile. The inn, the blacksmith and the pet shop
+  have doors and colliders that follow their walls and attached props (`parts`), so you can walk
+  right up to the door and in (see House interiors below); the stable and the tents collide with
+  their whole footprint. Tents have no doors.
+- **Villagers** stand at their trades (`VILLAGERS`, see [villagers.md](villagers.md)): the
+  innkeeper on the inn's porch, a groom in front of the horses, the smith at the anvil, the pet
+  keeper by the rabbit pen, and at the market the alchemist and the enchanter in front of the
+  potion and herb tents. Each is a body-sized circle collider, placed before the clutter.
+- **The grove**: large oak/elm/birch trees from `assets/town_trees.glb` along the town's outer
+  sides only (not the seams), bushes between them; 6–7 units tall, higher than the inn; their
+  crowns may overhang, but only the trunks block movement. The cutaway includes building and
+  canopy occlusion volumes, independently of body colliders, so foreground roofs and foliage
+  reveal the player as the camera turns.
+- **Dressing**: each tile's set pieces (signposts, street lamps, wells, benches, the notice board,
+  flower pots, hay bales and hand carts, barrels/crates/sacks by each trade, the blacksmith's
+  planks and coal, the pond's reeds/stones/lily pads, the traders' campfire with log seats and a
+  woodpile, the windmill) and seeded meadow ground cover, from `props/`/`clutter/` models and the
+  town's own (`assets/town_clutter.glb`, docs/assets/town.md), `put`/`group`/`scatter`. A set
+  piece tries its candidates in order (`near`: the spots round a place, nearest first) and is
+  skipped if none fits. Every prop avoids the oriented building footprints, trunks, other
+  clutter, the pond (except water/shore props) and the path ribbons; blocking props get circle
+  colliders and keep clear of the gate, the spawn and doorsteps by a full character width.
+- **The seams stay clear**: nothing that stands in the way (a building, a trunk, a villager, a
+  blocking prop) comes closer to a seam than `SEAM_CLEAR` (0.9) plus its radius, so a body
+  crossing never runs into something the tile played in does not know.
 
-Both clearings are then dressed with ~150 small catalog props (`put`/`group`/`scatter`
-in `world/town.js`), reusing `props/`/`clutter/` models and the town's own
-(`assets/town_clutter.glb`, docs/assets/town.md): authored set pieces (a gate signpost,
-street lamps along the street and round the plaza, a well where the inn's lane ends,
-benches facing the plaza, a notice board, flower pots by the doors, hay bales and a hand
-cart at the stable, barrels/crates/sacks by each trade, the blacksmith's planks and coal, a
-wheelbarrow at the stable, reeds/stones/lily pads around the pond, the traders' campfire
-with log seats and a woodpile) followed by seeded meadow ground cover that thins out
-towards the open centre. A set piece tries its candidates in order (`near`: the spots round
-a place, nearest first) and is skipped if none fits. Every prop avoids the oriented
-building footprints, trunks, other clutter, the pond (except water/shore props) and the
-path ribbons; blocking props (barrels, crates, logs, the well, benches …) get circle
-colliders and also keep clear of gates, the spawn plaza and doorsteps by a full character
-width, so the reachability validation is unaffected.
+Every tile is pinned to a lowland socket and one layer **before the surface collapses**. All dry
+ground is exactly level 4 (2 game units); the garden's five-cell pond has a lower bed and water
+surface. Every face touching the town is flat at that level, and neighbouring terrain's shared
+boundary corners are pinned during smoothing. No tile depends on generation retries, exploration
+order or the `?arche=` debug override. A tile is checked as it is made (`cubegen/town.js`): a
+body-radius-aware flood fill reaches its gate and spawn (if it has them), every cell along its
+seams, every frontage and doorstep, the town portal's spot and the beginning's things; the way
+between two cell centres must be clear too, with a little room to spare, so a crate cannot pinch
+a route shut.
 
-**At night** (the world's days and nights below) the town lights up: the street lamps
-(placed with `night`) and the houses' windows (their panes' own material) come on through
-the dusk, each house and lamp at its own moment, and go out again through the dawn; the
-windows' candlelight glimmers a little (`render/night.js`, docs/lighting.md). Fireflies
-drift over the meadow, a few of them bright enough to light the grass (the meadow's
-`nightMotes`).
+**At night** (the world's days and nights below) the town lights up: the street lamps (placed
+with `night`) and the houses' windows (their panes' own material) come on through the dusk, each
+house and lamp at its own moment, and go out again through the dawn; the windows' candlelight
+glimmers a little (`render/night.js`, docs/lighting.md). Fireflies drift over the meadow, a few of
+them bright enough to light the grass (the meadow's `nightMotes`).
 
 `enemyFree` is generation metadata, retained on cached maps and checked before any
-species-specific spawn selection. The town and the one-cube-wide **surface** buffer
-(`Y=0`, `max(abs(X), abs(Z)) <= 1`, including diagonals if they exist) have no enemies.
-Along the current surface road: **town → safe merchant camp → enemies → well**.
-This is not temporary spawn protection and does not make the underground safe.
+species-specific spawn selection: the town's tiles, and only those (`enemyFreeAt`), have no
+enemies. The road has them from the room past the gate, the beginning's rock with its three
+snakes.
 
-The initial loading screen waits for both the ordinary prop library and the town
-building/tree libraries. Static building/tent colliders are generated in the worker,
-independent of download timing; rendering cannot accidentally remove them.
+The initial loading screen waits for the start tile, the ordinary prop library and the town
+building/tree libraries; the other tiles come in as they are made. Static building/tent colliders
+are generated in the worker, independent of download timing; rendering cannot accidentally remove
+them.
 
-`npm test` includes town checks across seeds and all four exit
-orientations: flat dry ground, guaranteed town pond, four houses inside town and
-three tents only in the adjacent road cube, non-overlapping assets, dry reachable
-gates/frontages using actual movement probes, generation-order-independent
-boundaries, grid-aligned buildings and straight path geometry, clutter placement and colliders,
-safe-buffer spawns/revisits, box/trunk collision,
-canopy occlusion, and matching Blender exports. For real worker/asset/render checks,
-run `await (await import('./tests/browser/town.js')).runTownChecks()` from
-`index.html`'s devtools.
+`npm test` includes town checks across seeds and all four exit orientations
+(`tests/town.test.js`): the tiles round the gate, flat dry ground, the pond in the garden, every
+building and tent once and in its tile, the seams (flat, no portal, nothing standing near,
+reached all along, walked across), only the gate joining the town to what lies round it,
+non-overlapping assets, dry reachable gates/frontages using actual movement probes,
+generation-order-independent boundaries, grid-aligned buildings and straight paths, clutter
+placement and colliders, box/trunk collision, canopy occlusion, and matching Blender exports. For
+real worker/asset/render checks, run `await (await import('./tests/browser/town.js')).runTownChecks()`
+from `index.html`'s devtools: the town known from the start, the buildings drawn in their tiles,
+one hull, and walking across its seams.
 
 ## House interiors (`cubegen/interior.js`, `game/doors.js`, `render/interior.js`)
 
@@ -245,10 +267,14 @@ Which faces carry portals is decided by the depth's layout (see below), not per 
 
 Which cubes exist and how they connect depends only on the world seed:
 
-- **Depth 0:** the town (0,0,0) and safe merchant camp start an 18–24-room route to the first well.
-  The camp's way out and the next room's are gates of the beginning (`gateFaces`, `intro:sword`
+- **Depth 0:** the town's tiles (above, "The town") lie round `(0,0,0)`, its gate's tile, the
+  first room of an 18–24-room route to the first well; the road runs straight out of the gate for
+  two rooms, then anywhere within five cubes of the axis but the town (no branch into it). The
+  town's gate and the next room's way out are gates of the beginning (`gateFaces`, `intro:sword`
   and `intro:glass`, `core/intro.js`, [story.md](story.md#the-beginning)): shut until the
-  glassmaker's sword is taken in the camp and his glass found on the next room's rock. That room
+  glassmaker's sword is taken at the crash in town and his glass found on the next room's rock.
+  The town's tiles but the gate's are no rooms of the route (no `routeIndex`, nothing planned in
+  them: they are added to `exists` last). That room
   (`firstGlass`) is always a lone peak (`cubegen/setpieces.js`, its tile pinned flat all round), his
   glass on its top where a discovery's chest would be, three grass snakes at its foot.
 - **Depths 1–19:** seeded routes through a two-cube-wide ring around the axis. Each route's
@@ -766,7 +792,7 @@ vents, reeds, and the craters the slime meteorites left. What makes it so, in it
   (a long frame together, where the clock runs on real time; coming in late) lands without
   hitting the player, and one that landed does not come again should the clock go back. The splat
   it leaves slows whoever wades through it for 6 s. They land only on floors open to the sky, and under a roof (a slab, an
-  arch, a tunnel) nothing reaches you. Never in the town and the camp, inside houses, in trial,
+  arch, a tunnel) nothing reaches you. Never in the town, inside houses, in trial,
   test or boss rooms. Checks: `tests/meteors.test.js`, `tests/browser/meteors.js`.
 
 ### Vignettes (`cubegen/vignettes.js`)
@@ -1259,7 +1285,7 @@ The Town Portal Scroll (quick bar slot 1) opens a two-way portal to town:
   floats over the player and fills the scroll's quick bar slot. Moving, jumping, a mouse order,
   attacking, taking damage, being knocked over, falling, swimming, climbing, travel, opening the
   inventory or using the scroll again cancels it. It cannot be cast in town; anywhere else
-  (merchant camp and guardian rooms included) it can.
+  (guardian rooms included) it can.
 - **The pad:** a finished cast opens the portal on free ground around the player, best 1.6
   cells in front, else nearer, farther (up to 2.7) or to the side, down to right beside them
   (just out of its trigger; `padOffsets`, `core/townportal.js`). Its whole disc (radius 0.62)
@@ -1268,12 +1294,12 @@ The Town Portal Scroll (quick bar slot 1) opens a two-way portal to town:
   the scroll is used: if nowhere fits, "No room for a portal here" and no cast starts (and
   again when the cast ends). The run keeps one portal, `run.townPortal = { key, depth, pad, back }`, where
   `back` is the exact spot the player cast it from. Casting again moves it.
-- **Town end:** the town plan reserves a fixed spot for it, east of the plaza
-  (`TOWN_PORTAL_SPOT`, `world/town.js`, rotated with the exit). Clutter keeps off it and town
-  generation checks that it is dry and reachable (`map.town.portal`).
+- **Town end:** the plaza's tile (`PORTAL_TILE`) reserves a fixed spot for it, west of the street
+  across from the crash (`TOWN_PORTAL_SPOT`, `world/town.js`, rotated with the exit). Clutter
+  keeps off it and town generation checks that it is dry and reachable (`map.town.portal`).
 - **Going through:** either end works like a well. Stand in it for 1 s (with the white charge
   bar) and the screen fades (no slide, the cubes are not neighbours). You arrive in town 1.4
-  cells from its end, towards the plaza, and the portal stays open. Through the town end you
+  cells from its end, towards the middle of the plaza, and the portal stays open. Through the town end you
   arrive exactly where you cast it, and **both ends close**. Each arrival starts a new visit
   (`enterCube(c, null, null, at)`), so a death respawns you at the arrival point.
 - **Drawing:** `render/markers.js townPortalFx` draws a violet swirl under a light column. It is
@@ -1326,6 +1352,8 @@ portal cannot skip unseen rooms or guardians. Locked guardian faces never open t
 discovery. Some rooms join their neighbours only through their own portals (`portalsOnly`):
 - an annex, always
 - a trial room until its trial is resolved; from then on its other faces open like any room's
+- the town with what lies round it: only its gate joins them (the faces between its own tiles,
+  its seams, open as the town is known, from the start: "The town" above)
 
 Their glass box glows orange (below). Discovering a cube or unlocking a gate re-checks every discovered cube, since
 either can join sections elsewhere. On an opened face both gates and both dividing glass

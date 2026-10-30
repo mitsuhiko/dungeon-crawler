@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { waterfallRoomKey, waterfallOutside, waterfallDoors, addWaterfallHideout } from '../src/world/waterfalls.js';
-import { isInterior, TOWN_KEY } from '../src/world/town.js';
+import { isInterior, townOf } from '../src/world/town.js';
 import { testRoomKey, TEST_ROOM_NAMES } from '../src/world/testrooms.js';
 import { doorArrival, doorBack, atDoor } from '../src/core/doors.js';
 import { player } from '../src/game/state.js';
@@ -13,7 +13,7 @@ import { buildCubeParts } from '../src/render/cubegeo.js';
 import { generate } from '../src/cubegen/index.js';
 import { chestLoot } from '../src/core/chests.js';
 
-const world = new World(123), outside = world.cube('3,-3,3').map;
+const world = new World(123), outside = world.cube('-1,-1,-4').map;
 const door = outside.doors.find(d => d.waterfall), room = world.cube(door.to).map;
 
 test('rare broad waterfalls get deterministic doors without changing existing terrain or routes', () => {
@@ -72,7 +72,7 @@ test('bosses, trials, test rooms, lethal falls and inaccessible land never recei
   }
   const unsafe = bare(); unsafe.safe = new Uint8Array(outside.safe.length);
   assert.deepEqual(waterfallDoors(unsafe), []);
-  assert.throws(() => world.cube(waterfallRoomKey(TOWN_KEY)), /No (waterfall )?door/);
+  assert.throws(() => world.cube(waterfallRoomKey(townOf(world.seed).start)), /No (waterfall )?door/);
 });
 
 test('the waterfall command preview has a supported entrance and a real two-way room for any seed', () => {

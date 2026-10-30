@@ -122,7 +122,7 @@ being helped up and getting back in. Up to four players, co-op.
 - Joining (and getting back in) both send what they have: the host in `welcome`, a guest that
   keeps its world after a lost connection in `visited` and `faces`.
 - The beginning ([story.md](story.md#the-beginning)) is shared too (`story`): whoever takes his
-  sword opens the camp's gate for everyone; whoever finds the glassmaker's glass on the rock past
+  sword opens the town's gate for everyone; whoever finds the glassmaker's glass on the rock past
   it opens that room's gate for everyone, and his recording plays for everyone at the same moment,
   wherever they are; whoever finds his glass on the road after it sets its recording playing, for
   everyone (and it is gone for everyone), each recording cutting short the one before. Each player
@@ -130,8 +130,8 @@ being helped up and getting back in. Up to four players, co-op.
   empty-handed). The beginning's scenes (the robot waking, the glass shown) play whole only for a
   player alone in their cube, else what they do happens at once; the tutorial's card is each
   player's own, and a guest gets none.
-- The robot ([story.md](story.md#the-robot)): every player has their own, which lies asleep in
-  the merchant camp until they come by (a guest's too, in a world where the host's woke long ago:
+- The robot ([story.md](story.md#the-robot)): every player has their own, which lies asleep at
+  the crash in town until they come by (a guest's too, in a world where the host's woke long ago:
   what the narrator said is not sent), says hello only to them and follows only them. Everyone sees everyone's: each game flies its own
   and sends where it is in its `me` (`robot`: cube, place, yaw, fade, clip, `protocol.js
   robotOf`, `game/robot.js robotWord`); the others draw it there, ~110 ms in the past like the
@@ -244,3 +244,5 @@ pays itself and sends `questReward`, each guest pays itself once (`game/quests.j
 - Dev-spawned enemies stay with the game that spawned them: they are not handed over.
 - The host cannot pass the game on: when it leaves, the others play on alone.
 - Guests only reach each other through the host, which doubles the trip between two of them.
+- In the town (many tiles walked across without a seam, [town.md](town.md)) a friend in another
+  tile than yours is not drawn, though they may stand a few steps away across a seam.

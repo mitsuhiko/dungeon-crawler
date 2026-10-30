@@ -252,6 +252,6 @@ for (const t of THEMES) {
 export const TOWN = MEADOW;
 export { CORE };
 
-// every song the game plays: the main menu's, the town (and the merchant camp), one per theme, the
+// every song the game plays: the main menu's, the town's, one per theme, the
 // core (depth 20) and the bosses' own (core/bossmusic.js)
 export const SONGS = ['title', 'town', ...new Set(THEMES.map(t => t.music)), 'core', ...Object.values(BOSS_MUSIC).map(m => m.song)];

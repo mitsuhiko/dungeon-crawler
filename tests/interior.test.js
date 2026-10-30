@@ -4,7 +4,10 @@ import { N, LH, CHAR_R } from '../src/core/constants.js';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { step } from '../src/world/coords.js';
-import { BUILDINGS, MERCHANTS, TOWN_KEY, TOWN_LEVEL, interiorKey, isInterior } from '../src/world/town.js';
+import { BUILDINGS, MERCHANTS, TOWN_LEVEL, interiorKey, isInterior, townOf } from '../src/world/town.js';
+
+// the town's doors, each with the map of its tile (world/town.js: the houses stand in different tiles)
+const townDoors = w => townOf(w.seed).keys.flatMap(k => { const m = w.cube(k).map; return m.doors.map(d => ({ d, m, k })); });
 import { HOUSES, INTERIOR_LEVEL, INTERIOR_SCALE, WALL } from '../src/cubegen/interior.js';
 import { atDoor, doorArrival, doorBack } from '../src/core/doors.js';
 import { player } from '../src/game/state.js';
@@ -45,18 +48,18 @@ function pushInto(d, limit = 120) {
 test('only the houses with a door get an inside: the inn, the blacksmith and the pet shop', () => {
   assert.deepEqual(HOUSES.map(b => b.name).sort(), ['town_blacksmith_a', 'town_inn_a', 'town_pet_shop_a']);
   for (const b of [...MERCHANTS, BUILDINGS.find(b => b.name === 'town_stable_a')]) assert.equal(b.door, undefined, b.name);
-  const w = new World(1), town = w.cube(w.start).map;
-  assert.deepEqual(town.doors.map(d => d.building).sort(), HOUSES.map(b => b.name).sort());
-  for (const d of town.doors) assert.equal(d.to, interiorKey(d.building));
-  assert.deepEqual(w.cube(step(w.start, town.exit)).map.doors, [], 'the tents have none');
+  const w = new World(1), doors = townDoors(w);
+  assert.deepEqual(doors.map(({ d }) => d.building).sort(), HOUSES.map(b => b.name).sort());
+  for (const { d, k } of doors) { assert.equal(d.to, interiorKey(d.building)); assert.equal(k, townOf(1).houses[d.building]); }
+  assert.deepEqual(w.cube(townOf(1).houses.town_merchant_a).map.doors, [], 'the tents have none');
 });
 
 test('every house door in town can be walked up to and takes you in, for every exit', () => {
   const exits = new Set();
   for (let seed = 0; seed < 12; seed++) {
-    const w = new World(seed), m = w.cube(w.start).map;
-    exits.add(m.exit);
-    for (const d of m.doors) {
+    const w = new World(seed);
+    exits.add(townOf(seed).exit);
+    for (const { d, m } of townDoors(w)) {
       assert.ok(Math.abs(d.nx) + Math.abs(d.nz) === 1, 'doors face along the grid');
       const a = doorArrival(d);
       place(m, a.x, a.y, a.z);
@@ -76,7 +79,7 @@ test('interiors are off the grid, safe, and keep their house proportions; the in
     assert.ok(isInterior(k)); assert.equal(depthOf(k), 0);
     assert.equal(w.wfc.tiles.has(k), false, 'no WFC tile, no faces');
     assert.equal(m.depth, 0); assert.equal(m.enemyFree, true); assert.deepEqual(m.portals, []);
-    assert.equal(m.K, 2); assert.equal(m.interior.building, b.name); assert.equal(m.interior.outside, TOWN_KEY);
+    assert.equal(m.K, 2); assert.equal(m.interior.building, b.name); assert.equal(m.interior.outside, townOf(4).houses[b.name]);
     assert.ok(Math.abs(W - b.body.w * INTERIOR_SCALE) <= .5 && Math.abs(D - b.body.d * INTERIOR_SCALE) <= .5);
     assert.ok(Math.abs(W / D - b.body.w / b.body.d) < .12, b.name + ' proportions');
     assert.deepEqual([x1 - x0, z1 - z0], front[0] ? [D, W] : [W, D], 'width along the front, depth front to back');
@@ -119,13 +122,13 @@ test('walls all round: running in any direction never leaves the room or drops y
 });
 
 test('the stair leads up to the upper floor, and the door inside leads back out', () => {
-  const w = new World(3), town = w.cube(w.start).map;
+  const w = new World(3);
   for (const b of HOUSES) {
-    const k = interiorKey(b.name), m = w.cube(k).map, inside = m.doors[0];
-    assert.equal(inside.to, TOWN_KEY); assert.equal(inside.building, b.name);
-    const outside = doorBack(town, inside, k);
+    const k = interiorKey(b.name), m = w.cube(k).map, inside = m.doors[0], tile = townOf(3).houses[b.name];
+    assert.equal(inside.to, tile); assert.equal(inside.building, b.name);
+    const outside = doorBack(w.cube(tile).map, inside, k);
     assert.equal(outside.to, k, 'the door inside leads to this house\'s door');
-    assert.equal(doorBack(m, outside, TOWN_KEY), inside, 'and that one back in');
+    assert.equal(doorBack(m, outside, tile), inside, 'and that one back in');
     // come in and walk the route: to the stair, up it, along the upper floor
     const a = doorArrival(inside);
     place(m, a.x, a.y, a.z);
@@ -155,8 +158,8 @@ test('interiors sound and look like wood and plaster', () => {
 
 test('inside, the house stands as it does outside: the door on the same side, the way in kept', () => {
   for (let seed = 0; seed < 8; seed++) {
-    const w = new World(seed), town = w.cube(w.start).map;
-    for (const d of town.doors) {
+    const w = new World(seed);
+    for (const { d } of townDoors(w)) {
       const m = w.cube(d.to).map, inside = m.doors[0], { room, front } = m.interior;
       assert.deepEqual(front.map(Math.round), [d.nx, d.nz].map(Math.round), 'the front faces where the house does');
       // you walk in along -n outside, and arrive walking the same way inside

@@ -1,7 +1,7 @@
 // The story's scenes (game/scene.js plays them, docs/story.md "The beginning"): short moments
 // where the camera leaves the hero for a few seconds, like a boss's intro (core/bossintro.js, whose
 // shots, blend and black bars they share), but about something else than a boss: the robot waking
-// in the merchant camp, the glassmaker's first glass shown on its rock, and that glass breaking.
+// at the crash in town, the glassmaker's first glass shown on its rock, and that glass breaking.
 // Pure: the timings, the shots and the moments things happen.
 //
 // A scene, in seconds from its start:
@@ -21,7 +21,7 @@ export const SCENE_SKIP_FROM = 0.6;   // s into a scene before a click, Space or
 
 const OPEN = { t: 0, cam: ['hero', -2.2, 0.9, 2.0], look: ['spot', 0, 0, 0.5], fov: 50 };
 export const SCENES = Object.freeze({
-  // The robot wakes (core/robot.js): coming into the merchant camp the hero walks on a step or two
+  // The robot wakes (core/robot.js): coming near the crash in town the hero walks on a step or two
   // and stops; the camera goes to the robot lying in the grass, its eyes open, it lifts off and
   // shakes itself (RobotWake, WAKE s from `wake`) and says hello; the camera comes back as it is up.
   robot: { length: 6.0, hold: 5.6, walk: 0.45, letterbox: [0.2, 5.6], blend: [0.4, 1.6, 5.4], shake: 0.012, face: 'spot',

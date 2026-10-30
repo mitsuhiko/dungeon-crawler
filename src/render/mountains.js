@@ -32,7 +32,7 @@ function geometry(plan, base) {
   usePalette(themeOf(base));
   const up = new Map([...plan.cells.values()].map(m => [m.c, { ...m.f, cs: [...m.cs], top: m.top, surface: undefined, soft: false, ice: false,
     link: m.link.map(l => l?.f ?? null) }]));
-  const m = { ...base, floors: [...up.values()], cols: base.cols.map((col, c) => up.has(c) ? [up.get(c)] : col), falls: [], town: null, merchantCamp: null, interior: false };
+  const m = { ...base, floors: [...up.values()], cols: base.cols.map((col, c) => up.has(c) ? [up.get(c)] : col), falls: [], town: null, interior: false };
   const layers = Array.from({ length: base.K ?? 1 }, () => ({ terrain: new GeoBuilder(), stone: new GeoBuilder(), wood: new GeoBuilder(),
     flags: new GeoBuilder({ sway: true }), fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, new GeoBuilder({ uvs: true })])) }));
   buildFloors(m, layers);
