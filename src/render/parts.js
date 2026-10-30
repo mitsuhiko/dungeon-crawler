@@ -5,6 +5,7 @@
 // (render/materials.js). A new part added here shows up in both the cube and its proxy.
 import { N, LH, DIRS, FLUIDS, DRAWN_FLUIDS, FLUID_NAME } from '../core/constants.js';
 import { palRow } from '../themes/fluids.js';
+import { fallShift } from '../core/falls.js';
 import { restY } from './surface.js';
 import { layoutLightmap } from './lightmap.js';
 
@@ -126,8 +127,9 @@ function pack(list, scale, { kind, sway, lit }) {
 // behind the edge, curls over the lip and drops, drifting out and bulging a little, wider towards
 // the bottom; one ribbon, drawn from both sides (its outline is the shader's, render/materials.js).
 // u runs across (0..1), v down the sheet from where it leaves the pool, 0.7 per world unit
-// (splash rings and lights stay with the active cube, render/falls.js).
-export const FALL_WIDTH = 0.9;   // world units across at the lip
+// (splash rings and lights stay with the active cube, render/falls.js). A wide fall (core/falls.js)
+// hangs between its two cells.
+export const FALL_WIDTH = 0.9;   // world units across at the lip (a fall's own `width` otherwise)
 function fallSheets(m, type) {
   const pos = [], nor = [], uv = [], pal = [], ACROSS = 6, R = 0.22, LIP = 0.25;
   // falls of lower layers first: drawn back to front from above
@@ -135,7 +137,8 @@ function fallSheets(m, type) {
     const [dx, dz] = DIRS[f.d], bx = f.c % N, bz = (f.c / N) | 0;
     // (its foot well under the pool's surface: the water's swell dips, render/materials.js)
     const yTop = restY(f.top * LH) + 0.02, y0 = restY(f.bot * LH) - 0.34, h = yTop - y0;
-    const ex = dx > 0 ? bx : dx < 0 ? bx + 1 : bx + 0.5, ez = dz > 0 ? bz : dz < 0 ? bz + 1 : bz + 0.5;
+    const [sx, sz] = fallShift(f);
+    const ex = (dx > 0 ? bx : dx < 0 ? bx + 1 : bx + 0.5) + sx, ez = (dz > 0 ? bz : dz < 0 ? bz + 1 : bz + 0.5) + sz;
     // the profile: [out from the edge, y, distance along the sheet]: flat over the pool, the
     // curl over the lip, the drop
     const prof = [[-0.05 - LIP, yTop], [-0.05, yTop]];

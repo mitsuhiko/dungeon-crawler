@@ -2,6 +2,7 @@
 // spills on purpose (falls). Otherwise water would stand in the air with its sides showing.
 import { N, DIRS } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
+import { fallCells } from '../core/falls.js';
 
 const inner = (x, z) => x > 0 && z > 0 && x < N - 1 && z < N - 1;
 
@@ -30,7 +31,7 @@ export function bankGround(ctx, spill = new Set()) {
 // surface becomes ground up to where the water stood. Catches what later stages did to the
 // banks (stream channels cut next to pools, lowered patches) and the upper layers.
 export function containFluids(ctx) {
-  const { cols } = ctx, spill = new Set((ctx.falls || []).map(f => f.c));
+  const { cols } = ctx, spill = new Set((ctx.falls || []).flatMap(fallCells));
   const holds = (n, S) => cols[n].some(h => h.bottom <= S - 0.25 && (h.fluid ? h.surf : h.top) >= S);
   for (let changed = true, guard = 0; changed && guard < 8; guard++) {
     changed = false;

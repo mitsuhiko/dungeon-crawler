@@ -4,6 +4,7 @@ import { World } from '../src/world/world.js';
 import { DIRS, OPP, EDGE_CORNERS, LH } from '../src/core/constants.js';
 import { idx, inb } from '../src/core/util.js';
 import { shoreIssues } from '../src/render/shore.js';
+import { fallCells } from '../src/core/falls.js';
 import { TEST_ROOM_NAMES, testRoomKey } from '../src/world/testrooms.js';
 
 // how far a fluid floor's surface stands above what is next to it on side d (0: walled in),
@@ -12,7 +13,7 @@ function standing(m, f, d) {
   const x = f.x + DIRS[d][0], z = f.z + DIRS[d][1];
   if (!inb(x, z)) return 0;   // the face: the neighbour cube matches it
   const n = idx(x, z);
-  if (m.falls.some(fl => fl.c === f.c || fl.c === n)) return 0;
+  if (m.falls.some(fl => fallCells(fl).some(c => c === f.c || c === n))) return 0;
   const [na, nb] = EDGE_CORNERS[OPP[d]], top = g => g.fluid ? g.surf : Math.min(g.cs[na], g.cs[nb]) / LH;
   const y = f.surf - 0.25, col = m.cols[n];
   if (col.some(g => g.bottom <= y && top(g) >= y)) return 0;

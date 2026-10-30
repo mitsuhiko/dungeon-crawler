@@ -2,6 +2,7 @@
 // extras. Claims keep structures apart from each other, from waterfalls and from the route.
 import { N, SHEAD, OPP, DIRS } from '../core/constants.js';
 import { inb, idx } from '../core/util.js';
+import { fallCells } from '../core/falls.js';
 import { placeClimb } from './climbs.js';
 import { moveKey } from './route.js';
 import { addDecor } from './decor.js';
@@ -10,7 +11,7 @@ export function placeStructures(ctx) {
   const { cols, falls, moves, pathFloors, stats } = ctx;
   const cellLists = () => Array.from({ length: N * N }, () => []);
   const pieces = cellLists(), claims = cellLists(), walkedIn = cellLists(), sweeps = cellLists(), runCells = cellLists();
-  for (const f of falls) claims[f.c].push({ c: f.c, lo: f.bot, hi: f.top });
+  for (const f of falls) for (const c of fallCells(f)) claims[c].push({ c, lo: f.bot, hi: f.top });
   // site dressing, and the space a landmark's overhangs (lintels, roofs) take over the floor under them
   for (const f of ctx.floors) if (f.siteBlocked || f.siteClaimTop)
     claims[f.c].push({ c: f.c, lo: f.top, hi: f.siteBlocked ? f.siteBlockTop : f.siteClaimTop });

@@ -4,6 +4,7 @@
 // the charge of a well, ring or the town portal pad, and the cast of the town portal scroll.
 import { N, LH, CUBE_H, WATER, LAVA, ACID } from '../core/constants.js';
 import { player, state } from './state.js';
+import { fallShift } from '../core/falls.js';
 import { themeOf } from '../themes/depth.js';
 import { portalChargeDuration } from './portals.js';
 import { setAmbience, setDrone, drip, pop } from '../audio/loops.js';
@@ -24,7 +25,7 @@ function soundSources(m) {
   sourcesOf = m; sources = [];
   for (const f of m.floors) if (f.fluid) sources.push({ x: f.x + 0.5, y: f.surf * LH, z: f.z + 0.5, kind: KIND[f.fluid], fall: false });
   for (const f of m.falls || []) {
-    const x = f.c % N + 0.5, z = ((f.c / N) | 0) + 0.5;
+    const [sx, sz] = fallShift(f), x = f.c % N + 0.5 + sx, z = ((f.c / N) | 0) + 0.5 + sz;
     sources.push({ x, y: (f.top + f.bot) / 2 * LH, z, kind: KIND[f.type], fall: true });
   }
   return sources;

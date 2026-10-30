@@ -1,6 +1,7 @@
 // Fluids (burn / dissolve / sink; swimming: game/swim.js), waterfalls, health regeneration and the respawn point.
-import { LH, LAVA, ACID, DIRS } from '../core/constants.js';
+import { N, LH, LAVA, ACID, DIRS } from '../core/constants.js';
 import { floorY } from '../core/surfaces.js';
+import { fallCells, fallShift } from '../core/falls.js';
 import { takeDamage, regenerate } from '../core/progression.js';
 import { player, state } from '../game/state.js';
 import { hurt } from '../game/flow.js';
@@ -27,10 +28,14 @@ function fluids(gr) {
 // The curtain over a hidden cave (cubegen/grotto.js) lets you through.
 function falls(dt, ci) {
   for (const f of state.map.falls) {
-    if (ci !== f.c || f.grotto) continue;
-    const lx = player.x - Math.floor(player.x), lz = player.z - Math.floor(player.z);
-    const dist = [lx, 1 - lx, lz, 1 - lz][f.d], lat = f.d < 2 ? lz : lx;
-    if (dist > 0.45 || lat < 0.06 || lat > 0.94 || player.y > f.top * LH || player.y < f.bot * LH - 0.5) continue;
+    if (f.grotto) continue;
+    const cells = fallCells(f);
+    if (!cells.includes(ci)) continue;
+    const lx = player.x - Math.floor(player.x), lz = player.z - Math.floor(player.z), [sx, sz] = fallShift(f);
+    // out from the cliff, and across from the middle of the curtain (a wide one: two cells)
+    const dist = [lx, 1 - lx, lz, 1 - lz][f.d];
+    const lat = f.d < 2 ? player.z - ((f.c / N) | 0) - 0.5 - sz : player.x - f.c % N - 0.5 - sx;
+    if (dist > 0.45 || Math.abs(lat) > cells.length / 2 - 0.06 || player.y > f.top * LH || player.y < f.bot * LH - 0.5) continue;
     if (f.type === LAVA) { knockDown({ damage: 50, reason: msg('Burned by a lavafall!'), respawn: 'safe' }); return false; }
     if (f.type === ACID) {
       takeDamage(player, 40 * dt, state.time);

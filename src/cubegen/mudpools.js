@@ -9,6 +9,7 @@
 // they did.
 import { N, LH, DIRS, WATER, MUD } from '../core/constants.js';
 import { idx, inb, hash32 } from '../core/util.js';
+import { fallShift } from '../core/falls.js';
 
 // how many of the mud pools have pockets round them, how many (at most), how far out from the pool
 // (cells), how much higher than its surface (levels), how big (radius, cells) and how deep in the
@@ -36,8 +37,8 @@ function bodies(ctx) {
 }
 
 // does a fall pour into (or out of) the body? (within a cell of where it goes over its edge)
-const fed = (ctx, body) => ctx.falls.some(fl => body.some(f => (f.surf === fl.bot || f.surf === fl.top)
-  && Math.abs(f.x - fl.c % N - DIRS[fl.d][0] / 2) <= 1.5 && Math.abs(f.z - ((fl.c / N) | 0) - DIRS[fl.d][1] / 2) <= 1.5));
+const fed = (ctx, body) => ctx.falls.some(fl => { const [sx, sz] = fallShift(fl); return body.some(f => (f.surf === fl.bot || f.surf === fl.top)
+  && Math.abs(f.x - fl.c % N - sx - DIRS[fl.d][0] / 2) <= 1.5 && Math.abs(f.z - ((fl.c / N) | 0) - sz - DIRS[fl.d][1] / 2) <= 1.5); });
 
 // ground for a pocket: dry, plain (no structure on it, no portal, ramp, site or reservation), level,
 // not in the outer ring of cells (shared with the next cube)

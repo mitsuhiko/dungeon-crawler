@@ -9,6 +9,7 @@ import { paletteOf } from './fluidpal.js';
 import { palRow } from '../themes/fluids.js';
 import { cutMaterial } from './section.js';
 import { FALL_WIDTH } from './parts.js';
+import { fallShift } from '../core/falls.js';
 import { camera } from './scene.js';
 
 // What rides on the water where a cartoon fall lands (FLUID_LOOK rides): a crown of foam
@@ -38,7 +39,7 @@ function rides(mat, name, S, style, fragment) {
 // write depth, so the half away from the camera is drawn before the sheets (PART_ORDER.fall,
 // render/partmeshes.js) and the half towards it after them (tickFalls picks which is which).
 // Returns [the cliff's half, the downstream half].
-function foamCrown(cx, y, cz, dx, dz, foam, S, style) {
+function foamCrown(cx, y, cz, dx, dz, width, foam, S, style) {
   const mat = crownMaterial(foam, S, style), down = Math.atan2(dx, dz);
   return [down + Math.PI / 2, down - Math.PI / 2].map(start => {
     // half an open ring, wide across the sheet, shallow out from the cliff; u round the whole
@@ -46,7 +47,7 @@ function foamCrown(cx, y, cz, dx, dz, foam, S, style) {
     const g = new THREE.CylinderGeometry(1, 1, 0.42, 14, 1, true, start, Math.PI).translate(0, 0.21, 0);
     const uv = g.attributes.uv;
     for (let i = 0; i < uv.count; i++) uv.setX(i, (start + uv.getX(i) * Math.PI) / TAU);
-    g.scale(dx ? 0.36 : FALL_WIDTH * 0.62, 1, dx ? FALL_WIDTH * 0.62 : 0.36).translate(cx, y - 0.06, cz);
+    g.scale(dx ? 0.36 : width * 0.62, 1, dx ? width * 0.62 : 0.36).translate(cx, y - 0.06, cz);
     return new THREE.Mesh(g, mat);
   });
 }
@@ -102,15 +103,15 @@ const FLAT_ORDER = 2.5, BACK_ORDER = 2.6;
 export function buildFalls(m, group) {
   const splashes = [], lights = [], crowns = [];
   for (const f of m.falls) {
-    const [dx, dz] = DIRS[f.d], bx = f.c % N, bz = (f.c / N) | 0;
+    const [dx, dz] = DIRS[f.d], bx = f.c % N, bz = (f.c / N) | 0, [sx, sz] = fallShift(f);
     const yTop = restY(f.top * LH) + 0.02, yBot = restY(f.bot * LH) - 0.02, h = yTop - yBot;
-    const ex = dx > 0 ? bx : dx < 0 ? bx + 1 : bx + 0.5, ez = dz > 0 ? bz : dz < 0 ? bz + 1 : bz + 0.5;
+    const ex = (dx > 0 ? bx : dx < 0 ? bx + 1 : bx + 0.5) + sx, ez = (dz > 0 ? bz : dz < 0 ? bz + 1 : bz + 0.5) + sz;
     if (f.out) continue;   // pours out through the bottom of the cube: no splash here
     const L = FLUID_LOOK[f.type], pal = paletteOf(f.pal?.[1] ?? palRow(m.depth ?? 0, f.type, 0)), foam = pal.hex.foam, cells = L.cells;
     if (L.rides) {
       // the pool's surface (render/floors.js fluidVolume) and the foot of the sheet (parts.js)
       const surf = restY(f.bot * LH), cx = ex + dx * 0.32, cz = ez + dz * 0.32;
-      const [cliff, downstream] = foamCrown(cx, surf, cz, dx, dz, foam, cells, L.style), rip = ripples(cx, surf + 0.015, cz, dx, dz, foam, cells, L.style);
+      const [cliff, downstream] = foamCrown(cx, surf, cz, dx, dz, f.width ?? FALL_WIDTH, foam, cells, L.style), rip = ripples(cx, surf + 0.015, cz, dx, dz, foam, cells, L.style);
       rip.renderOrder = FLAT_ORDER;
       crowns.push({ cliff, downstream, cx, cz, dx, dz, front: 10 * f.layer + 5 });
       group.add(cliff, downstream, rip);

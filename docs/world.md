@@ -1077,17 +1077,26 @@ x, y, z, yaw and scale (a string's sheared segments).
 ## Waterfall grottos (`cubegen/grotto.js`)
 
 Behind some tall clear-water falls a small cave is hidden, in the cube itself, with an uncommon
-chest at its back. The only hint is the curtain: it comes down broader than usual (2.2 units
-across instead of 0.9). Nothing else marks it, and the cave is closed all round, so it shows from
-nowhere but through the falling water.
+chest at its back. The only hint is the curtain: its stream is two cells across, the only stream
+that is, and it comes down broader than usual (1.9 units across instead of 0.9). Nothing else marks
+it, and the cave is closed all round, so it shows from nowhere but through the falling water.
 
 - **Which falls:** a stream's water fall (not one into the cube below or across a face) that drops
   at least 7 levels into its own pool, where that pool has a shore somewhere (dry ground level
   with it or a level over it, under the sky: not a pool down a pit). Not in trial rooms, the
   beginning's third room, the town or the guardian arenas. The first fall that fits gets the
-  cave, at most one a cube. Over 4 worlds about nine cubes a world have one.
-- **The cave:** level with the pool, its mouth the cell right behind the curtain; a room of three
-  across behind the mouth, else a passage of two. Over it the rock (or the slab the fall pours
+  cave, at most one a cube. Over 4 worlds about seven cubes a world have one.
+- **The stream two across:** the floors beside the stream on one side (either, `+1` first) are
+  flooded to its surface all along, as a pool is (`cubegen/pools.js`): dry ground of its layer,
+  none of it kept (as below) or on the outer ring, a slab thick enough, walled in all round. Its
+  new lip has to pour clear into the pool beside the fall's cell (water level with it there,
+  nothing in the way of the curtain). A fall that cannot have it gets no cave. The fall is then
+  a wide one (`side`, `core/falls.js`): it pours from both cells, its curtain hangs between them
+  (`render/parts.js`, its foam with it, `render/falls.js`), and everything that knows where a fall
+  comes down (containment, structures, its push, its sound) takes both cells.
+- **The cave:** level with the pool, its mouth right behind the curtain: across both its cells,
+  with a room of two by two or one cell behind; else behind one of them, with a room of three
+  across behind the mouth or a passage of two. Over it the rock (or the slab the fall pours
   off) stays as a roof `ROOF` levels up (`cubegen/tunnel.js`, a `roof` like a tunnel's: the
   cutaway opens it like a slab, `game/cutinfo.js`, and it does not count for its layer's cut
   height). Where the cave lies under an overhang, the slab round it is brought down to the
@@ -1102,19 +1111,20 @@ nowhere but through the falling water.
   its own beside the planned ones (`setting: 'grotto'`, id `<cube>:grotto`), at the back, facing
   the mouth, its approach in the mouth. Its cells are reserved (no props), its floors take no
   enemies (`noSpawn`). Opened chests are kept with the run, so it is opened once. A cave that
-  cannot be got to and back from the portals stays empty, behind a curtain like any other (rare:
-  2 in 39 over 4 worlds).
+  cannot be got to and back from the portals stays empty, behind a curtain like any other but as
+  broad as its stream (rare: 4 in 27 over 4 worlds).
 - **Through the curtain:** a fall's current pushes whoever stands in it out (`physics/hazards.js`);
   this one does not, so you wade or swim through it. A respawn never puts anyone into a cave they
   were not in (`physics/respawn.js`).
 - `map.grotto`: `{ fall (its index in map.falls), cells (the mouth first), site, front }`; `front`
-  is a place in the pool before the curtain, facing it (`swim` where the water is deep).
+  is a place in the pool before the curtain, facing it, not under a bridge (`swim` where the
+  water is deep).
 
 Dev: `/waterfall` makes the cubes after this one in turn (this depth on down, then round from the
 first) until one has a cave, and puts you at its `front`; again: the next one. `?dev=1&seed=99`,
 `/goto 2 3,3` is one. `tests/waterfalls.test.js` checks the cave is closed, flat, roofed and
-level with the pool, the chest reachable, cubes without one unchanged, and click to move gets
-from the pool into it.
+level with the pool, the stream two across with both cells pouring clear into the pool, the chest
+reachable, cubes without one unchanged, and click to move gets from the pool into it.
 
 ## Reward sites (`world/sites.js`, `cubegen/sites.js`)
 

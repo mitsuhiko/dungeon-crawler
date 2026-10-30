@@ -9,6 +9,7 @@ import { GROTTO_WIDTH } from '../src/cubegen/grotto.js';
 import { ROOF } from '../src/cubegen/tunnel.js';
 import { reachTo } from '../src/cubegen/reach.js';
 import { N, DIRS, WATER, CHAR_R, CHAR_H } from '../src/core/constants.js';
+import { fallCells } from '../src/core/falls.js';
 import { chestLoot } from '../src/core/chests.js';
 import { topOf } from '../src/core/surfaces.js';
 import { player } from '../src/game/state.js';
@@ -40,6 +41,8 @@ test('some tall clear-water falls hide a cave, the same every time', () => {
     assert.deepEqual(new World(99).cube(k).map.grotto, m.grotto);
     const fall = m.falls[m.grotto.fall];
     assert.equal(fall.type, WATER); assert.equal(fall.grotto, true); assert.equal(fall.width, GROTTO_WIDTH);
+    assert.ok(Math.abs(fall.side) === 1, 'a wide fall');
+    assert.equal(m.falls.filter(f => f.side).length, 1, 'the only wide one');
     assert.equal(m.falls.filter(f => f.grotto).length, 1, 'one cave a cube');
     assert.equal(m.grotto.site, `${k}:grotto`);
   }
@@ -48,8 +51,8 @@ test('some tall clear-water falls hide a cave, the same every time', () => {
 test('the cave is closed all round but behind the curtain, under a roof, level with the pool', () => {
   for (const { m } of found) {
     const fall = m.falls[m.grotto.fall], F = fall.bot, cells = new Set(m.grotto.cells);
-    const [dx, dz] = DIRS[fall.d], mouth = m.grotto.cells[0];
-    assert.equal(mouth, fall.c - dx - dz * N, 'it opens right behind the curtain');
+    const [dx, dz] = DIRS[fall.d], mouth = m.grotto.cells[0], curtain = fallCells(fall);
+    assert.ok(curtain.some(c => mouth === c - dx - dz * N), 'it opens right behind the curtain');
     for (const c of cells) {
       const floor = m.cols[c].find(f => f.grotto);
       assert.ok(floor && floor.top === F && !floor.fluid && floor.noSpawn);
@@ -58,10 +61,25 @@ test('the cave is closed all round but behind the curtain, under a roof, level w
       assert.ok(roof && roof.bottom === F + ROOF && roof.roof, 'a roof over it, a slab for the cutaway');
       for (const [ex, ez] of DIRS) {
         const n = c + ex + ez * N;
-        if (cells.has(n) || n === fall.c) continue;
+        if (cells.has(n) || curtain.includes(n)) continue;
         assert.ok(m.cols[n].some(f => f.bottom <= F && f.top >= F + ROOF), `rock beside the cave at ${n % N},${(n / N) | 0}`);
       }
     }
+  }
+});
+
+test('its stream is two cells across all along, and both pour clear into the pool', () => {
+  for (const { m } of found) {
+    const fall = m.falls[m.grotto.fall], [dx, dz] = DIRS[fall.d];
+    for (const c of fallCells(fall)) {
+      assert.ok(m.cols[c].some(f => f.fluid === WATER && f.surf === fall.bot), 'into the pool');
+      assert.ok(!m.cols[c].some(f => f.top > fall.bot && f.bottom < fall.top + 1), 'nothing in the way of the curtain');
+      let run = 0;
+      for (let n = c - dx - dz * N; m.cols[n]?.some(f => f.fluid === WATER && f.surf === fall.top); n -= dx + dz * N) run++;
+      assert.ok(run >= 1, 'water at the lip');
+    }
+    const runs = fallCells(fall).map(c => { let k = 0; for (let n = c - dx - dz * N; m.cols[n]?.some(f => f.fluid === WATER && f.surf === fall.top); n -= dx + dz * N) k++; return k; });
+    assert.ok(runs[1] >= runs[0], 'as long beside it as the stream');
   }
 });
 
