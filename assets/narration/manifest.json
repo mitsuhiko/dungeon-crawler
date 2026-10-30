@@ -2143,6 +2143,20 @@
         "dur": 9.66,
         "hash": "95bb96a9b84a6efe"
       },
+      "robot.arena.umbra.suit": {
+        "text": "A diving suit, on a stand. Somebody thought this room would fill with water. Lots of water.",
+        "source": "A diving suit, on a stand. Somebody thought this room would fill with water. Lots of water.",
+        "seed": 0,
+        "dur": 9.03,
+        "hash": "c80d3d9290bcb7e0"
+      },
+      "robot.arena.umbra.door": {
+        "text": "I will wait by the door. Robots and water are not good friends.",
+        "source": "I will wait by the door. Robots and water are not good friends.",
+        "seed": 0,
+        "dur": 5.29,
+        "hash": "223b6eaeab96e82a"
+      },
       "robot.arena.qualmos.grin": {
         "text": "So many tentacles, and it is grinning at us. This is the bottom of everything, and it lives here.",
         "source": "So many tentacles, and it is grinning at us. This is the bottom of everything, and it lives here.",
@@ -2654,6 +2668,83 @@
         "dur": 4.36,
         "hash": "ab4ad204f5561662"
       },
+      "robot.boss.umbra.air": {
+        "text": "Watch your air! The bar under his shows how much is left.",
+        "source": "Watch your air! The bar under his shows how much is left.",
+        "seed": 0,
+        "dur": 3.54,
+        "hash": "ce8f80b5e039f7bf"
+      },
+      "robot.boss.umbra.bite": {
+        "text": "His head is coming down to you! Hit it, then get out of the way.",
+        "source": "His head is coming down to you! Hit it, then get out of the way.",
+        "seed": 1,
+        "dur": 3.93,
+        "hash": "c8e4fe74447f2c45"
+      },
+      "robot.boss.umbra.wave": {
+        "text": "A shockwave! Jump over it, or stand up on a hill.",
+        "source": "A shockwave! Jump over it, or stand up on a hill.",
+        "seed": 0,
+        "dur": 4.26,
+        "hash": "6fa585392ad2cfe5"
+      },
+      "robot.boss.umbra.quake": {
+        "text": "Jump! The ground is shaking! And now he is lying on the bottom, hit him!",
+        "source": "Jump! The ground is shaking! And now he is lying on the bottom, hit him!",
+        "seed": 0,
+        "dur": 6.26,
+        "hash": "886a0996e15d9861"
+      },
+      "robot.boss.umbra.vents": {
+        "text": "The floor is glowing! Volcanoes, under water! Keep away from them.",
+        "source": "The floor is glowing! Volcanoes, under water! Keep away from them.",
+        "seed": 0,
+        "dur": 5.22,
+        "hash": "61c98ff26e7aa889"
+      },
+      "robot.boss.umbra.squirtles": {
+        "text": "Little waves are swimming out of the dark!",
+        "source": "Little waves are swimming out of the dark!",
+        "seed": 0,
+        "dur": 3.26,
+        "hash": "f5f3da33110b4617"
+      },
+      "robot.boss.umbra.jets": {
+        "text": "The pipes are bubbling! Water jets! Get behind a hill!",
+        "source": "The pipes are bubbling! Water jets! Get behind a hill!",
+        "seed": 0,
+        "dur": 4.25,
+        "hash": "c0ce174b8a54f9cd"
+      },
+      "robot.boss.umbra.shield": {
+        "text": "A bubble! Nothing gets through it. Wait, it pops soon.",
+        "source": "A bubble! Nothing gets through it. Wait, it pops soon.",
+        "seed": 0,
+        "dur": 5.11,
+        "hash": "11778469536ab40d"
+      },
+      "robot.boss.umbra.angry": {
+        "text": "He is angry now. Watch the pipes in the walls!",
+        "source": "He is angry now. Watch the pipes in the walls!",
+        "seed": 0,
+        "dur": 3.47,
+        "hash": "c901aca8beeacc10"
+      },
+      "robot.boss.umbra.mud": {
+        "text": "Mud is coming up from the bottom! Get to the high ground!",
+        "source": "Mud is coming up from the bottom! Get to the high ground!",
+        "seed": 0,
+        "dur": 3.82,
+        "hash": "30a5873def5d220d"
+      },
+      "robot.boss.umbra.low": {
+        "text": "Your air is running out! Hurry!",
+        "source": "Your air is running out! Hurry!",
+        "seed": 0,
+        "dur": 2.39,
+        "hash": "29c114aa0904e86b"
+      },
       "robot.boss.qualmos.grab": {
         "text": "An arm! Step back before it grabs you!",
         "source": "An arm! Step back before it grabs you!",
@@ -2864,6 +2955,20 @@
         "dur": 3.23,
         "hash": "9a1346528532182b"
       },
+      "robot.beaten.umbra.breath": {
+        "text": "You did it! And just in time. I could hear you breathing faster and faster.",
+        "source": "You did it! And just in time. I could hear you breathing faster and faster.",
+        "seed": 0,
+        "dur": 7.05,
+        "hash": "bcaac1e2dab9949c"
+      },
+      "robot.beaten.umbra.drain": {
+        "text": "The water is going down. Can I come in now?",
+        "source": "The water is going down. Can I come in now?",
+        "seed": 0,
+        "dur": 3.66,
+        "hash": "5d9906126adfe100"
+      },
       "robot.beaten.qualmos.beat": {
         "text": "We beat it! The thing at the bottom of the world!",
         "source": "We beat it! The thing at the bottom of the world!",
@@ -3010,6 +3115,20 @@
         "seed": 0,
         "dur": 6.64,
         "hash": "1ccefff9cb739b72"
+      },
+      "robot.death.umbra.air": {
+        "text": "It is a race against your air. Hit him every time he comes down to you.",
+        "source": "It is a race against your air. Hit him every time he comes down to you.",
+        "seed": 0,
+        "dur": 5.22,
+        "hash": "ce138e2263086f2d"
+      },
+      "robot.death.umbra.hills": {
+        "text": "Use the hills. From up there you can reach him as he swims by.",
+        "source": "Use the hills. From up there you can reach him as he swims by.",
+        "seed": 0,
+        "dur": 4.46,
+        "hash": "a515fbcd8a33616b"
       },
       "robot.death.qualmos.flop": {
         "text": "When it puffs up, run. After its belly flop it lies still a moment, and that is your chance.",
@@ -5995,6 +6114,20 @@
         "dur": 7,
         "hash": "327c47173ca6c4f0"
       },
+      "robot.arena.umbra.suit": {
+        "text": "Ein Taucheranzug, auf einem Ständer. Da hat jemand gedacht, dass dieser Raum voll Wasser läuft. Viel Wasser.",
+        "source": "Ein Taucheranzug, auf einem Ständer. Da hat jemand gedacht, dass dieser Raum voll Wasser läuft. Viel Wasser.",
+        "seed": 0,
+        "dur": 10.13,
+        "hash": "4251a62d8647fa02"
+      },
+      "robot.arena.umbra.door": {
+        "text": "Ich warte an der Tür. Roboter und Wasser sind keine guten Freunde.",
+        "source": "Ich warte an der Tür. Roboter und Wasser sind keine guten Freunde.",
+        "seed": 0,
+        "dur": 7.9,
+        "hash": "48c12f0e6e7148f4"
+      },
       "robot.arena.qualmos.grin": {
         "text": "So viele Tentakel, und es grinst uns an. Das ist der Grund von allem, und es wohnt hier.",
         "source": "So viele Tentakel, und es grinst uns an. Das ist der Grund von allem, und es wohnt hier.",
@@ -6506,6 +6639,83 @@
         "dur": 4.18,
         "hash": "b2dec9da4eac9e5f"
       },
+      "robot.boss.umbra.air": {
+        "text": "Pass auf deine Luft auf! Der Balken unter seinem zeigt, wie viel noch übrig ist.",
+        "source": "Pass auf deine Luft auf! Der Balken unter seinem zeigt, wie viel noch übrig ist.",
+        "seed": 0,
+        "dur": 6.22,
+        "hash": "af94f35f224d34ee"
+      },
+      "robot.boss.umbra.bite": {
+        "text": "Sein Kopf kommt zu dir herunter! Schlag zu, und dann weg da.",
+        "source": "Sein Kopf kommt zu dir herunter! Schlag zu, und dann weg da.",
+        "seed": 0,
+        "dur": 4.52,
+        "hash": "31b214339fd8cd5d"
+      },
+      "robot.boss.umbra.wave": {
+        "text": "Eine Druckwelle! Spring drüber, oder stell dich auf einen Hügel.",
+        "source": "Eine Druckwelle! Spring drüber, oder stell dich auf einen Hügel.",
+        "seed": 0,
+        "dur": 4.78,
+        "hash": "66bff50f5a1eaa7a"
+      },
+      "robot.boss.umbra.quake": {
+        "text": "Spring! Der Boden bebt! Und jetzt liegt er unten auf dem Grund, schlag zu!",
+        "source": "Spring! Der Boden bebt! Und jetzt liegt er unten auf dem Grund, schlag zu!",
+        "seed": 1,
+        "dur": 6.57,
+        "hash": "9d26171b87f41ad5"
+      },
+      "robot.boss.umbra.vents": {
+        "text": "Der Boden glüht! Feuerberge, unter Wasser! Bleib weg von ihnen.",
+        "source": "Der Boden glüht! Feuerberge, unter Wasser! Bleib weg von ihnen.",
+        "seed": 0,
+        "dur": 5.96,
+        "hash": "6a9e5b19624463b1"
+      },
+      "robot.boss.umbra.squirtles": {
+        "text": "Kleine Wellen schwimmen aus der Dunkelheit!",
+        "source": "Kleine Wellen schwimmen aus der Dunkelheit!",
+        "seed": 0,
+        "dur": 4,
+        "hash": "c8a5d83bebfba19f"
+      },
+      "robot.boss.umbra.jets": {
+        "text": "Die Rohre blubbern! Wasserstrahlen! Schnell hinter einen Hügel!",
+        "source": "Die Rohre blubbern! Wasserstrahlen! Schnell hinter einen Hügel!",
+        "seed": 0,
+        "dur": 5.85,
+        "hash": "296a9a948f4b524d"
+      },
+      "robot.boss.umbra.shield": {
+        "text": "Eine Blase! Da kommt nichts durch. Warte, die platzt gleich.",
+        "source": "Eine Blase! Da kommt nichts durch. Warte, die platzt gleich.",
+        "seed": 0,
+        "dur": 5.94,
+        "hash": "aa0d1525f6b2ab56"
+      },
+      "robot.boss.umbra.angry": {
+        "text": "Jetzt ist er wütend. Pass auf die Rohre in den Wänden auf!",
+        "source": "Jetzt ist er wütend. Pass auf die Rohre in den Wänden auf!",
+        "seed": 0,
+        "dur": 5.59,
+        "hash": "ea77c262345cf57a"
+      },
+      "robot.boss.umbra.mud": {
+        "text": "Vom Grund steigt Schlamm auf! Schnell nach oben!",
+        "source": "Vom Grund steigt Schlamm auf! Schnell nach oben!",
+        "seed": 0,
+        "dur": 3.15,
+        "hash": "75cc80b24b30bf9c"
+      },
+      "robot.boss.umbra.low": {
+        "text": "Dir geht die Luft aus! Beeil dich!",
+        "source": "Dir geht die Luft aus! Beeil dich!",
+        "seed": 0,
+        "dur": 2.94,
+        "hash": "c0e2c4aa5c18e472"
+      },
       "robot.boss.qualmos.grab": {
         "text": "Ein Arm! Geh zurück, bevor er dich packt!",
         "source": "Ein Arm! Geh zurück, bevor er dich packt!",
@@ -6716,6 +6926,20 @@
         "dur": 3.98,
         "hash": "5519b13f92d5e5bb"
       },
+      "robot.beaten.umbra.breath": {
+        "text": "Du hast es geschafft! Und gerade noch rechtzeitig. Ich habe dich immer schneller atmen gehört.",
+        "source": "Du hast es geschafft! Und gerade noch rechtzeitig. Ich habe dich immer schneller atmen gehört.",
+        "seed": 0,
+        "dur": 8.76,
+        "hash": "5490ab121ec99975"
+      },
+      "robot.beaten.umbra.drain": {
+        "text": "Das Wasser geht zurück. Darf ich jetzt reinkommen?",
+        "source": "Das Wasser geht zurück. Darf ich jetzt reinkommen?",
+        "seed": 0,
+        "dur": 3.81,
+        "hash": "405570e241a07547"
+      },
       "robot.beaten.qualmos.beat": {
         "text": "Wir haben es besiegt! Das Ding am Grund der Welt!",
         "source": "Wir haben es besiegt! Das Ding am Grund der Welt!",
@@ -6862,6 +7086,20 @@
         "seed": 0,
         "dur": 10.57,
         "hash": "27340e6a631ef278"
+      },
+      "robot.death.umbra.air": {
+        "text": "Das ist ein Wettlauf gegen deine Luft. Schlag zu, jedes Mal, wenn er zu dir herunterkommt.",
+        "source": "Das ist ein Wettlauf gegen deine Luft. Schlag zu, jedes Mal, wenn er zu dir herunterkommt.",
+        "seed": 0,
+        "dur": 7.29,
+        "hash": "5ee39a3e7a1fd5ad"
+      },
+      "robot.death.umbra.hills": {
+        "text": "Nutze die Hügel. Von da oben erreichst du ihn, wenn er vorbeischwimmt.",
+        "source": "Nutze die Hügel. Von da oben erreichst du ihn, wenn er vorbeischwimmt.",
+        "seed": 0,
+        "dur": 4.74,
+        "hash": "32aeeec3608d1344"
       },
       "robot.death.qualmos.flop": {
         "text": "Wenn es sich aufbläst, lauf. Nach dem Bauchklatscher liegt es einen Moment still, und das ist deine Chance.",

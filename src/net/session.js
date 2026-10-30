@@ -302,7 +302,7 @@ function apart() {
   foes = null;
   relay.hit = relay.afflict = relay.launch = relay.landed = relay.shoot = relay.toss = relay.defeated = relay.visited = null;
   relay.drop = relay.take = relay.forget = relay.chat = relay.news = relay.story = null;
-  relay.trialAct = relay.trialDone = relay.trialStage = null;
+  relay.trialAct = relay.trialDone = relay.trialStage = relay.suit = null;
   relay.quests = relay.questAct = relay.questReward = null;
   settleClaims();   // what we reached for is ours: nobody else is left to have it
   setOthers([]);
@@ -540,6 +540,7 @@ function together() {
   relay.landed = (pr, end) => { const to = hereSlots(); if (to.length) post({ t: 'landed', n: pr.n, end }, to); };
   // a trial room: shown another's, what we do there goes to its owner; resolved, to everyone
   relay.trialAct = a => { if (foes instanceof Viewer) post({ t: 'trialAct', ...a }, foes.runner); };
+  relay.suit = () => { if (foes instanceof Viewer) post({ t: 'suit', cube: state.cubeKey }, foes.runner); };
   relay.trialDone = d => post({ t: 'trial', key: d.key, seed: state.cubes?.seed, phase: 'resolved', time: d.time, gate: d.gate });
   relay.trialStage = d => post({ t: 'trial', key: d.key, seed: state.cubes?.seed, phase: 'idle', time: 0, stage: d.stage });
 }
@@ -599,6 +600,8 @@ function shared(m, p) {
   } else if (m.t === 'trialAct') {
     const a = trialAct(m);
     if (a && foes instanceof Runner && p.here) trialActFrom(a);
+  } else if (m.t === 'suit') {   // a friend took the diving suit in Umbra's reef (game/dive.js): the water rises
+    if (foes instanceof Runner && p.here && m.cube === state.cubeKey) allEnemies().find(e => e.suitUp)?.suitUp();
   }
   else if (m.t === 'arrow') {
     if (!p.here || !['arrow', 'bolt', 'spell', 'lightning'].includes(m.kind) || !Array.isArray(m.at) || m.at.length !== 6 || !finite(...m.at)

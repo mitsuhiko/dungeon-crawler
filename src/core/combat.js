@@ -218,12 +218,15 @@ export function softTarget(p, enemies, yaw = p.yaw, visible = () => true, extra 
 // enemy is poised for profile.poise s: lighter hits hurt it but do not stagger it again, so it
 // can strike back (enemy.staggered says which it was). stagger: false for damage that only
 // hurts (burning, poison ticks; core/status.js). A boss's own rules (core/gusto.js) bend this:
+// a body that passes for another (`host`: Umbra's along his body) takes nothing itself, its host does;
 // nothing hurts an enemy while it is `shield`ed (s), no blow takes it below its `hpFloor`, and
 // any hit at all fells a `proxy`. Nothing staggers an enemy in the `steady` part of an attack
 // (Totnar rolling, core/enemies.js steadyNow), nor a `steadfast` one (Squarlo a giant), and
 // nothing hurts one in a `ward`ed one (Squarlo calling the tide, wardedNow).
 // learn: combat.html#damage #stagger-code (see learn/README.md)
 export function damageEnemy(enemy, amount, stagger = true) {
+  // (a body that passes for another, along his body: Umbra's, game/umbra.js; the blow is his)
+  if (enemy.host) return !absent(enemy) && damageEnemy(enemy.host, amount, stagger);
   if (absent(enemy) || enemy.shield > 0 || wardedNow(enemy)) return false;
   if (enemy.proxy) amount = enemy.hp;
   enemy.hp = Math.max(Math.min(enemy.hpFloor ?? 0, enemy.hp), enemy.hp - amount);

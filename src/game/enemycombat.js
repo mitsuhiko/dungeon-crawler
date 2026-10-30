@@ -152,7 +152,7 @@ function pushPlayer(dx, dz) {
 export function contactEnemies(list, dt, moveEnemies = true) {
   const p = player;
   for (const e of list) {
-    if (absent(e) || airborne(e) || p.ragdoll || p.held || p.rescue || p.flipping || p.engulfed?.e === e) continue;
+    if (absent(e) || airborne(e) || e.profile.intangible || p.ragdoll || p.held || p.rescue || p.flipping || p.engulfed?.e === e) continue;
     const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz), body = p.r + e.profile.radius;
     if (d >= body || p.y >= e.y + e.profile.bodyHeight || p.y + p.h <= e.y) continue;
     const nx = d ? dx / d : 1, nz = d ? dz / d : 0, depth = body - d;
@@ -163,7 +163,7 @@ export function contactEnemies(list, dt, moveEnemies = true) {
   if (!moveEnemies) return;
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     const a = list[i], b = list[j];
-    if (absent(a) || absent(b) || airborne(a) || airborne(b) || Math.abs(a.y - b.y) > 0.6) continue;
+    if (absent(a) || absent(b) || airborne(a) || airborne(b) || a.profile.intangible || b.profile.intangible || Math.abs(a.y - b.y) > 0.6) continue;
     const dx = a.x - b.x, dz = a.z - b.z, d = Math.hypot(dx, dz), r = a.profile.radius + b.profile.radius;
     if (d >= r) continue;
     const nx = d ? dx / d : 1, nz = d ? dz / d : 0, push = Math.min(r - d, dt * 1.5);

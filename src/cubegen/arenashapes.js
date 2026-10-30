@@ -513,4 +513,51 @@ function stage(fr) {
   s.marks = { axis: [dx, dz], U: fr.U, E: fr.E, center: lerp(fr.E, fr.U, 0.5) };
   return settle(s, fr);
 }
-export const BOSS_SHAPES = { tidal, bowl, stage, mire };
+// 13. Reef (Umbra's): the bottom of a sea, flooded once the fight starts (game/dive.js): a deep
+// basin `low` levels under the doorways, and hills rising out of it, each to its own height
+// (`tops`, levels over the doorways), the highest a spire with a broad flat top (`spire`), their
+// slopes a level a cell (walked up and down, never climbed), so the hills run into each other in
+// ridges and saddles. A bank of scenery all round the cube. His body swims over the hilltops at the
+// height of a hero on them (core/umbra.js swimSpots), and his mud rises from the bottom in steps
+// that leave the higher ground dry (UMBRA_FIGHT.mud). The water stands `surface` levels over the
+// doorways, far over everything. marks.hills: { x, z, r, top (levels over the doorways) }.
+export const REEF = { low: -3, bank: 5, tops: [2, 3, 4], spire: 5, spireR: 1.3, r: [0.6, 1.1], apart: 3, clear: 2.2, surface: 14 };
+function reef(fr) {
+  const { R } = fr, s = blank(), hills = [];
+  const bank = (x, z) => x === 1 || z === 1 || x === N - 2 || z === N - 2;
+  const far = (x, z, [px, pz], d) => Math.hypot(x - px - 0.5, z - pz - 0.5) >= d;
+  // (a hill keeps off the doorways' and his flat pads; where its slopes would come down to them
+  // steeper than a level a cell, it is shaved down towards them: relax)
+  const fits = (x, z, r, apart, top) => hills.every(h => Math.hypot(h.x - x, h.z - z) >= apart + (h.r + r) * 0.5)
+    && [fr.E, fr.U, fr.G].every(p => far(x, z, p, REEF.clear + Math.min(2, top * 0.3) + r));
+  // the spire, near the middle; then the other hills round it, each its own height
+  for (let i = 0; i < 400 && !hills.length; i++) {
+    const x = 4 + R() * (N - 8), z = 4 + R() * (N - 8);
+    if (fits(x, z, REEF.spireR, 0, REEF.spire)) hills.push({ x, z, r: REEF.spireR, top: REEF.spire, spire: true });
+  }
+  const tops = [...REEF.tops].sort(() => R() - 0.5);
+  for (let i = 0; i < 600 && hills.length < 1 + tops.length; i++) {
+    const x = 3 + R() * (N - 6), z = 3 + R() * (N - 6), r = REEF.r[0] + R() * (REEF.r[1] - REEF.r[0]);
+    if (fits(x, z, r, REEF.apart, tops[hills.length - 1])) hills.push({ x, z, r, top: tops[hills.length - 1] });
+  }
+  const active = new Uint8Array(N * N), fixed = new Uint8Array(N * N);
+  each((x, z, c) => {
+    if (bank(x, z) && !fr.flat[c]) { s.rel[c] = REEF.bank; s.crisp[c] = 1; return; }
+    s.zone[c] = 1; active[c] = 1;
+    // the highest of the hills here: its top, a level lower each cell out from it
+    let rel = REEF.low;
+    for (const h of hills) {
+      const d = Math.hypot(x + 0.5 - h.x, z + 0.5 - h.z) - h.r;
+      rel = Math.max(rel, d <= 0 ? h.top : h.top - Math.ceil(d));
+    }
+    s.rel[c] = rel;
+  });
+  finish(s, fr, REEF.low, REEF.spire);
+  each((x, z, c) => { if (fr.flat[c]) fixed[c] = 1; });
+  relax(s.rel, active, fixed);
+  s.marks.peaks = hills.map(h => idx(Math.floor(h.x), Math.floor(h.z)));
+  s.marks.hills = hills;
+  s.min = 0;   // (the basin may sink lower than other arenas' floors)
+  return s;
+}
+export const BOSS_SHAPES = { tidal, bowl, stage, mire, reef };

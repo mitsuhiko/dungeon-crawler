@@ -399,6 +399,21 @@ export function dressArena(arena) {
       faces(.25, .35, [...swamp.wall, ...pal.wall], [...swamp.lip, ...pal.lip]);
       break;
     }
+    case 'reef': {
+      // Umbra's reef: nothing that blocks (a long body swims down onto it, his mud comes and goes,
+      // the volcanoes break open anywhere): the bottom of the sea, sand and sea glass over the deep,
+      // the theme's cover and small things on the hills, kelp, coral, clams and anemones (the sets
+      // he brings, BOSS_ARENAS `props`) all over, a coral head or a clam on each hilltop
+      const deep = f => f.top < fr.level - 1, basin = zone.filter(deep), sea = PALETTES.grotto;
+      const loose2 = list => list.filter(n => variantsOf(n).every(v => !propMetadata.get(v).blocking));
+      cover(basin, .7, [...sea.cover, ...sea.cover, ...L('lagoon', 'shell_scatter sand_ripples')]);
+      cover(zone.filter(f => !deep(f)), .7, [...pal.cover, ...sea.cover]);
+      scatter(open, loose(10), [...loose2(sea.small), ...loose2(sea.tree), ...smallProps(arena.props ?? [], 0.6)]);
+      scatter(open.filter(f => !deep(f)), loose(5), loose2(pal.small));
+      for (const m of (shape.marks.peaks || []).slice(0, 5)) put(floors[m], loose2([...sea.small, sea.ritual]), { center: true });
+      faces(.3, .4, [...sea.wall, ...pal.wall], [...sea.lip, ...pal.lip]);
+      break;
+    }
     case 'stage': {
       // Mansk's museum: nothing on the stage but footlights along its edge and a spotlight at
       // each front corner turned on it; things on show round the hall's walls on pedestals and in

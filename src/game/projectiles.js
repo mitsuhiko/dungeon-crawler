@@ -8,6 +8,7 @@
 // A held one (Mansk's balls of light, game/mansk.js) first hangs where its thrower holds it, and is
 // only thrown (and sent to the others) once let go; one that `blast`s bursts where it ends, hurting
 // everyone round it (core/projectiles.js inBlast).
+import { waterDrag } from './dive.js';
 import { player } from './state.js';
 import { party, alive } from './party.js';
 import { insideSolid } from '../physics/collide.js';
@@ -92,7 +93,8 @@ export function updateProjectiles(dt) {
       if (pr.hold > 0) return true;
       letGo(pr);
     }
-    const end = stepProjectile(pr, dt, pr.mirror ? null : pr.only ? targets.filter(b => b === pr.only) : targets, solid);
+    // (slower through the water of Umbra's reef: game/dive.js)
+    const end = stepProjectile(pr, dt * waterDrag(pr.x, pr.y, pr.z), pr.mirror ? null : pr.only ? targets.filter(b => b === pr.only) : targets, solid);
     if (!end) return true;
     if (end === 'hit') {
       const l = Math.hypot(pr.vx, pr.vz) || 1;

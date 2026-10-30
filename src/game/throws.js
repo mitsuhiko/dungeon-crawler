@@ -5,6 +5,7 @@
 // (render/throws.js). Nothing here hurts the player. Travel and level
 // resets clear them all. Playing together, the friend's flasks fly and burst here too (`ghost`),
 // but what they do to the enemies is the friend's to do.
+import { waterDrag } from './dive.js';
 import { player, state, view, setStatus } from './state.js';
 import { insideSolid, groundAt } from '../physics/collide.js';
 import { clearLine } from '../physics/enemynav.js';
@@ -101,7 +102,7 @@ function burst(f, enemies) {
 export function updateThrows(dt, enemies) {
   if (state.inventoryOpen || state.transitioning) return;
   if (flasks.length) flasks = flasks.filter(f => {
-    const end = stepFlask(f, dt, enemies, solid);
+    const end = stepFlask(f, dt * waterDrag(f.x, f.y, f.z), enemies, solid);   // (slower through Umbra's water: game/dive.js)
     f.spin += dt * 9;
     if (!end) return true;
     if (end !== 'lost') burst(f, enemies);

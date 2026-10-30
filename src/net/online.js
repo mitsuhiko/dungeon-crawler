@@ -56,6 +56,8 @@ export const playerColor = slot => PLAYER_COLORS[slot] ?? PLAYER_COLORS[0];
 // and the beginning (game/intro.js, core/intro.js STORY_NEWS):
 //   story(what)                               the glass found, the sword taken, his glass on the road found:
 //                                             the gate opens and the recording plays for everyone
+// and Umbra's reef (game/dive.js):
+//   suit()                                    shown another's Umbra: we took the diving suit (the water rises)
 export const relay = { hit: null, afflict: null, launch: null, landed: null, shoot: null, toss: null, defeated: null, visited: null,
   drop: null, take: null, forget: null, chat: null, news: null, quests: null, questAct: null, questReward: null,
-  trialAct: null, trialDone: null, trialStage: null, story: null };
+  trialAct: null, trialDone: null, trialStage: null, story: null, suit: null };

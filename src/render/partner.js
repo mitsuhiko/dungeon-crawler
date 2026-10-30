@@ -5,6 +5,8 @@
 // small light, and their name, level and health over the head, in their painted skin (over
 // the tint, as our own: render/character.js setCharacterSkin; net/session.js fetches it).
 // capturePose() is the other half: our own character's pose, to send.
+import { partnerSuit } from './divesuit.js';
+import { diveTinted } from './underwater.js';
 import * as THREE from 'three';
 import { loadGLB } from './gltf.js';
 import { CHAR_H } from '../core/constants.js';
@@ -172,6 +174,8 @@ export function showPartner(slot, span, name, where = null) {
     updateHeld(fig.weapon.held, IDLE, null, dt);
   }
   setWorn(fig, wornOf(b.worn));
+  if (!far) partnerSuit(fig.f, at.x, at.y, at.z);   // (in the diving suit under Umbra's water: render/divesuit.js)
+  if (!far) fig.f.model.traverse(o => { if (o.isMesh && o.renderOrder >= 1000) [].concat(o.material).forEach(diveTinted); });
   animateWorn(fig.f, performance.now() / 1000, slot);   // (rare armor shines)
   setFarLook(fig.group, far ? where : null);   // (what they wear and hold too)
   fig.group.visible = fig.tag.visible = true;

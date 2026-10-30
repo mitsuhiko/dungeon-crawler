@@ -12,6 +12,7 @@ import { pushStep, pushControl } from '../core/gusts.js';
 import { surfaceAt, mireOf } from '../core/footing.js';
 import { themeById } from '../themes/depth.js';
 import { swimWater, waterAt, wading } from './fluid.js';
+import { DIVE } from '../core/umbra.js';
 
 // how much faster the boots worn make you (not swimming)
 const feet = p => p.swimming ? 0 : wornTotals(p.inventory).moveSpeed / 100;
@@ -32,8 +33,9 @@ function horizontal(dt, dx, dz, run) {
   // an ice ball's chill or a slowing slows every way of moving (core/status.js moveFactor), a
   // swiftness potion quickens it (core/potions.js), and so do light boots (core/gear/stats.js),
   // wading the more the deeper the water (physics/hazards.js), and slime holds the feet (mired)
+  // (on the bottom of Umbra's reef in the diving suit, game/dive.js: slower through the water)
   const speed = (p.swimming ? SWIM_SPEED : run ? RUN_SPEED : WALK_SPEED) * moveFactor(p) * mired(p)
-    * (1 + effectMod(p, 'moveSpeed') + feet(p)) * (1 - WADE_SLOW * Math.min(1, (p.wade || 0) / HEAD_Y));
+    * (1 + effectMod(p, 'moveSpeed') + feet(p)) * (1 - WADE_SLOW * Math.min(1, (p.wade || 0) / HEAD_Y)) * (p.diving ? DIVE.walk : 1);
   let tx = dx * speed, tz = dz * speed;
   if (p.grounded && !p.swimming && p.support) {
     const [gx, gz] = slopeAt(p.support, p.x, p.z), g = Math.hypot(gx, gz);
@@ -51,8 +53,8 @@ function horizontal(dt, dx, dz, run) {
     const [ux, uz] = want > 1e-6 ? [tx / want, tz / want] : cur > 1e-6 ? [p.vx / cur, p.vz / cur] : [0, 0];
     p.vx = ux * s; p.vz = uz * s;
   } else {
-    // swimming is sluggish, in the air there is only a little control
-    const k = Math.min(1, (p.swimming ? 5 : 2.5) * dt);
+    // swimming is sluggish, in the air there is only a little control (a little more under water)
+    const k = Math.min(1, (p.swimming ? 5 : p.diving ? DIVE.control : 2.5) * dt);
     p.vx += (tx - p.vx) * k; p.vz += (tz - p.vz) * k;
   }
 
@@ -83,7 +85,7 @@ function jumping(dt, jump) {
   if (p.jumpBuf <= 0 || !(p.coyote > 0 || p.swimming)) return;
   // a leaping potion: that share higher (the height goes with the square of the speed)
   const boost = Math.sqrt(1 + effectMod(p, 'jump'));
-  p.vy = p.swimming ? 4.8 : JUMP_V * boost;
+  p.vy = p.swimming ? 4.8 : JUMP_V * boost * (p.diving ? DIVE.jump : 1);
   // jumping while moving is a leap: enough speed to clear a one-cell gap (more with a potion);
   // held at a brink (physics/brink.js), where walking stopped the body, the way pushed
   const s = Math.hypot(p.vx, p.vz), leap = LEAP * (1 + effectMod(p, 'moveSpeed') + feet(p));
@@ -189,7 +191,7 @@ export function movePlayer(dt, dx, dz, run, jump, own = false) {
     if (p.grounded && p.vy <= 0 && gr.h >= p.y - SNAP) {
       p.y = gr.h; p.vy = 0;
     } else {
-      p.vy -= GRAV * dt;
+      p.vy -= GRAV * (p.diving ? DIVE.gravity : 1) * dt;
       let ny = p.y + p.vy * dt;
       if (p.vy > 0) {   // bump the head
         const c = ceilingAt(p.x, p.z, p.y + 0.1);

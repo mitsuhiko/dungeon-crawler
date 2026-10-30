@@ -28,6 +28,7 @@
 //
 // Playing together everyone sees everyone's robot: ours goes along in our `me` (robotWord), and
 // the others' are drawn here as their games fly them (showOtherRobot, render/robot.js).
+import { robotPark } from './dive.js';
 import * as THREE from 'three';
 import { robotMet, robotLies, newWay, noteWay, stepWay, wayPoint, wayEnd, shortcut, beside, JUMP, WAKE, WAKE_REACH, HELLO_AFTER } from '../core/robot.js';
 import { CHAR_R, CHAR_H } from '../core/constants.js';
@@ -248,6 +249,9 @@ export function updateRobot(dt) {
   }
   // its place, eased (across a side: into that cube's coordinates; over a jump, or far: there at once)
   const p = wayPoint(w), near = bodies(), want = avoid(place(p, dt), p.k, near), at = robot.at;
+  // (Umbra's reef under water: it waits in the entrance, outside the water, game/dive.js)
+  const parked = robotPark();
+  if (parked && want.k === state.cubeKey) Object.assign(want, parked);
   const o = beside(at.k, want.k);
   if (o) { at.x += o[0]; at.y += o[1]; at.z += o[2]; at.k = want.k; }
   const was = { x: at.x, z: at.z };

@@ -14,7 +14,7 @@ import { rockTint } from '../themes/surfaces.js';
 import { createContext } from './context.js';
 import { groundHeights } from './ground.js';
 import { placePortals } from './portals.js';
-import { SHAPES, BOSS_SHAPES, TIDAL, BOWL, STAGE, MIRE } from './arenashapes.js';
+import { SHAPES, BOSS_SHAPES, TIDAL, BOWL, STAGE, MIRE, REEF } from './arenashapes.js';
 import { dressArena } from './arenaprops.js';
 import { BOSS_ARENAS } from '../core/bosses.js';
 import { flipArena } from './fliparena.js';
@@ -308,5 +308,32 @@ export function generateGuardian(spec) {
       // through as water, drawn as mud (`look`); his fight adds to it and the world's tilt leans it
       : arena.type === 'mire' ? { rest: level + MIRE.low + MIRE.mud, high: level + MIRE.low + MIRE.mud, fluid: WATER, look: MUD,
         box: [2, 2, N - 2, N - 2], mud: true } : null,
+    // Umbra's reef (game/dive.js, core/umbra.js): dry until the fight starts, then flooded up to
+    // `surface` (world units) inside `box`; `low`: its lowest floor; his hills (core/umbra.js
+    // swimSpots: their tops in world units); the diving suit's stand beside the entrance and the
+    // entrance (where the robot waits while the water is in)
+    more: arena.type === 'reef' ? { dive: reefDive(arena.shape, floors, level, entrance, entry.dir, guardFloor, dress.blocked) } : {},
     fences, fenceList, placements: dress.placements, blockers: dress.blockers });
+}
+
+// Umbra's reef, as his fight wants it (map.dive; game/dive.js): the lowest floor of its fight and its
+// surface (world units), the box the water stands in, his hills, the suit's stand (in the middle of
+// the room: on the flat floor of the fight nearest it, off his spot) and the entrance (where the robot
+// waits)
+function reefDive(shape, floors, level, entrance, dir, guard, blocked) {
+  const zone = floors.filter(f => f.encounter), low = Math.min(...zone.map(f => f.top));
+  const flat = f => !f.kind && [[0, 0], [1, 0], [0, 1], [1, 1]].every(([a, b]) => Math.abs(floorY(f, a, b) - floorY(f, .5, .5)) < 1e-6);
+  const free = f => !blocked?.has(f.c) && Math.hypot(f.x - guard.x, f.z - guard.z) > 1.5;
+  const mid = (N - 1) / 2, near = f => Math.hypot(f.x - mid, f.z - mid);
+  // (a flat one if there is one near; on a slope it stands a little askew)
+  const cost = f => near(f) + (flat(f) ? 0 : 1.5);
+  const st = zone.filter(free).sort((a, b) => cost(a) - cost(b))[0] ?? zone[0];
+  const ax = entrance.x + 0.5, az = entrance.z + 0.5;
+  return {
+    low: low * LH, surface: (level + REEF.surface) * LH, box: [1, 1, N - 1, N - 1],
+    hills: shape.marks.hills.map(h => ({ x: h.x, z: h.z, r: h.r, top: (level + h.top) * LH, spire: !!h.spire })),
+    // (facing the way in)
+    stand: { x: st.x + 0.5, y: floorY(st, .5, .5), z: st.z + 0.5, yaw: Math.atan2(ax - st.x - 0.5, az - st.z - 0.5) },
+    door: { dir, x: ax, y: level * LH, z: az },
+  };
 }

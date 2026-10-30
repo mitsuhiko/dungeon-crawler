@@ -39,6 +39,7 @@
 // creature looks at them once it has noticed them (or they come close), stands with each foot on
 // the ground under it (stairs, slopes, ledges), and a claw or a fist reaches for them round its
 // hit; dying, all that lets go.
+import { diveTinted } from './underwater.js';
 import * as THREE from 'three';
 import { scene, camera } from './scene.js';
 import { spiderModel } from './spidermodel.js';
@@ -70,6 +71,8 @@ import { manskModel } from './manskmodel.js';
 import { monteurModel } from './monteurmodel.js';
 import { sollmeldonModel } from './sollmeldonmodel.js';
 import { makeSollmeldonLook, sollmeldonClips, sollmeldonLook } from './sollmeldonview.js';
+import { umbraModel } from './umbramodel.js';
+import { makeUmbraLook, umbraLook, disposeUmbraLook } from './umbraview.js';
 import { makeMonteurLook, monteurLook } from './monteurview.js';
 import { qualmosModel } from './qualmosmodel.js';
 import { mooseModel } from './moosemodel.js';
@@ -109,7 +112,7 @@ import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
 const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
-  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, sollmeldon: sollmeldonModel, qualmos: qualmosModel, moose: mooseModel };
+  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, sollmeldon: sollmeldonModel, umbra: umbraModel, qualmos: qualmosModel, moose: mooseModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
 export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.load()));
 // light: [color, intensity, distance, height]; pulse: emissive / light swing with the
@@ -139,6 +142,8 @@ const GLOW = {
   monteur: { light: [0xff8a3a, 1.2, 4, 2.3], flare: 0.8 },
   // Sollmeldon's cat's eyes glow beige-yellow out of his black mud; they flare up to a bite
   sollmeldon: { light: [0xe8d49a, 1.3, 4.5, 2.6], flare: 0.9 },
+  // Umbra's glowing eyes and markings light the dark water round his head, flaring to a strike
+  umbra: { light: [0x7ae8ff, 2.6, 5.5, 0.5], flare: 0.5 },
 };
 const EMBERS = ['#ffd25a', '#ff8a2a', '#ff5a14'];
 const GHOST = 0xff6a5a, GHOST_OPACITY = 0.4;
@@ -637,6 +642,7 @@ function makeView(e, prefab) {
   group.add(model); scene.add(group);
   group.userData.figure = true;   // (casts into the realtime shadow maps as the quality level asks: render/shadows.js)
   material.transparent = true;   // fades out once dead
+  diveTinted(material);   // (tinted under Umbra's water like the ground: render/underwater.js; nothing elsewhere)
   const gloom = e.profile.gloom;
   const named = roles => new Set((roles ?? []).flatMap(role => e.profile.parts?.[role] ?? [role]));
   const gloomy = named(gloom?.parts), finish = e.profile.finish, polished = named(finish?.parts);
@@ -690,6 +696,7 @@ function makeView(e, prefab) {
     fog: e.profile.species === 'foggery' ? makeFoggeryLook(model, group) : null, slomo: e.profile.species === 'slomo' ? makeSlomoLook(model) : null,
     mansk: e.profile.species === 'mansk' ? makeManskLook(model) : null, monteur: e.profile.species === 'monteur' ? makeMonteurLook(model) : null, moose: e.profile.species === 'moose',
     sollmeldon: e.profile.species === 'sollmeldon' ? makeSollmeldonLook(model) : null,
+    umbra: e.profile.species === 'umbra' ? makeUmbraLook(model, group, mesh) : null,
     qualmos: e.profile.species === 'qualmos' ? makeQualmosLook(group) : null, rig: makeRig(model, RIGS[e.profile.species]) };
 }
 // IK over the clips (render/ik.js): looking at the hero, feet on the ground, a reach round the hit.
@@ -780,6 +787,7 @@ function dying(v, e, dt, off) {
   restoreRig(v.rig);
   v.mixer.update(0);
   if (v.sollmeldon) sollmeldonLook(v, e, dt, off);
+  if (v.umbra) umbraLook(v, e, dt, off);
   spinWheels(v, e, dt); turnWaves(v, e, dt); spinRings(v, e, dt); thunder(v, e); wetTrail(v, e, dt, off);
   shedParts(v, e); tumble(v, e, dt);
   if (v.fog) foggeryLook(v, e, dt);
@@ -803,6 +811,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     if (isFlimmer(e)) { animateFlimmers([e], dt, off); continue; }   // (a figure of its own, render/flimmerview.js)
     if (isSquirtle(e)) { animateSquirtles([e], dt, off); continue; }   // (drawn as its fluid, render/squirtleview.js)
     if (isFigure(e)) { animateFigures([e], dt, off); continue; }   // (Renew: a figure, render/renewview.js)
+    if (e.profile.viewless) continue;   // (the bodies along Umbra's body: his view is all of him, render/umbraview.js)
     const prefab = prefabs[e.profile.species];
     if (!prefab?.ready) { prefab?.load(); continue; }   // not loaded before (a friend's, a dev spawn): shown once it is
     if (!e.view) {
@@ -884,6 +893,7 @@ export function animateEnemies(list, dt, off = ZERO) {
     restoreRig(v.rig);
     v.mixer.update(0);
     if (v.sollmeldon) sollmeldonLook(v, e, dt, off);
+    if (v.umbra) umbraLook(v, e, dt, off);   // (his spine along the way his head went: render/umbraview.js)
     spinWheels(v, e, dt); turnWaves(v, e, dt); spinRings(v, e, dt); thunder(v, e); wetTrail(v, e, dt, off); flail(v, e, 1);
     poseEnemy(v, e, dt, off, true);
     prints(e, off);
@@ -958,6 +968,7 @@ export function removeEnemyViews(list) {
     if (v.fog) disposeFoggeryLook(v.fog);
     if (v.mansk) disposeManskLook(v.mansk);
     if (v.qualmos) disposeQualmosLook(v.qualmos);
+    if (v.umbra) disposeUmbraLook(v);
     v.mixer.stopAllAction(); v.mixer.uncacheRoot(v.model);
     v.material.dispose(); v.shell?.material.dispose();
     v.ghost.dispose();

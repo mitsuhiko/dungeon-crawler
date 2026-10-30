@@ -18,6 +18,7 @@
 // A chained shader edit (after the cut's, the wind's and the wet one's). water: the cube's
 // uniforms (render/wet.js waterUniforms: per cell its own fluid, and the standing one); top: a
 // prop's (instanced) top in its model's units.
+import * as THREE from 'three';
 import { N, WATER, ACID } from '../core/constants.js';
 import { CELLS } from './watercells.js';
 import { PAL_GLSL, PAL_TEX } from './fluidpal.js';
@@ -32,6 +33,11 @@ const SHIFT = 0.07, DEEP = 1.2;
 const CAUSTIC = { scale: 1.9, glow: 1.6, fade: 0.55, soft: 0.03, blur: 0.05 };
 // (uniforms, to compare and tune them live: 0 turns either off)
 export const UNDERWATER = { shift: { value: SHIFT }, glow: { value: CAUSTIC.glow } };
+// Umbra's reef under water (render/dive.js sets them, game/dive.js): its surface (cube units), his
+// mud's level (phase 3; far down: none), whether the water is in (0..1), and the box it stands in.
+// Everything under its surface is tinted the deep water's teal, the deeper the more, with the light
+// the waves gather playing on it however deep it lies; under the mud it is the mud's dark brown.
+export const DIVE = { water: { value: new THREE.Vector4(-1e4, -1e4, 0, 0) }, box: { value: new THREE.Vector4(0, 0, 0, 0) } };
 // where the sunlight through the surface comes from, per unit of depth (render/scene.js sun:
 // from (-12, 34, 8), bent down in the water)
 const SUN = [-0.257, 0.171];
@@ -45,6 +51,7 @@ const COMMON = `
   uniform vec2 uUwStandKind;
   uniform vec4 uUwTide;
   uniform float uUwTime, uUwShift, uUwGlow;
+  uniform vec4 uUwDive, uUwDiveBox;
   bool uwClear(float kind) { return abs(kind - ${WATER}.0) < 0.5 || abs(kind - ${ACID}.0) < 0.5; }
   vec4 uwCell(vec2 q) { return texelFetch(uUwFixed, clamp(ivec2(floor(q)), ivec2(0), ivec2(${N - 1})), 0); }
 `;
@@ -80,7 +87,7 @@ export function underwaterMaterial(mat, water, top = null) {
   const compile = mat.onBeforeCompile, key = mat.customProgramCacheKey();
   const uniforms = { uUwFixed: water.fixed, uUwStand: water.stand, uUwBox: water.box, uUwStandKind: water.standKind,
     uUwTide: FIXED_TIDE, uUwTime: WIND, uUwShift: UNDERWATER.shift, uUwGlow: UNDERWATER.glow, uUwCells: CELLS.water.tex, uPalTex: PAL_TEX,
-    uUwTop: { value: top ?? 0 } };
+    uUwTop: { value: top ?? 0 }, uUwDive: DIVE.water, uUwDiveBox: DIVE.box };
   const tile = (CELLS.water.tile / CELLS.water.perUnit / CAUSTIC.scale).toFixed(4);
   mat.onBeforeCompile = (sh, r) => {
     compile?.call(mat, sh, r);
@@ -123,9 +130,47 @@ export function underwaterMaterial(mat, water, top = null) {
           float k = smoothstep(0.5 - w, 0.5 + w, c) * smoothstep(0.0, 0.08, d) * exp(-${CAUSTIC.fade.toFixed(3)} * d) * (0.35 + 0.65 * max(n.y, 0.0));
           uwLight = diffuseColor.rgb * palColor(vec2(row), 0.0, 2) * k * uUwGlow;
         }
+        // Umbra's reef under water: the deep teal over it, the light playing on it; his mud under it
+        if (uUwDive.z > 0.0 && all(greaterThan(vUwP.xz, uUwDiveBox.xy)) && all(lessThan(vUwP.xz, uUwDiveBox.zw)) && vUwP.y < uUwDive.x) {
+          float dd = uUwDive.x - vUwP.y;
+          vec2 dp = (vUwP.xz + n.xz * vUwP.y + vec2(${SUN[0]}, ${SUN[1]}) * dd * 0.3) / (${tile} * 1.4);
+          float dc = texture2D(uUwCells, dp + vec2(uUwTime * 0.02, -uUwTime * 0.015), 1.5).r;
+          float dk = smoothstep(0.45, 0.7, dc) * (0.3 + 0.7 * max(n.y, 0.0)) * uUwDive.z * exp(-0.12 * dd);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.05, 0.2, 0.26), clamp(0.25 + dd * 0.05, 0.0, 0.6) * uUwDive.z);
+          uwLight += diffuseColor.rgb * vec3(0.45, 0.95, 1.05) * dk * 0.35;
+          if (vUwP.y < uUwDive.y) {
+            float md = clamp((uUwDive.y - vUwP.y) * 2.0, 0.0, 1.0);
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.07, 0.055, 0.04), 0.55 + 0.35 * md);
+            uwLight *= 0.2;
+          }
+        }
       }`).replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       totalEmissiveRadiance += uwLight;`);
   };
   mat.customProgramCacheKey = () => key + '-uw';
+  return mat;
+}
+
+// Umbra's reef under water for what moves in it (the heroes, what they wear, the enemies: render/dive.js
+// tints them, render/enemies.js): the same deep teal as the ground under the water (`DIVE`), the
+// deeper the more, dark brown under his mud. A chained shader edit like the others; idempotent.
+export function diveTinted(mat) {
+  if (!mat || mat.userData.diveTinted || mat.depthFunc === THREE.GreaterDepth || !(mat.isMeshStandardMaterial || mat.isMeshLambertMaterial || mat.isMeshPhongMaterial || mat.isMeshBasicMaterial)) return mat;
+  mat.userData.diveTinted = true;
+  const compile = mat.onBeforeCompile, key = mat.customProgramCacheKey.bind(mat);
+  mat.onBeforeCompile = (sh, r) => {
+    compile?.call(mat, sh, r);
+    Object.assign(sh.uniforms, { uDvWater: DIVE.water, uDvBox: DIVE.box });
+    sh.vertexShader = 'varying vec3 vDvP;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
+      vDvP = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+    sh.fragmentShader = 'varying vec3 vDvP;\nuniform vec4 uDvWater, uDvBox;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      if (uDvWater.z > 0.0 && all(greaterThan(vDvP.xz, uDvBox.xy)) && all(lessThan(vDvP.xz, uDvBox.zw)) && vDvP.y < uDvWater.x) {
+        float dvD = uDvWater.x - vDvP.y;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.05, 0.2, 0.26), clamp(0.2 + dvD * 0.04, 0.0, 0.5) * uDvWater.z);
+        if (vDvP.y < uDvWater.y) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.07, 0.055, 0.04), 0.7);
+      }`);
+  };
+  mat.customProgramCacheKey = () => key() + '-dive';
+  mat.needsUpdate = true;
   return mat;
 }

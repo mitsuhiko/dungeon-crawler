@@ -609,6 +609,72 @@ const slomo = {
   },
 };
 
+// --- Umbra: two pale eyes in the wall, him bursting straight out of it, the roar --------------------
+
+const SEA_GLOW = ['#e8fbff', '#bfefff', '#7ae8ff'], RUBBLE = ['#5a544c', '#3e3a35', '#7a7268'];
+// where his head is at t: in the wall (his fight put him there, game/umbra.js emerge) till he bursts
+// out, then straight out of it towards his spot, rising to the height of a hero there, and on a
+// little, curving round to face the hero
+function umbraAt(r, t) {
+  const { at } = r, D = r.data, w = D.from, k = smooth((t - at.out[0]) / (at.out[1] - at.out[0]));
+  const s = D.reach * k, bend = Math.sin(k * Math.PI) * 0.8;
+  return { x: w.x + w.nx * s - w.nz * bend, y: w.y + (D.top - w.y) * k, z: w.z + w.nz * s + w.nx * bend };
+}
+const umbra = {
+  seen: r => r.e,
+  where: (r, t) => umbraAt(r, t),
+  start(r) {
+    const { e } = r;
+    // (the shots are framed round his spot, not the wall he comes out of)
+    Object.assign(r.spot, e.post);
+    const nx = Math.sin(e.yaw), nz = Math.cos(e.yaw), reach = Math.max(2, Math.hypot(e.post.x - e.x, e.post.z - e.z) - 0.5);
+    r.data.from = { x: e.x, y: e.y, z: e.z, nx, nz };
+    r.data.reach = reach; r.data.top = e.post.y + 0.6;
+    Object.assign(e, { veil: undefined, ...umbraAt(r, 0) });
+  },
+  step(r, t, dt) {
+    const { e, at } = r, D = r.data, w = D.from, p = umbraAt(r, t), q = umbraAt(r, t + 0.05);
+    e.x = p.x; e.y = p.y; e.z = p.z;
+    e.yaw = t < at.out[1] - 0.3 ? Math.atan2(q.x - p.x || w.nx * 1e-3, q.z - p.z || w.nz * 1e-3)
+      : e.yaw + Math.atan2(Math.sin(facing(e, player) - e.yaw), Math.cos(facing(e, player) - e.yaw)) * Math.min(1, dt * 3);
+    e.speed = t >= at.out[0] && t < at.out[1] ? 3 : 0.3;
+    // the wall rumbling, two pale eyes looking out of it
+    const lit = clamp01((t - at.eyes) / 0.8) * (t < at.out[0] + 0.2 ? 1 : 0);
+    if (lit > 0) {
+      const sx = -w.nz * 0.3, sz = w.nx * 0.3;
+      showEyes([[w.x + w.nx * 0.08 + sx, w.y + 0.62, w.z + w.nz * 0.08 + sz], [w.x + w.nx * 0.08 - sx, w.y + 0.62, w.z + w.nz * 0.08 - sz]], 0.45,
+        lit * (0.8 + 0.2 * Math.sin(t * 13)), '#d8fbff');
+    } else showEyes([[0, 0, 0], [0, 0, 0]], 0, 0);
+    if (t >= at.eyes && t < at.out[0]) quake(0.004 + 0.012 * smooth((t - at.eyes) / (at.out[0] - at.eyes)));
+    if (once(D, 'eyes', t, at.eyes)) sfx('rumble', { at: w, pitch: 0.35, volume: 0.9 });
+    // bursting out of it: rock and bubbles flying, the wall shaking
+    if (once(D, 'out', t, at.out[0])) {
+      sfx('thud', { at: w, pitch: 0.4, volume: 1 }); sfx('gulp', { at: w, pitch: 0.35, volume: 0.8 }); quake(0.035);
+      for (let i = 0; i < 40; i++) {
+        const sp = rand(1, 3.5), u = rand(-0.7, 0.7);
+        emit(soft, w.x, w.y + rand(0.2, 0.9), w.z, { v: [w.nx * sp - w.nz * u * 2, rand(-0.5, 1.5), w.nz * sp + w.nx * u * 2], life: rand(0.5, 1.1),
+          size: rand(0.05, 0.12), color: (i % 2 ? RUBBLE : SEA_GLOW)[i % 3], alpha: 0.85, drag: 1.4, gravity: i % 2 ? 4 : -0.5 });
+      }
+    }
+    if (t >= at.out[0] && t < at.out[1]) bubbleFx(e.x, e.y + 0.3, e.z, 0.5, dt, 25, SEA_GLOW);
+    // and the roar: his jaw wide, the frills spread, a ring of bubbles bursting out
+    e.pose = t >= at.roar && t < at.release ? { clip: 'wave', t: Math.min(1.6, 0.5 + t - at.roar) } : null;
+    if (once(D, 'roar', t, at.roar)) {
+      roar(e, 0.5); quake(0.03);
+      for (let i = 0; i < 50; i++) {
+        const a = rand(0, Math.PI * 2);
+        emit(soft, e.x, e.y + 0.6, e.z, { v: [Math.cos(a) * rand(2, 4), rand(-0.5, 1.5), Math.sin(a) * rand(2, 4)], life: rand(0.6, 1.2), size: rand(0.04, 0.09),
+          color: SEA_GLOW[i % 3], alpha: 0.8, drag: 1.8, gravity: -0.5 });
+      }
+    }
+  },
+  end(r) {
+    const { e } = r;
+    Object.assign(e, { pose: null, veil: undefined });
+    hideIntroFx();
+  },
+};
+
 // --- Qualmos: rising out of his lagoon at the end of the world, a leap, a slam, the roar ----------
 
 const DEEP = ['#ffffff', '#d8f4ff', '#8fd6e8', '#4aa8c0'], ABYSS = ['#73ffe0', '#2fd6b0', '#e0fff6'];
@@ -843,4 +909,4 @@ const sollmeldon = {
   },
 };
 
-export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, sollmeldon, qualmos };
+export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, sollmeldon, umbra, qualmos };

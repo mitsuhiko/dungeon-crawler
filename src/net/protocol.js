@@ -57,6 +57,8 @@
 //                                      second while it runs, to one just in); resolved: to all, with
 //                                      its gate, opened for everyone
 //   trialAct { key, act, id? }         viewer -> runner: I stepped off the pad ('away'), used a part
+// And Umbra's reef (game/dive.js):
+//   suit { cube }                      viewer -> runner: I took the diving suit (the water rises)
 // A painted skin (core/skin.js) is a PNG too big for one message: who sees a new `skin` id in a
 // `me` asks its wearer for it, and gets it in pieces (SKIN_PIECE base64 characters each):
 //   skinWant { id }                    to the wearer: send me skin `id`
@@ -103,13 +105,13 @@ import { RARITY } from '../core/gear/rarities.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
-export const PROTOCOL = 18;
+export const PROTOCOL = 19;
 
 export const MAX_PLAYERS = 4;
 // what the host passes on from one guest to the others
 export const RELAYED = new Set(['me', 'visited', 'faces', 'defeated', 'roster', 'foes', 'want', 'handover',
   'hit', 'afflict', 'hurt', 'shot', 'landed', 'arrow', 'flask', 'drop', 'take', 'forget', 'chat', 'news', 'quest', 'skinWant', 'skin',
-  'trial', 'trialAct', 'story']);
+  'trial', 'trialAct', 'story', 'suit']);
 // is a message addressed `to` (undefined: everyone) for player `slot`?
 export const isFor = (to, slot) => to === undefined || to === slot || Array.isArray(to) && to.includes(slot);
 // a valid `to` from a guest: a slot, a list of slots, or none (everyone)
@@ -296,7 +298,8 @@ export function rosterOf(list, cube, seed) {
 // holes: [n, x, y, z, t, life] each, game/flip.js), and for Foggery two more: 0 and foggeryRow, and
 // for Renew three more: 0, 0 and renewRow, and for Slomo four more: 0, 0, 0 and slomoRow (his flood
 // is his tide), and for Mansk five more: 0, 0, 0, 0 and manskRow, and for Monteur six more: 0, 0, 0,
-// 0, 0 and monteurRow, and for Sollmeldon seven more: 0, 0, 0, 0, 0, 0 and sollmeldonRow
+// 0, 0 and monteurRow, and for Sollmeldon seven more: 0, 0, 0, 0, 0, 0 and sollmeldonRow, and for Umbra eight
+// more: seven 0 and umbraRow
 const beamRow = b => [r2(b.t), r2(b.ex), r2(b.ey), r2(b.ez)];
 const flipRow = e => [e.orient ?? 0, e.turns ?? 0, (e.holes ?? []).map(h => [h.n, r2(h.x), r2(h.y), r2(h.z), r2(h.t), h.life])];
 // Foggery's: [eyes ([left, right]: 0 thrown .. 1 grown back), guard (1 while his shield holds), the
@@ -325,6 +328,17 @@ const monteurRow = e => [r2(e.stones ?? 5), e.quarter ?? 0, mountainRow(e.mounta
 // z, vol, r] each)] (game/sollmeldon.js; every game tips its own view after it, game/tilt.js, and
 // runs its own mud, pouring each drop in once, game/mud.js)
 const sollmeldonRow = e => [e.heads ?? 7, e.cutting ?? -1, r2(e.lift ?? 0), (e.tilt ?? [0, 0]).map(v => Math.round(v * 1000) / 1000), e.drops ?? []];
+// Umbra's: [water (the reef's phase: its index in DIVE_PHASES), its clock (s into that phase), the air's
+// clock (s of air used since his fight started; -1: not yet), shield (s left of it), mud (its level,
+// world units; null: none), vents ([n, x, y, z, t] each), jets (the volley running: [i, t, list], each
+// jet [0, side, u, y] from a wall or [1, x, z, floor] from above; 0: none), the wall he is still coming
+// out of ([nx, nz, d]; 0: none)] (game/umbra.js; every game
+// floods its own reef after it and draws his volcanoes and jets, game/dive.js, render/dive.js)
+export const DIVE_PHASES = ['dry', 'suit', 'flood', 'wet', 'drain', 'over'];
+const jetRow = j => j.kind === 'down' ? [1, r2(j.x), r2(j.z), r2(j.floor ?? 0)] : [0, j.side, r2(j.u), r2(j.y ?? 0)];
+const umbraRow = e => [Math.max(0, DIVE_PHASES.indexOf(e.dive.phase)), r2(e.dive.t), Number.isFinite(e.fightT) ? r2(e.fightT) : -1, r2(e.shield ?? 0),
+  Number.isFinite(e.mudY) ? r2(e.mudY) : null, (e.vents ?? []).map(v => [v.n, r2(v.x), r2(v.y), r2(v.z), r2(v.t)]),
+  e.jets ? [e.jets.i, r2(e.jets.t), e.jets.list.map(jetRow)] : 0, e.clipWall ? e.clipWall.map(r2) : 0];
 export function rowOf(e, i, runner = 0) {
   const b = e.beam;
   return [i, r2(e.x), r2(e.y), r2(e.z), r2(e.yaw), Math.max(0, MODES.indexOf(e.mode)), r2(e.mode === 'dead' ? e.deadT : e.t),
@@ -334,6 +348,7 @@ export function rowOf(e, i, runner = 0) {
       : e.boss === 'renew' && e.clock !== undefined ? [0, 0, renewRow(e)] : e.boss === 'slomo' && e.arms !== undefined ? [0, 0, 0, slomoRow(e)]
       : e.boss === 'mansk' && e.lift !== undefined ? [0, 0, 0, 0, manskRow(e)]
       : e.boss === 'monteur' && e.stones !== undefined ? [0, 0, 0, 0, 0, monteurRow(e)]
-      : e.boss === 'sollmeldon' && e.heads !== undefined ? [0, 0, 0, 0, 0, 0, sollmeldonRow(e)] : []];
+      : e.boss === 'sollmeldon' && e.heads !== undefined ? [0, 0, 0, 0, 0, 0, sollmeldonRow(e)]
+      : e.boss === 'umbra' && e.dive ? [0, 0, 0, 0, 0, 0, 0, umbraRow(e)] : []];
 }
 

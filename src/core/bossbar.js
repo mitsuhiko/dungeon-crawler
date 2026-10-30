@@ -12,11 +12,12 @@ import { guardianTitle } from './guardians.js';
 export const bossBarred = e => !!e?.guardian && e.guardianRole === 'descent';
 
 // the boss whose bar shows, among `enemies`, for a hero at `at` ({ x, z }): one alive and not a
-// proxy (Gusto vanished, `gone`, is still him); of several (dev spawns) the nearest. null: none.
+// proxy (Gusto vanished, `gone`, is still him), nor a body passing for him (`host`: Umbra's); of several (dev
+// spawns) the nearest. null: none.
 export function bossOf(enemies, at) {
   let boss = null, best = Infinity;
   for (const e of enemies) {
-    if (!bossBarred(e) || e.proxy || e.mode === 'dead' || !(e.hp > 0)) continue;
+    if (!bossBarred(e) || e.proxy || e.host || e.profile?.viewless || e.mode === 'dead' || !(e.hp > 0)) continue;
     const d = Math.hypot(e.x - at.x, e.z - at.z);
     if (d < best) { best = d; boss = e; }
   }

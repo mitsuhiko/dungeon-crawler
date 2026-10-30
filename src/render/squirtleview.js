@@ -58,7 +58,7 @@ function palIn(e, wet) {
 // fluid), else like the first it lives in.
 function makeView(e, prefab) {
   const wet = fluidAround(e.profile, e.x, e.y, e.z), own = wet && e.profile.dwells?.includes(wet.fluid) ? wet : null;
-  const fluid = own?.fluid ?? e.profile.dwells?.[0] ?? WATER, size = e.profile.size ?? 1;
+  const fluid = own?.fluid ?? e.profile.drawn ?? e.profile.dwells?.[0] ?? WATER, size = e.profile.size ?? 1;   // (`drawn`: Umbra's Murk squirtles, of his mud)
   const { model, mesh, material: plain, parts } = dressEnemy(prefab, e.profile);
   const material = mesh.material = squirtleMaterial(fluid, parts);   // (its eyes in its kind's colours)
   plain.dispose();

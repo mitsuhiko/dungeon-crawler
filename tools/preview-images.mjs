@@ -44,6 +44,7 @@ export const IMAGES = {
   'mansk-preview.png': ['docs/img/model-mansk.jpg'],
   'monteur-preview.png': ['docs/img/model-monteur.jpg'],
   'sollmeldon-preview.png': ['docs/img/model-sollmeldon.jpg'],
+  'umbra-preview.png': ['docs/img/model-umbra.jpg'],
   'loadout-bow-front.png': ['docs/img/loadout-bow.jpg'],
   'loadout-sword-front.png': ['docs/img/loadout-sword.jpg'],
   'loadout-crossbow-front.png': ['docs/img/loadout-crossbow.jpg'],

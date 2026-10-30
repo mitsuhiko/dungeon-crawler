@@ -215,6 +215,10 @@ Mansk's Tornados (`STAGE_TORNADO`, ×0.6 health, ×0.55 damage) are `plain` mini
 Monteur's Moose (`MONT_MOOSE`, ×0.6 health, ×0.55 damage) are `plain` minions too.
 Sollmeldon's Mud squirtles (`MUD_SQUIRTLE`, ×1.1 health, ×0.8 damage, 1.15×) live in his mud and
 are drawn as its goop (`render/goop.js`), with eyes of `ochre.pale`; their spit slows.
+Umbra's Deep squirtles (`DEEP_SQUIRTLE`, ×0.9 health, ×0.7 damage, 0.85×, `frost.deep` with eyes of
+`frost.glow`) live in no fluid: they swim free through the water of his reef (`free`), bobbing over
+the bottom, and spit; they do not leap. His Murk squirtles (`MURK_SQUIRTLE`, `ochre.deep`) are the
+same of his mud (drawn as it: `drawn`), their spit slowing.
 Foggery's Fire-faces and Fire-cats are
 `plain` minions: they look like and are called what they are (×0.6 health and damage, the cats ×0.8
 health); both are `lavaproof`: they walk on his lava.

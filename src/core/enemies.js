@@ -1272,6 +1272,52 @@ export const SOLLMELDON_ONE = {
   ...SOLLMELDON, type: 'sollmeldonone', chase: 1.4, cooldown: 1,
   ...FAST_BITES[1], attacks: [...FAST_BITES, SOLLMELDON_SPIT, SOLLMELDON_SUMMON, SOLLMELDON_RAIN], phase: 3,
 };
+// Umbra, the long sea snake in the middle of act III (depth 16, core/bosses.js; blender/umbra.py): a
+// shadow of a snake with glowing markings, swimming through his flooded reef (cubegen/arenashapes.js
+// `reef`). game/umbra.js runs his fight (his attacks are its own: it swims him and starts them, the
+// shared enemy AI never moves him), core/umbra.js holds its rules. His body is a trail of where his
+// head went (core/umbra.js bodyAt), and blows reach it where it is (the bodies that pass for him
+// along it, UMBRA_BODY). His clips move his jaw, his fins and his eyes; his spine is where the game
+// puts it (render/umbraview.js). Three phases, a third of his health each (UMBRA, UMBRA_TWO,
+// UMBRA_THREE): each brings attacks of its own (core/umbra.js barred) and he is quicker.
+const umbraMove = (name, attackTime, hitAt, more = {}) => ({
+  name, clip: name, weight: 0, reach: 2.3, hitAt, trackUntil: Math.max(0.1, hitAt - 0.25), attackTime, hitReach: 1.15,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Umbra', ...more,
+});
+const UMBRA_ATTACKS = [
+  // (his head darts at you: game/umbra.js lunges it along, core/umbra.js UMBRA_FIGHT.bite)
+  umbraMove('bite', 1.25, 0.72, { weight: 3, power: 1, knock: 4.5, hop: 3, reason: 'Bitten by Umbra!' }),
+  // a ring running out over the floor from under his head (game/quakes.js): jump it, or be higher
+  umbraMove('wave', 1.7, 1.0, { weight: 2, reach: 9, wave: { speed: 6, reach: 7.5, width: 0.9, rise: 0.45, power: 0.55, knock: 6, hop: 3 } }),
+  // down onto the bottom, slamming it: the earth quakes (game/umbra.js), and he lies there exposed
+  umbraMove('quake', 1.5 + 2.4, 1.1, { exposed: { from: 1.3, until: 1.3 + 2.4, damage: 1.5 }, reason: 'Umbra' }),
+  // volcanoes break open in the floor (game/umbra.js): a lava bomb's power, a column's
+  umbraMove('vents', 1.6, 0.95, { power: 0.5, reason: "Burnt by Umbra's volcano!" }),
+  umbraMove('summon', 1.6, 0.95, { summon: { kind: 'deepsquirtle', muzzle: [0, 0, 0.9] } }),
+  // the jets (phase 2 on): he calls them from up high, then they come in volleys (game/umbra.js)
+  umbraMove('jets', 1.7, 1.1, { power: 0.55, reason: "Hit by Umbra's jet!" }),
+  umbraMove('shield', 1.0, 0.6),
+  // between phases (`weight` 0: only game/umbra.js starts it), nothing hurting him (`ward`)
+  umbraMove('rage', 2.6, 1.9, { ward: true }),
+];
+export const UMBRA = {
+  type: 'umbra', species: 'umbra', label: 'Umbra', hp: 1650, damage: 27, knock: 4,
+  xp: 900, coins: [230, 400],
+  // (his head: the body he is hit by is all of him, UMBRA_BODY)
+  radius: 0.45, height: 0.9, bodyHeight: 0.84, mass: 30, swims: true, intangible: true,
+  aggro: 16, giveUp: 30, chase: 2.3, wander: 0.5, homeSpeed: 1,
+  ...UMBRA_ATTACKS[0], cooldown: 1.4, attacks: UMBRA_ATTACKS, phase: 1,
+  ichor: ['#7ae8ff', '#163a52'], pitch: 0.5,
+  poise: 2, hitStun: 0.2, deathTime: 3, corpseTime: 6, steadfast: true,
+  parts: { skin: ['UmbraSkin'], belly: ['UmbraBelly'], fins: ['UmbraFins'], marks: ['UmbraMarks_glow'], eyes: ['UmbraEyes_glow'] },
+  light: '#7ae8ff', sparks: ['#e8fbff', '#7ae8ff', '#2a6a8a'],
+  style: 'brute', guardian: true, guardianRole: 'descent', boss: 'umbra',
+  seedSalt: 0x0b7a51, spacing: 6,
+};
+// ... phase 2 (two thirds of his health to a third): quicker, the jets and his shield
+export const UMBRA_TWO = { ...UMBRA, type: 'umbratwo', chase: 2.6, cooldown: 1.2, phase: 2 };
+// ... phase 3 (a third to death): quicker still, the mud
+export const UMBRA_THREE = { ...UMBRA, type: 'umbrathree', chase: 2.9, cooldown: 1.05, phase: 3 };
 // Qualmos, the boss at the core of the world (depth 20, core/bosses.js; after a child's drawing,
 // built, animated and exported by blender/qualmos.py): a slender blue-green
 // amphibian on six tentacles, with spines and a toothy grin. He waits alone in the core's last cube,
@@ -1348,7 +1394,7 @@ export const QUALMOS_STAGES = Object.freeze([1, 2, 3, 4, 5].map(phase => {
   return phase === 1 ? QUALMOS : { ...QUALMOS, phase, damage: QUALMOS.damage * (1 + P.damage * k), chase: QUALMOS.chase * (1 + P.chase * k),
     cooldown: QUALMOS.cooldown * rest, attacks: QUALMOS.attacks.map(a => a.recover ? { ...a, recover: a.recover * rest } : a) };
 }));
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, SOLLMELDON, QUALMOS];
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, SOLLMELDON, UMBRA, QUALMOS];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp
@@ -1710,7 +1756,7 @@ export const SQUARLO_GIANT = enemyKind(SQUARLO, {
 // the runner sends, net/foes.js)
 export const STAGE_PROFILES = { squarlo: [SQUARLO, SQUARLO_GIANT], foggery: [FOGGERY, FOGGERY_BALL, FOGGERY_BALL],
   renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS],
-  monteur: [MONTEUR, MONTEUR_SUN], sollmeldon: [SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE], qualmos: QUALMOS_STAGES };
+  monteur: [MONTEUR, MONTEUR_SUN], sollmeldon: [SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE], umbra: [UMBRA, UMBRA_TWO, UMBRA_THREE], qualmos: QUALMOS_STAGES };
 // One full attack and recovery, averaged over a species' attacks (s), and what it deals per
 // second at level 1 (a projectile's burn included): how dangerous it is to stand next to.
 export function attackCycle(profile) {
@@ -1906,6 +1952,35 @@ export const MUD_SQUIRTLE = enemyKind(SQUIRTLE, {
   aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05), puff: { colors: ['#5a4e43', '#2a231d', '#17130f'], size: 0.5 },
   mods: { hp: 1.1, damage: 0.8, size: 1.15, xp: 0.2 },
 });
+// Umbra's squirtles (game/umbra.js): Squirtles of the deep, living waves swimming free through the
+// water of his reef (no fluid of their own to live in: `free`, they swim over the bottom, bobbing,
+// `lift`), with his glowing eyes; they spit, they do not leap. In his third phase they are of his mud
+// (drawn as it: `drawn`), their spit slowing.
+const DEEP_SPIT = { kind: 'water', radius: 0.2, push: 1.6, pushTime: 0.15 };
+export const DEEP_SQUIRTLE = enemyKind(SQUIRTLE, {
+  type: 'deepsquirtle', label: 'Deep squirtle', reason: 'Splashed by a Deep squirtle!', minion: true, dwells: undefined, free: true, burrow: undefined,
+  attacks: [{ ...SQUIRTLE_SPIT, reason: 'Splashed by a Deep squirtle!', reach: 6, projectile: { ...SQUIRTLE.projectile, ...DEEP_SPIT } }],
+  projectile: { ...SQUIRTLE.projectile, ...DEEP_SPIT }, trail: null,
+  colors: paints({ body: 'frost.deep', eyes: 'frost.glow' }), ichor: ['#a8e4ff', '#163a52'],
+  aggro: 14, giveUp: 20, coins: [0, 0], drops: MINION_DROPS(0.05), puff: { colors: ['#e8fbff', '#a8e6f0', '#5fc4d8'], size: 0.5 },
+  mods: { hp: 0.9, damage: 0.7, size: 0.85, xp: 0.2 },
+});
+const MURK_SPIT = { kind: 'water', radius: 0.21, push: 0, pushTime: 0, slow: { time: 1.8, slow: 0.65, source: 'mud' } };
+export const MURK_SQUIRTLE = enemyKind(DEEP_SQUIRTLE, {
+  type: 'murksquirtle', label: 'Murk squirtle', reason: 'Splattered by a Murk squirtle!', drawn: MUD,
+  attacks: [{ ...SQUIRTLE_SPIT, reason: 'Splattered by a Murk squirtle!', reach: 6, projectile: { ...SQUIRTLE.projectile, ...MURK_SPIT } }],
+  projectile: { ...SQUIRTLE.projectile, ...MURK_SPIT },
+  colors: paints({ body: 'ochre.deep', eyes: 'frost.glow' }), ichor: ['#5a4e43', '#17130f'], puff: { colors: ['#5a4e43', '#2a231d', '#17130f'], size: 0.5 },
+  mods: { hp: 1, damage: 1, size: 1, xp: 1 },
+});
+// The bodies that pass for Umbra along his body (game/umbra.js puts them where it is, core/umbra.js
+// bodyParts): a blade or a shot that reaches one hits him (their health is his, core/combat.js
+// damageEnemy); nothing bumps into them (`intangible`), they have no view (`viewless`) and no bar of
+// their own.
+export const UMBRA_BODY = {
+  ...UMBRA, type: 'umbrabody', plain: true, viewless: true, attacks: undefined, minion: true, xp: 0, coins: [0, 0], guardian: false,
+  drops: { weapons: false, potion: 0 },
+};
 // Mansk's Tornados (game/mansk.js): plain ones, weaker, going for the player at once; they turn up
 // (and go) in a puff of wind
 export const STAGE_TORNADO = enemyKind(TORNADO, {
@@ -1916,7 +1991,8 @@ export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.valu
   GLOOM_SPIDER, REDBACK, FROST_STUNDER, STONE_STUNDER, MAGMA_STUNDER, BOG_OCTONAUT, CORAL_OCTONAUT, EMERALD_TRIANGLE, CRIMSON_TRIANGLE, FIRE_SHRAPS,
   BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, LAVA_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
   NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, FROST_MOOSE, BOG_MOOSE, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
-  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE, MUD_SQUIRTLE].map(k => [k.type, k]));
+  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE, MUD_SQUIRTLE,
+  DEEP_SQUIRTLE, MURK_SQUIRTLE, UMBRA_BODY].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
 // like the dead
@@ -1946,8 +2022,9 @@ export function exposedBy(e) {
   return x && e.t >= (x.from ?? 0) && e.t < x.until ? x.damage : 1;
 }
 // the share of a blow's damage that e takes now: exposed, more (exposedBy); else its `armour`
-// (Squarlo a giant: less), or all of it
+// (Squarlo a giant: less), or all of it. A body that passes for another (Umbra's, `host`): his.
 export function hurtBy(e) {
+  if (e.host) e = e.host;
   const x = exposedBy(e);
   return x > 1 ? x : e.profile.armour ?? 1;
 }

@@ -13,7 +13,7 @@ export const EPITHETS = Object.freeze({
   gusto: msg('The Hungry Grin'), totnar: msg('The Ember in the Brambles'), squarlo: msg('Small Lord of the Tides'),
   flip: msg('Who Turns the World'), foggery: msg('Lord of the Lava'), renew: msg('The Echo of Time'),
   mansk: msg('The Hollow Mask'), monteur: msg('The Stone That Walks'), sollmeldon: msg('The Three-Headed Mire'), slomo: msg('King of the Slime'),
-  qualmos: msg('At the End of the World'), temp: msg('Keeper of the Well'),
+  umbra: msg('The Drowned Coil'), qualmos: msg('At the End of the World'), temp: msg('Keeper of the Well'),
 });
 export const epithetOf = e => EPITHETS[e?.boss] ?? EPITHETS.temp;
 
@@ -198,6 +198,22 @@ export const INTROS = Object.freeze({
       { t: 4.9, cam: ['spot', -5.2, 0.7, 0.55], look: ['boss', 0, 0, 0.7], fov: 44 },
       { t: 6.0, cam: ['spot', -5.6, -0.4, 0.35], look: ['boss', 0, 0, 0.85], fov: 46, roll: 3, ease: 'out' },
       { t: 7.4, cam: ['spot', -5.8, -1.2, 0.5], look: ['boss', 0, 0, 0.75], fov: 40, roll: 0 }] },
+  // Umbra: his reef has just flooded, the hero in the diving suit on its bottom. The light goes; the
+  // wall nearest his spot rumbles, two pale eyes open in it, and he bursts straight out of it in a
+  // spray of rock and bubbles, his body pouring out of the wall after him (what is still in it not
+  // drawn: game/umbra.js emerge), towards his spot, rising to the height of a hero there, curving
+  // round to them, and roars (his shockwave's clip), a ring of bubbles bursting out of his jaws, as the
+  // light comes back. The camera low and wide over his spot, closing in for the roar
+  umbra: { reveal: 'umbra', length: 8.4, hold: 8.1, walk: 1.0, letterbox: [0.3, 8.1], name: [5.9, 7.9], bar: 8.0,
+    blend: [0.6, 2.0, 7.9], shake: 0.012, dim: { at: [0.3, 1.8, 6.0, 7.2], to: 0.6 }, fires: null,
+    at: { eyes: 1.2, out: [2.6, 5.4], roar: 5.8, release: 7.3 },
+    // (he is a long body with a small head: his shots are given far out, shotScale goes by his head)
+    shots: [{ ...OPEN, look: ['spot', 0, 0, 0.6] },
+      { t: 2.0, cam: ['spot', -9.0, 3.2, 1.2], look: ['spot', 0, 0, 1.2], fov: 52 },
+      { t: 4.4, cam: ['spot', -8.4, -2.6, 0.8], look: ['boss', 0, 0, 0.6], fov: 54, ease: 'linear' },
+      { t: 5.6, cam: ['spot', -7.4, 1.0, 1.0], look: ['boss', 0, 0, 0.7], fov: 50 },
+      { t: 6.4, cam: ['spot', -6.0, 0.4, 0.9], look: ['boss', 0, 0, 0.75], fov: 46, ease: 'out' },
+      { t: 7.9, cam: ['spot', -7.0, -1.0, 1.1], look: ['boss', 0, 0, 0.7], fov: 44 }] },
   // Qualmos, the last of them: it goes dark and the braziers die down, and the ground starts to
   // rumble, more and more; bubbles come up in his lagoon (`start`), it starts to turn, a
   // whirlpool, and two sea-green eyes light up under it. He rises up out of it, slow, the water

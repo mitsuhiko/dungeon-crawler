@@ -288,6 +288,18 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         for (let i = 0; i < 6; i++) noise(t + 0.3 + i * 0.22, 0.12, filter('bandpass', (300 + 120 * i) * p, 3, amp(t + 0.3 + i * 0.22, 0.005, 0.3, 0.1, out)));
       },
     },
+    umbra: {   // the long sea snake: a deep hiss rising out of the water into a moaning whale's call, bubbling; a long sinking groan
+      alert: (t, out, p) => {
+        noise(t, 0.5, filter('bandpass', 900 * p, 1.5, amp(t, 0.05, 0.3, 0.4, out)));
+        bend(t + 0.2, 1.4, 60 * p, 140 * p, 75 * p, 380 * p, 0.34, out);
+        gloops(t + 0.4, 10, 120 * p, 320 * p, 0.06, 0.16, out, true);
+      },
+      windup: (t, out, p) => { noise(t, 0.35, filter('bandpass', 1300 * p, 2, amp(t, 0.04, 0.3, 0.28, out))); bend(t + 0.05, 0.4, 70 * p, 105 * p, 85 * p, 360 * p, 0.28, out); },
+      death: (t, out, p) => {
+        bend(t, 2.4, 110 * p, 70 * p, 30 * p, 340 * p, 0.38, out);
+        gloops(t + 0.6, 22, 80 * p, 260 * p, 0.08, 0.22, out, true);
+      },
+    },
     sollmeldon: {   // the three-headed mud dinosaur: three throats roaring at once (a low chord), a wet hiss and growl, three groans sinking into gurgling mud
       alert: (t, out, p) => {
         for (const [k, at] of [[1, 0], [1.26, 0.06], [1.5, 0.12]]) bend(t + at, 0.8, 75 * p * k, 125 * p * k, 70 * p * k, 450 * p, 0.32, out);

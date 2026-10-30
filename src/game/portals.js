@@ -15,6 +15,7 @@ import { takeTownPortal } from './townportal.js';
 import { checkDoors } from './doors.js';
 import { checkHandover } from './handover.js';
 import { sealedOut } from './trials.js';
+import { diveSealed } from './dive.js';
 import { SEALED_MESSAGE } from '../core/trials.js';
 import { tr } from '../i18n/i18n.js';
 
@@ -63,6 +64,11 @@ export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge
   if (state.boundaryLock >= 0 && faceDistance(player, state.boundaryLock) > player.r + 0.25) state.boundaryLock = -1;
   // a trial room while its event runs (game/trials.js): nothing takes you out (but the balance's way back)
   const sealed = sealedOut();
+  // Umbra's reef under water (game/dive.js): no way out
+  if (diveSealed()) {
+    if (approachingAny(dx, dz)) setStatus(tr('There is no way out under water'));
+    return checkDoors(dx, dz);
+  }
   // the town's seams: walked across, the tile beyond takes over (game/handover.js)
   if (checkHandover()) return true;
   // open side faces take you across anywhere along them, whether they ever had a gate or not
@@ -101,3 +107,5 @@ export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge
   }
   return false;
 }
+// steering out over any open side face (under Umbra's water: it says so)
+const approachingAny = (dx, dz) => [0, 1, 2, 3].some(d => isFaceOpen(state.openedFaces, state.cubeKey, d) && approachingFace(player, d, dx, dz));

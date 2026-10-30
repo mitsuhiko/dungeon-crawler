@@ -5,11 +5,12 @@
 // Sollmeldon in the middle of act II (depth 10), in his mire;
 // Slomo at the bottom of act II (depth 13), where the slime
 // marsh comes in the worlds that show it (it is the act's last theme), else whatever theme is there;
+// Umbra in the middle of act III (depth 16), in his flooded reef;
 // Qualmos at the core (depth 20), the end of the world: there is no descent there, he guards its
 // last cube, the final arena, with no way on (world/layout.js `final`, cubegen/guardian.js).
 // The layout marks that arena's guardian with `boss` (world/layout.js, cubegen/guardian.js); its
 // spawn is the boss alone (game/enemyspawn.js guardianSpots), with no defenders. docs/bosses.md.
-export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 7: 'monteur', 10: 'sollmeldon', 13: 'slomo', 20: 'qualmos' });
+export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 7: 'monteur', 10: 'sollmeldon', 13: 'slomo', 16: 'umbra', 20: 'qualmos' });
 export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[depth] ?? null : null;
 // How a boss's arena differs from its planned one (cubegen/guardian.js, cubegen/arenaprops.js):
 // `braziers` lit round the fight zone, for a boss who makes it dark (Totnar; Renew, whose fight
@@ -28,6 +29,9 @@ export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[d
 // museum's things (`props`: paintings, pedestals, glass cases, a curtain, footlights).
 // Sollmeldon's `mire`: a wide basin with islands, his mud standing in its low middle (cubegen/
 // arenashapes.js `mire`, game/mud.js), dressed with the swamp's things whatever the theme.
+// Umbra's `reef`: the bottom of a sea, hills rising out of a deep basin (cubegen/arenashapes.js
+// `reef`), dry until his fight floods it (game/dive.js), dressed with the grotto's kelp, coral and
+// clams whatever the theme.
 // Qualmos's `lagoon`: a pond of deep water in his fight zone, of that many cells at most (cubegen/
 // guardian.js digPonds), which he walks into and dives under (game/qualmos.js).
 // `days`: his arena has the world's days and nights under its theme's sky like any cube (Gusto's);
@@ -36,4 +40,4 @@ export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[d
 export const BOSS_ARENAS = Object.freeze({ gusto: { days: true }, totnar: { braziers: 5 }, squarlo: { type: 'tidal' }, flip: { type: 'flip' },
   foggery: { type: 'tower', door: 8, centre: 7, props: ['volcanic'] }, renew: { braziers: 4 },
   slomo: { type: 'bowl', props: ['slime'], night: true }, mansk: { type: 'stage', props: ['museum'] }, sollmeldon: { type: 'mire', props: ['swamp'] },
-  qualmos: { braziers: 6, lagoon: 24 } });
+  umbra: { type: 'reef', props: ['grotto'] }, qualmos: { braziers: 6, lagoon: 24 } });

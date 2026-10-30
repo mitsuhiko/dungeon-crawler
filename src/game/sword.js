@@ -16,6 +16,7 @@ import { absent, enemyName, baseY } from '../core/enemies.js';
 import { enchantHit } from './enchants.js';
 import { tr } from '../i18n/i18n.js';
 import { weaponFactor } from '../core/status.js';
+import { DIVE } from '../core/umbra.js';
 
 const BUFFER = 0.3;   // s a queued attack waits for the current swing to allow the next
 // the critical-hit roll of each blade hit, and a blurry enemy's roll to let a blow or shot through
@@ -38,7 +39,8 @@ export function updateSword(dt) {
   if (state.inventoryOpen) return;
   if (state.transitioning) { cancelSwing(player); return; }
   // (inside a Bolime the weapon is slowed too: core/status.js weaponFactor; the buffer keeps real time)
-  advanceSwing(player, dt * weaponFactor(player));
+  // (and under water, game/dive.js: core/umbra.js DIVE)
+  advanceSwing(player, dt * weaponFactor(player) * (player.diving ? DIVE.attack : 1));
   const s = player.sword;
   // a drawn shot follows its target until it goes, then flies
   if (s.active && s.stats?.ranged && !s.fired && s.target?.profile && !absent(s.target)) s.yaw = aimYaw(s.target);

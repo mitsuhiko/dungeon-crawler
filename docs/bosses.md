@@ -6,10 +6,10 @@ boss placeholders ([guardians.md](guardians.md)): the game calls them **Temp Bos
 depth has which: so far the first descent, on the road out of town (depth 0), has **Gusto**, the
 second (depth 1) **Totnar**, the third (depth 2) **Squarlo**, the fourth (depth 3) **Flip**, the
 fifth (depth 4) **Foggery**, the sixth (depth 5) **Renew** and the seventh (depth 6, the last of
-act I) **Mansk**; the first of act II (depth 7) **Monteur**; in the middle of act II (depth 10) **Sollmeldon**; at the bottom of act II (depth 13) **Slomo**; and at the core (depth 20), where
+act I) **Mansk**; the first of act II (depth 7) **Monteur**; in the middle of act II (depth 10) **Sollmeldon**; at the bottom of act II (depth 13) **Slomo**; in the middle of act III (depth 16) **Umbra**; and at the core (depth 20), where
 there is no descent, **Qualmos** guards the last cube (a prototype for now, see [Qualmos](#qualmos)).
 A boss may bring an arena of its own (`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's
-caldera, Mansk's museum, Sollmeldon's mire, Slomo's slime bowl), or only braziers lit round the one his depth has
+caldera, Mansk's museum, Sollmeldon's mire, Slomo's slime bowl, Umbra's reef), or only braziers lit round the one his depth has
 (Totnar, Renew, Qualmos).
 
 The layout marks that arena's guardian with `boss` (`world/layout.js`, `cubegen/guardian.js`;
@@ -28,8 +28,8 @@ Like every guardian's arena, leaving it while the boss lives asks first, and bei
 the entrance never takes you out ([guardians.md](guardians.md#encounter-and-persistence)).
 
 Each boss runs its own fight (`game/gusto.js`, `game/totnar.js`, `game/squarlo.js`, `game/flip.js`,
-`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/sollmeldon.js`, `game/slomo.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
-`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/sollmeldon.js`, `core/slomo.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
+`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/sollmeldon.js`, `game/slomo.js`, `game/umbra.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
+`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/sollmeldon.js`, `core/slomo.js`, `core/umbra.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
 body into it, the floors a body fits on, putting minions down round their boss and letting
 bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they pay a little XP
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
@@ -143,6 +143,14 @@ anybody's head.
 - **Slomo:** a pool of goo spreads bubbling on his spot and he oozes up out of it, flat at first,
   wobbling as he settles, his eye stalks popping up; he squashes down and heaves up tall,
   spitting gloop into the sky (his meteorites' clip). The camera low by the pool, craning up.
+- **Umbra:** not on coming in: his reef is dry then, and he is not there (`holdIntro`). His intro
+  waits for the water: once somebody has put on the diving suit and his reef is flooded, the light
+  goes, the wall of the reef nearest his spot rumbles, two pale eyes open in it, and he bursts
+  straight out of it in a spray of rock and bubbles, his body pouring out of the wall after him
+  (what of him is still in it is not drawn, `clipWall`), towards his spot, rising to the height of a
+  hero there, curving round to them, and roars (his shockwave's clip), a ring of bubbles bursting
+  out of his jaws, as the light comes back. The camera low and wide over his spot, closing in for the
+  roar. Without his intro (after the first time) he comes out of the wall the same way and swims in.
 - **Qualmos**, the last and the longest: the ground rumbles, more and more (the view shaking);
   bubbles come up in his lagoon (`lagoonSpot`: deep water 2½ to 9 cells from his spot), it
   starts to turn, a whirlpool, and two sea-green eyes light up under it. He rises up out of it,
@@ -1655,6 +1663,171 @@ health potion now and then; the slime is their own (or they swim): his flood doe
 | Ooze bolime (`OOZE_BOLIME`) | Bolime | 1× | pale, ×0.7 health, ×0.6 damage |
 | Slime squirtle (`SLIME_SQUIRTLE`) | Squirtle | 1.3× | bright lime; lives in his flood; spits slime balls (radius 0.23) that slow |
 
+## Umbra
+
+![Umbra](img/model-umbra.jpg)
+
+A long sea snake, a shadow with glowing markings (`blender/umbra.py`, `assets/umbra.glb`): a body of
+near-black blue skin, a deep teal belly, a row of cyan lights glowing along each side (what you see
+of him in the dark water), a ragged fin running along his back from his head to the tip of his tail,
+a frill of spines on each side of a long flat eel's head, a hinged jaw full of thin teeth and pale
+glowing eyes. About 10.4 cells from snout to tail. He lies straight in his rest pose; his spine is a
+chain of 24 bones, each on the root, which the game lays along the way his head went
+(`render/umbraview.js`): each bone at its place on it, turned along it with its top up (each keeps
+its own frame from the rest pose, so nothing rolls over), and a swimming wave running back along him
+while he moves. His clips only move what the game does not: his jaw, his eyes (their scale is their
+glow) and the frills of his head.
+
+Profiles: `UMBRA`, `UMBRA_TWO` and `UMBRA_THREE` (`STAGE_PROFILES.umbra`, one a phase, each quicker)
+in `src/core/enemies.js`; the fight's rules in `src/core/umbra.js` (`UMBRA_FIGHT`, `DIVE`), the
+fight in `src/game/umbra.js`, the water, the diving suit and the air in `src/game/dive.js`, drawn by
+`src/render/dive.js` (the water, the mud, his volcanoes and jets), `src/render/divesuit.js`
+(the suit, its model `blender/divingsuit.py`, `assets/divingsuit.glb`) and `src/render/underwater.js`
+(what lies under the water, tinted: `DIVE`).
+
+| | Level 18 |
+|---|---|
+| Health | 6418 (`hp` 1650 grown), a third a phase; under Qualmos's |
+| Damage | 27 (a bite ×1; a lava bomb ×0.5, a volcano's column ×0.3 a tick; a jet ×0.55 (from above ×0.65); the shockwave ×0.55; the earthquake ×0.15) |
+| XP | 900 grown; coins 230–400 at level 1; two weapons and two potions like a descent guardian |
+| Poise | 2 s; nothing staggers him (`steadfast`) |
+
+### His reef
+
+His descent arena is always a reef (`BOSS_ARENAS.umbra.type`, `cubegen/arenashapes.js` `reef`,
+`REEF`): the bottom of a sea, a spire with a broad flat top (5 levels over the doorways) and three
+hills round it, each its own height (2 to 4), their slopes a level a cell (walked up and down, never
+climbed) running into each other in ridges and saddles, shaved down to the doorways' pads and his
+spot's; a bank of scenery all round the cube. Nothing that blocks (a long body swims down onto it,
+the volcanoes break open anywhere): the grotto's kelp, coral, clams and anemones and the theme's
+cover and small things (`cubegen/arenaprops.js` `reef`). `map.dive` (`cubegen/guardian.js
+reefDive`): the lowest floor of the fight, the water's surface (`REEF.surface`, 14 levels over the
+doorways: far over everything), the box it stands in, his hills, the suit's stand (in the middle of
+the room: the flat floor of the fight nearest it, off his spot; a slope if none is near) and the
+entrance (`door`: where the robot waits).
+
+### The diving suit, the water and the air
+
+The reef is **dry** as the hero comes in, him not there (mode `gone`, `holdIntro`), and an old diving
+suit of brass and copper stands on a stand in the middle of the room (`render/divesuit.js suitStand`): a
+round brass helmet with a big porthole in front, one on each side and one on top, rivets and a
+valve; a copper corselet bolted over the shoulders; a tank of two copper bottles on the back with a
+gauge and a hose; heavy boots with brass toes and lead soles. It is a thing to click
+(`game/dive.js diveThingsHere`, `game/lootlabels.js`): walking up to it takes it.
+
+- **The suit goes on** (`UMBRA_FIGHT.suit`, 3.6 s, `phase` 'suit'): the hero stands still while it
+  goes on piece by piece, each part on its bone like armor (`render/divesuit.js dressSuit`): the
+  boots clank on, the tank swings onto the back, the corselet drops over the shoulders, the helmet
+  comes down from above, a puff of air at each, and its bolts are tightened (sparks, a hiss of air).
+  The helmet hides what is worn on the head. From now on nothing takes you out of the reef while
+  the water is in (`diveSealed`, `game/portals.js`: "There is no way out under water"; the town
+  portal scroll still does). Playing together
+  **everyone in the reef gets a suit** as the first takes theirs (a friend's game tells the runner,
+  `relay.suit`); the robot waits in the entrance, outside the water (`robotPark`).
+- **The water rises** (`flood`, 5 s) over everything, up to its surface, and **he comes**: his intro
+  (above), then his fight.
+- **Under water** (`player.diving`: in the suit, in the water's box, under its surface): the hero
+  walks on the bottom, the suit's boots holding them down: `DIVE.walk` (0.8) as fast, a little more
+  control in the air, gravity half as strong and a jump `DIVE.jump` as fast: about 1.3 cells high
+  and slow (physics/move.js). **Everything is slowed by the water**: a weapon's swing (`DIVE.attack`,
+  0.8; game/sword.js), and whatever flies through it, arrows, spells, flasks, his squirtles' spit and
+  his lava bombs (`DIVE.shots`, 0.6; game/shots.js, game/projectiles.js, game/throws.js: a slower
+  flight, the same way). Fire goes out.
+- **The air** (`UMBRA_FIGHT.air`: **4 minutes**, a hard limit): it runs from his fight's start
+  (`fightT`, his intro not counted) and shows under his bar (`#boss-air`: a pale cyan bar and the
+  minutes left, red and pulsing under 30 s; "1:00 of air left!" at 60, 30 and 10 s, the robot calls
+  it at a minute). At none the hero drowns ("Ran out of air!"): a death like any, back where you
+  came in, the reef dry again and him gone.
+- Under the water everything is tinted the deep water's teal, the deeper the more, with the light
+  the waves gather playing on it however deep it lies (render/underwater.js `DIVE`); its surface far
+  overhead is the game's own water (`render/materials.js cellMaterial`, as a standing fluid's, a
+  little fainter and drawn over what is under it), its sides round the box are a veil of teal, motes drift in it, bubbles rise from
+  the helmet with every breath and off his body as he swims.
+- **Beaten** the water drains away (`drain`, 4 s; 'over'), the suit comes off, the way out is free
+  again and the well opens.
+
+### Swimming
+
+The shared enemy AI never moves him: his fight swims him (`core/umbra.js steer`): his head goes
+where he steers it, its heading turning at most 2.1 rad/s, never steeper than about 58°, keeping
+0.62 cells over the ground (a little ahead too: up over a hill as it comes) and under the surface,
+inside the box. His body follows the way it went: a trail of where his head was (`newTrail`,
+`pushTrail`), his body that trail (`bodyAt`, `radiusAt`). Between his attacks he swims through his
+**swim spots** (`swimSpots`): over each hilltop **at the height of a hero standing on it** (a blade
+reaches his body there: the hills are how you meet him) and higher over the deep, out of reach; now
+and then (2.5 to 4.5 s, `wander`) he hunts whom he goes after (who hit him last, else the nearest),
+coming at them till his head is near enough to bite.
+
+**A blow on his body is his.** The bodies that pass for him along his body (`UMBRA_BODY`: ten
+spheres of his thickness, `bodyParts`) are enemies like any (`intangible`: nothing bumps into them;
+`viewless`: drawn as him), so a blade, a shot or a flask that reaches one hits him (their `host`:
+`core/combat.js damageEnemy` and `hurtBy` are his, their health his). They have no bar of their own
+and never drive his (`core/bossbar.js`).
+
+### Phase 1 (full health to two thirds)
+
+- **The bite** (clip `UmbraBite`, 1.25 s): his head draws back, his eyes on whom he bites, and at
+  0.47 s darts at where they were (6.5 cells/s), snapping at 0.72 s: whoever is within 1.15 cells
+  of his head is bitten. Then he swims off. His head comes down to you: hit it.
+- **The shockwave** (`wave`, clip `UmbraWave`, 1.7 s): he dives his head to the bottom and roars, a
+  ring running out over the floor from under it at 1 s (an attack's `wave`, `game/quakes.js`, like
+  Squarlo's stomp: 7.5 cells out at 6 cells/s): who is on the ground at its level is thrown off their
+  feet. Jump it, or stand higher.
+- **The earthquake** (`quake`, clip `UmbraQuake`, 3.9 s; 9 s into the fight, then every 12 to 16 s,
+  before anything else when due): he dives down onto the lowest floor 2.4 cells from you and slams
+  his body onto it at 1.1 s: the ground shakes, and whoever stands on it (not in a jump) is
+  **thrown off balance**: slowed to 0.4 and their weapon too for 0.75 s, sliding away from where he
+  struck, a little hurt. Then **he lies on the bottom**, exposed (`exposed`, 1.3 to 3.7 s): blows
+  hurt him ×1.5.
+- **Volcanoes** (`vents`, clip `UmbraVents`, 1.6 s; every 10 to 14 s): two or three (one more in
+  phase 3) break open in the floor 1.5 to 5.5 cells round you, 2.2 cells apart (`ventSpots`): a
+  glowing crack and bubbles for 1.6 s (`warn`), then a cone of rock erupting for 4 s, spitting a lava
+  bomb every 0.55 s onto the floor round it (lobbed, bursting where it lands, `bombAt`) and burning up
+  through the water over it (`inColumn`: 0.7 cells round, 4.5 high, a tick every 0.5 s, popping you
+  up).
+- **Squirtles of the deep** (`summon`, every 15 s, the first 6 s in): as many as fill up to two.
+
+### Phase 2 (two thirds to a third)
+
+At two thirds of his health he **rages** (mode `split`, `rage` 2.6 s, warded: his `UmbraRage` clip,
+swimming round in a slow loop), then fights on quicker, with:
+
+- **The jets** (`jets`, clip `UmbraJets`, 1.7 s; 4 s into the phase, then every 15 to 19 s, before
+  anything else when due): he rises up high, out of reach, and calls three or four volleys
+  (`jetVolley`), each `warn` 1.3 s of warning, 0.6 s of water and 0.55 s apart. A volley is one or two
+  jets from the walls (the first along the line through whom it is aimed at) and none to two from
+  above (the first on them). A wall's: its way bubbling and the pipe's mouth glowing first, then a
+  rush of white water straight across the room, 1.5 cells wide, at the height of whom it was aimed
+  at: **a hill in its way stops it** (`inJet`: the ground higher than it between the wall and you).
+  One from above: a ring of light on the floor and bubbles streaming down onto it, then a column of
+  water crashing down, 1.15 cells round. Who it catches is hurt, **dazed** (0.75 s, from above
+  0.9 s) and a wall's **pushes** them along it (8 cells/s for 0.45 s).
+- **His shield** (`shield`, clip `UmbraShield`, 1 s; 7 s into the phase, then every 12 to 16 s): a
+  shimmering bubble of air and water round his head for **4 s** (his `shield`): nothing hurts him
+  meanwhile.
+
+### Phase 3 (a third to death)
+
+At a third he rages again, quicker still, and **his mud** comes: 3 s in it starts rising from the
+bottom (`mud`): in steps over the lowest floor of the reef (1.5, 3 and 4 levels; each over 4 s,
+standing 11 to 15 s before the next; now and then it sinks back a step, `ebb`). It **only slows**
+(`mudSlow`), the deeper it stands over the feet the more: a little ankle deep, more and more up to
+the waist, to 0.35 over the head. Its highest step leaves the spire's top and the highest hills dry:
+**the high ground is where to be**. It is drawn as a sheet of near-black goop, everything under it
+dark (render/underwater.js). His squirtles are **Murk squirtles** now, of his mud, their spit slowing,
+up to three, every 11 s.
+
+His death (`UmbraDeath`, 3 s): his jaw falls slack, his eyes fade out, and his whole body sinks onto
+the bottom (`settleTrail`). His volcanoes and jets stop, his squirtles go with him, his mud sinks
+away and the water drains.
+
+## Umbra's minions
+
+| | Kind of | Size | Notes |
+|---|---|---|---|
+| Deep squirtle (`DEEP_SQUIRTLE`) | Squirtle | 0.85× | a living wave swimming free through his water (`free`: no fluid to live in, bobbing over the bottom, `lift`), spitting; ×0.9 health, ×0.7 damage |
+| Murk squirtle (`MURK_SQUIRTLE`) | Squirtle | 0.85× | phase 3: the same, of his mud (drawn as it, `drawn`), its spit slowing |
+
 ## Qualmos
 
 After a child's drawing: a slender blue-green amphibian, about three cells tall, on six tentacles
@@ -1812,7 +1985,14 @@ lets its own stones rain round its own player as he throws them up. Renew's stag
 three more slots (the first two unused): the room's clock, whether time runs back and whether the
 fight is on, and a fourth: how far he has risen away at the end (2: gone). Every game records its own hero and rewinds them after his clock, and has its own
 echoes and ghosts (from what it was shown), the echoes hurting only it (`game/rewind.js`); the fight's bodies are rewound by the runner and shown
-to the others as it moves them.
+to the others as it moves them. Umbra's stage swaps his profile likewise, and his row carries eight more slots (the first
+seven unused): his reef's water (its phase and clock), the air's clock, his shield, his mud's level,
+his volcanoes and the volley of jets running (`net/protocol.js umbraRow`). Every game floods its own
+reef after it, runs its own hero's air and suit, slows its own hero in his mud and draws his
+volcanoes and jets; the runner's blows reach the others through `hitBody`. The bodies along his
+body are sent like any enemy (hit there, the blow goes to the runner and is his); a friend's game
+makes his body's trail from where he is shown. A friend who takes the diving suit tells the runner
+(`suit`), and everyone in the reef puts theirs on.
 
 ## Dev
 
@@ -1832,7 +2012,9 @@ and `/spawn fogcat`; `/arena tower` goes to his caldera, `/boss foggery` into it
 `/boss mansk`. `/spawn monteur` (`addMonteurs`: his whole fight anywhere), `/spawn montmoose`;
 `/boss monteur`; `/spawn sollmeldon` (`addSollmeldons`: his whole fight anywhere; out of his mire
 there is no mud, the world still tips), `/spawn mudsquirtle`, `/arena mire`, `/boss sollmeldon`;
-`/tilt` tips the world without him and `/mud` pours mud into his mire. `/roll` and `/rollkeys` turn the world without him, `/mountain` pulls one of his
+`/tilt` tips the world without him and `/mud` pours mud into his mire. `/spawn umbra` (`addUmbras`: out of his reef there is no water, no air and no mud: he fights at once),
+`/spawn deepsquirtle`, `/spawn murksquirtle`, `/arena reef`, `/boss umbra`; `/air <s>` sets the air
+left in the suit's tank, `/rise` makes his mud rise a step at once. `/roll` and `/rollkeys` turn the world without him, `/mountain` pulls one of his
 mountains out of the floor anywhere ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`; with no water near he never dives), `/boss qualmos`.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
@@ -1856,7 +2038,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/sollmeldon.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/umbra.test.js tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/sollmeldon.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -1869,6 +2051,7 @@ await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk'
 await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the blob bursting, the flood from a side, his slimes
 await (await import('./tests/browser/qualmos.js')).runQualmosChecks()  // Qualmos's, at the core: the grab's glow, catch, lift and slam; phase 2 harder, the belly flop's rhythm; into his lagoon, under it, up and out at you
 await (await import('./tests/browser/sollmeldon.js')).runSollmeldonChecks() // Sollmeldon's, in his mire: bites by turns, mud and its puddles, Mud squirtles, a head cut off, flying and landing, the world tipping and the mud running downhill, his death draining it
+await (await import('./tests/browser/umbra.js')).runUmbraChecks()      // Umbra's, in his reef: the suit, no way out, the water rising, under water (slower, the high jump), the air; bites, the earthquake and lying exposed, volcanoes, squirtles; a blow on his body; the jets and his shield; the mud slowing; his death draining it all
 await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
 await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
@@ -1929,3 +2112,10 @@ Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb blender/q
 blender/previews/qualmos-preview.png [blender/previews/qualmos-clips]` (the last: the clips as videos), then
 `node tools/compress-assets.mjs assets/qualmos.glb`. His clips must last as long as his attacks,
 and the grip and the muzzles it prints must match `QUALMOS_GRAB` and `QUALMOS_AT` (`tests/assets.test.js`).
+
+Umbra: `Blender -b --python blender/umbra.py -- assets/umbra.glb blender/umbra.blend
+blender/previews/umbra-preview.png`, then `node tools/compress-assets.mjs assets/umbra.glb`. His
+body's length, thickness and bones must match `UMBRA_FIGHT.body` (`radius` in blender/umbra.py is
+`core/umbra.js radiusAt`). The diving suit: `Blender -b --python blender/divingsuit.py --
+assets/divingsuit.glb blender/previews/divingsuit-preview.png`, then `node tools/compress-assets.mjs
+assets/divingsuit.glb`.

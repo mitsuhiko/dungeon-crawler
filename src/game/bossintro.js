@@ -75,6 +75,7 @@ function look(dt) {
   if (state.map.testRoom || state.map.interior) { visit = state.visit; return; }   // (/intro there)
   const e = bossOf(allEnemies(), player);
   if (!e) { if ((waited += dt) > WAIT) visit = state.visit; return; }
+  if (e.holdIntro) return;   // (not here yet: Umbra comes once his reef is flooded, game/umbra.js)
   visit = state.visit; waited = 0;
   start(e, due(e));
 }
@@ -88,7 +89,7 @@ function due(e) {
 // with a `waiting` sets his arena for it (Mansk's curtain shut over his stage), every frame while
 // it is due. No longer due without it starting (someone came, he woke): back as it was.
 function wait() {
-  const e = visit !== state.visit && !state.map.testRoom && !state.map.interior ? bossOf(allEnemies(), player) : null;
+  const b = visit !== state.visit && !state.map.testRoom && !state.map.interior ? bossOf(allEnemies(), player) : null, e = b?.holdIntro ? null : b;
   const reveal = e && REVEALS[introOf(e, false).reveal];
   const w = reveal?.waiting && due(e) ? { e, reveal } : null;
   if (waiting && waiting.e !== w?.e) unwait();

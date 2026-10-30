@@ -2,6 +2,7 @@
 // lightning. They hit the enemies they meet, stop at walls and props or at their range; a spell
 // bursts where it ends, lightning jumps on from the enemy it struck to the next ones. Travel and level resets clear them. Playing together, the friend's shots fly
 // here too (`ghost`): they stop where they would, but their hits are the friend's to make.
+import { waterDrag } from './dive.js';
 import { player, state, setStatus } from './state.js';
 import { insideSolid } from '../physics/collide.js';
 import { clearLine } from '../physics/enemynav.js';
@@ -68,7 +69,8 @@ export function updateShots(dt, enemies) {
   if (state.inventoryOpen || state.transitioning || !shots.length) return;
   shots = shots.filter(shot => {
     // (our own shots may go through a blurry Flimmer; a friend's rolled for theirs on their side)
-    const { hits, misses, end } = stepShot(shot, dt, enemies, solid, shot.ghost ? null : e => evades(e, rolls.evade()));
+    // (slower through the water of Umbra's reef: game/dive.js)
+    const { hits, misses, end } = stepShot(shot, dt * waterDrag(shot.x, shot.y, shot.z), enemies, solid, shot.ghost ? null : e => evades(e, rolls.evade()));
     if (!shot.ghost) for (const e of hits) strike(shot, e, 1, 1);
     for (const e of misses) evadedFx(e, shot.vx, shot.vz);
     if (!end) return true;

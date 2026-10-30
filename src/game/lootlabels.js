@@ -9,7 +9,8 @@
 // game/trials.js usableParts) are hovered too, labelled with what using them does, and clicked to
 // go and use them. The ways out of the cube (portals, the town portal, house doors: game/ways.js)
 // too, labelled with where they go, and clicked to walk up to them and through. The robot asleep at
-// the crash in town (game/robot.js sleepingRobot) too, clicked to walk up to it and wake it.
+// the crash in town (game/robot.js sleepingRobot) too, clicked to walk up to it and wake it. The
+// diving suit on its stand in Umbra's reef (game/dive.js diveThingsHere) too, clicked to walk up to it.
 // Labels that would overlap are pushed upwards into a stack. Runs after the camera moved.
 //
 // Everything clicked in the world (but the enemies: game/pointer.js) is hovered here, and the cursor
@@ -33,6 +34,7 @@ import { waysHere } from './ways.js';
 import { usableParts, partLabel } from './trials.js';
 import { questItemsHere } from './questworld.js';
 import { introThingsHere } from './intro.js';
+import { diveThingsHere } from './dive.js';
 import { sleepingRobot } from './robot.js';
 import { shopOf } from '../core/shops.js';
 import { GIVERS, giverOf, giverMark } from '../core/quests.js';
@@ -122,7 +124,7 @@ function screen(p, off) {
 
 // everything here to hover and click (parts: this frame's usableParts)
 const thingsHere = () => [...parts, ...lootHere().filter(p => labelled(p) && p.toss >= 1 && !p.fly && lootView(p)), ...questItemsHere().filter(lootView),
-  ...introThingsHere().filter(lootView), ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : []), ...[sleepingRobot()].filter(Boolean)];
+  ...introThingsHere().filter(lootView), ...diveThingsHere(), ...closedChests(), ...traders(), ...(state.mode === 'play' ? waysHere() : []), ...[sleepingRobot()].filter(Boolean)];
 const ZERO = new THREE.Vector3(), cubeOffset = () => state.world?.group.position ?? ZERO;
 // (tests/browser/hover.js) everything hovered here, each with its body; and the key of what is hovered
 export const hoverables = () => thingsHere().map(p => ({ key: keyOf(p), body: bodyOf(p, cubeOffset()) }));
@@ -149,6 +151,7 @@ export function bodyOf(p, off) {
   if (isPart(p)) return body(p.x, p.y, p.z, 0.9, 0.4, off);
   if (isWay(p)) return wayBody(p, off);
   if (isRobot(p)) return body(p.x, p.y, p.z, 0.5, 0.45, off);   // (lying on its back: render/robot.js RobotDormant)
+  if (p.dive) return body(p.x, p.y, p.z, 1.95, 0.42, off);   // (the diving suit on its stand in Umbra's reef: render/dive.js)
   const view = lootView(p);
   if (view) {
     box.setFromObject(view);

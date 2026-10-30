@@ -1151,6 +1151,41 @@ export default {
     "Wenn er landet, kippt die Welt. Geh bergauf, bevor der Schlamm da ist.",
   "Watch his heads. The one that pulls back bites next, and never the same one twice.":
     "Pass auf seine Köpfe auf. Der, der sich zurückzieht, beißt als Nächstes, und nie zweimal derselbe.",
+  // Umbra (depth 16, his flooded reef)
+  "A diving suit, on a stand. Somebody thought this room would fill with water. Lots of water.":
+    "Ein Taucheranzug, auf einem Ständer. Da hat jemand gedacht, dass dieser Raum voll Wasser läuft. Viel Wasser.",
+  "I will wait by the door. Robots and water are not good friends.":
+    "Ich warte an der Tür. Roboter und Wasser sind keine guten Freunde.",
+  "Watch your air! The bar under his shows how much is left.":
+    "Pass auf deine Luft auf! Der Balken unter seinem zeigt, wie viel noch übrig ist.",
+  "His head is coming down to you! Hit it, then get out of the way.":
+    "Sein Kopf kommt zu dir herunter! Schlag zu, und dann weg da.",
+  "A shockwave! Jump over it, or stand up on a hill.":
+    "Eine Druckwelle! Spring drüber, oder stell dich auf einen Hügel.",
+  "Jump! The ground is shaking! And now he is lying on the bottom, hit him!":
+    "Spring! Der Boden bebt! Und jetzt liegt er unten auf dem Grund, schlag zu!",
+  "The floor is glowing! Volcanoes, under water! Keep away from them.":
+    "Der Boden glüht! Feuerberge, unter Wasser! Bleib weg von ihnen.",
+  "Little waves are swimming out of the dark!":
+    "Kleine Wellen schwimmen aus der Dunkelheit!",
+  "The pipes are bubbling! Water jets! Get behind a hill!":
+    "Die Rohre blubbern! Wasserstrahlen! Schnell hinter einen Hügel!",
+  "A bubble! Nothing gets through it. Wait, it pops soon.":
+    "Eine Blase! Da kommt nichts durch. Warte, die platzt gleich.",
+  "He is angry now. Watch the pipes in the walls!":
+    "Jetzt ist er wütend. Pass auf die Rohre in den Wänden auf!",
+  "Mud is coming up from the bottom! Get to the high ground!":
+    "Vom Grund steigt Schlamm auf! Schnell nach oben!",
+  "Your air is running out! Hurry!":
+    "Dir geht die Luft aus! Beeil dich!",
+  "You did it! And just in time. I could hear you breathing faster and faster.":
+    "Du hast es geschafft! Und gerade noch rechtzeitig. Ich habe dich immer schneller atmen gehört.",
+  "The water is going down. Can I come in now?":
+    "Das Wasser geht zurück. Darf ich jetzt reinkommen?",
+  "It is a race against your air. Hit him every time he comes down to you.":
+    "Das ist ein Wettlauf gegen deine Luft. Schlag zu, jedes Mal, wenn er zu dir herunterkommt.",
+  "Use the hills. From up there you can reach him as he swims by.":
+    "Nutze die Hügel. Von da oben erreichst du ihn, wenn er vorbeischwimmt.",
   "The stone sun went out! We did it!":
     "Die Sonne aus Stein ist erloschen! Wir haben es geschafft!",
   "I remember a hatch, open just a crack, and starlight falling through. And something very still, watching it.":

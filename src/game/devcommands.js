@@ -1,6 +1,8 @@
 // The developer commands (?dev=1), typed in the chat box (game/console.js): spawning and
 // clearing enemies, getting about, items and the hero. They do what the dev tools always did
 // (game/devspawn.js, game/dev.js, game/equipment.js), now by name: /help lists them.
+import { umbraFight, devAir, devMud as devUmbraMud } from './umbra.js';
+import { airLeft, airText } from '../core/umbra.js';
 import { addCommand, addType } from '../core/commands.js';
 import { ITEMS, TOOLS } from '../core/items.js';
 import { ENEMY_KINDS, MAX_WORLD_LEVEL } from '../core/enemies.js';
@@ -167,6 +169,24 @@ dev({
     if (balls !== undefined && !devMud(balls)) return 'There is no mud here (only in Sollmeldon\'s mire)';
     return tiltSays();
   },
+});
+
+// Umbra's reef (game/umbra.js, game/dive.js) to try out: /air sets the air left in the suit's tank
+// (s; none: how much there is), /rise makes his mud rise a step at once (phase 3 or not)
+addType(commands, { name: 'airseconds', values: () => [], read: t => /^\d+(\.\d+)?$/.test(t) ? Number(t) : undefined });
+dev({
+  name: 'air', help: 'the air left in the diving suit\'s tank in Umbra\'s reef, in seconds (none: how much there is)',
+  args: [{ name: 'seconds', type: 'airseconds', optional: true }],
+  run({ seconds }) {
+    const f = umbraFight();
+    if (!f || !Number.isFinite(f.e.fightT)) return 'Nobody is diving here (only in Umbra\'s reef, once his fight is on)';
+    if (seconds !== undefined) devAir(seconds);
+    return `Air left: ${airText(airLeft(f.e.fightT))}`;
+  },
+});
+dev({
+  name: 'rise', help: 'Umbra\'s mud rises a step at once (or sinks back one, now and then)',
+  run() { return devUmbraMud() ? 'The mud moves' : 'There is no reef here (only in Umbra\'s)'; },
 });
 
 // Monteur's mountains (game/mountains.js, core/mountains.js) to try out: one of a shape (or the
