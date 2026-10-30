@@ -353,6 +353,7 @@ and a line with tags makes the same clip as without.
 | `src/game/narrator.js` | the narrator in the game: hears the moments, queues the lines, plays the clips, shows the subtitles; plays a recording again for the memories (`hearAgain`) |
 | `src/game/memorypanel.js` | the inventory's Memories tab: the recordings heard, to hear again |
 | `tests/narration.test.js` | the table is well formed and translated, every line has a moment, every clip is there and current |
+| `tools/narration.html` | every line to listen to, with its subtitles, grouped ("Listening to them" below) |
 | `src/film/*.js` | the films' lines ([film.md](film.md)): voiced by the same tool, `film.<film>.<shot>`, in the film's own voice |
 
 ## A line
@@ -441,6 +442,20 @@ ask for it, and the clips may be a mix of settings until you do.
 
 A take can run away (the model does not stop, or babbles): a clip is cut at a length its text
 cannot need, and the tool says "ran to the limit: try another seed".
+
+### Listening to them
+
+`tools/narration.html` (`npm run serve`, then `/tools/narration.html`) plays every line, with
+its subtitles in the game's languages side by side, grouped: the films' (in the order of their
+shots), the glassmaker's recordings (one a recording, its title and where it is found), the
+robot's beginning, the robot by boss (his arena, his fight, him beaten, a death to him) and by
+moment. It reads the table (`src/core/narration.js`, the films' shots) and the manifest, so it
+marks a line without a clip (played as in the game: its subtitle for as long as reading it
+takes), a clip that says an older text or take, and a line not translated. A group, or
+everything shown, plays one line after the other in a language or in each (English, then
+German), the glassmaker's worn like in the game; search and filters narrow it down, and the tags,
+notes and instructions can be shown. Keys: space pauses, Esc stops, left and right go a line back
+or on, `/` searches.
 
 ## Changing lines
 

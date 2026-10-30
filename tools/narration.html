@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="../">
+<title>Narration</title>
+<!-- Every line said in the game, to listen to and read: /tools/narration.html (`npm run serve`).
+     The films' lines, the glassmaker's recordings (by recording) and the robot's (its beginning,
+     by boss, by moment), each with its subtitles in the game's languages, from the same table the
+     game and tools/narration.mjs use (src/core/narration.js LINES, the films' shots), its clips
+     from assets/narration/ (its manifest). A line without a clip shows its subtitle as long as
+     reading it takes, as in the game; a clip that says an older text than the line's is marked.
+     "worn" plays the glassmaker's like the game does (game/narrator.js voiceOut).
+     Keys: space pauses, Esc stops, left / right the line before / after; / searches. -->
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
+<style>
+  :root { color-scheme: dark; --bg: #1b1d22; --panel: #23262d; --line: #343842; --dim: #8a909c; --hi: #e9c46a; --teal: #6fc2b8; --warn: #e07a5f; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: #e6e6e6; font: 15px var(--font-body); display: grid; grid-template-columns: 270px 1fr; height: 100vh; }
+  nav { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 8px 0 120px; }
+  nav h3 { margin: 14px 14px 4px; font: 11px var(--font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+  nav a { display: flex; gap: 8px; padding: 3px 14px; color: inherit; text-decoration: none; }
+  nav a span:first-child { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  nav a .n { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  nav a:hover { background: #2c3038; }
+  nav a.on { background: #3a3420; color: var(--hi); }
+  main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+  header { padding: 12px 18px 10px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  header .top { display: flex; align-items: baseline; gap: 16px; }
+  h1 { margin: 0; font: 600 20px var(--font-display); }
+  #stats { color: var(--dim); font-size: 13px; }
+  .bar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+  .bar label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+  .bar .group { display: inline-flex; gap: 8px; align-items: center; padding-right: 14px; border-right: 1px solid var(--line); }
+  .bar .group:last-child { border-right: 0; }
+  .bar .what { color: var(--dim); }
+  input[type=search], select { background: #2a2d34; color: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font: 13px var(--font-body); }
+  input[type=search] { width: 240px; }
+  button { background: #2f333c; color: inherit; border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font: 13px var(--font-display); cursor: pointer; }
+  button:hover { background: #393e48; }
+  #list { overflow-y: auto; flex: 1; padding: 6px 18px 160px; scroll-padding: 12px 0 140px; }
+  .section > h2 { font: 600 13px var(--font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 22px 0 6px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; margin: 10px 0; }
+  .card > .head { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .card > .head .t { flex: 1; min-width: 0; }
+  .card > .head h3 { margin: 0; font: 600 16px var(--font-display); display: inline; }
+  .card > .head .alt { color: var(--dim); margin-left: 8px; font-style: italic; }
+  .card > .head .sub { color: var(--dim); font-size: 12px; margin-top: 2px; }
+  .card > .head .len { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .row { display: grid; grid-template-columns: 230px repeat(var(--langs), minmax(0, 1fr)); gap: 0 14px; padding: 7px 12px; border-top: 1px solid #2c2f37; }
+  .row:first-of-type { border-top: 0; }
+  .row.on { background: #2f2b1d; box-shadow: inset 3px 0 var(--hi); }
+  .row .id { font: 12px ui-monospace, Menlo, monospace; color: #b8bdc8; word-break: break-all; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .chip { font: 11px var(--font-display); color: var(--dim); background: #2a2d34; border: 1px solid var(--line); border-radius: 9px; padding: 0 7px; white-space: nowrap; }
+  .chip.when { color: var(--teal); border-color: #2f4f4b; }
+  .chip.worn { color: #c9a66b; border-color: #4f4430; }
+  .cell { display: flex; gap: 8px; align-items: flex-start; min-width: 0; }
+  .cell .say { flex: 1; min-width: 0; line-height: 1.4; }
+  .cell .say.untranslated { color: var(--dim); font-style: italic; }
+  .cell .say .tag { color: var(--teal); font: 12px ui-monospace, Menlo, monospace; }
+  .cell .flag { display: block; font-size: 11px; color: var(--warn); margin-top: 2px; }
+  .cell .flag.quiet { color: var(--dim); }
+  .play { flex: none; min-width: 64px; padding: 2px 6px; font-variant-numeric: tabular-nums; text-align: left; }
+  .play.none { color: var(--dim); border-style: dashed; }
+  .play.old { border-color: var(--warn); }
+  .row.on .play.now { background: #4a4126; border-color: #8a7536; color: var(--hi); }
+  .notes { grid-column: 1 / -1; color: var(--dim); font-size: 13px; margin-top: 6px; line-height: 1.4; }
+  .notes b { color: #b8bdc8; font-weight: normal; }
+  #now { position: fixed; left: 270px; right: 0; bottom: 0; background: rgba(16, 17, 21, .96); border-top: 1px solid var(--line); padding: 10px 18px 14px; display: flex; flex-direction: column; gap: 6px; }
+  #now .meta { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--dim); }
+  #now .meta .where { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #now .meta .lang { font: 600 12px var(--font-display); color: var(--hi); text-transform: uppercase; }
+  #subtitle { text-align: center; font: 22px var(--font-body); line-height: 1.35; min-height: 1.35em; color: #f3efe6; text-shadow: 0 1px 2px #000; }
+  #subtitle.read { color: #c7c2b8; font-style: italic; }
+  #progress { height: 3px; background: #2a2d34; border-radius: 2px; overflow: hidden; }
+  #progress div { height: 100%; width: 0; background: var(--hi); }
+  .empty { color: var(--dim); padding: 30px 0; text-align: center; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <header>
+    <div class="top"><h1>Narration</h1><span id="stats">Loading…</span></div>
+    <div class="bar">
+      <span class="group"><span class="what">Show</span><span id="langs"></span></span>
+      <span class="group"><span class="what">Play</span><select id="playLang"></select>
+        <label title="A row's play button goes on to the lines after it"><input type="checkbox" id="cont"> continue</label>
+        <label title="Lines without a clip show their subtitle for as long as reading it takes, as in the game"><input type="checkbox" id="silent"> read lines without clips</label>
+        <label title="Play the glassmaker's recordings and the films' worn lines thin, like the game does"><input type="checkbox" id="worn"> worn</label>
+      </span>
+      <span class="group"><label><input type="checkbox" id="tags"> tags</label><label><input type="checkbox" id="notes"> notes</label></span>
+      <span class="group"><input type="search" id="search" placeholder="Search ids, words, notes (/)">
+        <select id="filter">
+          <option value="">every line</option>
+          <option value="noclip">without a clip</option>
+          <option value="old">clip out of date</option>
+          <option value="untranslated">not translated</option>
+        </select></span>
+    </div>
+  </header>
+  <div id="list"></div>
+</main>
+<div id="now">
+  <div class="meta">
+    <span class="lang" id="nowLang"></span><span class="where" id="nowWhere">Nothing playing. Click a line's ▶, or play a group.</span>
+    <button id="prev" title="Line before (←)">◀◀</button><button id="pause" title="Pause (space)">Pause</button><button id="next" title="Line after (→)">▶▶</button><button id="stop" title="Stop (Esc)">Stop</button><button id="all">Play all shown</button>
+  </div>
+  <div id="subtitle"></div>
+  <div id="progress"><div></div></div>
+</div>
+
+<script type="module">
+import { LINES, RECORDINGS, MOMENTS, recordingLines, untagged, TAG } from './src/core/narration.js';
+import { FILMS } from './src/film/films.js';
+import { lineKey, readTime } from './src/core/film.js';
+import { LANGUAGES, SOURCE, setLanguage, tr, missing } from './src/i18n/i18n.js';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const secs = s => `${s.toFixed(1)} s`;
+const GAP = 0.5;   // s between two lines played one after the other (the game's pause is about this)
+
+// --- settings ------------------------------------------------------------------------------------
+const KEY = 'crawler.tools.narration';
+const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}');
+const opt = { langs: ['en', 'de'], play: 'en', cont: true, silent: true, worn: true, tags: false, notes: false, ...saved };
+const keep = () => localStorage.setItem(KEY, JSON.stringify(opt));
+
+// --- the lines, grouped --------------------------------------------------------------------------
+const manifest = await fetch('assets/narration/manifest.json').then(r => (r.ok ? r.json() : { clips: {} })).catch(() => ({ clips: {} }));
+const VOICED = Object.keys(manifest.clips ?? {});
+
+// a clip of a line: one per form (core/narration.js forms), `<id>` or `<id>.<form>`
+const rowsOf = line => (line.forms ? Object.entries(line.forms) : [[null, undefined]])
+  .map(([form, params]) => ({ key: form ? `${line.id}.${form}` : line.id, line, form, params, texts: {}, clips: {} }));
+
+// the seed a clip is said with (tools/narration.mjs seedOf)
+const seedOf = (line, lang, form) => {
+  const s = line.seed;
+  if (s == null || typeof s === 'number') return s ?? 0;
+  return s[`${lang}.${form}`] ?? s[lang] ?? 0;
+};
+
+const WHAT = { hello: 'Waking up', sword: 'The sword', rock: 'His first glass, on its rock', ladder: 'The ladder', heard: 'After his words' };
+const MOMENT_TITLES = {
+  town: 'In town', road: 'Out on the road', wander: 'Wandering', theme: 'A theme\'s first place', depth: 'A depth reached',
+  foe: 'Enemies met', fight: 'In a fight', kill: 'Enemies defeated', hurt: 'Hurt', death: 'Deaths', level: 'A level gained',
+  chest: 'A chest opened', loot: 'Rare loot', quest: 'A quest taken', horde: 'A horde wakes', fall: 'Caught falling',
+  swim: 'Swimming', rescue: 'Pulled out of a fluid', idle: 'Standing about', home: 'Back in town', guardian: 'Guardians',
+  arena: 'A boss\'s arena', boss: 'In a boss fight', beaten: 'A boss beaten', trial: 'Trial rooms',
+};
+const MOMENT_ORDER = Object.keys(MOMENTS);
+
+// a line's `when`, said short ('depth 0–6', 'kind runes'), leaving out what its group says
+function whenChips(line, leave = []) {
+  return Object.entries(line.when ?? {}).filter(([k]) => !leave.includes(k)).map(([k, v]) => {
+    if (Array.isArray(v) && v.length === 2 && v.every(x => typeof x === 'number')) return `${k} ${v[0] === v[1] ? v[0] : `${v[0]}–${v[1]}`}`;
+    return `${k} ${Array.isArray(v) ? v.join(' / ') : v}`;
+  });
+}
+
+const sections = [], placed = new Set();
+const group = (section, g) => {
+  const lines = g.lines.filter(l => !placed.has(l));
+  if (!lines.length) return;
+  for (const l of lines) placed.add(l);
+  section.groups.push({ ...g, id: slug(`${section.title}-${g.key ?? g.title}`), rows: lines.flatMap(l => rowsOf(l).map(r => ({ ...r, chips: g.chips?.(l) ?? [] }))) });
+};
+const section = title => { const s = { title, groups: [] }; sections.push(s); return s; };
+
+// the films (core/film.js filmLines, with each shot's `worn`)
+const films = section('Films');
+for (const film of Object.values(FILMS)) {
+  const lines = film.shots.filter(s => s.line).map(s => ({ id: lineKey(film, s), text: s.line, note: s.note, instruct: s.instruct,
+    seed: s.seed, voice: film.voice, worn: !!s.worn }));
+  group(films, { title: `The ${film.name}`, sub: `voice: ${film.voice}, in the order of its shots`, lines });
+}
+// the glassmaker's recordings, one a group, in the story's order
+const recs = section('The glassmaker\'s recordings');
+for (const r of RECORDINGS) {
+  group(recs, { key: r.id, title: r.title, translated: true, sub: r.found, subParams: { depth: r.depth ?? 0 }, note: `part: ${r.id}`, lines: recordingLines(r.id) });
+}
+group(recs, { title: 'Recordings of no part', lines: LINES.filter(l => l.on === 'recording') });
+// the robot: its beginning, by what it is about
+const begin = section('The robot: the beginning');
+for (const what of [...new Set(LINES.filter(l => l.on === 'robot').map(l => l.when?.what))]) {
+  group(begin, { key: what, title: WHAT[what] ?? cap(String(what)), sub: `robot, what: ${what}`, lines: LINES.filter(l => l.on === 'robot' && l.when?.what === what) });
+}
+// the robot and the bosses: a boss's arena, his fight, him beaten, a death to him
+const bosses = section('The robot: the bosses');
+const bossOrder = ['arena', 'boss', 'beaten', 'death', 'guardian'];
+for (const boss of [...new Set(LINES.filter(l => l.when?.boss).map(l => l.when.boss))]) {
+  const lines = LINES.filter(l => l.when?.boss === boss && !placed.has(l))
+    .map((l, i) => [l, i]).sort(([a, i], [b, j]) => ((bossOrder.indexOf(a.on) + 9) % 9 - (bossOrder.indexOf(b.on) + 9) % 9) || i - j).map(([l]) => l);
+  group(bosses, { key: boss, title: cap(boss), sub: 'arena, fight, beaten, a death to him', lines, chips: l => [l.on, ...whenChips(l, ['boss'])] });
+}
+// the robot (or anyone) at every other moment
+const way = section('The robot: on the way');
+for (const on of [...MOMENT_ORDER, ...new Set(LINES.map(l => l.on))]) {
+  group(way, { key: on, title: MOMENT_TITLES[on] ?? cap(on), sub: `moment: ${on}`, lines: LINES.filter(l => l.on === on), chips: l => whenChips(l) });
+}
+
+const groups = sections.flatMap(s => s.groups.map(g => ({ ...g, section: s })));
+for (const s of sections) s.groups = groups.filter(g => g.section === s);
+const rows = groups.flatMap(g => g.rows.map(r => Object.assign(r, { group: g })));
+
+// every row's words, in every language: with its tags (`tagged`, what the voice is told) and
+// without (`shown`, the subtitle); `translated`: false where the English shows for want of one
+for (const { code } of LANGUAGES) {
+  await setLanguage(code);
+  for (const r of rows) {
+    missing.clear();
+    const tagged = tr(r.line.text, r.params);
+    r.texts[code] = { tagged, shown: untagged(tagged), translated: code === SOURCE || !missing.has(r.line.text) };
+    const had = manifest.clips?.[code]?.[r.key];
+    if (had) r.clips[code] = { ...had, old: (had.source ?? had.text) !== tagged || (had.seed ?? 0) !== seedOf(r.line, code, r.form) };
+  }
+  for (const g of groups) {
+    g.titles ??= {}; g.subs ??= {};
+    g.titles[code] = g.translated ? tr(g.title) : g.title;
+    g.subs[code] = g.translated ? tr(g.sub, g.subParams) : g.sub;
+  }
+}
+await setLanguage(SOURCE);
+
+// --- drawing -------------------------------------------------------------------------------------
+const shownLangs = () => LANGUAGES.map(l => l.code).filter(c => opt.langs.includes(c));
+const playLangs = () => (opt.play === 'all' ? shownLangs().filter(c => VOICED.includes(c)) : [opt.play]);
+
+function sayHtml(text) {
+  if (!opt.tags) return esc(untagged(text));
+  return text.split(/(\[[a-z][a-z ]*\])/).map((p, i) => (i % 2 ? `<span class="tag">${esc(p)}</span>` : esc(p))).join('');
+}
+
+function matches(r) {
+  const q = $('search').value.trim().toLowerCase();
+  if (q) {
+    const hay = [r.key, r.line.note, r.line.instruct, r.group.title, ...Object.values(r.texts).map(t => t.tagged)].join('\n').toLowerCase();
+    if (!q.split(/\s+/).every(w => hay.includes(w))) return false;
+  }
+  const f = $('filter').value, langs = shownLangs();
+  if (f === 'noclip') return langs.some(c => VOICED.includes(c) && !r.clips[c]);
+  if (f === 'old') return langs.some(c => r.clips[c]?.old);
+  if (f === 'untranslated') return langs.some(c => !r.texts[c].translated);
+  return true;
+}
+
+function cellHtml(r, c) {
+  const t = r.texts[c], clip = r.clips[c], voiced = VOICED.includes(c);
+  const label = clip ? `▶ ${secs(clip.dur)}` : '▶ read';
+  const why = clip?.old ? 'The clip says an older text (or take): node tools/narration.mjs' : clip ? '' : voiced ? 'No clip yet: plays its subtitle for as long as reading it takes' : 'This language is not voiced';
+  const flag = clip?.old ? `<span class="flag">clip out of date: says “${esc(untagged(clip.source ?? clip.text))}”${(clip.seed ?? 0) !== seedOf(r.line, c, r.form) ? `, seed ${clip.seed ?? 0}` : ''}</span>`
+    : !clip && voiced ? '<span class="flag quiet">no clip</span>' : '';
+  return `<div class="cell"><button class="play ${clip ? (clip.old ? 'old' : '') : 'none'}" data-key="${esc(r.key)}" data-lang="${c}" title="${esc(why)}">${label}</button>`
+    + `<div class="say ${t.translated ? '' : 'untranslated'}" lang="${c}">${sayHtml(t.tagged)}${t.translated ? '' : ' <span class="flag quiet">(not translated: the English shows)</span>'}${flag}</div></div>`;
+}
+
+function rowHtml(r) {
+  const l = r.line, chips = [...r.chips.map(c => `<span class="chip when">${esc(c)}</span>`)];
+  if (r.form) chips.push(`<span class="chip">form ${esc(r.form)}</span>`);
+  if (l.voice) chips.push(`<span class="chip">${esc(l.voice)}</span>`);
+  if (l.worn) chips.push('<span class="chip worn">worn</span>');
+  if (l.lead) chips.push('<span class="chip">lead</span>');
+  const seeds = shownLangs().map(c => [c, seedOf(l, c, r.form)]).filter(([, s]) => s);
+  if (seeds.length) chips.push(`<span class="chip">seed ${seeds.map(([c, s]) => `${c} ${s}`).join(', ')}</span>`);
+  const notes = opt.notes ? `<div class="notes">${l.note ? `<b>Note:</b> ${esc(l.note)}` : ''}${l.instruct ? `<br><b>Instruct:</b> ${esc(l.instruct)}` : ''}</div>` : '';
+  return `<div class="row" id="row-${esc(r.key)}"><div><div class="id">${esc(r.key)}</div><div class="chips">${chips.join('')}</div></div>`
+    + shownLangs().map(c => cellHtml(r, c)).join('') + notes + '</div>';
+}
+
+const lengthOf = (rs, langs) => rs.reduce((t, r) => t + langs.reduce((u, c) => u + (r.clips[c]?.dur ?? 0), 0), 0);
+
+let visible = [];
+function draw() {
+  const langs = shownLangs();
+  document.body.style.setProperty('--langs', langs.length);
+  visible = [];
+  const nav = [], list = [];
+  for (const s of sections) {
+    const cards = [], links = [];
+    for (const g of s.groups) {
+      const rs = g.rows.filter(matches);
+      if (!rs.length) continue;
+      visible.push(...rs);
+      const alts = langs.filter(c => c !== SOURCE && g.titles[c] !== g.titles[SOURCE]).map(c => g.titles[c]);
+      const len = lengthOf(rs, playLangs());
+      links.push(`<a href="#${g.id}" data-group="${g.id}"><span>${esc(g.titles[SOURCE])}</span><span class="n">${rs.length}</span></a>`);
+      cards.push(`<div class="card" id="${g.id}"><div class="head"><div class="t"><h3>${esc(g.titles[SOURCE])}</h3>${alts.map(a => `<span class="alt">${esc(a)}</span>`).join('')}`
+        + `<div class="sub">${esc(g.subs[SOURCE])}${g.note ? ` · ${esc(g.note)}` : ''} · ${rs.length} line${rs.length === 1 ? '' : 's'}</div></div>`
+        + `<span class="len">${len ? mmss(len) : ''}</span><button data-play-group="${g.id}">▶ Play</button></div>`
+        + rs.map(rowHtml).join('') + '</div>');
+    }
+    if (!cards.length) continue;
+    nav.push(`<h3>${esc(s.title)}</h3>${links.join('')}`);
+    list.push(`<div class="section"><h2>${esc(s.title)}</h2>${cards.join('')}</div>`);
+  }
+  $('nav').innerHTML = nav.join('');
+  $('list').innerHTML = list.join('') || '<div class="empty">No line matches.</div>';
+  markNow();
+}
+
+function stats() {
+  const parts = [`${rows.length} clips a language, ${groups.length} groups`];
+  for (const c of VOICED) {
+    const have = rows.filter(r => r.clips[c]), old = have.filter(r => r.clips[c].old).length;
+    parts.push(`${c}: ${have.length} clips, ${mmss(lengthOf(have, [c]))}${have.length < rows.length ? `, ${rows.length - have.length} without` : ''}${old ? `, ${old} out of date` : ''}`);
+  }
+  $('stats').textContent = parts.join(' · ');
+}
+
+// --- playing -------------------------------------------------------------------------------------
+let ac = null, master = null;
+const audio = () => {
+  if (!ac) { ac = new AudioContext(); master = ac.createGain(); master.connect(ac.destination); }
+  if (ac.state === 'suspended' && !paused) ac.resume();
+  return ac;
+};
+const buffers = new Map();
+function bufferOf(lang, key) {
+  const k = `${lang}/${key}`;
+  if (!buffers.has(k)) {
+    buffers.set(k, fetch(`assets/narration/${lang}/${key}.opus`)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
+      .then(b => audio().decodeAudioData(b))
+      .catch(e => { console.warn(`${k}: ${e.message}`); buffers.delete(k); return null; }));
+  }
+  return buffers.get(k);
+}
+// the clip through what the game puts it through: worn, thin like an old recording (game/narrator.js voiceOut)
+function out(src, worn) {
+  const gain = ac.createGain();
+  gain.gain.value = worn ? 1.25 : 1;
+  let end = src;
+  if (worn) {
+    const low = ac.createBiquadFilter(), high = ac.createBiquadFilter();
+    low.type = 'highpass'; low.frequency.value = 320;
+    high.type = 'lowpass'; high.frequency.value = 3200;
+    end = src.connect(low).connect(high);
+  }
+  end.connect(gain).connect(master);
+  return gain;
+}
+
+let queue = null, paused = false, finish = null, clock = null;
+// a stretch of time that runs with the audio clock (so pausing holds it too): { start, length }
+const now = () => ac?.currentTime ?? 0;
+
+function markNow() {
+  document.querySelectorAll('.row.on').forEach(e => e.classList.remove('on'));
+  document.querySelectorAll('.play.now').forEach(e => e.classList.remove('now'));
+  const it = queue?.items[queue.i];
+  if (!it) return;
+  const row = document.getElementById(`row-${it.row.key}`);
+  row?.classList.add('on');
+  row?.querySelector(`.play[data-lang="${it.lang}"]`)?.classList.add('now');
+  document.querySelectorAll('nav a.on').forEach(e => e.classList.remove('on'));
+  document.querySelector(`nav a[data-group="${it.row.group.id}"]`)?.classList.add('on');
+}
+
+function show(it, reading) {
+  const t = it?.row.texts[it.lang];
+  $('nowLang').textContent = it ? it.lang : '';
+  $('nowWhere').textContent = it ? `${it.row.group.section.title} › ${it.row.group.titles[SOURCE]} › ${it.row.key}${reading ? ' (no clip: read)' : ''}  ·  ${queue.i + 1} / ${queue.items.length}`
+    : 'Nothing playing. Click a line\'s ▶, or play a group.';
+  $('subtitle').textContent = t ? t.shown : '';
+  $('subtitle').classList.toggle('read', !!reading);
+  markNow();
+  if (it) document.getElementById(`row-${it.row.key}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// wait `length` s of audio time (held while paused), or until finish()ed
+function hold(length, onStop) {
+  return new Promise(resolve => {
+    const start = now();
+    clock = { start, length };
+    const timer = setInterval(() => { if (now() - start >= length) done(); }, 50);
+    const done = () => { clearInterval(timer); clock = null; finish = null; onStop?.(); resolve(); };
+    finish = done;
+  });
+}
+
+// say one line in one language: its clip, or (none, or it would not load) its subtitle for as
+// long as reading it takes. -> false if it was skipped (no clip, and lines without are not read)
+async function say(it) {
+  const clip = it.row.clips[it.lang];
+  const read = () => { show(it, true); return hold(readTime(it.row.texts[it.lang].shown)); };
+  if (!clip) {
+    if (!opt.silent) return false;
+    return read();
+  }
+  show(it, false);
+  const buffer = await bufferOf(it.lang, it.row.key);
+  if (queue?.items[queue.i] !== it) return;
+  if (!buffer) return read();
+  const src = ac.createBufferSource();
+  src.buffer = buffer;
+  const gain = out(src, opt.worn && !!it.row.line.worn);
+  src.start();
+  return hold(buffer.duration, () => { try { src.stop(); } catch { /* (over) */ } gain.disconnect(); });
+}
+
+// play items ({ row, lang }) one after the other, a short pause between two
+async function play(items) {
+  stop();
+  if (!items.length) return;
+  if (paused) pause();
+  audio();
+  const q = queue = { items, i: 0, jumped: false, gap: false };
+  while (queue === q && q.i < q.items.length) {
+    const next = q.items[q.i + 1];
+    if (next?.row.clips[next.lang]) bufferOf(next.lang, next.row.key);   // (fetch ahead)
+    q.jumped = false;
+    const said = await say(q.items[q.i]);
+    if (queue !== q) return;
+    if (q.jumped) continue;
+    q.i++;
+    if (said !== false && q.i < q.items.length) {
+      q.gap = true;
+      await hold(GAP);
+      q.gap = false;
+    }
+  }
+  if (queue === q) { queue = null; show(null); progress(); }
+}
+function stop() { const q = queue; queue = null; finish?.(); if (q) { show(null); progress(); } }
+// to the line `by` after the one playing (in the pause after a line: the one coming is next)
+function jump(by) {
+  if (!queue) return;
+  const i = queue.i + (queue.gap && by > 0 ? by - 1 : by);
+  queue.i = Math.max(0, Math.min(queue.items.length, i));
+  queue.jumped = !queue.gap;
+  finish?.();
+}
+function pause() {
+  if (!ac) return;
+  paused = !paused;
+  if (paused) ac.suspend(); else ac.resume();
+  $('pause').textContent = paused ? 'Resume' : 'Pause';
+}
+function progress() {
+  const bar = $('progress').firstElementChild;
+  bar.style.width = clock ? `${Math.min(100, (now() - clock.start) / clock.length * 100)}%` : '0';
+}
+(function tick() { progress(); requestAnimationFrame(tick); })();
+
+const itemsOf = (rs, langs) => rs.flatMap(row => langs.map(lang => ({ row, lang })));
+
+// --- controls ------------------------------------------------------------------------------------
+$('langs').innerHTML = LANGUAGES.map(l => `<label title="${esc(l.name)}${VOICED.includes(l.code) ? '' : ': not voiced, subtitles only'}"><input type="checkbox" data-lang="${l.code}" ${opt.langs.includes(l.code) ? 'checked' : ''}> ${l.code}</label>`).join('');
+function playOptions() {
+  const all = shownLangs().filter(c => VOICED.includes(c));
+  $('playLang').innerHTML = all.map(c => `<option value="${c}">${c}</option>`).join('') + (all.length > 1 ? `<option value="all">${all.join(', then ')}</option>` : '');
+  if (![...all, ...(all.length > 1 ? ['all'] : [])].includes(opt.play)) opt.play = all[0] ?? SOURCE;
+  $('playLang').value = opt.play;
+}
+playOptions();
+for (const k of ['cont', 'silent', 'worn', 'tags', 'notes']) {
+  $(k).checked = !!opt[k];
+  $(k).addEventListener('change', () => { opt[k] = $(k).checked; keep(); if (k === 'tags' || k === 'notes') draw(); });
+}
+$('langs').addEventListener('change', e => {
+  const c = e.target.dataset.lang;
+  opt.langs = e.target.checked ? [...opt.langs, c] : opt.langs.filter(x => x !== c);
+  keep(); playOptions(); draw();
+});
+$('playLang').addEventListener('change', () => { opt.play = $('playLang').value; keep(); draw(); });
+$('search').addEventListener('input', draw);
+$('filter').addEventListener('change', draw);
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  if (b.dataset.playGroup) {
+    const g = groups.find(x => x.id === b.dataset.playGroup);
+    play(itemsOf(g.rows.filter(matches), playLangs()));
+  } else if (b.dataset.key) {
+    const i = visible.findIndex(r => r.key === b.dataset.key);
+    play(itemsOf(opt.cont ? visible.slice(i) : [visible[i]], [b.dataset.lang]));
+  }
+});
+$('prev').onclick = () => jump(-1);
+$('next').onclick = () => jump(1);
+$('pause').onclick = pause;
+$('stop').onclick = stop;
+$('all').onclick = () => play(itemsOf(visible, playLangs()));
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, select, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
+  if (e.key === ' ') { e.preventDefault(); pause(); }
+  else if (e.key === 'Escape') stop();
+  else if (e.key === 'ArrowRight') jump(1);
+  else if (e.key === 'ArrowLeft') jump(-1);
+  else if (e.key === '/') { e.preventDefault(); $('search').focus(); }
+});
+
+stats();
+draw();
+if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
+</script>
+</body>
+</html>

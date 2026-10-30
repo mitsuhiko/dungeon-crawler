@@ -203,6 +203,7 @@ npm run serve            # uv run --no-project tools/serve.py [port]
 # with RADIUS_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY set, the guide's tutor uses it through the server
 npm run i18n             # what is left to translate (docs/i18n.md)
 node tools/narration.mjs # render the narrator's new or changed lines (docs/narration.md)
+# /tools/narration.html listens to every line, its subtitles grouped (with npm run serve)
 npm test
 ```
 
