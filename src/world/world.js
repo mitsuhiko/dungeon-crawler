@@ -164,6 +164,7 @@ export class World {
       c = { key: k, map: addWaterfallHideout(stampFluidBodies(generate(this.spec(k)))), visits: 0 };
       this.cubes.set(k, c);
     }
+    c.map.level = cleanWorldLevel(this.opts.level);   // (every map says the world's level: core/enemies.js enemyRoll)
     return c;
   }
 }

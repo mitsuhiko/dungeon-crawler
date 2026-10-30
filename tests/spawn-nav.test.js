@@ -199,3 +199,13 @@ test('melee swarms grow with depth and spawn in packs, ranged species stay few',
   }
   assert.ok(packed > 0);
 });
+test('every cube of a world of a higher level says so, arenas and the town too, and its enemies stand higher', () => {
+  const plain = new World(5), high = new World(5, { level: 9 });
+  const guarded = [...high.layout(2).guardians.keys()];
+  for (const k of [high.start, ...high.layout(0).route.slice(4, 7), ...guarded]) {
+    assert.equal(high.cube(k).map.level, 9, k);
+    assert.equal(plain.cube(k).map.level, 1, k);
+  }
+  const map = high.cube(high.layout(0).route[6]).map;
+  for (const p of ENEMY_PROFILES) for (const s of enemySpots(state.map = map, p)) assert.equal(s.level, 9, p.type);
+});
