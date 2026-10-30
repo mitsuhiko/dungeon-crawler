@@ -46,6 +46,7 @@ const { hordeKinds, hordeSize } = await import('../src/world/hordes.js');
 const { enchantCost, rerollCost } = await import('../src/core/crafting.js');
 const { questRewards } = await import('../src/core/quests.js');
 const { perDepth } = await import('../src/core/questplan.js');
+const { PHASES: RENEW_PHASES } = await import('../src/core/renew.js');
 const QUEST_MIX = ['easy', 'medium', 'easy', 'medium', 'hard'];
 
 const ranged = item => !isMelee(ITEMS[item.itemId]?.weapon?.kind);
@@ -137,10 +138,11 @@ for (let seed = 1; seed <= SEEDS; seed++) {
       if (g) {
         const species = [...population(map).keys()], chosen = species[Math.floor(R() * species.length)];
         const kind = g.boss ? ENEMY_KINDS[g.boss] : (g.role === 'descent' ? DESCENT_GUARDIAN_KINDS : GUARDIAN_KINDS)[chosen];
+        // (Renew gets all his health back at every rewind: core/renew.js PHASES lives)
         const level = guardianLevel(depth, g.role, world), prof = enemyProfile(kind, level), hit = combatStats(p).damage;
-        const ttk = prof.hp / dps(p);
+        const lives = g.boss === 'renew' ? RENEW_PHASES : 1, ttk = prof.hp * lives / dps(p);
         row.guards[g.role].push({ type: chosen, level, hp: prof.hp, ttk, php: p.maxHp,
-          blows: p.maxHp / (attackDamage(prof) * cut()), brawl: threat(prof) * cut() * ttk / p.maxHp, hits: prof.hp / hit });
+          blows: p.maxHp / (attackDamage(prof) * cut()), brawl: threat(prof) * cut() * ttk / p.maxHp, hits: prof.hp * lives / hit });
         if (g.boss === BOSSES[0] && into === rows) beforeBoss += seenRanged;
         kill(kind, level, { guardian: true, guardianRole: g.role });
       }
@@ -188,7 +190,7 @@ for (const r of rows) {
   });
   console.log(`d${r.depth}: ${parts.join(', ')}`);
 }
-console.log('\nGuardians: level, HP, hits to kill, seconds at full DPS, their blows to kill the player, a toe-to-toe brawl (their damage over that time / max HP)');
+console.log('\nGuardians: level, HP (Renew\'s: a life of four), hits to kill, seconds at full DPS, their blows to kill the player, a toe-to-toe brawl (their damage over that time / max HP)');
 for (const r of rows) for (const role of ['side', 'descent']) {
   const g = r.guards[role];
   if (!g.length) continue;

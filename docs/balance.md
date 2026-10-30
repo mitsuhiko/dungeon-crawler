@@ -45,7 +45,11 @@ chests, quest rewards, combat stats) and prints where the player stands on arriv
   a descent guardian about 12 s at every depth (the first ones on the road a bit less, the last
   ones a bit more as top-tier gear comes in). Trading blows without dodging costs about half
   your health against a side guardian and about one and a half times against a descent
-  guardian: dodge its telegraphed attacks, use the poise windows, or drink.
+  guardian: dodge its telegraphed attacks, use the poise windows, or drink. The real bosses
+  ([bosses.md](bosses.md)) are made one by one around their mechanics and stand apart from that on
+  purpose: most take 11 to 14 s, Mansk, Slomo and Qualmos hit softly (their danger lies
+  elsewhere), Monteur has twice a boss's health (25 s), Sollmeldon half again (18 s), and Renew
+  has four lives of 727 (19 s all told: the simulation counts them all).
 - **Loot matters, and keeps mattering.** Weapon damage grows with item level, so a drop from
   further down beats an older one of the same rarity; an Unusual one catches up with a Fabled one about
   five depths later. Guardians and chests pay out the good stuff, ordinary enemies now and then.
