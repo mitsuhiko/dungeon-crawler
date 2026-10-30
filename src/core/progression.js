@@ -14,7 +14,7 @@ import { START_CLOCK } from './daycycle.js';
 //   regeneration: REGEN of the maximum per second, after REGEN_DELAY s without damage
 // learn: stronger.html#formula #levels (see learn/README.md)
 export const PLAYER = { HP: 100, HP_PER_LEVEL: 10, DAMAGE_PER_LEVEL: 0.02,
-  XP_BASE: 500, XP_STEP: 1000, XP_CURVE: 60, REGEN: 0.04, REGEN_DELAY: 5 };
+  XP_BASE: 500, XP_STEP: 1400, XP_CURVE: 90, REGEN: 0.04, REGEN_DELAY: 5 };
 // learn: code.html#functions, stronger.html#curve #formula (see learn/README.md)
 export const xpToNext = level => PLAYER.XP_BASE + PLAYER.XP_STEP * (level - 1) + PLAYER.XP_CURVE * (level - 1) ** 2;
 // the XP that reaching `level` takes in all: the sum of xpToNext below it

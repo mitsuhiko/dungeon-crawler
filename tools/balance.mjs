@@ -3,7 +3,9 @@
 // and how the fights there go. docs/balance.md explains the targets.
 //   node tools/balance.mjs [seeds, default 8] [kill share, default 0.6]
 // The player kills `kill share` of every ordinary cube on the route, all of a guardian arena,
-// and visits half of the branch cubes (killing the same share and opening their chests). It
+// visits half of the branch cubes (killing the same share and opening their chests) and does the
+// depth's quests (core/questplan.js perDepth, two in five easy, two medium, one hard: their XP,
+// coins and items, core/quests.js questRewards). It
 // equips the best weapon by damage per second. Numbers are averages over the seeds; `p10` is the
 // unluckiest tenth of the runs (the level and damage per second only 10% arrive below), and
 // `rng%` the runs that have seen a bow, crossbow or staff drop by then (kept or not). `trials`:
@@ -42,6 +44,9 @@ const { ITEMS, isMelee } = await import('../src/core/items.js');
 const { trialTime } = await import('../src/core/trials.js');
 const { hordeKinds, hordeSize } = await import('../src/world/hordes.js');
 const { enchantCost, rerollCost } = await import('../src/core/crafting.js');
+const { questRewards } = await import('../src/core/quests.js');
+const { perDepth } = await import('../src/core/questplan.js');
+const QUEST_MIX = ['easy', 'medium', 'easy', 'medium', 'hard'];
 
 const ranged = item => !isMelee(ITEMS[item.itemId]?.weapon?.kind);
 const WORLD = process.argv[2] === 'world', args = WORLD ? process.argv.slice(3) : process.argv.slice(2);
@@ -140,6 +145,11 @@ for (let seed = 1; seed <= SEEDS; seed++) {
         kill(kind, level, { guardian: true, guardianRole: g.role });
       }
       for (const site of L.sitePlans.get(k) || []) { const c = chestLoot(site, depth, wseed, favoredKind(p), bareSlots(p.inventory), world); take(c.items, 'chest'); row.copper += c.copper; row.chests++; }
+    }
+    // the depth's quests
+    for (let i = 0; i < perDepth(depth); i++) {
+      const q = questRewards(mulberry32(hash32(wseed * 131 + depth * 17 + i)), depth, QUEST_MIX[i % QUEST_MIX.length], world);
+      P.awardXP(p, q.xp); row.copper += q.copper; take(q.items, 'chest');
     }
     row.xp += p.xp - xp0; row.potions += potions - potions0;
   } };

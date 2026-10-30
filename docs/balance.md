@@ -3,14 +3,18 @@
 How strong the player, the weapons and the enemies are, and why. The numbers live in code;
 this explains the targets they were tuned to and how to check them. `node tools/balance.mjs
 [seeds] [kill share]` plays runs through the real tables (layouts, rosters, levels, XP, drops,
-chests, combat stats) and prints where the player stands on arrival at every depth.
+chests, quest rewards, combat stats) and prints where the player stands on arrival at every depth.
 
 ## Targets
 
 - **The player stays about two levels above the depth.** Enemies are level `depth` (1 at the
-  surface). A player who kills about 60% of what they meet arrives at depth 10 at level 12 and
-  at the core at level 22. Clearing more barely helps: kills more than two levels below the
-  player pay less (`xpScale`), so 90% gives `depth + 3`, 30% gives `depth + 1`.
+  surface). A player who kills about 60% of what they meet and does the depth's quests arrives at
+  depth 10 at level 12 and at the core at level 22, with 85–90% of the kills' XP counting. A
+  thorough one (everything, every branch) arrives at `depth + 3` (75–80% counting), a hurried
+  one (30%, no branches) at `depth + 1` (all of it counting): clearing pays a level, and the
+  falloff (`xpScale`: kills more than two levels below the player pay less) keeps it from paying
+  more. The world's level ([progression.md](progression.md#world-level)) is the hero's less two:
+  the same gap a hero who plays as above has.
 - **Fights keep their shape all the way down.** With the best weapon found so far, on arrival:
 
   | Enemy | Hits to kill | Its blows to kill the player |
@@ -82,8 +86,8 @@ held it in place for good, guardians included.
 
 **The player** (`src/core/progression.js`, `PLAYER`):
 
-- A level costs `500 + 1000 (L − 1) + 60 (L − 1)²` XP: level 2 after a handful of snakes, level
-  3 by the end of the road out of town, then about one level per depth.
+- A level costs `500 + 1400 (L − 1) + 90 (L − 1)²` XP: level 2 on the road out of town, then
+  about one level per depth.
 - Health `100 + 10 per level`; weapon damage +2% per level.
 - Regeneration: 4% of the maximum per second after 5 s without damage.
 - Kill XP × `xpScale(player, enemy)`: full up to two levels below the player, then −20% per

@@ -91,7 +91,7 @@
     "src/core/progression.js#createRun": "8c9003e1",
     "src/core/progression.js#levelDamage": "c8369c9c",
     "src/core/progression.js#maxHealth": "f94a4ba4",
-    "src/core/progression.js#PLAYER": "4742ec47",
+    "src/core/progression.js#PLAYER": "a48eb550",
     "src/core/progression.js#xpScale": "8a49f4e3",
     "src/core/progression.js#xpToNext": "2edcdb3d",
     "src/core/questplan.js#questPlan": "56a837a5",

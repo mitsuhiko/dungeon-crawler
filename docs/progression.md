@@ -41,11 +41,11 @@ resets the cube to how it was when you came in: enemies killed since come back (
 again), uncollected coins they dropped vanish; collected rewards are kept. Ordinary enemies also
 come back after a while ([below](#enemies-come-back)).
 `N` / `newWorld()` resets the run, including defeated enemy IDs and equipment.
-State is **in memory only**, not saved across page reloads.
+The hero (level and bag) and the world are saved ([saves.md](saves.md)).
 
 The numbers are in `PLAYER` (`core/progression.js`); [balance.md](balance.md) explains them.
 
-- Next-level cost: `500 + 1000 × (L − 1) + 60 × (L − 1)²` XP (`xpToNext`); `xpForLevel` sums
+- Next-level cost: `500 + 1400 × (L − 1) + 90 × (L − 1)²` XP (`xpToNext`); `xpForLevel` sums
   them. About one level per depth once past the road out of town.
 - A kill's XP is scaled by the level difference (`xpScale`): full up to two levels below the
   player, then 20% less per level (at least 10%); 10% more per level above the player (at

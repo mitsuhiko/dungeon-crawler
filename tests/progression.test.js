@@ -189,7 +189,7 @@ test('invalid counts and unsafe integer currency cannot corrupt inventory', () =
   assert.throws(() => addCopper(inv, 1)); assert.equal(copperTotal(inv), Number.MAX_SAFE_INTEGER);
 });
 test('XP thresholds are exact, increasing, and support multiple level-ups', () => {
-  assert.deepEqual([1,2,3,4,5].map(xpForLevel), [0,500,2060,4800,8840]);
+  assert.deepEqual([1,2,3,4,5].map(xpForLevel), [0,500,2490,6150,11660]);
   for (let level = 1; level <= 500; level++) {
     assert.equal(levelFromXP(xpForLevel(level)), level);
     assert.equal(xpForLevel(level + 1) - xpForLevel(level), xpToNext(level));
@@ -197,10 +197,10 @@ test('XP thresholds are exact, increasing, and support multiple level-ups', () =
     assert.equal(levelFromXP(xpForLevel(level + 1) - 1), level);
   }
   const p = createPlayerStats(); p.hp = 60;
-  assert.equal(awardXP(p, 8840), 4);
+  assert.equal(awardXP(p, 11660), 4);
   assert.deepEqual([p.level, p.hp, p.maxHp], [5,100,140]);
   assert.deepEqual(xpProgress(p), { current: 0, required: xpToNext(5) });
-  assert.throws(() => awardXP(p, -1)); assert.equal(p.xp, 8840);
+  assert.throws(() => awardXP(p, -1)); assert.equal(p.xp, 11660);
   p.hp = 0; awardXP(p, xpToNext(5)); assert.equal(p.hp, 0); // no resurrection from a reward
 });
 test('levels add health and a little damage; kills far below the player pay less, above it more', () => {
