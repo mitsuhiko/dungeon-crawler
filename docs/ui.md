@@ -123,8 +123,9 @@ tutorial" at its foot. The keys in a step are the player's own, as keycaps (`kbd
 keys side by side, the others their primary key (or "not bound"), named as their keyboard says
 (a German keyboard's KeyZ is Y). On a touch screen a step names the stick, the buttons or a tap
 instead. It is redrawn when the keys, the language or the touch controls change, and hides in a
-scene, behind the curtain and between cubes. Settings, General: "Tutorial" turns it off, or on
-again.
+scene, behind the curtain and between cubes. Settings, General, Guidance: once it is done or
+skipped, "Show again" starts it over (its steps not done), in this world's beginning or the next
+one's.
 
 ## The guide
 

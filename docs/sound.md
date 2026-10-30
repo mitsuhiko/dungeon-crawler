@@ -6,6 +6,11 @@ click. It runs at 44.1 kHz whatever the speakers run at (the browser resamples),
 `latencyHint: 'balanced'`: the audio thread's work grows with the sample rate, and at a device's
 96 or 192 kHz the music alone took two to four times as long, up to all of a core, and broke up.
 
+Four buses, each with its own volume in the settings (Sound), go into a master with the volume of
+everything: the sound effects (with the footsteps, the jingles, the drones, the films' and the
+splash screen's sounds), the ambience (the world's beds, drips and lava pops: `loops.js`), the
+music and the narrator's voice.
+
 | File | What |
 |---|---|
 | `src/audio/sfx.js` | one-shot effects: `sfx(name, { at, pan, pitch, volume })`; `at` pans by screen position (`setPanner`, which `main.js` gives the camera: sfx.js knows nothing of the renderer) |
@@ -13,7 +18,7 @@ click. It runs at 44.1 kHz whatever the speakers run at (the browser resamples),
 | `src/audio/jingles.js` | the jingles: short scores (`music/jingles/`) for a boss beaten, a death, a quest, a level, a chest ..., played once by a synth of their own, one after another, the music turned down under them |
 | `src/audio/voices.js` | the enemies' voices, registered with sfx.js as `<species>_alert/_windup/_death` |
 | `src/audio/footsteps.js` | footsteps per surface and gait (the slime marsh's slime squelches and lets go with a gloop), pre-rendered into variants when audio starts |
-| `src/audio/loops.js` | continuous sounds: the charge and cast drones, the ambient beds, drips and lava pops |
+| `src/audio/loops.js` | continuous sounds: the charge and cast drones (into the sounds' bus), the ambient beds, drips and lava pops (into the ambience's) |
 | `src/core/footing.js` | the surface under the player (theme, height, structures, banks, town paths) |
 | `src/game/footsteps.js` | steps on the walk / run cycle and the ladder rungs (each ladder style its own sound: `LADDER_STYLES[style].sound`, `themes/builds.js`), landings |
 | `src/game/sounds.js` | sounds from watching state: jumps, long falls, ragdoll thuds, getting up, enemy voices |
@@ -36,7 +41,7 @@ own code, into the same AudioContext and buses, under Sounds (`#sounds/effects` 
 
 A one-shot shows its wave, rendered again offline (`renderSfx`, `renderSteps`: the variant
 played, `renderSplashSound`), with its peak and how long it is heard above -60 dB, in decibels
-or linear; the ambience shows the sounds' bus live. Each recipe's comment in the code is its
+or linear; the ambience shows the ambience's and the sounds' buses live. Each recipe's comment in the code is its
 description there.
 
 ## Effects and where they come from

@@ -360,9 +360,9 @@ then, the robot awake: the sword, the gate; the rock, once shown: fighting, the 
 glass; his words heard: the memories), each ticked off as it is done (or done already: a hero who
 clicks to walk has walked). The keys it shows are the player's own (`core/keybinds.js`, named on
 their keyboard), and on a touch screen the stick and buttons instead. It never holds anything up:
-no gate waits for a step. It can be skipped (on the card, or in the settings, "Tutorial", which can
-show it again), and once its last step is done or it is skipped it is not shown again in that
-browser. Not with the dev tools (`?tutorial=1` shows it), nor in the guide, nor with
+no gate waits for a step. It can be skipped (on the card), and once its last step is done or it is
+skipped it is not shown again in that browser, until the settings' "Show again" (General,
+Guidance) starts it over. Not with the dev tools (`?tutorial=1` shows it), nor in the guide, nor with
 `?tutorial=0`; nor for a guest playing in a friend's world.
 
 Nobody has to stand about and listen. A recording counts as heard whole the moment it begins (the

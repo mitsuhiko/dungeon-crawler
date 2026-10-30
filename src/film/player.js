@@ -19,7 +19,8 @@
 // voice when a frame stalls (the world loads behind). A click or key asks whether to skip, another
 // one skips; Esc skips at once. ?film=<name> plays one over the main menu (films.js), with
 // ?at=<s> from that far in, and ?hold=1 stopped there (to look at it); ?film=0 never plays the
-// opening. Reducing motion: the camera stays still and does not shake.
+// opening. Reducing motion: the camera stays still and does not shake; it shakes as much as the
+// settings say (shakeAmount).
 import * as THREE from 'three';
 import { stageUniforms, stageRenderer, floorMesh, beamMesh, mistMesh, pointCloud, glassMeshes, facets, glowTexture, NOISE } from '../render/stage.js';
 import { loadImage, loadText, flowOf, inkMaterial, inkPoints, TINTS, CELLS } from './ink.js';
@@ -30,7 +31,7 @@ import { filmCrackle } from '../audio/film.js';
 import { holdMusic, loadMusic, playFilmScore, stopFilmScore } from '../audio/music.js';
 import { barsOf, filmEvents } from '../audio/score.js';
 import { audioRunning, audioTime } from '../audio/context.js';
-import { reduceMotion } from '../game/settings.js';
+import { reduceMotion, shakeAmount } from '../game/settings.js';
 import { state } from '../game/state.js';
 import { tr } from '../i18n/i18n.js';
 
@@ -525,7 +526,7 @@ export function playFilm(film, { onEnd = () => {}, at = 0, hold = false, click =
     camera.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)).multiplyScalar(dist).add(target);
     camera.lookAt(target);
     kick *= Math.exp(-dt * 6);
-    if (kick > 1e-3) camera.position.add(jitter(0.03 * kick));
+    if (kick > 1e-3) camera.position.add(jitter(0.03 * kick * shakeAmount()));
   }
 
   // the line: its subtitle, and its voice from VOICE_LEAD s into the shot

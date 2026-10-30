@@ -281,9 +281,10 @@ body.touch :is(#leave-panel, #death-panel) kbd { display: none; }
 #settings-panel #settings-tabs button:not(.on):hover { --face: #ffffff08; color: var(--ink); }
 #settings-keys { display: grid; align-content: start; gap: 4px; min-height: calc(var(--rows, 9) * 30px - 4px); padding-top: 10px; }
 #settings-panel button { font-size: 13px; padding: 5px 10px; }
-#settings-panel #settings-close { margin-left: auto; padding: 0; font-size: 11px; }
-#settings-panel #settings-reset { --c1: 3px; --c2: 3px; --c3: 3px; --c4: 3px; margin-left: auto; padding: 2px 8px; font-size: 11px; }
-#settings-panel #settings-reset:not(.confirm, :hover) { color: #b3c2be; }
+#settings-panel #settings-close { margin-left: 16px; padding: 0; font-size: 11px; }
+#settings-panel :is(#settings-reset, #settings-reset-page) { --c1: 3px; --c2: 3px; --c3: 3px; --c4: 3px; margin-left: auto; padding: 2px 8px; font-size: 11px; }
+#settings-panel :is(#settings-reset, #settings-reset-page):not(.confirm, :hover) { color: #b3c2be; }
+#settings-panel h2[hidden] { display: none; }
 /* the mouse turning the view (game/camerakey.js) */
 body.orbiting, body.orbiting * { cursor: none !important; }
 /* a page's rows: the name, then a choice (both columns), a toggle or a slider and its number */
@@ -581,11 +582,12 @@ body.touch #teleport-menu kbd { display: none; }
 
 /* potions at work and poison (game/effects.js): little icons with the time left, over the quick bar */
 /* the narrator's subtitle (game/narrator.js): one line at a time over the potions at work, read
-   like a storybook: the body face in italics, light with a dark shadow like the film's, fading in and out */
+   like a storybook: the body face in italics, light with a dark shadow like the film's, fading in and out;
+   --sub: the subtitles' size from the settings (game/display.js), the films' too */
 #subtitle { position: fixed; left: 50%; bottom: 122px; transform: translateX(-50%); z-index: 18; width: max-content;
-  max-width: min(46em, 86vw); pointer-events: none; zoom: var(--ui); opacity: 0; transition: opacity .45s; }
+  max-width: min(calc(46em * var(--sub, 1)), 86vw); pointer-events: none; zoom: var(--ui); opacity: 0; transition: opacity .45s; }
 #subtitle.on { opacity: 1; }
-#subtitle p { margin: 0; font: italic 21px/1.35 var(--font-body); color: #f4ede2; text-align: center;
+#subtitle p { margin: 0; font: italic calc(21px * var(--sub, 1))/1.35 var(--font-body); color: #f4ede2; text-align: center;
   text-wrap: balance; text-shadow: 0 1px 2px #000, 0 0 8px #000; }
 body.calm #subtitle { transition: none; }
 /* in a boss's intro or a scene of the story the black bars (#letterbox, 10.5% of the window each) come in: it stands over the
@@ -686,7 +688,7 @@ body.touch:not(.ui-roomy) #chat:not(.open) { font-size: 13px; }
 body.touch:not(.ui-roomy) #chat:not(.open) #chat-log { max-height: 6.75em; }
 body.touch:not(.ui-roomy).subtitled #chat:not(.open) #chat-log li.k-narration { display: none; }
 body.touch:not(.ui-roomy) #subtitle { bottom: calc(112px + env(safe-area-inset-bottom)); max-width: calc(100% - 240px); }
-body.touch:not(.ui-roomy) #subtitle p { font-size: 17px; }
+body.touch:not(.ui-roomy) #subtitle p { font-size: calc(17px * var(--sub, 1)); }
 body.touch:not(.ui-roomy, .ui-w540):has(#boss-bar.on) #effects { top: calc(132px + env(safe-area-inset-top)); }
 /* held upright (at the UI scale): the quick bar's stones smaller, so all eight fit across (40px: 357px wide, 36px: 325px);
    the minimap, the potions and the boss bar closer under it, the potions and the boss bar left of the minimap; the chat
@@ -922,9 +924,9 @@ body.calm #splash-hint.shown { animation: none; }
 #film { position: fixed; inset: 0; z-index: 100; background: #000; touch-action: none; user-select: none; -webkit-user-select: none; }
 #film canvas { display: block; width: 100%; height: 100%; }
 #film-subtitle { position: absolute; left: 50%; bottom: calc(8% + var(--safe-b)); transform: translateX(-50%); width: max-content;
-  max-width: min(40em, 86vw); pointer-events: none; zoom: var(--ui); opacity: 0; transition: opacity .6s; }
+  max-width: min(calc(40em * var(--sub, 1)), 86vw); pointer-events: none; zoom: var(--ui); opacity: 0; transition: opacity .6s; }
 #film-subtitle.on { opacity: 1; }
-#film-subtitle p { margin: 0; font: italic 22px/1.4 var(--font-body); color: #e6eef4; text-align: center; text-wrap: balance;
+#film-subtitle p { margin: 0; font: italic calc(22px * var(--sub, 1))/1.4 var(--font-body); color: #e6eef4; text-align: center; text-wrap: balance;
   text-shadow: 0 1px 2px #000, 0 0 8px #000; }
 #film-hint { position: absolute; right: calc(4% + var(--safe-r, 0px)); top: calc(5% + var(--safe-t)); pointer-events: none;
   font: 400 12px var(--font-display); letter-spacing: .3em; text-transform: uppercase; color: #cfe6e2; opacity: 0; transition: opacity .6s ease; }

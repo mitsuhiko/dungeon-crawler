@@ -526,7 +526,8 @@ plays through the voice bus (`src/audio/context.js`), the music turned down unde
 (`duckMusic`), through a thin band like an old recording if the line is `worn` (his recordings,
 like the film's worn lines). The subtitle (`#subtitle`, over the quick bar) shows the line in the
 language of the moment, and it goes into the chronicle (kind `narration`). Settings: the
-narrator's volume and the subtitles on or off (General, Sound).
+narrator's volume (Sound), and the subtitles on or off and their size (General, Guidance; the
+size is the films' subtitles' too).
 
 The sibling's gender (`SIBLING` forms) should be the hero's (story.md, "What the game needs"
 1); until heroes have one, the world's seed picks it. Playing together, every screen has its own

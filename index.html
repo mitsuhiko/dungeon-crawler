@@ -73,11 +73,12 @@
 </div>
 <div id="settings-overlay" hidden>
   <section id="settings-panel" class="glass" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <header><h1 id="settings-title" data-t>Settings</h1><button id="settings-close" class="plain" aria-label="Close settings" data-t="text aria-label">Done · Esc</button></header>
+    <header><h1 id="settings-title" data-t>Settings</h1><button id="settings-reset-page">Reset page</button><button id="settings-close" class="plain" aria-label="Close settings" data-t="text aria-label">Done · Esc</button></header>
     <div class="settings-body">
       <div id="settings-pages" role="tablist" aria-orientation="vertical" aria-label="Kinds of settings" data-t="aria-label">
         <button role="tab" id="settings-page-tab-general" data-page="general" aria-controls="settings-page-general" data-t>General</button>
         <button role="tab" id="settings-page-tab-graphics" data-page="graphics" aria-controls="settings-page-graphics" data-t>Graphics</button>
+        <button role="tab" id="settings-page-tab-sound" data-page="sound" aria-controls="settings-page-sound" data-t>Sound</button>
         <button role="tab" id="settings-page-tab-input" data-page="input" aria-controls="settings-page-input" data-t>Input</button>
       </div>
       <div class="settings-page-box">
@@ -89,18 +90,13 @@
             <span id="settings-minimap-label" data-t>Minimap</span><div id="settings-minimap" class="settings-choice" role="group" aria-labelledby="settings-minimap-label"></div>
             <span id="settings-names-label" data-t>Item names</span><div id="settings-names" class="settings-choice" role="group" aria-labelledby="settings-names-label"></div>
             <span id="settings-numbers-label" data-t>Damage numbers</span><button id="settings-numbers" class="settings-toggle" aria-labelledby="settings-numbers-label settings-numbers"></button><span></span>
-            <span id="settings-tutorial-label" data-t>Tutorial</span><button id="settings-tutorial" class="settings-toggle" aria-labelledby="settings-tutorial-label settings-tutorial"></button><span></span>
             <span id="settings-fullscreen-label" class="settings-fullscreen" data-t>Fullscreen</span><button id="settings-fullscreen" class="settings-toggle settings-fullscreen" aria-labelledby="settings-fullscreen-label settings-fullscreen"></button><span class="settings-fullscreen"></span>
           </div>
-          <h2 data-t>Sound</h2>
+          <h2 data-t>Guidance</h2>
           <div class="settings-rows">
-            <span id="settings-music-label" data-t>Music</span><button id="settings-music" class="settings-toggle" aria-labelledby="settings-music-label settings-music"></button><span></span>
-            <label for="settings-master-volume" data-t>Volume</label><input id="settings-master-volume" type="range" min="0" max="100" step="5"><output id="settings-master-level" for="settings-master-volume"></output>
-            <label for="settings-music-volume" data-t>Music volume</label><input id="settings-music-volume" type="range" min="0" max="100" step="5"><output id="settings-music-level" for="settings-music-volume"></output>
-            <label for="settings-sound-volume" data-t>Sound volume</label><input id="settings-sound-volume" type="range" min="0" max="100" step="5"><output id="settings-sound-level" for="settings-sound-volume"></output>
-            <label for="settings-voice-volume" data-t>Narrator volume</label><input id="settings-voice-volume" type="range" min="0" max="100" step="5"><output id="settings-voice-level" for="settings-voice-volume"></output>
             <span id="settings-subtitles-label" data-t>Subtitles</span><button id="settings-subtitles" class="settings-toggle" aria-labelledby="settings-subtitles-label settings-subtitles"></button><span></span>
-            <span id="settings-quiet-label" data-t>Quiet in the background</span><button id="settings-quiet" class="settings-toggle" aria-labelledby="settings-quiet-label settings-quiet"></button><span></span>
+            <span id="settings-subtitle-size-label" data-t>Subtitle size</span><div id="settings-subtitle-size" class="settings-choice" role="group" aria-labelledby="settings-subtitle-size-label"></div>
+            <span id="settings-tutorial-label" data-t>Tutorial</span><button id="settings-tutorial" class="settings-toggle" aria-labelledby="settings-tutorial-label settings-tutorial"></button><span></span>
           </div>
         </div>
         <div id="settings-page-graphics" class="settings-page" role="tabpanel" aria-labelledby="settings-page-tab-graphics">
@@ -122,6 +118,22 @@
           <div class="settings-rows">
             <label for="settings-brightness" data-t>Brightness</label><input id="settings-brightness" type="range" min="70" max="150" step="5"><output id="settings-brightness-level" for="settings-brightness"></output>
             <span id="settings-motion-label" data-t>Reduce motion</span><div id="settings-motion" class="settings-choice" role="group" aria-labelledby="settings-motion-label"></div>
+            <span id="settings-shake-label" data-t>Camera shake</span><div id="settings-shake" class="settings-choice" role="group" aria-labelledby="settings-shake-label"></div>
+          </div>
+        </div>
+        <div id="settings-page-sound" class="settings-page" role="tabpanel" aria-labelledby="settings-page-tab-sound">
+          <h2 data-t>Volumes</h2>
+          <div class="settings-rows">
+            <label for="settings-master-volume" data-t>Overall</label><input id="settings-master-volume" type="range" min="0" max="100" step="5"><output id="settings-master-level" for="settings-master-volume"></output>
+            <label for="settings-sound-volume" data-t>Effects</label><input id="settings-sound-volume" type="range" min="0" max="100" step="5"><output id="settings-sound-level" for="settings-sound-volume"></output>
+            <label for="settings-ambience-volume" data-t>Ambience</label><input id="settings-ambience-volume" type="range" min="0" max="100" step="5"><output id="settings-ambience-level" for="settings-ambience-volume"></output>
+            <label for="settings-voice-volume" data-t>Narrator</label><input id="settings-voice-volume" type="range" min="0" max="100" step="5"><output id="settings-voice-level" for="settings-voice-volume"></output>
+            <span id="settings-quiet-label" data-t>Quiet in the background</span><button id="settings-quiet" class="settings-toggle" aria-labelledby="settings-quiet-label settings-quiet"></button><span></span>
+          </div>
+          <h2 data-t>Music</h2>
+          <div class="settings-rows">
+            <span id="settings-music-label" data-t>Play music</span><button id="settings-music" class="settings-toggle" aria-labelledby="settings-music-label settings-music"></button><span></span>
+            <label for="settings-music-volume" data-t>Volume</label><input id="settings-music-volume" type="range" min="0" max="100" step="5"><output id="settings-music-level" for="settings-music-volume"></output>
           </div>
         </div>
         <div id="settings-page-input" class="settings-page" role="tabpanel" aria-labelledby="settings-page-tab-input">
@@ -131,6 +143,10 @@
             <span id="settings-invert-label" data-t>Invert up / down</span><button id="settings-invert" class="settings-toggle" aria-labelledby="settings-invert-label settings-invert"></button><span></span>
             <span id="settings-click-move-label" data-t>Click the floor to walk</span><button id="settings-click-move" class="settings-toggle" aria-labelledby="settings-click-move-label settings-click-move"></button><span></span>
             <span id="settings-invert-zoom-label" data-t>Invert the wheel's zoom</span><button id="settings-invert-zoom" class="settings-toggle" aria-labelledby="settings-invert-zoom-label settings-invert-zoom"></button><span></span>
+          </div>
+          <h2 class="settings-touch" data-t>Touch</h2>
+          <div class="settings-rows settings-touch">
+            <span id="settings-touch-label" data-t>Touch controls</span><div id="settings-touch" class="settings-choice" role="group" aria-labelledby="settings-touch-label"></div>
           </div>
           <h2><span data-t>Keys</span> <button id="settings-reset">Reset keys</button></h2>
           <p class="settings-note" data-t>Click a key, then press the new one (<kbd>Esc</kbd>: keep the old one, <kbd>Backspace</kbd>: no key). A key goes to one control only. <kbd>Esc</kbd> always opens the menu and closes what is open.</p>

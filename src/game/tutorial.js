@@ -4,9 +4,9 @@
 // stick and the buttons; each step is ticked off as it is done (done before the card shows counts
 // too). It never holds anything up: nothing waits for a step.
 //
-// It is skipped with the button on it (or turned off in the settings, which can show it again);
-// once its last step is done, or it is skipped, it is not shown again in this browser (the setting
-// is off). Not with the dev tools (?tutorial=1 shows it), nor in the guide, nor with ?tutorial=0;
+// It is skipped with the button on it; once its last step is done, or it is skipped, it is not
+// shown again in this browser (the setting is off). The settings' "Show again" turns it on again:
+// it starts over, its steps not done, in this world's beginning or the next one's. Not with the dev tools (?tutorial=1 shows it), nor in the guide, nor with ?tutorial=0;
 // not for a guest playing in a friend's world (net/online.js).
 import { STAGE, stageAt, pieces, markers, MOVE_KEYS } from '../core/tutorial.js';
 import { robotMet } from '../core/robot.js';
@@ -96,7 +96,13 @@ function draw(box, stage) {
     + `<button id="tutorial-skip" class="plain">${esc(tr('Skip the tutorial'))}</button>`;
   $('tutorial-skip').addEventListener('click', ev => { ev.stopPropagation(); setTutorial(false); });
 }
-if (typeof document === 'object') onSettingsChange(() => { shown = ''; });
+// turned on again (the settings): from the start, nothing done yet
+let wasOn = tutorialOn();
+if (typeof document === 'object') onSettingsChange(() => {
+  shown = '';
+  if (tutorialOn() && !wasOn) { done = new Set(); walked = 0; last = null; yaw = null; snakes = null; finished = false; }
+  wasOn = tutorialOn();
+});
 
 // tests/browser/: the stage shown and the steps done
 export const tutorialNow = () => ({ shown: !$('tutorial')?.hidden, done: [...done], finished });

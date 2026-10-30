@@ -1,14 +1,16 @@
-// Touch controls (docs/touch.md): on from the first touch of the screen (or with ?touch=1;
-// ?touch=0 keeps them off), as body.touch. The left of the screen is a floating stick: where
-// the thumb lands, it pushes the way to move (a little: walk, further: run). On the right the
-// action button attacks while held (as Shift); with a flask in hand it is a stick that aims
-// the throw (core/stick.js aimReach): let go to throw, back to the middle to call it off, and a
-// tap throws at the best enemy in range. The jump button sits beside it, the use button above
-// it while there is something to do (the action key, game/action.js; its picture shows what). A
-// turn button at each side of the screen turns the view a quarter (as Q and E). On the game
-// itself a tap does what a click does, except walking (an enemy, an item, a chest, a
-// villager), a long press collects what is around, and two fingers pinch to zoom. The quick bar moves to the top (on a phone; a tablet keeps it at the bottom) with a
-// bag button (game/quickbar.js, style.css).
+// Touch controls (docs/touch.md): on from the first touch of the screen, as body.touch; the
+// settings (Input, Touch) can have them always on or off instead (off only where there is a mouse
+// or a trackpad too: a phone would have no way left to play), and ?touch=1 or ?touch=0 over that.
+// The left of the screen is a floating stick: where the thumb lands, it pushes the way to move (a
+// little: walk, further: run). On the right the action button attacks while held (as Shift); with a
+// flask in hand it is a stick that aims the throw (core/stick.js aimReach): let go to throw, back
+// to the middle to call it off, and a tap throws at the best enemy in range. The jump button sits
+// beside it, the use button above it while there is something to do (the action key,
+// game/action.js; its picture shows what). A turn button at each side of the screen turns the view
+// a quarter (as Q and E). On the game itself a tap does what a click does, except walking (an
+// enemy, an item, a chest, a villager), a long press collects what is around, and two fingers pinch
+// to zoom. The quick bar moves to the top (on a phone; a tablet keeps it at the bottom) with a bag
+// button (game/quickbar.js, style.css).
 import { stickVector, pinchStep } from '../core/stick.js';
 import { stepZoom } from '../core/zoom.js';
 import { readiedFlask } from '../core/combat.js';
@@ -25,6 +27,7 @@ import { queueAttack } from './sword.js';
 import { pendingAction, useAction } from './action.js';
 import { tr } from '../i18n/i18n.js';
 import { defName } from './itemnames.js';
+import { touchSetting, onSettingsChange } from './settings.js';
 
 const STICK_R = 56, AIM_R = 72;   // px the thumb goes out to for a full push
 const TAP_TIME = 300;             // ms: a touch let go sooner (without moving) is a tap
@@ -43,16 +46,41 @@ const place = (el, x, y) => { el.style.transform = `translate(${x}px, ${y}px)`; 
 const nudge = (el, dx, dy, r) => { const d = Math.hypot(dx, dy), k = d > r ? r / d : 1; place(el, dx * k, dy * k); };
 
 const forced = new URLSearchParams(location.search).get('touch');
+const coarse = matchMedia('(pointer: coarse)'), fine = matchMedia('(any-pointer: fine)');
+// whether the screen can be touched (the settings show the touch controls' row only then)
+export const touchScreen = () => navigator.maxTouchPoints > 0 || coarse.matches || forced === '1';
+// whether they may be turned off here: something else to point with
+export const touchOptional = () => fine.matches;
+// what to do: 'auto' (on from a touch), 'on' or 'off'
+const wanted = () => {
+  if (forced === '1') return 'on';
+  if (forced === '0') return 'off';
+  const t = touchSetting();
+  return t === 'off' && !touchOptional() ? 'auto' : t;
+};
 let on = false;
 export const touchMode = () => on;
 function enable() {
-  if (on || forced === '0') return;
+  if (on || wanted() === 'off') return;
   on = true;
   document.body.classList.add('touch');
   root.hidden = false;
 }
-const coarse = matchMedia('(pointer: coarse)');
-if (forced === '1' || coarse.matches) enable();
+function disable() {
+  if (!on) return;
+  dropAll();
+  on = false;
+  document.body.classList.remove('touch');
+  root.hidden = true;
+}
+// as the settings say ('auto' turns nothing off: a touch has turned them on)
+function apply() {
+  const w = wanted();
+  if (w === 'off') disable();
+  else if (w === 'on' || coarse.matches) enable();
+}
+apply();
+onSettingsChange(apply);
 coarse.addEventListener('change', () => { if (coarse.matches) enable(); });
 addEventListener('pointerdown', e => { if (e.pointerType === 'touch') enable(); }, true);
 

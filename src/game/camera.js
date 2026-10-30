@@ -16,7 +16,7 @@ import { insideSolid, ceilingAt, cellAt } from '../physics/collide.js';
 import { standingAt } from '../physics/fluid.js';
 import { viewBlockedAt } from '../core/blockers.js';
 import { player, state, view } from './state.js';
-import { cameraMode, closeFov } from './settings.js';
+import { cameraMode, closeFov, shakeAmount } from './settings.js';
 import { kick, tremor } from './juice.js';
 
 // learn: drawing.html#camera (see learn/README.md)
@@ -52,8 +52,9 @@ function overview(dt = 0) {
   const fovV = THREE.MathUtils.degToRad(OVERVIEW_FOV);
   const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
   const d = 12.5 / Math.sin(Math.min(fovV, fovH) / 2) * view.zoom;
-  // hit kicks shove the whole view a little (scaled with the view distance)
-  const s = d * 0.03;
+  // hit kicks shove the whole view a little (scaled with the view distance; and as much as the
+  // settings let the camera shake)
+  const s = d * 0.03 * shakeAmount();
   target.x += kick.x * s; target.y += kick.y * s; target.z += kick.z * s;
   overPos.set(
     target.x + Math.sin(view.yaw) * Math.cos(pitch) * d,
@@ -112,7 +113,8 @@ function close(dt) {
   arm = arm === null || free < arm ? free : arm + (free - arm) * Math.min(1, dt * GROW);
   closePos.copy(look).addScaledVector(dir, arm);
   if (collide) overFluids(closePos);
-  closePos.x += kick.x * 0.06; closePos.y += kick.y * 0.06; closePos.z += kick.z * 0.06;
+  const k = 0.06 * shakeAmount();
+  closePos.x += kick.x * k; closePos.y += kick.y * k; closePos.z += kick.z * k;
   quatLooking(closeQuat, closePos, look.addScaledVector(dir, -AHEAD));
 }
 
@@ -201,13 +203,15 @@ function fadeHero() {
 }
 
 // The ground shaking (game/juice.js quake: a giant's stomp, his landing): the view trembles
-// about where it looks, a jitter of a few sines (not noise: it rolls rather than buzzes), dying away
+// about where it looks, a jitter of a few sines (not noise: it rolls rather than buzzes), dying away;
+// as much as the settings let the camera shake (none while motion is reduced, whoever shook it)
 const jolt = new THREE.Quaternion(), joltAngles = new THREE.Euler();
 function shake(dt) {
   tremor.t += dt;
   tremor.a *= Math.exp(-dt * 5);
   if (tremor.a < 1e-4) { tremor.a = 0; return; }
-  const t = tremor.t, a = tremor.a;
+  const t = tremor.t, a = tremor.a * shakeAmount();
+  if (!a) return;
   joltAngles.set(a * (Math.sin(t * 41) + 0.6 * Math.sin(t * 67 + 1.3)) / 1.6, a * 0.6 * Math.sin(t * 29 + 2.1),
     a * 0.8 * (Math.sin(t * 53 + 0.7) + 0.5 * Math.sin(t * 83)) / 1.5);
   camera.quaternion.multiply(jolt.setFromEuler(joltAngles));

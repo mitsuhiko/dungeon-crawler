@@ -149,13 +149,13 @@ for (const s of songs) {
 // ---------------------------------------------------------------- audio
 // the game's AudioContext (made on the first key or click), with its buses
 let ctx = null, syn = null, scope = null;
-onAudioStart((ac, sounds, music) => {
+onAudioStart((ac, sounds, music, voice, ambience) => {
   ctx = ac;
   syn = createSynth(ctx, music);
   syn.out.disconnect(syn.analyser);   // (nothing reads it)
   syn.out.gain.value = cur?.group === 'Jingles' ? JINGLE_LEVEL : MUSIC_LEVEL;
-  scope = ctx.createAnalyser(); scope.fftSize = 2048;   // the ambience's live wave: the sounds' bus
-  sounds.connect(scope);
+  scope = ctx.createAnalyser(); scope.fftSize = 2048;   // the ambience's live wave: its bus and the sounds' (the drones)
+  sounds.connect(scope); ambience.connect(scope);
   setInterval(tick, 25);
 });
 setVolume('master', +$('vol').value);
@@ -458,7 +458,7 @@ const HINTS = {
   effects: 'Click a sound to play it (the game varies each by ±5% in pitch). Space plays the last one again, arrows the one before or after; [ and ] move a page. The wave is rendered again offline: its noise and random details differ a little from what you heard.',
   voices: 'Each species: noticing you, winding up an attack, dying. In the game the pitch is the species\' (its profile). Space plays the last one again, arrows the one before or after.',
   steps: 'One footfall of a surface or a ladder\'s rungs and holds (on a ladder hands sound the walk, feet the run). Each is one of six variants rendered when audio starts, a little detuned per foot: the wave shows the one played. Repeat steps at about the gait\'s pace.',
-  ambience: 'The beds and drones as the game steers them, at the levels set here (the game sets them every frame from what is around). The wave is the sounds\' bus live, the last six seconds.',
+  ambience: 'The beds and drones as the game steers them, at the levels set here (the game sets them every frame from what is around). The wave is the ambience\'s and the sounds\' buses live (the beds, the drones), the last six seconds.',
   splash: 'The splash screen\'s glass bird breaking (src/audio/splash.js), alone or all three at their moments.',
 };
 const KNOBS = { effects: ['pitch', 'pan', 'level', 'repeat'], voices: ['pitch', 'pan', 'level', 'repeat'], steps: ['pan', 'level', 'repeat'], ambience: [], splash: [] };
@@ -648,7 +648,7 @@ function paintWave({ channels, sr, label, peak, heard }, dur, w, h) {
   g.fillText(`${label}  ·  peak ${dB(peak)}  ·  heard ${heard.toFixed(2)} s`, 8, 6);
   return off;
 }
-// the sounds' bus live: the last LANE seconds, the loudest sample either way per frame
+// the ambience's and the sounds' buses live: the last LANE seconds, the loudest sample either way per frame
 const LANE = 6;
 const laneBuf = new Float32Array(2048);
 function sampleLane() {
@@ -678,7 +678,7 @@ function drawLane(g, w, h) {
     g.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
   }
   g.fillStyle = '#c8ccd4'; g.textBaseline = 'top';
-  g.fillText(`the sounds' bus, live  ·  peak ${dB(peak)}`, 8, 6);
+  g.fillText(`the ambience's and the sounds' buses, live  ·  peak ${dB(peak)}`, 8, 6);
 }
 
 function renderAmbience(pads) {

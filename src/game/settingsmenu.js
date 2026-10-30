@@ -1,22 +1,27 @@
-// The settings menu, from the Esc menu (game/escmenu.js) and the main menu (game/menu.js), in three
+// The settings menu, from the Esc menu (game/escmenu.js) and the main menu (game/menu.js), in four
 // pages, picked from the tabs on the left (Up and Down go through them too; the menu opens on the
 // last one shown):
-//   General   the language (a dropdown, game/dropdown.js), the UI scale (game/uiscale.js: taken
-//             when the slider is let go, as the panel itself grows or shrinks with it), the
-//             minimap's size, the item names on the floor, the damage numbers, the tutorial's card
-//             (game/tutorial.js: on again shows it again), fullscreen (where
-//             the browser can: game/display.js); the music on or off, the volume of everything,
-//             the music's, the sounds' and the narrator's, her subtitles, and being quiet in the
-//             background
+//   General   Interface: the language (a dropdown, game/dropdown.js), the UI scale
+//             (game/uiscale.js: taken when the slider is let go, as the panel itself grows or
+//             shrinks with it), the minimap's size, the item names on the floor, the damage
+//             numbers, fullscreen (where the browser can: game/display.js). Guidance: the
+//             narrator's subtitles and their size, and the tutorial's card (game/tutorial.js: done
+//             or skipped, "Show again" starts it over)
 //   Graphics  the frame rate cap, the render resolution, the anti-aliasing, the lighting's quality
-//             level (Auto or pinned, game/quality.js), the particles, the brightness, reducing
-//             motion (System: as the system says); the camera (overview or close view), the zoom a
-//             game starts at, the close view's field of view
+//             level (Auto or pinned, game/quality.js), the particles; the camera (overview or close
+//             view), the zoom a game starts at, the close view's field of view; the brightness,
+//             reducing motion (System: as the system says) and the camera's shaking (none while
+//             motion is reduced)
+//   Sound     the volume of everything, the sound effects', the ambience's and the narrator's, being
+//             quiet in the background; the music on or off and its volume
 //   Input     the mouse look's speed and inverting it up and down, clicking the floor to walk,
-//             inverting the wheel's zoom, and the keys: each control's primary and secondary key
-//             (core/keybinds.js)
+//             inverting the wheel's zoom; the touch controls (only where the screen can be touched,
+//             game/touch.js; Off only with a mouse or a trackpad too), and the keys: each control's
+//             primary and secondary key (core/keybinds.js)
 // What each one does: game/settings.js. The pages keep the size of the largest, so the panel does
-// not jump between them. Everything is kept as it changes.
+// not jump between them. Everything is kept as it changes. "Reset page" (asking again first) puts
+// the page shown back as it was at first, but the language, fullscreen, the tutorial and the keys
+// (they have their own button).
 //
 // The keys come in tabs, one per kind of control (core/keybinds.js GROUPS; Left and Right go
 // through them too). A click on a key waits for the new one: the next key pressed takes the place (taken from the
@@ -26,12 +31,12 @@ import { ACTIONS, ACTION, GROUPS, UNBINDABLE } from '../core/keybinds.js';
 import {
   FRAME_RATES, frameRate, setFrameRate, antialias, setAntialias, cameraMode, setCameraMode, uiScale, setUiScale, graphics, setGraphics,
   RESOLUTIONS, resolution, setResolution, particles, setParticles, brightness, setBrightness, MOTIONS, motion, setMotion,
-  systemReducesMotion, closeFov, setCloseFov, minimap, setMinimap, itemNames, setItemNames, damageNumbers, setDamageNumbers,
+  systemReducesMotion, reduceMotion, closeFov, setCloseFov, minimap, setMinimap, itemNames, setItemNames, damageNumbers, setDamageNumbers,
   lookSpeed, setLookSpeed, invertLook, setInvertLook, clickMove, setClickMove, invertZoom, setInvertZoom,
-  startZoomStep, setStartZoomStep, startZoom,
+  startZoomStep, setStartZoomStep, startZoom, shake, setShake, touchSetting, setTouchSetting,
   musicOn, setMusic, masterVolume, setMasterVolume, musicVolume, setMusicVolume, soundVolume, setSoundVolume, quietBehind, setQuietBehind,
-  voiceVolume, setVoiceVolume, subtitles, setSubtitles, tutorialOn, setTutorial,
-  keysOf, bindKey, unbindKey, resetKeys, nameOf, onSettingsChange, languageNow, chooseLanguage,
+  ambienceVolume, setAmbienceVolume, voiceVolume, setVoiceVolume, subtitles, setSubtitles, subtitleSize, setSubtitleSize, tutorialOn, setTutorial,
+  keysOf, bindKey, unbindKey, resetKeys, resetPage, pageIsDefault, nameOf, onSettingsChange, languageNow, chooseLanguage,
 } from './settings.js';
 import { tr, tc, LANGUAGES, onLanguageChange } from '../i18n/i18n.js';
 import { sfx } from '../audio/sfx.js';
@@ -39,6 +44,7 @@ import { MSAA_LEVELS, msaaLevel } from '../render/msaa.js';
 import { ZOOM_LEVELS, DEFAULT_ZOOM } from '../core/zoom.js';
 import { dropdown } from './dropdown.js';
 import { canFullscreen, isFullscreen, setFullscreen, onFullscreenChange } from './display.js';
+import { touchScreen, touchOptional } from './touch.js';
 import { state, view } from './state.js';
 
 const $ = id => document.getElementById(id);
@@ -50,6 +56,7 @@ let page = PAGES[0];   // the page shown
 let waiting = null;    // { id, slot }: the key place waiting for a key
 let tab = GROUPS[0];   // the kind of controls shown
 let resetUntil = 0;    // the reset button asks again until then
+let pageResetUntil = 0;   // the page's reset button too
 let opener = null;     // what had the focus before (it gets it back)
 
 const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
@@ -60,7 +67,7 @@ export function openSettings() {
   if (settingsOpen()) return;
   opener = document.activeElement;
   overlay.hidden = false;
-  waiting = null; resetUntil = 0; say('');
+  waiting = null; resetUntil = 0; pageResetUntil = 0; say('');
   render();
   $('settings-close').focus();
 }
@@ -97,6 +104,13 @@ const CHOICES = {
   'settings-minimap': [() => [['off', tc('toggle', 'Off')], ['small', tc('minimap', 'Small')], ['normal', tc('minimap', 'Normal')], ['large', tc('minimap', 'Large')]],
     minimap, setMinimap],
   'settings-names': [() => [[false, tr('Hovered')], [true, tr('Always')]], itemNames, setItemNames],
+  'settings-subtitle-size': [() => [['small', tc('subtitles', 'Small')], ['normal', tc('subtitles', 'Normal')], ['large', tc('subtitles', 'Large')],
+    ['huge', tc('subtitles', 'Huge')]], subtitleSize, setSubtitleSize],
+  // none while motion is reduced (the buttons stay, the setting kept for when it is not)
+  'settings-shake': [() => [['off', tc('toggle', 'Off')], ['low', tc('shake', 'Low')], ['full', tc('shake', 'Full')]], shake, setShake],
+  // Off only with something else to point with (game/touch.js; without, an Off kept counts as Auto)
+  'settings-touch': [() => [['auto', tc('touch', 'Auto')], ['on', tc('toggle', 'On')], ...touchOptional() ? [['off', tc('toggle', 'Off')]] : []],
+    () => (touchSetting() === 'off' && !touchOptional() ? 'auto' : touchSetting()), setTouchSetting],
 };
 function choice(box, options, current) {
   box.innerHTML = options.map(([v, label]) => `<button data-value="${esc(v)}" aria-pressed="${v === current}" class="${v === current ? 'on' : ''}">${esc(label)}</button>`).join('');
@@ -104,7 +118,6 @@ function choice(box, options, current) {
 // the switches: on or off
 const TOGGLES = {
   'settings-numbers': [damageNumbers, setDamageNumbers],
-  'settings-tutorial': [tutorialOn, setTutorial],
   'settings-fullscreen': [isFullscreen, setFullscreen],
   'settings-music': [musicOn, setMusic],
   'settings-quiet': [quietBehind, setQuietBehind],
@@ -132,6 +145,8 @@ const SLIDERS = {
   'settings-music-volume': { out: 'settings-music-level', get: () => Math.round(musicVolume() * 100), show: percent, set: v => setMusicVolume(v / 100), live: true },
   'settings-sound-volume': { out: 'settings-sound-level', get: () => Math.round(soundVolume() * 100), show: percent,
     set: v => setSoundVolume(v / 100), live: true, done: () => sfx('coin') },
+  'settings-ambience-volume': { out: 'settings-ambience-level', get: () => Math.round(ambienceVolume() * 100), show: percent,
+    set: v => setAmbienceVolume(v / 100), live: true },
   'settings-voice-volume': { out: 'settings-voice-level', get: () => Math.round(voiceVolume() * 100), show: percent, set: v => setVoiceVolume(v / 100), live: true },
   'settings-brightness': { out: 'settings-brightness-level', get: () => Math.round(brightness() * 100), show: percent, set: v => setBrightness(v / 100), live: true },
   // the zoom changes at once while playing, to see it
@@ -169,6 +184,18 @@ function renderSettings() {
     $(s.out).textContent = s.show(v);
   }
   for (const el of document.querySelectorAll('.settings-fullscreen')) el.hidden = !canFullscreen();
+  for (const el of document.querySelectorAll('.settings-touch')) el.hidden = !touchScreen();
+  // the tutorial: "Show again" once it is done or skipped; still to come, nothing to press
+  const tutorial = $('settings-tutorial'), pending = tutorialOn();
+  tutorial.textContent = pending ? tr('Will show') : tr('Show again');
+  tutorial.disabled = pending;
+  // reducing motion: the camera does not shake whatever this says
+  for (const b of $('settings-shake').children) b.disabled = reduceMotion();
+  // the page's reset: nothing to do while it is as it was at first
+  const reset = $('settings-reset-page'), sure = performance.now() < pageResetUntil;
+  reset.classList.toggle('confirm', sure);
+  reset.textContent = sure ? tr('Sure? Click again') : tr('Reset page');
+  reset.disabled = pageIsDefault(page);
 }
 function keyButton(a, slot) {
   const k = keysOf(a.id)[slot], on = waiting?.id === a.id && waiting.slot === slot;
@@ -205,7 +232,7 @@ function render() {
 }
 function showPage(p) {
   if (p === page) return;
-  page = p; waiting = null; say('');
+  page = p; waiting = null; pageResetUntil = 0; say('');
   languages.close(false);
   render();
 }
@@ -291,6 +318,7 @@ for (const [id, [options, , set]] of Object.entries(CHOICES)) {
   });
 }
 for (const [id, [now, set]] of Object.entries(TOGGLES)) $(id).onclick = () => set(!now());
+$('settings-tutorial').onclick = () => setTutorial(true);
 for (const [id, s] of Object.entries(SLIDERS)) {
   $(id).addEventListener('input', e => {
     const v = Number(e.target.value);
@@ -300,6 +328,17 @@ for (const [id, s] of Object.entries(SLIDERS)) {
   $(id).addEventListener('change', e => { if (!s.live) s.set(Number(e.target.value)); s.done?.(); });
 }
 onFullscreenChange(render);
+$('settings-reset-page').onclick = () => {
+  if (performance.now() >= pageResetUntil) {
+    pageResetUntil = performance.now() + CONFIRM_MS;
+    render();
+    setTimeout(render, CONFIRM_MS + 50);
+    return;
+  }
+  pageResetUntil = 0; waiting = null;
+  resetPage(page);
+  pages.querySelector('.on')?.focus();   // (the button is off now: nothing left to put back)
+};
 $('settings-reset').onclick = () => {
   if (performance.now() >= resetUntil) {
     resetUntil = performance.now() + CONFIRM_MS;

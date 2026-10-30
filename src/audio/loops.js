@@ -1,7 +1,8 @@
 // Continuous sounds, generated like the rest: two drones the game tunes every frame (`charge`:
 // standing in a well or ring, `cast`: reading the town portal scroll) and the ambient beds
-// (water, waterfalls, lava, acid, wind, cave air) plus single drips and lava pops. Levels glide
-// to their targets, so the game just says how much of each it wants (game/ambience.js).
+// (water, waterfalls, lava, acid, wind, cave air) plus single drips and lava pops, on the ambience's
+// bus (its own volume in the settings). Levels glide to their targets, so the game just says how
+// much of each it wants (game/ambience.js).
 // A bed or drone is only built while it is wanted: the audio thread works on every node that
 // runs, heard or not, so one silent for IDLE seconds is stopped and taken apart again.
 import { onAudioStart } from './context.js';
@@ -11,12 +12,14 @@ const AMBIENT = 0.6;   // the beds, drips and pops under the drones
 const IDLE = 3;        // s at level 0 before a bed's or drone's nodes are stopped (the fade takes ~2)
 const BED_GAIN = { water: 0.5, falls: 0.35, lava: 0.7, acid: 0.25, wind: 0.4, cave: 0.5 };
 
-onAudioStart((ac, output) => {
+// the drones into the sounds' bus, the beds, drips and pops into the ambience's (its own volume in
+// the settings: audio/context.js)
+onAudioStart((ac, sounds, music, voice, ambience) => {
   ctx = ac;
   bus = ctx.createGain(); bus.gain.value = 0.5;
-  bus.connect(output);
-  ambient = ctx.createGain(); ambient.gain.value = AMBIENT;
-  ambient.connect(bus);
+  bus.connect(sounds);
+  ambient = ctx.createGain(); ambient.gain.value = 0.5 * AMBIENT;
+  ambient.connect(ambience);
   noiseBuf = ctx.createBuffer(1, 2 * ctx.sampleRate, ctx.sampleRate);
   const d = noiseBuf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;

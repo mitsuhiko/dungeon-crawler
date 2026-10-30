@@ -2,19 +2,23 @@
 //   General   the language (once chosen; before that the browser's, src/i18n/i18n.js
 //             startLanguage), the UI scale (game/uiscale.js), the minimap's size (game/display.js),
 //             the item names on the floor always or only hovered (game/lootlabels.js; X switches
-//             it too), the damage numbers (game/juice.js), the music on or off, the volume of
-//             everything, the music's, the sounds' and the narrator's (audio/context.js), the
-//             narrator's subtitles (game/narrator.js), and whether the game is quiet in the
-//             background
+//             it too), the damage numbers (game/juice.js), the narrator's subtitles
+//             (game/narrator.js) and their size (game/display.js: the films' too), the tutorial's
+//             card (game/tutorial.js)
 //   Graphics  the frame rate cap (main.js), the render resolution (render/resolution.js), the
 //             anti-aliasing (render/msaa.js), the lighting's quality level (game/quality.js), the
 //             particles (render/particles.js), the brightness (game/display.js), reducing motion
-//             (the system's choice at first: game/display.js), the camera (the overview or the
-//             close view, game/camera.js; the camera key switches it too, game/camerakey.js) and
-//             the close view's field of view
+//             (the system's choice at first: game/display.js), the camera's shaking (game/camera.js,
+//             film/player.js), the camera (the overview or the close view, game/camera.js; the
+//             camera key switches it too, game/camerakey.js), the zoom a game starts at
+//             (core/zoom.js) and the close view's field of view
+//   Sound     the volume of everything, the sounds', the ambience's, the narrator's and the music's
+//             (audio/context.js), the music on or off, and whether the game is quiet in the
+//             background
 //   Input     the mouse look's speed and whether up and down are inverted (game/mouselook.js),
-//             clicking the floor to walk (game/input.js), the zoom's wheel direction and the zoom a
-//             game starts at (game/input.js, core/zoom.js), and the keys (core/keybinds.js)
+//             clicking the floor to walk (game/input.js), the zoom's wheel direction
+//             (game/input.js), the touch controls (game/touch.js) and the keys (core/keybinds.js)
+// Each page but the keys can go back to the defaults (resetPage); the keys have resetKeys.
 // Kept in localStorage
 // (crawler.settings) as soon as they change, for every hero alike; the keys only as far as they
 // differ from the defaults. The music setting of before (crawler.music) is taken over once.
@@ -81,29 +85,39 @@ const embedded = (() => { try { return window.top !== window; } catch { return t
 // the UI scale: the HUD and the menus 90% to 200% of their size (100%: as they were made)
 export const UI_SCALE_MIN = 0.9, UI_SCALE_MAX = 2;
 export const clampUiScale = s => (Number.isFinite(s) ? Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, s)) * 100) / 100 : 1);
+// the subtitles' size (game/display.js), against how they were made
+export const SUBTITLE_SIZES = { small: 0.85, normal: 1, large: 1.25, huge: 1.5 };
+// the camera's shaking: hit kicks and the ground's tremors (game/camera.js), the films' (film/player.js)
+export const SHAKES = { off: 0, low: 0.5, full: 1 };
+// the touch controls (game/touch.js): 'auto' (on from the first touch), or always on or off
+export const TOUCHES = ['auto', 'on', 'off'];
 const oneOf = (list, v, fallback) => (list.includes(v) ? v : fallback);
-const stored = read();
 const dev = typeof location === 'object' && new URLSearchParams(location.search).get('dev') === '1';
-// the music: true or false once chosen, null before (on, but not with the dev tools)
-const storedMusic = typeof stored.music !== 'boolean' || (stored.v ?? 1) < 3 && !stored.music ? null : stored.music;
-// (settings kept before version 2 always had msaa: 2x was the default then, not a choice)
-const storedMsaa = (stored.v ?? 1) < 2 && stored.msaa === 2 ? 'auto' : stored.msaa;
-const settings = {
-  language: isLanguage(stored.language) ? stored.language : null,   // null: the browser's
-  fps: oneOf(FRAME_RATES, stored.fps, DEFAULT_FPS), msaa: oneOf(ANTIALIAS, storedMsaa, DEFAULT_MSAA),
-  graphics: oneOf(GRAPHICS, OLD_GRAPHICS[stored.graphics] ?? stored.graphics, DEFAULT_GRAPHICS),
-  camera: oneOf(CAMERAS, stored.camera, CAMERAS[0]), uiScale: clampUiScale(stored.uiScale),
-  lookSpeed: clampLookSpeed(stored.lookSpeed), invertLook: stored.invertLook === true,
-  resolution: oneOf(RESOLUTIONS, stored.resolution, 'auto'), particles: stored.particles in PARTICLES ? stored.particles : 'high',
-  motion: oneOf(MOTIONS, stored.motion, 'system'), brightness: clampBrightness(stored.brightness), fov: clampFov(stored.fov),
-  minimap: stored.minimap in MINIMAPS ? stored.minimap : 'normal', itemNames: stored.itemNames === true, damageNumbers: stored.damageNumbers !== false,
-  clickMove: stored.clickMove !== false, invertZoom: stored.invertZoom === true, startZoom: zoomStep(stored.startZoom),
-  music: storedMusic, quietBehind: typeof stored.quietBehind === 'boolean' ? stored.quietBehind : !embedded,
-  masterVolume: volume(stored.masterVolume), musicVolume: volume(stored.musicVolume), soundVolume: volume(stored.soundVolume),
-  voiceVolume: volume(stored.voiceVolume), subtitles: stored.subtitles !== false,
-  tutorial: stored.tutorial !== false,
-  keys: resolveBindings(stored.keys),
-};
+// the settings from what was kept ({}: the defaults)
+function settingsFrom(stored) {
+  // the music: true or false once chosen, null before (on, but not with the dev tools)
+  const storedMusic = typeof stored.music !== 'boolean' || (stored.v ?? 1) < 3 && !stored.music ? null : stored.music;
+  // (settings kept before version 2 always had msaa: 2x was the default then, not a choice)
+  const storedMsaa = (stored.v ?? 1) < 2 && stored.msaa === 2 ? 'auto' : stored.msaa;
+  return {
+    language: isLanguage(stored.language) ? stored.language : null,   // null: the browser's
+    fps: oneOf(FRAME_RATES, stored.fps, DEFAULT_FPS), msaa: oneOf(ANTIALIAS, storedMsaa, DEFAULT_MSAA),
+    graphics: oneOf(GRAPHICS, OLD_GRAPHICS[stored.graphics] ?? stored.graphics, DEFAULT_GRAPHICS),
+    camera: oneOf(CAMERAS, stored.camera, CAMERAS[0]), uiScale: clampUiScale(stored.uiScale),
+    lookSpeed: clampLookSpeed(stored.lookSpeed), invertLook: stored.invertLook === true,
+    resolution: oneOf(RESOLUTIONS, stored.resolution, 'auto'), particles: stored.particles in PARTICLES ? stored.particles : 'high',
+    motion: oneOf(MOTIONS, stored.motion, 'system'), brightness: clampBrightness(stored.brightness), fov: clampFov(stored.fov),
+    minimap: stored.minimap in MINIMAPS ? stored.minimap : 'normal', itemNames: stored.itemNames === true, damageNumbers: stored.damageNumbers !== false,
+    clickMove: stored.clickMove !== false, invertZoom: stored.invertZoom === true, startZoom: zoomStep(stored.startZoom),
+    music: storedMusic, quietBehind: typeof stored.quietBehind === 'boolean' ? stored.quietBehind : !embedded,
+    masterVolume: volume(stored.masterVolume), musicVolume: volume(stored.musicVolume), soundVolume: volume(stored.soundVolume),
+    voiceVolume: volume(stored.voiceVolume), ambienceVolume: volume(stored.ambienceVolume), subtitles: stored.subtitles !== false,
+    subtitleSize: stored.subtitleSize in SUBTITLE_SIZES ? stored.subtitleSize : 'normal', shake: stored.shake in SHAKES ? stored.shake : 'full',
+    touch: oneOf(TOUCHES, stored.touch, 'auto'), tutorial: stored.tutorial !== false,
+    keys: resolveBindings(stored.keys),
+  };
+}
+const settings = settingsFrom(read());
 
 function sound() {
   setMusicEnabled(settings.music ?? !dev, settings.music !== false);
@@ -112,6 +126,7 @@ function sound() {
   setVolume('music', settings.musicVolume);
   setVolume('sounds', settings.soundVolume);
   setVolume('voice', settings.voiceVolume);
+  setVolume('ambience', settings.ambienceVolume);
 }
 function changed() {
   sound();
@@ -121,6 +136,26 @@ function changed() {
   } catch { /* private mode: for this page only */ }
   for (const fn of listeners) fn();
 }
+// What each page of the settings menu holds (but the language, fullscreen, the tutorial and the
+// keys): what resetPage(page) puts back as it was at first.
+const PAGES = {
+  general: ['uiScale', 'minimap', 'itemNames', 'damageNumbers', 'subtitles', 'subtitleSize'],
+  graphics: ['fps', 'resolution', 'msaa', 'graphics', 'particles', 'camera', 'startZoom', 'fov', 'brightness', 'motion', 'shake'],
+  sound: ['masterVolume', 'soundVolume', 'ambienceVolume', 'voiceVolume', 'quietBehind', 'music', 'musicVolume'],
+  input: ['lookSpeed', 'invertLook', 'clickMove', 'invertZoom', 'touch'],
+};
+export function resetPage(page) {
+  const first = settingsFrom({});
+  for (const k of PAGES[page] ?? []) settings[k] = first[k];
+  changed();
+}
+// whether the page is as it was at first
+export function pageIsDefault(page) {
+  const first = settingsFrom({});
+  const now = k => (k === 'music' ? settings.music ?? !dev : settings[k]), was = k => (k === 'music' ? first.music ?? !dev : first[k]);
+  return (PAGES[page] ?? []).every(k => now(k) === was(k));
+}
+
 // fn() after any change (the keys shown in the help, the quick bar ...)
 export function onSettingsChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 sound();
@@ -163,6 +198,11 @@ export const motion = () => settings.motion;
 export const systemReducesMotion = () => !!systemMotion?.matches;
 export const reduceMotion = () => settings.motion === 'reduce' || settings.motion === 'system' && systemReducesMotion();
 export function setMotion(m) { settings.motion = oneOf(MOTIONS, m, 'system'); changed(); }
+// the camera's shaking: the setting ('off', 'low', 'full'), and how much of it there is now (none
+// while motion is reduced)
+export const shake = () => settings.shake;
+export const shakeAmount = () => (reduceMotion() ? 0 : SHAKES[settings.shake]);
+export function setShake(s) { settings.shake = s in SHAKES ? s : 'full'; changed(); }
 
 // --- the HUD ------------------------------------------------------------------------------------
 
@@ -193,6 +233,9 @@ export function setInvertZoom(on) { settings.invertZoom = !!on; changed(); }
 export const startZoomStep = () => settings.startZoom;
 export const startZoom = () => ZOOM_LEVELS[settings.startZoom];
 export function setStartZoomStep(i) { settings.startZoom = zoomStep(i); changed(); }
+// the touch controls: 'auto', 'on' or 'off' (game/touch.js)
+export const touchSetting = () => settings.touch;
+export function setTouchSetting(t) { settings.touch = oneOf(TOUCHES, t, 'auto'); changed(); }
 
 // --- sound --------------------------------------------------------------------------------------
 
@@ -208,13 +251,20 @@ export const musicVolume = () => settings.musicVolume;
 export const soundVolume = () => settings.soundVolume;
 export function setMusicVolume(v) { settings.musicVolume = volume(v); changed(); }
 export function setSoundVolume(v) { settings.soundVolume = volume(v); changed(); }
+// the ambience: the world's beds, drips and pops (audio/loops.js)
+export const ambienceVolume = () => settings.ambienceVolume;
+export function setAmbienceVolume(v) { settings.ambienceVolume = volume(v); changed(); }
 // the narrator (game/narrator.js): her voice's volume (0: she is only read), and her subtitles
 export const voiceVolume = () => settings.voiceVolume;
 export function setVoiceVolume(v) { settings.voiceVolume = volume(v); changed(); }
 export const subtitles = () => settings.subtitles;
 export function setSubtitles(on) { settings.subtitles = !!on; changed(); }
-// the tutorial's card (game/tutorial.js): on until it is done or skipped; turned on again, it shows
-// again in the next beginning
+// the subtitles' size: the setting, and the share of their size it makes them (game/display.js)
+export const subtitleSize = () => settings.subtitleSize;
+export const subtitleScale = () => SUBTITLE_SIZES[settings.subtitleSize];
+export function setSubtitleSize(s) { settings.subtitleSize = s in SUBTITLE_SIZES ? s : 'normal'; changed(); }
+// the tutorial's card (game/tutorial.js): on until it is done or skipped; the settings' "Show
+// again" turns it on again, and it shows again from its start in a beginning
 export const tutorialOn = () => settings.tutorial;
 export function setTutorial(on) { settings.tutorial = !!on; changed(); }
 

@@ -37,7 +37,9 @@ Q / E still turn by a quarter in both views; the zoom keys and the wheel keep th
 presets, which in the close view set the arm's length (`closeDistance`: about 1.2 to 4.7 units).
 The settings can turn the wheel round and pick the preset a game starts at (the fourth at first).
 Where motion is reduced (the settings; at first as the system says) hits do not kick the camera
-and the ground does not shake it.
+and the ground does not shake it. Otherwise "Camera shake" (Graphics, Comfort: Off, Low, Full)
+says how much they do, a film's shake too (`shakeAmount`, applied where the camera is placed, so
+whatever shakes it obeys).
 WASD always moves relative to the camera, so in the close view W runs away from it.
 
 ## Mouse look (`game/mouselook.js`)

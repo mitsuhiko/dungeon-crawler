@@ -2,8 +2,11 @@
 
 On phones and tablets the game plays with the thumbs (`src/game/touch.js`, the numbers in
 `src/core/stick.js`). They switch on with the first touch of the screen, or on a device whose
-main pointer is coarse; `?touch=1` forces them on (to try them with a mouse), `?touch=0` keeps
-them off. On, the body has the `touch` class and the layout changes with it (`style.css`).
+main pointer is coarse. The settings (Input, Touch; shown only where the screen can be touched)
+can have them always on, or off where there is a mouse or a trackpad too (a touchscreen laptop: a
+phone could not play without them, so there Off is not offered and counts as Auto). `?touch=1`
+forces them on (to try them with a mouse), `?touch=0` keeps them off, whatever the settings say.
+On, the body has the `touch` class and the layout changes with it (`style.css`).
 
 ## Layout
 
