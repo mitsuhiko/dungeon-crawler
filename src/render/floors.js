@@ -196,8 +196,10 @@ export function buildFloors(m, layers) {
 // The town's paths are narrow straight ribbons along the grid, not whole-cell paving, lying on the
 // ground (level where the town stands): each run a strip reaching `width` to either side and past
 // both ends, so corners close up, in pieces so it follows the ground; none over water (a bridge
-// carries the way over it). These are baked into the worker's terrain mesh, so cutaways, shadows and
-// neighbour proxies agree.
+// carries the way over it), nor up a cliff (a piece reaching past one's edge, as a way's end at the
+// foot of the stair up the town's cliff: it would stand up the wall as a slab). These are baked into
+// the worker's terrain mesh, so cutaways, shadows and neighbour proxies agree.
+const STEEP = 1.5;   // (steeper than any slope of the ground: a cliff between two points)
 function buildClearingPaths(m, paths, builder) {
   const color = C('#b3a58a');
   const bounded = v => Math.max(0, Math.min(N, v));
@@ -211,12 +213,18 @@ function buildClearingPaths(m, paths, builder) {
     if (len < 1e-6) continue;
     const ux = (bx0 - ax0) / len * width, uz = (bz0 - az0) / len * width;
     const corner = (x, z, side) => { const p = [bounded(x - uz * side), 0, bounded(z + ux * side)]; p[1] = ground(p[0], p[2]); return p; };
-    const n = Math.max(1, Math.ceil((len + 2 * width) / .5));
-    for (let k = 0; k < n; k++) {
-      const t0 = -width / len + (1 + 2 * width / len) * k / n, t1 = -width / len + (1 + 2 * width / len) * (k + 1) / n;
+    // (a piece over a cliff: its corners further apart in height than any slope takes them)
+    const cliff = q => [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2], [1, 3]].some(([i, j]) =>
+      Math.abs(q[i][1] - q[j][1]) > STEEP * Math.hypot(q[i][0] - q[j][0], q[i][2] - q[j][2]) + .05);
+    const piece = (t0, t1, split) => {
       const ax = ax0 + (bx0 - ax0) * t0, az = az0 + (bz0 - az0) * t0, bx = ax0 + (bx0 - ax0) * t1, bz = az0 + (bz0 - az0) * t1;
-      if ([[ax, az], [bx, bz], [(ax + bx) / 2, (az + bz) / 2]].some(([x, z]) => floorAt(x, z).fluid)) continue;
-      builder.quad(corner(ax, az, 1), corner(ax, az, -1), corner(bx, bz, -1), corner(bx, bz, 1), [0, 1, 0], color);
-    }
+      if ([[ax, az], [bx, bz], [(ax + bx) / 2, (az + bz) / 2]].some(([x, z]) => floorAt(x, z).fluid)) return;
+      const q = [corner(ax, az, 1), corner(ax, az, -1), corner(bx, bz, -1), corner(bx, bz, 1)];
+      if (!cliff(q)) builder.quad(...q, [0, 1, 0], color);
+      // (in finer pieces up to its edge)
+      else if (split) for (let k = 0; k < 8; k++) piece(t0 + (t1 - t0) * k / 8, t0 + (t1 - t0) * (k + 1) / 8, false);
+    };
+    const n = Math.max(1, Math.ceil((len + 2 * width) / .5));
+    for (let k = 0; k < n; k++) piece(-width / len + (1 + 2 * width / len) * k / n, -width / len + (1 + 2 * width / len) * (k + 1) / n, true);
   }
 }
