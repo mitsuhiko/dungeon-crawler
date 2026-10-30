@@ -16,8 +16,8 @@
 // right on the hero, not in a wall, drifts about a little while it waits, and faces where it
 // flies, or the hero. It flies round everyone, never through them: the hero, the friends and the
 // enemies here (to the side, or over one where that is a wall: avoid). Left behind in another
-// cube it is drawn there while that shows (a slide carrying it away, a neighbour beside us); else
-// it is out of sight until it comes through.
+// cube it is drawn there while that shows (a slide carrying it away, one of the surroundings near
+// us: game/drawn.js); else it is out of sight until it comes through.
 //
 // It is in no fight and nobody's target: it is not an enemy, has no body, and the hover and the
 // clicks never see it (game/lootlabels.js, game/pointer.js).
@@ -33,8 +33,8 @@ import { robotMet, robotLies, newWay, noteWay, stepWay, wayPoint, wayEnd, shortc
 import { CHAR_R, CHAR_H } from '../core/constants.js';
 import { cellAt, insideSolid } from '../physics/collide.js';
 import { player, state } from './state.js';
-import { truePosition, travelling, tripKind, leftCube } from './travel.js';
-import { showsNeighbor } from '../render/neighbors.js';
+import { truePosition, travelling, tripKind } from './travel.js';
+import { drawnAt } from './drawn.js';
 import { narrate, speaking, cut } from './narrator.js';
 import { drawRobot, hideRobot, robotClip, robotWake, drawOtherRobot } from '../render/robot.js';
 import { msg } from '../i18n/i18n.js';
@@ -94,15 +94,15 @@ export function sleepingRobot() {
   const { x, y, z } = state.map.relics.robot;
   return { id: 'robot', robot: true, x, y, z, yaw: SLEEPER_YAW + (state.map.town.yaw ?? 0), title: msg('Robot of star-glass'), labelY: 0.75 };
 }
-// ... in the town's tile beside the one played in, where it shows: where it lies, in this one's
-// coordinates (null: not there)
+// ... in another of the town's tiles, where that shows (game/drawn.js): where it lies in the scene,
+// how much of it shows (null: not there)
 function sleepingNearby() {
   const k = state.cubes?.town?.portal, m = k && k !== state.cubeKey && state.map?.town ? state.cubes.cubes.get(k)?.map : null;
-  if (!m || !robotLies(m, state.run) || !showsNeighbor(k)) return null;
-  const o = beside(k, state.cubeKey);
-  if (!o) return null;
+  if (!m || !robotLies(m, state.run)) return null;
+  const where = drawnAt(k);
+  if (!where) return null;
   const { x, y, z } = m.relics.robot;
-  return { x: x + o[0], y: y + o[1], z: z + o[2], yaw: SLEEPER_YAW + (m.town.yaw ?? 0) };
+  return { x: x + where.at.x, y: y + where.at.y, z: z + where.at.z, yaw: SLEEPER_YAW + (m.town.yaw ?? 0), fade: where.fade };
 }
 // can the hero wake it from where they stand?
 export const canWakeRobot = r => !!r && Math.hypot(r.x - player.x, r.z - player.z) <= WAKE_REACH && Math.abs(r.y - player.y) < 1;
@@ -161,16 +161,6 @@ function place(p, dt) {
   return { k: p.k, x, y: p.y, z };
 }
 
-// where cube k is drawn now: the cube we are in, the one a slide carries away, a neighbour shown
-// beside us; null: out of sight
-const shown = new THREE.Vector3();
-function drawnAt(k) {
-  if (k === state.cubeKey) return state.world ? { at: state.world.group.position, fade: state.world.group.userData.fade ?? 1 } : null;
-  const left = leftCube();
-  if (left) return left.key === k ? { at: left.group.position, fade: left.group.userData.fade ?? 1 } : null;
-  const o = beside(k, state.cubeKey);
-  return o && showsNeighbor(k) ? { at: shown.set(o[0], o[1], o[2]), fade: 1 } : null;
-}
 
 // Everyone it keeps out of the way of, in our cube's coordinates: the hero, the friends as they are
 // drawn here (render/partner.js) and the enemies alive here ({ x, y, z, r, h } each)
@@ -219,7 +209,7 @@ export function updateRobot(dt) {
   }
   // asleep in the town's tile beside this one (docs/town.md): seen there, among the surroundings
   const far = !robot && sleepingNearby();
-  if (far) { drawRobot(scene.set(far.x, far.y, far.z), far.yaw, 1, 'dormant', dt); return; }
+  if (far) { drawRobot(scene.set(far.x, far.y, far.z), far.yaw, far.fade, 'dormant', dt); return; }
   if (!robot || state.mode !== 'play' || !state.map) { hideRobot(); return; }
   // carrying the hero out of a fluid (game/rescue.js): there, and on from there once it lets go
   const carry = !(robot.waking > 0) && rescuePose();

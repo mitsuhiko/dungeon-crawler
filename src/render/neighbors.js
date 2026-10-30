@@ -322,6 +322,8 @@ export function showNeighbors(list, instant = false) {
   disposeNeighbors(old);
 }
 export const showsNeighbor = key => current.some(g => g.key === key);
+// the proxy drawn for cube `key` (the ones shown round us first, then travel's other set), or null
+export const neighborOf = key => current.find(g => g.key === key) ?? [...live].find(g => g.key === key) ?? null;
 export const liveNeighbors = () => [...live];   // every proxy drawn, travel's two sets too (tests)
 export function detachNeighbors() { const c = current; current = []; return c; }
 export function adoptNeighbors(list) { clearNeighbors(); current = list; }
@@ -359,6 +361,7 @@ export function cullNeighbors(x, z, revealPlayer = true, enabled = true, floor =
     const radius = bounds.getSize(center).length() / 2;
     const fogged = scene.fog && -point.z - radius >= scene.fog.far;
     g.cull.visible = range > 0 && !fogged && frustum.intersectsBox(bounds);
+    g.cull.done = true;   // (game/drawn.js: one built since the last frame counts as shown until culled)
   }
   sync();
 }

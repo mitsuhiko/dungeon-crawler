@@ -14,7 +14,7 @@
 // for everyone, and a recording one of us sets off plays for everyone at once (heardStory).
 import { player, state, setStatus, worldPaused } from './state.js';
 import { INTRO_GATES, glassThere, swordThere, pullSword, skipIntro, pastIntro, depthGlassIn, isStoryNews } from '../core/intro.js';
-import { meetRobot, robotMet, beside } from '../core/robot.js';
+import { meetRobot, robotMet } from '../core/robot.js';
 import { doorArrival } from '../core/doors.js';
 import { WAKE_HOUSE } from '../world/town.js';
 import { playScene, scenePlaying } from './scene.js';
@@ -23,7 +23,7 @@ import { curtained } from './hud.js';
 import { filmCovers } from '../film/player.js';
 import { allEnemies } from './enemies.js';
 import { plazaShards } from '../render/shards.js';
-import { showsNeighbor } from '../render/neighbors.js';
+import { drawnAt } from './drawn.js';
 import { scene } from '../render/scene.js';
 import { emit, soft, ring, rand } from '../render/particles.js';
 import { ITEMS, OLD_SWORD } from '../core/items.js';
@@ -116,17 +116,18 @@ function dressPlaza(dt) {
     life: rand(2.2, 3.4), size: rand(0.18, 0.3), grow: 0.25, color: '#5a5550', alpha: 0.22, drag: 0.4 });
 }
 
-// ... and seen from the tile beside the plaza's (the town is one place, docs/town.md: the plaza's
-// tile is one of the surroundings there, render/neighbors.js), where it shows
+// ... and seen from the town's other tiles (the town is one place, docs/town.md: the plaza's tile is
+// one of the surroundings there, render/neighbors.js), where it shows (game/drawn.js; however far:
+// the crash is what the town is found by)
 let far = null;   // { cubes, group }
 function farPlaza() {
   const cubes = state.cubes, k = cubes?.town?.portal, at = k && cubes.cubes.get(k)?.map.relics?.shards;
-  const o = at && state.map?.town && state.run && k !== state.cubeKey && showsNeighbor(k) ? beside(k, state.cubeKey) : null;
+  const o = at && state.map?.town && state.run && k !== state.cubeKey ? drawnAt(k, { any: true })?.at : null;
   if (far && (far.cubes !== cubes || !o)) { far.group.removeFromParent(); far.group.visible = false; if (far.cubes !== cubes) far = null; }
   if (!o) return;
   if (!far) far = { cubes, group: plazaShards(0, 0, 0, cubes.seed) };
   if (!far.group.parent) { scene.add(far.group); far.group.visible = true; }
-  far.group.position.set(at.x + o[0], at.y + o[1], at.z + o[2]);
+  far.group.position.set(at.x + o.x, at.y + o.y, at.z + o.z);
   far.group.userData.glow(robotMet(state.run) ? 0.3 : 1);
   far.group.userData.tick(state.time ?? 0);
 }
