@@ -1,8 +1,8 @@
 // Walking from one of the town's tiles into the next (docs/town.md, world/town.js): no portal, no
 // slide, no glass. The town's tiles are ordinary cubes; only the one the hero is in is played and
 // drawn in full (the others are its surroundings, render/neighbors.js). Its seams (map.seams: the
-// sides with another tile beyond) are walked across: the physics reads the ground past a seam as the
-// edge's (physics/collide.js cellAt), and once the hero's middle is PAST a seam the tile beyond takes
+// sides with another tile beyond) are walked across: past a seam the physics reads the tile beyond
+// as it lies there (physics/collide.js, the sides set walked across: refreshAcross), and once the hero's middle is PAST a seam the tile beyond takes
 // over at once (handOver): it becomes the cube played in, and everything in the world's coordinates
 // moves by a cube's width, so nothing on the screen jumps.
 import { N, DIRS, STEP } from '../core/constants.js';
@@ -13,7 +13,7 @@ import { setGlassShut } from '../render/glass.js';
 import { shiftParticles } from '../render/particles.js';
 import { shiftFloatText } from '../render/floattext.js';
 import { shiftHeroFeet } from '../render/animator.js';
-import { groundAt } from '../physics/collide.js';
+import { groundAt, setAcross } from '../physics/collide.js';
 import { player, state } from './state.js';
 import { beginVisit, visitedNeighbors, prefetchTown, buildCube } from './flow.js';
 import { showNeighbors } from '../render/neighbors.js';
@@ -28,6 +28,15 @@ export const PAST = 0.25;
 
 // how far the body's middle is past side d of the cube (negative: inside)
 const past = (p, d) => [p.x - N, -p.x, p.z - N, -p.z][d];
+
+// the sides of the cube played in that are walked across now, with the map of the cube beyond each
+// (null: none, or not here yet)
+export function crossable() {
+  const m = state.map, k = state.cubeKey, cubes = state.cubes?.cubes;
+  return DIRS.map((_, d) => m?.seams?.[d] && cubes?.get(step(k, d))?.map || null);
+}
+// ... told to the physics (game/portals.js, every step of play; and once handed over)
+export function refreshAcross() { setAcross(state.map, crossable()); }
 
 // game/portals.js, every step of play: past a seam, the tile beyond takes over. true if it did.
 export function checkHandover() {
@@ -69,5 +78,6 @@ function handOver(c, d) {
   resetEnemies();
   showNeighbors(visitedNeighbors(k), true);
   showStats(c.map, k, state.cubes.seed, c.visits);
+  refreshAcross();
   prefetchTown();
 }

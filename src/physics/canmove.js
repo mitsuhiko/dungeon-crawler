@@ -3,8 +3,9 @@ import { N, STEP, SWIM_STEP, STEEP, WADE_CLIMB } from '../core/constants.js';
 import { clamp, edgeKey } from '../core/util.js';
 import { topOf } from '../core/surfaces.js';
 import { player, state } from '../game/state.js';
-import { cellAt, groundAt, blockedAt } from './collide.js';
+import { spotAt, groundAt, blockedAt } from './collide.js';
 import { wadeable } from './fluid.js';
+import { OPP6 } from '../world/coords.js';
 
 // The invisible rails along stairs, bridges and landings (cubegen/fences.js) keep a walking or
 // swimming body on them; a jump goes on or off over them. Visible fences hold up to their height.
@@ -13,26 +14,30 @@ const walking = () => player.grounded || player.swimming;
 // WADE_CLIMB deep, climbs out onto a bank up to a level over the water (SWIM_STEP)
 export const stepOf = p => p.swimming || (p.wade || 0) >= WADE_CLIMB ? SWIM_STEP : STEP;
 
+// a, b: two spots (physics/collide.js spotAt) in one cube (across a side: railedAcross)
 function fenceBlocks(a, b, y) {
-  if (a < 0 || b < 0 || a === b) return false;
-  const ax = a % N, az = (a / N) | 0, bx = b % N, bz = (b / N) | 0;
+  if (!a || !b || a.m !== b.m || a.i === b.i) return false;
+  const ax = a.i % N, az = (a.i / N) | 0, bx = b.i % N, bz = (b.i / N) | 0;
   if (Math.abs(ax - bx) + Math.abs(az - bz) !== 1) return false;
-  const f = state.map.fences.get(edgeKey(ax, az, bx, bz));
+  const f = a.m.fences?.get(edgeKey(ax, az, bx, bz));
   return !!f && f.some(e => (e.show || walking()) && y > e.ymin - 0.45 && y < e.ymax + 0.6);
 }
 
 // Surfaces are continuous inside a cell, so the only real obstacles are height jumps across a
 // cell edge (cliffs, slab sides, stair sides) and structures at body height. (rx,rz) is a
 // reference point on our side, (px,pz) the probe point.
+const sameCell = (a, b) => a.m === b.m && a.i === b.i;
+// is surface s (a floor or a piece) in the cell of spot q?
+const inCell = (s, q) => !!s && !!q && s.c === q.i && (q.m.cols[q.i].includes(s) || q.m.pieces[q.i].includes(s));
 function hopBlocked(rx, rz, px, pz, y, step) {
-  const ri = cellAt(rx, rz), pi = cellAt(px, pz);
-  if (pi < 0) return true;
-  if (ri === pi || ri < 0) return blockedAt(px, pz, y, step, true);
+  const ri = spotAt(rx, rz), pi = spotAt(px, pz);
+  if (!pi) return true;
+  if (!ri || sameCell(ri, pi)) return blockedAt(px, pz, y, step, true);
   const e = 0.002;
   const qx = clamp(px, Math.floor(rx) + e, Math.floor(rx) + 1 - e), qz = clamp(pz, Math.floor(rz) + e, Math.floor(rz) + 1 - e);
   // our side of the edge: the surface we stand on if it is in that cell, else whatever is there
-  const sup = player.support, qi = cellAt(qx, qz);
-  const own = sup && sup.c === qi ? topOf(sup, qx - Math.floor(qx), qz - Math.floor(qz)) : groundAt(qx, qz, y + 0.6, 0).h;
+  const sup = player.support;
+  const own = inCell(sup, spotAt(qx, qz)) ? topOf(sup, qx - Math.floor(qx), qz - Math.floor(qz)) : groundAt(qx, qz, y + 0.6, 0).h;
   // in the air we only compare against our feet, not the ground below
   const ref = player.grounded ? Math.max(y, own) : y;
   const q2x = clamp(qx, Math.floor(px) + e, Math.floor(px) + 1 - e), q2z = clamp(qz, Math.floor(pz) + e, Math.floor(pz) + 1 - e);
@@ -51,6 +56,11 @@ export function railedFace(x, z, y, dir, map = state.map) {
   return (s?.kind === 'stair' || s?.kind === 'bridge') && (s.dx !== 0 ? dir >= 2 : dir < 2);
 }
 
+// A walking body goes across a side of the cube (into the cube beyond, physics/collide.js spotAt)
+// only where no rail holds it: not off the side of a stair or bridge lying along it, on either side.
+// q: the spot past side q.d it would step on
+const railedAcross = (q, y) => railedFace(player.x, player.z, y, q.d) || railedFace(q.x, q.z, y, OPP6[q.d], q.m);
+
 // did the last canMove that said no stop the body at a brink (a ledge over what takes it, or over
 // nothing)? (physics/brink.js: teetering there, and a jump over it)
 let brink = false;
@@ -60,16 +70,17 @@ export const stoppedAtBrink = () => brink;
 export function canMove(nx, nz, axis, sign) {
   brink = false;
   const r = player.r, y = player.y, step = stepOf(player);
-  const ci = cellAt(nx, nz);
-  if (ci < 0) return false;
-  if (fenceBlocks(cellAt(player.x, player.z), ci, y)) return false;
+  const ci = spotAt(nx, nz);
+  if (!ci) return false;
+  if (fenceBlocks(spotAt(player.x, player.z), ci, y)) return false;
   const pts = [[nx, nz]];
   if (axis === 'x') { const lx = nx + sign * r; pts.push([lx, nz], [lx, nz - 0.7 * r], [lx, nz + 0.7 * r]); }
   else { const lz = nz + sign * r; pts.push([nx, lz], [nx - 0.7 * r, lz], [nx + 0.7 * r, lz]); }
   for (let k = 0; k < pts.length; k++) {
     const [sx, sz] = pts[k];
-    const si = cellAt(sx, sz);
-    if (si < 0) return false;
+    const si = spotAt(sx, sz);
+    if (!si) return false;
+    if (si.d >= 0 && railedAcross(si, y)) return false;
     const [rx, rz] = k ? [nx, nz] : [player.x, player.z];
     // Stop at a brink, a ledge over lava or acid (or slime over the head: physics/fluid.js
     // wadeable, judged at the probe) or a hole through the cube (nothing to land on below),

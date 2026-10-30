@@ -9,8 +9,10 @@ import { stillGroundAt } from './collide.js';
 import { fixedFluid, inFluid } from './fluid.js';
 import { supportedPoint } from './respawn.js';
 
-// the ground that stays at (x, z), at most `step` above y: { h, s, i } (s null: none)
-export const restGround = (x, z, y, step = 0.05) => stillGroundAt(x, z, y, step);
+// the ground that stays at (x, z), at most `step` above y: { h, s, i } (s null: none); in the cube
+// only (what lies about belongs to it: not past a side, in the cube beyond, physics/collide.js)
+const inCube = (x, z) => x >= 0 && z >= 0 && x < N && z < N;
+export const restGround = (x, z, y, step = 0.05) => inCube(x, z) ? stillGroundAt(x, z, y, step) : { h: -Infinity, s: null, i: -1 };
 // can something rest on the ground g? (`wet`: under a standing fluid too)
 export const restsOn = (g, wet = true) => !!g.s && Number.isFinite(g.h) && !fixedFluid(g) && (wet || !inFluid(g, g.h + 0.01));
 

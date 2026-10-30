@@ -66,9 +66,9 @@ export function applyHazards(dt, gr) {
   if (!player.swimming && player.grounded) regenerate(player, dt, state.time);
 
   // remember a safe spot to respawn at: one that still leads out of the cube (map.safe), not
-  // the bottom of a pit you fell into
+  // the bottom of a pit you fell into; in the cube (not past a side, in the cube beyond: gr.i -1)
   player.safeTimer += dt;
-  if (player.grounded && !player.swimming && gr.s && !gr.s.kind && !gr.s.fluid && player.safeTimer > 0.4
+  if (player.grounded && !player.swimming && gr.s && !gr.s.kind && !gr.s.fluid && gr.i >= 0 && player.safeTimer > 0.4
     && (!state.map.safe || state.map.safe[gr.s.id])) {
     player.safeTimer = 0;
     player.safe = { x: gr.s.x + 0.5, y: floorY(gr.s, 0.5, 0.5), z: gr.s.z + 0.5 };

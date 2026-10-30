@@ -13,7 +13,7 @@ import { startTravel } from './travel.js';
 import { townPadIn, onPad, TOWN_PORTAL_CHARGE } from '../core/townportal.js';
 import { takeTownPortal } from './townportal.js';
 import { checkDoors } from './doors.js';
-import { checkHandover } from './handover.js';
+import { checkHandover, refreshAcross } from './handover.js';
 import { sealedOut } from './trials.js';
 import { diveSealed } from './dive.js';
 import { SEALED_MESSAGE } from '../core/trials.js';
@@ -60,6 +60,7 @@ function fightHolds(d, steer) {
 // steer: where we steer ourselves (game/update.js: the keys or a mouse order, not a lunge)
 export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge, steer = [dx, dz]) {
   state.portalCharge = null;
+  refreshAcross();   // (the sides walked across now: game/handover.js)
   if (state.map.flipKey) return false;   // Flip's box turned: its portals are in the walls (game/flipworld.js)
   if (state.boundaryLock >= 0 && faceDistance(player, state.boundaryLock) > player.r + 0.25) state.boundaryLock = -1;
   // a trial room while its event runs (game/trials.js): nothing takes you out (but the balance's way back)

@@ -6,6 +6,7 @@ import { isFaceOpen, openedSides, faceDistance, approachingFace, boundaryArrival
 import { flatMap, state } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { canMove, railedFace } from '../src/physics/canmove.js';
+import { setAcross, groundAt, blockedAt, cellAt, spotAt } from '../src/physics/collide.js';
 import { stepEnemy } from '../src/physics/enemynav.js';
 
 const atFace = (dir, distance, along = 9.3, y = 7.2) => ({
@@ -85,6 +86,34 @@ test('opening faces does not change cube-local player collision or enemy contain
   } finally { state.openedFaces.clear(); }
 });
 
+test('a side walked across: the body steps into the cube beyond, as it lies there; enemies stay in', () => {
+  const other = flatMap(2), m = flatMap();
+  // the cube beyond (east) a level higher at its edge row but one cell, a tree just past the face
+  for (let z = 0; z < N; z++) if (z !== 4) Object.assign(other.cols[z * N][0], { top: 2, cs: [2, 2, 2, 2] });
+  other.blockers[6 * N].push({ x: 0.5, z: 6.5, r: 0.3, bottom: 0, top: 9 });
+  const f = m.cols[8 * N + N - 1][0];
+  try {
+    setAcross(m, [other, null, null, null]);
+    assert.equal(cellAt(N + 0.3, 8.5), -1, 'cellAt knows its own map only');
+    const q = spotAt(N + 0.3, 8.5);
+    assert.ok(q.m === other && q.i === 8 * N && Math.abs(q.x - 0.3) < 1e-9 && q.z === 8.5 && q.d === 0);
+    assert.equal(spotAt(N + 1.3, 8.5), null, 'not further than a cell');
+    assert.equal(spotAt(-0.3, 8.5), null, 'nor across a side not walked across');
+    assert.equal(groundAt(N + 0.3, 4.5, 9, 0).h, 0);
+    assert.equal(groundAt(N + 0.3, 4.5, 9, 0).i, -1, 'not a cell of this map');
+    assert.equal(blockedAt(N + 0.5, 6.5, 0, 0.3), true, 'the tree beyond');
+    Object.assign(player, { x: N - 0.3, z: 4.5, y: 0, grounded: true, swimming: false, support: m.cols[4 * N + N - 1][0] });
+    assert.equal(canMove(N + 0.1, 4.5, 'x', 1), true, 'across where the ground goes on');
+    Object.assign(player, { z: 8.5, support: f });
+    assert.equal(canMove(N + 0.1, 8.5, 'x', 1), false, 'not up a cliff past the face');
+    const e = { x: N - 0.3, z: 4.5, y: 0, f: m.cols[4 * N + N - 1][0] };
+    stepEnemy(e, 1, 0, CHAR_R, 0.9);
+    assert.equal(e.x, N - 0.3, 'an enemy stays in its cube');
+    setAcross(other, [m, null, null, null]);
+    assert.equal(canMove(N + 0.1, 4.5, 'x', 1), false, 'the sides are the cube played in\'s');
+  } finally { setAcross(null); }
+});
+
 test('a stair or bridge along an open face keeps its side rail there, not its ends or what is under it', () => {
   const m = flatMap(), other = flatMap(2);
   state.map = m;
@@ -111,6 +140,14 @@ test('a stair or bridge along an open face keeps its side rail there, not its en
   // where a crossing would arrive: the neighbour's map
   assert.equal(railedFace(0.6, 8.5, 2, 1, other), true);
   assert.equal(railedFace(0.6, 8.5, 2, 1), false);
+  // walking along the bridge's deck, the body does not step off its side into the cube beyond
+  try {
+    setAcross(m, [other, null, null, null]);
+    Object.assign(player, { x: N - 0.4, z: 8.5, y: 2, grounded: true, swimming: false, support: m.pieces[8 * N + N - 1][0] });
+    assert.equal(canMove(N - 0.2, 8.5, 'x', 1), false);
+    player.grounded = false;
+    assert.equal(canMove(N - 0.2, 8.5, 'x', 1), true, 'a jump goes over the rail');
+  } finally { setAcross(null); }
 });
 
 // a saved world (or the host's run) brings only faces whose cubes were both visited: a save from

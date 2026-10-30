@@ -15,7 +15,7 @@ import { ITEMS, outfitOf } from '../src/core/items.js';
 import { state } from './fixtures.js';
 import { ENEMY_PROFILES } from '../src/core/enemies.js';
 import { enemySpots } from '../src/game/enemyspawn.js';
-import { blockedAt, insideSolid, ceilingAt, cellAt, groundAt } from '../src/physics/collide.js';
+import { blockedAt, insideSolid, ceilingAt, cellAt, groundAt, setAcross } from '../src/physics/collide.js';
 import { canMove } from '../src/physics/canmove.js';
 import { mapInfo } from '../src/game/cutinfo.js';
 import { player } from '../src/game/state.js';
@@ -191,12 +191,14 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
       }
     }
   }
-  // the ground goes on past a seam as the edge's (physics/collide.js cellAt); past an outer side it
-  // is solid as anywhere outside
-  const w = new World(3), t = townOf(3), m = state.map = w.cube(t.at(1, 1)).map;
+  // past a seam the ground goes on as the tile beyond has it (physics/collide.js: the sides walked
+  // across, game/handover.js), as the edge's on this side; past an outer side it is solid as
+  // anywhere outside
+  const w = new World(3), t = townOf(3), k11 = t.at(1, 1), m = state.map = w.cube(k11).map;
   assert.deepEqual(m.seams, [true, true, true, true]);
+  setAcross(m, DIRS.map((_, d) => w.cube(step(k11, d)).map));
   for (const [x, z] of [[N + .4, 8.2], [-.4, 8.2], [8.2, N + .4], [8.2, -.4]]) {
-    assert.ok(cellAt(x, z) >= 0);
+    assert.equal(cellAt(x, z), -1, 'a cell of this tile only');
     // (as the cell on this side, which is as the one beyond)
     const ex = Math.min(N - .01, Math.max(.01, x)), ez = Math.min(N - .01, Math.max(.01, z)), y = groundOf(m, ex, ez);
     assert.ok(Math.abs(groundAt(x, z, y + .1, .3).h - y) < 1e-9);
@@ -212,15 +214,20 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
       if (!fa.fluid) assert.deepEqual([...fa.cs].sort(), [...fb.cs].sort(), `${k} side ${d} at ${i}`);
     }
   }
-  assert.equal(cellAt(N + 1.5, 8.2), -1, 'not further than a cell');
-  const corner = state.map = w.cube(t.at(0, 0)).map;
+  assert.equal(groundAt(N + 1.5, 8.2, 99, 0).h, -Infinity, 'not further than a cell');
+  assert.equal(groundAt(N + .4, N + .4, 99, 0).h, -Infinity, 'not past a corner');
+  const k00 = t.at(0, 0), corner = state.map = w.cube(k00).map;
+  setAcross(corner, DIRS.map((_, d) => corner.seams[d] ? w.cube(step(k00, d)).map : null));
   const out = [0, 1, 2, 3].find(d => !corner.seams[d]), [ox, oz] = [[N + .4, 8], [-.4, 8], [8, N + .4], [8, -.4]][out];
-  assert.equal(cellAt(ox, oz), -1, 'past the hull: solid');
+  assert.ok(insideSolid(ox, oz, 1) && groundAt(ox, oz, 99, 0).h === -Infinity, 'past the hull: solid');
   // a body at the middle of a seam steps across it
   state.map = m;
+  setAcross(m, DIRS.map((_, d) => w.cube(step(k11, d)).map));
   player.x = N - .5; player.z = STREET; player.support = m.cols[Math.floor(STREET) * N + N - 1][0];
   player.y = player.visY = groundOf(m, player.x, player.z);
   assert.equal(canMove(N + .3, STREET, 'x', 1), true);
+  setAcross(null);
+  assert.equal(canMove(N + .3, STREET, 'x', 1), false, 'not while the side is not walked across');
 });
 
 test('only the gate joins the town to what lies round it; inside, every seam opens once known', () => {
