@@ -9,7 +9,12 @@ import { updatePlayer } from '../../src/game/update.js';
 import { step } from '../../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, STREET } from '../../src/world/town.js';
 import { props } from '../../src/render/props.js';
-import { liveNeighbors } from '../../src/render/neighbors.js';
+import { liveNeighbors, tickNeighbors, cullNeighbors, neighborOf } from '../../src/render/neighbors.js';
+import { settleCamera } from '../../src/game/camera.js';
+import { standins, updateStandins } from '../../src/game/standins.js';
+import { proxyShown } from '../../src/game/drawn.js';
+import { farLightCount } from '../../src/render/farlights.js';
+import { setNight } from '../../src/render/night.js';
 import { NEIGHBOR_DIM } from '../../src/render/materials.js';
 import { paused } from './combat.js';
 
@@ -24,6 +29,25 @@ function rendered(name) {
   });
   return count / asset.parts.length;
 }
+// The people and lights of the tiles round the one played in (game/standins.js): every tile shown
+// within NEAR that has people has their stand-ins, where its proxy is, as many as live there; none
+// for the tile played in or those not shown; at night some of their lights on (render/farlights.js)
+function checkSurroundings(label) {
+  tickNeighbors(10);   // (their fade in done, and culled where the camera is: the frames are held)
+  settleCamera(); cullNeighbors(player.x, player.z);
+  setNight(1); updateStandins(0, 0);
+  check(farLightCount() > 0, `${label}: no light of the tiles round it on at night`);
+  setNight(0); updateStandins(0, 0);
+  const shown = standins(), town = state.cubes.town;
+  for (const k of town.keys) {
+    const m = state.cubes.cubes.get(k).map, people = (m.villagers?.length ?? 0) + (m.npcs?.length ?? 0), s = shown.filter(x => x.key === k);
+    const g = neighborOf(k);
+    if (k === state.cubeKey || !g || !proxyShown(g) || !people) { check(!s.length, `${label}: stand-ins for ${k}`); continue; }
+    check(s.length === 1 && s[0].people === people, `${label}: the people of ${k} do not stand there (${s[0]?.people ?? 0} of ${people})`);
+    check(s[0].group.position.equals(s[0].proxy.group.position) && s[0].group.parent, `${label}: the people of ${k} are not where it is drawn`);
+  }
+}
+
 // the middle of the tile's side d, a step in
 const besideSeam = d => ({ x: [N - .6, .6, STREET, STREET][d], z: [STREET, STREET, N - .6, .6][d] });
 
@@ -51,6 +75,7 @@ export async function runTownChecks() {
           check(state.world.glass.userData.seams?.every((s, i) => s === c.map.seams[i]), 'The glass knows no seams');
           const others = liveNeighbors().filter(g => town.tiles.has(g.key));
           check(others.length === town.keys.length - 1 && others.every(g => g.dim === NEIGHBOR_DIM.town), 'The other tiles are not drawn round it, half as dim');
+          checkSurroundings(`seed ${seed}, in ${k}`);
         }
         // walking across a seam: the tile beyond takes over at once, the hero where they were
         for (const k of [town.start, town.portal]) {
@@ -66,9 +91,10 @@ export async function runTownChecks() {
             check(state.cubeKey === step(k, d) && !state.transitioning, `No hand over across side ${d} of ${k}`);
             const walked = Math.hypot(player.x + dx * N - before.x, player.z + dz * N - before.z);
             check(walked < 2, `The hero jumped across the seam (${walked})`);
+            checkSurroundings(`seed ${seed}, handed over from ${k}`);
           }
         }
-        results.push(`seed ${seed}: town known / buildings in their tiles / one hull / walked across its seams`);
+        results.push(`seed ${seed}: town known / buildings in their tiles / one hull / its people and lights round it / walked across its seams`);
       }
       return results;
     } finally { clearInput(); await newWorld(originalSeed); }
