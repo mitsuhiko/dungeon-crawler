@@ -29,7 +29,7 @@ import { beginVisit, visitedNeighbors, buildCube, discover, settleIn, devShores,
 import { enterTrial, sealedOut } from './trials.js';
 import { diveSealed } from './dive.js';
 import { resetEnemies, detachEnemies } from './enemies.js';
-import { clearOrder } from './orders.js';
+import { carryOrder } from './orders.js';
 import { cancelSword } from './sword.js';
 import { panCamera } from './camera.js';
 
@@ -91,7 +91,6 @@ function handOver(c, d) {
   player.x += sx; player.z += sz;
   if (player.safe) player.safe = { ...player.safe, x: player.safe.x + sx, z: player.safe.z + sz };
   shiftParticles(sx, 0, sz); shiftFloatText(sx, 0, sz); shiftHeroFeet(sx, 0, sz);
-  clearOrder();   // (a walk planned in the cube left: the mouse held down plans it again)
   cancelSword();  // (a swing at what was there)
   // the cube left, with its enemies as they were: dissolving where it is now
   const old = state.world, enemies = detachEnemies();
@@ -106,6 +105,7 @@ function handOver(c, d) {
   enterTrial(c.map);
   const gr = groundAt(player.x, player.z, player.y + 0.05, STEP);
   if (gr.s) player.support = gr.s;
+  carryOrder(sx, sz);   // (a walk across goes on there; any other order was for the cube left)
   // a death or the Room Portal Scroll brings the hero back here, on firm, dry ground
   state.arrival = respawnPoint({ x: player.x, y: player.y, z: player.z });
   state.portalLock = 0; state.boundaryLock = -1;

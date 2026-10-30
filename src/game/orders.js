@@ -10,6 +10,7 @@
 // Walks follow the hero's way (physics/playernav.js: floors, stairs, bridges, landings, and
 // ladders and the jumps he can make; to the reachable node closest to the target), cutting
 // corners where the way is clear, else head straight for the target.
+import { N, DIRS } from '../core/constants.js';
 import { combatStats, inReachBand } from '../core/combat.js';
 import { lineOfFire } from './shots.js';
 import { planWalk, retarget, steerWalk } from '../physics/playernav.js';
@@ -50,6 +51,7 @@ function begin(kind) {
 
 // hit: a pickFloor() result
 export function orderMove(hit) {
+  if (hit.across != null) { orderAcross(hit); return; }
   begin('move');
   Object.assign(order, { x: hit.x, z: hit.z, floor: floorOf(hit.s), enemy: null, pickup: null, repath: 1e9 });
   plan(order.floor);
@@ -107,6 +109,30 @@ export function orderWay(w) {
   Object.assign(order, { x: at.x, z: at.z, floor: floorOf(groundAt(at.x, at.z, at.y + 0.3, 0).s), enemy: null, pickup: null, chest: null, villager: null, part: null, way: w, repath: 1e9 });
   plan(order.floor, at.y);
 }
+// hit: the ground of the cube beyond a side walked across (pickFloor's `across`, game/handover.js):
+// walk up to that side, a step in across from it, then on over it like into a gate; once the cube
+// beyond took over the walk goes on there, to the spot clicked (carryOrder)
+const inside = v => Math.min(N - 0.5, Math.max(0.5, v));
+function orderAcross(hit) {
+  const d = hit.across, x = [N - 0.5, 0.5, inside(hit.x), inside(hit.x)][d], z = [inside(hit.z), inside(hit.z), N - 0.5, 0.5][d];
+  // (the ground there about as high as the spot clicked, else as the hero)
+  const g = [hit.y, player.y, 99].map(y => groundAt(x, z, y + 0.3, 0)).find(g => g.s) ?? { h: player.y, s: null };
+  // (the button held, ordered again and again: going on over the side already, it goes on)
+  const into = order.kind === 'way' && order.way?.across && order.way.push === DIRS[d] && order.into;
+  begin('way');
+  order.into = into;
+  Object.assign(order, { x, z, floor: floorOf(g.s), enemy: null, pickup: null, chest: null, villager: null, part: null,
+    way: { push: DIRS[d], across: { x: hit.x, y: hit.y, z: hit.z, s: hit.s } }, repath: 1e9 });
+  plan(order.floor, g.h);
+}
+// The cube beyond a side handed over to (game/handover.js): everything moved by (sx, sz). A walk
+// across into it goes on there, to the spot clicked; any other order was for the cube left.
+export function carryOrder(sx, sz) {
+  const a = order.kind === 'way' && order.way?.across;
+  clearOrder();
+  if (a) orderMove({ x: a.x + sx, y: a.y, z: a.z + sz, s: a.s });
+}
+
 // r: the robot asleep (game/robot.js sleepingRobot); walk up to it and wake it
 export function orderRobot(r) {
   begin('robot');
@@ -177,7 +203,10 @@ export function followOrder(dt) {
   const settle = order.kind === 'move' || order.kind === 'chest' || order.kind === 'trade' || (order.kind === 'way' && !way.push);
   if (settle && w.done && left < 0.08) { clearOrder(); return { dx: 0, dz: 0 }; }   // (on a well, a ring, the town portal: it charges)
   // at a gate or a door: on into it, until it takes us (or, locked, the walking into it gives up)
-  if (order.kind === 'way' && way.push && w.done && (order.into || left < INTO)) { order.into = true; s.dx = way.push[0]; s.dz = way.push[1]; s.end = false; }
+  // (over a side walked across, from anywhere on past that spot too)
+  if (order.kind === 'way' && way.push && w.done && (order.into || left < INTO || way.across && (player.x - tx) * way.push[0] + (player.z - tz) * way.push[1] > 0)) {
+    order.into = true; s.dx = way.push[0]; s.dz = way.push[1]; s.end = false;
+  }
   // give up when walking into something for a while (not while climbing, in the air or climbing
   // out of the water: game/swimout.js holds the body still meanwhile)
   if (player.sword.active || player.stun > 0 || player.climb || player.swimOut || !player.grounded || Math.hypot(player.x - order.lx, player.z - order.lz) > 0.2) {

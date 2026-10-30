@@ -156,8 +156,9 @@ export function insideSolid(x, z, y) {
 
 // the walkable top of the floor or structure whose solid contains (x, y, z): { h, s }, or
 // null. Props do not count. Clicks on the ground and on cliff faces resolve to the top.
-export function solidTop(x, z, y) {
-  if (!locate(x, z)) return null;
+// map: the active cube's, or another one's (the cube beyond a side, in its own coordinates)
+export function solidTop(x, z, y, map = state.map) {
+  if (!locate(x, z, map)) return null;
   const { m, i } = at, [fx, fz] = local(x, z);
   let top = null;
   for (const f of m.cols[i]) { if (!here(f, m)) continue; const t = floorY(f, fx, fz); if (t > y && f.bottom * LH < y) top = { h: t, s: f }; }

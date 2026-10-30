@@ -169,7 +169,7 @@
     "src/game/music.js#updateMusic": "692d86cd",
     "src/game/orders.js#header": "4cb6da6f",
     "src/game/party.js#chooseTarget": "06dc8852",
-    "src/game/pointer.js#pickFloor": "e7c1622f",
+    "src/game/pointer.js#pickFloor": "e499e724",
     "src/game/quality.js#apply": "5539575b",
     "src/game/quality.js#LOOKS": "7054c151",
     "src/game/state.js#player": "fafefd7c",

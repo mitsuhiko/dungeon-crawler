@@ -4,10 +4,10 @@
 // look (the close view, game/mouselook.js) the cursor is the crosshair in the middle of the
 // screen, and an enemy locked on to (game/lockon.js) is the hovered one.
 import * as THREE from 'three';
-import { N, BASE } from '../core/constants.js';
+import { N, BASE, DIRS } from '../core/constants.js';
 import { camera, renderer } from '../render/scene.js';
 import { U } from '../render/cutshader.js';
-import { solidTop } from '../physics/collide.js';
+import { solidTop, acrossOf } from '../physics/collide.js';
 import { mapInfo } from './cutinfo.js';
 import { player, state, view } from './state.js';
 import { allEnemies } from './enemies.js';
@@ -35,22 +35,35 @@ addEventListener('blur', () => { pointer.down = false; });
 function cast() { raycaster.setFromCamera(pointer.ndc, camera); return ray; }
 
 const CUT_REACH = 3.5;   // around the player, surfaces above the cut height are hidden
-// the walkable surface under the cursor: { x, y, z, s } or null
+// the walkable surface under the cursor: { x, y, z, s } or null. Where the ray meets none in the
+// cube, the ground of a cube beyond one of its sides walked across (game/handover.js), the first
+// it met: { x, y, z (in this cube's coordinates), s (a floor of that cube), across (the side) }
 // learn: drawing.html#click #click-code (see learn/README.md)
 export function pickFloor() {
   const m = state.map, r = cast(), o = r.origin, d = r.direction;
   if (!m || d.y > -1e-3) return null;
   const top = mapInfo(m).top + 0.5, cut = U.uCutY.value < 999 ? U.uCutY.value : Infinity;
-  let t = o.y > top ? (o.y - top) / -d.y : 0;
+  let t = o.y > top ? (o.y - top) / -d.y : 0, beyond = null;
   for (let i = 0; i < 1500; i++, t += 0.04) {
     const x = o.x + d.x * t, y = o.y + d.y * t, z = o.z + d.z * t;
     if (y < -BASE - 1) break;
-    if (x < 0 || z < 0 || x >= N || z >= N) continue;
+    if (x < 0 || z < 0 || x >= N || z >= N) { beyond ??= besideAt(x, y, z); continue; }
     const s = solidTop(x, z, y);
     if (!s || (s.h > cut && Math.hypot(x - player.x, z - player.z) < CUT_REACH)) continue;
     return { x, y: s.h, z, s: s.s };
   }
-  return null;
+  return beyond;
+}
+// the ground of the cube beyond a side walked across at (x, y, z) (past one side only), or null
+function besideAt(x, y, z) {
+  const ox = x >= N ? 0 : x < 0 ? 1 : -1, oz = z >= N ? 2 : z < 0 ? 3 : -1;
+  if ((ox < 0) === (oz < 0)) return null;
+  const side = ox >= 0 ? ox : oz, b = acrossOf(state.map)[side];
+  if (!b) return null;
+  const lx = x - DIRS[side][0] * N, lz = z - DIRS[side][1] * N;
+  if (lx < 0 || lz < 0 || lx >= N || lz >= N) return null;
+  const s = solidTop(lx, lz, y, b);
+  return s ? { x, y: s.h, z, s: s.s, across: side } : null;
 }
 
 // the cursor on a level plane through the player's chest: where to aim / which way to go

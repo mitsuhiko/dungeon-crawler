@@ -112,6 +112,8 @@
         <li lang="de">Die Schleife: Der Punkt in der Entfernung <code>t</code> ist <code>o + d × t</code>. Dann <code>t += 0.04</code>, ein Stück weiter.</li>
         <li lang="en"><code>continue</code> skips to the next step: outside the cube, or a floor the cutaway hides near you (you can't click on what you can't see).</li>
         <li lang="de"><code>continue</code> springt zum nächsten Schritt: außerhalb des Würfels, oder ein Boden, den der Ausschnitt in deiner Nähe versteckt (worauf du nichts siehst, kannst du nicht klicken).</li>
+        <li lang="en">Outside the cube, <code>besideAt</code> still looks: behind an open wall lies a cube you have been in, and you can walk right over into it. The first ground found there is kept in <code>beyond</code>, and is the answer if the ray hits nothing in the cube itself.</li>
+        <li lang="de">Außerhalb des Würfels schaut <code>besideAt</code> trotzdem nach: Hinter einer offenen Wand liegt ein Würfel, in dem du schon warst, und du kannst einfach hinüberlaufen. Der erste Boden, der dort gefunden wird, kommt in <code>beyond</code> und ist die Antwort, wenn der Strahl im Würfel selbst nichts trifft.</li>
       </ul>
     </div>
   </div>
