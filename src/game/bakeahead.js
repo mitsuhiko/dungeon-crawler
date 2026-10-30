@@ -1,13 +1,13 @@
 // The cubes next door baked ahead (render/bake.js). A cube's baked shadows (the sun's of its
-// houses, its lanterns') came in a second or so after it was entered, and walking from one of the
-// town's tiles into the next (game/handover.js) nothing covers that. So once the cube played in
-// is baked, the cubes behind its nearest ways out (the town's seams, its portals: AHEAD of them,
-// the nearest to the hero) are built off-screen as they would be entered (game/flow.js buildCube),
-// never shown, and baked after everything shown, one at a time (`ahead`); their suns follow the
-// time of day like the cube's own. Entered, or no longer among the nearest, one is thrown away:
-// its bake is kept (render/bake.js disposeBake), and the cube built as the hero comes in (or built
-// ahead again) takes it at once (takeKept). Before the bakes every frame, so in the frame a cube
-// is entered its bake is there to be taken.
+// houses, its lanterns') came in a second or so after it was entered, and walking from one cube
+// into the next across an open face or a seam of the town (game/handover.js) nothing covers that.
+// So once the cube played in is baked, the cubes behind its nearest ways out (the sides walked
+// across, its portals: AHEAD of them, the nearest to the hero) are built off-screen as they would
+// be entered (game/flow.js buildCube), never shown, and baked after everything shown, one at a
+// time (`ahead`); their suns follow the time of day like the cube's own. Entered, or no longer
+// among the nearest, one is thrown away: its bake is kept (render/bake.js disposeBake), and the
+// cube built as the hero comes in (or built ahead again) takes it at once (takeKept). Before the
+// bakes every frame, so in the frame a cube is entered its bake is there to be taken.
 import { N } from '../core/constants.js';
 import { step, faceKey } from '../world/coords.js';
 import { openedSides } from '../core/boundaries.js';
@@ -20,6 +20,8 @@ import { propSetsOf } from '../render/propplace.js';
 import { themeOf } from '../themes/depth.js';
 import { player, state } from './state.js';
 import { buildCube } from './flow.js';
+import { handingOver } from './handover.js';
+import { acrossOf } from '../physics/collide.js';
 
 // key -> the cube built ahead: { cubes, world }
 const held = new Map();
@@ -33,8 +35,8 @@ function nextDoor() {
   const m = state.map, k = state.cubeKey, ways = new Map();
   if (!m) return [];
   const near = (key, far, face = -1) => { if (key !== k && !(ways.get(key)?.far <= far)) ways.set(key, { key, far, face }); };
-  // (the town's seams: how far the hero is from that side)
-  m.seams?.forEach((s, d) => { if (s) near(step(k, d), Math.max(0, [N - player.x, player.x, N - player.z, player.z][d])); });
+  // (the sides walked across, the town's seams and the open faces: how far the hero is from that side)
+  acrossOf(m).forEach((s, d) => { if (s) near(step(k, d), Math.max(0, [N - player.x, player.x, N - player.z, player.z][d])); });
   for (const p of m.portals ?? []) if (p.kind === 'side' || p.kind === 'down' || p.kind === 'up')
     near(step(k, p.dir), Math.hypot(p.x - player.x, p.z - player.z), p.kind === 'side' && !portalLocked(m, state.run, p) ? p.dir : -1);
   return [...ways.values()].sort((a, b) => a.far - b.far);
@@ -61,7 +63,8 @@ export function tickAhead() {
   const play = state.mode === 'play' && !!state.cubes;
   // the one entered (its bake to be taken), those of another world, those that failed
   for (const [key, h] of held) if (!play || key === state.cubeKey || h.cubes !== state.cubes || h.world.bake.failed) drop(key);
-  if (!play || state.transitioning) return;
+  // (nor while a cube walked out of dissolves: it is next door, its bake still its own, game/handover.js)
+  if (!play || state.transitioning || handingOver()) return;
   // those well behind the nearest (one more than AHEAD stays: no building and dropping by turns
   // where two are as near)
   const near = nextDoor(), wanted = new Set(near.slice(0, AHEAD).map(w => w.key)), stay = new Set(near.slice(0, AHEAD + 1).map(w => w.key));

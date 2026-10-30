@@ -55,6 +55,7 @@ import { askRespawn, forgetDeath } from './deathask.js';
 import { narrate, arrived, stopNarrator } from './narrator.js';
 import { settleIntro, innArrival, comeOutOfInn } from './intro.js';
 import { robotArrived, forgetRobot } from './robot.js';
+import { endHandover } from './handover.js';
 
 export function spawnAt(x, y, z) {
   cancelSword(true); cancelCast();
@@ -273,6 +274,7 @@ export const portalSeen = (k, m) => Object.fromEntries(m.portals.map(p => [p.id,
 // learn: architecture.html#cube-journey (see learn/README.md)
 export function enterCube(c, from = null, back = null, at = null) {
   const k = c.key;
+  endHandover();   // (a cube walked out of still dissolving: game/handover.js)
   // back in town from out there: the Smith has forged new armor (core/shops.js smithStock)
   if (c.map.town && state.map && !state.map.town && !state.map.interior) state.run.smith = { visit: state.run.smith.visit + 1, sold: [] };
   devShores(c.map);
@@ -343,6 +345,18 @@ export function prefetchTown() {
   cubes.townAsked = true;
   for (const k of cubes.town.keys) cubes.get(k, { urgent: false }).then(c => { c.ready = true; }, () => { cubes.townAsked = false; });
 }
+// The cubes behind the open faces got ready (loaded, warmed: world/client.js), so walking across
+// into one (game/handover.js) is at once: asked once each, until it is
+export function readyAhead(keys) {
+  const cubes = state.cubes;
+  if (!cubes) return;
+  const asked = cubes.readying ??= new Set();
+  for (const k of keys) {
+    if (cubes.cubes.get(k)?.ready || asked.has(k)) continue;
+    asked.add(k);
+    cubes.get(k, { urgent: false }).then(c => { c.ready = true; asked.delete(k); }, () => asked.delete(k));
+  }
+}
 
 // the jingle of the act (themes/index.js ACTS) that starts at depth d, or of the core
 function actJingle(d) {
@@ -365,6 +379,8 @@ function prefetchAround(c, since = performance.now()) {
     return;
   }
   if (c.map.town) prefetchTown();   // (the town's other tiles: walked into without a portal)
+  // (and the cubes behind its open faces, walked into without a portal too)
+  readyAhead([0, 1, 2, 3].filter(d => isFaceOpen(state.openedFaces, c.key, d)).map(d => step(c.key, d)));
   const cubes = state.cubes, near = [...beyond(c, p => p.kind !== 'spawn'), ...(c.map.doors || []).map(d => d.to)];
   cubes.prefetch(near);
   for (const k of near) cubes.map(k).then(n => {
@@ -426,6 +442,7 @@ export function rebuildWorld() {
 // come in (else the town's spawn pad). level: the world's level (core/enemies.js depthLevel): a
 // saved world's, else 1 (dev: ?worldlevel=)
 export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = state.keepHero, restore = null, level = restore?.level ?? null } = {}) {
+  endHandover();
   clearNeighbors(); clearNeighborCache();
   state.cubes?.dispose();
   const params = new URLSearchParams(location.search);

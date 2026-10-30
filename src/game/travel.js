@@ -34,6 +34,7 @@ import { fallPoint } from './fall.js';
 import { catchFall, liftArrived } from './rescue.js';
 import { cancelCast } from './townportal.js';
 import { tr } from '../i18n/i18n.js';
+import { endHandover } from './handover.js';
 
 const GAP = CUBE_H + BASE;   // vertical distance between strata while sliding
 let trip = null;
@@ -85,6 +86,7 @@ export function startTravel(p, { force = false } = {}) {
 }
 
 function slide(p, c, cloud) {
+  endHandover();   // (a cube walked out of still dissolving: game/handover.js)
   const k = c.key, m = c.map, oldKey = state.cubeKey;
   const oldWorld = state.world, oldMap = state.map;
   const crossing = p.kind === 'side' && isFaceOpen(state.openedFaces, oldKey, p.dir);

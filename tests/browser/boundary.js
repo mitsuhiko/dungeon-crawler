@@ -4,13 +4,14 @@
 // Boundary checks reset the world before and after testing.
 import { N, DIRS, WATER, FALL_DAMAGE } from '../../src/core/constants.js';
 import { faceKey, step, OPP6 } from '../../src/world/coords.js';
-import { isFaceOpen, openedSides, boundaryArrival } from '../../src/core/boundaries.js';
+import { isFaceOpen, openedSides } from '../../src/core/boundaries.js';
 import { player, state } from '../../src/game/state.js';
 import { newWorld, enterCube, spawnAt, spawnEntry, refreshOpenFaces } from '../../src/game/flow.js';
 import { updatePlayer } from '../../src/game/update.js';
 import { checkPortals } from '../../src/game/portals.js';
 import { startTravel, travelling, updateTravel } from '../../src/game/travel.js';
 import { startFall } from '../../src/game/fall.js';
+import { PAST, endHandover } from '../../src/game/handover.js';
 import { groundAt } from '../../src/physics/collide.js';
 import { detachNeighbors, adoptNeighbors } from '../../src/render/neighbors.js';
 import { setInventoryOpen } from '../../src/game/inventory.js';
@@ -23,9 +24,11 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const key = (type, code, init = {}) => dispatchEvent(new KeyboardEvent(type, { code, bubbles: true, ...init }));
 const neighbors = () => { const list = detachNeighbors(); adoptNeighbors(list); return list; };
 function panes(glass, open) {
-  check(glass.userData.panes.every((pane, d) => pane.visible === !open[d]), 'Glass panes do not match opened faces');
+  // (a seam of the town has no pane, open yet or not: render/glass.js)
+  check(glass.userData.panes.every((pane, d) => pane.visible === !(open[d] || glass.userData.seams?.[d])), 'Glass panes do not match opened faces');
   check(glass.children[0].visible, 'Cube outline must remain');
 }
+const faceSpot = (dir, along, distance) => [dir === 0 ? N - distance : dir === 1 ? distance : along, dir === 2 ? N - distance : dir === 3 ? distance : along];
 function atFace(dir, along, y, distance = 0.3) {
   spawnAt(dir === 0 ? N - distance : dir === 1 ? distance : along, y,
     dir === 2 ? N - distance : dir === 3 ? distance : along);
@@ -40,6 +43,25 @@ function finishSlide() {
   check(!travelling() && !state.transitioning, 'Cube slide did not finish');
 }
 async function travel(portal) { startTravel(portal); await waitForSlide(); finishSlide(); }
+// Walk across side d (an open face): the cube beyond takes over at once (game/handover.js), no
+// slide, the hero where they were. The cubes behind open faces are got ready ahead: wait for it.
+// Returns the steps walked and where the hero was, in the old cube's coordinates, the step before
+// and the step after the hand-over.
+async function walkAcross(d, steps = 120) {
+  const from = state.cubeKey, next = step(from, d), [dx, dz] = DIRS[d];
+  for (let i = 0; i < 100 && !state.cubes.cubes.get(next)?.ready; i++) await delay(20);
+  player.autoDir = [dx, dz];
+  let last = null, i = 0;
+  for (; i < steps && state.cubeKey === from; i++) { last = { x: player.x, y: player.y, z: player.z }; updatePlayer(1 / 60); }
+  player.autoDir = null;
+  check(state.cubeKey === next, `No hand over across side ${d} of ${from}`);
+  check(!state.transitioning && !travelling(), 'A hand over must not slide');
+  const after = { x: player.x + dx * N, y: player.y, z: player.z + dz * N };
+  check(Math.hypot(after.x - last.x, after.z - last.z) < 0.2, 'The hero jumped across the side: ' + JSON.stringify({ last, after }));
+  check(Math.abs(handPast(after, d) - PAST) < 0.2, 'The cube beyond took over too early or late: ' + handPast(after, d));
+  return { steps: i, last, after };
+}
+const handPast = (p, d) => [p.x - N, -p.x, p.z - N, -p.z][d];
 
 // Modifier state: left Ctrl (walk; right Ctrl is the action key) and Shift (auto-attack), left and
 // right, blur and modal isolation.
@@ -134,11 +156,9 @@ async function discoveredGateCheck() {
   panes(state.world.glass, openedSides(state.openedFaces, road.key));
   for (const proxy of neighbors()) panes(proxy.glass, openedSides(state.openedFaces, proxy.key));
   const along = dir < 2 ? portal.z + 0.5 : portal.x + 0.5, elsewhere = along + (along < N / 2 ? 3 : -3);
-  atFace(opposite, elsewhere, 2, 0.7);
-  checkPortals();   // release the arrival boundary lock
-  atFace(opposite, elsewhere, 2);
-  check(checkPortals(...DIRS[opposite]), 'Discovered gated face must accept a crossing away from its gate');
-  await waitForSlide(); finishSlide();
+  atFace(opposite, elsewhere, groundAt(...faceSpot(opposite, elsewhere, 0.5), 99, 0).h, 0.5);
+  await walkAcross(opposite);
+  endHandover();
   check(state.cubeKey === town.key, 'Discovered boundary crossing must enter the neighbour');
   check(!state.world.portalFx.some(fx => fx.obj.userData.portal.kind === 'side'), 'Re-entry must not restore a discovered gate');
   panes(state.world.glass, openedSides(state.openedFaces, town.key));
@@ -181,55 +201,53 @@ export async function runBoundaryChecks() {
         check(!state.world.portalFx.some(fx => fx.obj.userData.portal.dir === opposite), 'Destination gate must be absent');
         for (const proxy of neighbors()) panes(proxy.glass, openedSides(state.openedFaces, proxy.key));
 
-        // Return on the ground far from the old portal (the town boundary is flat).
+        // Return on the ground far from the old portal (the town boundary is flat): walked across,
+        // the town's tile takes over at once, no slide
         const elsewhere = along + (along < N / 2 ? 3 : -3);
-        atFace(opposite, elsewhere, 2);
-        state.boundaryLock = opposite;
-        check(!checkPortals(...DIRS[opposite]), 'Arrival boundary lock must prevent immediate re-entry');
-        atFace(opposite, elsewhere, 2, 0.7);
-        check(!checkPortals(...DIRS[opposite]) && state.boundaryLock === -1, 'Stepping inside must release the boundary lock');
-        atFace(opposite, elsewhere, 2);
-        player.vx = DIRS[opposite][0] * 1.9; player.vz = DIRS[opposite][1] * 1.9;
-        const expected = boundaryArrival(player, opposite);
-        check(checkPortals(...DIRS[opposite]), 'An open face must trigger away from its old gate');
-        await waitForSlide(); finishSlide();
-        check(state.cubeKey === town.key && close(player.x, expected.x) && close(player.z, expected.z) && close(player.y, expected.y), 'Return must preserve crossing point and height');
+        atFace(opposite, elsewhere, 2, 0.6);
+        await walkAcross(opposite);
         check(!checkPortals(), 'Arrival must not bounce immediately back');
+        endHandover();
+        check(state.world.group.userData.fade === 1, 'The cube taken over must show in full once the dissolve is over');
         panes(state.world.glass, openedSides(state.openedFaces, town.key));
+        // and back, not bouncing: a little way back over the side is no hand over
+        atFace(dir, elsewhere, 2, 0.6);
+        player.autoDir = DIRS[dir];
+        for (let i = 0; i < 60 && state.cubeKey === town.key && handPast(player, dir) < 0.1; i++) updatePlayer(1 / 60);
+        player.autoDir = DIRS[opposite];
+        for (let i = 0; i < 60 && handPast(player, dir) > -0.4; i++) updatePlayer(1 / 60);
+        player.autoDir = null;
+        check(state.cubeKey === town.key, 'Stepping over a side by less than PAST must not hand over');
         // Explicit rebuild/re-entry uses the same state, without reopening a gate.
         enterCube(town);
         check(!state.world.portalFx.some(fx => fx.obj.userData.portal.kind === 'side'), 'Re-entry must not restore an opened gate');
         panes(state.world.glass, openedSides(state.openedFaces, town.key));
 
-        // Cross at a different height in mid-jump, retaining motion rather than spawning at a pad.
-        atFace(dir, elsewhere, 12);
+        // Cross at a different height in mid-jump, keeping the motion.
+        atFace(dir, elsewhere, 12, 0.3);
         Object.assign(player, { grounded: false, vx: DIRS[dir][0] * 3, vz: DIRS[dir][1] * 3, vy: 2, airTime: 0.2 });
-        check(checkPortals(...DIRS[dir]), 'Open face must accept an airborne crossing');
-        await waitForSlide(); finishSlide();
-        check(close(player.y, 12) && !player.grounded && close(player.vy, 2) && close(player.vx, DIRS[dir][0] * 3) && close(player.vz, DIRS[dir][1] * 3), 'Airborne position/velocity must survive the slide');
-        check(!checkPortals(), 'Airborne arrival must not bounce back');
+        const jump = await walkAcross(dir, 20);
+        check(jump.after.y > 11 && !player.grounded && Math.hypot(player.vx, player.vz) > 2, 'Airborne position/velocity must survive the hand over');
+        endHandover();
         spawnEntry();
         const respawnGround = groundAt(player.x, player.z, player.y, 0);
         check(respawnGround.s && !respawnGround.s.fluid && close(respawnGround.h, player.y), 'Airborne crossing must record a solid, dry respawn entry');
         for (let i = 0; i < 60; i++) updatePlayer(1 / 60);
         check(!state.transitioning && !state.fallFrom && player.grounded, 'Respawning after an airborne crossing must not fall through another cube');
 
-        // A destination solid blocks crossing; do not alter routes or relocate the player.
-        atFace(opposite, elsewhere, 12);
-        const target = boundaryArrival(player, opposite), cell = Math.floor(target.z) * N + Math.floor(target.x);
-        const blockers = town.map.blockers[cell], blocker = { x: target.x, z: target.z, r: 0.7, bottom: 0, top: 20 };
+        // A solid past the side blocks crossing; do not alter routes or relocate the player.
+        const [bx, bz] = faceSpot(opposite, elsewhere, 0.3);
+        const tx = opposite === 0 ? 0.3 : opposite === 1 ? N - 0.3 : bx, tz = opposite === 2 ? 0.3 : opposite === 3 ? N - 0.3 : bz;
+        const blockers = town.map.blockers[Math.floor(tz) * N + Math.floor(tx)], blocker = { x: tx, z: tz, r: 0.7, bottom: -9, top: 20 };
         blockers.push(blocker);
-        startTravel(back);
-        for (let i = 0; i < 100 && state.transitioning; i++) await delay(20);
-        blockers.splice(blockers.indexOf(blocker), 1);
-        check(!state.transitioning && !travelling() && state.cubeKey === roadKey && state.map === road.map, 'Solid destination must block travel without changing active cube');
-        // Swimming state also survives the transition (hazards refresh it on the next tick).
-        atFace(opposite, elsewhere, 2);
-        Object.assign(player, { swimming: true, grounded: false, fluid: WATER, vx: DIRS[opposite][0] * 0.9, vz: DIRS[opposite][1] * 0.9 });
-        check(checkPortals(...DIRS[opposite]), 'Swimming must allow an open-face crossing');
-        await waitForSlide(); finishSlide();
-        check(player.swimming && player.fluid === WATER && !player.grounded, 'Swimming state must survive the slide');
-        results.push('side ' + dir + ': first crossing / both glass copies / full-face return / re-entry lock / rebuild / airborne and swimming motion / solid collision');
+        try {
+          atFace(opposite, elsewhere, groundAt(...faceSpot(opposite, elsewhere, 0.6), 99, 0).h, 0.6);
+          player.autoDir = DIRS[opposite];
+          for (let i = 0; i < 60; i++) updatePlayer(1 / 60);
+          player.autoDir = null;
+          check(!state.transitioning && state.cubeKey === roadKey && state.map === road.map && handPast(player, opposite) < 0, 'A solid past the side must block the way without changing the active cube');
+        } finally { blockers.splice(blockers.indexOf(blocker), 1); }
+        results.push('side ' + dir + ': first crossing slides / both glass copies / walked back across, handed over / no bounce / rebuild / airborne motion / solid past the side');
       }
 
       await newWorld(3); clearInput();

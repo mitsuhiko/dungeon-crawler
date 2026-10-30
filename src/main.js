@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { renderer, scene, camera, fitView } from './render/scene.js';
 import { tickBakes, updateBakes, setCurrentBake, baked } from './render/bake.js';
 import { tickAhead } from './game/bakeahead.js';
+import { tickHandover } from './game/handover.js';
 import { animateWorld } from './render/world.js';
 import { updateStandins } from './game/standins.js';
 import { animateCharacter } from './render/animator.js';
@@ -196,6 +197,7 @@ function frame(now = performance.now()) {
   tickRipples(dt);   // (on the water round a swimmer: game/swim.js)
   tickPortalCloud(dt);
   tickNeighbors(dt);
+  tickHandover(dt);   // (a cube walked out of dissolving into its proxy: game/handover.js)
   tickProps(state.time, state.night);   // (the wind; the town's windows and lamps lit at night: render/night.js)
   const focus = cameraFocus();   // (the hero, or what a boss's intro looks at: game/camera.js)
   tickFlames(dt, state.time, focusPoint(focus.x, focus.y, focus.z));   // the fires: flames, embers, smoke (render/flames.js)

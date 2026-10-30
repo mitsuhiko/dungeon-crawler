@@ -340,13 +340,17 @@ export function clearNeighborCache() {
   // Call after clearing proxies on world reset. Live travel geometry is never invalidated.
   for (const [source, entry] of cache) if (!entry.refs) release(source, entry);
 }
-// instant: the new ones are there at once, not fading in (the town's tile handed over: what was
-// the cube played in shows on as one of them, game/handover.js)
-export function showNeighbors(list, instant = false) {
+// instant: the new ones are there at once, not fading in (a cube handed over: what was the cube
+// played in shows on as one of them, game/handover.js). hold(g): one of the old ones no longer
+// shown that is kept, drawn on (the cube handed over to, dissolving into its full version):
+// returned, for disposeNeighbors once it is done.
+export function showNeighbors(list, instant = false, hold = null) {
   const old = detachNeighbors();
   current = buildNeighbors(list, old);
   if (instant) for (const g of current) if (!g.continuing) setFade(g.group, 1);
-  disposeNeighbors(old);
+  const held = hold ? old.filter(hold) : [];
+  disposeNeighbors(old.filter(g => !held.includes(g)));
+  return held;
 }
 export const showsNeighbor = key => current.some(g => g.key === key);
 // the proxy drawn for cube `key` (the ones shown round us first, then travel's other set), or null
@@ -361,7 +365,8 @@ let veil = 0;
 export function setNeighborVeil(k) { veil = Math.max(0, Math.min(1, k)); }
 export function tickNeighbors(dt) {
   time += dt;
-  for (const { group } of current) if (group.userData.fade < 1) setFade(group, Math.min(1, group.userData.fade + dt * 2.5));
+  // (but one whose fade another sets: `held`, game/handover.js)
+  for (const { group, held } of current) if (!held && group.userData.fade < 1) setFade(group, Math.min(1, group.userData.fade + dt * 2.5));
   // lava glows and pulses out there as in the cube you are in
   for (const b of batches.values()) if (b.part?.kind === 'fluid') b.mesh.material.emissiveIntensity = fluidGlow(b.part.fluid, time);
 }

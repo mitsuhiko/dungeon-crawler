@@ -2,9 +2,7 @@
 // Vertical portals charge while standing in the circle: 0.75s down, 1.5s up; the town portal
 // (game/townportal.js) for 1s.
 import { N, DIRS } from '../core/constants.js';
-import { isFaceOpen, approachingFace, faceDistance, boundaryArrival } from '../core/boundaries.js';
-import { step, OPP6 } from '../world/coords.js';
-import { railedFace } from '../physics/canmove.js';
+import { isFaceOpen, approachingFace, faceDistance } from '../core/boundaries.js';
 import { player, state, setStatus } from './state.js';
 import { portalLocked, lockMessage, leavingFight, steersOut } from '../core/guardians.js';
 import { guardianKind } from './enemyspawn.js';
@@ -30,13 +28,6 @@ function inside(q) {
   const along = q.dir < 2 ? p.z - q.z - 0.5 : p.x - q.x - 0.5;
   const out = [p.x - N, -p.x, p.z - N, -p.z][q.dir];   // distance past the face (negative inside)
   return Math.abs(along) < 1.5 && out > -0.4;
-}
-
-// a stair or bridge along open face d keeps its side rail there: on it, or on the one beside
-// where we would arrive (the neighbour is discovered, so its map is here)
-function railedAcross(d) {
-  const next = state.cubes?.cubes.get(step(state.cubeKey, d))?.map, at = boundaryArrival(player, d);
-  return railedFace(player.x, player.z, player.y, d) || !!next && railedFace(at.x, at.z, at.y, OPP6[d], next);
 }
 
 // Arriving somewhere other than through a portal (following a friend, src/net/session.js):
@@ -70,18 +61,17 @@ export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge
     if (approachingAny(dx, dz)) setStatus(tr('There is no way out under water'));
     return checkDoors(dx, dz);
   }
-  // the town's seams: walked across, the tile beyond takes over (game/handover.js)
+  // open side faces (and the town's seams) are walked across anywhere along them, whether they
+  // ever had a gate or not: past one, the cube beyond takes over (game/handover.js)
   if (checkHandover()) return true;
-  // open side faces take you across anywhere along them, whether they ever had a gate or not
+  // ... but not while something holds the hero in (game/handover.js crossable): steering out over
+  // one, they are told why, or asked whether to leave the fight
   for (let d = 0; d < 4; d++) {
-    if (state.map.seams?.[d]) continue;
-    if (!isFaceOpen(state.openedFaces, state.cubeKey, d) || state.boundaryLock === d || !approachingFace(player, d, dx, dz)) continue;
-    if (railedAcross(d)) continue;
+    if (!state.map.seams?.[d] && !isFaceOpen(state.openedFaces, state.cubeKey, d)) continue;
+    if (state.boundaryLock === d || !approachingFace(player, d, dx, dz)) continue;
     if (sealed && sealedOut(d)) { setStatus(tr(SEALED_MESSAGE)); continue; }
     if (portalLocked(state.map, state.run, { dir: d })) { setStatus(lockMessage(state.map, d, guardianKind(state.map))); continue; }
-    if (fightHolds(d, steer)) continue;
-    startTravel(state.map.portals.find(q => q.kind === 'side' && q.dir === d) || { kind: 'side', dir: d });
-    return true;
+    fightHolds(d, steer);
   }
   if (checkDoors(dx, dz)) return true;   // house doors (game/doors.js)
   for (const q of state.map.portals) {

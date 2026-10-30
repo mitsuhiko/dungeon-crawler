@@ -46,11 +46,23 @@ const quatLooking = (q, from, to) => q.setFromRotationMatrix(m4.lookAt(from, to,
 // next takes over (game/handover.js). Eased in and out as the hero comes and goes. Not behind the
 // main menu (game/showcase.js): the hero is parked far away there, and the tile shown is framed.
 let townFollow = 0;
+// Out of the town the overview frames the cube played in, so a cube handed over to (walked into
+// across an open face, game/handover.js) would jump the view a cube's width: it pans over to the
+// new one instead, from where it framed the old (`pan`: the old one's middle, from the new one's,
+// in PAN s).
+const PAN = 0.7;
+const pan = new THREE.Vector3();
+let panT = PAN;
+export function panCamera(dx, dz) { pan.set(dx, 0, dz); panT = 0; }
 function overview(dt = 0) {
   if (state.cubes === showcaseCubes()) townFollow = 0;
   else townFollow += ((state.map?.town ? 1 : 0) - townFollow) * Math.min(1, dt * 3);
   const follow = Math.max(clamp((1 - view.zoom) / 0.6, 0, 1) * 0.9, townFollow);
   target.copy(cubeCenter).lerp(focus.set(player.x, player.visY + 0.5, player.z), follow);
+  if (panT < PAN) {
+    panT = Math.min(PAN, panT + dt);
+    target.addScaledVector(pan, (1 - ease(panT / PAN)) * (1 - follow));
+  }
   // distance that fits the cube's bounding sphere into the narrower field of view
   const fovV = THREE.MathUtils.degToRad(OVERVIEW_FOV);
   const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);

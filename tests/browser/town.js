@@ -4,6 +4,7 @@
 import { N, DIRS } from '../../src/core/constants.js';
 import { state, player } from '../../src/game/state.js';
 import { newWorld, enterCube } from '../../src/game/flow.js';
+import { endHandover } from '../../src/game/handover.js';
 import { clearInput } from '../../src/game/input.js';
 import { updatePlayer } from '../../src/game/update.js';
 import { step } from '../../src/world/coords.js';
@@ -82,15 +83,22 @@ export async function runTownChecks() {
           const c = await state.cubes.get(k);
           for (let d = 0; d < 4; d++) {
             if (!c.map.seams[d]) continue;
-            enterCube(c, null, null, { ...besideSeam(d), y: c.map.floors[0].top * .5 });
-            const before = { x: player.x, z: player.z }, [dx, dz] = DIRS[d];
+            // (somewhere along it the hero stands where put, a step in: the street, or beside it)
+            for (const off of [0, 1, -1, 2, -2, 3, -3, 4, -4]) {
+              const at = besideSeam(d), along = d < 2 ? 'z' : 'x';
+              at[along] += off;
+              enterCube(c, null, null, { ...at, y: c.map.floors[0].top * .5 });
+              if (Math.hypot(player.x - at.x, player.z - at.z) < .2) break;
+            }
+            const [dx, dz] = DIRS[d];
             player.autoDir = [dx, dz];
-            let steps = 0;
-            for (; steps < 120 && state.cubeKey === k; steps++) updatePlayer(1 / 60);
+            let last = null;
+            for (let steps = 0; steps < 120 && state.cubeKey === k; steps++) { last = { x: player.x, z: player.z }; updatePlayer(1 / 60); }
             player.autoDir = null;
             check(state.cubeKey === step(k, d) && !state.transitioning, `No hand over across side ${d} of ${k}`);
-            const walked = Math.hypot(player.x + dx * N - before.x, player.z + dz * N - before.z);
-            check(walked < 2, `The hero jumped across the seam (${walked})`);
+            const jumped = Math.hypot(player.x + dx * N - last.x, player.z + dz * N - last.z);
+            check(jumped < .2, `The hero jumped across the seam (${jumped})`);
+            endHandover();   // (the tile left dissolved into its proxy)
             checkSurroundings(`seed ${seed}, handed over from ${k}`);
           }
         }
