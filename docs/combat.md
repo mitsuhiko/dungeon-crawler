@@ -573,11 +573,25 @@ The other kinds: [sword](img/loadout-sword.jpg),
   carries them out after 2 s; with no robot yet they tire, and drown after 8 s. So do they with the
   robot along when it cannot take them out (nowhere safe to go, or in his mud too little health
   left for its share): it tries again twice a second while they tire.
-- **Walking** stops at edges facing lava, acid or water deeper than wading goes from dry land
-  (the head's height but for a margin, judged where the foot goes); already wading it walks on
-  into deep water and swims. Jumps, knockbacks and airborne falls can still enter any of them.
-  Bridges and dry floors above fluids remain walkable. A mouse order's way may go through the
-  water ([clickmove.md](clickmove.md)).
+- **Walking** goes on into water however deep (off a bank: into it, swimming), but stops at a
+  **brink**: an edge facing lava, acid (or a boss's slime over the head: `physics/fluid.js
+  wadeable`, judged where the foot goes) or a hole with nothing under it (`physics/canmove.js`).
+  Jumps, knockbacks and airborne falls can still go over one. Bridges and dry floors above fluids
+  remain walkable. A mouse order's way may go through the water ([clickmove.md](clickmove.md)).
+- **At a brink** (`physics/brink.js`): steering themselves (keys, the touch stick; not a mouse
+  order, which makes its own jumps, nor a swing's lunge) and pushing on at it, within 40 degrees
+  of straight at it (more is along it: they slide), the hero teeters there (`player.brink`: leaning
+  out over it, wobbling, the arms thrown out as on the ice, `render/animator.js teeterPose`; a
+  little grit slips off the edge). After `TEETER` (0.25 s) the jump over it is tried out ahead of
+  time, with their own physics (`physics/leaps.js tryOut`) and the crust as it will be when they
+  come down (`physics/collide.js lookAhead`: a trial's stones, `game/trials.js`): a leap the way
+  pushed, and 6 and 12 degrees to either side, pushing on in the air. Where it lands them softly
+  (no sitting down) on ground that holds them, they jump it; where nothing does, they keep
+  teetering, held at the brink, and it looks again every 0.1 s (a stone under now but up in time
+  for the landing is jumped onto at once). A leap from standing goes about two cells: over a gap of
+  one, the balance's (`docs/trials.md`), not more. Turning more than 30 degrees, or letting go,
+  starts over. The jump key held at a brink leaps the way pushed at once (stopped there, the body
+  has no speed to leap with: it would hop straight up).
 - **What kills** (`physics/fluid.js peril`): lava and acid on contact, and a boss's slime (a
   standing water with a look of its own, Slomo's) over the head. With the robot along (woken at the
   crash in town) it pulls the hero out instead (`game/rescue.js`, `core/rescue.js`; [story.md](story.md#the-robot)):
@@ -671,8 +685,11 @@ go down for the lower foot), a claw reaches for the hero round a melee hit, and 
 hold on to a bank's edge as they climb out of the water (`grips`). A foot the clip has
 down is **held** where it came down (foot locking): turning on the spot, tracking the hero in an
 attack or shoved, a body no longer skates over its feet; a held foot too far from where the clip
-has it takes a step of its own, while the other feet stand. Only near the hero, in the cube being
-played. `tests/browser/ik.js` checks every rig (`runIkChecks`), measures skating as a creature turns
+has it takes a step of its own, while the other feet stand. Whether the clip has a foot down or up
+is measured against how tall its leg stands (the hip over the ground), not how long it is: a
+spider's sprawling legs are far longer than they stand tall and lift their feet only a little
+(measured by their length, none would ever leave the ground, and IK would drag them all along).
+Only near the hero, in the cube being played. `tests/browser/ik.js` checks every rig (`runIkChecks`), measures skating as a creature turns
 (`runSkateCheck`) and how well the walk clips match their pace (`runStrideChecks`); from the
 console, `(await import('/src/render/ik.js')).IK.on = false` turns it all off to compare.
 

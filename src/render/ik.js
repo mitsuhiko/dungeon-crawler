@@ -246,6 +246,9 @@ function plantFeet(rig, ground, base, dt) {
     leg.upper.getWorldPosition(_a); leg.lower.getWorldPosition(_b);
     const end = endOf(leg, _ends[i] ??= new THREE.Vector3());
     const len = leg.len = _a.distanceTo(_b) + _b.distanceTo(end);
+    // (how tall it stands: its hip over the ground; a sprawling leg, a spider's, stands far lower
+    // than it is long, and lifts its foot only a little in its stride)
+    leg.stand = clamp(_a.y - base, 0.25 * len, len);
     (leg.hip ??= new THREE.Vector3()).copy(_a);
     _sole.copy(leg.sole).applyMatrix4((leg.end ?? leg.lower).matrixWorld);
     const h = leg.h = _sole.y - base, lift = 1 - smooth(LIFT[0] * len, LIFT[1] * len, h);
@@ -268,7 +271,7 @@ function plantFeet(rig, ground, base, dt) {
 }
 
 // foot locking (plantFeet): each leg's goal from where the clip wants it (leg.want)
-const PLANT = [0.07, 0.13];   // a foot is down below the first share of its leg, up above the second
+const PLANT = [0.07, 0.13];   // a foot is down below the first share of how tall its leg stands, up above the second
 const SLIP = 0.3;             // held this share of its leg from where the clip has it: it steps
 const LOST = 1.5;             // ... this far (a jump across the floor, a slid cube): it is just there
 const ARC = 0.15;             // a step lifts the foot this share of its leg
@@ -278,7 +281,7 @@ function holdFeet(rig, dt) {
   for (const leg of legs) {
     leg.goal ??= new THREE.Vector3(); leg.lock ??= new THREE.Vector3(); leg.carry ??= new THREE.Vector3();
     if (leg.end) { leg.goalQ ??= new THREE.Quaternion(); leg.lockQ ??= new THREE.Quaternion(); leg.carryQ ??= 0; }
-    const down = leg.h < (leg.locked || leg.step ? PLANT[1] : PLANT[0]) * leg.len;
+    const down = leg.h < (leg.locked || leg.step ? PLANT[1] : PLANT[0]) * leg.stand;
     if (!down) {   // the clip lifts it: let go, easing in from where it was held
       if (leg.locked) leg.carry.subVectors(leg.lock, leg.want);
       else if (leg.step) leg.carry.subVectors(leg.goal, leg.want);
