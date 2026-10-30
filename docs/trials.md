@@ -36,7 +36,7 @@ above, and every puzzle you solve drains it one stage further.
 | `flood` | event | yes | yes | press the button on the summit | swept away (in its water), burned (lava, acid); the robot pulling you out | 1–19, any (the depth's fluid) |
 | `sunken` | event + puzzles | no | no | solve 2–3 puzzles, each drains a stage | (ordinary death) | 2–19, any |
 | `collapse` | event | yes | yes | reach the exit apron | falling in | 1–19, any |
-| `balance` | event | yes | per stone | jump from stone to stone to the exit apron | a miss (into the basin) | 1–19, lava and acid themes, forge |
+| `balance` | event | yes, but the way back | per stone | jump from stone to stone to the exit apron | a miss (into the basin) | 1–19, lava and acid themes, forge |
 | `cold` | event | yes | meter | light the great fire | freezing | peaks, frozen caves (1–13) |
 | `storm` | event | yes | gusts | pull the lightning rod on top of the hill | (blown off: a fall) | sky and surface themes (1–6) |
 | `siege` | event | yes | yes | hold the beacon long enough | death | 2–19, any |
@@ -118,6 +118,10 @@ While an event is running:
   way out to ask about);
 - portals still let players in from outside (playing together, a friend may join a run in
   progress); they just cannot leave.
+- a kind with a **way back** (`TRIALS[kind].wayBack`: the balance) leaves the portal it was
+  entered by (and its open face) unsealed: walking out through it ends that player's attempt like a
+  fail, without the damage (the room is as built when they come back; playing together, it goes on
+  for those still in it). Everything else still holds (the other portals, the scrolls).
 
 Puzzles never seal. Their gate (the exit's, or a vault's) is closed until solved, and the way
 back stays open.
@@ -393,7 +397,9 @@ stone to the far side, and watch the beat.
   and carries them back to the start (where the room was entered), and the room is put back as
   built for a new try: every slab up, no clocks, the beat from its start; it arms when they step
   off ("Failing and dying"). The price of a miss is the health. Playing together, while a friend
-  is still on the stones, the attempt goes on and the one carried back waits at the start.
+  is still on the stones, the attempt goes on and the one carried back waits at the start. The
+  way back stays open (`wayBack`, "Sealing"): from the entry apron the hero can always walk out
+  into the room before, so one who cannot make it across is never shut in with the stones.
 - **Goal:** stepping onto the exit apron (the keystone) opens the seals.
 - **Check** (`cubegen/trials/balance.js balanceSlabs`): a search on the trial's clock over the
   slabs proves a slow player gets across. The jumps are the reach graph's own floors

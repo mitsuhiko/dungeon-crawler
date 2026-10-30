@@ -20,9 +20,11 @@ export const TRIALS = {
     population: 0.3, combines: 2 },
   collapse: { name: msg('Crumbling floor'), family: 'event', sealed: true, timed: true, depths: [1, 19], themes: null, weight: 1, color: '#e0a050', built: true,
     population: 0.3 },
-  // (retries: a miss the robot pulls the hero out of puts the room back for a new try, game/rescue.js)
+  // (retries: a miss the robot pulls the hero out of puts the room back for a new try, game/rescue.js;
+  // wayBack: its seals leave the face it was entered by open, game/trials.js wayBack)
   balance: { name: msg('Balance'), family: 'event', sealed: true, timed: true, depths: [1, 19],
-    themes: ['swamp', 'nests', 'ruins', 'volcanic', 'abyss', 'ossuary', 'forge'], weight: 1, color: '#e09050', built: true, population: 0, retries: true },
+    themes: ['swamp', 'nests', 'ruins', 'volcanic', 'abyss', 'ossuary', 'forge'], weight: 1, color: '#e09050', built: true, population: 0, retries: true,
+    wayBack: true },
   cold: { name: msg('Cold snap'), family: 'event', sealed: true, timed: true, depths: [1, 13], themes: ['peaks', 'frozen'], weight: 1.5, color: '#9fe8ff', built: true,
     population: 0.5 },
   storm: { name: msg('The storm'), family: 'event', sealed: true, timed: true, depths: [1, 6],

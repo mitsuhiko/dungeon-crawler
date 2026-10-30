@@ -1,10 +1,12 @@
 // With ?dev=1&trial=balance: await (await import('./tests/browser/balance.js')).runBalanceChecks()
 // The ordinary command path, warning portal, live landing timer, lost collision, a rhythm stone's beat, a miss the robot
-// pulls the hero out of (back at the start, the room as built for a new try), out of the room and
-// back in, and the exit apron.
+// pulls the hero out of (back at the start, the room as built for a new try), out of the room by
+// the way back while it runs (sealed but for that portal) and back in, and the exit apron.
 import { state, player } from '../../src/game/state.js';
 import { goTrial, takePortal } from '../../src/game/dev.js';
-import { sealedIn } from '../../src/game/trials.js';
+import { sealedIn, sealedDirs } from '../../src/game/trials.js';
+import { checkPortals } from '../../src/game/portals.js';
+import { DIRS } from '../../src/core/constants.js';
 import { robotHere } from '../../src/game/robot.js';
 import { groundAt } from '../../src/physics/collide.js';
 import { trialFluid } from '../../src/physics/fluid.js';
@@ -54,9 +56,20 @@ async function attempt(m, tr, q, f, place, dir) {
   check(groundAt(f.x + .5, f.z + .5, Math.max(...f.cs) + .1, 0).s === f, 'the sunk stone is up again');
   await new Promise(r => setTimeout(r, 600));
   check(state.trial.phase === 'idle', 'standing at the start, it waits');
-  // out of the room and back in: a new attempt, every stone up again
-  takePortal(m.portals.find(p => p.kind === 'side' && p.dir === tr.entry));
+  // stepping off, it arms and seals every portal but the way back, the one it was entered by:
+  // walked into while it runs, it takes them out into the room before
+  place(f);
+  await wait(() => state.trial.phase !== 'idle' && state.trial.stones[q.stone] != null, 'stepping off, it arms; the stone has its clock again');
+  place(m.floors[tr.entryFloor]);
+  const sides = m.portals.filter(p => p.kind === 'side');
+  check(sealedIn() && !sealedDirs().includes(tr.entry) && sealedDirs().length === sides.length - 1, `sealed but for the way back: ${sealedDirs()}`);
+  const back = sides.find(p => p.dir === tr.entry);
+  const [ox, oz] = DIRS[back.dir];   // (in the portal, a little short of the face)
+  Object.assign(player, { x: back.x + .5 + ox * .3, y: back.y, z: back.z + .5 + oz * .3, vx: ox, vz: oz });
+  state.portalLock = 0; state.boundaryLock = -1;
+  check(checkPortals(ox, oz, 0.1), 'the way back lets them out while it runs');
   await wait(() => !state.transitioning && state.cubeKey !== cube, 'out into the room before', 90000);
+  // and back in: a new attempt, every stone up again
   takePortal(state.map.portals.find(p => p.dir === dir));
   await wait(() => !state.transitioning && state.cubeKey === cube, 'back in', 90000);
   check(state.trial.phase === 'idle', 'as built again');

@@ -14,7 +14,7 @@ import { townPadIn, onPad, TOWN_PORTAL_CHARGE } from '../core/townportal.js';
 import { takeTownPortal } from './townportal.js';
 import { checkDoors } from './doors.js';
 import { checkHandover } from './handover.js';
-import { sealedIn } from './trials.js';
+import { sealedOut } from './trials.js';
 import { SEALED_MESSAGE } from '../core/trials.js';
 import { tr } from '../i18n/i18n.js';
 
@@ -61,7 +61,8 @@ export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge
   state.portalCharge = null;
   if (state.map.flipKey) return false;   // Flip's box turned: its portals are in the walls (game/flipworld.js)
   if (state.boundaryLock >= 0 && faceDistance(player, state.boundaryLock) > player.r + 0.25) state.boundaryLock = -1;
-  const sealed = sealedIn();   // a trial room while its event runs (game/trials.js): nothing takes you out
+  // a trial room while its event runs (game/trials.js): nothing takes you out (but the balance's way back)
+  const sealed = sealedOut();
   // the town's seams: walked across, the tile beyond takes over (game/handover.js)
   if (checkHandover()) return true;
   // open side faces take you across anywhere along them, whether they ever had a gate or not
@@ -69,7 +70,7 @@ export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge
     if (state.map.seams?.[d]) continue;
     if (!isFaceOpen(state.openedFaces, state.cubeKey, d) || state.boundaryLock === d || !approachingFace(player, d, dx, dz)) continue;
     if (railedAcross(d)) continue;
-    if (sealed) { setStatus(tr(SEALED_MESSAGE)); continue; }
+    if (sealed && sealedOut(d)) { setStatus(tr(SEALED_MESSAGE)); continue; }
     if (portalLocked(state.map, state.run, { dir: d })) { setStatus(lockMessage(state.map, d, guardianKind(state.map))); continue; }
     if (fightHolds(d, steer)) continue;
     startTravel(state.map.portals.find(q => q.kind === 'side' && q.dir === d) || { kind: 'side', dir: d });
@@ -81,7 +82,7 @@ export function checkPortals(dx = 0, dz = 0, dt = 0, charge = state.portalCharge
     const at = inside(q);
     if (state.portalLock === q.id) { if (!at) state.portalLock = 0; continue; }
     if (!at) continue;
-    if (sealed) { setStatus(tr(SEALED_MESSAGE)); continue; }
+    if (sealed && sealedOut(q.kind === 'side' ? q.dir : null)) { setStatus(tr(SEALED_MESSAGE)); continue; }
     if (portalLocked(state.map, state.run, q)) { setStatus(lockMessage(state.map, q.dir, guardianKind(state.map))); continue; }
     if (q.kind === 'side' && fightHolds(q.dir, steer)) continue;
     if (q.kind === 'up' || q.kind === 'down') {

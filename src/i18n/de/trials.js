@@ -48,6 +48,7 @@ export default {
   'Gusts tear off the hill. Climb in the lulls, wait out the gusts behind the boulders, pull the lightning rod on top!':
     'Böen fegen vom Hügel. Kletter in den Pausen, warte die Böen hinter den Felsbrocken ab und zieh oben den Blitzableiter!',
   'The portals are sealed.': 'Die Portale sind versiegelt.',
+  'The way on is sealed. The way back stays open.': 'Der Weg weiter ist versiegelt. Der Weg zurück bleibt offen.',
   'The way across is gone': 'Der Weg hinüber ist weg',
   'Choking in the fog!': 'Im Nebel erstickt!',
   'Frozen solid': 'Steif gefroren',

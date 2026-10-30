@@ -56,6 +56,7 @@ const HOW = {
   ...EVENT_HOW,
 };
 const SEALED = msg('The portals are sealed.');
+const SEALED_AHEAD = msg('The way on is sealed. The way back stays open.');
 export const trialHere = () => state.trial;
 const mapTrial = () => state.map?.trial ?? null;
 const resolvedIn = (map, run) => !!map?.trial && run.unlockedGates.has(map.trial.gate);
@@ -162,13 +163,22 @@ let keystoneAsked = false;
 
 // is the room we are in sealed? (game/portals.js, the scrolls, the teleports)
 export const sealedIn = () => trialSealed(state.trial);
+// ... but a kind with a way back (the balance: core/trials.js TRIALS wayBack) leaves the face it was
+// entered by open while sealed: the dir of that face, or null. Walking out through it leaves the
+// attempt like a fail does (the room is as built when entered again).
+export function wayBack() {
+  const s = state.trial, m = mapTrial();
+  return trialSealed(s) && m && TRIALS[s.kind]?.wayBack && m.entry != null ? m.entry : null;
+}
+// does the seal hold the side face or portal in dir `d` (null: any other portal)?
+export const sealedOut = (d = null) => sealedIn() && (d == null || d !== wayBack());
 
 // the faces whose portals are sealed: every one while an event runs, else the exit until the
 // trial is resolved
 export function sealedDirs() {
   const s = state.trial, m = mapTrial();
   if (!s || !m || s.phase === 'resolved') return [];
-  if (trialSealed(s)) return state.map.portals.filter(p => p.kind === 'side').map(p => p.dir);
+  if (trialSealed(s)) return state.map.portals.filter(p => p.kind === 'side' && p.dir !== wayBack()).map(p => p.dir);
   if (timedOpen(m, s)) return [];   // (the timed gate's lever pulled: the exit open for a while)
   return m.exit == null ? [] : [m.exit];
 }
@@ -246,7 +256,7 @@ export function updateTrial(dt) {
 // what a phase coming says: the banner and the rumble as it arms
 function announce(s, happened) {
   if (happened === 'armed') {
-    setStatus(`${tr(TRIALS[s.kind].name)}! ${tr(SEALED)}`);
+    setStatus(`${tr(TRIALS[s.kind].name)}! ${tr(TRIALS[s.kind].wayBack ? SEALED_AHEAD : SEALED)}`);
     banner(tr(TRIALS[s.kind].name), HOW[s.kind] ? tr(HOW[s.kind]) : '');
     sfx('rumble'); sfx('gate', { delay: 0.4 }); jingle('trialsealed'); narrate('trial', { what: 'sealed', kind: s.kind });
   }
