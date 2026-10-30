@@ -28,6 +28,8 @@ still to come.
   climbs the cliff by a stair; a long span comes down over the lake; the river falls over the
   cliff; a hill with a tent on its top, a hollow with a tent at its bottom, a forest round it, the
   people's homes along every way ([world.md](world.md#the-town-worldtownjs-cubegentownjs-gamehandoverjs)).
+  Its stairs, bridges and span have the invisible side rails of a cube's (`cubegen/fences.js
+  runRails`): walking never takes the hero off their sides, only the jump key does.
 - **Known from the start.** All the town's tiles count as visited when the world begins: on the
   map, drawn as surroundings, their faces open. The town is home. This is the one exception to
   "Only where you have been" ([world.md](world.md#only-where-you-have-been)).

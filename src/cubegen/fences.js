@@ -6,8 +6,10 @@ import { floorY, runY } from '../core/surfaces.js';
 import { reachTo } from './reach.js';
 import { reachable } from './escape.js';
 
-export function addFences(ctx) {
-  const { R, cols, floors, pieces, runs, pathEdges, fenceNoise, stats } = ctx;
+// The invisible side rails of the structures (open sides of landings, both sides of stairs and
+// bridges, towards cells in the cube): { fences, fenceList, addFence }. A cube's (addFences) and
+// the town's (cubegen/town.js), which has no other fences.
+export function runRails(runs) {
   const fences = new Map(), fenceList = [];
   function addFence(c, d, hfn, layer, show = true) {
     const x = c % N, z = (c / N) | 0, nx = x + DIRS[d][0], nz = z + DIRS[d][1];
@@ -22,8 +24,6 @@ export function addFences(ctx) {
     if (!fences.has(key)) fences.set(key, []);
     fences.get(key).push(f);
   }
-
-  // open sides of landings, both sides of stairs and bridges
   for (const r of runs) {
     if (r.kind === 'landing') {
       for (let d = 0; d < 4; d++) if (!r.conn.has(d) && inb(r.from.x + DIRS[d][0], r.from.z + DIRS[d][1]))
@@ -33,6 +33,12 @@ export function addFences(ctx) {
     for (const p of r.pieces) for (const ld of (r.dx !== 0 ? [2, 3] : [0, 1]))
       if (inb(p.c % N + DIRS[ld][0], ((p.c / N) | 0) + DIRS[ld][1])) addFence(p.c, ld, (fx, fz) => runY(p, fx, fz), r.layer, false);
   }
+  return { fences, fenceList, addFence };
+}
+
+export function addFences(ctx) {
+  const { R, cols, floors, pieces, runs, pathEdges, fenceNoise, stats } = ctx;
+  const { fences, fenceList, addFence } = runRails(runs);
 
   // cliff edges: in runs (noise), around lava, never on route edges
   for (const f of floors) {

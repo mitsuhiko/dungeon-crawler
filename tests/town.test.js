@@ -10,7 +10,7 @@ import { step, faceKey } from '../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, HOMES, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
   PORTAL_TILE, START_TILE, enemyFreeAt, townOf, townLand, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
 import { INN_STAIR, UPPER } from '../src/world/townland.js';
-import { floorY } from '../src/core/surfaces.js';
+import { floorY, runY } from '../src/core/surfaces.js';
 import { ITEMS, outfitOf } from '../src/core/items.js';
 import { state } from './fixtures.js';
 import { ENEMY_PROFILES } from '../src/core/enemies.js';
@@ -428,6 +428,30 @@ test('the street runs from the gate over the water and up the cliff\'s stair to 
       // (over the water: on its bridges, either side of the pier on the seam)
       if (j === START_TILE[1] - 1 || j === START_TILE[1]) assert.ok(m.runs.some(r => r.kind === 'bridge' && !r.span), 'the street\'s bridge');
     }
+  }
+});
+
+test('the town\'s stairs, bridges and span hold a walking hero on them: their sides are railed', () => {
+  for (let seed = 0; seed < 4; seed++) {
+    const w = new World(seed);
+    let runs = 0;
+    for (const { m } of tilesOf(w)) {
+      state.map = m;
+      for (const r of m.runs) for (const p of r.pieces) for (const d of r.dx !== 0 ? [2, 3] : [0, 1]) {
+        const x = p.c % N, z = Math.floor(p.c / N), [dx, dz] = DIRS[d];
+        if (x + dx < 0 || z + dz < 0 || x + dx >= N || z + dz >= N) continue;   // (the cube's bound holds it there)
+        const y = runY(p, .5, .5);
+        Object.assign(player, { x: x + .5, z: z + .5, y, visY: y, h: .85, r: CHAR_R, grounded: true, swimming: false, support: p });
+        for (let k = 1; k <= 20; k++) {
+          const nx = x + .5 + dx * k * .05, nz = z + .5 + dz * k * .05;
+          if (!canMove(nx, nz, dx ? 'x' : 'z', dx || dz)) break;
+          player.x = nx; player.z = nz;
+        }
+        assert.ok(Math.floor(player.x) === x && Math.floor(player.z) === z, `${m.key}: off the side ${d} of a ${r.kind} at ${x}, ${z}`);
+      }
+      runs += m.runs.length;
+    }
+    assert.ok(runs > 0);
   }
 });
 

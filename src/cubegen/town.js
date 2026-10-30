@@ -6,6 +6,7 @@ import { N, LH, WATER, DIRS, CHAR_R } from '../core/constants.js';
 import { containsXZ, indexBlockers } from '../core/blockers.js';
 import { floorY } from '../core/surfaces.js';
 import { edgeCell } from './portals.js';
+import { runRails } from './fences.js';
 import { townPlan, townReach } from '../world/town.js';
 
 export function generateClearing(spec) {
@@ -87,12 +88,15 @@ export function generateClearing(spec) {
   const paths = ends.map(pathTo);
   const moves = paths.flatMap(path => path.slice(1).map((to, i) => ({ kind: 'walk', from: path[i], to,
     d: DIRS.findIndex(([dx, dz]) => path[i].x + dx === to.x && path[i].z + dz === to.z), cells: [], cost: 1 })));
+  // the stairs', bridges' and the span's invisible side rails (cubegen/fences.js): kept on them
+  // as in a cube, off their sides with the jump key only
+  const { fences, fenceList } = runRails(ctx.runs);
   ctx.stats.layers = 1; ctx.stats.mode = 'town ' + plan.tile.name; ctx.stats.fluids = plan.water.length ? ['town water'] : [];
   const clearing = { placements: plan.placements, frontages: plan.frontages, doors: plan.doors, water: plan.water, yaw: plan.yaw, paths: plan.paths,
     tile: plan.tile, level: plan.level, ...(portal ? { portal } : {}) };
   return { seed: spec.seed, attempts: 1, K: 1, B: [0], cols: ctx.cols, floors,
     pieces: ctx.pieces, runs: ctx.runs, falls: plan.falls.map(f => ({ ...f, type: WATER, layer: 0 })), ladders: [],
-    fences: new Map(), fenceList: [], stats: ctx.stats, moves, portals, exit: spec.exit,
+    fences, fenceList, stats: ctx.stats, moves, portals, exit: spec.exit,
     routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys, trialFaces: spec.trialFaces || [null, null, null, null],
     safe: Uint8Array.from(floors, f => prev.has(f.c) ? 1 : 0),
     kind: 'meadow', archetype: 'plain', key: spec.key, depth: 0, cave: false, enemyFree: true, biome: 'meadow',
