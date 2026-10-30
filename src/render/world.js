@@ -134,5 +134,5 @@ export function animateWorld(world, dt, time) {
   tickFlipView(world, time);
   tickMoverView(world.movers, time);
   tickChests(dt);
-  tickVillagers(world.villagers, dt, time);
+  tickVillagers(world.villagers, dt, time, world.group.position);
 }

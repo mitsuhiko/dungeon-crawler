@@ -1450,6 +1450,17 @@ height; this reveal is disabled during travel. Proxies are pushed back a little 
 proxy's must lose there, or it fights the section caps seen through a cut. Lava pulses in proxies as in the cube you are in;
 the falls' textures stream in both.
 
+**The people of the surroundings** (`game/standins.js`): the villagers and the people out in the
+world (residents, the quests' people, the people found living at a camp) stand in every cube shown
+round you, up to two cubes from the one played in (`game/drawn.js NEAR`), as they do there: they
+breathe, look about and turn to the hero coming close. They are figures of their own, drawn as
+their cube is (`render/farlook.js`: dimmed like its proxy, a little less, `NEIGHBOR_DIM.people`,
+and dissolving with it), without the lights of what they wear, and nothing to hover or click. Each
+proxy has its own, so travel's two sets cross-fade with their people and a proxy kept across a
+refresh, a slide or the town's tiles handed over keeps them. `game/drawn.js drawnAt` says where a
+cube is drawn now (the cube played in, the one a slide carries away, or a proxy shown near): the
+robot left behind, the crash on the town's plaza and the friends in other cubes go by it too.
+
 Proxy geometry uses an LRU cache keyed by worker geometry identity, with a 64-entry / 32 MiB
 budget (of packed parts). Live proxies pin their geometry (so the live set can exceed the
 budget); unused entries leave the batches and world resets clear the cache. Batches compact

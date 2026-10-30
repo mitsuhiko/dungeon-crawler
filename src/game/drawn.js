@@ -19,6 +19,10 @@ export function nearby(k) {
   return a.length === 3 && b.length === 3 && a[1] === b[1] && Math.max(Math.abs(a[0] - b[0]), Math.abs(a[2] - b[2])) <= NEAR;
 }
 
+// does proxy g (render/neighbors.js) show now: in view, not fogged or faded out (one built since
+// the last frame was culled counts as shown), and NEAR (any: however far)?
+export const proxyShown = (g, any = false) => (!g.cull.done || g.cull.visible) && g.group.visible && (any || nearby(g.key));
+
 // Cube k as it is drawn now: { at (where its origin is in the scene), fade (how much of it shows,
 // 0..1: its dissolve times its distance fade), dim (0: the cube played in or carried away, else
 // its proxy's, render/materials.js NEIGHBOR_DIM), group (its world's group or its proxy's
@@ -33,7 +37,7 @@ export function drawnAt(k, { any = false } = {}) {
   const left = leftCube();
   if (left?.key === k) return { at: left.group.position, fade: left.group.userData.fade ?? 1, dim: 0, group: left.group };
   const g = neighborOf(k);
-  if (!g || (g.cull.done && !g.cull.visible) || !g.group.visible || !(any || nearby(k))) return null;
+  if (!g || !proxyShown(g, any)) return null;
   const u = g.group.userData;
   return { at: g.group.position, fade: (u.fade ?? 1) * u.rangeFadeU.value, dim: g.dim ?? 1, group: g.group };
 }

@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { renderer, scene, camera, fitView } from './render/scene.js';
 import { tickBakes, updateBakes, setCurrentBake, baked } from './render/bake.js';
 import { animateWorld } from './render/world.js';
+import { updateStandins } from './game/standins.js';
 import { animateCharacter } from './render/animator.js';
 import { generate } from './cubegen/index.js';
 import { groundAt } from './physics/collide.js';
@@ -200,6 +201,7 @@ function frame(now = performance.now()) {
   tickMotes(dt, state.map?.biome && themeById(state.map.biome), player.x, player.visY, player.z, state.night);   // what drifts in the air (render/motes.js)
   tickFootprints(dt, state.cubeKey);   // wet prints on the slime dry up (render/footprints.js)
   if (state.world) animateWorld(state.world, dt, state.time);
+  updateStandins(dt, state.time);   // the people of the cubes round it (game/standins.js)
   updateHud(player, state.map);
   updateConsole();   // the chat box: the chronicle and the game's last word (game/console.js)
   updateInventory();
@@ -294,6 +296,7 @@ function menuFrame(dt, start) {
   tickProps(state.time);
   tickFlames(dt, state.time, menuFocus);
   if (state.world) animateWorld(state.world, dt, state.time);
+  updateStandins(dt, state.time);   // (none out of play)
   updateRoll(dt);   // (out of play: unturned)
   updateTilt(dt);   // (and level)
   updateCamera(dt);

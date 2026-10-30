@@ -91,10 +91,10 @@ export function questWorld(map) {
   if (o.placements.length) loadPropSets(propSetsOf(map, themeOf(map))).catch(() => {});   // (the chest's set; game/flow.js builds again once in)
   return o.sig;
 }
-// has the quests' part of the cube we are in changed since it was built?
-export const questWorldChanged = () => !!state.map && overlay(state.map, state.run?.quests).sig + '|'
-  + sealedSides(state.map).join(',')
-  !== (state.map.questSig ?? '');
+// has the quests' part of the cube we are in (or of map) changed since it was built (put in)?
+export const questWorldChanged = (map = state.map) => !!map && overlay(map, state.run?.quests).sig + '|'
+  + sealedSides(map).join(',')
+  !== (map.questSig ?? '');
 
 // the things to find lying here, as pickups to draw (render/loot.js drawLoot)
 export function questItemsHere() {
