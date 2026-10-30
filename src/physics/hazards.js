@@ -23,10 +23,11 @@ function fluids(gr) {
   return true;
 }
 
-// standing in a waterfall: the current pushes you out; lava and acid falls hurt (acid poisons)
+// standing in a waterfall: the current pushes you out; lava and acid falls hurt (acid poisons).
+// The curtain over a hidden cave (cubegen/grotto.js) lets you through.
 function falls(dt, ci) {
   for (const f of state.map.falls) {
-    if (ci !== f.c) continue;
+    if (ci !== f.c || f.grotto) continue;
     const lx = player.x - Math.floor(player.x), lz = player.z - Math.floor(player.z);
     const dist = [lx, 1 - lx, lz, 1 - lz][f.d], lat = f.d < 2 ? lz : lx;
     if (dist > 0.45 || lat < 0.06 || lat > 0.94 || player.y > f.top * LH || player.y < f.bot * LH - 0.5) continue;

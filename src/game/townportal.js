@@ -34,7 +34,6 @@ function say(message) {
 function castBlocked() {
   const p = player;
   if (!state.map || state.transitioning) return tr('Not now');
-  if (state.map?.waterfallRoom) return tr('Swim back through the small waterfall first');
   if (state.map.town || isInterior(state.cubeKey)) return tr('You are already in town');
   if (sealedIn()) return tr(SEALED_MESSAGE);   // a trial room while its event runs (game/trials.js)
   if (state.fallFrom || p.hp <= 0 || p.ragdoll || p.getUp || p.climb || p.swimming || !p.grounded) return tr('You need firm ground to open a portal');

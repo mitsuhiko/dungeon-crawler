@@ -1044,40 +1044,47 @@ A fire's light flickers with its flame; a prop's `flicker` makes its light flick
 with it (a shader patch, `glowMaterial`). A placement may carry its own `matrix` instead of
 x, y, z, yaw and scale (a string's sheared segments).
 
-## Waterfall hideouts (`world/waterfalls.js`, `cubegen/waterfallroom.js`)
+## Waterfall grottos (`cubegen/grotto.js`)
 
-Occasionally an ordinary clear-water fall conceals a swim-through passage. An independent hash
-admits one third of eligible cubes; only falls with an existing reachable, dry fallback ledge
-and safe body clearance behind the curtain qualify. Bosses, trials,
-clearings, test rooms and cross-cube falls are excluded. No terrain, routes or ordinary reward
-sites are changed. The selected curtain is wider than usual (2.2 or 4.2 cells instead of 0.9),
-the visual hint; no discovery marker is added.
+Behind some tall clear-water falls a small cave is hidden, in the cube itself, with an uncommon
+chest at its back. The only hint is the curtain: it comes down broader than usual (2.2 units
+across instead of 0.9). Nothing else marks it, and the cave is closed all round, so it shows from
+nowhere but through the falling water.
 
-The water curtain uses the existing `map.doors` interaction and house-door transitions, not a second
-travel system. There is no visible wooden door or frame outside: swimming into the curtain
-enters the room. Only these `swim` entrances allow an ungrounded swimmer to transition;
-ordinary house doors still require grounded feet. Returning restores a swimming pose in the
-pool, retaining the ordinary dry respawn fallback. Its destination, `interior:waterfall:<outside key>`,
-retains the interior key namespace for save/travel compatibility but is visually an ordinary
-peaceful dark forest: normal terrain and ambient forest dressing, no house, wooden floor,
-windows or stairs. A small waterfall (0.9 cells wide, falling 1.5 cells) pours into a swimming
-pool with a sloping shore; swimming back through it returns outside. A reserved clearing keeps
-the approach to one ordinary uncommon reward-site chest accessible. The forest inherits the
-outside depth, but uses the dark-forest biome. Chest identities and contents are deterministic and use the normal
-run's opened-chest persistence, so leaving and returning cannot farm the reward. These rooms
-follow the existing interior save/menu policy (reloading from an interior starts in town).
-The town portal remains disabled in these off-grid rooms; the hideout asks players to swim
-back through the small waterfall.
+- **Which falls:** a stream's water fall (not one into the cube below or across a face) that drops
+  at least 7 levels into its own pool, where that pool has a shore somewhere (dry ground level
+  with it or a level over it, under the sky: not a pool down a pit). Not in trial rooms, the
+  beginning's third room, the town or the guardian arenas. The first fall that fits gets the
+  cave, at most one a cube. Over 4 worlds about nine cubes a world have one.
+- **The cave:** level with the pool, its mouth the cell right behind the curtain; a room of three
+  across behind the mouth, else a passage of two. Over it the rock (or the slab the fall pours
+  off) stays as a roof `ROOF` levels up (`cubegen/tunnel.js`, a `roof` like a tunnel's: the
+  cutaway opens it like a slab, `game/cutinfo.js`, and it does not count for its layer's cut
+  height). Where the cave lies under an overhang, the slab round it is brought down to the
+  ground as a hill pokes up into one (`cubegen/slabs.js`): rock all round but at the mouth. Only
+  dry ground and the pool's own water give way to it; portal pads, sites, a horde's camp, ramps,
+  tunnels and the big pieces' cells stay as they are, and the cube's outer ring is never touched.
+- **When:** after the fluids are settled and before their shores (`carveGrotto`), so the moves,
+  routes, escapes and checks that follow know it; no structure is built in it (`noCross`). It
+  draws nothing from the generator's random stream: a cube without a cave comes out exactly as
+  it would without the stage (`spec.grotto: false` leaves it out, for the tests).
+- **The chest** (`finishGrotto`, once the cube is checked): an ordinary uncommon reward site of
+  its own beside the planned ones (`setting: 'grotto'`, id `<cube>:grotto`), at the back, facing
+  the mouth, its approach in the mouth. Its cells are reserved (no props), its floors take no
+  enemies (`noSpawn`). Opened chests are kept with the run, so it is opened once. A cave that
+  cannot be got to and back from the portals stays empty, behind a curtain like any other (rare:
+  2 in 39 over 4 worlds).
+- **Through the curtain:** a fall's current pushes whoever stands in it out (`physics/hazards.js`);
+  this one does not, so you wade or swim through it. A respawn never puts anyone into a cave they
+  were not in (`physics/respawn.js`).
+- `map.grotto`: `{ fall (its index in map.falls), cells (the mouth first), site, front }`; `front`
+  is a place in the pool before the curtain, facing it (`swim` where the water is deep).
 
-Developer preview: `/waterfall` works with any seed, using the ordinary test-room framework.
-It places the hero swimming in a deep pool in front of a deliberately broad waterfall.
-Swim into the curtain to enter the forest. Return through its small waterfall and use
-`/testroom leave` to go back to the original world position. `/testroom waterfall` is equivalent. Existing test-room keys are unchanged.
-
-Natural-generation check: open `?dev=1&seed=123`, then `/goto 3 3,3`. The broad waterfall in
-that cube has a passage through its curtain. Swim in, open the chest normally, swim back out
-and re-enter: the chest must remain open. `tests/waterfalls.test.js` also checks deterministic generation, unchanged
-terrain/routes, safe arrivals, exclusions, ordinary chest loot and the actual curtain geometry.
+Dev: `/waterfall` makes the cubes after this one in turn (this depth on down, then round from the
+first) until one has a cave, and puts you at its `front`; again: the next one. `?dev=1&seed=99`,
+`/goto 2 3,3` is one. `tests/waterfalls.test.js` checks the cave is closed, flat, roofed and
+level with the pool, the chest reachable, cubes without one unchanged, and click to move gets
+from the pool into it.
 
 ## Reward sites (`world/sites.js`, `cubegen/sites.js`)
 

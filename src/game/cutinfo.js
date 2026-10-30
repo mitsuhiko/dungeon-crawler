@@ -5,10 +5,11 @@ import { LH } from '../core/constants.js';
 
 export function mapInfo(m) {
   if (!m.cutInfo) {
-    // just below the lowest underside of each upper layer (pools are cut below their bed)
+    // just below the lowest underside of each upper layer (pools are cut below their bed; not a
+    // roof over a cave carved under it, cubegen/grotto.js: that is a slab of its own, below)
     const bases = m.B.slice(1).map((b, i) => {
       let lo = b - 2;
-      for (const f of m.floors) if (f.layer === i + 1) lo = Math.min(lo, f.merged ? Infinity : f.bottom, f.fluid ? f.top - 1 : Infinity);
+      for (const f of m.floors) if (f.layer === i + 1 && !f.roof) lo = Math.min(lo, f.merged ? Infinity : f.bottom, f.fluid ? f.top - 1 : Infinity);
       return lo * LH - 0.02;
     });
     const slabs = m.floors.filter(f => (f.layer > 0 || f.roof) && !f.merged && !f.ramp)   // (and tunnel roofs)

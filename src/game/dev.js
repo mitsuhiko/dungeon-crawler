@@ -26,7 +26,7 @@ import { clearMouseInput } from './orders.js';
 import { takeTownPortal } from './townportal.js';
 import { shaftOf } from '../world/heights.js';
 import { TRIALS } from '../core/trials.js';
-import { tr } from '../i18n/i18n.js';
+import { MAX_DEPTH } from '../themes/depth.js';
 
 const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
 const D = [[1, 0], [-1, 0], [0, 1], [0, -1]], NAMES = ['east', 'west', 'south', 'north'];
@@ -206,6 +206,41 @@ export async function goFeature(kind) {
   } finally { if (state.cubes === cubes) state.transitioning = false; }
 }
 
+// Stand in the pool before the next waterfall with a hidden cave behind it (cubegen/grotto.js),
+// facing the curtain: the cubes after this one (this depth on down, then round from the first) are
+// made in turn until one has a cave with its chest, as only a made cube knows. Again: the next.
+export async function goWaterfall() {
+  if (state.transitioning || state.inventoryOpen) return;
+  const cubes = state.cubes, here = state.map?.depth ?? 0, order = [];
+  for (let d = 1; d <= MAX_DEPTH; d++) {
+    const L = cubes.layout(d);
+    for (const k of [...L.exists].sort()) if (!L.guardians.has(k)) order.push({ d, k });
+  }
+  // from just after this cube (or the first of this depth on), round the world once
+  let at = order.findIndex(o => o.k === state.cubeKey) + 1;
+  if (!at) at = Math.max(0, order.findIndex(o => o.d >= here));
+  clearMouseInput(); state.transitioning = true;
+  setStatus('Looking for a waterfall with a cave behind it ...');
+  try {
+    let pick = null;
+    for (let i = 0; i < order.length && !pick; i++) {
+      const { k } = order[(at + i) % order.length], c = await whenReady(cubes.map(k));   // (only its map: the one picked is loaded below)
+      if (state.cubes !== cubes) return;
+      if (c.map.grotto) pick = k;
+    }
+    if (!pick) { setStatus('No waterfall with a cave behind it in this world'); return; }
+    const c = await whenReady(cubes.get(pick));
+    if (state.cubes !== cubes) return;
+    const g = c.map.grotto, f = g.front;
+    enterCube(c, null, null, f);
+    // (enterCube stands them on dry ground near it: back into the water)
+    if (f.swim) Object.assign(player, { x: f.x, y: f.y, z: f.z, visY: f.y, swimming: true, grounded: false, vy: 0 });
+    else spawnAt(f.x, f.y, f.z);
+    player.yaw = f.yaw;
+    setStatus(`Waterfall cave · depth ${c.map.depth} · ${pick} · ${g.cells.length} cells · chest ${state.run.chests.has(g.site) ? 'opened' : 'closed'}`);
+  } finally { if (state.cubes === cubes) state.transitioning = false; }
+}
+
 // Stand at the next spot (world/spots.js: a hiding place, a seat, a camp ...; of a kind, or any; in
 // the cube of a glass of his, at its way in) from
 // this depth on down (or from `from`), the easy ones of a depth first: where the quests will put
@@ -290,9 +325,8 @@ export async function goTestRoom(name, depth) {
     if (state.cubes !== cubes) return;
     const { arrival: a, note } = c.map.testRoom;
     enterCube(c, null, null, a);
-    if (c.map.swimArrival) Object.assign(player, c.map.swimArrival, { visY: c.map.swimArrival.y, swimming: true, grounded: false, vy: 0 });
     player.yaw = a.yaw;
-    setStatus(`Test room ${name} · ${c.map.biome} (depth ${depth}) · ${tr(note)}`);
+    setStatus(`Test room ${name} · ${c.map.biome} (depth ${depth}) · ${note}`);
   } finally { if (state.cubes === cubes) state.transitioning = false; }
 }
 // back to where /testroom was used (in another world: its town)

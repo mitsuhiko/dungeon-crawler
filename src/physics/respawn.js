@@ -31,7 +31,8 @@ export function respawnPoint(point) {
   if (original) return original;
   let best = null, distance = Infinity;
   // Include every layer and walkable structure, not just the highest floor in a column.
-  for (const s of [...state.map.floors, ...state.map.pieces.flat().filter(p => p.kind !== 'pillar')]) {
+  // (not into a hidden cave, cubegen/grotto.js, but from inside it)
+  for (const s of [...state.map.floors.filter(f => !f.grotto), ...state.map.pieces.flat().filter(p => p.kind !== 'pillar')]) {
     const px = s.c % N + 0.5, pz = Math.floor(s.c / N) + 0.5;
     const candidate = supportedPoint(px, topOf(s, 0.5, 0.5), pz);
     if (!candidate) continue;

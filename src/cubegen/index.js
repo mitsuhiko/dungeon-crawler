@@ -16,6 +16,7 @@ import { addStreams } from './streams.js';
 import { cascadeGround, cascadeFalls } from './cascades.js';
 import { spoutGround, spoutWater } from './spouts.js';
 import { containFluids } from './contain.js';
+import { carveGrotto, finishGrotto } from './grotto.js';
 import { makeMoves } from './moves.js';
 import { findRoute, finishRoute } from './route.js';
 import { addAccess, addEscapes, addWaterEscapes, shoalWater, shoreWater } from './escape.js';
@@ -88,6 +89,7 @@ function tryGenerate(seed, spec) {
   cascadeFalls(ctx);
   spoutWater(ctx);
   containFluids(ctx);
+  if (spec.grotto !== false) carveGrotto(ctx);   // a hidden cave behind a tall waterfall, now and then (cubegen/grotto.js)
   shoreWater(ctx);   // (water is walked into and out of: shores level with it)
   shoalWater(ctx);   // (most water is waded: deep only away from its banks)
   indexFloors(ctx);
@@ -126,6 +128,7 @@ function tryGenerate(seed, spec) {
   if (!trial) return null;
   const clues = placeClues(ctx, safe);   // rune rooms' tablets, in a room before them
   const sites = finishSites(ctx), vignettes = finishVignettes(ctx);
+  const grotto = finishGrotto(ctx, safe, sites);   // its chest, beside the planned sites
   const firstGlass = spec.firstGlass ? firstGlassOf(ctx, sites) : null;
   if (spec.firstGlass && !firstGlass) return null;   // (his glass must stand on the rock, up its ladder)
   sites.sitePlacements.push(...vignettes.placements);
@@ -171,6 +174,7 @@ function tryGenerate(seed, spec) {
     // a large area (world/areas.js): its cubes
     area: spec.area ? { id: spec.area.id, kind: spec.area.kind, role: spec.area.role, keys: spec.area.keys } : null,
     sparse: !!spec.sparse,   // a mostly empty set piece (cubegen/setpieces.js): few props
+    grotto,   // the hidden cave behind a waterfall (cubegen/grotto.js): { fall, cells, site, front }, else null
     firstGlass,   // the beginning's third room (core/intro.js): { glass, ladder, foot }, else null
     routes: ctx.segments.map(s => pathPoints(ctx, s)),   // each portal -> the exit, then the way back
   };

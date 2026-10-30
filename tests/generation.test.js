@@ -32,7 +32,9 @@ function checkSites(m) {
     assert.equal(m.sitePlacements.filter(p => p.site === site.id && p.name === 'treasure_chest').length, 1);
     for (const b of m.staticBlockers[access.c])
       assert.ok(!containsXZ(b, site.approach.x, site.approach.z, CHAR_R), 'standing/interacting position stays clear');
-    for (const c of site.cells) assert.ok(c % N >= 2 && c % N < N - 2 && Math.floor(c / N) >= 2 && Math.floor(c / N) < N - 2);
+    // (a cave behind a waterfall, cubegen/grotto.js, lies where its fall does: off the outer ring)
+    const ring = site.setting === 'grotto' ? 1 : 2;
+    for (const c of site.cells) assert.ok(c % N >= ring && c % N < N - ring && Math.floor(c / N) >= ring && Math.floor(c / N) < N - ring);
   }
   // Even when optional sites cannot fit, the required portal-to-exit contract remains intact.
   for (const portal of m.portals) assert.equal(m.safe[portal.floor.id], 1);
@@ -69,11 +71,13 @@ test('reward destinations remain accessible, framed and collider-safe across dep
     for (let depth = 1; depth <= 20; depth++) for (const [key, intent] of w.layout(depth).sitePlans) {
       const m = w.cube(key).map;
       checkSites(m);
-      requested += intent.length; realized += m.rewardSites.length;
+      // (a cave behind a waterfall has a chest of its own besides: cubegen/grotto.js)
+      const sites = m.rewardSites.filter(s => s.setting !== 'grotto');
+      requested += intent.length; realized += sites.length;
       // (a quest's spot that found no place is reported there too: tests/spots.test.js)
       const failed = m.siteFailures.filter(s => s.id.includes(':site:'));
-      assert.equal(m.rewardSites.length + failed.length, intent.length);
-      for (const s of [...m.rewardSites, ...failed]) {
+      assert.equal(sites.length + failed.length, intent.length);
+      for (const s of [...sites, ...failed]) {
         assert.equal(s.id, intent[0].id); assert.equal(s.prestige, intent[0].prestige);
       }
     }

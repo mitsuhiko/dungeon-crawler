@@ -14,7 +14,7 @@ import { player, state, worldLevel } from './state.js';
 import { commands } from './commands.js';
 import { spawnEnemies, killEnemies, clearEnemies } from './devspawn.js';
 import { devIntro, devHoldIntro } from './bossintro.js';
-import { goTo, goPlace, whereAmI, goHorde, goArena, goAdjacent, goSpan, goFeature, goStructure, goSpot, goTrial, goBoss, goTestRoom, leaveTestRoom, FEATURES } from './dev.js';
+import { goTo, goPlace, whereAmI, goHorde, goArena, goAdjacent, goSpan, goFeature, goStructure, goSpot, goTrial, goBoss, goTestRoom, leaveTestRoom, goWaterfall, FEATURES } from './dev.js';
 import { BOSSES, BOSS_ARENAS } from '../core/bosses.js';
 import { DIR_NAME, readPlace, isCellText } from '../world/coords.js';
 import { MAX_DEPTH } from '../themes/depth.js';
@@ -193,8 +193,8 @@ dev({
 
 // --- getting about -------------------------------------------------------------------------
 
-dev({ name: 'waterfall', help: tr('preview a broad waterfall and its secret room, in any world'),
-  async run() { await goTestRoom('waterfall'); } });
+dev({ name: 'waterfall', help: tr('to the next waterfall with a hidden cave behind it'),
+  async run() { await goWaterfall(); } });
 
 // /goto down|up, east|west|south|north, or a place: [depth] [X,Z] [x,y,z] (world/coords.js readPlace)
 addType(commands, { name: 'goto', read: t => isCellText(t) ? t : undefined, values: () => [

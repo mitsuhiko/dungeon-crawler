@@ -49,10 +49,10 @@
       <p lang="de">Ganz oben liegt die Stadt (grün): nicht ein Würfel, sondern zwölf, drei mal vier, die du wie einen einzigen Ort durchläufst, alle unter einem Glas. Die Straße fängt an ihrem Tor an, mit dem Anfang: Das Tor der Stadt geht auf, sobald du das alte Schwert des Glasmachers beim Einschlag auf dem Platz aus dem Boden ziehst; das des nächsten Raums mit einem hohen Felsen, sobald du auf den Felsen kletterst und oben sein Glas findest.</p>
       <p lang="en">Some rooms get a side room with a treasure chest.</p>
       <p lang="de">Manche Räume bekommen einen Nebenraum mit einer Schatztruhe.</p>
-      <p lang="en">Look closely at unusually wide waterfalls: sometimes swimming through the falling water takes you straight into a peaceful forest, without a visible wooden door or a house. There is a small waterfall and a treasure chest inside. Swim back through the small waterfall to return; opening the chest again gives no extra reward.</p>
-      <p lang="de">Schau bei ungewöhnlich breiten Wasserfällen genau hin: Manchmal gelangst du schwimmend durch das fallende Wasser direkt in einen friedlichen Wald, ohne sichtbare Holztür oder Haus. Darin gibt es einen kleinen Wasserfall und eine Schatztruhe. Schwimm durch den kleinen Wasserfall zurück; erneutes Öffnen der Truhe gibt keine zusätzliche Belohnung.</p>
-      <p lang="en">In developer mode, <code>/waterfall</code> previews the swimming entrance and forest in any world. Swim back through the small waterfall, then use <code>/testroom leave</code> to return to where you started.</p>
-      <p lang="de">Im Entwicklermodus zeigt <code>/waterfall</code> den Schwimmeingang samt Wald in jeder Welt. Schwimm durch den kleinen Wasserfall zurück und verwende dann <code>/testroom leave</code>, um zum Ausgangspunkt zurückzukehren.</p>
+      <p lang="en">Look closely at unusually wide waterfalls: behind some of them a little <b>cave</b> is hidden in the rock. Wade or swim through the falling water, and a treasure chest waits inside. From outside you never see it.</p>
+      <p lang="de">Schau bei ungewöhnlich breiten Wasserfällen genau hin: Hinter manchen ist eine kleine <b>Höhle</b> im Fels versteckt. Wate oder schwimm durch das fallende Wasser, und drinnen wartet eine Schatztruhe. Von außen siehst du sie nie.</p>
+      <p lang="en">In developer mode, <code>/waterfall</code> takes you to the next such waterfall, in the pool right in front of it.</p>
+      <p lang="de">Im Entwicklermodus bringt dich <code>/waterfall</code> zum nächsten solchen Wasserfall, ins Becken direkt davor.</p>
       <p lang="en">And in one room on the route waits a <b>horde</b>: a big pack of monsters that attack together (red dot).</p>
       <p lang="de">Und in einem Raum auf der Route wartet eine <b>Horde</b>: ein großes Rudel Monster, die zusammen angreifen (roter Punkt).</p>
       <p lang="en">Move the depth slider: deeper down, the ring gets smaller and the route shorter, until the core at depth 20, where the route walks all 9 of its rooms and ends at the last boss, Qualmos.</p>
@@ -327,8 +327,8 @@
       <li lang="de">Obere Stockwerke (Platten)</li>
       <li lang="en">Ramps and supports</li>
       <li lang="de">Rampen und Stützen</li>
-      <li lang="en">Pools and streams, then banks all around every water (no water in the air!); the water level with its shore, so you walk in and out, shallow along its banks and deep where it has water on all four sides, to swim in</li>
-      <li lang="de">Teiche und Bäche, dann Ufer rund um jedes Wasser (kein Wasser in der Luft!); das Wasser auf gleicher Höhe wie sein Ufer, damit du hinein- und hinausgehst, flach an seinen Ufern und tief, wo es auf allen vier Seiten Wasser hat, zum Schwimmen</li>
+      <li lang="en">Pools and streams, then banks all around every water (no water in the air!); the water level with its shore, so you walk in and out, shallow along its banks and deep where it has water on all four sides, to swim in; and now and then a hidden cave behind a tall waterfall</li>
+      <li lang="de">Teiche und Bäche, dann Ufer rund um jedes Wasser (kein Wasser in der Luft!); das Wasser auf gleicher Höhe wie sein Ufer, damit du hinein- und hinausgehst, flach an seinen Ufern und tief, wo es auf allen vier Seiten Wasser hat, zum Schwimmen; und ab und zu eine versteckte Höhle hinter einem hohen Wasserfall</li>
       <li lang="en">Every possible move: walk, drop, jump, stairs, bridge, ladder (a gorge's long bridge is laid down whole)</li>
       <li lang="de">Jede mögliche Bewegung: gehen, fallen, springen, Treppe, Brücke, Leiter (die lange Brücke einer Schlucht wird am Stück hingelegt)</li>
       <li lang="en">Routes between the portals, and to the horde and past it; then the spots kept free for the quests, where you can get to and back; then, in the dark forest, little scenes beside the way (an abandoned shed, a stone circle) that never block it</li>
@@ -474,8 +474,8 @@
       <p lang="de"><code>return null</code> heißt "dieser Versuch ist schiefgegangen". Die Schleife in <code>generate</code> probiert dann den nächsten Seed: <code>spec.seed + a * 7919</code>, gemischt durch <code>hash32</code>. (7919 ist einfach eine große Primzahl, damit die Seeds der Versuche weit auseinander liegen.)</p>
       <p lang="en">The <code>spec</code> is what the world decided for this cube: its faces, portals and kind. Retries change the dice, but <b>never</b> the spec, so the edges always keep matching.</p>
       <p lang="de">Die <code>spec</code> ist, was die Welt für diesen Würfel entschieden hat: seine Seiten, Portale und Art. Neue Versuche ändern die Würfel, aber <b>nie</b> die spec. Darum passen die Ränder immer.</p>
-      <p class="small muted" lang="en">It also builds the treasure sites and the horde's camp; the town and the guardian arenas have builders of their own.</p>
-      <p class="small muted" lang="de">Sie baut auch die Schatzplätze und das Lager der Horde; die Stadt und die Wächter-Arenen haben eigene Baumeister.</p>
+      <p class="small muted" lang="en">It also builds the treasure sites, the horde's camp and the caves behind waterfalls (<code>carveGrotto</code>, <code>finishGrotto</code>); the town and the guardian arenas have builders of their own.</p>
+      <p class="small muted" lang="de">Sie baut auch die Schatzplätze, das Lager der Horde und die Höhlen hinter Wasserfällen (<code>carveGrotto</code>, <code>finishGrotto</code>); die Stadt und die Wächter-Arenen haben eigene Baumeister.</p>
     </div>
   </div>
 </section>
