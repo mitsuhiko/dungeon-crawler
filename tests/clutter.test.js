@@ -17,13 +17,17 @@ function terrain(seed) {
     siteReservations: [], sitePlacements: [] };
 }
 
-test('checked-in metadata matches all 888 exported models, including the 240 clutter roots, the 429 theme roots, the chest, the town (its houses, trees, clutter and homes) and the 42 trial pieces', () => {
+test('checked-in metadata matches all 906 exported models, including the 240 clutter roots, the 429 theme roots, the chest, the town (its houses, trees, clutter, homes and wall) and the 42 trial pieces', () => {
   const { metadata, files } = propCatalog(assets);
   assert.deepEqual(PROP_METADATA, metadata);
   assert.deepEqual(PROP_FILES, files);
-  assert.equal(new Set(PROP_METADATA.map(p => p.name)).size, 888);
-  assert.equal(PROP_METADATA.filter(p => p.set === 'town').length, 43);
-  assert.equal(PROP_METADATA.filter(p => p.cube_crawler_town_clutter).length, 13);
+  assert.equal(new Set(PROP_METADATA.map(p => p.name)).size, 906);
+  assert.equal(PROP_METADATA.filter(p => p.set === 'town').length, 61);
+  assert.equal(PROP_METADATA.filter(p => p.cube_crawler_town_clutter).length, 23);
+  // the garlands' segments hang from their cord (attach 'line')
+  assert.deepEqual(PROP_METADATA.filter(p => p.set === 'town' && p.attach === 'line').map(p => p.name), ['town_garland_a', 'town_garland_b', 'town_garland_c']);
+  // the wall round the town (blender/town_walls.py)
+  assert.equal(PROP_METADATA.filter(p => p.cube_crawler_town_wall).length, 8);
   // the homes and their yards (blender/town_homes.py)
   assert.equal(PROP_METADATA.filter(p => 'cube_crawler_town_home' in p).length, 20);
   // the trials' parts (blender/trials.py): one library, never scattered
@@ -31,7 +35,7 @@ test('checked-in metadata matches all 888 exported models, including the 240 clu
   assert.equal(PROP_METADATA.filter(p => p.set === 'trial' && p.attach === 'trial').length, 42);
   // a set's files: one per library it is in (props, clutter, themes), each holding only that set
   assert.deepEqual(PROP_FILES.abyss, ['props/abyss.glb', 'clutter/abyss.glb', 'themes/abyss.glb']);
-  assert.deepEqual(PROP_FILES.town, ['town.glb', 'town_trees.glb', 'town_clutter.glb', 'town_homes.glb']);
+  assert.deepEqual(PROP_FILES.town, ['town.glb', 'town_trees.glb', 'town_clutter.glb', 'town_homes.glb', 'town_walls.glb']);
   for (const [set, list] of Object.entries(PROP_FILES)) for (const f of list) assert.ok(f.startsWith('town') || f.startsWith('items/') || f === 'trials.glb' || f.endsWith(`/${set}.glb`), f);
   assert.ok(PROP_METADATA.some(p => p.name === 'treasure_chest' && p.blocking && p.clips === 'Open,Close'));
   const clutter = PROP_METADATA.filter(p => p.cube_crawler_clutter);

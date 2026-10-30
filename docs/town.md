@@ -26,8 +26,10 @@ still to come.
   levels, cliffs, stairs, bridges, water): the lower town round the gate, the water across the
   whole town, the upper town half a cube over it on its cliff. The street crosses the water and
   climbs the cliff by a stair; a long span comes down over the lake; the river falls over the
-  cliff; a hill with a tent on its top, a hollow with a tent at its bottom, a forest round it, the
-  people's homes along every way ([world.md](world.md#the-town-worldtownjs-cubegentownjs-gamehandoverjs)).
+  cliff; a hill with a tent on its top, a hollow with a tent at its bottom, the people's homes
+  along every way, some of them on a terrace of their own; a wall round it all a few cells in from
+  its sides, towers on it, its gate over the street, and outside it the forest, deep and close
+  ([world.md](world.md#the-town-worldtownjs-cubegentownjs-gamehandoverjs)).
   Its stairs, bridges and span have the invisible side rails of a cube's (`cubegen/fences.js
   runRails`): walking never takes the hero off their sides, only the jump key does.
 - **Known from the start.** All the town's tiles count as visited when the world begins: on the

@@ -24,7 +24,13 @@
 //   with another tent at its bottom.
 // - The river: in from the back of the town across the upper town, over the cliff's edge in a fall
 //   half a cube high into the water; two cells wide, waded, bridged where a way crosses it.
-// - Trails up the hill and down into the hollow; a forest round the outer sides.
+// - Trails up the hill and down into the hollow.
+// - The wall (WALL): round the town a cell's width in from its outer sides, the forest outside it
+//   (deep and wild, the ground rolling under it), a gate in it where the street comes in, an arch
+//   where the river does; inside, woods here and there. Outside it nothing is walked to: the
+//   generator's checks leave it out (cubegen/town.js).
+// - The wild ground rolls (more where nothing stands near: knolls in the lower town, a level or
+//   three over it), flattening towards the seams.
 //
 // Seams: the cells either side of one (s - 1 and s) stand alike and level (the physics reads a cell
 // past a seam as the edge's, physics/collide.js cellAt): nothing steps, flows down or is built there.
@@ -48,6 +54,15 @@ export const INN_STAIR = { z: WATER_TO + QUAY - 1, foot: 4, top: 13 };
 // (where the street runs in the middle tiles: world/town.js STREET)
 const STREET_X = 8.5;
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+// The wall: the cells of the forest outside it on each outer side (the wall stands in the next row
+// in), how wide its gate is where the street comes in (cells, round the street)
+export const WALL = 3, WALL_GATE = 5;
+// where cell (x, z) of a town W x D cells lies: 0 inside the wall, 1 on it, 2 outside it
+export function wallSide(W, D, x, z) {
+  const a = WALL, bx = W - 1 - WALL, bz = D - 1 - WALL;
+  if (x < a || z < a || x > bx || z > bz) return 2;
+  return x === a || z === a || x === bx || z === bz ? 1 : 0;
+}
 
 // A kept shape: { box: [x0, z0, x1, z1], r }, { seg: [a, b], r }, or a disc { x, z, r }: how far
 // (x, z) lies outside it (negative: inside)
@@ -133,6 +148,10 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   // how far cell column (or row) v lies from the nearest seam (0: next to it); is it next to one
   const offSeam = (v, seams) => Math.min(Infinity, ...seams.map(s => v < s ? s - v - 1 : v - s));
   const strip = (x, z) => offSeam(x, seamX) === 0 || offSeam(z, seamZ) === 0;
+  // where a cell lies by the wall (wallSide: 0 inside, 1 on it, 2 outside); is continuous (x, z)
+  // inside it by at least m (from its inner face)
+  const side = (x, z) => wallSide(W, D, x, z);
+  const inWall = (x, z, m = 0) => x > WALL + 1 + m && z > WALL + 1 + m && x < W - WALL - 1 - m && z < D - WALL - 1 - m;
   const insideBox = (x, z, m) => fixed.some(b => x > b.x0 - m && x < b.x1 + m && z > b.z0 - m && z < b.z1 + m);
 
   // ---- the three bands: the lower town round the gate (its first rows), the water, the upper town
@@ -176,7 +195,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   for (const c of piers) platforms.set(c, lower);
   {
     // (where the lake is deepest, by its middle)
-    const xs = Array.from({ length: N - 6 }, (_, k) => 3 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - 7) * .3 - Math.abs(b - 7) * .3 + (R() - .5) * 2);
+    const xs = Array.from({ length: N - 5 - WALL }, (_, k) => WALL + 2 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - 7) * .3 - Math.abs(b - 7) * .3 + (R() - .5) * 2);
     for (const lx of xs) {
       const x = lx, top = edge[x], land = from - 1;
       if (edge[x + 1] !== top || edge[x - 1] < top || top - upZ < 6 || insideBox(x + .5, land + .5, .8) || insideBox(x + .5, top + .5, .8)) continue;
@@ -195,9 +214,12 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   for (let i = 0; i < across; i++) {
     if (i === mid) continue;
     const blocks = [];
-    for (let b = 1; b * 3 + 3 < N - 1; b++) {
-      const xs = [0, 1, 2].map(k => i * N + b * 3 + k);
-      if (xs.every(x => edge[x] - 1 >= upZ + 1 && !strip(x, edge[x] - 1) && ![-1, 0, 1].some(o => used.has(cell(x + o, edge[x] - 1))))) blocks.push(xs);
+    // (three cells wide, anywhere along the cliff, none overlapping another)
+    for (let x0 = i * N + 1; x0 + 3 < (i + 1) * N - 1; x0++) {
+      if (blocks.length && blocks.at(-1)[2] >= x0) continue;
+      const xs = [x0, x0 + 1, x0 + 2];
+      if (xs.every(x => edge[x] - 1 >= upZ + 1 && !strip(x, edge[x] - 1) && side(x, edge[x] - 1) === 0 && x > WALL + 1 && x < W - 2 - WALL
+        && ![-1, 0, 1].some(o => used.has(cell(x + o, edge[x] - 1))))) blocks.push(xs);
     }
     const take = blocks.filter(() => R() < .45);
     if (!take.length && blocks.length) take.push(blocks[Math.floor(R() * blocks.length)]);
@@ -210,11 +232,11 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   const hillI = R() < .5 ? 0 : right, hollowI = R() < .5 ? 0 : right;
   const inTile = (i, j, x, z) => [i * N + (i === right && i !== 0 ? N - x : x), j * N + z];
   const hill = (() => {
-    const [x, z] = inTile(hillI, back, 7 + jit(.8), 9 + jit(.8)), r0 = 2.6 + R() * .5;
+    const [x, z] = inTile(hillI, back, 7.6 + jit(.8), 7.4 + jit(.8)), r0 = 2.6 + R() * .5;
     return { tile: [hillI, back], x, z, top: upper + 4 + Math.floor(R() * 2), r0, r1: r0 + 5 };
   })();
   const hollow = (() => {
-    const [x, z] = inTile(hollowI, 0, 7.6 + jit(.7), 7.6 + jit(.7)), r0 = 2.8 + R() * .5;
+    const [x, z] = inTile(hollowI, 0, 8.4 + jit(.7), 8.4 + jit(.7)), r0 = 2.8 + R() * .5;
     return { tile: [hollowI, 0], x, z, bottom: lower - 3, r0, r1: r0 + 3 };
   })();
   const middle = [W / 2, D * .6];
@@ -261,6 +283,8 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   const shut = c => {
     const [x, z] = xz(c);
     if (((x < 1 || x >= W - 1) && base(x, z) === upper) || used.has(c) || tongue.has(c) || insideBox(x + .5, z + .5, 1.2)) return true;
+    // (in through the wall only from the back, between its towers: under an arch, straight on)
+    if (side(x, z) > 0 && !(z >= D - 1 - WALL && x >= WALL + 2 && x <= W - 3 - WALL)) return true;
     if (Math.hypot(x + .5 - hill.x, z + .5 - hill.z) < hill.r1 + .5 || Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z) < hollow.r1 + 1) return true;
     if (pieces.some(p => Math.hypot(x + .5 - p.x, z + .5 - p.z) < p.r1)) return true;
     return z < 3 && Math.abs(x + .5 - gate[0]) < 5;
@@ -272,6 +296,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   const enter = (n, c, p) => {
     if (shut(n) || along(c, n)) return Infinity;
     const [nx, nz] = xz(n), [cx] = xz(c);
+    if ((side(nx, nz) > 0 || side(...xz(c)) > 0) && n !== c - W) return Infinity;
     if (base(nx, nz) > base(...xz(c))) return Infinity;
     // (down the escarpment: from a lip straight over its edge, come to it straight)
     if (rim(n) && !(lip(n) && c === n + W && p === c + W)) return Infinity;
@@ -286,7 +311,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   {
     // (in from the back of the town on the other side of it from the lake: down its cliff in sight)
     const starts = [], side = x => x > W / 2 + 4;
-    for (let x = 2; x < W - 2; x++) if (!shut(cell(x, D - 1)) && offSeam(x, seamX) > 1) starts.push(cell(x, D - 1));
+    for (let x = WALL + 2; x < W - 2 - WALL; x++) if (!shut(cell(x, D - 1)) && offSeam(x, seamX) > 1) starts.push(cell(x, D - 1));
     const into = cheapest(W, D, starts.some(c => side(c % W)) ? starts.filter(c => side(c % W)) : starts, c => lakeSet.has(c),
       (n, c, p) => lakeSet.has(n) ? (lip(c) && n === c - W && p === c + W ? 1 : Infinity) : enter(n, c, p),
       c => { const [x, z] = xz(c); return Math.max(0, z - edge[x]); });
@@ -312,20 +337,49 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     }
   }
   // ---- the town round them
-  const layout = plan({ hill, hollow, lake, pieces, W, D, level, rows, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
+  const layout = plan({ hill, hollow, lake, pieces, W, D, level, rows, inWall, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
     avoid: structureCells.map(c => { const [x, z] = xz(c); return { x0: x, z0: z, x1: x + 1, z1: z + 1 }; }),
     water: c => water.has(c), wet: [...water.keys()] });
   const keep = layout.keep;
-  const kd = new Float64Array(W * D);
-  for (let c = 0; c < W * D; c++) { const [x, z] = xz(c); let d = Infinity; for (const k of keep) d = Math.min(d, keepDistance(k, x + .5, z + .5)); kd[c] = d; }
-  const kept = c => kd[c] < FLAT + .5;
+  // how far each cell lies from what is kept, and how far over its ground's level it is kept: a
+  // home's terrace (`lift`) where it is the nearest, its path's ramp (`ramp`: its lift at the door,
+  // none at the way) where that runs (the ramp's cells not pinned flat: cubegen/smooth.js slopes them)
+  // (and how far from what keeps the ground level: a home only its own footing, its yard rolls)
+  const kd = new Float64Array(W * D), kg = new Float64Array(W * D), lift = new Int8Array(W * D), ramped = new Uint8Array(W * D);
+  for (let c = 0; c < W * D; c++) {
+    const [x, z] = xz(c), px = x + .5, pz = z + .5;
+    let d = Infinity, near = null, ramp = null, g = Infinity;
+    for (const k of keep) {
+      const e = keepDistance(k, px, pz);
+      g = Math.min(g, 'lift' in k ? e + k.r - .25 : e);
+      if (e < d) { d = e; near = k; }
+      if (k.ramp && e < FLAT + .5 && (!ramp || e < ramp.e)) ramp = { k, e };
+    }
+    kd[c] = d; kg[c] = g;
+    // (the ramp where it is about as near as what is nearest: not under the home it leads up to)
+    if (ramp && ramp.e <= d + .3) {
+      const [[ax, az], [bx, bz]] = ramp.k.seg, dx = bx - ax, dz = bz - az;
+      const t = clamp(((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz || 1), 0, 1);
+      lift[c] = Math.round(ramp.k.ramp * (1 - t)); ramped[c] = 1;
+    } else if (near?.lift && d < FLAT + .5) lift[c] = near.lift;
+    if (strip(x, z)) lift[c] = 0;   // (the seams stay as they are on both sides)
+  }
+  const kept = c => kg[c] < FLAT + .5;
 
   // ---- the ground: each cell's level. The two towns; the wild ground rolling a level or two (none
   // where it is kept, coming in a level a cell); the hill, the hollow, the set pieces' knolls
   const L = new Int16Array(W * D);
   for (let c = 0; c < W * D; c++) {
-    const [x, z] = xz(c), b = base(x, z), w = clamp((kd[c] - 1.5) / 3, 0, 1);
-    L[c] = b + Math.round(clamp(Math.round((roll(x * .11 + 5, z * .11 + 5) - .5) * 6), -1, 2) * w);
+    const [x, z] = xz(c), b = base(x, z);
+    // (knolls where nothing stands near, higher outside the wall, lower towards the seams and along
+    // the wall itself)
+    const s = side(x, z), fade = clamp((Math.min(offSeam(x, seamX), offSeam(z, seamZ)) - 1) / 3, 0, 1);
+    const hills = Math.round((roll(x * .09 + 5, z * .09 + 5) - .5) * 11);
+    L[c] = b + Math.round(clamp(hills, -1, 1 + 2 * fade) * clamp((kg[c] - 1.4) / 1.8, 0, 1) * (s === 1 ? .5 : 1));
+    // (outside the wall the forest's floor stands high, over a cliff along the road: it is not
+    // walked into from the road)
+    const road = z < WALL && Math.abs(x + .5 - gate[0]) < 1.6;
+    if (s === 2 && !road) L[c] = b + 3 + clamp(hills + 1, 0, 3);
     const dh = Math.hypot(x + .5 - hill.x, z + .5 - hill.z), dl = Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z);
     if (dh < hill.r1 && b === upper) L[c] = Math.max(L[c], hill.top - Math.max(0, Math.ceil(dh - hill.r0)));
     if (dl < hollow.r1 && b === lower) L[c] = Math.min(L[c], hollow.bottom + Math.max(0, Math.ceil(dl - hollow.r0)));
@@ -333,7 +387,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
       const d = Math.hypot(x + .5 - p.x, z + .5 - p.z);
       if (d < p.r1) L[c] = clamp(L[c], p.level - Math.max(0, Math.ceil(d - p.r0)), p.level + Math.max(0, Math.ceil(d - p.r0)));
     }
-    if (kept(c) || used.has(c) || tongue.has(c)) L[c] = b;
+    if ((kept(c) && !(s === 2 && !road)) || used.has(c) || tongue.has(c)) L[c] = b + (kept(c) ? lift[c] : 0);
     if (platforms.has(c)) L[c] = platforms.get(c);
   }
 
@@ -382,7 +436,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   const trail = (f, name) => {
     const start = cell(Math.floor(f.x), Math.floor(f.z));
     const way = cheapest(W, D, [start], c => kept(c), (n, c) => {
-      if (lakeSet.has(n) || used.has(n)) return Infinity;
+      if (lakeSet.has(n) || used.has(n) || side(n % W, Math.floor(n / W)) > 0) return Infinity;
       // (round the set pieces' knolls: what stands on them wants their top)
       if (pieces.some(p => Math.hypot(n % W + .5 - p.x, Math.floor(n / W) + .5 - p.z) < p.r0 + 1.2)) return Infinity;
       const dh = Math.abs(L[n] - L[c]);
@@ -421,9 +475,14 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     }
     return false;
   };
+  // how thick the forest is at (x, z): outside the wall all of it (but along the road and the
+  // river), none on the wall, inside a fringe along it and woods here and there
   function forest(x, z) {
-    const front = z + Math.max(0, 7 - Math.abs(x - gate[0])) * 3;
-    const e = Math.min(x, W - x, front, D - z), depth = 2.2 + 4 * belt(x * .12, z * .12);
+    const s = side(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1));
+    if (s === 1) return 0;
+    if (s === 2) return smooth((keepDist(x, z) - .9) / 1.2) * smooth((waterDist(x, z) - .5) / .8);
+    const front = z - WALL - 1 + Math.max(0, 7 - Math.abs(x - gate[0])) * 3;
+    const e = Math.min(x - WALL - 1, W - WALL - 1 - x, front, D - WALL - 1 - z), depth = .4 + 2.2 * belt(x * .12, z * .12);
     let f = Math.max(1 - smooth((e - depth) / 1.8), smooth((woods(x * .1 + 9, z * .1 + 9) - .6) / .1));
     f *= smooth((keepDist(x, z) - 1.2) / 2) * smooth((trailDist(x, z) - 1) / 1) * smooth((waterDist(x, z) - .7) / 1);
     const dh = Math.hypot(x - hill.x, z - hill.z), dl = Math.hypot(x - hollow.x, z - hollow.z);
@@ -433,13 +492,38 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     return f;
   }
 
+  // ---- the wall's towers: at its corners and along it every 7 to 10 cells, off the seams (by two
+  // cells), the gate, the water and the cliff (where the ground beside it along the wall steps more
+  // than two levels)
+  const gateAt = (x, z) => z === WALL && Math.abs(x + .5 - gate[0]) < WALL_GATE / 2;
+  const towers = new Set([cell(WALL, WALL), cell(W - 1 - WALL, WALL), cell(WALL, D - 1 - WALL), cell(W - 1 - WALL, D - 1 - WALL)]);
+  {
+    const lines = [[W - 2 * WALL, k => [WALL + k, WALL]], [W - 2 * WALL, k => [WALL + k, D - 1 - WALL]],
+      [D - 2 * WALL, k => [WALL, WALL + k]], [D - 2 * WALL, k => [W - 1 - WALL, WALL + k]]];
+    for (const [n, at] of lines) {
+      const alongX = at(1)[0] !== at(0)[0], next = (x, z, o) => alongX ? cell(x + o, z) : cell(x, z + o);
+      const ok = (x, z) => !(z === WALL && Math.abs(x + .5 - gate[0]) < WALL_GATE / 2 + 2)
+        && offSeam(alongX ? x : z, alongX ? seamX : seamZ) >= 2
+        && [-2, -1, 0, 1, 2].every(o => !water.has(next(x, z, o)))
+        && [-1, 1].every(o => Math.abs(L[next(x, z, o)] - L[cell(x, z)]) <= 2);
+      let last = 0, gap = 7 + Math.floor(R() * 4);
+      for (let k = 1; k < n - 4; k++) {
+        const [x, z] = at(k);
+        if (k - last >= gap && ok(x, z)) { towers.add(cell(x, z)); last = k; gap = 7 + Math.floor(R() * 4); }
+      }
+    }
+  }
+
   return {
     W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
+    // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
+    // gatehouse's middle (where the street comes in), whether (x, z) lies inside it by m
+    wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall },
     // cell (x, z)'s level, its water ({ surf, bed, lake }, or null), whether its ground stays level
     // (what is kept, the cells beside a seam: their corners pinned flat, cubegen/smooth.js)
     level: (x, z) => L[clamp(z, 0, D - 1) * W + clamp(x, 0, W - 1)],
     water: (x, z) => (x < 0 || z < 0 || x >= W || z >= D ? null : water.get(z * W + x) ?? null),
-    flat: (x, z) => kept(z * W + x) || strip(x, z) || built.has(z * W + x) || tongue.has(z * W + x),
+    flat: (x, z) => (kept(z * W + x) && !ramped[z * W + x] && (side(x, z) < 2 || (z < WALL && Math.abs(x + .5 - gate[0]) < 1.6))) || strip(x, z) || built.has(z * W + x) || tongue.has(z * W + x),
     seamCell: (x, z) => strip(x, z),
     keepDist, trailDist, waterDist, forest, structureAt,
     // which trees grow where (0..1: firs low, broadleaves high)

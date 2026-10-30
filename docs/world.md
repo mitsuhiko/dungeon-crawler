@@ -98,15 +98,18 @@ they meet there; rendered as grid-aligned ribbons rather than whole-cell paving.
   innkeeper on the inn's porch, a groom in front of the horses, the smith at the anvil, the pet
   keeper by the rabbit pen, and at the market the alchemist and the enchanter in front of the
   potion and herb tents. Each is a body-sized circle collider, placed before the clutter.
-- **The grove**: large oak/elm/birch trees from `assets/town_trees.glb` along the town's outer
-  sides only (not the seams), bushes between them; 6–7 units tall, higher than the inn; their
+- **The grove**: large oak/elm/birch trees from `assets/town_trees.glb` in the forest outside the
+  wall and the woods inside it (not by the seams inside it), bushes between them; 6–7 units tall,
+  higher than the inn; their
   crowns may overhang, but only the trunks block movement. The cutaway includes building and
   canopy occlusion volumes, independently of body colliders, so foreground roofs and foliage
   reveal the player as the camera turns.
 - **Dressing**: each tile's set pieces (signposts, street lamps, wells, benches, the notice board,
   flower pots, hay bales and hand carts, barrels/crates/sacks by each trade, the blacksmith's
   planks and coal, the lake's reeds/stones/lily pads, the traders' campfire with log seats and a
-  woodpile, the windmill) and seeded meadow ground cover, from `props/`/`clutter/` models and the
+  woodpile, the windmill), garlands over the streets from pole to pole, hedges and dry stone walls
+  a cell back from the ways (more of them in the lower town), a lamp every few steps along every
+  way, and seeded meadow ground cover, from `props/`/`clutter/` models and the
   town's own (`assets/town_clutter.glb`, docs/assets/town.md), `put`/`group`/`scatter`. A set
   piece tries its candidates in order (`near`: the spots round a place, nearest first) and is
   skipped if none fits. Every prop avoids the oriented building footprints, trunks, other
@@ -137,11 +140,25 @@ from it (`tileGround` in `world/town.js`).
   falls over the cliff's edge into the water (where the cliff runs straight); waded, bridged where
   a way crosses it.
 - **The hill** in a back corner (a tent on its top, the corner's set piece on a knoll on its
-  shoulder), **the hollow** in a front corner (a tent at its bottom), trails up and down to them, a
-  forest round the outer sides and woods here and there.
+  shoulder), **the hollow** in a front corner (a tent at its bottom), trails up and down to them,
+  woods here and there.
+- **The wall** (`WALL`, `wallSide`): round the whole town on the fourth row of cells in from its
+  outer sides (`assets/town_walls.glb`, blender/town_walls.py): a stretch on each of its cells
+  (ivy on some, a lantern on its inner face on every fourth), an arch with a grate where it crosses
+  the water (the lake's bay at the sides, the river at the back), a round tower at each corner and
+  every 7 to 10 cells along it (off the seams, the water and the cliff), the gatehouse over the
+  street where it comes in from the gate (`WALL_GATE`). Each piece stands on a footing sunk into
+  the ground under it, so it follows the ground's levels, the cliff too; it stands in the way as
+  its box and hides the hero behind it (the cutaway). It runs on across the seams (the one thing
+  that does). Outside it the forest stands close and tall on ground three to six levels over the
+  town's, a cliff down to the road from the gate: nobody walks there, and the generator's checks
+  leave it out (its seams' cells, `map.town.wallSide`). Lanes run along it inside.
 - **What stands level**: the buildings, streets, lanes and paths, the people, the crash, the
-  spawn and the gate keep the level they stand on; the wild ground round them rolls a level or two.
-  The people's homes (`HOMES`, `plotTown`) are laid out round the land's big things along every way.
+  spawn and the gate keep the level they stand on; the wild ground round them rolls in knolls of
+  a level to three (less towards the seams). The people's homes (`HOMES`, `plotTown`) are laid out
+  round the land's big things along every way; a home only keeps its own footing level (its yard
+  rolls), and now and then (more often in the lower town) stands on a terrace a level to three
+  over its way, its path a ramp up to its door.
 - **Seams**: the cells either side of one stand alike and level, dry or as deep in water, and
   nothing stands near one.
 
@@ -155,7 +172,9 @@ portal's spot and the beginning's things; the way between two cell centres must 
 a little room to spare, so a crate cannot pinch a route shut.
 
 **At night** (the world's days and nights below) the town lights up: the street lamps (placed
-with `night`) and the houses' windows (their panes' own material) come on through the dusk, each
+with `night`), the garlands' bulbs (every other one with a light of its own), the wall's lanterns,
+its towers' braziers and the gatehouse's lanterns, and the houses' windows (their panes' own
+material) come on through the dusk, each
 house and lamp at its own moment, and go out again through the dawn; the windows' candlelight
 glimmers a little (`render/night.js`, docs/lighting.md). Fireflies drift over the meadow, a few of
 them bright enough to light the grass (the meadow's `nightMotes`).

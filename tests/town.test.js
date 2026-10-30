@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { assets } from './paths.js';
 import { readGlb, rootBounds, roots } from '../tools/glb.mjs';
-import { N, LH, CHAR_R, EDGE_CORNERS, DIRS } from '../src/core/constants.js';
+import { N, LH, CHAR_R, CHAR_H, EDGE_CORNERS, DIRS } from '../src/core/constants.js';
 import { containsXZ, viewBlockedAt } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { step, faceKey } from '../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, HOMES, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
   PORTAL_TILE, START_TILE, enemyFreeAt, townOf, townLand, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
-import { INN_STAIR, UPPER } from '../src/world/townland.js';
+import { INN_STAIR, UPPER, WALL } from '../src/world/townland.js';
 import { floorY, runY } from '../src/core/surfaces.js';
 import { ITEMS, outfitOf } from '../src/core/items.js';
 import { state } from './fixtures.js';
@@ -37,6 +37,7 @@ const groundOf = (m, x, z) => {
 // is the ground of map m level at (x, z), at height y (its own level, units)?
 const level = (m, x, z, y = m.town.level * LH) => m.cols[Math.floor(z) * N + Math.floor(x)][0].cs.every(h => Math.abs(h - y) < 1e-9);
 const isHome = name => name in HOMES;
+const isWall = name => name.startsWith('town_wall') || name === 'town_gatehouse_a';
 // the town's tiles of a world: [{ k, i, j, m }]
 const tilesOf = w => townOf(w.seed).keys.map(k => ({ k, ...townOf(w.seed).tiles.get(k), m: w.cube(k).map }));
 
@@ -177,11 +178,13 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
         assert.ok([...f.profile].every(h => h === TOWN_LEVEL));
         assert.equal(f.portal, null); assert.equal(f.river, null); assert.equal(f.spout, null);
         // the cells along it: reached, and nothing stands within reach of a body crossing (the
-        // physics knows only one tile at a time, docs/town.md)
+        // physics knows only one tile at a time, docs/town.md); but on the wall and outside it, where
+        // the wall runs on across the seam and nobody walks (world/townland.js)
         for (let t = 0; t < N; t++) {
           const along = [d < 2 ? 0 : t + .5, d < 2 ? t + .5 : 0];
           const at = s => [d === 0 ? N - s : d === 1 ? s : along[0], d === 2 ? N - s : d === 3 ? s : along[1]];
           const [ex, ez] = at(.5), c = Math.floor(ez) * N + Math.floor(ex);
+          if (m.town.wallSide[c]) continue;
           assert.equal(m.safe[c], 1, `${seed} ${k} side ${d}: ${ex}, ${ez} reached`);
           for (const s of [0, .25, .5]) {
             const [x, z] = at(s);
@@ -349,7 +352,9 @@ test('villagers stand at their trades, as colliders, dressed and within reach', 
 
 function checkClutter(m, min) {
   const plan = m.town, water = new Set(plan.water);
-  const clutter = plan.placements.filter(p => !p.name.startsWith('town_tree_') && ![...BUILDINGS, ...MERCHANTS].some(b => b.name === p.name) && !isHome(p.name));
+  // (the wall and the garlands: checked on their own, below)
+  const clutter = plan.placements.filter(p => !p.name.startsWith('town_tree_') && ![...BUILDINGS, ...MERCHANTS].some(b => b.name === p.name) && !isHome(p.name)
+    && !isWall(p.name) && propMetadata.get(p.name)?.attach !== 'line');
   assert.ok(clutter.length >= min, `only ${clutter.length} clutter props`);
   // Oriented footprints: the axis-aligned collider envelopes have empty corners.
   const footprints = [...[...BUILDINGS, ...MERCHANTS].flatMap(b => plan.placements.filter(p => p.name === b.name)
@@ -378,7 +383,8 @@ function checkClutter(m, min) {
     if (meta.blocking) {
       const bodies = m.staticBlockers[c].filter(b => b.name === p.name && (b.shape === 'box' ? containsXZ(b, p.x, p.z) : b.x === p.x && b.z === p.z));
       assert.ok(bodies.length, p.name + ' needs a collider');
-      // and off the seams by SEAM_CLEAR
+      // and off the seams by SEAM_CLEAR (but outside the wall, where nobody walks)
+      if (m.town.wallSide[c] === 2) continue;
       for (const b of bodies) {
         const [x0, z0, x1, z1] = b.shape === 'box' ? [b.x0, b.z0, b.x1, b.z1] : [b.x - b.r, b.z - b.r, b.x + b.r, b.z + b.r];
         const gap = Math.min(...[0, 1, 2, 3].filter(d => m.seams[d]).map(d => [N - x1, x0, N - z1, z0][d]));
@@ -453,6 +459,78 @@ test('the town\'s stairs, bridges and span hold a walking hero on them: their si
     }
     assert.ok(runs > 0);
   }
+});
+
+test('a wall rings the town a few cells in from its sides, the forest outside it; its gate lets the street in', () => {
+  for (let seed = 0; seed < 8; seed++) {
+    const w = new World(seed), t = townOf(seed), land = townLand(seed), { W, D } = land;
+    let gatehouses = 0, towers = 0;
+    for (const { k, i, j, m } of tilesOf(w)) {
+      const toCube = (gx, gz) => rotateTownPoint(gx - i * N + .5, gz - j * N + .5, m.town.yaw).map(Math.floor);
+      const walls = m.town.placements.filter(p => isWall(p.name) && p.name !== 'town_gatehouse_a');
+      for (let lz = 0; lz < N; lz++) for (let lx = 0; lx < N; lx++) {
+        const gx = i * N + lx, gz = j * N + lz, [cx, cz] = toCube(gx, gz), c = cz * N + cx, side = land.wall.side(gx, gz);
+        assert.equal(m.town.wallSide[c], side);
+        assert.equal(side, gx < WALL || gz < WALL || gx >= W - WALL || gz >= D - WALL ? 2 : gx === WALL || gz === WALL || gx === W - 1 - WALL || gz === D - 1 - WALL ? 1 : 0);
+        const here = walls.filter(p => Math.floor(p.x) === cx && Math.floor(p.z) === cz);
+        if (side !== 1 || land.wall.gateAt(gx, gz)) { assert.equal(here.length, 0); continue; }
+        // a piece of it on each of its cells: an arch over the water, a tower where the land has one
+        assert.equal(here.length, 1, `${seed} ${k}: the wall at ${gx}, ${gz}`);
+        const [p] = here, f = m.cols[c][0], meta = propMetadata.get(p.name);
+        if (land.wall.towers.has(gz * W + gx)) { assert.ok(p.name.startsWith('town_wall_tower_')); towers++; }
+        else if (f.fluid) { assert.ok(p.name.startsWith('town_wall_arch_')); assert.ok(Math.abs(p.y - (f.surf * LH - meta.foot)) < 1e-9); }
+        else { assert.ok(/^town_wall_(a|b|lantern_a)$/.test(p.name), p.name); assert.ok(Math.abs(p.y - (Math.min(...f.cs) - meta.foot + .02)) < 1e-9); }
+        // (it stands in the way, its footing in the ground, lit at night where it has a lantern)
+        const g = f.fluid ? f.surf * LH : groundOf(m, p.x, p.z);
+        assert.ok(p.y < g - .5 && p.y + meta.height > g + 1.8, `${p.name} at ${p.y} over ${g}`);
+        assert.ok(m.staticBlockers[c].some(b => b.name === p.name && containsXZ(b, p.x, p.z)), `${p.name} stands in the way`);
+        assert.equal(!!p.night, !!meta.light);
+        assert.ok(quarterTurn(p.yaw));
+      }
+      // nobody walks outside it but on the road to the gate
+      for (let c = 0; c < N * N; c++) if (m.town.wallSide[c] === 2 && m.safe[c]) {
+        assert.equal(k, t.gate, `${seed} ${k}: outside the wall at ${c % N}, ${Math.floor(c / N)} reached`);
+        const [lx] = rotateTownPoint(c % N + .5, Math.floor(c / N) + .5, -m.town.yaw);
+        assert.ok(Math.abs(lx - STREET) < 2.6, `${seed} ${k}: off the road outside the gate`);
+      }
+      // the forest outside it: close
+      const out = [...m.town.wallSide].filter((s, c) => s === 2 && !m.cols[c][0].fluid).length, trees = m.town.placements.filter(p => /tree/.test(p.name) && m.town.wallSide[Math.floor(p.z) * N + Math.floor(p.x)] === 2).length;
+      if (out > 30) assert.ok(trees >= out / 4, `${seed} ${k}: ${trees} trees on ${out} cells outside the wall`);
+      gatehouses += m.town.placements.filter(p => p.name === 'town_gatehouse_a').length;
+      if (k === t.gate) {
+        const g = m.town.placements.find(p => p.name === 'town_gatehouse_a'), [gx, gz] = rotateTownPoint(STREET, WALL + .5, m.town.yaw);
+        assert.ok(Math.hypot(g.x - gx, g.z - gz) < 1e-6, 'the gatehouse over the street');
+      }
+    }
+    assert.equal(gatehouses, 1);
+    assert.ok(towers >= 8, `${towers} towers`);
+    for (const [x, z] of [[WALL, WALL], [W - 1 - WALL, WALL], [WALL, D - 1 - WALL], [W - 1 - WALL, D - 1 - WALL]]) assert.ok(land.wall.towers.has(z * W + x), 'a tower at each corner');
+  }
+});
+
+test('garlands hang from pole to pole over the streets, a head\'s room over the ground, lit at night', () => {
+  let strings = 0;
+  for (let seed = 0; seed < 4; seed++) {
+    const w = new World(seed);
+    for (const { m } of tilesOf(w)) {
+      const segments = m.town.placements.filter(p => propMetadata.get(p.name)?.attach === 'line');
+      for (const p of segments) {
+        assert.ok(p.name.startsWith('town_garland_') && p.matrix?.length === 16 && p.night);
+        // (its cord from its start along the matrix's X: over the ground all along)
+        const [dx, dy, dz] = p.matrix, [ax, ay, az] = p.matrix.slice(12, 15);
+        for (const t of [0, .5, 1]) {
+          const x = ax + dx * t, z = az + dz * t;
+          assert.ok(x > 0 && z > 0 && x < N && z < N);
+          assert.ok(ay + dy * t - .2 - groundOf(m, x, z) >= CHAR_H + .65, 'a head\'s room under it');
+        }
+      }
+      strings += new Set(segments.map(p => `${p.x},${p.z}`)).size;
+      // (half of their bulbs give light)
+      if (segments.length) assert.ok(segments.some(p => p.unlit) && segments.some(p => !p.unlit));
+      assert.ok(!segments.length || m.town.placements.some(p => p.name.startsWith('town_garland_pole_')));
+    }
+  }
+  assert.ok(strings >= 20, `${strings} garlands`);
 });
 
 test('path ribbons are grid-aligned rectangles, stay inside the cube, and never pave over the water', () => {

@@ -10,7 +10,7 @@ import { readGlb, rootBounds, roots, BOUNDS } from './glb.mjs';
 // from its props in this order (render/propplace.js)
 export function propLibraries(directory) {
   const sets = dir => readdirSync(resolve(directory, dir)).filter(f => f.endsWith('.glb')).sort().map(f => `${dir}/${f}`);
-  return [...sets('props'), ...sets('clutter'), ...sets('themes'), 'items/treasure_chest.glb', 'town.glb', 'town_trees.glb', 'town_clutter.glb', 'town_homes.glb', 'trials.glb'];
+  return [...sets('props'), ...sets('clutter'), ...sets('themes'), 'items/treasure_chest.glb', 'town.glb', 'town_trees.glb', 'town_clutter.glb', 'town_homes.glb', 'town_walls.glb', 'trials.glb'];
 }
 
 // { metadata: [{ name, set, base, ...extras, height, minY, maxY, bounds }], files: { set: [file] } }

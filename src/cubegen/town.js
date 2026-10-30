@@ -43,8 +43,9 @@ export function generateClearing(spec) {
   // (world/townland.js: over the seams, up its slopes and stairs, over its bridges and the span),
   // so here a tile's frontages, gate, spawn and the rest must be reached from where the town goes on
   // into it (or from the spawn).
+  // (but where the seam runs on outside the town's wall: nobody walks there, world/townland.js)
   const seams = t.seams || [false, false, false, false], edge = [];
-  for (let d = 0; d < 4; d++) if (seams[d]) for (let i = 0; i < N; i++) edge.push(edgeCell(d, i, 0));
+  for (let d = 0; d < 4; d++) if (seams[d]) for (let i = 0; i < N; i++) if (!plan.wallSide[edgeCell(d, i, 0)]) edge.push(edgeCell(d, i, 0));
   // (where it goes on through deep water, it is swum: begun from where it is walked)
   const sources = [...edge, ...plan.spawn ? [plan.spawn[1] * N + plan.spawn[0]] : []], start = sources.find(c => clear(floors[c])) ?? portals[0]?.floor.c;
   if (start === undefined) throw new Error('A town tile with no way in');
@@ -93,7 +94,7 @@ export function generateClearing(spec) {
   const { fences, fenceList } = runRails(ctx.runs);
   ctx.stats.layers = 1; ctx.stats.mode = 'town ' + plan.tile.name; ctx.stats.fluids = plan.water.length ? ['town water'] : [];
   const clearing = { placements: plan.placements, frontages: plan.frontages, doors: plan.doors, water: plan.water, yaw: plan.yaw, paths: plan.paths,
-    tile: plan.tile, level: plan.level, ...(portal ? { portal } : {}) };
+    tile: plan.tile, level: plan.level, wallSide: plan.wallSide, ...(portal ? { portal } : {}) };
   return { seed: spec.seed, attempts: 1, K: 1, B: [0], cols: ctx.cols, floors,
     pieces: ctx.pieces, runs: ctx.runs, falls: plan.falls.map(f => ({ ...f, type: WATER, layer: 0 })), ladders: [],
     fences, fenceList, stats: ctx.stats, moves, portals, exit: spec.exit,

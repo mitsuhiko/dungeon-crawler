@@ -287,7 +287,8 @@ function addLandmarks(g) {
     if (!landmarkGeometry.has(L.name)) landmarkGeometry.set(L.name, batch.addGeometry(propBatchGeometry(p)));
     const id = batch.addInstance(landmarkGeometry.get(L.name));
     batch.setLamp(id, glowSeed(L), !!L.night);
-    g.instances.push({ batch, id, local: propMatrix(L), at: null });
+    // (a garland's segment: its own matrix, sheared along its sag, world/town.js)
+    g.instances.push({ batch, id, local: L.matrix ? new THREE.Matrix4().fromArray(L.matrix) : propMatrix(L), at: null });
   }
 }
 

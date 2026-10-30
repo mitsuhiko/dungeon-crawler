@@ -12,7 +12,7 @@ import { propMetadata, CLUTTER } from '../core/propcatalog.js';
 import { floorY } from '../core/surfaces.js';
 import { containsXZ, indexBlockers } from '../core/blockers.js';
 import { key, step } from './coords.js';
-import { makeLand, INN_STAIR } from './townland.js';
+import { makeLand, INN_STAIR, WALL } from './townland.js';
 import { createContext } from '../cubegen/context.js';
 import { smooth } from '../cubegen/smooth.js';
 import { shapeStructures } from '../cubegen/shape.js';
@@ -123,8 +123,10 @@ export const BUILDINGS = [
 export const MERCHANTS = [
   { name: 'town_merchant_a', tile: [1, 0], x: 4.0, z: 11.2, yaw: Math.PI / 2, bounds: [-1.551, -1.276, 1.786, 1.628], height: 2.630 },
   { name: 'town_merchant_b', tile: [1, 0], x: 12.0, z: 8.0, yaw: -Math.PI / 2, bounds: [-1.701, -1.276, 1.612, 1.644], height: 2.697 },
-  { name: 'town_merchant_c', tile: [1, 0], x: 4.35, z: 3.8, yaw: Math.PI / 2, bounds: [-1.671, -1.276, 1.801, 1.637], height: 2.757 },
+  { name: 'town_merchant_c', tile: [1, 0], x: 4.35, z: 6.2, yaw: Math.PI / 2, bounds: [-1.671, -1.276, 1.801, 1.637], height: 2.757 },
 ];
+// how far a home's terrace reaches round it (world/townland.js: kept at its level)
+const TERRACE = .55;
 // how far in front of a door (or a frontage) its doorstep is
 export const DOORSTEP = .75;
 // Villagers at their trades (render/villagers.js): next to a building (`at`), standing at
@@ -466,9 +468,12 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
     return Math.hypot(x - Math.max(cx, Math.min(cx + 1, x)), z - Math.max(cz, Math.min(cz + 1, z))) < r;
   });
   // (x, z) in the cube; lx, lz the same, town-local (for the seams and the land)
+  // (outside the wall nobody walks but on the road: what stands there may stand by a seam)
+  const outside = (lx, lz) => !!land && land.wall.side(...G(lx, lz).map(Math.floor)) === 2;
   const fits = (x, z, r, kind, { water = false, shore = false, trail = true } = {}, [lx, lz] = rotateTownPoint(x, z, -yaw)) => {
     if (x - r < .05 || z - r < .05 || x + r > N - .05 || z + r > N - .05) return false;
-    if (kind === 'solid' && seamGap(lx, lz) < r + SEAM_CLEAR) return false;
+    const far = outside(lx, lz);
+    if (kind === 'solid' && !far && seamGap(lx, lz) < r + SEAM_CLEAR) return false;
     if (water ? !wetSet.has(Math.floor(z) * N + Math.floor(x)) : wet(x, z, shore ? .05 : kind === 'cover' ? r * .5 : r)) return false;
     for (const f of footprints) {
       if (boxDistance(f.box, x, z) > r + .01) continue;
@@ -493,10 +498,11 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
   // Places at the first candidate (town-local coordinates) that fits, or nowhere. On the ground
   // there: lying things along its slope, standing ones upright, sunk to its lowest under them; on
   // uneven ground (more than `uneven`, units) not at all. Anything with a light is lit at night.
-  const put = (name, candidates, { yaw: localYaw, s = .9 + R() * .2, water = false, world = false, night = false, shore = false, uneven, trail = true } = {}) => {
+  const put = (name, candidates, { yaw: localYaw, s = .9 + R() * .2, water = false, world = false, night = false, shore = false, uneven, trail = true, radius } = {}) => {
     const m = propMetadata.get(name);
     if (!m) throw new Error('Unknown clutter prop ' + name);
-    const kind = clutterKind(m), r = m.radius * s;
+    // (radius: how much room it keeps, if not its own: the deep wood's trees stand close)
+    const kind = clutterKind(m), r = (radius ?? m.radius) * s;
     const most = uneven ?? (kind === 'cover' ? Infinity : kind === 'solid' ? (r > 1 ? UNEVEN.big : UNEVEN.solid) : UNEVEN.prop);
     const turn = localYaw ?? R() * Math.PI * 2;
     for (const [lx, lz] of candidates) {
@@ -592,11 +598,12 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
   };
   // A tree at town-local (lx, lz): one of the grove's big ones (TREES: a trunk that stands in the
   // way, its crown hides what is under it), or any tree of the catalog. false: it does not fit
-  const tree = (name, lx, lz, s = .94 + R() * .08) => {
+  // (close: as close to the next as their trunks let them, the deep wood's)
+  const tree = (name, lx, lz, s = .94 + R() * .08, close = false) => {
     const t = TREES.find(t => t.name === name);
-    if (!t) return !!put(name, [[lx, lz]], { s, uneven: UNEVEN.tree });
-    const [x, z] = rotateTownPoint(lx, lz, yaw), r = t.trunk * s + .25;
-    if (seamGap(lx, lz) < t.trunk * s + SEAM_CLEAR || !fits(x, z, r, 'solid', {}, [lx, lz])) return false;
+    if (!t) return !!put(name, [[lx, lz]], { s, uneven: UNEVEN.tree, ...(close ? { radius: .3 } : {}) });
+    const [x, z] = rotateTownPoint(lx, lz, yaw), r = t.trunk * s + (close ? .08 : .25);
+    if ((seamGap(lx, lz) < t.trunk * s + SEAM_CLEAR && !outside(lx, lz)) || !fits(x, z, r, 'solid', {}, [lx, lz])) return false;
     const [lo, hi] = under(x, z, t.trunk * s);
     if (hi - lo > UNEVEN.tree) return false;
     const gy = lo - .02, p = add(t.name, lx, lz, R() * Math.PI * 2, s);
@@ -611,7 +618,7 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
   };
   // the land's things in this tile, town-local (null: elsewhere)
   const here = f => f && f.tile?.[0] === tile[0] && f.tile?.[1] === tile[1] ? f : null;
-  return { plan, add, path, tree, put, piece, group, shore, R, land, G, L, here, groundAt, under, seamGap, tile };
+  return { plan, add, path, tree, put, piece, group, shore, R, land, G, L, here, groundAt, under, seamGap, tile, collide, footprints, occluders, outside };
 }
 
 // a path from the corner points `via` (town-local) to frontage i
@@ -690,14 +697,32 @@ function groundCover({ put, land, G, R }, scale = 1) {
 const FIRS = ['darkforest_dark_fir_tree_a', 'darkforest_dark_fir_tree_b'];
 const BROADLEAVES = TREES.map(t => t.name), SMALL = ['meadow_tree_round_a', 'meadow_tree_round_b', 'meadow_tree_tall_a', 'meadow_tree_tall_b'];
 const scaleOf = (R, name) => name.startsWith('town_tree') ? .82 + R() * .22 : name.startsWith('darkforest') ? .85 + R() * .45 : 1.05 + R() * .45;
-function forest({ tree, put, land, G, R }) {
-  const step = 1.65;
+function forest({ tree, put, land, G, R, tile }) {
+  const out = (x, z) => land.wall.side(...G(x, z).map(Math.floor)) === 2;
+  // outside the wall: the deep wood, close and tall, firs and broadleaves as the land's kinds of
+  // wood go, saplings and bushes where a tree does not fit
+  for (let lz = .5; lz < N; lz += 1.05) for (let lx = .5; lx < N; lx += 1.05) {
+    if (!out(lx, lz)) continue;
+    const [gx, gz] = G(lx, lz), f = land.forest(gx, gz), kind = land.kind(gx, gz) + (R() - .5) * .3;
+    if (R() > f * 1.15) continue;
+    const name = R() < .15 ? pick(R, SMALL) : kind < .45 ? pick(R, FIRS) : pick(R, BROADLEAVES), s = scaleOf(R, name) * (name.startsWith('darkforest') ? 1.15 : 1.05);
+    let ok = false;
+    for (let k = 0; k < 3 && !ok; k++) {
+      const x = lx + (R() - .5) * .6, z = lz + (R() - .5) * .6;
+      ok = out(x, z) && tree(name, x, z, s, true);
+    }
+    const x = lx, z = lz;
+    if (!ok)
+      put(pick(R, ['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_sapling_a', 'meadow_sapling_b', 'roots_moss_rock_a']), [[x, z]], { s: .9 + R() * .4 });
+  }
+  const step = 1.65, park = tile[1] < 2 ? .34 : .24;
   for (let lz = .9; lz < N; lz += step) for (let lx = .9; lx < N; lx += step) {
     const x = lx + (R() - .5) * 1.1, z = lz + (R() - .5) * 1.1, [gx, gz] = G(x, z);
+    if (out(x, z)) continue;
     const f = land.forest(gx, gz), kind = land.kind(gx, gz) + (R() - .5) * .25;
     if (f <= 0) {
-      // (the open: parkland)
-      if (land.keepDist(gx, gz) > 1.4 && R() < .24) {
+      // (the open: parkland, more of it in the lower town)
+      if (land.keepDist(gx, gz) > 1.4 && R() < park) {
         const name = R() < .5 ? pick(R, SMALL) : kind < .42 ? pick(R, FIRS) : pick(R, BROADLEAVES);
         tree(name, x, z, scaleOf(R, name) * (name.startsWith('town_tree') ? .8 : 1));
       }
@@ -710,26 +735,145 @@ function forest({ tree, put, land, G, R }) {
   }
 }
 
-// Trees along the town's ways, now on one side, now on the other, and lamps along its lanes
+// Trees along the town's ways, now on one side, now on the other; a lamp every few steps, on
+// alternate sides (no nearer another lamp than LAMP_GAP); over a lane now and then a garland
 const AVENUE = ['meadow_tree_round_a', 'meadow_tree_round_b', 'meadow_tree_tall_a', 'meadow_tree_tall_b', 'town_tree_birch_a', 'town_tree_elm_a'];
-function avenues({ plan, tree, put, R }) {
+const LAMP_GAP = 2.6;
+function avenues(t) {
+  const { plan, tree, put, R } = t;
   const local = ([x, z]) => rotateTownPoint(x, z, -plan.yaw);
+  const lamps = () => plan.placements.filter(q => q.name.startsWith('town_street_lamp'));
   for (const p of [...plan.paths]) {
     if (p.width < .6) continue;
     for (let i = 1; i < p.points.length; i++) {
       const [ax, az] = local(p.points[i - 1]), [bx, bz] = local(p.points[i]), len = Math.hypot(bx - ax, bz - az);
       if (len < 2) continue;
-      const ux = (bx - ax) / len, uz = (bz - az) / len, kind = pick(R, AVENUE);
-      let side = R() < .5 ? 1 : -1;
+      const ux = (bx - ax) / len, uz = (bz - az) / len, kind = pick(R, AVENUE), street = p.width > .7;
+      const at = (d, off, side) => [ax + ux * d - uz * off * side, az + uz * d + ux * off * side];
+      let side = R() < .5 ? 1 : -1, lampSide = R() < .5 ? 1 : -1;
+      // the lamps, their arms (a crook's lantern) out over the way
+      for (let d = .6 + R() * 1.5; d < len - .3; d += 3.6 + R() * 1.4, lampSide = -lampSide) {
+        const name = street ? (R() < .6 ? 'town_street_lamp_a' : 'town_street_lamp_b') : (R() < .6 ? 'town_street_lamp_c' : 'town_street_lamp_a');
+        const spots = [.6, .85, 1.1].map(o => at(d, p.width / 2 + o, lampSide));
+        const [cx, cz] = rotateTownPoint(...spots[0], plan.yaw);
+        if (lamps().some(q => Math.hypot(q.x - cx, q.z - cz) < LAMP_GAP)) continue;
+        put(name, spots, { s: 1, night: true, yaw: Math.atan2(lampSide * ux, lampSide * uz) });
+      }
       for (let d = .8 + R() * 1.2; d < len - .5; d += 2.2 + R() * 1.4, side = R() < .7 ? -side : side) {
-        const off = p.width / 2 + 1.05 + R() * .5, x = ax + ux * d - uz * off * side, z = az + uz * d + ux * off * side;
+        const [x, z] = at(d, p.width / 2 + 1.05 + R() * .5, side);
         const name = R() < .7 ? kind : pick(R, AVENUE);
         if (R() < .82) tree(name, x, z, name.startsWith('town_tree') ? .58 + R() * .14 : 1.15 + R() * .35);
-        else if (R() < .6) put('town_street_lamp_a', [[x, z]], { s: 1, night: true });
         else put(variant(R, 'meadow_bush'), [[x, z]], { s: 1 + R() * .3 });
+      }
+      if (!street && len >= 4 && R() < .4) {
+        const d = len * (.35 + R() * .3);
+        garlands(t, [at(d, p.width / 2 + .8, 1), at(d, p.width / 2 + .8, -1)]);
       }
     }
   }
+}
+
+// Garlands (blender/town_clutter.py): poles at the points (town-local) in turn, a garland strung
+// from the top of each to the next (sagging, a head's room over the ground all along, or none):
+// segments of the `line` props, each sheared along the curve (as render/propplace.js strings the
+// dark forest's lanterns). Lit at night, every other bulb with a light of its own; they come on as
+// one (their placements share where they are: render/night.js).
+const POLE_TOP = 2.55, GARLANDS = ['town_garland_a', 'town_garland_b', 'town_garland_c'];
+function garlands(t, points) {
+  const { put, R } = t;
+  const poles = points.map(([x, z]) => put(R() < .5 ? 'town_garland_pole_a' : 'town_garland_pole_b', near(x, z, .9), { s: 1 }));
+  for (let k = 1; k < poles.length; k++) {
+    const p = poles[k - 1], q = poles[k];
+    if (p && q) garland(t, [p.x, p.y + POLE_TOP, p.z], [q.x, q.y + POLE_TOP, q.z]);
+  }
+}
+function garland({ plan, groundAt, R }, a, b) {
+  const L = Math.hypot(b[0] - a[0], b[2] - a[2]);
+  if (L < 1.2 || L > 6.5) return false;
+  const sag = .2 + .07 * L, at = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - sag * 4 * t * (1 - t), a[2] + (b[2] - a[2]) * t];
+  for (let k = 0; k <= 20; k++) { const [x, y, z] = at(k / 20); if (y - .2 - groundAt(x, z) < CHAR_H + .7) return false; }
+  const steps = Math.max(2, Math.round(L / .8)), first = Math.floor(R() * 3), [mx, , mz] = at(.5);
+  for (let k = 0; k < steps; k++) {
+    const p = at(k / steps), q = at((k + 1) / steps), d = [q[0] - p[0], q[1] - p[1], q[2] - p[2]], h = Math.hypot(d[0], d[2]) || 1;
+    plan.placements.push({ name: GARLANDS[(first + k) % GARLANDS.length], x: mx, y: p[1], z: mz, yaw: 0, s: 1, tint: null, night: true,
+      matrix: [d[0], d[1], d[2], 0, 0, 1, 0, 0, -d[2] / h, 0, d[0] / h, 0, p[0], p[1], p[2], 1], ...(k % 2 ? { unlit: true } : {}) });
+  }
+  return true;
+}
+
+// Hedges and dry stone walls along the ways, a cell back from them, with gaps (more of them in the
+// lower town)
+const ROWS = ['town_hedge_a', 'town_hedge_b', 'town_stone_wall_a', 'town_stone_wall_b'];
+function hedgerows({ plan, piece, R, tile }) {
+  const local = ([x, z]) => rotateTownPoint(x, z, -plan.yaw), lower = tile[1] < 2;
+  for (const p of [...plan.paths]) {
+    if (p.width < .6) continue;
+    for (let i = 1; i < p.points.length; i++) {
+      const [ax, az] = local(p.points[i - 1]), [bx, bz] = local(p.points[i]), len = Math.hypot(bx - ax, bz - az);
+      if (len < 3) continue;
+      const ux = (bx - ax) / len, uz = (bz - az) / len, q = Math.abs(ux) > Math.abs(uz) ? 0 : 1, off = p.width / 2 + 1.25;
+      for (const side of [-1, 1]) {
+        if (R() > (lower ? .9 : .4)) continue;
+        const name = pick(R, ROWS);
+        for (let d = 1.2; d < len - 1; d += 2.05) {
+          if (R() < .2) continue;
+          piece(R() < .85 ? name : pick(R, ROWS), [0, .35, .7].map(o => [ax + ux * d - uz * (off + o) * side, az + uz * d + ux * (off + o) * side, q]), { turn: q, uneven: .6 });
+        }
+      }
+    }
+  }
+}
+
+// The town's wall (world/townland.js WALL), its own share of it in each tile: a stretch on each of
+// its cells (an arch over the water, a lantern on every fourth, ivy on some), a tower where the land
+// has one, the gatehouse over the street in the gate's tile. Each stands on a footing sunk WALL_FOOT
+// into the ground under it (an arch ARCH_FOOT into the water: blender/town_walls.py), its outer face
+// to the forest; it stands in the way as its box (a tower as its circle) and hides the hero behind
+// it (the cutaway), an arch but under the water. Never moved for a way (clearWays) nor kept off a
+// seam: it runs on across the seams into the next tile, and nobody walks outside it.
+const WALL_FOOT = .9, ARCH_FOOT = 1.1;
+const isWall = name => name.startsWith('town_wall') || name === 'town_gatehouse_a';
+function walls(t) {
+  const { plan, land, tile: [ti, tj], add, collide, footprints, occluders, under } = t;
+  const { W, wall } = land, g = plan.ground;
+  const place = (name, lx, lz, localYaw, y) => {
+    const p = add(name, lx, lz, localYaw);
+    p.y = y;
+    if (propMetadata.get(name).light) p.night = true;
+    return p;
+  };
+  const block = (p, b, grow = 0) => footprints.push({ x: p.x, z: p.z, c: snap(Math.cos(p.yaw)), s: snap(Math.sin(p.yaw)), bounds: b.map((v, k) => v + (k < 2 ? -grow : grow)),
+    box: turnedBox(b, p.x, p.z, p.yaw, grow) });
+  const body = (p, b, bottom, top) => ({ shape: 'box', name: p.name, ...turnedBox(b, p.x, p.z, p.yaw), bottom, top });
+  for (let lz = 0; lz < N; lz++) for (let lx = 0; lx < N; lx++) {
+    const gx = ti * N + lx, gz = tj * N + lz;
+    if (wall.side(gx, gz) !== 1 || wall.gateAt(gx, gz)) continue;
+    const [cx, cz] = rotateTownPoint(lx + .5, lz + .5, plan.yaw), c = Math.floor(cz) * N + Math.floor(cx);
+    const water = g.water[c], h = hash32(gx * 7919 + gz * 104729 + land.seed);
+    // (its outer face away from the town; a corner's towards its nearer side)
+    const [ox, oz] = gx === WALL ? [-1, 0] : gx === W - 1 - WALL ? [1, 0] : gz === WALL ? [0, -1] : [0, 1], yaw = Math.atan2(ox, oz);
+    if (wall.towers.has(gz * W + gx)) {
+      const name = h % 3 ? 'town_wall_tower_b' : 'town_wall_tower_a', [lo] = under(cx, cz, .85);
+      const p = place(name, lx + .5, lz + .5, yaw, lo - WALL_FOOT + .02), round = { name, x: p.x, z: p.z, r: .86, bottom: p.y, top: p.y + propMetadata.get(name).height };
+      collide(round); occluders.push(round); block(p, [-.95, -.95, .95, .95]);
+      continue;
+    }
+    const lantern = (gx + gz) % 4 === 0;
+    const name = water ? (lantern ? 'town_wall_arch_b' : 'town_wall_arch_a') : lantern ? 'town_wall_lantern_a' : h % 10 < 3 ? 'town_wall_b' : 'town_wall_a';
+    const p = place(name, lx + .5, lz + .5, yaw, water ? water.surf * LH - ARCH_FOOT : Math.min(...g.cs[c]) - WALL_FOOT + .02);
+    const b = body(p, [-.497, -.36, .497, .36], p.y, p.y + propMetadata.get(name).height);
+    collide(b);
+    if (!water) occluders.push(b);
+    block(p, [-.5, -.36, .5, .36], .1);
+  }
+  // the gatehouse, over the street where it comes in (its towers stand in the way, its arch hides)
+  const [gx, gz] = wall.gate;
+  if (Math.floor(gx / N) !== ti || Math.floor(gz / N) !== tj) return;
+  const lx = gx - ti * N, lz = gz - tj * N, [cx, cz] = rotateTownPoint(lx, lz, plan.yaw), [lo] = under(cx, cz, 2.4);
+  const p = place('town_gatehouse_a', lx, lz, Math.PI, lo - WALL_FOOT + .02), top = p.y + propMetadata.get(p.name).height;
+  for (const b of [[-2.5, -.75, -1, .75], [1, -.75, 2.5, .75]]) { const q = body(p, b, p.y, top); collide(q); occluders.push(q); }
+  occluders.push(body(p, [-1, -.45, 1, .45], p.y + WALL_FOOT + 1.75, top));
+  block(p, [-2.5, -.75, 2.5, .75], .1);
 }
 
 // What stands round a home (HOMES): flowers by its door, trees in its yard, behind it a garden
@@ -793,12 +937,12 @@ const KEEPS = new Set([...BUILDINGS, ...MERCHANTS].map(b => b.name));
 function clearWays({ plan, seamGap }, spec) {
   const g = plan.ground, cellOf = (x, z) => Math.floor(z) * N + Math.floor(x);
   const needed = new Set(plan.frontages.map(f => cellOf(f.x, f.z))), start = [];
-  for (let c = 0; c < N * N; c++) if (seamGap(...rotateTownPoint(c % N + .5, Math.floor(c / N) + .5, -plan.yaw)) < 1) start.push(c);
+  for (let c = 0; c < N * N; c++) if (seamGap(...rotateTownPoint(c % N + .5, Math.floor(c / N) + .5, -plan.yaw)) < 1 && !plan.wallSide?.[c]) start.push(c);
   for (const [x, z] of spec.gates ?? []) needed.add(cellOf(...rotateTownPoint(x, z, plan.yaw)));
   for (const q of [...Object.values(plan.relics), ...plan.portal ? [plan.portal] : []]) needed.add(cellOf(q.x, q.z));
   if (plan.spawn) { needed.add(plan.spawn[1] * N + plan.spawn[0]); start.push(plan.spawn[1] * N + plan.spawn[0]); }
   if (!start.length) start.push(...needed);
-  const fixed = b => KEEPS.has(b.name) || isHome(b.name) || b.name.startsWith('villager_');
+  const fixed = b => KEEPS.has(b.name) || isHome(b.name) || isWall(b.name) || b.name.startsWith('villager_');
   const gone = new Set();
   for (let round = 0; round < 40; round++) {
     const cells = indexBlockers(plan.colliders), reach = townReach(g, cells, start);
@@ -992,26 +1136,30 @@ const TILES = [
       put(variant(R, 'meadow_stump'), near(3, 8, 2));
       put(variant(R, 'town_handcart'), near(10, 13, 2), { yaw: R() * Math.PI * 2, s: .85 });
     } },
-    { name: 'market', gates: [[STREET, .9]], keep: [[STREET, 1.5, 2.5]], ways({ path, plan }) {
+    { name: 'market', gates: [[STREET, .9]], keep: [[STREET, 1.5, 2.5], [STREET, 3.5, 3.2]], ways({ path, plan }) {
       path([[STREET, 0], [STREET, N]]);
       leadTo(plan, path, 0, [[STREET, 11.2]]);
       leadTo(plan, path, 1, [[STREET, 8]]);
-      leadTo(plan, path, 2, [[STREET, 3.8]]);
-    }, dress({ put, piece, group, R }) {
-      // a waymark at the gate, lamps where the traders set up, stalls along the street
-      put('relics_signpost_b', [[7.2, 1.2], [9.8, 1.4]], { yaw: Math.PI / 2 - .2, s: 1 });
+      leadTo(plan, path, 2, [[STREET, 6.2]]);
+    }, dress(t) {
+      const { put, piece, group, R } = t;
+      // a waymark outside the gate, lamps where the traders set up, stalls along the street
+      put('relics_signpost_b', [[7.0, 1.2], [10.0, 1.4]], { yaw: Math.PI / 2 - .2, s: 1 });
       lamps(put, [['town_street_lamp_a', [[7.0, 9.4], [6.8, 8.8]]], ['town_street_lamp_a', [[10.0, 6.0], [10.2, 5.2]]],
-        ['town_street_lamp_b', [[9.9, 13.2], [7.1, 13.0]]], ['town_street_lamp_a', [[7.1, 2.6], [9.9, 2.8]]]]);
-      for (const [x, z, q] of [[10.6, 3.2, 3], [10.8, 12.6, 3], [6.3, 7.4, 1], [6.2, 14.4, 1]].sort(() => R() - .5).slice(0, 3))
+        ['town_street_lamp_b', [[9.9, 13.2], [7.1, 13.0]]], ['town_street_lamp_b', [[7.0, 5.0], [10.0, 5.2]]],
+        ['town_street_lamp_a', [[7.2, 1.6], [9.8, 1.8]]]]);
+      for (const [x, z, q] of [[10.6, 4.6, 3], [10.8, 12.6, 3], [6.3, 8.4, 1], [6.2, 14.4, 1]].sort(() => R() - .5).slice(0, 3))
         piece(variant(R, 'town_market_stall'), [[x, z, q], ...near(x, z, .75).map(([a, b]) => [a, b, q])]);
+      // garlands across the street, from pole to pole, zigzag up it
+      garlands(t, [[9.9, 5.6], [7.1, 7.9], [9.9, 10.3], [7.1, 12.6], [9.9, 14.8]]);
       put(variant(R, 'town_handcart'), [...near(3.4, 13.4, 1), ...near(2.4, 6.4, 1)], { yaw: R() * Math.PI * 2, s: .85 });
       for (const [x, z] of [[6.2, 10.4], [10.6, 7.3], [6.4, 4.6], [10.4, 11.8]]) put(variant(R, 'town_flower_pots'), near(x, z, .5), { s: .9 + R() * .2 });
       group([[2.6, 9.4], [2.8, 10.2]], ['mines_barrel_a', 'mines_barrel_b', 'mines_crate_a'], .7);
       group([[13.6, 6.2], [13.4, 9.6]], ['mines_crate_b', 'mines_crate_a', 'mines_barrel_a', 'mines_sacks_a'], .8);
-      group([[13.2, 12.2], [2.4, 4.4]], ['mines_sacks_b', 'mines_crate_a', 'mines_barrel_b'], .8);
+      group([[13.2, 12.2], [2.4, 5.4]], ['mines_sacks_b', 'mines_crate_a', 'mines_barrel_b'], .8);
       put('mines_wheelbarrow_b', [[10.6, 13.0], [11.6, 12.6]], { yaw: .9 });
       put('relics_abandoned_pack_a', [[11.6, 4.2], [13.0, 4.0]]);
-      put(variant(R, 'town_hay_bales'), [...near(12.6, 2.6, 1.5), ...near(2.6, 2.6, 1.5)]);
+      put(variant(R, 'town_hay_bales'), [...near(12.6, 5.2, 1.5), ...near(2.6, 5.2, 1.5)]);
     } },
     { name: 'camp', rural: true, dress(t) {
       const { put, group, here, R } = t;
@@ -1056,16 +1204,19 @@ const TILES = [
         // the street up to the lane and on over the water (its bridge, world/townland.js)
         path([[STREET, 0], [STREET, N]]);
         path([[0, LANE_1], [N, LANE_1]], LANE_WIDTH);
-      }, dress({ put, piece, R }) {
-        // the plaza: benches and the notice board round it, lamps along the street, flower beds
+      }, dress(t) {
+        const { put, piece, R } = t;
+        // the plaza: benches and the notice board round it, lamps along the street, flower beds,
+        // garlands over the street
         facing(put, 'town_bench_a', near(5.2, 8.6, 1), [STREET, LANE_1]);
         facing(put, 'town_bench_b', near(14.4, 9.6, 1), [STREET, LANE_1]);
         facing(put, 'town_notice_board_a', near(6.4, 3.2, 1.2), [STREET, 4]);
         lamps(put, [['town_street_lamp_a', near(9.6, 2.4, .75)], ['town_street_lamp_b', near(7.3, 9.4, .75)],
-          ['town_street_lamp_a', near(9.7, 11.2, .75)]]);
+          ['town_street_lamp_a', near(9.7, 11.2, .75)], ['town_street_lamp_b', near(9.8, 6.4, .75)], ['town_street_lamp_a', near(7.2, 13.4, .75)]]);
         for (const [x, z] of [[2.6, 9.2], [13.6, 11.4], [6.2, 8.4], [2.4, 7.4]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
         for (const [x, z] of [[2.4, 3], [13.8, 2.6]]) piece('town_garden_bed_b', [[x, z, 0], ...near(x, z, .6).map(([a, b]) => [a, b, 0])]);
         piece('town_planter_b', [...near(9.9, 8.6, .6).map(([a, b]) => [a, b, 1])]);
+        garlands(t, [[9.9, 1.4], [7.1, 4.2], [9.9, 6.9], [7.1, 11.6], [9.9, 13.6]]);
       } },
     { name: 'smithy', ways({ path, plan }) {
       leadTo(plan, path, 0, [[0, LANE_1], [6.7, LANE_1]]);
@@ -1115,11 +1266,14 @@ const TILES = [
       path([[STREET, z + 1.5], [STREET, N]]);
       path([[STREET, LANE_2], [N, LANE_2]], LANE_WIDTH);
       leadTo(plan, path, 0, [[STREET, plan.frontagesLocal[0][1]]]);
-    }, dress({ put, group, R }) {
-      // deliveries by the inn's side, a cask by the porch, lamps along the street
+    }, dress(t) {
+      const { put, group, R } = t;
+      // deliveries by the inn's side, a cask by the porch, lamps along the street, garlands over it
       group([[3.2, 12.4]], ['mines_barrel_a', 'mines_barrel_b', 'mines_crate_a', 'mines_sacks_a'], .7);
       group([[3, 3.4]], ['mines_barrel_b', 'mines_crate_b'], .6);
-      lamps(put, [['town_street_lamp_a', near(9.7, 4.2, .75)], ['town_street_lamp_b', near(9.8, 11.6, .75)]]);
+      lamps(put, [['town_street_lamp_a', near(9.7, 4.2, .75)], ['town_street_lamp_b', near(9.8, 11.6, .75)],
+        ['town_street_lamp_c', near(7.2, 14.4, .75)], ['town_street_lamp_a', near(10.4, 2.0, .75)], ['town_street_lamp_c', near(4.2, 2.4, .75)]]);
+      garlands(t, [[9.9, 10.4], [7.1, 12.6], [9.9, 15.0]]);
       for (const [x, z] of [[6.4, 10.6], [6.4, 5.8], [12.6, 5.4], [13, 9]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
       facing(put, variant(R, 'town_bench'), near(12.4, 11.6, 1.2), [STREET, 11.6]);
     } },
@@ -1147,12 +1301,16 @@ const TILES = [
     } },
     { name: 'green', keep: [[STREET, 10.4, 1.6], [5.6, 9, 1.1], [11.4, 9, 1.1]], ways({ path }) {
       path([[STREET, 0], [STREET, 8]]);
-    }, dress({ put, piece, R }) {
-      // the town's well where the street ends, benches and the notice board round the green
+    }, dress(t) {
+      const { put, piece, R } = t;
+      // the town's well where the street ends, benches round the green, garlands over the street
       facing(put, 'town_well_a', near(STREET, 10.4, 1), [STREET, 8]);
       facing(put, 'town_bench_a', near(5.6, 9, 1), [STREET, 10.4]);
       facing(put, 'town_bench_b', near(11.4, 9, 1), [STREET, 10.4]);
-      lamps(put, [['town_street_lamp_a', near(9.7, 3.4, .75)], ['town_street_lamp_a', near(7.2, 7.4, .75)]]);
+      lamps(put, [['town_street_lamp_a', near(9.7, 3.4, .75)], ['town_street_lamp_a', near(7.2, 7.4, .75)],
+        ['town_street_lamp_b', near(5.0, 10.6, .9)], ['town_street_lamp_b', near(12.0, 10.6, .9)]]);
+      garlands(t, [[7.1, 1.2], [9.9, 3.8], [7.1, 6.4]]);
+      garlands(t, [[5.4, 12.4], [STREET, 13.4], [11.6, 12.4]]);
       for (const [x, z] of [[5, 12], [12, 12.2], [6, 4], [11.2, 5]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
       for (const [x, z] of [[STREET - 2.6, 12.6], [STREET + 2.6, 12.6]]) piece('town_garden_bed_b', [[x, z, 0], ...near(x, z, .6).map(([a, b]) => [a, b, 0])]);
       put(variant(R, 'meadow_flowers'), [...near(3.4, 6, 1.5), ...near(13.4, 6.4, 1.5)], { s: 1 });
@@ -1201,7 +1359,7 @@ function baseLayout() {
 // any way), the people's homes along every way, their doors to it, a path to each door. What of it
 // stays level (`keep`, in the town's frame) and per tile its lanes and homes ({ lanes: [{ points,
 // width }], homes: [{ name, x, z, yaw }] }, tile-local).
-function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, avoid = [], water = () => false }) {
+function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, inWall = () => true, avoid = [], water = () => false }) {
   const wetAt = (x, z) => water(Math.floor(z) * W + Math.floor(x));
   const R = mulberry32(hash32(seed ^ 0x40e5)), layout = baseLayout();
   const tiles = TILES.map((row, j) => row.map(() => ({ lanes: [], homes: [], level: rows[j] })));
@@ -1227,7 +1385,9 @@ function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, avoid
   const lane = (ax, az, dx, dz, least, most, level = levelAt(ax, az)) => {
     let len = 0;
     // (on its ground: not up or down the escarpment, nor by what is built on it)
-    const ok = (x, z) => x > 1.6 && z > 1.6 && x < W - 1.6 && z < D - 1.6 && [-1.2, 0, 1.2].every(o => levelAt(x + dz * o, z + dx * o) === level)
+    // (not along a seam, too near it for a home between: the homes keep off the seams)
+    const along = v => { const m = ((v % N) + N) % N; return Math.min(m, N - m) > 3.6; };
+    const ok = (x, z) => inWall(x, z, .6) && (dx ? along(z) : along(x)) && [-1.2, 0, 1.2].every(o => levelAt(x + dz * o, z + dx * o) === level)
       && clear(x, z, 1.6) && wild(x, z, 1) && boxes.every(b => boxDistance(b, x, z) > 1.1)
       && discs.every(d => Math.hypot(x - d.x, z - d.z) > d.r + .4) && ways.every(w => segmentDistance(x, z, w.a, w.b) > 2.4);
     // (from where it leaves its way: what is that near, it may be)
@@ -1263,6 +1423,12 @@ function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, avoid
     const x = Math.round((w.a[0] + ux * t) * 2) / 2, z = Math.round((w.a[1] + uz * t) * 2) / 2;
     if (lane(x, z, -uz * s, ux * s, 4, 9, w.level)) made++;
   }
+  // and on along the wall, inside it, from where a way comes up to it (world/townland.js WALL)
+  const inner = WALL + 1 + 2.4;
+  for (const w of [...ways]) for (const [x, z] of w.w < .6 ? [] : [w.a, w.b])
+    for (const [dx, dz, off] of [[0, 1, x - inner], [0, -1, x - inner], [0, 1, W - inner - x], [0, -1, W - inner - x],
+      [1, 0, z - inner], [-1, 0, z - inner], [1, 0, D - inner - z], [-1, 0, D - inner - z]])
+      if (Math.abs(off) < 2.2 && R() < .85) lane(x, z, dx, dz, 4, 18, w.level);
   // The homes: on either side of every way, facing it, as many as there is room for
   const homes = [], tileOf = (x, z) => [Math.floor(x / N), Math.floor(z / N)];
   const slots = [];
@@ -1275,21 +1441,24 @@ function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, avoid
   const count = new Map();
   // (the first of the kinds of home that fits there, in a random order: a barn on the town's edge now
   // and then)
-  const fit = (slot, name, ti, tj) => {
+  const fit = (slot, name, ti, tj, lift = 0) => {
     const { w, nx, nz } = slot, bounds = propMetadata.get(name).bounds;
     // (its front, +Z, to the way: the way lies along -n from it; on the way's own ground)
-    const yaw = snap(Math.atan2(-nx, -nz)), level = wayLevel(w), lv = level;
-    const set = w.w / 2 + .55 + R() * .45;
+    const yaw = snap(Math.atan2(-nx, -nz)), level = wayLevel(w), lv = level + lift;
+    const set = w.w / 2 + .55 + R() * .45 + (lift ? TERRACE + .2 + lift * .5 : 0);
     const x = slot.x + nx * (set + bounds[3]), z = slot.z + nz * (set + bounds[3]);
     const box = turnedBox(bounds, x, z, yaw), [i, j] = tileOf(x, z);
     if (i !== ti || j !== tj) return null;
     const seams = seamsOf(i, j), lx0 = box.x0 - i * N, lz0 = box.z0 - j * N, lx1 = box.x1 - i * N, lz1 = box.z1 - j * N;
-    const edge = (seam, d) => d >= (seam ? SEAM_CLEAR + .15 : .6);
+    const edge = (seam, d) => d >= (seam ? SEAM_CLEAR + .15 + (lift ? TERRACE + .4 : 0) : .6);
     if (!edge(seams.left, lx0) || !edge(seams.right, N - lx1) || !edge(seams.front, lz0) || !edge(seams.back, N - lz1)) return null;
-    if (boxes.some(b => boxGap(b, box) < 1.1) || homes.some(h => boxGap(h.box, box) < .9)) return null;
-    if (discs.some(d => boxDistance(box, d.x, d.z) < d.r + .3)) return null;
-    if (ways.some(v => boxRunDistance(box, v.a, v.b) < v.w / 2 + .5)) return null;
-    if (![[box.x0, box.z0], [box.x1, box.z0], [box.x0, box.z1], [box.x1, box.z1], [x, z]].every(([a, b]) => wild(a, b, .6))) return null;
+    // (a terrace keeps further off the buildings and the people: its edge would tilt their ground)
+    if (boxes.some(b => boxGap(b, box) < (lift ? TERRACE + 1.6 : 1.1)) || homes.some(h => boxGap(h.box, box) < (lift || h.level !== h.path.level ? TERRACE + 1.4 : .9))) return null;
+    if (discs.some(d => boxDistance(box, d.x, d.z) < d.r + (lift ? TERRACE + 1.4 : .3))) return null;
+    // (a terrace's ground, as far as it is kept round it, off every way's: its edge beside a way would
+    // step under it)
+    if (ways.some(v => boxRunDistance(box, v.a, v.b) < v.w / 2 + .5 + (lift ? TERRACE + .1 : 0))) return null;
+    if (![[box.x0, box.z0], [box.x1, box.z0], [box.x0, box.z1], [box.x1, box.z1], [x, z]].every(([a, b]) => wild(a, b, .6) && inWall(a, b, .5))) return null;
     // (all of it, and round it, on the way's ground: not over the escarpment's edge)
     for (let u = box.x0 - .6; u <= box.x1 + .6; u += .4) for (let v = box.z0 - .6; v <= box.z1 + .6; v += .4) if (levelAt(u, v) !== level) return null;
     if (avoid.some(b => boxGap(b, box) < 1.2)) return null;
@@ -1298,7 +1467,7 @@ function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, avoid
     const door = HOMES[name].door, c = snap(Math.cos(yaw)), s = snap(Math.sin(yaw));
     // (from its doorstep, a body's width out from the wall)
     const out = bounds[3] + CHAR_R + .1, [dx, dz] = [x + door * c + out * s, z - door * s + out * c];
-    return { name, x, z, yaw, box, i, j, level: lv, path: { a: [dx, dz], b: [dx - nx * (set + .02 - CHAR_R - .1), dz - nz * (set + .02 - CHAR_R - .1)], w: .45, level } };
+    return { name, x, z, yaw, box, i, j, level: lv, path: { a: [dx, dz], b: [dx - nx * (set + .02 - CHAR_R - .1), dz - nz * (set + .02 - CHAR_R - .1)], w: .45, level, lift } };
   };
   for (const slot of slots) {
     const [ti, tj] = tileOf(slot.x + slot.nx * 3, slot.z + slot.nz * 3), spec = TILES[tj]?.[ti];
@@ -1306,7 +1475,13 @@ function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, avoid
     const kinds = [...COTTAGES].sort(() => R() - .5);
     if (spec.rural && R() < .35) kinds.unshift('town_barn_a');
     let h = null;
-    for (const name of kinds) if ((h = fit(slot, name, ti, tj))) break;
+    // (on a terrace a level or two over its way, now and then, more often in the lower town: its
+    // path a ramp up to its door, set back for it; where there is no room for that, on the way's level)
+    const lift = R() < (wayLevel(slot.w) === rows[0] ? .75 : .3) ? 1 + Math.floor(R() * 3) : 0;
+    for (const up of lift ? [lift, 0] : [0]) {
+      for (const name of kinds) if ((h = fit(slot, name, ti, tj, up))) break;
+      if (h) break;
+    }
     if (!h) continue;
     homes.push({ ...h, rural: !!spec.rural });
     ways.push(h.path);
@@ -1325,8 +1500,10 @@ function plotTown(seed, { hill, hollow, lake, pieces, W, D, rows, levelAt, avoid
   }
   for (const h of homes) tiles[h.j][h.i].homes.push({ name: h.name, x: h.x - h.i * N, z: h.z - h.j * N, yaw: h.yaw, rural: h.rural, level: h.level });
   for (const b of boxes) keep.push({ box: [b.x0, b.z0, b.x1, b.z1], r: 1.3, level: b.level });
-  for (const h of homes) keep.push({ box: [h.box.x0, h.box.z0, h.box.x1, h.box.z1], r: 1.1, level: h.level });
-  for (const w of ways) keep.push({ seg: [w.a, w.b], r: w.w / 2 + .5, level: w.level });
+  // (a home's ground at its terrace's level, `lift` over its way's; its path a ramp from its door
+  // down to the way: world/townland.js)
+  for (const h of homes) keep.push({ box: [h.box.x0, h.box.z0, h.box.x1, h.box.z1], r: h.level !== h.path.level ? TERRACE : 1.1, level: h.level, lift: h.level - h.path.level });
+  for (const w of ways) keep.push({ seg: [w.a, w.b], r: w.w / 2 + .5, level: w.level, ...(w.lift ? { ramp: w.lift } : {}) });
   for (const d of discs) keep.push(d);
   // (what stands in the way for good: the houses and the homes, the people)
   const bodies = [...boxes, ...homes.map(h => h.box), ...discs.filter(d => d.r < 1).map(d => ({ x0: d.x - .3, z0: d.z - .3, x1: d.x + .3, z1: d.z + .3 }))];
@@ -1374,7 +1551,11 @@ export function townPlan(exit, seed, i, j, world = 0) {
   tools.inTile = ({ x, z }) => x >= i * N && x < (i + 1) * N && z >= j * N && z < (j + 1) * N;
   spec.ways?.(tools);
   for (const l of laid.lanes) tools.path(l.points, l.width);
+  // (each cube cell by the wall: 0 inside, 1 on it, 2 outside it, world/townland.js wallSide)
+  plan.wallSide = Array.from({ length: N * N }, (_, c) => land.wall.side(...tools.G(...rotateTownPoint(c % N + .5, Math.floor(c / N) + .5, -plan.yaw)).map(Math.floor)));
+  walls(tools);
   spec.dress(tools);
+  hedgerows(tools);
   for (const h of laid.homes) yard(tools, h);
   spring(tools);
   trailMarks(tools);
@@ -1383,7 +1564,7 @@ export function townPlan(exit, seed, i, j, world = 0) {
   forest(tools);
   delete plan.frontagesLocal;
   drapes(tools);
-  groundCover(tools);
+  groundCover(tools, j < 2 ? 1.3 : 1.1);
   clearWays(tools, spec);
   delete plan.boxes;
   return plan;
