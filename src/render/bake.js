@@ -193,6 +193,7 @@ function updateBake(bake, now) {
   // (not baked: its lights shine without shadows, a failed bake, none at all for Flip's box)
   const on = bake.ready ? smooth(Math.min(1, (now - bake.readyAt) / FADE_IN)) : 0;
   const plain = bake.failed, lit = plain ? 1 : on;
+  bake.lit = lit;
   bake.u.uBakeR.value = plain ? 0 : on;
   if (bake.cells !== bake.lights.length) lightCells(bake);
   // every light keeps its row (the cells point at it); one dark, hidden or the cube faded out
@@ -244,6 +245,8 @@ function release(owned) {
 // ---- baking ----
 
 // whether a cube's lights are baked (or never will be)
+// how far a cube's fixed lights are on (0 until it is baked, fading in to 1: updateBake)
+export const bakeLit = bake => !bake ? 1 : bake.flip ? 1 : bake.lit ?? 0;
 export const baked = world => !world?.bake || world.bake.ready || world.bake.failed || world.bake.flip;
 
 // Bake what is shown a little each frame: the cube played in first, then the others (a cube

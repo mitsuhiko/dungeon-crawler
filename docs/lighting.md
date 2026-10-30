@@ -32,15 +32,27 @@ flickers like any lantern. The channels and the cells go by how bright a light g
 (`userData.peak`), not by how bright it is when the cube is baked.
 
 **The surroundings** (`render/farlights.js`): the proxies of the cubes round the one played in
-(`render/neighbors.js`) are not baked, but some of their lights stay on, dimmed: the lights of
-what they show (their landmarks and set pieces, all of a town tile's dressing: `shownFar`; the
-same lights the cube built in full would have, `render/props.js propLights`), the street lamps and
-windows at night only, as in the cube played in, in the cubes up to two away (as their people,
-`game/standins.js`). The nearest 32 to the hero go into one small table that the proxies' shaders
-and the people there (`render/farlook.js`) walk after the other lights: point lights without
-shadows, as bright as their glow there (`PROXY.glow` at the whole dim, faded with their cube). No
-light comes or goes in the scene, so nothing is compiled again; they do not reach into the cube
-played in, nor its lights out.
+(`render/neighbors.js`) are not baked, but their lights stay on, dimmed: the lights of what they
+show (their landmarks and set pieces, all of a town tile's dressing: `shownFar`; the same lights
+the cube built in full would have, `render/props.js propLights`), the street lamps and windows at
+night only, as in the cube played in, in the cubes up to two away (as their people,
+`game/standins.js`). All of them (up to `FAR_MAX`, 512; past that the nearest, the farthest
+fading out) go into one table, and a grid over the world round the hero (`FAR_CELLS` cells of
+`FAR_CELL` units, `render/lighthook.js`) lists for each cell the lights that reach into it, the
+strongest first, `FAR_K` (12) at most: the proxies' shaders and the people there
+(`render/farlook.js`) walk only their cell's, point lights without shadows, as bright as their
+glow there (`PROXY.glow` at the whole dim, faded with their cube). The grid is laid out again only
+when the lights change or the hero walks into another of its cells. (Before, only the nearest 32
+shone: walking through the town at night its lamps went on and off.) No light comes or goes in
+the scene, so nothing is compiled again.
+
+In the town, which has no glass between its tiles, they cross the seams: the grid's second half
+lists the tiles' lights round the one played in, which its own shaders walk after its fixed
+lights (at their full brightness, as they will shine once their tile is the one played in), so a
+lamp by a seam lights both sides of it; and the tile played in's own lights shine out onto the
+tiles round it. Its own are baked in it; until they are (`render/bake.js bakeLit`) they shine
+from the table instead, fading over to the bake. Elsewhere the glass stands between: the
+surroundings' lights do not reach into the cube played in, nor its lights out.
 
 **The fixed parts** cast the baked shadows: the cube's solids (terrain, stone, wood) and its props
 that cast shadows. They stay out of three.js's shadow map of the sun (`render/bake.js

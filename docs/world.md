@@ -67,7 +67,8 @@ the gate's row). The gate's tile is `(0,0,0)`; a new world starts in the inn's t
   ahead (`prefetchTown`); until one is, the hero stands on the seam. The overview camera follows
   the hero all the way in town (`game/camera.js`), else it would pan a cube's width at every seam.
 - **Still seams for now:** the villagers, the shards of the crash and the robot asleep are drawn
-  only in the tile played in, the surroundings have no lights at night and no baked shadows, and
+  only in the tile played in, the surroundings have no baked shadows (their lights shine without
+  them, across the seams: docs/lighting.md), and
   a friend in another tile is not drawn (`render/partner.js`). Drawing more than one tile in full
   comes later ([town.md](town.md)).
 - **Only the gate leads out.** The town's outer faces never open, whatever lies beyond and however

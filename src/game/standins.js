@@ -16,6 +16,10 @@ import { buildVillagers, tickVillagers } from '../render/villagers.js';
 import { setFarLook } from '../render/farlook.js';
 import { setFarLights } from '../render/farlights.js';
 import { props, propSetLoaded, propLights } from '../render/props.js';
+import { shownFar } from '../render/neighbors.js';
+import { bakeLit } from '../render/bake.js';
+import { NEIGHBOR_DIM } from '../render/materials.js';
+import { isTown } from '../world/town.js';
 import { rig } from '../render/figure.js';
 import { player, state } from './state.js';
 import { leftCube } from './travel.js';
@@ -45,6 +49,16 @@ function lightsOf(g) {
   if (!list.every(([p]) => propSetLoaded(p.set))) return [];
   return (g.farLights = list.flatMap(([p, L]) => propLights(p, L)));
 }
+// ... and of the town's tile played in (all it is dressed with), kept with its map
+const own = new WeakMap();
+function ownLights(map) {
+  let l = own.get(map);
+  if (l) return l;
+  const list = shownFar(map).map(q => [props.byName.get(q.name), q]).filter(([p]) => p);
+  if (!list.every(([p]) => propSetLoaded(p.set))) return [];
+  own.set(map, l = list.flatMap(([p, q]) => propLights(p, q)));
+  return l;
+}
 
 // every frame (main.js; dt: game time): who stands where in the cubes shown now, and which of
 // their lights are on (render/farlights.js)
@@ -52,13 +66,17 @@ const lit = [];
 export function updateStandins(dt, time) {
   const keep = new Set();
   lit.length = 0;
+  let here = null;
   if (state.mode === 'play' && state.cubes) {
     const left = leftCube()?.key, look = (check -= dt) <= 0;
     if (look) check = CHECK;
+    // (in the town the tiles' lights cross the seams: render/farlights.js)
+    const town = !!state.map?.town && !left && isTown(state.cubeKey, state.cubes.seed);
     for (const g of liveNeighbors()) {
       if (g.key === state.cubeKey || g.key === left || !proxyShown(g)) continue;
       const u = g.group.userData, lights = lightsOf(g);
-      if (lights.length) lit.push({ at: g.group.position, fade: (u.fade ?? 1) * u.rangeFadeU.value, dim: g.dim ?? 1, lights });
+      if (lights.length) lit.push({ at: g.group.position, fade: (u.fade ?? 1) * u.rangeFadeU.value, dim: g.dim ?? 1, lights,
+        into: town && isTown(g.key, state.cubes.seed) });
       if (!rig.ready) continue;
       const map = state.cubes.cubes.get(g.key)?.map;
       if (!map || map.interior) continue;
@@ -73,9 +91,12 @@ export function updateStandins(dt, time) {
       setFarLook(s.group, g);
       tickVillagers(s.views, dt, time, g.group.position);
     }
+    const w = state.world;
+    if (town && w?.group) here = { at: w.group.position, fade: w.group.visible ? w.group.userData.fade ?? 1 : 0, dim: NEIGHBOR_DIM.town,
+      lights: ownLights(state.map), unbaked: 1 - bakeLit(w.bake) };
   }
   for (const [g, s] of sets) if (!keep.has(g)) { drop(s); sets.delete(g); }
-  setFarLights(lit, player);
+  setFarLights(lit, player, here);
 }
 
 // (tests/browser/neighbor.js) the stand-ins drawn now: [{ key, people, group }]
