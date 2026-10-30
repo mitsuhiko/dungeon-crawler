@@ -592,7 +592,10 @@ The other kinds: [sword](img/loadout-sword.jpg),
   one, the balance's (`docs/trials.md`), not more. Turning more than 30 degrees, or letting go,
   starts over. The jump key held at a brink leaps the way pushed at once (stopped there, the body
   has no speed to leap with: it would hop straight up). Walking into a wall is no brink (its top
-  lies too high for the probe: `physics/canmove.js` asks `hopBlocked` first).
+  lies too high for the probe: `physics/canmove.js` asks `hopBlocked` first), nor is a rail or a
+  fence (asked before it too): the invisible side rails of a stair, a bridge or a landing
+  (`cubegen/fences.js`) keep the hero on it over lava or nothing, never teetering at them, and only
+  the jump key takes them off over the side.
 - **Off any other edge** (a trench, a pit, a channel of water, a cliff: nothing that stops the
   walk) the hero steering themselves at a run jumps across where the jump lands them (`physics/brink.js
   offEdge`, from `physics/move.js movePlayer` the frame they run off, still in the coyote time):

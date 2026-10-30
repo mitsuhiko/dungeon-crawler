@@ -80,13 +80,15 @@ export function canMove(nx, nz, axis, sign) {
     // remain walkable. Rim probes keep the body off the edge. This looks for drops, not rises:
     // a rim probe ahead on a steep (but walkable) slope lies more than a step above the feet,
     // so it may look as high as the steepest slope rises from the center to it (rises at a
-    // cell edge are hopBlocked's). A wall is no brink (its floor lies too high to be found here).
+    // cell edge are hopBlocked's). A wall is no brink (its floor lies too high to be found here),
+    // nor is a rail or a fence: what lies past it is never teetered at nor jumped over by itself
+    // (a stair's or a bridge's side is left with the jump key only).
     if (hopBlocked(rx, rz, sx, sz, y, step)) return false;
+    if (fenceBlocks(ci, si, y)) return false;
     if (player.grounded && !player.swimming) {
       const gr = groundAt(sx, sz, y, step + STEEP * Math.hypot(sx - nx, sz - nz));
       if (!gr.s || !wadeable(gr, true)) { brink = true; return false; }
     }
-    if (fenceBlocks(ci, si, y)) return false;
   }
   return true;
 }

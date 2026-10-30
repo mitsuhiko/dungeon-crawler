@@ -6,6 +6,7 @@ import { player } from '../src/game/state.js';
 import { movePlayer } from '../src/physics/move.js';
 import { groundAt, setGoneFloors } from '../src/physics/collide.js';
 import { peril } from '../src/physics/fluid.js';
+import { edgeKey } from '../src/core/util.js';
 
 const DT = 1 / 60;
 // ground at level 4, and `gap(x, z)` cells of lava (or water) at level 0 under a surface at 3
@@ -165,4 +166,38 @@ test('a ledge up is not jumped onto by itself', () => {
   land(x => x < 6 ? 4 : 5);
   const r = push(1, 0, 2);
   assert.ok(r.jump === null && player.x < 6 && Math.abs(player.y - 4 * LH) < 1e-6, 'still below it: ' + player.x);
+});
+
+// A bridge along x over lava (z 8, and 9 too if `wide`, x 5 to 10), its invisible side rails
+// (cubegen/fences.js), the hero on it at (7.5, 8.5); ground (level 4) beside, past the lava
+function railedBridge(wide = true) {
+  const m = room((x, z) => x >= 5 && x <= 10 && (z === 8 || wide && z === 9)), y = 4 * LH;
+  const run = { kind: 'bridge', y0: y, y1: y, k: 6, sag: 0 };
+  for (let x = 5; x <= 10; x++) {
+    const c = 8 * N + x;
+    m.pieces[c].push({ kind: 'bridge', c, j: x - 5, dx: 1, dz: 0, run });
+    for (const nz of [7, 9]) m.fences.set(edgeKey(x, 8, x, nz), [{ ymin: y, ymax: y, show: false }]);
+  }
+  Object.assign(player, { x: 7.5, z: 8.5, y, support: m.pieces[8 * N + 7][0] });
+  return m;
+}
+
+test('the rails of a bridge hold the hero on it: no teetering at its side, no jump over them', () => {
+  railedBridge();
+  const r = push(0, 1, 3);
+  assert.ok(r.stop === null && r.jump === null && !r.burned, 'held by the rail');
+  assert.ok(player.grounded && player.z > 8.5 && player.z < 9 && Math.abs(player.y - 4 * LH) < 1e-6, 'still on the bridge: ' + player.z);
+  // walking too
+  railedBridge();
+  const w = push(0, 1, 3, { run: false });
+  assert.ok(w.stop === null && w.jump === null && player.z < 9, 'held by the rail, walking');
+});
+
+test('the jump key leaves a bridge over its rail', () => {
+  railedBridge(false);
+  const r = push(0, 1, 0.5);
+  assert.ok(player.z < 9 && r.jump === null, 'held by the rail: ' + player.z);
+  movePlayer(DT, 0, 1, true, true, true);
+  push(0, 1, 1);
+  assert.ok(player.grounded && player.z > 9.2 && Math.abs(player.y - 4 * LH) < 1e-6, 'over the rail, beside the bridge: ' + player.z);
 });
