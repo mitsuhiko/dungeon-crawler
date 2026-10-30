@@ -235,12 +235,18 @@ function setup(gltf) {
     a.setEffectiveWeight(0); actions.idle.setEffectiveWeight(1);
     getUps[side] = { action: a, duration: clips[name].duration, move: extras(name).move_time, lie: [hips.x, hips.z] };
   }
+  // the arms thrown out and wobbling of the Skid clip (its arm bones' rotations over its loop), laid
+  // over the rest while the hero teeters at a brink (render/animator.js teeterPose)
+  const teeterArms = ['upper_arm', 'forearm'].flatMap(n => ['L', 'R'].map(s => bones[`${n}.${s}`])).map(bone => {
+    const track = bone && clips.Skid.tracks.find(t => t.name === `${bone.name}.quaternion`);
+    return track && [bone, track.createInterpolant(), new THREE.Quaternion()];
+  }).filter(Boolean);
   const footfalls = measureFootfalls(group, bones, actions, mixer);
   // reference (standing) pose for exaggerating strides
   mixer.update(0);
   const standing = Object.fromEntries(Object.entries(bones).map(([n, b]) => [n, b.quaternion.clone()]));
   Object.assign(character, {
-    ready: true, group, model, mesh, ghost, bones, mixer, actions, attacks, holds, standing, light, getUps, footfalls, worn: {}, clay, tint: null,
+    ready: true, group, model, mesh, ghost, bones, mixer, actions, attacks, holds, teeterArms, skidLoop: clips.Skid.duration, standing, light, getUps, footfalls, worn: {}, clay, tint: null,
     sword: null, held: null, swordWeight: 0, holdWeight: 0, getUpWeight: 0,
     walkStride: stride('Walk'), runStride: stride('Run'), swimStride: stride('Swim'),
     // the climb out: how long, the bank and its edge it was made for, where its fists grip (game units), its moments

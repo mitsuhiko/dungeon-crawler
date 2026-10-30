@@ -49,13 +49,22 @@ const edgeY = (n, d) => topOf(n, ...EDGE[d]);
 
 // What a trial changes on the hero, put back after it.
 const KEEP = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'grounded', 'swimming', 'fluid', 'wade', 'support', 'airTime', 'coyote',
-  'jumpBuf', 'stun', 'gust', 'pull', 'jumpCount', 'landCount', 'landImpact', 'climb'];
+  'jumpBuf', 'stun', 'gust', 'pull', 'jumpCount', 'landCount', 'landImpact', 'climb', 'mire', 'plunge', 'splashCount',
+  'swimY', 'swimLook', 'brink'];
+// fn() on the hero, everything it changes on them put back after it (physics/brink.js too)
+export function tryOut(fn) {
+  const p = player, keep = KEEP.map(k => p[k]), carried = p.carried && { ...p.carried };
+  try { return fn(); } finally {
+    KEEP.forEach((k, i) => { p[k] = keep[i]; });
+    if (carried) Object.assign(p.carried, carried);
+  }
+}
 // Make the move from f along d to g once: start at `from` along the cell (`lat` off its middle),
 // run (or walk slowly off, `drop`) along d, jump once at T or past it (`late` after), keep going
 // in the air. true: landed on g, softly, and stays on it.
 function trial(f, d, g, { T, drop }, { from, lat = 0, late = 0, dt = DT }) {
-  const p = player, keep = KEEP.map(k => p[k]), jumpMod = effectMod(p, 'jump');
-  try {
+  const p = player, jumpMod = effectMod(p, 'jump');
+  return tryOut(() => {
     const [x, z] = cellPoint(f, d, from, lat);
     Object.assign(p, { x, z, y: topOf(f, x - f.x, z - f.z), vx: 0, vy: 0, vz: 0, grounded: true, swimming: false, fluid: 0, wade: 0,
       support: f, airTime: 0, coyote: 0, jumpBuf: 0, stun: 0, gust: null, pull: null, climb: null });
@@ -73,7 +82,7 @@ function trial(f, d, g, { T, drop }, { from, lat = 0, late = 0, dt = DT }) {
       if (air || p.support !== f) return false;   // fell short, or walked onto something else
     }
     return false;
-  } finally { KEEP.forEach((k, i) => { p[k] = keep[i]; }); }
+  });
 }
 // the move works from a little off the middle, a little late, at a lower frame rate too
 function holds(f, d, g, e, deadly) {

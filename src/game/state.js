@@ -26,6 +26,7 @@ export const player = {
   slowed: null,    // slowed by slime (core/status.js slowFrom)
   gust: null,      // blown back by a Wolla's storm (core/gusts.js pushStep)
   pull: null,      // drawn in by Gusto breathing in (game/gusts.js, physics/move.js)
+  brink: null,     // teetering at a ledge over lava, acid or nothing (physics/brink.js)
   shocked: 0,      // stunned by a Wolk's bolt: how long its sparks still crackle (render/shocked.js)
   dazed: 0,        // squashed flat by a giant (Squarlo): how long the stars still circle (render/shocked.js)
   flat: 0,         // ... and how long the squash still shows on the hero (render/animator.js)

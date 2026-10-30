@@ -97,7 +97,8 @@ export function updatePlayer(dt) {
   }
   // always run (mouse orders too), unless Ctrl is held (but for an order's jump) or a swing plants the feet
   const before = beforeStep();
-  const gr = movePlayer(dt, dx, dz, (order?.run || !wantsWalk()) && !s.active, jump);
+  // (steering themselves, not swinging: at a brink they teeter and jump over it, physics/brink.js)
+  const gr = movePlayer(dt, dx, dz, (order?.run || !wantsWalk()) && !s.active, jump, !order && !s.active);
   noticeSwimOut(before);   // (out of the water onto a bank: game/swimout.js)
   holdInside();   // (still inside a Bolime: kept in it)
   updateLayer(gr);

@@ -58,7 +58,7 @@ function ladderLinks(map) {
 // surface (wading: WADE_COST a cell; swimming: SWIM_COST), and the ground beside it he climbs out
 // onto (up to a level over its surface) or goes into it from (a bank at most JUMP_IN levels over deep
 // water, a level over shallow water, whose bed would not catch the fall: the walk goes off it into
-// the water, physics/canmove.js player.wetOK). Not under a ceiling.
+// the water, as any walk does: physics/canmove.js). Not under a ceiling.
 const SWIM_COST = RUN_SPEED / SWIM_SPEED, WADE_COST = 1.4, JUMP_IN = 3;
 const fenceOn = (map, a, b, y) => !!map.fences?.get(edgeKey(a.x, a.z, b.x, b.z))?.some(e => e.ymax > y - 0.6 && e.ymin < y + CHAR_H);
 // (free over the water from swimming height up to `top`: the head, or where it goes in from)
@@ -227,9 +227,8 @@ export function steerWalk(w, dt) {
       if (at + 1 !== w.i) { w.i = at + 1; w.run = false; w.push = 0; }
     } else if (!w.run && (w.lost += dt) > 0.3) { plan(w); return steerWalk(w, 0); }
   }
-  if (w.i >= path.length) { w.done = true; p.wetOK = false; return aim(w.x, w.z, true); }
+  if (w.i >= path.length) { w.done = true; return aim(w.x, w.z, true); }
   w.done = false;
-  p.wetOK = path[w.i].fluid === WATER;   // (into the water: off the bank, physics/canmove.js)
   const s = w.how[w.i];
   if (s?.ladder) return ladder(w, s, dt);
   if (s) return leap(w, s);

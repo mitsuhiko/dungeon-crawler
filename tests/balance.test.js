@@ -207,3 +207,47 @@ test('the real player can jump the checked way before the locally triggered slab
     assert.ok(n >= 8);
   } finally { setGoneFloors(null); setTrialFluid(null); }
 });
+
+// The same way with the keys alone, never the jump key: walking on at each brink, the hero
+// teeters and jumps it (physics/brink.js), onto a stone only once it will be up to land on. They
+// set off SET_OFF s before the plan's take-off: the walk to the brink and the teeter.
+const SET_OFF = 0.4;
+test('walking on at each brink gets across the checked way, never into the basin', () => {
+  const DT = 1 / 60;
+  let n = 0;
+  try {
+    for (const { seed, d, m } of rooms()) {
+      const tr = m.trial, s = newTrial(tr), pts = tr.check.path;
+      state.map = m;
+      Object.assign(player, { x: pts[0].x, y: pts[0].y, z: pts[0].z, vx: 0, vy: 0, vz: 0, visY: pts[0].y, grounded: true, swimming: false,
+        fluid: 0, stun: 0, coyote: 0, jumpBuf: 0, r: CHAR_R, h: CHAR_H, support: null, climb: null, brink: null });
+      stepTrial(s, 0, { away: true });
+      setTrialFluid({ y: tr.basin * LH, fluid: tr.fluid });
+      const under = (q, t) => ['gone', 'rising'].includes(crustState(tr, { ...s, t }, q));
+      setGoneFloors((f, ahead) => tr.crust.some(q => q.f === f.id && under(q, s.t + ahead)));
+      let jumps = 0;
+      const tick = (dx, dz) => {
+        const c = player.jumpCount;
+        movePlayer(DT, dx, dz, true, false, true); stepTrial(s, DT);
+        if (player.jumpCount !== c) jumps++;
+        const q = player.grounded && tr.crust.find(q => q.f === player.support?.id);
+        if (q) touchStone(tr, s, q.stone);
+        assert.equal(inFluid(groundAt(player.x, player.z, player.y + 0.1, 0), player.y), 0, `${seed}/${d}: fell at ${s.t.toFixed(2)} s`);
+      };
+      tick(0, 0);
+      for (let j = 1; j < pts.length; j++) {
+        const q = pts[j], gap = Math.hypot(q.x - player.x, q.z - player.z) > 1.5;
+        if (gap) while (s.t < pts[j - 1].go - SET_OFF) tick(0, 0);
+        for (let steps = 0; Math.hypot(q.x - player.x, q.z - player.z) > 0.15 && steps < 300; steps++) {
+          const dx = q.x - player.x, dz = q.z - player.z, dist = Math.hypot(dx, dz);
+          tick(dx / dist, dz / dist);
+        }
+        assert.ok(Math.hypot(q.x - player.x, q.z - player.z) < 0.6, `${seed}/${d}: stuck at point ${j}`);
+      }
+      assert.ok(tr.exitApron.includes(Math.floor(player.z) * N + Math.floor(player.x)));
+      assert.equal(jumps, pts.filter((q, j) => j && Math.hypot(q.x - pts[j - 1].x, q.z - pts[j - 1].z) > 1.5).length, `${seed}/${d}: a jump a gap`);
+      n++;
+    }
+    assert.ok(n >= 8);
+  } finally { setGoneFloors(null); setTrialFluid(null); }
+});

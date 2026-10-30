@@ -1,5 +1,6 @@
 // Sounds the game makes by watching its state change from frame to frame, where there is no
-// single place to hook: the player jumping, falling a long way, the ragdoll hitting the
+// single place to hook: the player jumping, teetering at a brink (physics/brink.js: a little grit
+// slipping off the edge), falling a long way, the ragdoll hitting the
 // ground, getting up; the enemies noticing you, winding up an attack and dying (their voices,
 // audio/voices.js). Footsteps are game/footsteps.js, the surroundings game/ambience.js.
 import { player, state } from './state.js';
@@ -7,13 +8,15 @@ import { allEnemies } from './enemies.js';
 import { sfx } from '../audio/sfx.js';
 
 const FALL_SPEED = 9;   // falling faster than this whistles
-let jumps = null, falling = false, getUp = null, pelvisY = null, pelvisV = 0, thudAt = 0, alertAt = 0;
+let jumps = null, brink = null, falling = false, getUp = null, pelvisY = null, pelvisV = 0, thudAt = 0, alertAt = 0;
 const seen = new WeakMap();   // enemy -> its mode last frame
 
 function body(dt) {
   const p = player;
   if (jumps !== null && p.jumpCount !== jumps && !p.swimming) sfx('jump', { volume: 0.8 });
   jumps = p.jumpCount;
+  if (p.brink && !brink) sfx('step', { volume: 0.3, pitch: 1.5 + Math.random() * 0.2 });
+  brink = p.brink;
   const fast = !p.grounded && !p.ragdoll && !p.climb && p.vy < -FALL_SPEED;
   if (fast && !falling) sfx('fall', { volume: 0.7 });
   falling = fast || (falling && !p.grounded && !p.ragdoll);

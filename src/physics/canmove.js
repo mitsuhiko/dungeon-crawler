@@ -51,8 +51,14 @@ export function railedFace(x, z, y, dir, map = state.map) {
   return (s?.kind === 'stair' || s?.kind === 'bridge') && (s.dx !== 0 ? dir >= 2 : dir < 2);
 }
 
+// did the last canMove that said no stop the body at a brink (a ledge over what takes it, or over
+// nothing)? (physics/brink.js: teetering there, and a jump over it)
+let brink = false;
+export const stoppedAtBrink = () => brink;
+
 // can the body's center move to (nx,nz) along one axis? probes the center and three rim points
 export function canMove(nx, nz, axis, sign) {
+  brink = false;
   const r = player.r, y = player.y, step = stepOf(player);
   const ci = cellAt(nx, nz);
   if (ci < 0) return false;
@@ -65,10 +71,11 @@ export function canMove(nx, nz, axis, sign) {
     const si = cellAt(sx, sz);
     if (si < 0) return false;
     const [rx, rz] = k ? [nx, nz] : [player.x, player.z];
-    // Stop at a ledge over a fluid (lava, acid, water too deep to wade from dry land, judged at
-    // the probe: physics/fluid.js wadeable; wading already, on into the deep water to swim) or a
-    // hole through the cube (nothing to land on below) while walking, but never act as an
-    // invisible wall for jumps/falls.
+    // Stop at a brink, a ledge over lava or acid (or slime over the head: physics/fluid.js
+    // wadeable, judged at the probe) or a hole through the cube (nothing to land on below),
+    // while walking (physics/brink.js: teetering there, then a jump over it), but never act as an
+    // invisible wall for jumps/falls. Clear water (and mud) is walked into, however deep: it is
+    // swum in.
     // Query the landing surface so bridges and stacked dry floors above fluids or voids
     // remain walkable. Rim probes keep the body off the edge. This looks for drops, not rises:
     // a rim probe ahead on a steep (but walkable) slope lies more than a step above the feet,
@@ -76,7 +83,7 @@ export function canMove(nx, nz, axis, sign) {
     // cell edge are hopBlocked's).
     if (player.grounded && !player.swimming) {
       const gr = groundAt(sx, sz, y, step + STEEP * Math.hypot(sx - nx, sz - nz));
-      if (!gr.s || !wadeable(gr, player.wade > 0 || player.wetOK)) return false;
+      if (!gr.s || !wadeable(gr, true)) { brink = true; return false; }
     }
     if (hopBlocked(rx, rz, sx, sz, y, step)) return false;
     if (fenceBlocks(ci, si, y)) return false;

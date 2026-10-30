@@ -21,14 +21,17 @@ export function cellAt(x, z, map = state.map) {
 const SEAM_REACH = 0;   // cells past a seam read as its edge (beyond: solid, as anywhere outside)
 const pieceBottom = (p, top) => p.kind === 'bridge' ? top - 0.2 : p.base;
 
-// A trial's crumbling crust (game/trials.js): floors that are gone for now (gone(floor) -> true)
-// are not there for anything here, in the active cube; nor is a hole in Flip's box once it opened
-// (`open`, game/flipworld.js)
-let gone = null;
+// A trial's crumbling crust (game/trials.js): floors that are gone for now (gone(floor, ahead) ->
+// true) are not there for anything here, in the active cube; nor is a hole in Flip's box once it
+// opened (`open`, game/flipworld.js). `ahead`: s from now, while a move is tried out ahead of
+// time (physics/brink.js: a jump lands where a stone will be up, or not, when it comes down)
+let gone = null, ahead = 0;
 export const setGoneFloors = fn => { gone = fn; };
-const here = (f, map = state.map) => !f.open && !(gone && f.crust && map === state.map && gone(f));
+const here = (f, map = state.map) => !f.open && !(gone && f.crust && map === state.map && gone(f, ahead));
 // is floor f of the active cube's crust gone for now?
-export const goneNow = f => !!(gone && f.crust && gone(f));
+export const goneNow = f => !!(gone && f.crust && gone(f, 0));
+// the crust as it will be t s from now (0: as it is), until set back
+export const lookAhead = (t = 0) => { ahead = t; };
 // fn() with every crust floor there, as built (physics/leaps.js: the jumps the hero can make are
 // found once, sunk stones or not)
 export function asBuilt(fn) {

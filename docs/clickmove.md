@@ -39,8 +39,8 @@ The nodes are the floor graph the enemies walk (floors, stair and bridge pieces,
 - **The water** (`waterEdges`): from a water floor to the water beside it at its surface (waded
   or swum: a cell swum costs `RUN_SPEED / SWIM_SPEED`, one waded 1.4), out onto the ground beside
   it up to a level over its surface (where the middle of that ground's edge is no higher than a
-  swimmer climbs: `SWIM_STEP`), and into it off a bank up to three levels over it (the order lets
-  the walk go off the bank into deep water: `player.wetOK`, `physics/canmove.js`). Never where
+  swimmer climbs: `SWIM_STEP`), and into it off a bank up to three levels over it (walked off it,
+  as any walk goes into the water: `physics/canmove.js`). Never where
   something overhead leaves no room for the head, through a fence, or under a bridge it would
   walk onto instead.
 

@@ -76,6 +76,8 @@ export const RUN_RAMP = 0.25, BRAKE = 30;
 export const WALK_ANIM = 1.4, RUN_ANIM = 2.8;   // the run: its authored stride, no stretch
 // learn: physics.html#adding (see learn/README.md)
 export const JUMP_V = 6.27;     // -> jumps ~0.9 units high
+// learn: physics.html#walls (see learn/README.md)
+export const TEETER = 0.25;     // s teetering at a brink before the jump over it (physics/brink.js)
 // learn: animation.html#modes, physics.html#landing (see learn/README.md)
 export const SIT_IMPACT = 10;   // landing faster than this knocks you onto your bottom
 // learn: physics.html#landing (see learn/README.md)

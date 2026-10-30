@@ -73,7 +73,19 @@ export function enterTrial(map) {
 // the crumbling floor (collapse): which crust cells are gone (their floors are not there for the
 // physics, physics/collide.js) and how each looks
 const gone = new Set(), crust = new Map(), stoneAsked = new Set();
-setGoneFloors(f => gone.has(f.id));
+setGoneFloors((f, ahead) => ahead > 0 ? goneLater(f, ahead) : gone.has(f.id));
+// is crust floor f gone (or not up yet) `ahead` s from now, on the trial's clock as it runs? (a jump
+// tried out ahead: physics/brink.js)
+let later = null;
+function goneLater(f, ahead) {
+  const m = mapTrial(), s = state.trial;
+  if (!m?.crust || !s) return gone.has(f.id);
+  if (later?.m !== m) later = { m, of: new Map(m.crust.map(q => [q.f, q])) };
+  const q = later.of.get(f.id);
+  if (!q) return gone.has(f.id);
+  const now = crustState(m, { ...s, t: s.t + ahead }, q);
+  return now === 'gone' || now === 'rising';
+}
 function stepCrust(m, s, dt) {
   if (!m.crust) return;
   if (m.kind === 'balance' && player.hp > 0 && player.grounded && player.support) {

@@ -390,8 +390,12 @@ stone to the far side, and watch the beat.
   room whose shortest way has four slabs or more, half the time one more), rather not the first
   slab of a way. So a click on the far apron (click to move plans the jumps: `game/orders.js`)
   is not a way across: it meets the dark stone under as often as not. Click to move does not
-  plan over a stone while it is under (`physics/playernav.js`): the walk stops short of it. The
-  HUD counts down the stone underfoot (a rhythm stone: till its beat takes it under).
+  plan over a stone while it is under (`physics/playernav.js`): the walk stops short of it. Walking
+  on at a stone's edge (keys, the touch stick) teeters there and jumps the gap once a stone will be
+  there to land on (`physics/brink.js`, [combat.md](combat.md#fluids-and-falls)): under a
+  quarter of a second, well inside the check's run-up (`RUN_UP`). So the keys alone get across too,
+  but only who reads the beat sets off in time. The HUD counts down the stone underfoot (a rhythm
+  stone: till its beat takes it under).
 - **Rules:** a miss is a fall into the basin's lava or acid, as anywhere: with no robot it kills
   (the room before); with the robot along it pulls the hero out for a quarter of their health
   and carries them back to the start (where the room was entered), and the room is put back as

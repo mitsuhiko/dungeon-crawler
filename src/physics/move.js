@@ -3,7 +3,8 @@ import { STEP, GRAV, SNAP, STEEP, WALK_SPEED, RUN_SPEED, SWIM_SPEED, JUMP_V, RUN
   SWIM_DEPTH, SWIM_FEET } from '../core/constants.js';
 import { player, state } from '../game/state.js';
 import { groundAt, ceilingAt, slopeAt } from './collide.js';
-import { canMove, stepOf } from './canmove.js';
+import { canMove, stepOf, stoppedAtBrink } from './canmove.js';
+import { atBrink, brinkJump } from './brink.js';
 import { moveFactor } from '../core/status.js';
 import { effectMod } from '../core/potions.js';
 import { wornTotals } from '../core/gear/stats.js';
@@ -55,10 +56,12 @@ function horizontal(dt, dx, dz, run) {
     p.vx += (tx - p.vx) * k; p.vz += (tz - p.vz) * k;
   }
 
-  // axis-separated moves so the body slides along walls
-  const mx = p.vx * dt, mz = p.vz * dt;
-  if (Math.abs(mx) > 1e-6) { if (canMove(p.x + mx, p.z, 'x', Math.sign(mx))) p.x += mx; else p.vx = 0; }
-  if (Math.abs(mz) > 1e-6) { if (canMove(p.x, p.z + mz, 'z', Math.sign(mz))) p.z += mz; else p.vz = 0; }
+  // axis-separated moves so the body slides along walls; returned: the sign of a move along x and
+  // along z stopped at a brink (physics/brink.js), or 0
+  const mx = p.vx * dt, mz = p.vz * dt, stopped = [0, 0];
+  if (Math.abs(mx) > 1e-6) { if (canMove(p.x + mx, p.z, 'x', Math.sign(mx))) p.x += mx; else { p.vx = 0; if (stoppedAtBrink()) stopped[0] = Math.sign(mx); } }
+  if (Math.abs(mz) > 1e-6) { if (canMove(p.x, p.z + mz, 'z', Math.sign(mz))) p.z += mz; else { p.vz = 0; if (stoppedAtBrink()) stopped[1] = Math.sign(mz); } }
+  return stopped;
 }
 
 // learn: physics.html#feel #move-code (see learn/README.md)
@@ -81,12 +84,23 @@ function jumping(dt, jump) {
   // a leaping potion: that share higher (the height goes with the square of the speed)
   const boost = Math.sqrt(1 + effectMod(p, 'jump'));
   p.vy = p.swimming ? 4.8 : JUMP_V * boost;
-  // jumping while moving is a leap: enough speed to clear a one-cell gap (more with a potion)
+  // jumping while moving is a leap: enough speed to clear a one-cell gap (more with a potion);
+  // held at a brink (physics/brink.js), where walking stopped the body, the way pushed
   const s = Math.hypot(p.vx, p.vz), leap = LEAP * (1 + effectMod(p, 'moveSpeed') + feet(p));
-  if (!p.swimming && s > 0.8 && s < leap) { p.vx *= leap / s; p.vz *= leap / s; }
+  if (!p.swimming && p.brink) { p.vx = p.brink.ux * leap; p.vz = p.brink.uz * leap; }
+  else if (!p.swimming && s > 0.8 && s < leap) { p.vx *= leap / s; p.vz *= leap / s; }
   p.grounded = p.swimming = false;
   p.coyote = p.jumpBuf = 0;
   p.jumpCount++;
+  p.brink = null;
+}
+// the jump over a brink (physics/brink.js): v, its take-off
+function leapOff(p, v) {
+  Object.assign(p, v);
+  p.grounded = false;
+  p.coyote = p.jumpBuf = 0;
+  p.jumpCount++;
+  p.brink = null;
 }
 
 // A Wolla's gust (core/gusts.js): it carries the body on top of its own moving, axis by axis
@@ -139,9 +153,11 @@ function swim(dt, gr, water) {
   p.swimLook = waterAt(gr)?.look ?? 0;   // (clear water, or Sollmeldon's mud: physics/fluid.js swum)
 }
 
-// returns the ground info plus `landed` (impact speed of a landing this step, else 0)
+// returns the ground info plus `landed` (impact speed of a landing this step, else 0). own: the
+// hero steers themselves (keys, the touch stick; not a mouse order, a scene or a swing's lunge):
+// pushed on at a brink they teeter there and jump over it (physics/brink.js)
 // learn: physics.html#walls (see learn/README.md)
-export function movePlayer(dt, dx, dz, run, jump) {
+export function movePlayer(dt, dx, dz, run, jump, own = false) {
   const p = player;
   if (p.stun > 0) { p.stun -= dt; dx = dz = 0; jump = false; }
   // standing on a moving platform (game/movers.js): it carries us along
@@ -149,10 +165,14 @@ export function movePlayer(dt, dx, dz, run, jump) {
   if (p.grounded && p.support?.mover) { p.x += p.support.dx; p.z += p.support.dz; p.carried.x += p.support.dx; p.carried.z += p.support.dz; }
   if (p.gust) { const k = pushControl(p.gust); dx *= k; dz *= k; }
   if (p.pull) [dx, dz] = steerPulled(dx, dz);
-  horizontal(dt, dx, dz, run);
+  const stopped = horizontal(dt, dx, dz, run);
   if (p.gust) blown(dt);
   if (p.pull) pulled(dt);
+  if (own) atBrink(p, dt, dx, dz, stopped);
+  else p.brink = null;
   jumping(dt, jump);
+  const over = own && brinkJump(p);
+  if (over) leapOff(p, over);
 
   const gr = groundFor(p, stepOf(p));
   gr.landed = 0;

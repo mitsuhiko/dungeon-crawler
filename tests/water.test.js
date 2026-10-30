@@ -20,11 +20,13 @@ function bank(dx = 1, dz = 0, fluid = WATER) {
   return water;
 }
 
-test('walking and running stop before water, lava and acid ledges in every direction', () => {
+test('walking and running stop before lava and acid ledges in every direction, and go on into deep water', () => {
   for (const fluid of [WATER, LAVA, ACID]) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
     for (const run of [false, true]) {
       bank(dx, dz, fluid);
-      for (let i = 0; i < 120; i++) movePlayer(1 / 60, dx, dz, run, false);
+      let swam = false;
+      for (let i = 0; i < 120; i++) { movePlayer(1 / 60, dx, dz, run, false); swam ||= player.swimming; }
+      if (fluid === WATER) { assert.ok(swam, 'off the bank into the water, swimming'); continue; }
       assert.equal(Math.floor(player.x), 5);
       assert.equal(Math.floor(player.z), 5);
       assert.equal(player.y, 0);
@@ -34,14 +36,14 @@ test('walking and running stop before water, lava and acid ledges in every direc
   }
 });
 
-test('water guard includes corner probes and still permits sliding along the bank', () => {
-  bank(); player.z = 5.99;
+test('the brink includes corner probes and still permits sliding along the bank', () => {
+  bank(1, 0, LAVA); player.z = 5.99;
   assert.equal(canMove(5.8, 5.99, 'x', 1), false);
   assert.equal(canMove(5.74, 5.9, 'z', -1), true);
 });
 
 test('jumping and airborne movement can cross the guarded edge', () => {
-  bank();
+  bank(1, 0, LAVA);
   movePlayer(1 / 60, 1, 0, false, true);
   assert.equal(player.grounded, false);
   assert.ok(player.vy > 0);
@@ -50,10 +52,10 @@ test('jumping and airborne movement can cross the guarded edge', () => {
   assert.ok(player.x > 6);
 });
 
-test('dry drops remain unguarded; every fluid and every void is guarded', () => {
+test('dry drops and drops into water remain unguarded; lava, acid and every void are guarded', () => {
   for (const fluid of [WATER, LAVA, ACID]) {
     bank(1, 0, fluid);
-    assert.equal(canMove(5.85, 5.5, 'x', 1), false);
+    assert.equal(canMove(5.85, 5.5, 'x', 1), fluid === WATER);
   }
   const dry = bank(); dry.fluid = 0;
   assert.equal(canMove(5.85, 5.5, 'x', 1), true);
@@ -127,7 +129,7 @@ test('water shallower than the head is waded through, slowly; deeper water and t
   assert.ok(wading(gr, player.y) > 0.2 && wading(gr, player.y) < HEAD_Y);
 });
 
-test('a sloping bed is waded down, and once the water lifts the body it swims on; from dry land the deep water stops walking', () => {
+test('a sloping bed is waded down, and once the water lifts the body it swims on', () => {
   // the next cell's bed falls from 0.3 under the surface at its near edge to 1.7 at its far one
   const slope = () => {
     const water = bank();
@@ -150,11 +152,10 @@ test('a sloping bed is waded down, and once the water lifts the body it swims on
     for (let i = 0; i < 120; i++) movePlayer(1 / 60, 0, 0, false, false);
     assert.ok(Math.abs(player.y - (0 - SWIM_FEET)) < 0.02, `afloat with the feet ${SWIM_FEET} under the surface: ${player.y}`);
   }
-  // from dry land straight over the edge of deep water: held back, but not wading already
-  const deep = bank();
+  // deep water: not wadeable, but walked on into (wet: physics/canmove.js)
+  bank();
   assert.equal(wadeable(groundAt(6.5, 5.5, 0, 0)), false);
-  assert.equal(wadeable(groundAt(6.5, 5.5, 0, 0), true), true, 'wading already, on into it');
-  void deep;
+  assert.equal(wadeable(groundAt(6.5, 5.5, 0, 0), true), true, 'walked on into it');
 });
 
 test('a jump into deep water swims: afloat at its swimming height, slow, and nothing drowns', () => {

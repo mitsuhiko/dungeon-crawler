@@ -129,6 +129,7 @@ export function animateCharacter(dt, time) {
   let yaw = p.yaw;
   if (p.sword.active) yaw = angleTo(yaw, p.sword.yaw, Math.min(1, dt * 30));   // snap round into the swing
   else if (p.climb) { const [dx, dz] = DIRS[p.climb.l.d]; yaw = angleTo(yaw, Math.atan2(dx, dz), Math.min(1, dt * 12)); }
+  else if (p.brink && p.grounded) yaw = angleTo(yaw, Math.atan2(p.brink.ux, p.brink.uz), Math.min(1, dt * 12));   // (facing out over the brink)
   else if (speed > 0.2 && p.stun <= 0) yaw = angleTo(yaw, Math.atan2(p.vx, p.vz), Math.min(1, dt * (p.swimming ? 5 : 12)));
   p.yaw = yaw;
   ch.group.position.set(p.x, p.visY + floatOffset(dt, p) + outOffset(), p.z);
@@ -165,6 +166,7 @@ export function animateCharacter(dt, time) {
   // breathing on top of the idle pose
   ch.bones.spine.rotateX(Math.sin(time * 2.2) * 0.025 * W.idle * rest);
   holdWeapon(dt, shown && !getUp, rest);
+  teeterPose(dt, time, rest);
   if (morph) applyMorph(dt);
   heroIK(dt);
   if (ch.held && ch.sword?.visible) {
@@ -194,6 +196,21 @@ function holdWeapon(dt, shown, rest) {
   if (!bones || ch.holdWeight < 1e-3) return;
   const w = ch.holdWeight * rest * (1 - 0.25 * (W.walk + W.run));
   for (const [bone, q] of bones) bone.quaternion.slerp(q, w);
+}
+
+// Teetering at a brink (physics/brink.js player.brink): leaning out over it and wobbling, the arms
+// thrown out (the Skid clip's: render/character.js teeterArms); the more once nothing is there to
+// land on (`hold`). TEETER_LEAN: how far forward (rad), TEETER_ARMS: how much of the arms
+const TEETER_LEAN = 0.2, TEETER_ARMS = 0.85;
+let teeter = 0;
+function teeterPose(dt, time, rest) {
+  const ch = character, b = player.brink, on = !!b && player.grounded && blend.mode === 'loco';
+  teeter += ((on ? (b.hold ? 1 : 0.75) : 0) - teeter) * Math.min(1, dt * 16);
+  if (teeter < 1e-3) return;
+  const w = teeter * rest, at = (time * 1.6) % ch.skidLoop;
+  for (const [bone, curve, q] of ch.teeterArms) bone.quaternion.slerp(q.fromArray(curve.evaluate(at)), w * TEETER_ARMS);
+  ch.bones.spine.rotateX(w * TEETER_LEAN * (1 + 0.45 * Math.sin(time * 11)));
+  ch.bones.spine.rotateZ(w * 0.07 * Math.sin(time * 7.3));
 }
 
 // IK over the hero's clips (render/ik.js; the animator puts every bone back before the mixer, so

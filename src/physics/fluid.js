@@ -109,11 +109,11 @@ export const tooDeep = f => deep(f.fluid, f.surf * LH - f.top * LH, HEAD_Y);
 // how much of the head's height walking keeps out of the water: the probes that hold a walking
 // body back reach a radius past its centre (physics/canmove.js), which is where it drowns
 export const WADE_MARGIN = 0.05;
-// May a walking body set foot on the ground gr? Never on a lava or acid floor, nor under a standing
-// lava or acid; under water as deep as the head stands but for WADE_MARGIN, measured where the
-// foot goes (a sloping bed is waded down as far as that, not judged by its cell's deepest corner):
-// from dry land a jump goes into deeper water. Already in the water (wet: wading, or swimming) it
-// walks on into any clear water or mud, and swims; never into slime over the head.
+// May a body set foot on the ground gr? Never on a lava or acid floor, nor under a standing lava or
+// acid, nor into slime over the head. Wet (as walking does: physics/canmove.js), into any clear
+// water or mud, however deep: it swims. Not wet, only into water as deep as the head stands but for
+// WADE_MARGIN, measured where the foot goes (a sloping bed is waded down as far as that, not judged
+// by its cell's deepest corner): water a body wades in (how the shores are made, tests/testrooms).
 const DRY_DEPTH = HEAD_Y - WADE_MARGIN;
 export function wadeable(gr, wet = false) {
   const f = gr.s;
