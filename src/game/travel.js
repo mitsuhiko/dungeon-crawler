@@ -35,6 +35,7 @@ import { catchFall, liftArrived } from './rescue.js';
 import { cancelCast } from './townportal.js';
 import { tr } from '../i18n/i18n.js';
 import { endHandover } from './handover.js';
+import { holdTownFollow } from './camera.js';
 
 const GAP = CUBE_H + BASE;   // vertical distance between strata while sliding
 let trip = null;
@@ -115,7 +116,11 @@ function slide(p, c, cloud) {
   trip = { t: 0, s: 0, D, kind: p.kind, k, oldKey, old: { world: oldWorld, enemies: detachEnemies(), ghosts: detachNeighbors() },
     S: new THREE.Vector3(player.x, player.y, player.z).sub(D), A: new THREE.Vector3(A.x, A.y, A.z), last: null, motion,
     drawn: D.clone(),   // the new cube's offset as last drawn (the old one's is that minus D)
-    cubes: [[m, off], [oldMap, oldOff]] };
+    cubes: [[m, off], [oldMap, oldOff]],
+    // into or out of the town: the overview goes from following the hero to framing the cube (or
+    // back) as the cubes slide (game/camera.js)
+    town: [oldMap.town ? 1 : 0, m.town ? 1 : 0] };
+  holdTownFollow(trip.town[0]);
   off.copy(D); oldOff.set(0, 0, 0);   // (as drawn until the first updateTravel)
   // T: the walk and slide. Into a cube not drawn yet the new cube fades in CLOUD_DELAY later
   // (game/travelfx.js), so the travel lasts that much longer: you wait on the cloud.
@@ -173,6 +178,7 @@ export function updateTravel(dt) {
   Object.assign(p, { x: x + off.x, y: y + off.y, visY: y + off.y, z: z + off.z,
     grounded: trip.motion ? trip.motion.grounded : trip.kind === 'side', swimming: trip.motion?.swimming ?? false });
   p.airTime = p.grounded ? 0 : p.airTime + dt;
+  holdTownFollow(trip.town[0] + (trip.town[1] - trip.town[0]) * e);
   slideVisuals(trip, t, off, oldOff);
   if (trip.s >= trip.T + trip.delay) finish();
 }
@@ -187,6 +193,7 @@ function finish() {
   const landed = trip.kind === 'down', falling = trip.kind === 'fall', lifted = trip.kind === 'lift', hp = player.hp, A = trip.A0, motion = trip.motion;
   const carried = player.rescue;   // (the robot's, through a 'lift': spawnAt lets go)
   trip = null;
+  holdTownFollow(null);
   spawnAt(A.x, A.y, A.z);
   player.hp = hp;
   if (lifted && carried) Object.assign(player, { rescue: carried, grounded: false, support: null });

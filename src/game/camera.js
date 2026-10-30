@@ -43,25 +43,40 @@ const quatLooking = (q, from, to) => q.setFromRotationMatrix(m4.lookAt(from, to,
 
 // In the town (docs/town.md) the overview follows the hero all the way: the town is many cubes walked
 // across without a seam, and a view framing the one played in would jump a cube's width as the
-// next takes over (game/handover.js). Eased in and out as the hero comes and goes. Not behind the
-// main menu (game/showcase.js): the hero is parked far away there, and the tile shown is framed.
-let townFollow = 0;
-// Out of the town the overview frames the cube played in, so a cube handed over to (walked into
-// across an open face, game/handover.js) would jump the view a cube's width: it pans over to the
-// new one instead, from where it framed the old (`pan`: the old one's middle, from the new one's,
-// in PAN s).
+// next takes over (game/handover.js). Out of it the overview frames the cube played in. Which one
+// goes by the cube played in, at once: a cube entered behind the curtain is framed as it comes up,
+// one walked into across a side pans over (panCamera). Only a slide through a portal (game/travel.js)
+// goes from the one to the other along with the cubes (holdTownFollow). Not behind the main menu
+// (game/showcase.js): the hero is parked far away there, and the tile shown is framed.
+let townFollow = 0, townHeld = null;
+// travel: how far the overview follows the hero as in the town (0..1), eased as the cubes slide;
+// null: as the cube played in says
+export function holdTownFollow(v) { townHeld = v; }
+// A cube handed over to (walked into across a side, game/handover.js) moves everything by a cube's
+// width, and what the overview looks at may change with it (into or out of the town: following
+// the hero, or framing the cube). It pans over in PAN s instead, from where it looked (`pan`:
+// that, from where it looks now, falling away). In the town that is the hero, both sides: no pan.
 const PAN = 0.7;
-const pan = new THREE.Vector3();
+const pan = new THREE.Vector3(), aim = new THREE.Vector3(), aimNow = new THREE.Vector3();
 let panT = PAN;
-export function panCamera(dx, dz) { pan.set(dx, 0, dz); panT = 0; }
-function overview(dt = 0) {
+// what the overview looks at, without a pan or a kick
+function aimAt(v) {
   if (state.cubes === showcaseCubes()) townFollow = 0;
-  else townFollow += ((state.map?.town ? 1 : 0) - townFollow) * Math.min(1, dt * 3);
+  else townFollow = townHeld ?? (state.map?.town ? 1 : 0);
   const follow = Math.max(clamp((1 - view.zoom) / 0.6, 0, 1) * 0.9, townFollow);
-  target.copy(cubeCenter).lerp(focus.set(player.x, player.visY + 0.5, player.z), follow);
+  return v.copy(cubeCenter).lerp(focus.set(player.x, player.visY + 0.5, player.z), follow);
+}
+// the hero and everything else moved by (dx, dz) (the cube taken over is played in already)
+export function panCamera(dx, dz) {
+  const from = aim.add(pan.multiplyScalar(panT < PAN ? 1 - ease(panT / PAN) : 0)).add(focus.set(dx, 0, dz));
+  pan.subVectors(from, aimAt(aimNow));
+  panT = pan.lengthSq() > 1e-6 ? 0 : PAN;
+}
+function overview(dt = 0) {
+  target.copy(aimAt(aim));
   if (panT < PAN) {
     panT = Math.min(PAN, panT + dt);
-    target.addScaledVector(pan, (1 - ease(panT / PAN)) * (1 - follow));
+    target.addScaledVector(pan, 1 - ease(panT / PAN));
   }
   // distance that fits the cube's bounding sphere into the narrower field of view
   const fovV = THREE.MathUtils.degToRad(OVERVIEW_FOV);
@@ -236,7 +251,7 @@ const ease = t => t * t * (3 - 2 * t);
 // the close view only while playing (the main menu shows the cube from above)
 const goal = () => (state.mode === 'play' && cameraMode() === 'close' ? 1 : 0);
 // straight into the view the settings ask for, no blend (tests)
-export function settleCamera() { blend = goal(); arm = null; updateCamera(0); }
+export function settleCamera() { blend = goal(); arm = null; panT = PAN; updateCamera(0); }
 
 export function updateCamera(dt) {
   view.yaw += (view.yawTarget - view.yaw) * Math.min(1, dt * 8);

@@ -1450,9 +1450,9 @@ town's seams, "The town" above):
   walked across.
 - **What is seen**: the cube left dissolves into its proxy and the one taken over out of its
   own (`FADE`, 0.3 s), where they stand (complementary dither, as in the slide), its enemies
-  with it. Out of the town the overview pans over to the new cube in 0.7 s
-  (`game/camera.js panCamera`), so the view does not jump a cube's width; in town it follows
-  the hero anyway.
+  with it. The overview pans over from where it looked to where it looks now in 0.7 s
+  (`game/camera.js panCamera`), so the view does not jump a cube's width, nor lurch walking
+  into or out of the town; in town it follows the hero anyway (no pan).
 - **What keeps the side shut**, as a wall: travel, a fall through cubes, a trial room sealed
   (`game/trials.js sealedOut`), a guardian's gate locked, a guardian still standing in its arena,
   Umbra's water (the diving suit), Flip's box turned. Steering out over it says why (`game/portals.js`), or asks whether

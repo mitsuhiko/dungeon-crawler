@@ -3,10 +3,14 @@
 The game has two views. The **overview** (the default) looks down at 44° from far away with a
 narrow lens (28°), so the whole cube shows like a model on a table; zoomed in it follows the
 hero. In the town (many cubes walked across without a seam, [town.md](town.md)) it follows the hero
-all the way, at any zoom, eased in and out as they come and go: framing the cube played in, it
-would jump a cube's width as the next one takes over (`game/camera.js` `townFollow`). Out of the
-town, walking across an open face into the cube beyond ([world.md](world.md#opened-side-connections),
-`game/handover.js`) the overview pans over to the new cube in 0.7 s instead (`panCamera`). The **close view** sits behind the hero with a wide lens (60°; 50° to 90° in the settings), the mouse looking around
+all the way, at any zoom: framing the cube played in, it would jump a cube's width as the next
+one takes over (`game/camera.js` `townFollow`). Walking across a side into the cube beyond
+([world.md](world.md#opened-side-connections), `game/handover.js`), everything moves by a cube's
+width and what the overview looks at may change (into or out of the town); it pans over from
+where it looked to where it looks now in one smoothstep of 0.7 s (`panCamera`), in town from the
+hero to the hero (no pan). A slide through a portal into or out of the town goes from the one to
+the other on the slide's own ease (`holdTownFollow`, `game/travel.js`), and a cube entered behind
+the curtain is framed at once. The **close view** sits behind the hero with a wide lens (60°; 50° to 90° in the settings), the mouse looking around
 (captured, as in other third-person games). It is meant for finding the way through tunnels,
 caves and the deep, where the overview's cutaway gets busy, and it works everywhere: cubes,
 tunnels, house interiors, while travelling.
