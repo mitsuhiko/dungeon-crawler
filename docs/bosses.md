@@ -72,9 +72,11 @@ anybody's head.
   Besides him it shows a shadow, glowing eyes, a pool on the floor, a spotlight's beam and its
   light, confetti (`render/introfx.js`) and Mansk's curtain (`render/stagecurtain.js`), and may
   take the world round the arena away (`state.introVoid`, as Flip's fight does: it stays away
-  till his fight takes over). A reveal may also set his arena before the intro starts (`waiting`:
-  every frame while his whole intro is due, the screen still coming up as the hero comes in;
-  Mansk's curtain is shut by then), and the intro takes it over.
+  till his fight takes over). Before the intro starts (every frame while his whole intro is due,
+  the screen still coming up as the hero comes in: the slide into his cube) he is out of sight
+  (`veil`), so he is not seen standing on his spot only to vanish as his reveal begins; or his
+  reveal sets his arena for it (`waiting`: Mansk's curtain is shut by then), and the intro takes
+  it over.
 - **The default, the drop** (Temp Bosses, and a boss whose own cannot be played here: a
   reveal's `fits`): a
   shadow grows on his empty spot, he falls out of the sky onto it with a crash (dust, the ground

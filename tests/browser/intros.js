@@ -1,12 +1,13 @@
 // In devtools (?dev=1): await (await import('./tests/browser/intros.js')).runIntroChecks()
 // Every real boss's intro (game/bossintro.js, game/reveals.js, game/bossreveals.js; docs/bosses.md
-// "The intro"), in his own arena: his own reveal plays; at first he is not there yet (hidden, under
-// his spot or away from it, or Slomo flat as a pool); when his name comes up he is on his spot and
-// all there; at the end, and skipped half way, he is on his spot as the fight wants him, nothing of
-// the reveal left on him or his view, the light and the camera the game's again. Mansk's curtain
-// shut at first, open by then, and gone.
+// "The intro"), in his own arena: coming in, before it starts, he is out of sight; his own reveal
+// plays; at first he is not there yet (hidden, under his spot or away from it, or Slomo flat as a
+// pool); when his name comes up he is on his spot and all there; at the end, and skipped half way,
+// he is on his spot as the fight wants him, nothing of the reveal left on him or his view, the
+// light and the camera the game's again. Mansk's curtain shut at first, open by then, and gone.
 import { paused } from './combat.js';
-import { state } from '../../src/game/state.js';
+import { state, player } from '../../src/game/state.js';
+import { bossOf } from '../../src/core/bossbar.js';
 import { BOSSES } from '../../src/core/bosses.js';
 import { INTROS } from '../../src/core/bossintro.js';
 import { allEnemies, drawEnemies } from '../../src/game/enemies.js';
@@ -40,6 +41,15 @@ export async function runIntroChecks(only = null) {   // only: the bosses to che
       if (only && !only.includes(boss)) continue;
       await goBoss(boss);
       await Promise.all([loadSpecies([boss]), characterReady]);
+      // coming in (the screen still coming up, the slide into his cube), his whole intro due: he is
+      // not there yet (not seen standing on his spot, gone as his reveal begins)
+      const comer = bossOf(allEnemies(), player);
+      if (comer && !comer.holdIntro) {   // (not Umbra: he comes once his reef is flooded)
+        state.run.met.delete(comer.id);
+        state.transitioning = true;
+        try { updateBossIntro(DT); drawEnemies(DT); } finally { state.transitioning = false; }
+        check(!introPlaying() && comer.veil === 0 && comer.view?.group.visible !== true, `${boss}: out of sight before his intro starts`);
+      }
       // the whole of it
       check(devIntro(true) === null, `${boss}: an intro to play`);
       let r = introRun(), e = r.e;

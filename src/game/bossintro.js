@@ -9,8 +9,9 @@
 // and the robot keeps quiet (game/narrator.js). Met before (or shown another player's enemies, or
 // someone else is here: their world must not stop for us, nor their boss jump about), only his
 // name shows a moment while his bar fades in. Reducing motion: no camera, the rest as always.
-// Before the whole intro starts, while the screen comes up, his reveal may set his arena for it
-// (`waiting`: Mansk's curtain shut over his stage).
+// Before the whole intro starts, while the screen comes up (the slide into his cube), he is not
+// there yet (his reveal brings him in), or his reveal sets his arena for it (`waiting`: Mansk's
+// curtain shut over his stage).
 import { player, state } from './state.js';
 import { allEnemies, mirroring, resetEnemies } from './enemies.js';
 import { bossOf } from '../core/bossbar.js';
@@ -85,16 +86,17 @@ function due(e) {
   const fresh = !['chase', 'attack', 'alert', 'split', 'gone'].includes(e.mode) && e.hp >= e.profile.hp;
   return alone && fresh && !state.run.met.has(e.id);
 }
-// Before it starts (the screen still coming up as the hero comes in, look waits for it): a reveal
-// with a `waiting` sets his arena for it (Mansk's curtain shut over his stage), every frame while
-// it is due. No longer due without it starting (someone came, he woke): back as it was.
+// Before it starts (the screen still coming up as the hero comes in, look waits for it), every
+// frame while it is due: he is out of sight (`veil`; else he stood there as the cube slid in, gone
+// as his reveal began), or a reveal with a `waiting` sets his arena for it (Mansk's curtain shut
+// over his stage). No longer due without it starting (someone came, he woke): back as it was.
+const unseen = e => { e.veil = 0; };
 function wait() {
   const b = visit !== state.visit && !state.map.testRoom && !state.map.interior ? bossOf(allEnemies(), player) : null, e = b?.holdIntro ? null : b;
-  const reveal = e && REVEALS[introOf(e, false).reveal];
-  const w = reveal?.waiting && due(e) ? { e, reveal } : null;
+  const w = e && due(e) ? { e, reveal: REVEALS[introOf(e, false).reveal] } : null;
   if (waiting && waiting.e !== w?.e) unwait();
   waiting = w;
-  w?.reveal.waiting(w.e);
+  if (w) (w.reveal?.waiting ?? unseen)(w.e);
 }
 function unwait() {
   if (!waiting) return;
@@ -117,8 +119,9 @@ function start(e, full) {
   let def = introOf(e, !full), reveal = full ? REVEALS[def.reveal] : null;
   Object.assign(run, { def, at: def.at, reveal });
   if (reveal?.fits && !reveal.fits(run)) { def = INTROS.drop; reveal = REVEALS.drop; Object.assign(run, { def, at: def.at, reveal, data: {} }); }
-  // (what waiting set his arena for: his reveal takes it over, else it goes)
-  if (set && (set.e !== e || set.reveal !== reveal)) { Object.assign(set.e, { veil: undefined, flood: 0 }); hideIntroFx(); }
+  // (what his reveal's waiting set his arena for: it takes it over, else it goes; out of sight
+  // only, his reveal shows him as it starts)
+  if (set && (set.e !== e || set.reveal !== reveal || !reveal?.waiting)) { Object.assign(set.e, { veil: undefined, flood: 0 }); hideIntroFx(); }
   state.intro = { full, bar: false };
   $('boss-intro-name').textContent = enemyName(e.profile);
   $('boss-intro-title').textContent = tr(epithetOf(e));
