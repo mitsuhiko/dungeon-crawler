@@ -7,9 +7,14 @@
 // nothing does, they keep teetering, holding at the brink, and look again every LOOK s (a stone
 // that comes up is jumped onto once it would be there to land on). Pushing away, or more than
 // TURN off the way, lets go of the brink.
+// Off any other edge (a trench, a pit, water, a cliff: walking is not stopped there) a hero running
+// (not walking: the walk key, the stick pushed a little) jumps where the jump the way pushed lands
+// them softly across, on ground no lower than they left (but a STEP), and far enough on (ACROSS):
+// tried out the moment they run off it (offEdge, still in the coyote time). Where it does not,
+// they fall as before (a landing deep down hurts); a ledge up is never jumped onto by itself.
 //   player.brink: { ux, uz (the way pushed), t (s at it), next (when to look), hold (nothing to
 //   land on, last look), since (s since it last stopped the body) } or null
-import { JUMP_V, SIT_IMPACT, TEETER } from '../core/constants.js';
+import { JUMP_V, SIT_IMPACT, STEP, TEETER } from '../core/constants.js';
 import { effectMod } from '../core/potions.js';
 import { lookAhead } from './collide.js';
 import { peril } from './fluid.js';
@@ -54,18 +59,32 @@ export function brinkJump(p) {
 
 // the take-off over the brink pushed at along (ux, uz), or null: nothing to land on
 export function overBrink(p, ux, uz) {
+  return leapTo(p, ux, uz, () => true);
+}
+
+// Running off an edge at (x0, z0), from ground at y0 (the frame before), along (ux, uz): the jump
+// across, or null (they fall). Only off a real drop (the ground under them now clearly lower than
+// a step), and onto ground across no lower than y0 but a step.
+const ACROSS = 0.8;   // how far on along the way pushed the landing is at least (a gap is a cell)
+export function offEdge(p, ux, uz, x0, z0, y0, under) {
+  if (!(y0 - under > 2 * STEP)) return null;
+  return leapTo(p, ux, uz, q => q.y >= y0 - STEP && (q.x - x0) * ux + (q.z - z0) * uz >= ACROSS);
+}
+
+// the first of the jumps along (ux, uz) and AIM off it that lands where `ok` (the hero, landed)
+function leapTo(p, ux, uz, ok) {
   const { leap, boost } = jumpPowers(p), jumpMod = effectMod(p, 'jump');
   for (const a of AIM) {
     const c = Math.cos(a), s = Math.sin(a), wx = ux * c - uz * s, wz = ux * s + uz * c;
     const v = { vx: wx * leap, vy: JUMP_V * boost, vz: wz * leap };
-    if (lands(p, v, wx, wz, jumpMod)) return v;
+    if (lands(p, v, wx, wz, jumpMod, ok)) return v;
   }
   return null;
 }
 
 // does the jump at v land the hero, pushing on along (wx, wz) in the air as they do, softly on
-// ground past the brink that holds them (not in a fluid, not far below)?
-function lands(p, v, wx, wz, jumpMod) {
+// ground past the brink that holds them (not in a fluid, not far below), where `ok`?
+function lands(p, v, wx, wz, jumpMod, ok) {
   return tryOut(() => {
     const x0 = p.x, z0 = p.z, y0 = p.y;
     Object.assign(p, { ...v, grounded: false, coyote: 0, jumpBuf: 0, brink: null });
@@ -75,7 +94,7 @@ function lands(p, v, wx, wz, jumpMod) {
         const gr = movePlayer(DT, wx, wz, true, false);
         if (p.swimming || p.y < y0 - 4 || peril(gr, p.y)) return false;
         if (!p.grounded) continue;
-        if (Math.hypot(p.x - x0, p.z - z0) < 0.6 || landingSpeed(gr, jumpMod) > SOFT) return false;
+        if (Math.hypot(p.x - x0, p.z - z0) < 0.6 || landingSpeed(gr, jumpMod) > SOFT || !ok(p)) return false;
         for (let i = 0; i < STAY; i++) {   // and it holds them
           lookAhead(t + (i + 1) * DT);
           const g = movePlayer(DT, 0, 0, true, false);

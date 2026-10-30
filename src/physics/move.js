@@ -4,7 +4,7 @@ import { STEP, GRAV, SNAP, STEEP, WALK_SPEED, RUN_SPEED, SWIM_SPEED, JUMP_V, RUN
 import { player, state } from '../game/state.js';
 import { groundAt, ceilingAt, slopeAt } from './collide.js';
 import { canMove, stepOf, stoppedAtBrink } from './canmove.js';
-import { atBrink, brinkJump } from './brink.js';
+import { atBrink, brinkJump, offEdge } from './brink.js';
 import { moveFactor } from '../core/status.js';
 import { effectMod } from '../core/potions.js';
 import { wornTotals } from '../core/gear/stats.js';
@@ -155,10 +155,14 @@ function swim(dt, gr, water) {
 
 // returns the ground info plus `landed` (impact speed of a landing this step, else 0). own: the
 // hero steers themselves (keys, the touch stick; not a mouse order, a scene or a swing's lunge):
-// pushed on at a brink they teeter there and jump over it (physics/brink.js)
+// pushed on at a brink they teeter there and jump over it, and running off another edge they jump
+// across where that lands them (physics/brink.js)
 // learn: physics.html#walls (see learn/README.md)
 export function movePlayer(dt, dx, dz, run, jump, own = false) {
   const p = player;
+  // (on the ground before this frame, steering themselves at a run: for running off an edge)
+  const ran = own && run && p.grounded && !p.swimming && Math.hypot(dx, dz) >= 0.3 && !(p.stun > 0)
+    && { x: p.x, z: p.z, y: p.y, jumps: p.jumpCount, ux: dx / Math.hypot(dx, dz), uz: dz / Math.hypot(dx, dz) };
   if (p.stun > 0) { p.stun -= dt; dx = dz = 0; jump = false; }
   // standing on a moving platform (game/movers.js): it carries us along
   // (and their feet, held where they stand: render/animator.js)
@@ -201,6 +205,11 @@ export function movePlayer(dt, dx, dz, run, jump, own = false) {
   p.airTime = p.grounded || p.swimming ? 0 : p.airTime + dt;
   p.support = gr.s;
   p.wade = p.grounded ? wading(gr, p.y) : 0;   // (how deep it wades: slower, and it climbs out as a swimmer does)
+  // ran off an edge this frame (not jumped): across it, if a jump lands there (physics/brink.js)
+  if (ran && !p.grounded && !p.swimming && p.jumpCount === ran.jumps) {
+    const v = offEdge(p, ran.ux, ran.uz, ran.x, ran.z, ran.y, gr.h);
+    if (v) leapOff(p, v);
+  }
   return gr;
 }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, LH, LAVA, WATER, CHAR_R, CHAR_H, TEETER } from '../src/core/constants.js';
+import { N, LH, LAVA, WATER, CHAR_R, CHAR_H, TEETER, SIT_IMPACT } from '../src/core/constants.js';
 import { flatMap, state } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { movePlayer } from '../src/physics/move.js';
@@ -10,26 +10,31 @@ import { peril } from '../src/physics/fluid.js';
 const DT = 1 / 60;
 // ground at level 4, and `gap(x, z)` cells of lava (or water) at level 0 under a surface at 3
 function room(gap, fluid = LAVA) {
+  return land((x, z) => gap(x, z) ? 0 : 4, (x, z) => gap(x, z) ? { fluid, surf: 3 } : null);
+}
+// dry ground at `level(x, z)` (the hero on (2, 8), at its level); `wet(x, z)`: a fluid there
+function land(level, wet = () => null) {
   const m = flatMap();
   for (const f of m.floors) {
-    if (gap(f.x, f.z)) Object.assign(f, { top: 0, cs: [0, 0, 0, 0], fluid, surf: 3 });
-    else Object.assign(f, { top: 4, cs: Array(4).fill(4 * LH) });
+    const l = level(f.x, f.z);
+    Object.assign(f, { top: l, cs: Array(4).fill(l * LH) }, wet(f.x, f.z));
   }
   for (const f of m.floors) f.link = f.link.map(g => g && g.top === f.top ? g : null);
   const f = m.floors[8 * N + 2];
-  Object.assign(player, { x: 2.5, z: 8.5, y: 4 * LH, vx: 0, vy: 0, vz: 0, grounded: true, swimming: false, fluid: 0, wade: 0,
-    support: f, stun: 0, coyote: 0, jumpBuf: 0, r: CHAR_R, h: CHAR_H, climb: null, gust: null, pull: null, effects: {}, brink: null });
+  Object.assign(player, { x: 2.5, z: 8.5, y: f.top * LH, vx: 0, vy: 0, vz: 0, grounded: true, swimming: false, fluid: 0, wade: 0,
+    support: f, stun: 0, coyote: 0, jumpBuf: 0, r: CHAR_R, h: CHAR_H, climb: null, gust: null, pull: null, effects: {}, brink: null,
+    landImpact: 0, landCount: 0, jumpCount: 0 });
   return m;
 }
 // push (dx, dz) for `s` s (own: the hero steering themselves): when it first stopped at the
 // brink, when it jumped (s), and whether it was ever in the lava
-function push(dx, dz, s, { own = true, jumpAt = null, tick = () => {} } = {}) {
+function push(dx, dz, s, { own = true, run = true, jumpAt = null, tick = () => {} } = {}) {
   const out = { stop: null, jump: null, burned: false };
   for (let t = 0; t < s; t += DT) {
     tick(t);
     const jumps = player.jumpCount;
     const press = jumpAt !== null && out.stop !== null && out.jump === null && t >= out.stop + jumpAt;   // (once)
-    movePlayer(DT, dx, dz, true, press, own);
+    movePlayer(DT, dx, dz, run, press, own);
     if (player.brink && out.stop === null) out.stop = t;
     if (player.jumpCount !== jumps && out.jump === null) out.jump = t;
     if (peril(groundAt(player.x, player.z, player.y + 0.1, 0), player.y)) out.burned = true;
@@ -98,4 +103,66 @@ test('the jump looks ahead: onto a stone that will be up when it lands, not one 
     assert.ok(s.jump !== null && s.jump < 1.6, 'set off before it was up: ' + s.jump);
     assert.ok(!s.burned && player.grounded && player.x > 7, 'and landed on it');
   } finally { setGoneFloors(null); }
+});
+
+// Running off an edge that is no brink (physics/brink.js offEdge): across, where a jump lands
+const trench = (w, deep = 0) => land(x => x >= 6 && x < 6 + w ? deep : 4);
+
+test('running at a dry trench a cell wide jumps it, without stopping at its edge', () => {
+  trench(1);
+  const r = push(1, 0, 3);
+  assert.ok(r.stop === null && r.jump !== null, 'ran off and jumped');
+  assert.ok(player.grounded && player.x > 7 && Math.abs(player.y - 4 * LH) < 1e-6, 'across, up on the far side: ' + player.x);
+});
+
+test('walking (the walk key) at it goes down into it', () => {
+  trench(1);
+  const r = push(1, 0, 3, { run: false });
+  assert.ok(r.jump === null && player.grounded && player.x > 6 && player.x < 7 && player.y < 0.01, 'in the trench: ' + player.x);
+});
+
+test('a mouse order is not jumped across by itself either', () => {
+  trench(1);
+  const r = push(1, 0, 3, { own: false });
+  assert.ok(r.jump === null && player.x < 7 && player.y < 0.01, 'in the trench');
+});
+
+test('running at a channel of water a cell wide jumps it', () => {
+  room(x => x === 6, WATER);
+  const r = push(1, 0, 3);
+  assert.ok(r.jump !== null && !player.swimming && player.grounded && player.x > 7, 'across the water: ' + player.x);
+});
+
+test('a trench too wide to jump is run down into, not stopped at', () => {
+  trench(4);
+  const r = push(1, 0, 3);
+  assert.ok(r.stop === null && r.jump === null, 'no stop, no jump');
+  assert.ok(player.grounded && player.x > 6 && player.y < 0.01, 'down in it: ' + player.x);
+  assert.equal(player.brink, null, 'and no teetering at its far wall');
+});
+
+test('running off a cliff with nothing across falls, and lands hard', () => {
+  land(x => x < 6 ? 24 : 0);
+  const r = push(1, 0, 3);
+  assert.ok(r.stop === null && r.jump === null, 'no stop, no jump');
+  assert.ok(player.landImpact > SIT_IMPACT && player.y < 0.01, 'a hard landing deep down: ' + player.landImpact);
+});
+
+test('a deep chasm a cell wide is jumped across', () => {
+  trench(1, -16);
+  const r = push(1, 0, 3);
+  assert.ok(r.jump !== null && player.grounded && player.x > 7 && Math.abs(player.y - 4 * LH) < 1e-6, 'across: ' + player.x);
+});
+
+test('nothing lower across but a step down is no jump: a step lower than the drop is walked off', () => {
+  // the far side two levels lower than the near one (more than a step): run down, no jump
+  land(x => x < 6 ? 4 : x === 6 ? 0 : 2);
+  const r = push(1, 0, 3);
+  assert.equal(r.jump, null, 'no jump onto lower ground');
+});
+
+test('a ledge up is not jumped onto by itself', () => {
+  land(x => x < 6 ? 4 : 5);
+  const r = push(1, 0, 2);
+  assert.ok(r.jump === null && player.x < 6 && Math.abs(player.y - 4 * LH) < 1e-6, 'still below it: ' + player.x);
 });

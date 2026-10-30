@@ -591,7 +591,17 @@ The other kinds: [sword](img/loadout-sword.jpg),
   for the landing is jumped onto at once). A leap from standing goes about two cells: over a gap of
   one, the balance's (`docs/trials.md`), not more. Turning more than 30 degrees, or letting go,
   starts over. The jump key held at a brink leaps the way pushed at once (stopped there, the body
-  has no speed to leap with: it would hop straight up).
+  has no speed to leap with: it would hop straight up). Walking into a wall is no brink (its top
+  lies too high for the probe: `physics/canmove.js` asks `hopBlocked` first).
+- **Off any other edge** (a trench, a pit, a channel of water, a cliff: nothing that stops the
+  walk) the hero steering themselves at a run jumps across where the jump lands them (`physics/brink.js
+  offEdge`, from `physics/move.js movePlayer` the frame they run off, still in the coyote time):
+  only off a real drop (more than two steps, `STEP`, below the ground left), and only where the
+  same tried-out leap (the way pushed, 6 and 12 degrees off it) lands softly on ground that holds
+  them, no lower than they left but a step, at least 0.8 on along the way pushed. Otherwise they
+  fall as before, and a landing deep down hurts. Walking (the walk key, the touch stick pushed a
+  little) never jumps: that is how one goes down into a trench. A mouse order makes its own jumps
+  ([clickmove.md](clickmove.md)), and a ledge up is never jumped onto by itself.
 - **What kills** (`physics/fluid.js peril`): lava and acid on contact, and a boss's slime (a
   standing water with a look of its own, Slomo's) over the head. With the robot along (woken at the
   crash in town) it pulls the hero out instead (`game/rescue.js`, `core/rescue.js`; [story.md](story.md#the-robot)):
