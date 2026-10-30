@@ -10,6 +10,7 @@ import { step } from '../../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, STREET } from '../../src/world/town.js';
 import { props } from '../../src/render/props.js';
 import { liveNeighbors } from '../../src/render/neighbors.js';
+import { NEIGHBOR_DIM } from '../../src/render/materials.js';
 import { paused } from './combat.js';
 
 const check = (condition, message) => { if (!condition) throw Error(message); };
@@ -49,7 +50,7 @@ export async function runTownChecks() {
             check(boxes.some(box => box.name === name && c.map.blockers.some(list => list.includes(box))), 'Rendering discarded static building collision');
           check(state.world.glass.userData.seams?.every((s, i) => s === c.map.seams[i]), 'The glass knows no seams');
           const others = liveNeighbors().filter(g => town.tiles.has(g.key));
-          check(others.length === town.keys.length - 1 && others.every(g => g.lift === 1), 'The other tiles are not drawn round it');
+          check(others.length === town.keys.length - 1 && others.every(g => g.dim === NEIGHBOR_DIM.town), 'The other tiles are not drawn round it, half as dim');
         }
         // walking across a seam: the tile beyond takes over at once, the hero where they were
         for (const k of [town.start, town.portal]) {

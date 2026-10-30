@@ -43,6 +43,11 @@ export const FLUID_LOOK = {
 // The surroundings are drawn darker than the cube you are in: solids (and props) take this
 // tint, fluids and glows this share of their colour and light.
 export const PROXY = { tint: 0x5f6672, fluid: 0.6, glow: 0.6 };
+// ... as far as their `dim` says (0: as bright as the cube you are in, 1: the whole tint; mixed
+// as the eye sees it, render/neighbors.js): the town's tiles half as dim as the world's cubes
+// (docs/town.md: the town is one place); the people in them a little less dim than their ground
+// (render/standins.js)
+export const NEIGHBOR_DIM = { world: 1, town: 0.5, people: 0.75 };
 
 // emissive strength of a surface at `time` (the active cube pulses lava; proxies too)
 export function fluidGlow(t, time) {

@@ -26,7 +26,8 @@ still to come.
   map, drawn as surroundings, their faces open. The town is home. This is the one exception to
   "Only where you have been" ([world.md](world.md#only-where-you-have-been)).
 - **One cube at a time.** Only the tile the hero is in is simulated and drawn in full; the other
-  tiles are surroundings, drawn in their own colours with all their houses, trees and dressing.
+  tiles are surroundings, drawn with all their houses, trees and dressing, and dimmed like any
+  surroundings but half as much (the town is one place).
 - **No seams.** Between two town tiles there is no glass (no panes, no edges), no travel slide and
   no step in the ground. Crossing a seam hands the tile over at once (`game/handover.js`); the
   overview camera follows the hero in town. Around the whole town there is one glass hull.

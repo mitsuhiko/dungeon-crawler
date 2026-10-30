@@ -22,6 +22,7 @@ import { clearParticles } from '../render/particles.js';
 import { clearFloatText } from '../render/floattext.js';
 import { cancelSword } from './sword.js';
 import { onPropSet } from '../render/props.js';
+import { NEIGHBOR_DIM } from '../render/materials.js';
 import { cubeAssets, warmCube } from '../render/cubeassets.js';
 import { warmScene } from '../render/warmup.js';
 import { villagersReady } from '../render/villagers.js';
@@ -378,12 +379,12 @@ function prefetchAround(c, since = performance.now()) {
 export function visitedNeighbors(k) {
   if (!state.showNeighbors || isInterior(k)) return [];   // inside a house: nothing around
   // (landmarks show in the surroundings too: they are what you find your way by)
-  // (the town's tiles: one place under one glass; from inside it in their own colours, docs/town.md)
+  // (the town's tiles: one place under one glass; from inside it half as dim, docs/town.md)
   const inTown = !!state.cubes.cubes.get(k)?.map.town;
   return discoveredCubes(state.cubes.cubes, k).map(c => {
     const map = state.cubes.cubes.get(c.key).map;
     return { ...c, open: openedSides(state.openedFaces, c.key), shut: portalsOnly(map, state.run),
-      landmarks: shownFar(map), seams: map.seams ?? null, lift: inTown && map.town ? 1 : 0 };
+      landmarks: shownFar(map), seams: map.seams ?? null, dim: inTown && map.town ? NEIGHBOR_DIM.town : NEIGHBOR_DIM.world };
   });
 }
 

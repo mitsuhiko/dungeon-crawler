@@ -12,7 +12,7 @@ import { VIEW_DISTANCE, distanceFade } from '../core/viewdistance.js';
 import { scene, camera } from './scene.js';
 import { PARTS } from './parts.js';
 import { partGeometry } from './partmeshes.js';
-import { partMaterial, fluidLook, fluidGlow, PROXY } from './materials.js';
+import { partMaterial, fluidLook, fluidGlow, PROXY, NEIGHBOR_DIM } from './materials.js';
 import { makeFadable, setFade, dither } from './fade.js';
 import { glassState, glassBatch, setGlassFaces, setGlassShut, setGlassSeams } from './glass.js';
 import { inject } from './cutshader.js';
@@ -67,9 +67,10 @@ function batchMaterial(mat, data, key, edit = sh => sh, cut = REVEAL) {
     sh.vertexShader = 'uniform highp sampler2D uProxyData;\nflat varying vec4 vProxy;\n' + sh.vertexShader.replace('#include <batching_vertex>',
       '#include <batching_vertex>\n#ifdef USE_BATCHING\n  vProxy = texelFetch(uProxyData, ivec2(int(getIndirectIndex(gl_DrawID)), 0), 0);\n#else\n  vProxy = vec4(1.0, 0.0, 1.0, 0.0);\n#endif');
     sh.fragmentShader = 'uniform float uProxyReveal, uProxyFloor;\nflat varying vec4 vProxy;\n' + sh.fragmentShader.replace('void main()', BESIDE_WALL + 'void main()');
-    // lifted (vProxy.w: the town's tiles, docs/town.md): its own colours, not the proxies' darker tint
+    // lifted (vProxy.w: 1 - its dim, materials.js NEIGHBOR_DIM): that far back from the proxies'
+    // darker tint (the material's colour) to its own colours, mixed as the eye sees it (gamma 2.2)
     if (cut === REVEAL) sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>',
-      '#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb / max(diffuse, vec3(0.02)), vProxy.w);');
+      '#include <color_fragment>\n  diffuseColor.rgb *= pow(mix(vec3(1.0), pow(1.0 / max(diffuse, vec3(0.02)), vec3(1.0 / 2.2)), vProxy.w), vec3(2.2));');
     edit(sh);
   };
   return mat;
@@ -139,7 +140,7 @@ class Batch {
   }
   removeInstance(id) { this.mesh.deleteInstance(id); this.count--; }
   // matrix: null to keep the last one; fade: [fade, inverted, range fade, lift] (render/fade.js; lift:
-  // drawn in its own colours, the town's)
+  // 1 - its dim, materials.js NEIGHBOR_DIM)
   set(id, matrix, fade, visible) {
     if (matrix) this.mesh.setMatrixAt(id, matrix);
     const d = this.data.value.image.data, f = Math.fround;   // (stored as 32-bit floats)
@@ -278,8 +279,9 @@ function proxy(geo, open, landmarks = []) {
 // Reuse common cubes across refreshes and travel. Consume them from `reuse` so callers
 // dispose/fade only the departing proxies. The full source/destination keep their own fades.
 // shut: its room joins only through its portals (its glass glows, render/glass.js)
+// dim: how much darker than the cube you are in it is drawn (materials.js NEIGHBOR_DIM)
 export function buildNeighbors(list, reuse = []) {
-  return list.map(({ key, geo, dx, dz, open, shut, landmarks, seams = null, lift = 0 }) => {
+  return list.map(({ key, geo, dx, dz, open, shut, landmarks, seams = null, dim = NEIGHBOR_DIM.world }) => {
     const index = reuse.findIndex(g => g.key === key && g.source === geo);
     const g = index < 0 ? { key, source: geo, ...proxy(geo, open, landmarks), base: new THREE.Vector3() }
       : reuse.splice(index, 1)[0];
@@ -289,7 +291,7 @@ export function buildNeighbors(list, reuse = []) {
     setGlassSeams(g.glass, seams);
     setGlassFaces(g.glass, open);
     setGlassShut(g.glass, shut);
-    g.lift = lift;
+    g.dim = dim;
     live.add(g);
     return g;
   });
@@ -368,7 +370,7 @@ function sync() {
   for (const g of live) {
     const { position, userData } = g.group;
     const shown = g.cull.visible && g.group.visible;
-    const fade = [userData.fadeU.value, userData.fadeInv.value, userData.rangeFadeU.value, g.lift ?? 0];
+    const fade = [userData.fadeU.value, userData.fadeInv.value, userData.rangeFadeU.value, 1 - (g.dim ?? 1)];
     for (const inst of g.instances) {
       const moved = !inst.at || !inst.at.equals(position);
       if (moved) { inst.at = position.clone(); place.makeTranslation(position.x, position.y, position.z).multiply(inst.local); }

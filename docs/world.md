@@ -52,9 +52,9 @@ the gate's row). The gate's tile is `(0,0,0)`; a new world starts in the inn's t
   knowTown`): on the map, drawn round the hero, the faces between them open. The town is home: the
   one exception to "Only where you have been" above.
 - **One cube at a time.** Only the tile the hero is in is played and drawn in full; the others are
-  its surroundings (`render/neighbors.js`), drawn in their own colours (`lift`: not the proxies'
-  darker tint) and with all they are dressed with, houses and trees too (`shownFar`). From outside
-  the town they look like any other surroundings.
+  its surroundings (`render/neighbors.js`), half as dim as the surroundings outside the town
+  (`dim`, `render/materials.js NEIGHBOR_DIM`) and with all they are dressed with, houses and trees
+  too (`shownFar`). From outside the town they look like any other surroundings.
 - **No seams.** Between two tiles (a tile's `map.seams`, the sides with another tile beyond) there
   is no portal, no glass and no step in the ground: their faces are flat at the town's level (as
   every face touching the town). Each tile's glass draws only its share of one hull round the whole
