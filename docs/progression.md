@@ -57,7 +57,8 @@ The numbers are in `PLAYER` (`core/progression.js`); [balance.md](balance.md) ex
   seconds without damage. All damage paths share the same timer; inventory pauses that timer.
 - **Potions** ([potions.md](potions.md)): health potions pour 25–100% of the maximum HP in
   within a second, others cure poison or quicken, strengthen or lift you for 30 s; flasks are
-  thrown. Each kind has its own one-second cooldown (the quick bar slot fills meanwhile). No
+  thrown. Each kind has its own one-second cooldown, but the health potions share one of two
+  seconds (the quick bar slot fills meanwhile). No
   drinking while knocked down, no health potion at full health. Enemies drop them now and then,
   guardians always, chests hold them and the alchemist sells them.
 - While **poisoned** (venomous bites, acid) the player does not regenerate.

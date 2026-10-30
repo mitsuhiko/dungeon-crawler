@@ -211,18 +211,18 @@ test('levels add health and a little damage; kills far below the player pay less
   assert.equal(xpScale(10, 7), 0.8); assert.equal(xpScale(10, 5), 0.4); assert.equal(xpScale(30, 1), 0.1);
   for (let d = 0; d < 20; d++) assert.ok(xpScale(10, 10 - d - 1) <= xpScale(10, 10 - d));
 });
-test('a health potion pours part of the maximum in within a second, one drink a second', () => {
+test('a health potion pours part of the maximum in within a second, one drink every two seconds', () => {
   const p = createPlayerStats(), pour = (from, to) => { for (let t = from; t < to - 1e-9; t += 0.05) tickEffects(p, 0.05, t + 0.05); };
   assert.equal(drinkPotion(p, HEALTH_POTION, 1), 'full');
   takeDamage(p, 70, 1);
   assert.deepEqual(drinkPotion(p, HEALTH_POTION, 2), { heal: 40 }); assert.equal(p.hp, 30, 'not all at once');
   pour(2, 2.3); assert.ok(p.hp > 30 && p.hp < 70);
   pour(2.3, 3); assert.ok(Math.abs(p.hp - 70) < 1e-9);
-  assert.equal(drinkPotion(p, HEALTH_POTION, 2.5), 'wait');
-  assert.deepEqual(drinkPotion(p, HEALTH_POTION, 3), { heal: 30 }); pour(3, 4);
+  assert.equal(drinkPotion(p, HEALTH_POTION, 3.5), 'wait');
+  assert.deepEqual(drinkPotion(p, HEALTH_POTION, 4), { heal: 30 }); pour(4, 5);
   assert.equal(p.hp, 100, 'never above the maximum');
   p.hp = 0; assert.equal(drinkPotion(p, HEALTH_POTION, 9), 'dead'); assert.equal(p.hp, 0);
-  assert.equal(HEALTH_POTION.use, 'drink'); assert.ok(HEALTH_POTION.effect.heal > 0 && HEALTH_POTION.effect.time < 1 && HEALTH_POTION.cooldown === 1);
+  assert.equal(HEALTH_POTION.use, 'drink'); assert.ok(HEALTH_POTION.effect.heal > 0 && HEALTH_POTION.effect.time < 1 && HEALTH_POTION.cooldown === 2);
 });
 test('picked-up potions go on the first free quick bar slot unless they are on it already', () => {
   const inv = createPlayerStats().inventory;

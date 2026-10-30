@@ -8,7 +8,7 @@ are sold by the alchemist in the merchant camp. Their rules are pure (`core/poti
 `core/status.js`, `core/throws.js`, `core/shops.js`); the game runs them in `game/quickbar.js`,
 `game/throws.js`, `game/statuses.js` and `game/inventory.js`.
 
-| Potion | Does | Price | Drops from item level |
+| Potion | Does | Price (level 1) | Drops from item level |
 |---|---|---:|---:|
 | Minor health potion | 25% of the maximum health, poured in over 0.5 s | 1s 5c | 1 |
 | Health potion | 40%, over 0.6 s (a run starts with three) | 4s | 1 |
@@ -24,14 +24,17 @@ are sold by the alchemist in the merchant camp. Their rules are pure (`core/poti
 | Toxic flask | poisons everything within 1.8 cells (60 over 6 s), the cloud lingers 6 s | 7s | 4 |
 
 Flask numbers are at player level 1; they grow 17% of that per level (`flaskPower`), as fast
-as enemy health grows with theirs.
+as enemy health grows with theirs. The prices are at level 1 too: deeper down they grow like the
+Smith's and the Enchanter's (below).
 
 ## Drinking
 
 A drink is used from the quick bar or the bag (**Use**, labelled *Drink*). `drinkPotion` puts
-its effect on the player (`player.effects`) and starts **that kind's own cooldown**
-(`player.cooldowns`, one second for every potion): kinds never wait for each other, so a
-health potion and a minor one can be drunk back to back. A health potion is refused at full
+its effect on the player (`player.effects`) and starts **its cooldown** (`player.cooldowns`):
+each kind has its own, one second, so a buff and a flask never wait for each other, but the
+**health potions share one** of two seconds (`HEAL_TIME`, `cooldownOf`): whatever heals you,
+it is one health potion every two seconds, so a stack of cheap potions does not make you
+unkillable. A health potion is refused at full
 health, nothing is drunk while knocked down.
 
 - Health pours in over its time (well under a second); two kinds pour in side by side, and
@@ -86,7 +89,11 @@ Villagers with a shop (`core/shops.js SHOPS`, by name) are hovered like chests (
 with their trade) and clicked to walk up to them; within 1.4 cells the bag opens with their
 wares in a column beside it. Select a ware to see what it does, its price and how many you
 have; **Buy**, Enter or a double-click buys one for its price in coins, change given, all or
-nothing (not enough coins, or no room in the bag). Bought potions go on the quick bar like
+nothing (not enough coins, or no room in the bag). The price is the table's at level 1, grown
+like the Smith's and the Enchanter's prices (`shopPrice`: + 75% of it for every level of the
+deepest depth anyone got to in the world, `shopLevel`, the world's level counted in), so a potion
+costs about as much of what a depth pays all the way down: a health potion 40 copper (4s) on the
+road out of town, 34s at depth 11 of a world of level 1 and 61s at the core. Bought potions go on the quick bar like
 found ones. The alchemist in the wizard hat (merchant camp, `town_merchant_c`) sells every
 potion and flask. With `?dev=1` a run starts with 5000 gold. The enchanter and the smith trade
 too, working on weapons instead ([loot.md](loot.md#enchanting-and-re-rolling)).

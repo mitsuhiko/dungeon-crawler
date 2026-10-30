@@ -4,7 +4,8 @@
 //   p.effects: what is working on the player, by key: 'heal:<item>' (health pouring in; two
 //     kinds of health potion pour in side by side), 'buff:<stat>' (one per stat: drinking it
 //     again starts it over) and 'immune:<status>'
-//   p.cooldowns: item id -> the time it can be used again
+//   p.cooldowns: cooldown (cooldownOf: the item id, 'heal' for every health potion) -> the time it
+//     can be used again
 import { ITEMS, POTIONS } from './items.js';
 
 // the stats a buff adds a share to: movement speed and jump height (physics/move.js), attack
@@ -22,13 +23,17 @@ export function flaskStats(def, level, might = 1) {
 }
 
 export const createPotionState = () => ({ effects: {}, cooldowns: {} });
-export const cooldownLeft = (p, itemId, time) => Math.max(0, (p.cooldowns?.[itemId] ?? -Infinity) - time);
+// Each kind waits for its own cooldown, but the health potions share one (HEAL_COOLDOWN s): what
+// heals you, all told, is one potion every so often, whichever it is.
+export const HEAL_COOLDOWN = 'heal';
+export const cooldownOf = itemId => ITEMS[itemId]?.family === 'heal' ? HEAL_COOLDOWN : itemId;
+export const cooldownLeft = (p, itemId, time) => Math.max(0, (p.cooldowns?.[cooldownOf(itemId)] ?? -Infinity) - time);
 // the share of the item's cooldown still to wait (0: ready), for the quick bar
 export function cooldownShare(p, itemId, time) {
   const c = ITEMS[itemId]?.cooldown;
   return c ? Math.min(1, cooldownLeft(p, itemId, time) / c) : 0;
 }
-export function startCooldown(p, itemId, time) { p.cooldowns[itemId] = time + (ITEMS[itemId].cooldown ?? 0); }
+export function startCooldown(p, itemId, time) { p.cooldowns[cooldownOf(itemId)] = time + (ITEMS[itemId].cooldown ?? 0); }
 
 // Drink potion `def` at `time`: puts its effect on p and starts its cooldown. What it does
 // ({ heal: the health it pours in }, { cured: whether it ended the status }, { buff }), or why

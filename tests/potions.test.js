@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assetsRoot } from './paths.js';
-import { ITEMS, POTIONS, HEALTH_POTION } from '../src/core/items.js';
+import { ITEMS, POTIONS, HEALTH_POTION, HEAL_TIME } from '../src/core/items.js';
 import { createPlayerStats, regenerate, PLAYER } from '../src/core/progression.js';
 import { drinkPotion, tickEffects, effectMod, immuneTo, cooldownLeft, cooldownShare, activeEffects, clearEffects,
   flaskStats, flaskPower, potionTable, rollPotion, rollPotions, BUFFS } from '../src/core/potions.js';
 import { addItem, removeItem, takeItem, equipItem, readyItem, readiedItem, autoBar, countOf, slotOf, copperTotal, addCopper } from '../src/core/inventory.js';
 import { swordState, combatStats, startSwing, readiedFlask, damageEnemy, KINDS } from '../src/core/combat.js';
-import { SHOPS, buy, priceOf } from '../src/core/shops.js';
+import { SHOPS, buy, priceOf, shopPrice } from '../src/core/shops.js';
 import { afflict, enemyTick, statusOver, immuneTo as statusImmune, toxinOf } from '../src/core/status.js';
 import { blowOf, VENOM_ADDER, BOG_SPIDER, REDBACK, FIRECAT, FIREFACE, FIRE_SHRAPS, SPIDER, makeEnemy, enemyProfile } from '../src/core/enemies.js';
 import { launchFlask, stepFlask, arcOf, clampTarget, burstVictims, inArea, flightTime, releasePoint } from '../src/core/throws.js';
@@ -39,19 +39,22 @@ test('every potion is a stackable with a price and a model, a cooldown and a fam
   assert.ok(flasks.some(f => f.flask.blast && !f.flask.burn) && flasks.some(f => f.flask.burn && f.flask.patch) && flasks.some(f => f.flask.toxin && f.flask.cloud));
 });
 
-test('each kind of potion has its own cooldown; kinds do not wait for each other', () => {
+test('each kind of potion has its own cooldown, but the health potions share one', () => {
   const p = hero(), minor = potion('item_potion_health_minor'), haste = potion('item_potion_haste');
   p.hp = 10;
+  assert.equal(HEALTH_POTION.cooldown, HEAL_TIME); assert.equal(minor.cooldown, HEAL_TIME); assert.equal(haste.cooldown, 1);
   assert.ok(drinkPotion(p, HEALTH_POTION, 5).heal);
   assert.equal(drinkPotion(p, HEALTH_POTION, 5.5), 'wait');
-  assert.ok(drinkPotion(p, minor, 5.5).heal, 'another kind of health potion is ready');
-  assert.ok(drinkPotion(p, haste, 5.5).buff);
-  assert.ok(Math.abs(cooldownLeft(p, HEALTH_POTION.id, 5.5) - 0.5) < 1e-9);
-  assert.ok(Math.abs(cooldownShare(p, HEALTH_POTION.id, 5.75) - 0.25) < 1e-9);
-  assert.equal(cooldownShare(p, HEALTH_POTION.id, 7), 0);
-  // the two heals pour in side by side, all of each
-  for (let t = 5.5; t < 7; t += 0.05) tickEffects(p, 0.05, t + 0.05);
-  assert.ok(Math.abs(p.hp - (10 + (HEALTH_POTION.effect.heal + minor.effect.heal) * p.maxHp)) < 1e-9);
+  assert.equal(drinkPotion(p, minor, 5.5), 'wait', 'another kind of health potion waits too');
+  assert.ok(drinkPotion(p, haste, 5.5).buff, 'other kinds do not');
+  assert.equal(drinkPotion(p, haste, 6), 'wait');
+  assert.ok(Math.abs(cooldownLeft(p, minor.id, 5.5) - (HEAL_TIME - 0.5)) < 1e-9);
+  assert.ok(Math.abs(cooldownShare(p, HEALTH_POTION.id, 5 + HEAL_TIME * 0.75) - 0.25) < 1e-9);
+  assert.equal(cooldownShare(p, HEALTH_POTION.id, 5 + HEAL_TIME), 0);
+  assert.ok(drinkPotion(p, minor, 5 + HEAL_TIME).heal);
+  // the two heals pour in, all of each
+  for (let t = 5; t < 5 + HEAL_TIME + 1; t += 0.05) tickEffects(p, 0.05, t + 0.05);
+  assert.ok(Math.abs(p.hp - Math.min(p.maxHp, 10 + (HEALTH_POTION.effect.heal + minor.effect.heal) * p.maxHp)) < 1e-9);
 });
 
 test('buffs last their time, quicken and strengthen attacks, and wear off; drinking again starts one over', () => {
@@ -148,6 +151,13 @@ test('the alchemist sells every potion for its price, all or nothing', () => {
   addCopper(inv, 10000);
   assert.equal(buy(inv, 'item_flask_fire'), 'full'); assert.equal(copperTotal(inv), 10020, 'nothing spent');
   assert.equal(buy(inv, HEALTH_POTION.id), 'ok', 'onto its stack');
+  // deeper down they cost more, as the Smith's and the Enchanter's prices do
+  assert.equal(shopPrice(HEALTH_POTION.id, 1), priceOf(HEALTH_POTION.id));
+  assert.equal(shopPrice(HEALTH_POTION.id, 11), 340);
+  assert.equal(shopPrice('item_crystal_ruby', 5), null);
+  const before = copperTotal(inv);
+  assert.equal(buy(inv, HEALTH_POTION.id, 1, 11), 'ok');
+  assert.equal(copperTotal(inv), before - 340);
 });
 
 test('drops draw a potion that suits the level, health potions the likeliest', () => {

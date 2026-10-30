@@ -110,8 +110,9 @@ export const COINS = [
 //     `flask.radius` cells and never hurt the player: `blast` damages, `burn` sets on fire
 //     and leaves a burning `patch` for that many s, `toxin` poisons and leaves a `cloud`. Their
 //     damage grows with the player's level (core/potions.js flaskPower).
-// Each kind has its own cooldown (`cooldown` s; core/potions.js cooldownLeft). `price`: copper
-// at the alchemist (core/shops.js); `level`: the least item level they drop at, `weight`: how
+// Each kind has its own cooldown (`cooldown` s; core/potions.js cooldownLeft), but the health
+// potions share theirs (HEAL_TIME). `price`: copper at the alchemist at level 1, more deeper down
+// (core/shops.js shopPrice); `level`: the least item level they drop at, `weight`: how
 // likely they drop against the others (core/gear/drops.js, core/chests.js). `family`: which
 // quick bar slot they share by themselves (core/inventory.js autoBar). A new run starts with a
 // few health potions on the quick bar.
@@ -120,7 +121,10 @@ const potionDef = (id, name, use, spec, description, params) => ({ id, name, cat
 const pct = v => Math.round(v * 100);
 const BUFF_TEXT = { moveSpeed: msg('You move {v}% faster for {time} seconds.'), attackSpeed: msg('You attack {v}% faster for {time} seconds.'),
   damage: msg('Your attacks deal {v}% more damage for {time} seconds.'), jump: msg('You jump {v}% higher for {time} seconds.') };
-const drink = (id, name, effect, spec) => potionDef(id, name, 'drink', { family: effect.buff ? 'buff' : effect.heal ? 'heal' : 'cure', ...spec,
+// the cooldown the health potions share (s, core/potions.js cooldownOf)
+export const HEAL_TIME = 2;
+const drink = (id, name, effect, spec) => potionDef(id, name, 'drink', { family: effect.buff ? 'buff' : effect.heal ? 'heal' : 'cure',
+  ...(effect.heal && { cooldown: HEAL_TIME }), ...spec,
   effect }, effect.heal ? msg('Restores {v}% of your health in an instant.')
   : effect.cure ? msg('Cures poison and keeps it off you for {time} seconds.') : BUFF_TEXT[effect.buff],
   { v: pct(effect.heal ?? effect.value ?? 0), time: effect.time });

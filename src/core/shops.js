@@ -1,6 +1,7 @@
 // What the villagers sell or do (world/town.js VILLAGERS, by name). Clicking a villager with a
 // shop walks up to them and opens the bag with their wares beside it (game/inventory.js); an item
-// is bought for its `price` in copper (core/items.js), change given. A shop with a `service`
+// is bought for its price in copper (shopPrice: its `price`, core/items.js, grown with the shop's
+// level like the Smith's prices), change given. A shop with a `service`
 // works on your weapons instead (core/crafting.js): the Enchanter's wares are her enchantments
 // (`wares`: their ids), the Smith re-rolls the affix you point at. A shop with `stock` sells
 // generated things (the Smith: armor, smithStock), each one of a kind. `hello`: what they say
@@ -29,10 +30,19 @@ export const SHOPS = {
 export const TRADE_REACH = 1.4;
 export const shopOf = villager => SHOPS[villager?.name] ?? null;
 export const priceOf = itemId => ITEMS[itemId]?.price ?? null;
-// Buy `count` of `itemId`, all or nothing: 'ok', or why not: 'poor' (not enough coins),
-// 'full' (no room in the bag), 'unknown' (it has no price)
-export function buy(inv, itemId, count = 1) {
-  const price = priceOf(itemId);
+// What it costs at a shop of `level` (the item level of the deepest depth reached in the world,
+// core/enemies.js depthLevel: what the Smith forges at, shopLevel): the level-1 price grown like
+// the Smith's and the Enchanter's (core/crafting.js PRICE_GROWTH), so a potion costs about as
+// much of what a depth pays all the way down. null: it is not for sale.
+export const shopLevel = (deepest, world = 1) => depthLevel(deepest, world);
+export function shopPrice(itemId, level = 1) {
+  const p = priceOf(itemId);
+  return p === null ? null : roundPrice(p * (1 + PRICE_GROWTH * (Math.max(1, level) - 1)));
+}
+// Buy `count` of `itemId` at a shop of `level`, all or nothing: 'ok', or why not: 'poor' (not
+// enough coins), 'full' (no room in the bag), 'unknown' (it has no price)
+export function buy(inv, itemId, count = 1, level = 1) {
+  const price = shopPrice(itemId, level);
   if (!Number.isSafeInteger(price) || price <= 0 || !Number.isSafeInteger(count) || count < 1) return 'unknown';
   if (copperTotal(inv) < price * count) return 'poor';
   if (!addItem(inv, itemId, count)) return 'full';
@@ -62,7 +72,7 @@ export function armorPrice(item) {
 }
 // [{ item: { itemId, count, gen }, price }]
 export function smithStock(seed, depth, visit = 0, world = 1) {
-  const ilvl = depthLevel(depth, world);
+  const ilvl = shopLevel(depth, world);
   const R = mulberry32(hash32((seed >>> 0) ^ Math.imul(ilvl, 0x9e3779b1) ^ Math.imul(visit + 1, 0x85ebca6b) ^ 0x5317));
   const slots = [...ARMOR_SLOTS, ...Array.from({ length: STOCK_SIZE - ARMOR_SLOTS.length }, () => null)];
   return slots.map(slot => {

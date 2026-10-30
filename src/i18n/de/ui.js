@@ -340,6 +340,8 @@ export default {
   'Poisons for {damage} over {time} s; the cloud lingers {cloud} s': 'Vergiftet {time} s lang mit {damage} Schaden; die Wolke bleibt {cloud} s',
   'One every {time} s (ready in {wait} s)': 'Einer alle {time} s (bereit in {wait} s)',
   'One every {time} s': 'Einer alle {time} s',
+  'One health potion every {time} s (ready in {wait} s)': 'Ein Heiltrank alle {time} s (bereit in {wait} s)',
+  'One health potion every {time} s': 'Ein Heiltrank alle {time} s',
   'You have {n}': 'Du hast {n}',
   Sword: 'Schwert',
   'Flail · swings wide, shoves hard': 'Flegel · schwingt weit, schubst kräftig',

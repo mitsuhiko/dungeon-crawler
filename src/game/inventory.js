@@ -31,7 +31,7 @@ import { jingle } from '../audio/jingles.js';
 import { ITEMS, COINS, ARMOR_SLOTS, ARMOR_SLOT_NAMES, isGear } from '../core/items.js';
 import { BURST_SHARE, CHAIN_SHARE } from '../core/shots.js';
 import { BAR_SIZE, equippedItem, ownedItem, assignBar, barAllowed, barIndexOf, countOf, copperTotal, formatCoins, coinCounts, hasRoom, autoBar, isWorn, wornItem } from '../core/inventory.js';
-import { shopOf, priceOf, buy as buyWare, smithStock, buyStock } from '../core/shops.js';
+import { shopOf, shopPrice, shopLevel, buy as buyWare, smithStock, buyStock } from '../core/shops.js';
 import { flaskStats, cooldownLeft } from '../core/potions.js';
 import { xpProgress, levelDamage } from '../core/progression.js';
 import { rarityOf } from '../core/gear/rarities.js';
@@ -171,7 +171,9 @@ function selectedItem() {
     return ENCHANT[selected.id] ? { itemId: ENCHANT[selected.id].crystal, count: 1, enchant: selected.id } : { itemId: selected.id, count: 1 };
   return null;
 }
-// what the selected ware costs (copper)
+// what a shop's ware costs here (copper; core/shops.js shopPrice: by the deepest depth reached),
+// and what the selected one does
+const priceOf = itemId => shopPrice(itemId, shopLevel(state.run?.quests.deepest ?? 0, worldLevel()));
 const wareCost = item => stockWare(selected?.id)?.price ?? priceOf(item.itemId);
 // the weapon the Enchanter works on, or the weapon or armor the Smith does (null: none)
 function workItem() {
@@ -203,9 +205,10 @@ function potionText(item, from) {
     if (f.burn) lines.push(tr('Burns for {damage} over {time} s; the ground burns {patch} s', { damage: f.burn.damage, time: f.burn.time, patch: f.patch }));
     if (f.toxin) lines.push(tr('Poisons for {damage} over {time} s; the cloud lingers {cloud} s', { damage: f.toxin.damage, time: f.toxin.time, cloud: f.cloud }));
   }
-  const wait = cooldownLeft(player, def.id, state.time);
-  lines.push(wait > 0 ? tr('One every {time} s (ready in {wait} s)', { time: def.cooldown, wait: num(wait, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })
-    : tr('One every {time} s', { time: def.cooldown }));
+  const wait = cooldownLeft(player, def.id, state.time), w = { time: def.cooldown, wait: num(wait, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) };
+  // (the health potions share their cooldown: core/potions.js cooldownOf)
+  if (def.family === 'heal') lines.push(wait > 0 ? tr('One health potion every {time} s (ready in {wait} s)', w) : tr('One health potion every {time} s', w));
+  else lines.push(wait > 0 ? tr('One every {time} s (ready in {wait} s)', w) : tr('One every {time} s', w));
   if (from === 'shop') lines.push(tr('You have {n}', { n: have }));
   return lines.join('\n');
 }
@@ -336,7 +339,7 @@ function priceHtml(item, def) {
     return priceBox(tr('Price for {item}', { item: itemName(w) }), [crystalRow(cost.crystal, cost.count), coinRow(cost.copper)]);
   }
   if (selected?.from === 'shop' && stockWare(selected.id)) return priceBox(tr('Price'), [coinRow(stockWare(selected.id).price)]);
-  if (selected?.from === 'shop' && def?.price) return priceBox(tr('Price'), [coinRow(def.price)]);
+  if (selected?.from === 'shop' && def?.price) return priceBox(tr('Price'), [coinRow(priceOf(def.id))]);
   if (selected?.from !== 'bag' || !isGear(def?.id) || !item.gen) return '';
   if (shop.service === 'reroll') {
     const cost = rerollCost(item);
@@ -577,12 +580,12 @@ function buy() {
     refresh();
     return;
   }
-  const done = buyWare(player.inventory, id);
+  const price = priceOf(id), done = buyWare(player.inventory, id, 1, shopLevel(state.run.quests.deepest, worldLevel()));
   if (done === 'ok') {
     autoBar(player.inventory, id);
     sfx('coin', { pitch: 0.8 }); sfx('pickup');
-    setStatus(tr('Bought {item:a} for {price}', { item: noun(ITEMS[id].name), price: formatCoins(priceOf(id)) }));
-    log('trade', { item: noun(ITEMS[id].name), copper: priceOf(id) });
+    setStatus(tr('Bought {item:a} for {price}', { item: noun(ITEMS[id].name), price: formatCoins(price) }));
+    log('trade', { item: noun(ITEMS[id].name), copper: price });
   } else setStatus({ poor: tr('Not enough coins'), full: tr('Your bag is full'), unknown: tr('Not for sale') }[done]);
   refresh();
 }
