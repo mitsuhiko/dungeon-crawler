@@ -99,7 +99,7 @@ down under each, smoothly (a smoothstep down over 0.6 s and back up over 1.2 s, 
 | `legendary` | a Fabled weapon or better landing (`game/loot.js`) |
 | `enchant` | the Enchanter enchanting, the Smith re-rolling (`game/inventory.js`) |
 | `dawn`, `dusk` | the sun coming up, night falling (`game/daycycle.js`) |
-| `portal` | a portal not gone through before: a side portal, a way down or up into a cube not visited yet; not a portal gone through before, nor walking across an open face (`game/travel.js`) |
+| `portal` | a portal not gone through before: a side portal, a way down or up into a cube not visited yet; not a portal gone through before, nor walking across an open face (`game/travel.js`, `game/handover.js`: no sound of its own) |
 | `act1`, `act2`, `act3`, `core` | the first time at the first depth of an act, or at the core, in a world (`game/flow.js settleIn`) |
 
 `victory`, the boss's, is built on the title song (The

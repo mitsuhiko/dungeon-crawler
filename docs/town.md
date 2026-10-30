@@ -35,8 +35,9 @@ still to come.
   tiles are surroundings, drawn with all their houses, trees and dressing, and dimmed like any
   surroundings but half as much (the town is one place).
 - **No seams.** Between two town tiles there is no glass (no panes, no edges), no travel slide and
-  no step in the ground. Crossing a seam hands the tile over at once (`game/handover.js`); the
-  overview camera follows the hero in town. Around the whole town there is one glass hull.
+  no step in the ground. Crossing a seam hands the tile over at once (`game/handover.js`, as
+  crossing any open face does out of the town); the overview camera follows the hero in town.
+  Around the whole town there is one glass hull.
 - **The crash** is the glassmaker's glass coming down on the plaza; the robot lies at its rim
   with the sword. The town's gate opens for the sword; the rock with his first glass is the first
   room outside, the fight lesson.
@@ -52,10 +53,10 @@ still to come.
   in, not built at the seam. (Their bakes are made ahead already, `game/bakeahead.js`: the tile
   built at the seam takes its own at once.) Their people, the crash and the robot already show
   there, as in any surroundings ([world.md](world.md): "The people of the surroundings").
-- **Across the seams**: the physics, the pointer and click-to-walk only know the tile played in
-  (a click beyond a seam finds no ground; the physics reads a cell past a seam as the edge's), and
-  a tile's baked shadows and lamps stop at its edge. Looking into the neighbour's map would lift
-  that.
+- **Across the seams**: the physics reads the tile beyond a seam (a cell deep) and a click on its
+  ground walks over into it, as across any open face ([world.md](world.md#opened-side-connections)),
+  but the enemies' walks, the jumps the hero can make and a tile's baked shadows and lamps stop at
+  its edge.
 - **Room to grow**: more houses for people to live in (the people rescued could move to town,
   [quests.md](quests.md#where-people-go-when-they-are-found)), townsfolk standing round the crash,
   a reason it is the hero who goes.

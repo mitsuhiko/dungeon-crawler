@@ -59,14 +59,13 @@ the gate's row). The gate's tile is `(0,0,0)`; a new world starts in the inn's t
   is no portal, no glass and no step in the ground: their faces are flat at the town's level (as
   every face touching the town). Each tile's glass draws only its share of one hull round the whole
   town: no pane on a seam, none of the edges on it, the brighter corners only at the hull's own
-  (`setGlassSeams`, `render/glass.js`). Walking across a seam, the physics reads the ground past
-  it as the edge's (`physics/collide.js cellAt`, up to a cell beyond), and once the hero's middle
-  is `PAST` (0.25) beyond it, the tile beyond takes over at once (`game/handover.js`): it becomes
-  the cube played in, and the hero, what is in the air and the planted feet move by a cube's width,
-  so nothing on the screen jumps. No slide, no fade; the surroundings are built again round the new
-  tile at once. The tiles are made and loaded ahead (`prefetchTown`); until one is, the hero stands
-  on the seam. The overview camera follows the hero all the way in town (`game/camera.js`), else it
-  would jump a cube's width at every seam.
+  (`setGlassSeams`, `render/glass.js`). A seam is walked across as any open face is ("Opened side
+  connections" below, `game/handover.js`): the physics reads the tile beyond as it lies there, up to
+  a cell past the seam, and once the hero's middle is `PAST` (0.25) beyond it the tile beyond takes
+  over at once, the hero, what is in the air and the planted feet moved by a cube's width, so
+  nothing on the screen jumps; the tile left dissolves into its proxy. The tiles are made and loaded
+  ahead (`prefetchTown`); until one is, the hero stands on the seam. The overview camera follows
+  the hero all the way in town (`game/camera.js`), else it would pan a cube's width at every seam.
 - **Still seams for now:** the villagers, the shards of the crash and the robot asleep are drawn
   only in the tile played in, the surroundings have no lights at night and no baked shadows, and
   a friend in another tile is not drawn (`render/partner.js`). Drawing more than one tile in full
@@ -143,8 +142,8 @@ from it (`tileGround` in `world/town.js`).
 - **What stands level**: the buildings, streets, lanes and paths, the people, the crash, the
   spawn and the gate keep the level they stand on; the wild ground round them rolls a level or two.
   The people's homes (`HOMES`, `plotTown`) are laid out round the land's big things along every way.
-- **Seams**: the cells either side of one stand alike and level, dry or as deep in water (the
-  physics reads a cell past a seam as the edge's), and nothing stands near one.
+- **Seams**: the cells either side of one stand alike and level, dry or as deep in water, and
+  nothing stands near one.
 
 Every tile is pinned to a lowland socket and one layer **before the surface collapses**. Every face
 touching the town is flat at the lower town's level, and neighbouring terrain's shared boundary
@@ -1407,23 +1406,57 @@ either can join sections elsewhere. On an opened face both gates and both dividi
 panes disappear; cube outlines remain. Re-entry, mesh rebuilds and low-detail proxies use
 the same opened-face state.
 
-An opened side face triggers the same cube slide wherever the player approaches it,
-regardless of the original portal's position or layer. The arrival preserves the
-position along the face, height and motion, with the body placed a little inside the
-next cube. Destination solids still block passage. A boundary lock prevents immediate
-bounce-back. The minimap marks opened connections as green lines along their faces;
-unopened portals retain gold/cyan markers, or red crossed seals while guardian-locked.
+An opened side face is **walked across** anywhere along it, regardless of the original
+portal's position or layer, with no slide: the slide is the first view of a cube, through its
+portal; a cube already visited is simply walked into (`game/handover.js`, the same as the
+town's seams, "The town" above):
 
-Cubes remain separate simulation spaces: player collision is cube-local, and enemies
-cannot cross their boundaries. Generation, portal metadata, routing and arrival-safety
-logic are unchanged; opened connections simply add paths. Down/up travel always uses
-portals, except falling through voids, and never opens a side connection. Starting a
-new world clears all opened faces.
+- **The physics reads the cube beyond.** The sides of the cube played in that are walked
+  across now (`crossable`: the town's seams and the open faces, set every step with
+  `physics/collide.js setAcross`) let the body past them: up to a cell past one, ground,
+  structures, blockers and ceilings are the neighbour's own, read from its map
+  (`physics/collide.js locate`, `spotAt`), so a body crossing, half in the next cube, stands
+  and moves as it would there. Solids past the side block the way like any wall; a walking
+  body is kept on a stair or bridge lying along the side (its side rail, `physics/canmove.js`),
+  a jump goes over it. `cellAt` only ever knows its own map. Loot rests in its cube
+  (`physics/rest.js`), and the last safe spot is only taken inside it.
+- **Once the hero's middle is `PAST` (0.25) beyond the side the cube beyond takes over** at
+  once: it becomes the cube played in (discovered, its visit begun, its enemies put in, what
+  the narrator says on arriving, the robot along: `game/flow.js settleIn`), and the hero, what
+  is in the air and the planted feet move by a cube's width, so nothing on the screen jumps.
+  Back the other way it is `PAST` again, so walking along a side does not hand over and back.
+  The cube is got ready ahead (`game/flow.js readyAhead`, and its bake made ahead,
+  `game/bakeahead.js`); until it is, the hero stands past the side. Not in a swim out of the
+  water or a fall through cubes (they stand on past the side until it is over).
+- **What is seen**: the cube left dissolves into its proxy and the one taken over out of its
+  own (`FADE`, 0.3 s), where they stand (complementary dither, as in the slide), its enemies
+  with it. Out of the town the overview pans over to the new cube in 0.7 s
+  (`game/camera.js panCamera`), so the view does not jump a cube's width; in town it follows
+  the hero anyway.
+- **What keeps the side shut**, as a wall: a trial room sealed (`game/trials.js sealedOut`),
+  a guardian's gate locked, a guardian still standing in its arena, Umbra's water (the diving
+  suit), Flip's box turned. Steering out over it says why (`game/portals.js`), or asks whether
+  to leave the fight (`game/leavefight.js`); leaving goes through with the slide.
+- **Click to walk**: the floor under the cursor is found on the ground of a cube beyond a side
+  walked across too, when the ray meets none in the cube (`game/pointer.js pickFloor`); the
+  hero walks up to that side, across from the spot, on over it like into a gate, and on in the
+  cube beyond to the spot clicked (`game/orders.js orderAcross`, `carryOrder`).
 
-Checks: `npm test` includes shared-face identity, full-face triggering, arrival
-coordinates and enemy containment. From the browser's devtools, run
+The minimap marks opened connections as green lines along their faces; unopened portals
+retain gold/cyan markers, or red crossed seals while guardian-locked.
+
+Cubes remain separate simulation spaces: only the cube played in is simulated, and enemies
+cannot cross their boundaries (their walks know their own cube only: `physics/enemynav.js`).
+Generation, portal metadata, routing and arrival-safety logic are unchanged; opened
+connections simply add paths. Down/up travel always uses portals, except falling through
+voids, and never opens a side connection. Starting a new world clears all opened faces.
+
+Checks: `npm test` includes shared-face identity, the body stepping into the cube beyond (and
+not past a corner, a cliff or a rail), enemy containment and the town's seams. From the
+browser's devtools, run
 `await (await import('./tests/browser/boundary.js')).runBoundaryChecks()` for
-all four side orientations, rendering/revisits, airborne travel, blocked destinations,
+all four side orientations: the first crossing's slide, walking back across (no slide, no jump,
+no bounce), rebuilds, airborne crossings, a solid past the side,
 generation failure, reset, gated neighbours discovered by another route and vertical travel. `runModifierKeyChecks()` in that
 module checks the Ctrl (walk) and Shift (auto-attack) modifiers and input clearing; the movement
 ramp and auto-attack themselves are checked by `runControlChecks()` in `tests/browser/combat.js`.

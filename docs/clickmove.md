@@ -26,6 +26,14 @@ A locked one (a guardian's or a boss's) says why when you get there, and the ord
 Leaving a fight asks first, as when you walk out yourself. With `?dev=1`, Alt+click takes a
 portal at once.
 
+An open face (and a seam of the town) is no way to click: it is walked across anywhere
+([world.md](world.md#opened-side-connections)). A click on the ground of the cube beyond one
+(found when the view ray meets nothing in the cube itself: `game/pointer.js pickFloor`) walks up to
+that side, a step in across from the spot, then on over it like into a gate; once the cube beyond
+took over (`game/handover.js`), the walk goes on there to the spot clicked (`game/orders.js
+orderAcross`, `carryOrder`). Any other order ends as the cube is handed over: it was for the cube
+left.
+
 ## The way
 
 `src/physics/playernav.js` finds the way, from the node the hero stands on to the one clicked.
