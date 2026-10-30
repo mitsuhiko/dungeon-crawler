@@ -207,7 +207,7 @@
     "src/physics/move.js#horizontal": "f5f3cc30",
     "src/physics/move.js#jumping": "7d77fe77",
     "src/physics/move.js#LEAP": "58d96809",
-    "src/physics/move.js#movePlayer": "1143c7ed",
+    "src/physics/move.js#movePlayer": "1bc4d2c3",
     "src/physics/playernav.js#findWay": "bc6ba835",
     "src/physics/playernav.js#header": "58a72ad1",
     "src/physics/ragdoll.js#BONES": "bd429e5e",
