@@ -7,6 +7,16 @@ import { key, parse } from '../world/coords.js';
 
 export const VIEW_DISTANCE = 3 * N;
 export const VIEW_FADE = N / 2;
+// cubes: what lives in the surroundings (their people, the friends there: game/drawn.js) is drawn
+// this far round the cube played in, no further
+export const NEAR_CUBES = 2;
+// are cubes a and b on one layer, at most n cubes apart (across and diagonally)?
+export function cubesNear(a, b, n = NEAR_CUBES) {
+  if (!a || !b) return false;
+  const p = parse(a), q = parse(b);
+  return p.length === 3 && q.length === 3 && p.every(Number.isFinite) && q.every(Number.isFinite)
+    && p[1] === q[1] && Math.max(Math.abs(p[0] - q[0]), Math.abs(p[2] - q[2])) <= n;
+}
 
 export function discoveredCubes(cubes, active, distance = VIEW_DISTANCE) {
   const [x, y, z] = parse(active), radius = Math.ceil(distance / N) + 1, list = [];

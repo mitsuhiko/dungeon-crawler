@@ -56,8 +56,11 @@ being helped up and getting back in. Up to four players, co-op.
   wornOf`; [armor.md](armor.md)), skin id, health and level. The
   others draw them as a figure in the player's colour, ~110 ms in the past, blending the two
   messages around that moment (`src/net/sync.js Timeline`). Animation, attacks, ragdolls and
-  get-ups all come along with the bones; nothing is animated twice. The host passes `me` on
-  at once to players in the same cube and when it changes cubes, else only every 500 ms
+  get-ups all come along with the bones; nothing is animated twice. A player in another cube
+  is drawn there while it shows round yours, up to two cubes away (`game/drawn.js`), dimmed and
+  dissolving with it like its people ([world.md](world.md): "The people of the surroundings"). The
+  host passes `me` on at once to players in the same cube or within two cubes of it
+  (`core/viewdistance.js cubesNear`) and when it changes cubes, else only every 500 ms
   (`FAR_EVERY`): far away it is only needed for the minimap.
 - **Colours:** every player has one colour, by their number (`PLAYER_COLORS` in
   `src/net/online.js`: host blue, then green, orange, violet), the same on every screen: their
@@ -244,5 +247,3 @@ pays itself and sends `questReward`, each guest pays itself once (`game/quests.j
 - Dev-spawned enemies stay with the game that spawned them: they are not handed over.
 - The host cannot pass the game on: when it leaves, the others play on alone.
 - Guests only reach each other through the host, which doubles the trip between two of them.
-- In the town (many tiles walked across without a seam, [town.md](town.md)) a friend in another
-  tile than yours is not drawn, though they may stand a few steps away across a seam.

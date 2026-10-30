@@ -56,6 +56,8 @@ import { PROTOCOL, MAX_PLAYERS, RELAYED, isFor, validTo, freeSlot, runnerOf, roo
   SEND_EVERY, FOES_EVERY, FAR_EVERY, PING_EVERY, LOST, REJOIN_EVERY, REJOIN_TRIES, CHAT_MAX, chatAllowed,
   SKIN_EVERY, SKIN_BYTES, skinIdOf, skinPieces, isSkinPiece, toBase64, fromBase64 } from './protocol.js';
 import { Timeline } from './sync.js';
+import { cubesNear } from '../core/viewdistance.js';
+import { drawnAt } from '../game/drawn.js';
 import { robotWord, showOtherRobot } from '../game/robot.js';
 import { removeOtherRobot } from '../render/robot.js';
 import { online, relay, travel } from './online.js';
@@ -199,14 +201,15 @@ function post(m, to) {
 function deliver(m, to, from) {
   for (const p of peers.values()) if (p.slot !== from && p.link && isFor(to, p.slot)) p.link.send(m);
 }
-// The host passes `me` of player `from` on: at once to those in the same cube (they see them
-// move) and when it changed cubes or started or stopped travelling, now and then to the
-// others (they only need it for the minimap and to know where to go)
+// The host passes `me` of player `from` on: at once to those in the same cube or near it (they
+// see them move, in the surroundings too: game/drawn.js) and when it changed cubes or started or
+// stopped travelling, now and then to the others (they only need it for the minimap and to know
+// where to go)
 function passMe(m, from) {
   for (const p of peers.values()) {
     if (p.slot === from || !p.link) continue;
     const last = p.passed.get(from), theirs = p.timeline.latest();
-    const near = theirs && theirs.cube === m.cube && theirs.seed === m.seed;
+    const near = theirs && theirs.seed === m.seed && cubesNear(theirs.cube, m.cube);
     if (near || !last || last.cube !== m.cube || last.seed !== m.seed || last.busy !== m.busy || m.ts - last.ts >= FAR_EVERY) {
       p.link.send(m);
       p.passed.set(from, { ts: m.ts, cube: m.cube, seed: m.seed, busy: m.busy });
@@ -895,11 +898,11 @@ export function updateOnline() {
     setOthers([]);
     foes?.check(now);
   }
-  // the others who are here (as they were DELAY ago)
+  // the others who are here or in a cube shown near (as they were DELAY ago; game/drawn.js)
   for (const p of peers.values()) {
     const span = p.timeline.at(now), b = span?.b;
-    const here = b && !b.busy && b.seed === seed && b.cube === state.cubeKey && !state.transitioning;
-    showPartner(p.slot, here ? span : null, p.name);
+    const where = b && !b.busy && b.seed === seed && !state.transitioning ? drawnAt(b.cube) : null, here = !!where && b.cube === state.cubeKey;
+    showPartner(p.slot, where ? span : null, p.name, where);
     showHelp(p.slot, here && Array.isArray(b.ko) && finite(...b.ko) ? b.ko : null, p.name);
     // and their robot, wherever it is (it may be left behind in a cube beside ours)
     const rb = b && b.seed === seed ? robotOf(b.robot) : null, ra = rb && span.a.seed === seed ? robotOf(span.a.robot) : null;

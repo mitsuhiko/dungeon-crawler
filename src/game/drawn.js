@@ -3,21 +3,17 @@
 // the crash on the town's plaza (game/intro.js). The cube played in, the one a slide carries away
 // (game/travel.js), or one of the surroundings (render/neighbors.js: its proxy's place moves with
 // a slide, and with the town's tiles handed over, game/handover.js, so what follows it does too).
-import { parse } from '../world/coords.js';
+import { NEAR_CUBES, cubesNear } from '../core/viewdistance.js';
 import { state } from './state.js';
 import { leftCube } from './travel.js';
 import { neighborOf } from '../render/neighbors.js';
 
 // cubes: what lives in the surroundings is drawn this far round the cube played in, no further
 // (the surroundings themselves reach further: core/viewdistance.js)
-export const NEAR = 2;
+export const NEAR = NEAR_CUBES;
 
 // is cube k within NEAR cubes of the one played in (on its layer, of the same depth)?
-export function nearby(k) {
-  if (!state.cubeKey) return false;
-  const a = parse(k), b = parse(state.cubeKey);
-  return a.length === 3 && b.length === 3 && a[1] === b[1] && Math.max(Math.abs(a[0] - b[0]), Math.abs(a[2] - b[2])) <= NEAR;
-}
+export const nearby = k => cubesNear(k, state.cubeKey);
 
 // does proxy g (render/neighbors.js) show now: in view, not fogged or faded out (one built since
 // the last frame was culled counts as shown), and NEAR (any: however far)?

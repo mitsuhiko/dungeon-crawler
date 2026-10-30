@@ -16,7 +16,8 @@ import { character, mountWeapon, wornSkin } from './character.js';
 import { prepareHeld, updateHeld } from './held.js';
 import { setSkinMap, skinTexture } from './skin.js';
 import { rig, createFigure, takeOff, wearLike, wornKey, animateWorn, ghostMaterial } from './figure.js';
-import { waterlineAt } from './waterline.js';
+import { waterlineAt, NONE } from './waterline.js';
+import { setFarLook } from './farlook.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { makeBar, makeLevelLabel, makeNote } from './bars.js';
 import { playerColor } from '../net/online.js';
@@ -134,8 +135,9 @@ function setWorn(fig, list) {
 
 const qa = [], qb = [], _q = new THREE.Quaternion(), IDLE = { sword: { active: false } };
 // show player `slot` between messages a and b (k of the way, src/net/sync.js Timeline.at), or
-// hide them (null)
-export function showPartner(slot, span, name) {
+// hide them (null); where: their cube as it is drawn (game/drawn.js drawnAt: the one played in, or
+// one of the surroundings, where they are dimmed and dissolve with it, render/farlook.js)
+export function showPartner(slot, span, name, where = null) {
   let fig = figs.get(slot);
   if (!span) { if (fig) fig.group.visible = fig.tag.visible = false; return; }
   if (!rig.ready) return;
@@ -147,9 +149,12 @@ export function showPartner(slot, span, name) {
   const A = a.pose, B = b.pose, mix = (x, y) => x + (y - x) * k;
   fig.group.position.set(mix(A.p[0], B.p[0]), mix(A.p[1], B.p[1]), mix(A.p[2], B.p[2]));
   fig.group.rotation.y = lerpAngle(A.yaw, B.yaw, k);
-  const at = fig.group.position;   // (a wet print as they walk over slime, render/footprints.js)
-  fig.ghost.material.userData.floor.value = waterlineAt(at.x, at.y, at.z);   // (none under the water they are in)
-  walkPrints('partner:' + slot, at.x, at.y, at.z, fig.group.rotation.y, 1, slimeAt(at.x, at.y, at.z));
+  const at = fig.group.position, far = !!where?.dim;
+  if (where) at.add(where.at);
+  // (a wet print as they walk over slime, render/footprints.js; the water they are in: only what
+  // the cube played in knows)
+  fig.ghost.material.userData.floor.value = far ? NONE : waterlineAt(at.x, at.y, at.z);   // (none under the water they are in)
+  if (!far) walkPrints('partner:' + slot, at.x, at.y, at.z, fig.group.rotation.y, 1, slimeAt(at.x, at.y, at.z));
   const bones = fig.f.bones;
   bones.hips.position.set(mix(A.hips[0], B.hips[0]), mix(A.hips[1], B.hips[1]), mix(A.hips[2], B.hips[2]));
   BONES.forEach((n, i) => {
@@ -168,6 +173,7 @@ export function showPartner(slot, span, name) {
   }
   setWorn(fig, wornOf(b.worn));
   animateWorn(fig.f, performance.now() / 1000, slot);   // (rare armor shines)
+  setFarLook(fig.group, far ? where : null);   // (what they wear and hold too)
   fig.group.visible = fig.tag.visible = true;
   // the tag: over the head, facing the camera
   fig.tag.position.set(fig.group.position.x, fig.group.position.y + CHAR_H + 0.4, fig.group.position.z);

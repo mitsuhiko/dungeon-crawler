@@ -49,7 +49,6 @@ still to come.
   (a click beyond a seam finds no ground; the physics reads a cell past a seam as the edge's), and
   a tile's baked shadows and lamps stop at its edge. Looking into the neighbour's map would lift
   that.
-- **Friends** in another tile of the town are not drawn ([online.md](online.md)).
 - **Room to grow**: more houses for people to live in (the people rescued could move to town,
   [quests.md](quests.md#where-people-go-when-they-are-found)), townsfolk standing round the crash,
   a reason it is the hero who goes.
