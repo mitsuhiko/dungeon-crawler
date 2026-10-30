@@ -18,6 +18,7 @@ import { viewBlockedAt } from '../core/blockers.js';
 import { player, state, view } from './state.js';
 import { cameraMode, closeFov, shakeAmount } from './settings.js';
 import { kick, tremor } from './juice.js';
+import { showcaseCubes } from './showcase.js';
 
 // learn: drawing.html#camera (see learn/README.md)
 const pitch = THREE.MathUtils.degToRad(44);
@@ -42,10 +43,12 @@ const quatLooking = (q, from, to) => q.setFromRotationMatrix(m4.lookAt(from, to,
 
 // In the town (docs/town.md) the overview follows the hero all the way: the town is many cubes walked
 // across without a seam, and a view framing the one played in would jump a cube's width as the
-// next takes over (game/handover.js). Eased in and out as the hero comes and goes.
+// next takes over (game/handover.js). Eased in and out as the hero comes and goes. Not behind the
+// main menu (game/showcase.js): the hero is parked far away there, and the tile shown is framed.
 let townFollow = 0;
 function overview(dt = 0) {
-  townFollow += ((state.map?.town ? 1 : 0) - townFollow) * Math.min(1, dt * 3);
+  if (state.cubes === showcaseCubes()) townFollow = 0;
+  else townFollow += ((state.map?.town ? 1 : 0) - townFollow) * Math.min(1, dt * 3);
   const follow = Math.max(clamp((1 - view.zoom) / 0.6, 0, 1) * 0.9, townFollow);
   target.copy(cubeCenter).lerp(focus.set(player.x, player.visY + 0.5, player.z), follow);
   // distance that fits the cube's bounding sphere into the narrower field of view
