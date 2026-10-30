@@ -30,6 +30,17 @@ lights alike, and goes out through the dawn. A window's candlelight glimmers a l
 flickers like any lantern. The channels and the cells go by how bright a light gets
 (`userData.peak`), not by how bright it is when the cube is baked.
 
+**The surroundings** (`render/farlights.js`): the proxies of the cubes round the one played in
+(`render/neighbors.js`) are not baked, but some of their lights stay on, dimmed: the lights of
+what they show (their landmarks and set pieces, all of a town tile's dressing: `shownFar`; the
+same lights the cube built in full would have, `render/props.js propLights`), the street lamps and
+windows at night only, as in the cube played in, in the cubes up to two away (as their people,
+`game/standins.js`). The nearest 32 to the hero go into one small table that the proxies' shaders
+and the people there (`render/farlook.js`) walk after the other lights: point lights without
+shadows, as bright as their glow there (`PROXY.glow` at the whole dim, faded with their cube). No
+light comes or goes in the scene, so nothing is compiled again; they do not reach into the cube
+played in, nor its lights out.
+
 **The fixed parts** cast the baked shadows: the cube's solids (terrain, stone, wood) and its props
 that cast shadows. They stay out of three.js's shadow map of the sun (`render/bake.js
 keepFixedOutOfSun`), which then only holds what moves.
@@ -196,7 +207,8 @@ every shader, so no program changes its cache key.
   an open sky and in act II's sunlit caves the lamp casts none (and its maps are not drawn); in
   the dark forest, by night and in the deep all of them. Before, with the sun going round, a low
   sun gave everything by the hero two shadows.
-- The proxies of the surroundings take none of it (`NO_BAKE`, `render/neighbors.js`).
+- The proxies of the surroundings take none of it (`NO_BAKE`, `render/neighbors.js`), only their
+  own lights left on (above, "The surroundings").
 - What a cube is built of shows its own cube's lights and shadows (`render/bake.js
   bakeMaterials`), also while another is the one played in (travelling); everything else (the
   hero, enemies, loot) the cube played in (`setCurrentBake`).

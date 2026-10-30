@@ -1,3 +1,4 @@
+// The life of the surroundings: their people, and some of their lights left on (render/farlights.js).
 // The people of the surroundings (docs/world.md "The people of the surroundings"): the villagers
 // and the people out in the world (map.villagers, map.npcs with the quests' part: game/questworld.js)
 // of every cube shown round us, NEAR cubes at most (game/drawn.js), stand where they live, breathe
@@ -13,8 +14,10 @@ import { scene } from '../render/scene.js';
 import { liveNeighbors } from '../render/neighbors.js';
 import { buildVillagers, tickVillagers } from '../render/villagers.js';
 import { setFarLook } from '../render/farlook.js';
+import { setFarLights } from '../render/farlights.js';
+import { props, propSetLoaded, propLights } from '../render/props.js';
 import { rig } from '../render/figure.js';
-import { state } from './state.js';
+import { player, state } from './state.js';
 import { leftCube } from './travel.js';
 import { proxyShown } from './drawn.js';
 import { questWorld, questWorldChanged } from './questworld.js';
@@ -34,14 +37,29 @@ function drop(s) {
   s.group.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.dispose()); });
 }
 
-// every frame (main.js; dt: game time): who stands where in the cubes shown now
+// the lights of what proxy g shows (render/props.js propLights of its landmarks, or all the town's
+// tile has: render/neighbors.js shownFar), once their prop sets are in (where their glow is)
+function lightsOf(g) {
+  if (g.farLights) return g.farLights;
+  const list = g.landmarks.map(L => [props.byName.get(L.name), L]).filter(([p]) => p);
+  if (!list.every(([p]) => propSetLoaded(p.set))) return [];
+  return (g.farLights = list.flatMap(([p, L]) => propLights(p, L)));
+}
+
+// every frame (main.js; dt: game time): who stands where in the cubes shown now, and which of
+// their lights are on (render/farlights.js)
+const lit = [];
 export function updateStandins(dt, time) {
   const keep = new Set();
-  if (state.mode === 'play' && state.cubes && rig.ready) {
+  lit.length = 0;
+  if (state.mode === 'play' && state.cubes) {
     const left = leftCube()?.key, look = (check -= dt) <= 0;
     if (look) check = CHECK;
     for (const g of liveNeighbors()) {
       if (g.key === state.cubeKey || g.key === left || !proxyShown(g)) continue;
+      const u = g.group.userData, lights = lightsOf(g);
+      if (lights.length) lit.push({ at: g.group.position, fade: (u.fade ?? 1) * u.rangeFadeU.value, dim: g.dim ?? 1, lights });
+      if (!rig.ready) continue;
       const map = state.cubes.cubes.get(g.key)?.map;
       if (!map || map.interior) continue;
       // (the town's tiles never entered yet have no quests' part put in: game/questworld.js)
@@ -57,6 +75,7 @@ export function updateStandins(dt, time) {
     }
   }
   for (const [g, s] of sets) if (!keep.has(g)) { drop(s); sets.delete(g); }
+  setFarLights(lit, player);
 }
 
 // (tests/browser/neighbor.js) the stand-ins drawn now: [{ key, people, group }]

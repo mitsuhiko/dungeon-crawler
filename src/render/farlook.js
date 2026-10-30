@@ -5,11 +5,13 @@
 // (render/figure.js), so they take a look of their own: uniforms shared by everything in `root`.
 import * as THREE from 'three';
 import { dither } from './fade.js';
+import { farLit } from './farlights.js';
 import { PROXY, NEIGHBOR_DIM } from './materials.js';
 
 function patch(mat, u) {
   if (mat.userData.farLook) return;
   mat.userData.farLook = u;
+  farLit(mat);   // (the surroundings' lights left on shine on them too: render/farlights.js)
   const prev = mat.onBeforeCompile, key = mat.customProgramCacheKey();
   mat.onBeforeCompile = (sh, r) => {
     prev.call(mat, sh, r);

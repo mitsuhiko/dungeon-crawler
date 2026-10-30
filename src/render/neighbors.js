@@ -20,6 +20,7 @@ import { capLight } from './section.js';
 import { LAYER as GHOSTS, glassLook, glassRim } from './ghosts.js';
 import { props, loadPropSets, propSetLoaded, propMatrix, propBatchGeometry, glowSeed, LAMP_BY_DAY } from './props.js';
 import { nightGlow, LIT_GLSL } from './night.js';
+import { farLit } from './farlights.js';
 
 let current = [];   // [{ key, source, group, cull, glass, geometry, base, instances, landmarks }]
 const live = new Set(), cache = new Map();   // cache keyed by worker geometry identity
@@ -61,6 +62,7 @@ function batchMaterial(mat, data, key, edit = sh => sh, cut = REVEAL) {
   mat.defines = { ...mat.defines, NO_BAKE: '' };   // (not lit by the active cube's fixed lights, render/lighthook.js)
   inject(mat, fs => fs.replace('#include <clipping_planes_fragment>',
     cut + '#include <clipping_planes_fragment>' + dither('vProxy.x', 'vProxy.y', 'vProxy.z')), key);
+  if (cut === REVEAL) farLit(mat);   // (some of their lights left on: render/farlights.js; after inject, which sets its own)
   const compile = mat.onBeforeCompile;
   mat.onBeforeCompile = (sh, r) => {
     compile.call(mat, sh, r);

@@ -201,19 +201,15 @@ export function buildProps(placed, group, water = null) {
       const at = new THREE.Vector3(f.x, f.y, f.z).applyMatrix4(placeMatrix(q, m4)), s = q.s ?? 1;
       flames.push({ x: at.x, y: at.y, z: at.z, w: f.w * s, h: f.h * s, seed: fireSeed(q) });
     }
-    if (p.light && !p.cover) for (const [qi, q] of list.entries()) if (!q.unlit)   // (unlit: a lamp that never shines)
-      glowing.push({ p, q, flame: p.flames?.length ? first0 + qi : -1 });
+    for (const [qi, q] of list.entries()) if (glowLights(p, q).length) glowing.push({ p, q, flame: p.flames?.length ? first0 + qi : -1 });
     // a house's windows: a light out of each, lit at night (flames.js: with the house's panes)
-    if (p.windowSpots) for (const q of list) {
-      placeMatrix(q, m4);
-      p.windowSpots.forEach((spot, k) => {
-        const l = new THREE.PointLight(WINDOW.color, 0, WINDOW.reach, 2);
-        l.position.set(spot.x, Math.max(spot.y, LOWEST), spot.z).applyMatrix4(m4);
-        l.userData.peak = WINDOW.gain;   // (render/bake.js: as bright as it gets, whatever it is now)
-        fireLights.push({ light: l, gain: WINDOW.gain, seed: fireSeed(q) + k, i: -1, candle: true, night: fireSeed(q) });
-        group.add(l);
-      });
-    }
+    for (const q of list) windowLights(p, q).forEach((w, k) => {
+      const l = new THREE.PointLight(w.color, 0, w.reach, 2);
+      l.position.set(w.x, w.y, w.z);
+      l.userData.peak = w.gain;   // (render/bake.js: as bright as it gets, whatever it is now)
+      fireLights.push({ light: l, gain: w.gain, seed: w.night + k, i: -1, candle: true, night: w.night });
+      group.add(l);
+    });
   }
   // every glowing prop lights its surroundings, all the time (render/lightpool.js: the cube's fixed
   // lights; the big ones first, then the brightest, should a cube ever have more than it takes); a
@@ -221,22 +217,39 @@ export function buildProps(placed, group, water = null) {
   // mushroom's breathes ('pulse'); a night lamp's at night only
   const big = g => g.p.landmark || g.p.vignette ? 1 : 0;
   glowing.sort((a, b) => big(b) - big(a) || b.p.intensity - a.p.intensity);
-  // a light where each spot of its glow is (core/glowspots.js: inside the prop it would be shut
-  // in by its baked shadow), sharing the prop's brightness; one over it if it has no glow loaded
-  const spotAt = new THREE.Vector3();
-  for (const { p, q, flame } of glowing) {
-    const spots = p.lightSpots?.length ? p.lightSpots : [{ x: 0, y: p.attach === 'ceiling' ? -0.4 : p.landmark || p.vignette ? 1.1 : 0.5, z: 0 }];
-    const gain = p.intensity * 2 / Math.sqrt(spots.length);
-    placeMatrix(q, m4);
-    for (const spot of spots) {
-      const l = new THREE.PointLight(p.light, q.night ? 0 : gain, p.landmark || p.vignette ? 5 : 4, 2);
-      l.userData.peak = gain;
-      // (a ground prop's light not down in the grass: from there it lights a puddle round it)
-      l.position.copy(spotAt.set(spot.x, p.attach === 'ground' ? Math.max(spot.y, LOWEST) : spot.y, spot.z).applyMatrix4(m4));
-      if (p.flames || p.flicker || q.night) fireLights.push({ light: l, gain, seed: fireSeed(q), i: flame, pulse: p.flicker === 'pulse',
-        steady: !p.flames && !p.flicker, night: q.night ? fireSeed(q) : null });
-      group.add(l);
-    }
+  for (const { p, q, flame } of glowing) for (const g of glowLights(p, q)) {
+    const l = new THREE.PointLight(g.color, q.night ? 0 : g.gain, g.reach, 2);
+    l.userData.peak = g.gain;
+    l.position.set(g.x, g.y, g.z);
+    if (p.flames || p.flicker || q.night) fireLights.push({ light: l, gain: g.gain, seed: fireSeed(q), i: flame, pulse: p.flicker === 'pulse',
+      steady: !p.flames && !p.flicker, night: g.night });
+    group.add(l);
   }
   if (flames.length || fireLights.length) group.add(flameSet(flames, fireLights).mesh);
 }
+
+// The lights placed prop q (of prop p) gives off, where they are in its cube: [{ x, y, z, color,
+// gain (as bright as it gets), reach, night (lit at night only: its seed, render/night.js litAt;
+// null: all the time) }]. The cube built in full makes a point light of each (buildProps), the
+// surroundings shine them dimmed (render/farlights.js).
+// A glowing prop: a light where each spot of its glow is (core/glowspots.js: inside the prop it
+// would be shut in by its baked shadow), sharing the prop's brightness; one over it if it has no
+// glow loaded. Not one that covers (cover), nor a lamp that never shines (q.unlit).
+const m4l = new THREE.Matrix4(), spotAt = new THREE.Vector3();
+export function glowLights(p, q) {
+  if (!p?.light || p.cover || q.unlit) return [];
+  const spots = p.lightSpots?.length ? p.lightSpots : [{ x: 0, y: p.attach === 'ceiling' ? -0.4 : p.landmark || p.vignette ? 1.1 : 0.5, z: 0 }];
+  const gain = p.intensity * 2 / Math.sqrt(spots.length), reach = p.landmark || p.vignette ? 5 : 4;
+  placeMatrix(q, m4l);
+  // (a ground prop's light not down in the grass: from there it lights a puddle round it)
+  return spots.map(spot => ({ ...spotAt.set(spot.x, p.attach === 'ground' ? Math.max(spot.y, LOWEST) : spot.y, spot.z).applyMatrix4(m4l),
+    color: p.light, gain, reach, night: q.night ? fireSeed(q) : null }));
+}
+// a house's windows: a light out of each, lit at night
+export function windowLights(p, q) {
+  if (!p?.windowSpots) return [];
+  placeMatrix(q, m4l);
+  return p.windowSpots.map(spot => ({ ...spotAt.set(spot.x, Math.max(spot.y, LOWEST), spot.z).applyMatrix4(m4l),
+    color: WINDOW.color, gain: WINDOW.gain, reach: WINDOW.reach, night: fireSeed(q) }));
+}
+export const propLights = (p, q) => [...glowLights(p, q), ...windowLights(p, q)];
