@@ -30,7 +30,7 @@
 // was baked ahead, while the hero was still next door (game/bakeahead.js: `ahead`).
 import * as THREE from 'three';
 import { renderer, sun } from './scene.js';
-import { BAKE, MAX_BAKED, SETS, NO_SUN, NO_VOL, lightTable, CELLS, CELL0, CELL_MAX, EDGE } from './lighthook.js';
+import { BAKE, MAX_BAKED, SETS, NO_SUN, NO_VOL, bakeTexture, touch, BAKE_W, BAKE_TABLE, CELLS, CELL0, CELL_MAX, EDGE } from './lighthook.js';
 import { lightCells as cellsOf } from '../core/lightcells.js';
 import { NOON, NOON_KEY } from '../core/daycycle.js';
 import { small } from './device.js';
@@ -74,16 +74,9 @@ const live = new Set();
 // geometry of a cube (render/cubegeo.js, the same for a cube built again) -> its bake when it went
 const kept = new Map();
 
-// a cube's cells and the lights each takes (lightCells): CELL_MAX / 4 texels a cell, four indices each
-const cellTable = () => {
-  const t = new THREE.DataTexture(new Float32Array(CELL_MAX * CELLS * CELLS).fill(-1), CELL_MAX / 4, CELLS * CELLS, THREE.RGBAFormat, THREE.FloatType);
-  t.minFilter = t.magFilter = THREE.NearestFilter;
-  t.needsUpdate = true;
-  return t;
-};
 const uniformsOf = () => ({
   uBakeEdge: { value: new THREE.Vector2(1e-4, 1e-4) },
-  uBakeR: { value: 0 }, uBakeN: { value: 0 }, uBakeT: { value: lightTable(MAX_BAKED) }, uBakeC: { value: cellTable() }, uBakeO: { value: new THREE.Vector3() },
+  uBakeR: { value: 0 }, uBakeN: { value: 0 }, uBakeT: { value: bakeTexture() }, uBakeO: { value: new THREE.Vector3() },
   ...Object.fromEntries(Array.from({ length: SETS }, (_, i) => [['uBakeLm' + i, { value: null }], ['uBakeVol' + i, { value: NO_VOL }]]).flat()),
   uBakeV0: { value: new THREE.Vector3() }, uBakeVS: { value: new THREE.Vector3(1, 1, 1) }, uBakeVD: { value: new THREE.Vector4(1, 1, 1, 1) },
   uBakeSun: { value: NO_SUN }, uBakeSunM: { value: new THREE.Matrix4() },
@@ -120,12 +113,13 @@ export function addBakedLight(bake, light, group, holder = group) {
 // how bright a light gets (`peak`: one lit at night only is dark by day, render/night.js)
 const peak = l => l.userData.peak ?? l.intensity;
 // which fixed lights each cell of the cube takes (core/lightcells.js), in its table by their place
-// in the cube's list (the row each has in uBakeT)
+// in the cube's list (its place in uBakeT's table), in uBakeT's first rows (render/lighthook.js
+// bakeTexture: CELL_MAX / 4 texels a cell, four indices each)
 function lightCells(bake) {
-  const t = bake.u.uBakeC.value;
+  const t = bake.u.uBakeT.value;
   t.image.data.set(cellsOf(bake.lights.map(s => ({ x: s.at.x, z: s.at.z, reach: s.light.distance || 6, intensity: peak(s.light) })),
     { cells: CELLS, from: CELL0, max: CELL_MAX }));
-  t.needsUpdate = true;
+  touch(t);
   bake.cells = bake.lights.length;
 }
 
@@ -201,16 +195,16 @@ function updateBake(bake, now) {
   bake.lit = lit;
   bake.u.uBakeR.value = plain ? 0 : on;
   if (bake.cells !== bake.lights.length) lightCells(bake);
-  // every light keeps its row (the cells point at it); one dark, hidden or the cube faded out
-  // reaches nothing
-  const table = bake.u.uBakeT.value, L = table.image.data, fade = group.visible ? (group.userData.fade ?? 1) * lit : 0;
+  // every light keeps its place in the table (the cells point at it); one dark, hidden or the cube
+  // faded out reaches nothing
+  const table = bake.u.uBakeT.value, L = table.image.data, base = BAKE_TABLE * BAKE_W * 4, fade = group.visible ? (group.userData.fade ?? 1) * lit : 0;
   bake.lights.forEach((s, i) => {
-    const l = s.light, o = i * 8, k = l.intensity * fade, on = k > 0 && shows(s, group);
+    const l = s.light, o = base + i * 8, k = l.intensity * fade, on = k > 0 && shows(s, group);
     L[o] = s.at.x; L[o + 1] = s.at.y; L[o + 2] = s.at.z; L[o + 3] = on ? l.distance || 1e3 : 0;
     L[o + 4] = l.color.r * k; L[o + 5] = l.color.g * k; L[o + 6] = l.color.b * k; L[o + 7] = bake.ready && !plain ? s.channel : -1;
   });
   const n = fade > 0 ? bake.lights.length : 0;
-  if (n || bake.u.uBakeN.value) table.needsUpdate = true;
+  if ((n || bake.u.uBakeN.value) && bake.lights.length) touch(table, base, bake.lights.length * 8);
   bake.u.uBakeN.value = n;
 }
 
@@ -242,7 +236,7 @@ export function disposeBake(bake) {
     if (bake.owned) release(bake.owned);
     releaseSun(bake.sun);
   }
-  bake.u.uBakeT.value.dispose(); bake.u.uBakeC.value.dispose();
+  bake.u.uBakeT.value.dispose();
   bake.owned = null;
   bake.ready = false;
 }
@@ -360,7 +354,7 @@ function takeKept(bake) {
   bake.owned = k.owned;
   bake.sun = k.sun; bake.sun.at = 0;
   bake.lights.forEach((s, i) => { s.channel = k.channels[i]; });
-  for (const key in bake.u) if (!['uBakeR', 'uBakeN', 'uBakeT', 'uBakeC', 'uBakeO'].includes(key)) bake.u[key].value = k.u[key].value;
+  for (const key in bake.u) if (!['uBakeR', 'uBakeN', 'uBakeT', 'uBakeO'].includes(key)) bake.u[key].value = k.u[key].value;
   bake.ready = true; bake.readyAt = -Infinity;
   return true;
 }

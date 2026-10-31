@@ -29,7 +29,7 @@ import { climb } from '../../src/physics/climb.js';
 import { W, resetMode } from '../../src/render/blendtree.js';
 import { character, equipSword, loadSword, prepareSword } from '../../src/render/character.js';
 import { animateCharacter } from '../../src/render/animator.js';
-import { scene } from '../../src/render/scene.js';
+import { scene, renderer } from '../../src/render/scene.js';
 import { cameraMode, setCameraMode } from '../../src/game/settings.js';
 import { settleCamera } from '../../src/game/camera.js';
 import { stunderModel } from '../../src/render/stundermodel.js';
@@ -49,6 +49,13 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 // also: no critical hits while checking, so every blow deals its exact damage
 // (in the overview, the view these checks were written for: the cutaway, the walls that come
 // down; the camera key's setting comes back afterwards, tests/browser/camera.js checks the close view)
+// a frame drawn, and the programs that did not link (one sampler more than a fragment shader takes,
+// 16, and three.js draws nothing with it: render/lighthook.js), by the ends of their keys
+export function unlinked() {
+  renderer.render(scene, camera);
+  return renderer.info.programs.filter(p => p.diagnostics && !p.diagnostics.runnable).map(p => p.cacheKey.split(',').at(-1));
+}
+
 export async function paused(fn) {
   const raf = window.requestAnimationFrame, cancel = window.cancelAnimationFrame, crit = rolls.crit;
   const mode = cameraMode();

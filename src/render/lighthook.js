@@ -45,13 +45,48 @@ export const CELLS = 20, CELL0 = -2, CELL_MAX = 16;
 // look alike at any zoom.
 export const EDGE = 0.025;
 
-// a table of lights: two texels a light (x, y, z, reach; r, g, b, channel)
-export function lightTable(n) {
-  const t = new THREE.DataTexture(new Float32Array(n * 8), 2, n, THREE.RGBAFormat, THREE.FloatType);
+// A lit material has no sampler to spare: a fragment shader takes 16 at most, and a fluid standing
+// in a box (a trial's, a boss's tide: render/trials.js) or a lightmapped solid that is wet and
+// under water comes close; with one more its program does not link and it is not drawn at all.
+// So the game's tables of lights share textures: a cube's fixed lights and its cells one
+// (bakeTexture), the moving lights, the surroundings' and their grid another (uFar).
+
+// A texture of tables (floats, four a texel), a part of it changed at a time: touch(t, start,
+// count) says which floats changed, and three.js uploads only the span of each row they touch (a
+// range a row: it uploads each within its row), or all of it until it has once gone up whole (and
+// again after touch(t) without a range).
+export function tableTexture(w, h, data = new Float32Array(w * h * 4)) {
+  const t = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.FloatType);
   t.minFilter = t.magFilter = THREE.NearestFilter;
   t.needsUpdate = true;
+  t.userData.whole = true;
+  t.userData.rows = new Map();   // row -> the span of it changed [from, to) since it went up
+  t.onUpdate = () => { t.userData.whole = false; t.userData.rows.clear(); };
   return t;
 }
+export function touch(t, start = null, count = 0) {
+  const u = t.userData;
+  t.needsUpdate = true;
+  if (start === null) { u.whole = true; u.rows.clear(); t.clearUpdateRanges(); return; }
+  if (u.whole) return;
+  const w = t.image.width * 4;
+  for (let s = start, end = start + count; s < end;) {
+    const row = Math.floor(s / w), e = Math.min(end, (row + 1) * w), had = u.rows.get(row);
+    u.rows.set(row, had ? [Math.min(had[0], s), Math.max(had[1], e)] : [s, e]);
+    s = e;
+  }
+  // (rows touched again before the texture went up, it not drawn meanwhile: their spans grow, the
+  // ranges stay one a row)
+  t.clearUpdateRanges();
+  for (const [from, to] of u.rows.values()) t.addUpdateRange(from, to - from);
+}
+
+// A cube's fixed lights (render/bake.js), in one texture BAKE_W texels wide: first its cells (the
+// cube's ground in cells of a unit, CELLS a side, each CELL_MAX / 4 texels of four indices into
+// the table, -1: no more), from row BAKE_TABLE on the table, two texels a light (x, y, z, reach;
+// r, g, b, channel) one after the other across the rows.
+export const BAKE_W = 64, BAKE_TABLE = Math.ceil(CELLS * CELLS * CELL_MAX / 4 / BAKE_W), BAKE_ROWS = BAKE_TABLE + Math.ceil(MAX_BAKED * 2 / BAKE_W);
+export const bakeTexture = () => tableTexture(BAKE_W, BAKE_ROWS, new Float32Array(BAKE_W * BAKE_ROWS * 4).fill(-1, 0, CELLS * CELLS * CELL_MAX));
 
 // The surroundings' lights (render/farlights.js fills them): every light of the cubes shown round
 // the one played in (and in the town that one's own too), FAR_MAX at most, and a grid over the
@@ -59,20 +94,16 @@ export function lightTable(n) {
 // that reach into it, the strongest first, FAR_K at most: its first FAR_CELLS rows the lights the
 // surroundings take, the next the ones the cube played in takes (in the town, its neighbours'
 // across the seams). A point walks its cell's only: however many lights there are, a point takes
-// a dozen at most. Grid and table share one texture, FAR_W texels wide (a lit material has no
-// sampler to spare: a fragment shader takes 16 at most, and a lightmapped solid that is wet and
-// under water comes close; with one more it is not drawn at all): the grid's rows first (four lights a texel, -1: no more), then from
-// row FAR_TABLE on the table, three texels a light, one after the other across the rows (x, y, z,
+// a dozen at most. Grid and table share one texture, FAR_W texels wide, with the moving lights
+// (render/lightpool.js): the grid's rows first (four lights a texel, -1: no more), then from row
+// FAR_TABLE on the table, three texels a light, one after the other across the rows (x, y, z,
 // reach; r, g, b as bright as it is; how bright on the surroundings, how bright in the cube played
-// in, 0, 0).
+// in, 0, 0), and in the last row, FAR_MOVE, the moving lights, two texels each (x, y, z in the
+// world, reach; r, g, b, 0).
 export const FAR_MAX = 512, FAR_CELL = 2, FAR_CELLS = 48, FAR_K = 12;
-export const FAR_W = FAR_CELLS * FAR_K / 4, FAR_TABLE = FAR_CELLS * 2, FAR_ROWS = FAR_TABLE + Math.ceil(FAR_MAX * 3 / FAR_W);
-const farTexture = () => {
-  const t = new THREE.DataTexture(new Float32Array(FAR_W * FAR_ROWS * 4).fill(-1, 0, FAR_W * FAR_TABLE * 4), FAR_W, FAR_ROWS, THREE.RGBAFormat, THREE.FloatType);
-  t.minFilter = t.magFilter = THREE.NearestFilter;
-  t.needsUpdate = true;
-  return t;
-};
+export const FAR_W = FAR_CELLS * FAR_K / 4, FAR_TABLE = FAR_CELLS * 2, FAR_MOVE = FAR_TABLE + Math.ceil(FAR_MAX * 3 / FAR_W), FAR_ROWS = FAR_MOVE + 1;
+if (MAX_MOVING * 2 > FAR_W) throw Error('lighthook: the moving lights take more than a row');
+const farTexture = () => tableTexture(FAR_W, FAR_ROWS, new Float32Array(FAR_W * FAR_ROWS * 4).fill(-1, 0, FAR_W * FAR_TABLE * 4));
 // (texel k of light i in the table)
 const farLight = (i, k) => `texelFetch(uFar, ivec2((${i} * 3 + ${k}) % ${FAR_W}, ${FAR_TABLE} + (${i} * 3 + ${k}) / ${FAR_W}), 0)`;
 // the walk over a point's cell (at world point `w`): `proxy` the surroundings' rows (each light as
@@ -122,8 +153,7 @@ export const BAKE = {
   uBakeOn: { value: 0 },                       // 1 while the world's scene is drawn
   uBakeR: { value: 0 },                        // how far its baked shadows are trusted (0 before they are baked, fading to 1)
   uBakeN: { value: 0 },                        // how many fixed lights
-  uBakeT: { value: null },                     // their table (x, y, z in the cube)
-  uBakeC: { value: null },                     // the lights each cell of the cube takes (render/bake.js lightCells)
+  uBakeT: { value: null },                     // the lights each cell of the cube takes (render/bake.js lightCells), and their table (x, y, z in the cube): bakeTexture
   uBakeK: { value: CELL_MAX },                 // how many of them a point walks at most, eased (game/quality.js)
   uBakeO: { value: new THREE.Vector3() },      // the cube's origin in the world
   ...Object.fromEntries(Array.from({ length: SETS }, (_, i) => [['uBakeLm' + i, { value: null }], ['uBakeVol' + i, { value: NO_VOL }]]).flat()),
@@ -138,10 +168,9 @@ export const BAKE = {
   uBakeSunX: { value: new THREE.Vector4(1, 1, 0, 0) },   // each map's texel (world units), how far round it to look for what shades a point (in the map; 0: right there)
   uBakeSunT: { value: 0 },                     // how far from the first to the second
   uBakeEdge: { value: new THREE.Vector2(1e-4, 1e-4) },   // EDGE in the lightmap's distances: the sun's, the lights' (render/bake.js newBake)
-  uMoveN: { value: 0 },                        // how many moving lights
-  uMoveT: { value: lightTable(MAX_MOVING) },   // their table (x, y, z in the world; channel unused)
+  uMoveN: { value: 0 },                        // how many moving lights (their table: uFar's row FAR_MOVE)
   uFarN: { value: 0 },                         // how many of the surroundings' lights (render/farlights.js)
-  uFar: { value: farTexture() },               // the lights each cell of the world round the hero takes, and their table
+  uFar: { value: farTexture() },               // the lights each cell of the world round the hero takes, their table, the moving lights'
   uFarO: { value: new THREE.Vector2() },       // where its grid begins (x, z in the world)
   uBakeDbg: { value: 0 },                      // dev (/lightview): 1 the sun's baked shadow, 2 the fixed lights' light, 3 the lightmap's texels
 };
@@ -160,7 +189,7 @@ const HEAD = `
 #ifndef NO_BAKE
 uniform float uBakeOn, uBakeR, uBakeDbg, uBakeK;
 uniform int uBakeN, uMoveN;
-uniform highp sampler2D uBakeT, uMoveT, uBakeC;
+uniform highp sampler2D uBakeT;
 #ifndef FAR_LIT
 uniform int uFarN;
 uniform highp sampler2D uFar;
@@ -183,6 +212,7 @@ uniform vec2 uBakeEdge;
   uniform vec3 uBakeSunD;
   uniform vec4 uBakeSunX;
 #endif
+vec4 bakeTexel(int k) { return texelFetch(uBakeT, ivec2(k % ${BAKE_W}, k / ${BAKE_W}), 0); }
 float bakeFalloff(float d, float reach) {
   return 1.0 / max(d * d, 0.01) * pow2(saturate(1.0 - pow4(d / reach)));
 }
@@ -292,11 +322,11 @@ const LOOP = `
   if (uBakeOn > 0.5) {
     for (int i = 0; i < ${MAX_MOVING}; i++) {
       if (i >= uMoveN) break;
-      vec4 la = texelFetch(uMoveT, ivec2(0, i), 0);
+      vec4 la = texelFetch(uFar, ivec2(i * 2, ${FAR_MOVE}), 0);
       vec3 lw = la.xyz - bakeW;
       float d2 = dot(lw, lw);
       if (d2 >= la.w * la.w) continue;
-      vec4 lb = texelFetch(uMoveT, ivec2(1, i), 0);
+      vec4 lb = texelFetch(uFar, ivec2(i * 2 + 1, ${FAR_MOVE}), 0);
       float d = sqrt(d2);
       directLight.direction = normalize((viewMatrix * vec4(lw, 0.0)).xyz);
       directLight.color = lb.rgb * bakeFalloff(d, la.w);
@@ -309,18 +339,18 @@ const LOOP = `
     bool bakeDone = uBakeN == 0;
     for (int j = 0; j < ${CELL_MAX / 4}; j++) {
       if (bakeDone || float(j * 4) >= uBakeK) break;
-      vec4 ids = texelFetch(uBakeC, ivec2(j, bakeRow), 0);
+      vec4 ids = bakeTexel(bakeRow * ${CELL_MAX / 4} + j);
       ${['x', 'y', 'z', 'w'].map((c, k) => `{
         int i = int(ids.${c});
         // (the last light a point takes fades in and out as uBakeK eases between levels)
         float kw = clamp(uBakeK - float(j * 4 + ${k}), 0.0, 1.0);
         if (i < 0 || kw <= 0.0) bakeDone = true;
         else {
-          vec4 la = texelFetch(uBakeT, ivec2(0, i), 0);
+          vec4 la = bakeTexel(${BAKE_TABLE * BAKE_W} + i * 2);
           vec3 lw = la.xyz - bakeP;
           float d2 = dot(lw, lw);
           if (d2 < la.w * la.w) {
-            vec4 lb = texelFetch(uBakeT, ivec2(1, i), 0);
+            vec4 lb = bakeTexel(${BAKE_TABLE * BAKE_W} + i * 2 + 1);
             float d = sqrt(d2);
             int ch = int(floor(lb.w + 0.5));
             float vis = ch < 0 ? 1.0 : ${Array.from({ length: SETS - 1 }, (_, i) => `ch < ${4 * (i + 1)} ? bake${i}[ch - ${4 * i}] : `).join('')}bake${SETS - 1}[ch - ${4 * (SETS - 1)}];

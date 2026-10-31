@@ -11,7 +11,7 @@
 // (The hero's own lamp is a three.js light of its own, with shadows: render/character.js.)
 import * as THREE from 'three';
 import { addBakedLight } from './bake.js';
-import { BAKE, MAX_MOVING } from './lighthook.js';
+import { BAKE, MAX_MOVING, FAR_MOVE, FAR_W, touch } from './lighthook.js';
 
 const FADE = 1.5;   // how far before the first source left out a taken one has faded out (only past MAX_MOVING)
 let sources = [];
@@ -59,16 +59,16 @@ export function updateLightPool(focus) {
     cut = Math.sqrt(shown[MAX_MOVING].d);
     shown = shown.slice(0, MAX_MOVING);
   }
-  const table = BAKE.uMoveT.value, L = table.image.data;
+  // (their row of the lights' texture: render/lighthook.js FAR_MOVE)
+  const table = BAKE.uFar.value, L = table.image.data, base = FAR_MOVE * FAR_W * 4;
   shown.forEach((s, i) => {
-    const o = i * 8, edge = Math.min(1, Math.max(0, (cut - Math.sqrt(s.d)) / FADE));
+    const o = base + i * 8, edge = Math.min(1, Math.max(0, (cut - Math.sqrt(s.d)) / FADE));
     const k = s.l.intensity * s.gain * (s.group.userData.fade ?? 1) * edge;
     L[o] = s.pos.x; L[o + 1] = s.pos.y; L[o + 2] = s.pos.z; L[o + 3] = s.l.distance || 1e3;
     L[o + 4] = s.l.color.r * k; L[o + 5] = s.l.color.g * k; L[o + 6] = s.l.color.b * k; L[o + 7] = 0;
   });
   BAKE.uMoveN.value = shown.length;
-  if (shown.length || table.userData.used) table.needsUpdate = true;
-  table.userData.used = shown.length > 0;
+  if (shown.length) touch(table, base, shown.length * 8);
 }
 
 export const focusPoint = (x, y, z) => tmp.set(x, y, z);

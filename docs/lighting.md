@@ -204,7 +204,7 @@ every shader, so no program changes its cache key.
 
 - **The moving lights:** a table (a float texture, two texels a light: where it is in the world,
   at most 64) every lit shader walks, without shadows (`render/lightpool.js updateLightPool` fills
-  it each frame).
+  it each frame), in a row of the surroundings' texture (below).
 - **The fixed lights:** the cube's table (at most 128), walked after the moving ones: not all of
   it, only the lights of the point's **cell** (`core/lightcells.js`: the cube's ground in cells of
   a unit, each with the lights whose reach comes into it, the strongest there first, 16 at most).
@@ -214,6 +214,14 @@ every shader, so no program changes its cache key.
   nothing); each light's visibility comes from its channel. Both through three.js's own BRDF (`RE_Direct`): the same look
   as a point light. (Tables, not uniform arrays: some GPUs take no more than 224 vectors of
   uniforms in a shader.)
+- **Few textures:** a fragment shader takes 16 at most, and one more and its program does not
+  link: three.js draws nothing with it, without a word in the game (the stairs, ladders and fences
+  once; a boss's lava and tide, a trial's water: the fluid standing in a box, with its cells,
+  palette, shore and boxes, is one of the fullest). So the tables share textures
+  (`render/lighthook.js`): the cube's cells and its fixed lights one (`bakeTexture`), the
+  surroundings' grid and lights and the moving lights another (`uFar`). Each frame only the rows
+  of a table that changed go up (`touch`). The browser checks of Foggery and Squarlo look that
+  every program drawn links (`tests/browser/combat.js unlinked`).
 - **On the lightmapped solids** (`BAKED_LM`, `render/bake.js bakedSurface`): the distance from the
   lightmap, turned into light over one pixel (its change across the pixel, `fwidth`): the edge
   is a pixel wide and smooth at any zoom, without MSAA's help (MSAA only smooths the edges of

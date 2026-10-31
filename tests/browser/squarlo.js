@@ -5,7 +5,7 @@
 // hills (the player swims in it there, unhurt, carried up with it), the
 // rest after it, growing into a giant at half his health, the giant's stomp, its shockwave and
 // his jump, and his death draining the water and taking the Squirtles along.
-import { paused } from './combat.js';
+import { paused, unlinked } from './combat.js';
 import { state, player } from '../../src/game/state.js';
 import { makeLayouts } from '../../src/world/layout.js';
 import { createRun } from '../../src/core/progression.js';
@@ -49,6 +49,8 @@ export async function runSquarloChecks() {
       check(map.arena.type === 'tidal' && map.tide, 'in his tidal hills');
       run(0.05);
       check(Math.abs(state.tide - map.tide.rest) < 1e-6 && state.world.trialView?.water?.visible, 'the water stands in the flats');
+      const bad = unlinked();
+      check(!bad.length, 'the water drawn: ' + bad.join(' '));
       drawEnemies(0);
       check(q.view && !q.view.bar.visible && q.view.size === 1, 'his bar on the screen, not over him; his size');
       player.hp = player.maxHp = 1e5; state.enemyGrace = 0;

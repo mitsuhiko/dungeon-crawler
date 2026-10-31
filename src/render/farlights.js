@@ -11,7 +11,7 @@
 // (render/bake.js), and until they are they shine from here instead, fading over to the bake.
 // Elsewhere the glass stands between: they do not reach into the cube played in, nor its lights out.
 import * as THREE from 'three';
-import { BAKE, FAR_MAX, FAR_CELL, FAR_CELLS, FAR_K, FAR_W, FAR_TABLE, farWalk } from './lighthook.js';
+import { BAKE, FAR_MAX, FAR_CELL, FAR_CELLS, FAR_K, FAR_W, FAR_TABLE, farWalk, touch } from './lighthook.js';
 import { nightGlow, litAt } from './night.js';
 import { PROXY } from './materials.js';
 
@@ -60,7 +60,7 @@ const FADE = 3;
 const shown = [];
 let pool = [];
 const take = () => (pool.pop() ?? {});
-const grid = { ox: NaN, oz: NaN, sig: NaN, whole: true };   // (whole: the whole texture is still to go up)
+const grid = { ox: NaN, oz: NaN, sig: NaN };
 export function setFarLights(cubes, focus, here = null) {
   pool.push(...shown);
   shown.length = 0;
@@ -92,22 +92,14 @@ export function setFarLights(cubes, focus, here = null) {
   }
   BAKE.uFarN.value = count;
   // (the grid: round the hero, laid out again as they walk a cell on, or the lights change; then
-  // the whole texture goes up, else only the table's rows in use)
+  // the whole texture goes up, else only the table's rows in use: render/lighthook.js touch)
   const ox = (Math.floor(focus.x / FAR_CELL) - FAR_CELLS / 2) * FAR_CELL, oz = (Math.floor(focus.z / FAR_CELL) - FAR_CELLS / 2) * FAR_CELL;
   if (ox !== grid.ox || oz !== grid.oz || sig !== grid.sig) {
     grid.ox = ox; grid.oz = oz; grid.sig = sig;
     BAKE.uFarO.value.set(ox, oz);
     layGrid(ox, oz, count);
-    tex.clearUpdateRanges();
-    tex.needsUpdate = true;
-    grid.whole = true;
-    tex.onUpdate ??= () => { grid.whole = false; };
-  } else if (count && !grid.whole) {
-    // (a range a row: three.js uploads each within its row)
-    tex.clearUpdateRanges();
-    for (let r = 0; r * FAR_W < count * 3; r++) tex.addUpdateRange(base + r * FAR_W * 4, Math.min(FAR_W, count * 3 - r * FAR_W) * 4);
-    tex.needsUpdate = true;
-  }
+    touch(tex);
+  } else if (count) touch(tex, base, count * 12);
 }
 
 // the grid's cells: each the lights reaching into it, the strongest there first (as bright as they

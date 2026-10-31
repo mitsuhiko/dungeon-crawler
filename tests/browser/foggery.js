@@ -8,7 +8,7 @@
 // player onto the platforms (and back down onto the top); his loot comes to rest on the ground
 // that stays, never on a platform or in the air.
 import { RESCUE } from '../../src/core/rescue.js';
-import { paused } from './combat.js';
+import { paused, unlinked } from './combat.js';
 import { state, player } from '../../src/game/state.js';
 import { LH } from '../../src/core/constants.js';
 import { damageEnemy } from '../../src/core/combat.js';
@@ -69,6 +69,8 @@ export async function runFoggeryChecks() {
     const rest = lava(), at = { x: b.x, z: b.z };
     check(Math.abs(rest - TOWER.lava.rest * LH) < 0.3, 'the lava at rest: ' + rest);
     check(b.waiting && Math.hypot(b.x - at.x, b.z - at.z) < 1e-6 && b.y >= rest - 0.05, 'he waits, on the lava');
+    const bad = unlinked();
+    check(state.world.trialView?.water?.visible && !bad.length, 'the lava drawn: ' + bad.join(' '));
     // the player sets foot on the ramp: the lava rises, Fire-faces wait up the ramp, he comes after them
     const ramp = map.floors.find(f => f.tower === 'ramp' && f.link.some(g => g?.tower === 'bridge'));
     spawnAt(ramp.x + .5, floorY(ramp, .5, .5), ramp.z + .5);
