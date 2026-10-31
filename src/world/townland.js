@@ -54,6 +54,8 @@ export const INN_STAIR = { z: WATER_TO + QUAY - 1, foot: 4, top: 13 };
 // (where the street runs in the middle tiles: world/town.js STREET)
 const STREET_X = 8.5;
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+// the kinds of old ruins a town may have (world/town.js dresses them)
+export const RUINS = ['temple', 'colossus', 'colonnade'];
 // The wall: the cells of the forest outside it on each outer side (the wall stands in the next row
 // in), how wide its gate is where the street comes in (cells, round the street)
 export const WALL = 3, WALL_GATE = 5;
@@ -540,11 +542,41 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       features.push({ kind: 'mill', x: s.mx, z: s.mz });
     }
   }
+  // ---- old ruins, in most worlds: what stood here before the town, on wild ground off everything
+  // (a temple's gate among broken columns, a colossus's head, a colonnade): RUINS kinds, dressed by
+  // world/town.js; on the upper town's edge over the cliff, or out in the lower town
+  let ruins = null;
+  if (R() < .7) {
+    const kind = pick3(R, RUINS), spots = [];
+    for (let z = WALL + 4; z < D - WALL - 4; z++) for (let x = WALL + 4; x < W - WALL - 4; x++) {
+      const c = cell(x, z);
+      if (fixedDist[c] < 2.6 || strip(x, z) || offSeam(x, seamX) < 3 || offSeam(z, seamZ) < 3) continue;
+      if (Math.hypot(x + .5 - hill.x, z + .5 - hill.z) < hill.r1 + 3 || Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z) < hollow.r1 + 3) continue;
+      if (pieces.some(p => Math.hypot(x + .5 - p.x, z + .5 - p.z) < p.r1 + 3) || (mill && Math.hypot(x + .5 - mill.x, z + .5 - mill.z) < 5)) continue;
+      let ok = true;
+      for (let dz = -2; dz <= 2 && ok; dz++) for (let dx = -2; dx <= 2 && ok; dx++) {
+        const n = cell(x + dx, z + dz);
+        ok = !water.has(n) && !used.has(n) && !tongue.has(n) && base(x + dx, z + dz) === base(x, z) && !gorgeAt(x + dx, z + dz) && !insideBox(x + dx + .5, z + dz + .5, 2);
+      }
+      // (by the cliff's edge over the water, where it may: in sight from below)
+      const brink = base(x, z) === upper && [3, 4].some(k => z - k >= 0 && base(x, z - k) === lower);
+      if (ok) spots.push({ x: x + .5, z: z + .5, w: brink ? 8 : base(x, z) === upper ? 4 : 1 });
+    }
+    if (spots.length) {
+      let r = R() * spots.reduce((a, s) => a + s.w, 0), s = spots[0];
+      for (const q of spots) if ((r -= q.w) < 0) { s = q; break; }
+      ruins = { kind, x: s.x, z: s.z, level: base(Math.floor(s.x), Math.floor(s.z)), r: 2.6 };
+      features.push({ kind: 'ruins', x: s.x, z: s.z });
+    }
+  }
   // ---- the town round them
   const layout = plan({ hill, hollow, lake, pieces, W, D, level, rows, inWall, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
-    avoid: [...structureCells.map(c => { const [x, z] = xz(c); return { x0: x, z0: z, x1: x + 1, z1: z + 1 }; }), ...mill ? [mill.box] : []],
+    avoid: [...structureCells.map(c => { const [x, z] = xz(c); return { x0: x, z0: z, x1: x + 1, z1: z + 1 }; }), ...mill ? [mill.box] : [],
+      ...ruins ? [{ x0: ruins.x - ruins.r, z0: ruins.z - ruins.r, x1: ruins.x + ruins.r, z1: ruins.z + ruins.r }] : []],
     water: c => water.has(c), wet: [...water.keys()] });
   const keep = layout.keep;
+  // (the ruins' ground level, a little round them)
+  if (ruins) keep.push({ x: ruins.x, z: ruins.z, r: ruins.r - .6, level: ruins.level });
   // how far each cell lies from what is kept, and how far over its ground's level it is kept: a
   // home's terrace (`lift`) where it is the nearest, its path's ramp (`ramp`: its lift at the door,
   // none at the way) where that runs (the ramp's cells not pinned flat: cubegen/smooth.js slopes them)
@@ -724,7 +756,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   return {
     W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
     // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
-    gorge, features, stage, mill,
+    gorge, features, stage, mill, ruins,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
     // gatehouse's middle (where the street comes in), whether (x, z) lies inside it by m
     wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall },

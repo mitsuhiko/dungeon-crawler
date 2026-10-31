@@ -715,3 +715,22 @@ test('a mill stands by the river in most worlds, on level ground, its wheel turn
   assert.ok(mills >= 3, `${mills} mills in 12 worlds`);
   assert.ok(where.size >= 2, 'mills in places of their own');
 });
+
+test('old ruins lie in most worlds\' towns, of every kind, on wild ground of their own', () => {
+  const kinds = new Set(), tiles = new Set();
+  let ruins = 0;
+  for (let seed = 0; seed < 12; seed++) {
+    const land = townLand(seed), r = land.ruins;
+    if (!r) continue;
+    ruins++; kinds.add(r.kind); tiles.add(`${Math.floor(r.x / N)},${Math.floor(r.z / N)}`);
+    const w = new World(seed), m = tilesOf(w).find(({ i, j }) => i === Math.floor(r.x / N) && j === Math.floor(r.z / N)).m;
+    const stones = m.town.placements.filter(p => p.name.startsWith('ruins_'));
+    assert.ok(stones.length >= 6, `${seed}: ${stones.length} stones of the ruins`);
+    assert.ok(stones.some(p => /temple_gate|colossus_head|collapsed_arch|obelisk/.test(p.name)), `${seed}: what stood there`);
+    // (off the homes)
+    for (const p of m.town.placements.filter(p => isHome(p.name))) assert.ok(stones.every(s => Math.hypot(s.x - p.x, s.z - p.z) > 1.2));
+  }
+  assert.ok(ruins >= 6, `${ruins} ruins in 12 worlds`);
+  assert.equal(kinds.size, 3);
+  assert.ok(tiles.size >= 3, 'in tiles of their own');
+});

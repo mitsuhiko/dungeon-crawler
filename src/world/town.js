@@ -900,6 +900,35 @@ function watermill(t) {
   footprints.push({ x: q.x, z: q.z, c: snap(Math.cos(q.yaw)), s: snap(Math.sin(q.yaw)), bounds: wheel.bounds, box: turnedBox(wheel.bounds, q.x, q.z, q.yaw) });
 }
 
+// Old ruins (world/townland.js ruins: RUINS), in the tile they lie in: what stood here before the
+// town, its stones fallen about. A temple's gate among the bases of its columns, a colossus's head
+// in the grass among toppled columns, or a colonnade with an arch at its end; rubble, tiles, urns,
+// tablets round them, moss and ferns.
+function oldRuins(t) {
+  const { land, L, put, R } = t, r = land.ruins;
+  if (!r || !t.inTile(r)) return;
+  const [cx, cz] = L(r.x, r.z), [mx, mz] = L(land.W / 2, land.D / 2), a0 = R() * Math.PI * 2;
+  const ring = (n, d, a = a0) => Array.from({ length: n }, (_, k) => { const b = a + k * 2 * Math.PI / n + (R() - .5) * .3; return [cx + Math.cos(b) * d, cz + Math.sin(b) * d]; });
+  const stone = { uneven: .9 };
+  if (r.kind === 'temple') {
+    facing(put, 'ruins_temple_gate_a', near(cx, cz, .9), [mx, mz], { s: 1, uneven: 1.2 });
+    for (const [x, z] of ring(6, 2.4)) put(R() < .55 ? variant(R, 'ruins_broken_column') : variant(R, 'ruins_column_base'), near(x, z, .4), stone);
+  } else if (r.kind === 'colossus') {
+    facing(put, 'ruins_colossus_head_a', near(cx, cz, .9), [mx, mz], { s: .9 + R() * .2, uneven: 1.2 });
+    for (const [x, z] of ring(4, 2.5)) put(R() < .5 ? variant(R, 'ruins_toppled_column') : variant(R, 'ruins_statue_head'), near(x, z, .5), stone);
+  } else {
+    // (a row of columns across it, an arch fallen at one end, an obelisk at the other)
+    const ux = Math.cos(a0), uz = Math.sin(a0), along = d => [cx + ux * d, cz + uz * d];
+    for (let d = -1.8; d <= 1.81; d += 1.2) put(R() < .7 ? variant(R, 'ruins_broken_column') : variant(R, 'ruins_column_base'), near(...along(d), .3), stone);
+    facing(put, variant(R, 'ruins_collapsed_arch'), near(...along(3), .6), [cx, cz], stone);
+    put(variant(R, 'ruins_obelisk_broken'), near(...along(-3), .6), stone);
+  }
+  // (what lies about)
+  for (const [x, z] of ring(9, 1.6 + R() * 1.4, a0 + .4)) put(pick(R, ['ruins_rubble_a', 'ruins_rubble_b', 'ruins_broken_tiles_a', 'ruins_broken_tiles_b',
+    'ruins_urn_a', 'ruins_urn_b', 'ruins_stone_tablet_a', 'ruins_stone_tablet_b', 'roots_moss_patch_a', 'meadow_fern_a', 'any_rock_a']), near(x, z, .6), { uneven: 1 });
+  if (R() < .5) put(variant(R, 'ruins_glyph_stone'), near(cx + (R() - .5) * 3, cz + (R() - .5) * 3, 1), { uneven: 1 });
+}
+
 // What stands round a home (HOMES): flowers by its door, trees in its yard, behind it a garden
 // fenced in, the wash hanging out, wood stacked, or the animals (`rural`: on the town's edge)
 function yard(t, h) {
@@ -1579,6 +1608,7 @@ export function townPlan(exit, seed, i, j, world = 0) {
   plan.wallSide = Array.from({ length: N * N }, (_, c) => land.wall.side(...tools.G(...rotateTownPoint(c % N + .5, Math.floor(c / N) + .5, -plan.yaw)).map(Math.floor)));
   walls(tools);
   watermill(tools);
+  oldRuins(tools);
   spec.dress(tools);
   hedgerows(tools);
   for (const h of laid.homes) yard(tools, h);

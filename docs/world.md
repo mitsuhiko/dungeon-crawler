@@ -157,6 +157,10 @@ from it (`tileGround` in `world/town.js`).
 - **The mill**, in about half the worlds: on a bank of the river (or a stream) where it runs
   straight on for a few cells, well up from its fall, on level ground of its own; its wheel turns
   in the water beside it, and its windows light up at night.
+- **Old ruins**, in most worlds: what stood here before the town, on wild ground of their own,
+  most often in the upper town by the cliff's edge, else out in the lower town: a temple's gate
+  among the bases of its columns, a colossus's head among toppled columns, or a colonnade with an
+  arch fallen at its end; rubble, tiles, urns and tablets about them (`RUINS`, `oldRuins`).
 - Each world's land differs in more than where these lie: how deep the bay reaches, how far the
   cliff winds, how far a span goes. `node tools/townmap.mjs [seed ...]` draws a world's land from
   above (a PNG a seed: its levels, water, stairs, bridges, spans, falls, ways and homes).
