@@ -592,13 +592,18 @@ test('building boxes collide in every covered cell; canopy occlusion is separate
     assert.equal(ceilingAt(x, z, y - .1), y);
   }
   checkWalkingRoutes(m);
-  const edge = state.map = w.cube(t.at(0, 0)).map;
-  // (a crown with nothing else standing under it where it is probed: woods grow close)
-  const inward = b => Math.sign(N / 2 - b.x) || 1, probe = b => [b.x + inward(b) * b.rx * .8, b.z];
-  const crown = edge.occluders.find(b => b.shape === 'ellipsoid' && !edge.staticBlockers.flat().some(c => containsXZ(c, ...probe(b), .05)));
+  // (a crown with nothing else standing under it where it is probed, a side of its trunk inside the
+  // cube: woods grow close; in the first of the town's tiles that has one)
+  const probes = b => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => [b.x + dx * b.rx * .8, b.z + dz * b.rx * .8]).filter(([x, z]) => x > 0 && z > 0 && x < N && z < N);
+  let edge, crown, cx, cz;
+  for (const k of t.keys) {
+    const tile = w.cube(k).map, clear = ([x, z]) => !tile.staticBlockers.flat().some(c => containsXZ(c, x, z, .05));
+    for (const b of tile.occluders) if (!crown && b.shape === 'ellipsoid') { const p = probes(b).find(clear); if (p) { edge = tile; crown = b; [cx, cz] = p; } }
+    if (crown) break;
+  }
+  state.map = edge;
   assert.equal(viewBlockedAt(edge, crown.x, crown.y, crown.z), true);
   assert.ok(mapInfo(edge).top > Math.max(...edge.occluders.map(b => b.top)));
-  const [cx, cz] = probe(crown);
   assert.equal(insideSolid(cx, cz, groundOf(edge, cx, cz) + .5), false, 'only the trunk stands in the way');
 });
 
@@ -751,4 +756,32 @@ test('each world\'s town has a style of its own: homes, lanes, trees in the open
   assert.ok(new Set(styles.map(s => [...new Set(s.avenue)].sort().join())).size >= 6, 'avenue trees');
   // (from a dice of its own: the land drawn before it stays as it is)
   assert.deepEqual(townLand(3).style, townLand(3).style);
+});
+
+test('each world\'s town has a landscape of its own: its wood, how its woods lie, the forms of its upper and lower town', () => {
+  const lands = Array.from({ length: 40 }, (_, s) => townLand(s));
+  for (const k of ['wood', 'woodShape', 'upper', 'lower']) {
+    const seen = new Set(lands.map(l => l.landscape[k]));
+    assert.ok(seen.size >= ({ wood: 6, woodShape: 4, upper: 5, lower: 6 })[k], `${k}: ${[...seen]}`);
+  }
+  // (the forms shape the wild ground: the rugged ones stand higher than the flat ones somewhere; the
+  // marsh has ponds, shallow, in the lower town)
+  const highest = l => { let h = 0; for (let z = 0; z < l.D; z++) for (let x = 0; x < l.W; x++) if (l.wall.side(x, z) === 0 && !l.water(x, z) && l.formAt(x, z) === l.landscape.upper
+    && Math.hypot(x + .5 - l.hill.x, z + .5 - l.hill.z) > l.hill.r1 + 1 && l.pieces.every(p => Math.hypot(x + .5 - p.x, z + .5 - p.z) > p.r1 + 1)) h = Math.max(h, l.level(x, z) - l.upper); return h; };
+  let rugged = 0, tall = 0;
+  for (const l of lands) {
+    if (['highland', 'ridge', 'terraces'].includes(l.landscape.upper)) {
+      assert.ok(highest(l) >= 2, `${l.seed} ${l.landscape.upper}: ${highest(l)}`);
+      rugged++; if (highest(l) >= 3) tall++;
+    }
+    if (l.landscape.upper === 'plateau') assert.ok(highest(l) <= 1, `${l.seed} plateau: ${highest(l)}`);
+    const ponds = [];
+    for (let z = 0; z < l.D; z++) for (let x = 0; x < l.W; x++) if (l.water(x, z)?.pond) ponds.push([x, z, l.water(x, z)]);
+    assert.equal(ponds.length > 0, l.landscape.lower === 'marsh' && ponds.length > 0);
+    for (const [x, z, w] of ponds) { assert.equal(w.surf, TOWN_LEVEL - 1); assert.equal(w.surf - w.bed, 1); assert.ok(z < START_TILE[1] * N); }
+  }
+  assert.ok(tall >= rugged * .8, `${tall} of ${rugged} rugged towns stand three levels high somewhere`);
+  assert.ok(lands.some(l => l.landscape.lower === 'marsh' && l.features.some(f => f.kind === 'marsh')), 'ponds in a marsh');
+  // (from a dice of its own)
+  assert.deepEqual(townLand(3).landscape, townLand(3).landscape);
 });

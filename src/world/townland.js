@@ -61,6 +61,12 @@ export const RUINS = ['temple', 'colossus', 'colonnade'];
 // wood filling a corner or two, or open parkland with hardly a wood
 export const WOODS = ['mixed', 'firs', 'birch', 'oak', 'old', 'heath'];
 export const WOOD_SHAPES = ['belt', 'groves', 'corner', 'open'];
+// The forms of the wild ground in the upper town (flat, broad swells, terraced fields a step over
+// the next, rocky knolls, a ridge along its back) and in the lower town (rolling knolls, a marsh
+// with ponds, an orchard's level ground, a flat green, dells sunk into it, rough ground with
+// stones): `relief` below, world/town.js dresses them
+export const UPPER_FORMS = ['plateau', 'downs', 'terraces', 'highland', 'ridge'];
+export const LOWER_FORMS = ['meadow', 'marsh', 'orchard', 'green', 'dell', 'rocky'];
 // The wall: the cells of the forest outside it on each outer side (the wall stands in the next row
 // in), how wide its gate is where the street comes in (cells, round the street)
 export const WALL = 3, WALL_GATE = 5;
@@ -162,6 +168,13 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       bigWoods.push({ x: u ? W - WALL - 2 : WALL + 1, z: WALL + 1 + v * (D - 2 * WALL - 3), r: 6 + K() * 4 });
   }
   const woodsNoise = makeNoise(K);
+  // (the forms of the upper and the lower town's wild ground: what shapes them, from the same dice)
+  landscape.upper = pick3(K, UPPER_FORMS); landscape.lower = pick3(K, LOWER_FORMS);
+  // (how settled each band is: built up, homes in a few groups, or hardly: world/town.js plotTown)
+  landscape.settled = { upper: pick3(K, [1, .75, .55]), lower: pick3(K, [1, .75, .55]) };
+  const broad = makeNoise(K), wob = makeNoise(K), boggy = makeNoise(K);
+  const terraceStep = 4 + Math.floor(K() * 3), terraceFrom = 6 + Math.floor(K() * 3), ridgeTop = 4 + Math.floor(K() * 2);
+  const knobCount = 6 + Math.floor(K() * 4), knobTries = Array.from({ length: 80 }, () => [K(), K(), 3 + Math.floor(K() * 3), 1 + K() * 1.5]);
   const xz = c => [c % W, Math.floor(c / W)], cell = (x, z) => z * W + x;
   const jit = s => (R() - .5) * 2 * s;
   const seamX = Array.from({ length: across - 1 }, (_, i) => (i + 1) * N), seamZ = Array.from({ length: deep - 1 }, (_, j) => (j + 1) * N);
@@ -597,7 +610,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     avenue: AVENUE_TREES.filter(() => S() < .6).concat(AVENUE_TREES[Math.floor(S() * AVENUE_TREES.length)]),
   };
   // ---- the town round them
-  const layout = plan({ style, hill, hollow, lake, pieces, W, D, level, rows, inWall, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
+  const layout = plan({ style, landscape, hill, hollow, lake, pieces, W, D, level, rows, inWall, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
     avoid: [...structureCells.map(c => { const [x, z] = xz(c); return { x0: x, z0: z, x1: x + 1, z1: z + 1 }; }), ...mill ? [mill.box] : [],
       ...ruins ? [{ x0: ruins.x - ruins.r, z0: ruins.z - ruins.r, x1: ruins.x + ruins.r, z1: ruins.z + ruins.r }] : []],
     water: c => water.has(c), wet: [...water.keys()] });
@@ -629,16 +642,109 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   }
   const kept = c => kg[c] < FLAT + .5;
 
+  // ---- the marsh's ponds (the lower town's form `marsh`): round pools of shallow water in the wild
+  // ground, waded, three to six of them, apart; off what is kept, the seams, the wall, the other
+  // water, the hollow, the ruins and what is built
+  const ponds = [];
+  if (landscape.lower === 'marsh') {
+    const dry = (x, z) => {
+      const c = cell(x, z);
+      if (x < WALL + 3 || z < WALL + 3 || x >= W - WALL - 3 || z >= from - 2 || base(x, z) !== lower) return false;
+      if (kg[c] < 2.2 || offSeam(x, seamX) < 2 || offSeam(z, seamZ) < 2 || used.has(c) || platforms.has(c)) return false;
+      if (Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z) < hollow.r1 + 1.5 || (ruins && Math.hypot(x + .5 - ruins.x, z + .5 - ruins.z) < ruins.r + 1.5)) return false;
+      return ![-2, -1, 0, 1, 2].some(dz => [-2, -1, 0, 1, 2].some(dx => water.has(cell(x + dx, z + dz))));
+    };
+    const want = 3 + Math.floor(K() * 4), placed = [];
+    for (let k = 0; k < 120 && placed.length < want; k++) {
+      const x = WALL + 4 + K() * (W - 2 * WALL - 8), z = WALL + 4 + K() * (from - WALL - 7), r = 1.1 + K() * 1.3;
+      if (placed.some(p => Math.hypot(p.x - x, p.z - z) < p.r + r + 2.5)) continue;
+      const pool = [];
+      let ok = true;
+      for (let cz = Math.floor(z - r); cz <= Math.floor(z + r) && ok; cz++) for (let cx = Math.floor(x - r); cx <= Math.floor(x + r) && ok; cx++) {
+        // (its rim a little ragged)
+        if (Math.hypot(cx + .5 - x, cz + .5 - z) > r * (.85 + .3 * boggy(cx * .5, cz * .5))) continue;
+        if (!dry(cx, cz)) ok = false; else pool.push(cell(cx, cz));
+      }
+      if (ok && pool.length >= 3) { placed.push({ x, z, r }); ponds.push(pool); }
+    }
+    for (const pool of ponds) for (const c of pool) water.set(c, { surf: lower - WATER_DROP, bed: lower - WATER_DROP - 1, lake: false, pond: true });
+    if (ponds.length) features.push({ kind: 'marsh', ponds: ponds.length });
+  }
+
   // ---- the ground: each cell's level. The two towns; the wild ground rolling a level or two (none
   // where it is kept, coming in a level a cell); the hill, the hollow, the set pieces' knolls
+  // The wild ground's relief in its band's form (levels over its band's, [height, lowest, highest]):
+  // knolls; flat ground; broad swells; terraced fields, a step of two levels every few rows up
+  // towards the back (their edges wandering, never by a seam); rocky knolls; a ridge along the
+  // back; dells sunk into the ground
+  const upper0 = upZ + WATER_TO + QUAY, steps = [];
+  for (let z = upper0 + terraceFrom; z < D - WALL - 3; z += terraceStep) steps.push(seamZ.some(sz => Math.abs(z - sz) < 3) ? seamZ.find(sz => Math.abs(z - sz) < 3) + 3 : z);
+  // (the rocky knolls where the ground is wildest, apart; the ridge along the longest wild line across
+  // the upper town or down a side of it, off the seams)
+  const wildAt = (x, z) => {
+    const c = cell(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1));
+    return kg[c] > 3 && !water.has(c) && base(...xz(c)) === upper && Math.hypot(x - hill.x, z - hill.z) > hill.r1 + 1 && pieces.every(p => Math.hypot(x - p.x, z - p.z) > p.r1 + 1);
+  };
+  // (the longest run of wild cells along a line)
+  const run = cells => { let best = 0, n = 0; for (const w of cells) { n = w ? n + 1 : 0; best = Math.max(best, n); } return best; };
+  const knobAt = [];
+  for (const [u, v, top, r] of knobTries) {
+    const x = WALL + 4 + u * (W - 2 * WALL - 8), z = upper0 + 3 + v * (D - WALL - 5 - upper0);
+    if (knobAt.length < knobCount && wildAt(x, z) && knobAt.every(k => Math.hypot(k.x - x, k.z - z) > 4.5)) knobAt.push({ x, z, top, r });
+  }
+  let ridge = { along: 'x', at: D - WALL - 7, score: -1 };
+  for (let z = upper0 + 4; z < D - WALL - 5; z++) {
+    if (offSeam(z, seamZ) < 3) continue;
+    const score = run(Array.from({ length: W }, (_, x) => [z - 1, z, z + 1].every(v => wildAt(x + .5, v + .5))));
+    if (score > ridge.score) ridge = { along: 'x', at: z + .5, score };
+  }
+  for (let x = WALL + 5; x < W - WALL - 5; x++) {
+    if (offSeam(x, seamX) < 3) continue;
+    const score = run(Array.from({ length: D - upper0 }, (_, k) => [x - 1, x, x + 1].every(v => wildAt(v + .5, upper0 + k + .5))));
+    if (score > ridge.score) ridge = { along: 'z', at: x + .5, score };
+  }
+  function relief(form, x, z) {
+    const r = roll(x * .09 + 5, z * .09 + 5) - .5, q = broad(x * .05 + 1, z * .05 + 1) - .5;
+    switch (form) {
+      case 'plateau': return [q * 6, 0, 1];
+      case 'downs': return [q * 16 + r * 3, -1, 3];
+      case 'terraces': {
+        const at = z + Math.round((wob(x * .15, 7) - .5) * 4);
+        return [2 * steps.filter(t => at >= t).length + r * 1.5, 0, 5];
+      }
+      case 'highland': {
+        let h = r * 4;
+        for (const k of knobAt) h = Math.max(h, k.top - Math.max(0, Math.hypot(x + .5 - k.x, z + .5 - k.z) - k.r) * 1.6);
+        return [h, -1, 5];
+      }
+      case 'ridge': {
+        const [u, v] = ridge.along === 'x' ? [x, z] : [z, x], at = ridge.at + (wob(u * .08, 3) - .5) * 6;
+        return [Math.max(r * 3, ridgeTop * (1 - Math.abs(v + .5 - at) / 4)), -1, 5];
+      }
+      case 'green': return [r * 4 - .8, 0, 1];
+      case 'orchard': return [q * 5, 0, 1];
+      case 'marsh': return [r * 3, -1, 1];
+      case 'dell': return [-(q * 10 + r * 5) - .4, -2, 1];
+      case 'rocky': return [r * 13 + q * 4, -1, 3];
+      default: return [r * 11, -1, 3];
+    }
+  }
+  // (and what form a cell's ground is in: its band's)
+  const formAt = (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)) === upper ? landscape.upper : landscape.lower;
+
   const L = new Int16Array(W * D);
   for (let c = 0; c < W * D; c++) {
     const [x, z] = xz(c), b = base(x, z);
-    // (knolls where nothing stands near, higher outside the wall, lower towards the seams and along
-    // the wall itself)
-    const s = side(x, z), fade = clamp((Math.min(offSeam(x, seamX), offSeam(z, seamZ)) - 1) / 3, 0, 1);
+    // (in its form where nothing stands near, higher outside the wall; no more than a level up or
+    // down towards the seams and the wall, level along the wall itself)
+    const s = side(x, z), wallIn = Math.min(x - WALL, z - WALL, W - 1 - WALL - x, D - 1 - WALL - z);
+    const fade = Math.min(clamp((Math.min(offSeam(x, seamX), offSeam(z, seamZ)) - 1) / 2, 0, 1), clamp((wallIn - 2) / 2, 0, 1));
     const hills = Math.round((roll(x * .09 + 5, z * .09 + 5) - .5) * 11);
-    L[c] = b + Math.round(clamp(hills, -1, 1 + 2 * fade) * clamp((kg[c] - 1.4) / 1.8, 0, 1) * (s === 1 ? .5 : 1));
+    const [h, lo, hi] = relief(b === upper ? landscape.upper : landscape.lower, x, z);
+    const shaped = clamp(Math.round(h), Math.max(lo, -1 + (lo + 1) * fade), Math.min(hi, 1 + (hi - 1) * fade));
+    // (the rugged forms come up closer to what is kept: a terrace's wall or a knoll's foot by a way)
+    const near = ['terraces', 'highland', 'ridge', 'rocky'].includes(b === upper ? landscape.upper : landscape.lower) ? [1.2, 1.2] : [1.4, 1.8];
+    L[c] = b + (s === 1 ? 0 : Math.round(shaped * clamp((kg[c] - near[0]) / near[1], 0, 1)));
     // (outside the wall the forest's floor stands high, over a cliff along the road: it is not
     // walked into from the road)
     const road = z < WALL && Math.abs(x + .5 - gate[0]) < 1.6;
@@ -796,7 +902,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const patch = (x, z) => smooth((patchy(x * .16 + 2, z * .16 + 2) - .38) / .24);
 
   return {
-    W, D, level, rows, upper, seed, patch, landscape, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
+    W, D, level, rows, upper, seed, patch, landscape, formAt, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
     // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
     gorge, features, stage, mill, ruins, style,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the

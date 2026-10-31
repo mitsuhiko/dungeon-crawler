@@ -177,10 +177,25 @@ from it (`tileGround` in `world/town.js`).
     stand outside the wall, in the woods inside it and in the open, and its floor grows under them;
   - *how its woods lie* inside the wall (`WOOD_SHAPES`): a belt along the wall and woods here and
     there, many small groves, one big wood filling a corner or two (never before the gate), or
-    open parkland with hardly a wood and more trees standing alone.
+    open parkland with hardly a wood and more trees standing alone;
+  - *the forms of its wild ground* (`UPPER_FORMS`, `LOWER_FORMS`, `relief` in `makeLand`): the
+    upper town flat (a plateau), in broad swells (downs), in terraced fields a step of two levels
+    over the next up towards the back (terraces, never by a seam), in rocky knolls where its ground
+    is wildest (highland) or with a ridge along its longest wild line (off the seams); the lower
+    town in knolls (meadow, as before), a marsh with round shallow ponds (waded; reeds, cattails and
+    lily pads round them: `ponds`), an orchard's level ground with fruit trees in rows on a grid of
+    the whole town's (`orchard`), a flat green, dells sunk into it, or rough ground with stones.
+    Each form has its own ground cover and as many outcrops as it is rough (`FORMS` in
+    `world/town.js`); the rugged ones come up closer to what stands level (a terrace's wall or a
+    knoll's foot by a way). No form steps more than a level at a seam or near the wall, and the
+    wall's own cells stand level;
+  - *how settled each band is* (`landscape.settled`, and how much room its form leaves: `ROOM` in
+    `plotTown`): fewer short lanes and homes where the ground is rugged or wet, or the band hardly
+    built up, so more of it is wild.
 - Each world's land differs in more than where these lie: how deep the bay reaches, how far the
   cliff winds, how far a span goes. `node tools/townmap.mjs [seed ...]` draws a world's land from
-  above (a PNG a seed: its levels, water, stairs, bridges, spans, falls, ways and homes).
+  above (a PNG a seed: its levels over its band's, water, stairs, bridges, spans, falls, ways and
+  homes; `--sheet [count]` many worlds side by side in one, their landscapes in the console).
 - **The hill** in a back corner (a tent on its top, the corner's set piece on a knoll on its
   shoulder), **the hollow** in a front corner (a tent at its bottom), trails up and down to them,
   woods here and there.
@@ -196,8 +211,9 @@ from it (`tileGround` in `world/town.js`).
   town's, a cliff down to the road from the gate: nobody walks there, and the generator's checks
   leave it out (its seams' cells, `map.town.wallSide`). Lanes run along it inside.
 - **What stands level**: the buildings, streets, lanes and paths, the people, the crash, the
-  spawn and the gate keep the level they stand on; the wild ground round them rolls in knolls of
-  a level to three (less towards the seams). The people's homes (`HOMES`, `plotTown`) are laid out
+  spawn and the gate keep the level they stand on; the wild ground round them takes its band's
+  form (above: up to five levels over it, or a couple under it in a dell; less towards the seams
+  and the wall). The people's homes (`HOMES`, `plotTown`) are laid out
   round the land's big things along every way; a home only keeps its own footing level (its yard
   rolls), and now and then (more often in the lower town) stands on a terrace a level to three
   over its way, its path a ramp up to its door.

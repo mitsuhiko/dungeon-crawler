@@ -47,7 +47,9 @@ for (const seed of seeds) {
   const fill = (x0, z0, x1, z1, c) => { for (let y = Math.round(z0 * S); y < Math.round(z1 * S); y++) for (let x = Math.round(x0 * S); x < Math.round(x1 * S); x++) px(x, y, c); };
   const lo = land.level(0, 0) - 6, hi = land.upper + 10;
   for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
-    const L = land.level(x, z), wt = land.water(x, z), t = Math.max(0, Math.min(1, (L - lo) / (hi - lo)));
+    // (lighter higher: over its band's own level, so the forms of its ground show)
+    const L = land.level(x, z), wt = land.water(x, z), band = land.formAt?.(x, z) === land.landscape?.upper ? land.upper : land.rows[0];
+    const t = land.formAt ? Math.max(0, Math.min(1, .35 + (L - band) * .12 + (band === land.upper ? .15 : 0))) : Math.max(0, Math.min(1, (L - lo) / (hi - lo)));
     const side = land.wall.side(x, z), f = land.forest(x + .5, z + .5);
     let c = wt ? (wt.lake ? [40, 80, 170] : [70, 130, 210]) : [Math.round(90 + 120 * t), Math.round(120 + 110 * t), Math.round(70 + 90 * t)];
     if (!wt && f > .4) c = c.map((v, k) => Math.round(v * (k === 1 ? .8 : .55)));

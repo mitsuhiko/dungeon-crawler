@@ -669,6 +669,35 @@ const STREETS = [
   [['meadow_clover_patch_a', 'meadow_clover_patch_b', 'meadow_daisies_a', 'meadow_daisies_b'], 3, [.9, 1.2]],
   [['any_pebbles_a', 'any_pebbles_b', 'any_stone_chips_a', 'any_stone_chips_b'], 1], [['meadow_bush_a', 'meadow_bush_b'], .5, [.75, 1]],
 ];
+// (the forms' own ground: world/townland.js landscape; the others the meadow's)
+const MARSH = [
+  [['swamp_reeds_a', 'swamp_reeds_b'], 3, [.8, 1.15]], [['swamp_moss_carpet_a', 'swamp_moss_carpet_b'], 3],
+  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 4, [1, 1.4]], [['meadow_fern_a', 'meadow_fern_b'], 1.5],
+  [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], .8], [['meadow_flowers_a', 'meadow_flowers_b'], 1],
+];
+const ROUGH = [
+  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 4, [1, 1.35]], [['any_stone_chips_a', 'any_stone_chips_b', 'any_pebbles_a', 'any_pebbles_b'], 2.5],
+  [['highlands_scree_patch_a', 'highlands_scree_patch_b'], 1.5], [['badlands_dry_grass_a', 'badlands_dry_grass_b'], 2],
+  [['any_rock_a', 'any_rock_b', 'any_rock_c'], .8], [['highlands_tussock_grass_a', 'highlands_tussock_grass_b'], 2], [['peaks_alpine_flowers_a', 'peaks_alpine_flowers_b'], 1],
+];
+const ORCHARD = [
+  [['meadow_clover_patch_a', 'meadow_clover_patch_b', 'meadow_daisies_a', 'meadow_daisies_b'], 6, [.9, 1.3]],
+  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 3, [1, 1.3]], [['meadow_flowers_a', 'meadow_flowers_b'], 2.5, [.8, 1.1]],
+  [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], .3],
+];
+const DELL = [
+  [['meadow_fern_a', 'meadow_fern_b'], 3, [.8, 1.2]], [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 4, [1, 1.4]],
+  [['meadow_clover_patch_a', 'meadow_clover_patch_b'], 3], [['roots_moss_patch_a', 'roots_moss_patch_b'], 1.5],
+  [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], 1], [['highlands_blue_poppy_a', 'highlands_blue_poppy_b'], 1],
+];
+// (each form's ground cover, how thick it grows, how many outcrops a tile of it has at most)
+const FORMS = {
+  plateau: { cover: MEADOW, thick: 1, rocks: 1 }, downs: { cover: MEADOW, thick: 1, rocks: 2 }, terraces: { cover: MEADOW, thick: 1, rocks: 1 },
+  highland: { cover: HILL, thick: 1, rocks: 4 }, ridge: { cover: HILL, thick: .9, rocks: 3 },
+  meadow: { cover: MEADOW, thick: 1, rocks: 2 }, marsh: { cover: MARSH, thick: 1.1, rocks: 1 }, orchard: { cover: ORCHARD, thick: .9, rocks: 1 },
+  green: { cover: MEADOW, thick: .55, rocks: 1 }, dell: { cover: DELL, thick: 1, rocks: 1 }, rocky: { cover: ROUGH, thick: 1, rocks: 5 },
+};
+const formOf = (land, tile) => FORMS[tile[1] < 2 ? land.landscape?.lower : land.landscape?.upper] ?? FORMS.meadow;
 const draw = (R, list) => {
   let r = R() * list.reduce((s, e) => s + e[1], 0);
   for (const e of list) if ((r -= e[1]) < 0) return e;
@@ -689,10 +718,41 @@ function groundCover({ put, land, G, R }, scale = 1) {
     const list = kept < 1 ? STREETS : land.waterDist(gx, gz) < 1.2 ? SHORE
       : Math.hypot(gx - hollow.x, gz - hollow.z) < hollow.r1 - .5 ? HOLLOW
       : Math.hypot(gx - hill.x, gz - hill.z) < hill.r1 - .3 ? HILL
-      : land.forest(gx, gz) > .35 ? woodOf(land).floor : MEADOW;
+      : land.forest(gx, gz) > .35 ? woodOf(land).floor : (FORMS[land.formAt?.(gx, gz)] ?? FORMS.meadow).cover;
     const [names, , [lo, hi] = [.9, 1.1]] = draw(R, list);
     if (put(pick(R, names), [[lx, lz]], { s: lo + R() * (hi - lo) })) placed++;
   }
+}
+
+// The orchard (the lower town's form `orchard`): fruit trees in rows across its open ground, on a
+// grid of the whole town's (so the rows run on across the seams), a hive or a ladder now and then
+function orchard({ tree, put, piece, land, G, R, tile }) {
+  if (land.landscape?.lower !== 'orchard' || tile[1] >= 2) return;
+  const gap = 2.7, [ox, oz] = G(0, 0);
+  for (let gz = Math.ceil((oz + .8) / gap) * gap; gz < oz + N - .8; gz += gap) for (let gx = Math.ceil((ox + .8) / gap) * gap; gx < ox + N - .8; gx += gap) {
+    const x = gx - ox + (R() - .5) * .25, z = gz - oz + (R() - .5) * .25;
+    if (land.wall.side(Math.floor(gx), Math.floor(gz)) !== 0 || land.keepDist(gx, gz) < 1.6 || land.forest(gx, gz) > .2 || land.waterDist(gx, gz) < 1) continue;
+    if (land.formAt(gx, gz) !== 'orchard' || R() < .12) continue;
+    const name = variant(R, R() < .75 ? 'meadow_tree_round' : 'meadow_tree_tall');
+    if (tree(name, x, z, 1.05 + R() * .3) && R() < .08) put(variant(R, 'town_hay_bales'), near(x + gap / 2, z, .4));
+  }
+  if (R() < .6) piece('town_beehives_a', near(8, 8, 6).filter(() => R() < .2));
+}
+
+// The marsh's ponds (world/townland.js): lily pads on them, reeds and cattails round them
+function ponds({ put, plan, R }) {
+  const g = plan.ground, pond = plan.water.filter(c => g.water[c].pond);
+  if (!pond.length) return;
+  const set = new Set(pond), banks = [];
+  for (const c of pond) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const x = c % N + dx, z = Math.floor(c / N) + dz;
+    if (x >= 0 && z >= 0 && x < N && z < N && !set.has(z * N + x)) banks.push([c % N + .5 + dx * .78, Math.floor(c / N) + .5 + dz * .78]);
+  }
+  banks.sort(() => R() - .5);
+  for (let k = Math.ceil(banks.length / 3); k > 0 && banks.length; k--)
+    put(pick(R, ['meadow_cattails_a', 'meadow_cattails_b', 'swamp_reeds_a', 'swamp_reeds_b', 'any_shore_stones_a']), banks.splice(0, 3), { world: true });
+  const pads = [...pond].sort(() => R() - .5).map(c => [c % N + .3 + R() * .4, Math.floor(c / N) + .3 + R() * .4]);
+  for (let k = Math.ceil(pond.length / 3); k > 0 && pads.length; k--) put(variant(R, 'meadow_lily_pads'), pads.splice(0, 4), { water: true, world: true });
 }
 
 // Stones in groups (outcrops): a boulder or a big stone among smaller ones and the grass round
@@ -1491,7 +1551,10 @@ function baseLayout() {
 // stays level (`keep`, in the town's frame) and per tile its lanes and homes ({ lanes: [{ points,
 // width }], homes: [{ name, x, z, yaw }] }, tile-local).
 const STYLE = { homes: 6, lanes: 7, park: 1, firs: 0, hedges: 1, garlands: .4, terraces: 1, cover: 1, avenue: null };
-function plotTown(seed, { style = STYLE, hill, hollow, lake, pieces, W, D, rows, levelAt, inWall = () => true, avoid = [], water = () => false }) {
+// (how much of the room for homes and lanes a band's form leaves them: the rugged and the wet ones
+// keep more of their ground wild), and how settled the band is besides (landscape.settled)
+const ROOM = { plateau: 1, downs: .75, terraces: .55, highland: .4, ridge: .5, meadow: 1, marsh: .5, orchard: .55, green: .85, dell: .65, rocky: .5 };
+function plotTown(seed, { style = STYLE, landscape = {}, hill, hollow, lake, pieces, W, D, rows, levelAt, inWall = () => true, avoid = [], water = () => false }) {
   const wetAt = (x, z) => water(Math.floor(z) * W + Math.floor(x));
   const R = mulberry32(hash32(seed ^ 0x40e5)), layout = baseLayout();
   const tiles = TILES.map((row, j) => row.map(() => ({ lanes: [], homes: [], level: rows[j] })));
@@ -1505,7 +1568,10 @@ function plotTown(seed, { style = STYLE, hill, hollow, lake, pieces, W, D, rows,
       ways.push({ a: [ax, az], b: [bx, bz], w: p.width, base: true, level: levelAt((ax + bx) / 2, (az + bz) / 2) });
     }
   }
-  const S = GATE_TILE[0] * N + STREET;
+  const S = GATE_TILE[0] * N + STREET, roomOf = level => {
+    const band = level === rows[0] ? 'lower' : 'upper';
+    return (ROOM[landscape[band]] ?? 1) * (landscape.settled?.[band] ?? 1);
+  };
   // (what is built on the escarpment, the stairs and the span: kept off)
   const clear = (x, z, m) => avoid.every(b => boxDistance(b, x, z) > m);
   const wayLevel = w => w.level;
@@ -1553,6 +1619,7 @@ function plotTown(seed, { style = STYLE, hill, hollow, lake, pieces, W, D, rows,
     if (len < 5 || w.w < .6) continue;
     const t = 2 + R() * (len - 4), ux = (w.b[0] - w.a[0]) / len, uz = (w.b[1] - w.a[1]) / len, s = R() < .5 ? 1 : -1;
     const x = Math.round((w.a[0] + ux * t) * 2) / 2, z = Math.round((w.a[1] + uz * t) * 2) / 2;
+    if (R() > roomOf(w.level)) continue;
     if (lane(x, z, -uz * s, ux * s, 4, 9, w.level)) made++;
   }
   // and on along the wall, inside it, from where a way comes up to it (world/townland.js WALL)
@@ -1560,7 +1627,7 @@ function plotTown(seed, { style = STYLE, hill, hollow, lake, pieces, W, D, rows,
   for (const w of [...ways]) for (const [x, z] of w.w < .6 ? [] : [w.a, w.b])
     for (const [dx, dz, off] of [[0, 1, x - inner], [0, -1, x - inner], [0, 1, W - inner - x], [0, -1, W - inner - x],
       [1, 0, z - inner], [-1, 0, z - inner], [1, 0, D - inner - z], [-1, 0, D - inner - z]])
-      if (Math.abs(off) < 2.2 && R() < .85) lane(x, z, dx, dz, 4, 18, w.level);
+      if (Math.abs(off) < 2.2 && R() < .85 * roomOf(w.level)) lane(x, z, dx, dz, 4, 18, w.level);
   // The homes: on either side of every way, facing it, as many as there is room for
   const homes = [], tileOf = (x, z) => [Math.floor(x / N), Math.floor(z / N)];
   const slots = [];
@@ -1599,13 +1666,20 @@ function plotTown(seed, { style = STYLE, hill, hollow, lake, pieces, W, D, rows,
     const door = HOMES[name].door, c = snap(Math.cos(yaw)), s = snap(Math.sin(yaw));
     // (from its doorstep, a body's width out from the wall)
     const out = bounds[3] + CHAR_R + .1, [dx, dz] = [x + door * c + out * s, z - door * s + out * c];
-    return { name, x, z, yaw, box, i, j, level: lv, path: { a: [dx, dz], b: [dx - nx * (set + .02 - CHAR_R - .1), dz - nz * (set + .02 - CHAR_R - .1)], w: .45, level, lift } };
+    const path = { a: [dx, dz], b: [dx - nx * (set + .02 - CHAR_R - .1), dz - nz * (set + .02 - CHAR_R - .1)], w: .45, level, lift };
+    // (a ramp keeps off the other ways, the further the higher it is there: its slope would come
+    // down beside their level ground)
+    if (lift) for (let t = 0; t < .9; t += .1) {
+      const px = path.a[0] + (path.b[0] - path.a[0]) * t, pz = path.a[1] + (path.b[1] - path.a[1]) * t;
+      if (ways.some(v => v !== w && segmentDistance(px, pz, v.a, v.b) < v.w / 2 + 1.6 + lift * (1 - t))) return null;
+    }
+    return { name, x, z, yaw, box, i, j, level: lv, path };
   };
   // (again over what is left, set back otherwise, while the town has few: the land's set pieces
   // leave less room in some worlds)
   for (let pass = 0; pass < 3 && (pass === 0 || homes.length < 7); pass++) for (const slot of pass ? [...slots].sort(() => R() - .5) : slots) {
     const [ti, tj] = tileOf(slot.x + slot.nx * 3, slot.z + slot.nz * 3), spec = TILES[tj]?.[ti];
-    if (!spec || (count.get(spec) ?? 0) >= style.homes || R() > .9) continue;
+    if (!spec || (count.get(spec) ?? 0) >= Math.max(2, Math.round(style.homes * roomOf(rows[tj]))) || R() > .9) continue;
     const kinds = [...COTTAGES].sort(() => R() - .5);
     if (spec.rural && R() < .35) kinds.unshift('town_barn_a');
     let h = null;
@@ -1697,11 +1771,14 @@ export function townPlan(exit, seed, i, j, world = 0) {
   trailMarks(tools);
   woodsScene(tools);
   avenues(tools);
+  orchard(tools);
   forest(tools);
+  ponds(tools);
   delete plan.frontagesLocal;
   drapes(tools);
-  outcrops(tools, 1 + Math.floor(tools.R() * 2));
-  groundCover(tools, (j < 2 ? 1.3 : 1.1) * (land.style?.cover ?? 1));
+  const form = formOf(land, [i, j]);
+  outcrops(tools, Math.ceil(tools.R() * form.rocks));
+  groundCover(tools, (j < 2 ? 1.3 : 1.1) * (land.style?.cover ?? 1) * form.thick);
   clearWays(tools, spec);
   delete plan.boxes;
   return plan;
