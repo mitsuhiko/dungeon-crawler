@@ -169,6 +169,15 @@ from it (`tileGround` in `world/town.js`).
   over a lane, how many homes stand on terraces, which trees line the avenues, how thick the
   ground cover grows. The lane along the front of the town runs inside the market now (it never
   fitted where it was).
+- **A landscape of its own** (`land.landscape`, from a dice of its own as well):
+  - *its wood* (`WOODS`): mixed firs and broadleaves where the land's kinds of wood go, a fir
+    wood (ferns and moss under it), a birch wood (grass and flowers), an oak wood, an old wood
+    (gnarled trees among firs and oaks, brambles, rotten logs, a scene in it more often) or a heath
+    (few trees, birches, firs and tall ones, tussocks, juniper and scree under them); its trees
+    stand outside the wall, in the woods inside it and in the open, and its floor grows under them;
+  - *how its woods lie* inside the wall (`WOOD_SHAPES`): a belt along the wall and woods here and
+    there, many small groves, one big wood filling a corner or two (never before the gate), or
+    open parkland with hardly a wood and more trees standing alone.
 - Each world's land differs in more than where these lie: how deep the bay reaches, how far the
   cliff winds, how far a span goes. `node tools/townmap.mjs [seed ...]` draws a world's land from
   above (a PNG a seed: its levels, water, stairs, bridges, spans, falls, ways and homes).

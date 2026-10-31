@@ -689,7 +689,7 @@ function groundCover({ put, land, G, R }, scale = 1) {
     const list = kept < 1 ? STREETS : land.waterDist(gx, gz) < 1.2 ? SHORE
       : Math.hypot(gx - hollow.x, gz - hollow.z) < hollow.r1 - .5 ? HOLLOW
       : Math.hypot(gx - hill.x, gz - hill.z) < hill.r1 - .3 ? HILL
-      : land.forest(gx, gz) > .35 ? FOREST : MEADOW;
+      : land.forest(gx, gz) > .35 ? woodOf(land).floor : MEADOW;
     const [names, , [lo, hi] = [.9, 1.1]] = draw(R, list);
     if (put(pick(R, names), [[lx, lz]], { s: lo + R() * (hi - lo) })) placed++;
   }
@@ -719,44 +719,95 @@ function outcrops({ put, land, G, R, plan }, n, { big = OUTCROP_BIG, small = OUT
 // open, away from the town's ways, a tree here and there, in twos and threes.
 const FIRS = ['darkforest_dark_fir_tree_a', 'darkforest_dark_fir_tree_b'];
 const BROADLEAVES = TREES.map(t => t.name), SMALL = ['meadow_tree_round_a', 'meadow_tree_round_b', 'meadow_tree_tall_a', 'meadow_tree_tall_b'];
+const TALL = ['meadow_tree_tall_a', 'meadow_tree_tall_b'], GNARLED = ['darkforest_gnarled_tree_a', 'darkforest_gnarled_tree_b'];
 const scaleOf = (R, name) => name.startsWith('town_tree') ? .82 + R() * .22 : name.startsWith('darkforest') ? .85 + R() * .45 : 1.05 + R() * .45;
+// (their floors: under firs ferns and moss, under birches grass and flowers, the old wood's brambles
+// and rotten logs, the heath's tussocks, juniper and scree)
+const FIR_FLOOR = [
+  [['darkforest_dark_fern_a', 'darkforest_dark_fern_b', 'meadow_fern_a', 'meadow_fern_b'], 4, [.8, 1.2]],
+  [['darkforest_moss_mound_a', 'darkforest_moss_mound_b', 'roots_moss_patch_a', 'roots_moss_patch_b'], 3],
+  [['roots_leaf_litter_a', 'roots_leaf_litter_b'], 2], [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], 1.4],
+  [['roots_moss_rock_a', 'roots_moss_rock_b'], 1], [['darkforest_mossy_stump_a', 'meadow_stump_a'], .6], [['meadow_fallen_log_a', 'meadow_fallen_log_b'], .5],
+];
+const BIRCH_FLOOR = [
+  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 4, [1, 1.3]], [['meadow_fern_a', 'meadow_fern_b'], 3, [.8, 1.2]],
+  [['meadow_flowers_a', 'meadow_flowers_b', 'highlands_blue_poppy_a', 'highlands_blue_poppy_b'], 2.5], [['meadow_clover_patch_a', 'meadow_clover_patch_b'], 2],
+  [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], 1], [['meadow_sapling_a', 'meadow_sapling_b'], .8], [['meadow_stump_a', 'meadow_stump_b'], .4],
+];
+const OLD_FLOOR = [
+  [['darkforest_dark_fern_a', 'darkforest_dark_fern_b', 'roots_cave_fern_a', 'roots_cave_fern_b'], 4, [.8, 1.25]],
+  [['darkforest_moss_mound_a', 'darkforest_moss_mound_b', 'darkforest_leaf_litter_a', 'darkforest_leaf_litter_b'], 3.5],
+  [['darkforest_bramble_a', 'darkforest_bramble_b'], 1.8, [.8, 1.2]], [['darkforest_rotten_log_a', 'darkforest_rotten_log_b'], .7],
+  [['darkforest_mossy_stump_a', 'darkforest_mossy_stump_b'], .7], [['roots_moss_rock_a', 'roots_moss_rock_b'], 1], [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], 1.2],
+];
+const HEATH_FLOOR = [
+  [['highlands_tussock_grass_a', 'highlands_tussock_grass_b'], 5, [.9, 1.3]], [['highlands_juniper_shrub_a', 'highlands_juniper_shrub_b'], 2.5, [.8, 1.3]],
+  [['peaks_alpine_flowers_a', 'peaks_alpine_flowers_b'], 2], [['badlands_dry_grass_a', 'badlands_dry_grass_b'], 1.5],
+  [['highlands_scree_patch_a', 'highlands_scree_patch_b'], 1], [['any_rock_a', 'any_rock_b'], .6], [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 1.5, [1, 1.3]],
+];
+// The kinds of wood (world/townland.js WOODS, the land's landscape.wood): their trees in their shares
+// ([names, weight]; `null`: firs and broadleaves where the land's kinds of wood go, as before), the
+// small ones along their edges, what grows on their floor and what stands where a tree does not fit,
+// how thick they grow inside the wall (`thick`, outside it they stand as close as any)
+const WOODS = {
+  mixed: { trees: null, small: SMALL, floor: FOREST, under: ['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_sapling_a', 'meadow_sapling_b'], thick: 1 },
+  firs: { trees: [[FIRS, 6], [TALL, 1], [['town_tree_birch_a'], .7]], small: TALL, floor: FIR_FLOOR,
+    under: ['darkforest_dark_fern_a', 'meadow_sapling_a', 'roots_moss_rock_a', 'darkforest_mossy_stump_a'], thick: 1.1 },
+  birch: { trees: [[['town_tree_birch_a'], 6], [TALL, 2], [FIRS, .6], [['town_tree_elm_a'], .5]],
+    small: [...TALL, 'meadow_sapling_a'], floor: BIRCH_FLOOR, under: ['meadow_sapling_a', 'meadow_sapling_b', 'meadow_bush_a', 'meadow_fern_a'], thick: .85 },
+  oak: { trees: [[['town_tree_oak_a'], 5], [['town_tree_elm_a'], 2.5], [['meadow_tree_round_a', 'meadow_tree_round_b'], 1.5], [FIRS, .4]],
+    small: ['meadow_tree_round_a', 'meadow_tree_round_b'], floor: FOREST, under: ['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_berry_bush_b'], thick: .9 },
+  old: { trees: [[FIRS, 3], [GNARLED, 2.5], [['town_tree_oak_a'], 2], [['darkforest_bare_tree_a', 'darkforest_bare_tree_b'], .5]],
+    small: [...GNARLED, 'meadow_tree_tall_b'], floor: OLD_FLOOR, under: ['darkforest_bramble_a', 'darkforest_bramble_b', 'darkforest_mossy_stump_a', 'darkforest_rotten_log_a'], thick: 1.15 },
+  heath: { trees: [[['town_tree_birch_a'], 2], [FIRS, 1.5], [TALL, 1.5], [GNARLED, .6]],
+    small: [...TALL, 'highlands_juniper_shrub_a', 'highlands_juniper_shrub_b'], floor: HEATH_FLOOR, under: ['highlands_juniper_shrub_a', 'highlands_juniper_shrub_b', 'highlands_tussock_grass_a'], thick: .45 },
+};
+const woodOf = land => WOODS[land.landscape?.wood] ?? WOODS.mixed;
 function forest({ tree, put, land, G, R, tile }) {
   const out = (x, z) => land.wall.side(...G(x, z).map(Math.floor)) === 2;
-  // outside the wall: the deep wood, close and tall, firs and broadleaves as the land's kinds of
-  // wood go, saplings and bushes where a tree does not fit
+  const st = land.style ?? STYLE, wood = woodOf(land);
+  // (a tree of the wood's: of its kinds in their shares, or where the land's kinds of wood go)
+  const treeAt = (gx, gz, jitter, firs) => {
+    if (wood.trees) return pick(R, draw(R, wood.trees)[0]);
+    return land.kind(gx, gz) + (R() - .5) * jitter - st.firs < firs ? pick(R, FIRS) : pick(R, BROADLEAVES);
+  };
+  // outside the wall: the deep wood, close and tall, of the wood's kinds, saplings and bushes where a
+  // tree does not fit
   for (let lz = .5; lz < N; lz += 1.05) for (let lx = .5; lx < N; lx += 1.05) {
     if (!out(lx, lz)) continue;
-    const [gx, gz] = G(lx, lz), f = land.forest(gx, gz), kind = land.kind(gx, gz) + (R() - .5) * .3 - (land.style ?? STYLE).firs;
+    const [gx, gz] = G(lx, lz), f = land.forest(gx, gz);
     if (R() > f * 1.3) continue;
-    const name = R() < .15 ? pick(R, SMALL) : kind < .45 ? pick(R, FIRS) : pick(R, BROADLEAVES), s = scaleOf(R, name) * (name.startsWith('darkforest') ? 1.15 : 1.05);
+    const name = R() < .15 ? pick(R, wood.small) : treeAt(gx, gz, .3, .45), s = scaleOf(R, name) * (name.startsWith('darkforest') ? 1.15 : 1.05);
     let ok = false;
     for (let k = 0; k < 3 && !ok; k++) {
       const x = lx + (R() - .5) * .6, z = lz + (R() - .5) * .6;
       ok = out(x, z) && tree(name, x, z, s, true);
     }
     // (a smaller one where it does not fit)
-    if (!ok) { const small = pick(R, SMALL); ok = out(lx, lz) && tree(small, lx, lz, scaleOf(R, small) * .9, true); }
+    for (const small of [pick(R, wood.small), pick(R, SMALL)]) if (!ok) ok = out(lx, lz) && tree(small, lx, lz, scaleOf(R, small) * .9, true);
     const x = lx, z = lz;
     if (!ok)
-      put(pick(R, ['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_sapling_a', 'meadow_sapling_b', 'roots_moss_rock_a']), [[x, z]], { s: .9 + R() * .4 });
+      put(pick(R, [...wood.under, 'roots_moss_rock_a']), [[x, z]], { s: .9 + R() * .4 });
   }
-  const st = land.style ?? STYLE, step = 1.65, park = (tile[1] < 2 ? .34 : .24) * st.park;
+  // inside it: the woods as thick as the land says (and the wood grows), and in the open, away
+  // from the town's ways, a tree here and there (more of them in the lower town, and where the
+  // woods lie open)
+  const step = 1.65, park = (tile[1] < 2 ? .34 : .24) * st.park * (land.landscape?.woodShape === 'open' ? 1.5 : 1);
   for (let lz = .9; lz < N; lz += step) for (let lx = .9; lx < N; lx += step) {
     const x = lx + (R() - .5) * 1.1, z = lz + (R() - .5) * 1.1, [gx, gz] = G(x, z);
     if (out(x, z)) continue;
-    const f = land.forest(gx, gz), kind = land.kind(gx, gz) + (R() - .5) * .25 - st.firs;
+    const f = land.forest(gx, gz);
     if (f <= 0) {
-      // (the open: parkland, more of it in the lower town)
       if (land.keepDist(gx, gz) > 1.4 && R() < park) {
-        const name = R() < .5 ? pick(R, SMALL) : kind < .42 ? pick(R, FIRS) : pick(R, BROADLEAVES);
+        const name = R() < .5 ? pick(R, wood.small) : treeAt(gx, gz, .25, .42);
         tree(name, x, z, scaleOf(R, name) * (name.startsWith('town_tree') ? .8 : 1));
       }
       continue;
     }
-    if (R() > f * 1.05) continue;
-    const name = f < .55 && R() < .55 ? pick(R, SMALL) : kind < .42 ? pick(R, FIRS) : pick(R, BROADLEAVES);
+    if (R() > f * 1.05 * wood.thick) continue;
+    const name = f < .55 && R() < .55 ? pick(R, wood.small) : treeAt(gx, gz, .25, .42);
     if (!tree(name, x, z, scaleOf(R, name)))
-      put(pick(R, ['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_sapling_a', 'meadow_sapling_b']), [[x, z]], { s: .9 + R() * .35 });
+      put(pick(R, wood.under), [[x, z]], { s: .9 + R() * .35 });
   }
 }
 
@@ -1163,7 +1214,8 @@ const SCENES = ['darkforest_woodcutter_camp_a', 'darkforest_stone_circle_a', 'da
   'darkforest_abandoned_shed_a'];
 function woodsScene(t) {
   const { put, land, G, R } = t;
-  if (R() > .45) return;
+  // (more often in the old wood)
+  if (R() > (land.landscape?.wood === 'old' ? .75 : .45)) return;
   const name = pick(R, SCENES), spots = [];
   for (let k = 0; k < 60; k++) {
     const x = 2 + R() * (N - 4), z = 2 + R() * (N - 4), f = land.forest(...G(x, z));

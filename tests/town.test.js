@@ -100,6 +100,7 @@ test('the town is TOWN_ACROSS by TOWN_DEEP tiles of the depth-0 grid round its g
 
 test('every tile is safe and authored, the town level where it stands; the buildings, the tents and the lake each in their own tile', () => {
   let allHomes = 0;
+  const groveKinds = new Set();
   for (let seed = 0; seed < 40; seed++) {
     const w = new World(seed, { arche: 'chasm' }), t = townOf(seed);   // debug archetypes cannot destroy town
     const placed = new Map();
@@ -163,13 +164,17 @@ test('every tile is safe and authored, the town level where it stands; the build
     for (const b of [...BUILDINGS, ...MERCHANTS]) assert.equal(placed.get(b.name), t.at(...b.tile), b.name);
     const trees = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => /tree/.test(p.name)));
     assert.ok(trees.length >= 100, `${trees.length} trees`);
-    assert.equal(new Set(trees.filter(p => p.name.startsWith('town_tree_')).map(p => p.name)).size, 3);
+    // (the grove's big trees: in every town some of them, their kinds as its wood has them)
+    const grove = new Set(trees.filter(p => p.name.startsWith('town_tree_')).map(p => p.name));
+    assert.ok(grove.size >= 1);
+    for (const name of grove) groveKinds.add(name);
     // (as many as there is room for: fewer where the land's set pieces take it, the gorge, a mill)
     const homes = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => isHome(p.name)));
     assert.ok(homes.length >= 2, `${homes.length} homes`);
     allHomes += homes.length;
   }
   assert.ok(allHomes >= 40 * 5, `${allHomes / 40} homes a town`);
+  assert.equal(groveKinds.size, 3);
 });
 
 test('the seams: flat faces, no glass or portal, nothing standing near, walkable all along, and walked across', () => {
@@ -588,11 +593,12 @@ test('building boxes collide in every covered cell; canopy occlusion is separate
   }
   checkWalkingRoutes(m);
   const edge = state.map = w.cube(t.at(0, 0)).map;
-  const crown = edge.occluders.find(b => b.shape === 'ellipsoid');
+  // (a crown with nothing else standing under it where it is probed: woods grow close)
+  const inward = b => Math.sign(N / 2 - b.x) || 1, probe = b => [b.x + inward(b) * b.rx * .8, b.z];
+  const crown = edge.occluders.find(b => b.shape === 'ellipsoid' && !edge.staticBlockers.flat().some(c => containsXZ(c, ...probe(b), .05)));
   assert.equal(viewBlockedAt(edge, crown.x, crown.y, crown.z), true);
   assert.ok(mapInfo(edge).top > Math.max(...edge.occluders.map(b => b.top)));
-  const inward = Math.sign(N / 2 - crown.x) || 1;
-  const [cx, cz] = [crown.x + inward * crown.rx * .8, crown.z];
+  const [cx, cz] = probe(crown);
   assert.equal(insideSolid(cx, cz, groundOf(edge, cx, cz) + .5), false, 'only the trunk stands in the way');
 });
 

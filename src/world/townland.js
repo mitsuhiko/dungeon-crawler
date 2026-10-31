@@ -56,6 +56,11 @@ const STREET_X = 8.5;
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 // the kinds of old ruins a town may have (world/town.js dresses them)
 export const RUINS = ['temple', 'colossus', 'colonnade'];
+// The kinds of wood a town's woods are (world/town.js WOODS: their trees and their floor), and how
+// they lie inside the wall: a belt along it with woods here and there, many small groves, one big
+// wood filling a corner or two, or open parkland with hardly a wood
+export const WOODS = ['mixed', 'firs', 'birch', 'oak', 'old', 'heath'];
+export const WOOD_SHAPES = ['belt', 'groves', 'corner', 'open'];
 // The wall: the cells of the forest outside it on each outer side (the wall stands in the next row
 // in), how wide its gate is where the street comes in (cells, round the street)
 export const WALL = 3, WALL_GATE = 5;
@@ -145,6 +150,18 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const W = across * N, D = deep * N, R = mulberry32(hash32(seed ^ 0x1a4d5));
   const roll = makeNoise(R), wander = makeNoise(R), belt = makeNoise(R), woods = makeNoise(R), kind = makeNoise(R),
     shore = makeNoise(R), cliffy = makeNoise(R);
+  // ---- the landscape, from a dice of its own (what the dice above make stays as it is): what kind
+  // of wood the town's woods are and how they lie
+  const K = mulberry32(hash32(seed ^ 0x1a5c4));
+  const landscape = { wood: pick3(K, WOODS), woodShape: pick3(K, WOOD_SHAPES) };
+  // (the big woods of the `corner` shape: one or two of the inside's corners, or a side's middle)
+  const bigWoods = [];
+  {
+    const spots = [[0, 1], [1, 1], [0, .55], [1, .55], [0, .2], [1, .2]].sort(() => K() - .5);
+    for (const [u, v] of spots.slice(0, 1 + (K() < .5 ? 1 : 0)))
+      bigWoods.push({ x: u ? W - WALL - 2 : WALL + 1, z: WALL + 1 + v * (D - 2 * WALL - 3), r: 6 + K() * 4 });
+  }
+  const woodsNoise = makeNoise(K);
   const xz = c => [c % W, Math.floor(c / W)], cell = (x, z) => z * W + x;
   const jit = s => (R() - .5) * 2 * s;
   const seamX = Array.from({ length: across - 1 }, (_, i) => (i + 1) * N), seamZ = Array.from({ length: deep - 1 }, (_, j) => (j + 1) * N);
@@ -730,9 +747,19 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     const s = side(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1));
     if (s === 1) return 0;
     if (s === 2) return smooth((keepDist(x, z) - .9) / 1.2) * smooth((waterDist(x, z) - .5) / .8);
-    const front = z - WALL - 1 + Math.max(0, 7 - Math.abs(x - gate[0])) * 3;
-    const e = Math.min(x - WALL - 1, W - WALL - 1 - x, front, D - WALL - 1 - z), depth = .4 + 2.2 * belt(x * .12, z * .12);
-    let f = Math.max(1 - smooth((e - depth) / 1.8), smooth((woods(x * .1 + 9, z * .1 + 9) - .6) / .1));
+    const front = z - WALL - 1 + Math.max(0, 7 - Math.abs(x - gate[0])) * 3, shape = landscape.woodShape;
+    const e = Math.min(x - WALL - 1, W - WALL - 1 - x, front, D - WALL - 1 - z);
+    // (the belt along the wall: thin but where it is the shape, and woods: here and there, many
+    // small ones, or hardly any; the big woods filling their corners)
+    const depth = (shape === 'belt' ? 2.2 : shape === 'open' ? .5 : 1) * belt(x * .12, z * .12) + (shape === 'belt' ? .4 : 0);
+    const here = shape === 'groves' ? smooth((woodsNoise(x * .2 + 3, z * .2 + 3) - .56) / .08)
+      : smooth((woods(x * .1 + 9, z * .1 + 9) - (shape === 'open' ? .72 : .6)) / .1);
+    let f = Math.max(1 - smooth((e - depth) / 1.8), here);
+    if (shape === 'corner') for (const b of bigWoods) {
+      // (never in front of the gate, where the road comes in)
+      const r = b.r * (.75 + .5 * woodsNoise(x * .25 + 11, z * .25 + 11)) - (Math.abs(x - gate[0]) < 8 && z < WALL + 9 ? 99 : 0);
+      f = Math.max(f, 1 - smooth((Math.hypot(x - b.x, z - b.z) - r) / 1.5));
+    }
     f *= smooth((keepDist(x, z) - 1.2) / 2) * smooth((trailDist(x, z) - 1) / 1) * smooth((waterDist(x, z) - .7) / 1);
     const dh = Math.hypot(x - hill.x, z - hill.z), dl = Math.hypot(x - hollow.x, z - hollow.z);
     if (dh < hill.r0 + .9 || dl < hollow.r1 + .3 || structureAt(x, z, .5)) return 0;
@@ -769,7 +796,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const patch = (x, z) => smooth((patchy(x * .16 + 2, z * .16 + 2) - .38) / .24);
 
   return {
-    W, D, level, rows, upper, seed, patch, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
+    W, D, level, rows, upper, seed, patch, landscape, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
     // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
     gorge, features, stage, mill, ruins, style,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
