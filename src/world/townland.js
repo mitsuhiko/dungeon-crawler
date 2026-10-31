@@ -138,7 +138,8 @@ function cheapest(W, D, starts, goal, enter, guess = () => 0) {
 // gate where the road leaves (x, z), fixed the boxes of the town's buildings (the town's frame);
 // layout(features) lays the town out round the big things (world/town.js: its lanes and homes):
 // { keep: what stands level, ways: its streets, lanes and paths ([{ a, b, w }]), bodies }
-export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed = [], fixedWays = [], fixedKeep = [] }) {
+export function makeLand(seed, opts, { stages = true } = {}) {
+  const { across, deep, level, layout: plan, gate, fixed = [], fixedWays = [], fixedKeep = [] } = opts;
   const W = across * N, D = deep * N, R = mulberry32(hash32(seed ^ 0x1a4d5));
   const roll = makeNoise(R), wander = makeNoise(R), belt = makeNoise(R), woods = makeNoise(R), kind = makeNoise(R),
     shore = makeNoise(R), cliffy = makeNoise(R);
@@ -177,6 +178,8 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   });
   const quay = (x, z) => Math.floor(x / N) === mid && z >= upZ + WATER_TO && z < upZ + WATER_TO + QUAY && x - px >= 2 && x - px < N - 2;
   const tongue = new Set();
+  // what of the land's set pieces (`features`: the gorge, the spans, the streams, where they are)
+  const features = [];
   const stairs = [], spans = [], used = new Set(), platforms = new Map();   // (cells taken; a platform's cells -> its level)
   // the street's stair: on the quay's back row, from its foot up to its top on a tongue of the
   // upper town
@@ -186,9 +189,27 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     stairs.push({ foot: cell(px + INN_STAIR.foot, z), top: cell(px + INN_STAIR.top, z), d: 0, cells: line });
     for (const c of [...line, cell(px + INN_STAIR.foot, z)]) used.add(c);
   }
+  // In some worlds a landing stage under the cliff in the pet shop's tile: from the lower town's
+  // shore a bridge out over the water to a pier on the seam, a bridge on to the cliff's foot, and a
+  // stair up along its foot to a tongue of the upper town, beside the seam (the cliff straight
+  // there). Its cells dry at the lower town's level (`stage`), its bridges and stair runs.
+  const stage = new Set(), crossings = [];
+  if (across > 2 && R() < .5 && stages) {
+    const i = mid + 1, fx = i * N + 10, tx = fx - 9, z = upZ + WATER_TO - 1;
+    for (let x = tx; x <= fx + 1; x++) edge[x] = upZ + WATER_TO;
+    tongue.add(cell(tx, z));
+    const line = Array.from({ length: fx - tx - 1 }, (_, k) => cell(fx - 1 - k, z));
+    stairs.push({ foot: cell(fx, z), top: cell(tx, z), d: 1, cells: line });
+    for (const c of [...line, cell(fx, z)]) stage.add(c);
+    for (const c of [cell(fx, upZ - 1), cell(fx + 1, upZ - 1), cell(fx, upZ), cell(fx + 1, upZ)]) platforms.set(c, lower);
+    crossings.push({ from: cell(fx, from - 1), to: cell(fx, upZ - 1), cells: Array.from({ length: upZ - from - 1 }, (_, k) => cell(fx, from + k)), d: 2 });
+    crossings.push({ from: cell(fx, upZ), to: cell(fx, z), cells: Array.from({ length: z - upZ - 1 }, (_, k) => cell(fx, upZ + 1 + k)), d: 2 });
+    features.push({ kind: 'stage', x: fx + .5, z: z + .5 });
+    for (const c of [...stage, cell(tx, z), cell(tx, z + 1), cell(tx, z + 2), cell(tx + 1, z + 1), ...crossings.flatMap(r => [r.from, r.to, ...r.cells])]) used.add(c);
+  }
   // (the gorge's cells, below: lake water down in the upper town)
   const gorge = new Set();
-  const inWater = (x, z) => z >= from && z < edge[x] && !quay(x, z);
+  const inWater = (x, z) => z >= from && z < edge[x] && !quay(x, z) && !stage.has(cell(x, z)) && !tongue.has(cell(x, z));
   const base = (x, z) => tongue.has(cell(x, z)) || (z >= edge[x] && !gorge.has(cell(x, z))) ? upper : lower;
   // A pier where the street crosses the seam in the water (dry, at the lower town's level: a bridge
   // either side of it, world/town.js lays the street over them)
@@ -227,8 +248,6 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   for (let c = 0; c < W * D; c++) { const [x, z] = xz(c); let d = Infinity; for (const k of fixedKeep) d = Math.min(d, keepDistance(k, x + .5, z + .5)); fixedDist[c] = d; }
   // (what the river keeps off: a cell what stands for good is in, or right beside)
   const fixedKept = c => fixedDist[c] < .5;
-  // what of the land's set pieces (`features`: the gorge, the spans, the streams, where they are)
-  const features = [];
 
   // ---- the gorge, in some worlds: from the back of the lake's bay on into the upper town, GORGE
   // cells wide, winding a cell now and then (but straight across a seam), as deep as the lake: the
@@ -313,7 +332,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   };
   {
     const first = lakeSpan();
-    if (first !== null && R() < (gorgeHead ? .3 : .55)) lakeSpan([first]);
+    if (first !== null && R() < (gorgeHead ? .3 : stage.size ? .2 : .55)) lakeSpan([first]);
   }
   if (gorgeHead) {
     // (across rows of it three cells wide, off its mouth and its head and the seams; a rim each side)
@@ -457,6 +476,10 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     for (const [lip, from] of [[lipAt, east], [cliffLip, east], [cliffLip, starts], [c => cliffLip(c, false), starts]]) if (!river.length) river = flow(lip, from, into);
     if (river.length) features.push({ kind: 'river', x: river.at(-1) % W + .5, z: Math.floor(river.at(-1) / W) + .5 });
   }
+  // (the landing stage left the river nowhere to come down: the stream into the gorge is the
+  // river, or else the land without the stage)
+  if (!river.length && streams.length) river = streams.shift();
+  if (!river.length && stage.size) return makeLand(seed, opts, { stages: false });
   streams.unshift(river);
   if (!gorgeHead && R() < .6) {
     const s = flow(cliffLip, backRow(x => x < W / 2 - 4), c => lakeSet.has(c));
@@ -542,6 +565,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   // ---- the stairs and bridges (runs: from a floor, over cells, to a floor; d the way, DIRS4)
   const runs = [];
   for (const s of stairs) runs.push({ kind: 'stair', from: s.foot, to: s.top, cells: s.cells, d: s.d });
+  for (const b of crossings) runs.push({ kind: 'bridge', from: b.from, to: b.to, cells: b.cells, d: b.d });
   // (the lake's spans in one style, the gorge's in another now and then)
   const STYLES = ['rope', 'chain', 'plank'], lakeStyle = pick3(R, STYLES), gorgeStyle = R() < .5 ? lakeStyle : pick3(R, STYLES);
   for (const s of spans) runs.push({ kind: 'bridge', from: s.top, to: s.land, cells: s.cells, d: s.d, span: true, style: s.kind === 'gorge' ? gorgeStyle : lakeStyle });
@@ -653,7 +677,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   return {
     W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
     // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
-    gorge, features,
+    gorge, features, stage,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
     // gatehouse's middle (where the street comes in), whether (x, z) lies inside it by m
     wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall },

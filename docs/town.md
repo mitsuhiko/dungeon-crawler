@@ -25,7 +25,8 @@ still to come.
 - **A land of its own.** Every world's town lies in its own land, the generator's ground (whole
   levels, cliffs, stairs, bridges, water): the lower town round the gate, the water across the
   whole town, the upper town half a cube over it on its cliff. The street crosses the water and
-  climbs the cliff by a stair; one or two long spans come down over the lake; the river falls over
+  climbs the cliff by a stair (in some worlds a second stair climbs it from a landing stage, bridges
+  out to it over the water); one or two long spans come down over the lake; the river falls over
   the cliff; in some worlds a gorge cuts on from the lake into the upper town, a stream falling into
   its head and spans across it; a hill with a tent on its top, a hollow with a tent at its bottom, the people's homes
   along every way, some of them on a terrace of their own; a wall round it all a few cells in from

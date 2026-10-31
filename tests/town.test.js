@@ -675,13 +675,13 @@ test('every world\'s town lies in a land of its own: the lower town, the water a
     assert.ok(hollow.town.placements.some(p => p.name === 'highlands_nomad_tent_a'), 'a tent in the hollow');
     // the river: across the upper town, falling down its cliff into the water (and a stream now
     // and then, into the gorge's head or over the cliff)
-    assert.ok(land.lake.cells.length >= 100 && land.river.length >= 15);
+    assert.ok(land.lake.cells.length >= 100 && land.river.length >= 8);
     falls += land.falls.length;
     for (const { m } of tiles) for (const f of m.falls) assert.equal(f.top - f.bot, UPPER);
   }
   assert.ok(gorges >= 3 && gorges <= 10, `${gorges} gorges in 12 worlds`);
   assert.ok(gorgeSpans >= 3, `${gorgeSpans} spans over a gorge`);
-  assert.ok(lakeSpans >= 15, `${lakeSpans} spans over a lake`);
+  assert.ok(lakeSpans >= 13, `${lakeSpans} spans over a lake`);
   assert.ok((features.get('stream') ?? 0) >= 4, `${features.get('stream') ?? 0} streams`);
   assert.ok(kinds.size >= 10, `${kinds.size} kinds of land in 12 worlds`);
   assert.ok(falls >= 12, `${falls} falls`);

@@ -145,6 +145,11 @@ from it (`tileGround` in `world/town.js`).
   come to it cross it on bridges, and a ledge a level over its water in each tile it reaches into
   is the way out of it. In such a world the hill stands in the other back corner and the grove's
   wishing well on the gorge's far side.
+- **A landing stage**, in some worlds: in the pet shop's tile a second way up the cliff, from the
+  lower town's shore a bridge out over the water to a pier on the seam, a bridge on to the cliff's
+  foot (straight there), and a stair up along it to a tongue of the upper town by the seam. (Where
+  it leaves the river nowhere to come down, the stream into the gorge is the river, or the world
+  has no stage.)
 - **The river** comes in from the back of the town across the upper town, two cells wide, and
   falls over the cliff's edge into the water (where the cliff runs straight), now by the wall, now
   nearer the middle; waded, bridged where a way crosses it. In some worlds without a gorge a stream
