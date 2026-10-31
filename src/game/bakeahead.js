@@ -21,7 +21,7 @@ import { themeOf } from '../themes/depth.js';
 import { player, state } from './state.js';
 import { buildCube } from './flow.js';
 import { handingOver } from './handover.js';
-import { acrossOf } from '../physics/collide.js';
+import { acrossOf, cornersOf, cornerAt } from '../physics/collide.js';
 
 // key -> the cube built ahead: { cubes, world }
 const held = new Map();
@@ -36,7 +36,11 @@ function nextDoor() {
   if (!m) return [];
   const near = (key, far, face = -1) => { if (key !== k && !(ways.get(key)?.far <= far)) ways.set(key, { key, far, face }); };
   // (the sides walked across, the town's seams and the open faces: how far the hero is from that side)
-  acrossOf(m).forEach((s, d) => { if (s) near(step(k, d), Math.max(0, [N - player.x, player.x, N - player.z, player.z][d])); });
+  const off = d => Math.max(0, [N - player.x, player.x, N - player.z, player.z][d]);
+  acrossOf(m).forEach((s, d) => { if (s) near(step(k, d), off(d)); });
+  // (and through its corners walked through: how far the hero is from that corner)
+  const corners = cornersOf(m);
+  for (const ox of [0, 1]) for (const oz of [2, 3]) if (corners[cornerAt(ox, oz)]) near(step(step(k, ox), oz), Math.hypot(off(ox), off(oz)));
   for (const p of m.portals ?? []) if (p.kind === 'side' || p.kind === 'down' || p.kind === 'up')
     near(step(k, p.dir), Math.hypot(p.x - player.x, p.z - player.z), p.kind === 'side' && !portalLocked(m, state.run, p) ? p.dir : -1);
   return [...ways.values()].sort((a, b) => a.far - b.far);

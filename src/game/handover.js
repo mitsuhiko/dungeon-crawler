@@ -5,10 +5,12 @@
 // physics reads the cube beyond as it lies there (physics/collide.js, the sides set walked across:
 // refreshAcross), and once the hero's middle is PAST it the cube beyond takes over at once
 // (handOver): it becomes the cube played in, and everything in the world's coordinates moves by a
-// cube's width, so nothing on the screen jumps. The cube left dissolves into its proxy and the one
-// taken over out of its own in FADE s, where they stand, while the overview pans over to the new
-// cube (game/camera.js panCamera). A cube never visited is still come into through its portal, with
-// the slide (game/travel.js): the first view of it.
+// cube's width, so nothing on the screen jumps. Where four cubes meet and the sides between them
+// are all walked across, the corner is walked through too, into the cube diagonally beyond
+// (crossCorners): past both sides, it takes over at once. The cube left dissolves into its proxy
+// and the one taken over out of its own in FADE s, where they stand, while the overview pans over
+// to the new cube (game/camera.js panCamera). A cube never visited is still come into through its
+// portal, with the slide (game/travel.js): the first view of it.
 import * as THREE from 'three';
 import { N, DIRS, STEP } from '../core/constants.js';
 import { step } from '../world/coords.js';
@@ -22,7 +24,7 @@ import { shiftFloatText } from '../render/floattext.js';
 import { shiftHeroFeet } from '../render/animator.js';
 import { removeEnemyViews, animateEnemies } from '../render/enemies.js';
 import { showNeighbors, disposeNeighbors, neighborOf } from '../render/neighbors.js';
-import { groundAt, setAcross, acrossOf } from '../physics/collide.js';
+import { groundAt, setAcross, acrossOf, cornersOf, cornerAt } from '../physics/collide.js';
 import { respawnPoint } from '../physics/respawn.js';
 import { player, state } from './state.js';
 import { beginVisit, visitedNeighbors, buildCube, discover, settleIn, devShores, readyAhead } from './flow.js';
@@ -57,22 +59,43 @@ export function crossable() {
     return cubes.get(step(k, d))?.map ?? null;
   });
 }
+// The cubes diagonally beyond the cube's corners (by physics/collide.js cornerAt), with their maps
+// (null: not walked into): where both sides of the cube played in meeting there are walked across
+// now (beyond: crossable), and so are the two sides between the cubes beyond them and the one at
+// the corner (open, and nothing there holds the way: a guardian's gate locked or still standing)
+export function crossCorners(beyond = crossable()) {
+  const k = state.cubeKey, cubes = state.cubes?.cubes, run = state.run, out = [null, null, null, null];
+  const joined = (key, m, d) => (m.seams?.[d] || isFaceOpen(state.openedFaces, key, d)) && !portalLocked(m, run, { dir: d }) && !leavingFight(m, run, d);
+  for (const ox of [0, 1]) for (const oz of [2, 3]) {
+    if (!beyond[ox] || !beyond[oz]) continue;
+    const kx = step(k, ox), kz = step(k, oz);
+    if (joined(kx, beyond[ox], oz) && joined(kz, beyond[oz], ox)) out[cornerAt(ox, oz)] = cubes.get(step(kx, oz))?.map ?? null;
+  }
+  return out;
+}
 // ... told to the physics (game/portals.js, every step of play; and once handed over)
-export function refreshAcross() { setAcross(state.map, crossable()); }
+export function refreshAcross() { const beyond = crossable(); setAcross(state.map, beyond, crossCorners(beyond)); }
 
 // game/portals.js, every step of play: past a side walked across, the cube beyond takes over.
 // true if it did. Not while the hero is held in what knows the cube's coordinates (a swim out of
 // the water): they stand on past the side until that is over.
 export function checkHandover() {
   if (state.transitioning || !state.cubes || player.swimOut) return false;
-  const beyond = acrossOf(state.map);
+  const beyond = acrossOf(state.map), corners = cornersOf(state.map);
+  // (got ready ahead, game/flow.js prefetchAround; until it is, the hero stands past the side)
+  const into = (key, dx, dz) => {
+    const c = state.cubes.cubes.get(key);
+    if (!c?.ready) { readyAhead([key]); return false; }
+    handOver(c, dx, dz);
+    return true;
+  };
+  // past a corner (past both its sides): the cube diagonally beyond it, at once
+  const ox = [0, 1].find(d => past(player, d) > PAST), oz = [2, 3].find(d => past(player, d) > PAST);
+  if (ox !== undefined && oz !== undefined && corners[cornerAt(ox, oz)])
+    return into(step(step(state.cubeKey, ox), oz), DIRS[ox][0], DIRS[oz][1]);
   for (let d = 0; d < 4; d++) {
     if (!beyond[d] || past(player, d) <= PAST) continue;
-    // (got ready ahead, game/flow.js prefetchAround; until it is, the hero stands past the side)
-    const c = state.cubes.cubes.get(step(state.cubeKey, d));
-    if (!c?.ready) { readyAhead([c?.key ?? step(state.cubeKey, d)]); return false; }
-    handOver(c, d);
-    return true;
+    return into(step(state.cubeKey, d), ...DIRS[d]);
   }
   return false;
 }
@@ -83,9 +106,10 @@ export function checkHandover() {
 let blend = null;
 export const handingOver = () => !!blend;
 
-function handOver(c, d) {
+// (dx, dz: which way the cube taken over lies, in cubes: a side's DIRS, or a corner's)
+function handOver(c, dx, dz) {
   endHandover();
-  const [dx, dz] = DIRS[d], sx = -dx * N, sz = -dz * N, k = c.key, from = state.cubeKey;
+  const sx = -dx * N, sz = -dz * N, k = c.key, from = state.cubeKey;
   // what is drawn where it is in the world moves along: the hero (and where they stood safely),
   // what is in the air, the planted feet
   player.x += sx; player.z += sz;

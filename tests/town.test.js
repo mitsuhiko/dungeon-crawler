@@ -238,7 +238,28 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
     }
   }
   assert.equal(groundAt(N + 1.5, 8.2, 99, 0).h, -Infinity, 'not further than a cell');
-  assert.equal(groundAt(N + .4, N + .4, 99, 0).h, -Infinity, 'not past a corner');
+  assert.equal(groundAt(N + .4, N + .4, 99, 0).h, -Infinity, 'not past a corner not walked through');
+  // past a corner walked through (game/handover.js crossCorners), the tile diagonally beyond it
+  const corners = [[0, 2], [0, 3], [1, 2], [1, 3]].map(([ox, oz]) => w.cube(step(step(k11, ox), oz)).map);
+  setAcross(m, DIRS.map((_, d) => w.cube(step(k11, d)).map), corners);
+  for (const [x, z, c] of [[N + .4, N + .4, 0], [N + .4, -.4, 1], [-.4, N + .4, 2], [-.4, -.4, 3]]) {
+    const ex = (x + N) % N, ez = (z + N) % N;
+    assert.ok(Math.abs(groundAt(x, z, 99, 0).h - groundOf(corners[c], ex, ez)) < 1e-9, `past corner ${c}`);
+  }
+  assert.equal(groundAt(N + 1.5, N + .4, 99, 0).h, -Infinity, 'past a corner not further than a cell');
+  // a body walking straight at the corner goes through it (it stopped there, held by its rim)
+  {
+    let x = N - 1.2, z = N - 1.2;
+    player.grounded = true; player.y = groundOf(m, x, z);
+    for (let i = 0; i < 40; i++) {
+      player.x = x; player.z = z;
+      const g = groundAt(x, z, player.y + .3, .3);
+      player.support = g.s; player.y = g.h;
+      if (canMove(x + .05, z, 'x', 1)) x += .05;
+      if (canMove(x, z + .05, 'z', 1)) z += .05;
+    }
+    assert.ok(x > N + .25 && z > N + .25, `through the corner: stopped at ${x - N}, ${z - N}`);
+  }
   const k00 = t.at(0, 0), corner = state.map = w.cube(k00).map;
   setAcross(corner, DIRS.map((_, d) => corner.seams[d] ? w.cube(step(k00, d)).map : null));
   const out = [0, 1, 2, 3].find(d => !corner.seams[d]), [ox, oz] = [[N + .4, 8], [-.4, 8], [8, N + .4], [8, -.4]][out];

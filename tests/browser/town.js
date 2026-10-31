@@ -102,7 +102,27 @@ export async function runTownChecks() {
             checkSurroundings(`seed ${seed}, handed over from ${k}`);
           }
         }
-        results.push(`seed ${seed}: town known / buildings in their tiles / one hull / its people and lights round it / walked across its seams`);
+        // walking straight at a corner where four tiles meet: through it, into the tile diagonally
+        // beyond (game/handover.js crossCorners), never held at it
+        const inTown = key => town.tiles.has(key);
+        const corner = town.keys.flatMap(k => [[0, 2], [0, 3], [1, 2], [1, 3]].map(([ox, oz]) => ({ k, ox, oz })))
+          .find(({ k, ox, oz }) => inTown(step(k, ox)) && inTown(step(k, oz)) && inTown(step(step(k, ox), oz)));
+        if (corner) {
+          const { k, ox, oz } = corner, [dx] = DIRS[ox], [, dz] = DIRS[oz], into = step(step(k, ox), oz);
+          const c = await state.cubes.get(k);
+          // (from a little way in, along the diagonal: the first spot the hero stands where put)
+          for (const s of [1.2, 1.6, 2, 2.5, 3]) {
+            const at = { x: dx > 0 ? N - s : s, z: dz > 0 ? N - s : s };
+            enterCube(c, null, null, { ...at, y: c.map.floors[0].top * .5 });
+            if (Math.hypot(player.x - at.x, player.z - at.z) < .2) break;
+          }
+          player.autoDir = [dx * Math.SQRT1_2, dz * Math.SQRT1_2];
+          for (let steps = 0; steps < 240 && state.cubeKey !== into; steps++) { updatePlayer(1 / 60); if (state.cubeKey !== k) endHandover(); }
+          player.autoDir = null;
+          check(state.cubeKey === into, `Held at the corner of ${k} towards ${into} (in ${state.cubeKey} at ${player.x.toFixed(2)}, ${player.z.toFixed(2)})`);
+          endHandover();
+        }
+        results.push(`seed ${seed}: town known / buildings in their tiles / one hull / its people and lights round it / walked across its seams${corner ? ' and through a corner' : ''}`);
       }
       return results;
     } finally { clearInput(); await newWorld(originalSeed); }

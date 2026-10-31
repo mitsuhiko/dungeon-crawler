@@ -1541,6 +1541,12 @@ town's seams, "The town" above):
   body is kept on a stair or bridge lying along the side (its side rail, `physics/canmove.js`),
   a jump goes over it. `cellAt` only ever knows its own map. Loot rests in its cube
   (`physics/rest.js`), and the last safe spot is only taken inside it.
+- **Corners are walked through.** Where four cubes meet and all four sides between them are
+  walked across (the two of the cube played in, and the two between the cubes beyond them and
+  the one diagonally beyond: open, no guardian holding the way; `crossCorners`), the physics
+  reads that cube past the corner too, up to a cell, and once the hero's middle is `PAST` both
+  sides it takes over at once. Else past a corner is solid. (Before, it always was: a body
+  walking straight at a corner, as the up key does in the overview, was held there by its rim.)
 - **Once the hero's middle is `PAST` (0.25) beyond the side the cube beyond takes over** at
   once: it becomes the cube played in (discovered, its visit begun, its enemies put in, what
   the narrator says on arriving, the robot along: `game/flow.js settleIn`), and the hero, what

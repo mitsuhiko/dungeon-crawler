@@ -65,8 +65,9 @@ still to come.
   in, not built at the seam. (Their bakes are made ahead already, `game/bakeahead.js`: the tile
   built at the seam takes its own at once.) Their people, the crash and the robot already show
   there, as in any surroundings ([world.md](world.md): "The people of the surroundings").
-- **Across the seams**: the physics reads the tile beyond a seam (a cell deep) and a click on its
-  ground walks over into it, as across any open face ([world.md](world.md#opened-side-connections)),
+- **Across the seams**: the physics reads the tile beyond a seam (a cell deep, and past a corner
+  where four tiles meet the one diagonally beyond) and a click on its ground walks over into it,
+  as across any open face ([world.md](world.md#opened-side-connections)),
   but the enemies' walks, the jumps the hero can make and a tile's baked shadows and lamps stop at
   its edge.
 - **Room to grow**: more houses for people to live in (the people rescued could move to town,

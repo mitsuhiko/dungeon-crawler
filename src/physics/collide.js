@@ -17,26 +17,34 @@ export function cellAt(x, z, map = state.map) {
 // wall). Past one the physics reads that cube's cells as they lie there, up to REACH cells, so a
 // body crossing, half in the next cube, stands and moves as it would there, until the next cube
 // takes over (game/handover.js). Set for one map: the cube played in, another one knows no sides.
+// Past a corner (both an x side and a z side), the cube diagonally beyond it, where all four sides
+// meeting there are walked across (`corners`, by cornerAt: game/handover.js), so a body walks
+// through the corner as along any side; else solid there.
 const SHUT = [null, null, null, null];
-let across = { map: null, beyond: SHUT };
-export function setAcross(map, beyond = SHUT) { across = { map, beyond }; }
+let across = { map: null, beyond: SHUT, corners: SHUT };
+export function setAcross(map, beyond = SHUT, corners = SHUT) { across = { map, beyond, corners }; }
 export const acrossOf = (map = state.map) => across.map === map && map ? across.beyond : SHUT;
+export const cornersOf = (map = state.map) => across.map === map && map ? across.corners : SHUT;
+// the index in `corners` of the corner past x side ox (0, 1) and z side oz (2, 3)
+export const cornerAt = (ox, oz) => ox * 2 + oz - 2;
 const REACH = 1;   // cells past a side read as the cube beyond (further: solid, as anywhere outside)
 
 // Where (x, z) of `map` lies: sets `at` to the map it is in, the cell there, the point in that map's
-// coordinates and the side crossed (-1: none), and says whether it lies anywhere (false: solid).
-// Past a side of the cube played in, in the cube beyond, if it is walked across; never past two.
-const at = { m: null, i: -1, x: 0, z: 0, d: -1 };
+// coordinates and the side crossed (-1: none; d2, past a corner: the z side, d the x side), and says
+// whether it lies anywhere (false: solid). Past a side of the cube played in, in the cube beyond, if
+// it is walked across; past a corner, in the cube diagonally beyond, if it is walked into (corners).
+const at = { m: null, i: -1, x: 0, z: 0, d: -1, d2: -1 };
 function locate(x, z, map = state.map) {
   const cx = Math.floor(x), cz = Math.floor(z);
-  if (inb(cx, cz)) { at.m = map; at.i = idx(cx, cz); at.x = x; at.z = z; at.d = -1; return true; }
+  if (inb(cx, cz)) { at.m = map; at.i = idx(cx, cz); at.x = x; at.z = z; at.d = at.d2 = -1; return true; }
   if (!map || across.map !== map) return false;
   const ox = cx >= N ? 0 : cx < 0 ? 1 : -1, oz = cz >= N ? 2 : cz < 0 ? 3 : -1;
-  if ((ox < 0) === (oz < 0)) return false;   // (inside, or past a corner)
-  const d = ox >= 0 ? ox : oz, m = across.beyond[d];
-  if (!m || (d < 2 ? (d ? -1 - cx : cx - N) : (d === 3 ? -1 - cz : cz - N)) >= REACH) return false;
-  const lx = x - DIRS[d][0] * N, lz = z - DIRS[d][1] * N;
-  at.m = m; at.i = idx(Math.floor(lx), Math.floor(lz)); at.x = lx; at.z = lz; at.d = d;
+  if ((ox >= 0 ? (ox ? -1 - cx : cx - N) : 0) >= REACH || (oz >= 0 ? (oz === 3 ? -1 - cz : cz - N) : 0) >= REACH) return false;
+  const m = ox < 0 ? across.beyond[oz] : oz < 0 ? across.beyond[ox] : across.corners[cornerAt(ox, oz)];
+  if (!m) return false;
+  const lx = ox < 0 ? x : x - DIRS[ox][0] * N, lz = oz < 0 ? z : z - DIRS[oz][1] * N;
+  at.m = m; at.i = idx(Math.floor(lx), Math.floor(lz)); at.x = lx; at.z = lz;
+  at.d = ox >= 0 ? ox : oz; at.d2 = ox >= 0 && oz >= 0 ? oz : -1;
   return true;
 }
 // The same as an object of its own: { m, i, x, z, d }, or null (solid). For what keeps more than

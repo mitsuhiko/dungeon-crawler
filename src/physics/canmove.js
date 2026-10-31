@@ -58,8 +58,9 @@ export function railedFace(x, z, y, dir, map = state.map) {
 
 // A walking body goes across a side of the cube (into the cube beyond, physics/collide.js spotAt)
 // only where no rail holds it: not off the side of a stair or bridge lying along it, on either side.
-// q: the spot past side q.d it would step on
-const railedAcross = (q, y) => railedFace(player.x, player.z, y, q.d) || railedFace(q.x, q.z, y, OPP6[q.d], q.m);
+// q: the spot past side q.d it would step on (past a corner: and q.d2, physics/collide.js locate)
+const railedOver = (q, y, d) => railedFace(player.x, player.z, y, d) || railedFace(q.x, q.z, y, OPP6[d], q.m);
+const railedAcross = (q, y) => railedOver(q, y, q.d) || q.d2 >= 0 && railedOver(q, y, q.d2);
 
 // did the last canMove that said no stop the body at a brink (a ledge over what takes it, or over
 // nothing)? (physics/brink.js: teetering there, and a jump over it)

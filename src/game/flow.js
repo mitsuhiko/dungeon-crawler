@@ -379,8 +379,14 @@ function prefetchAround(c, since = performance.now()) {
     return;
   }
   if (c.map.town) prefetchTown();   // (the town's other tiles: walked into without a portal)
-  // (and the cubes behind its open faces, walked into without a portal too)
-  readyAhead([0, 1, 2, 3].filter(d => isFaceOpen(state.openedFaces, c.key, d)).map(d => step(c.key, d)));
+  // (and the cubes behind its open faces, walked into without a portal too, and those beyond its
+  // corners where the faces round them are open: walked through, game/handover.js crossCorners)
+  const open = (k, d) => isFaceOpen(state.openedFaces, k, d);
+  readyAhead([0, 1, 2, 3].filter(d => open(c.key, d)).map(d => step(c.key, d)));
+  for (const ox of [0, 1]) for (const oz of [2, 3]) {
+    const kx = step(c.key, ox), kz = step(c.key, oz);
+    if (open(c.key, ox) && open(c.key, oz) && open(kx, oz) && open(kz, ox)) readyAhead([step(kx, oz)]);
+  }
   const cubes = state.cubes, near = [...beyond(c, p => p.kind !== 'spawn'), ...(c.map.doors || []).map(d => d.to)];
   cubes.prefetch(near);
   for (const k of near) cubes.map(k).then(n => {
