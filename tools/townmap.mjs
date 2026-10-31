@@ -1,6 +1,8 @@
 // The town's land seen from above (world/townland.js), for looking at what a world's town is like
-// without the game: node tools/townmap.mjs [seed ...] [--out dir] [--scale px]
-// One PNG a seed (town-<seed>.png, in --out, the system's temp dir at first): the ground's levels
+// without the game: node tools/townmap.mjs [seed ...] [--out dir] [--scale px] [--sheet [count]]
+// One PNG a seed (town-<seed>.png, in --out, the system's temp dir at first); with --sheet all of
+// them side by side in one (towns.png: the seeds given, or the first `count`, 8 at first), each
+// with its landscape under it in the console, for comparing worlds at a glance: the ground's levels
 // shaded (lighter higher, a dark line where it steps a cliff), the water blue (the lake darker),
 // the stairs orange, the bridges brown, the spans red, the falls white, the ways grey, the homes
 // and the buildings their boxes, the wall dark, the forest outside it green, the towers black,
@@ -13,13 +15,14 @@ import { N } from '../src/core/constants.js';
 import { townLand } from '../src/world/town.js';
 
 const args = process.argv.slice(2), seeds = [];
-let out = tmpdir(), S = 8;
+let out = tmpdir(), S = 8, sheet = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--out') out = args[++i];
+  else if (args[i] === '--sheet') { sheet = true; if (/^\d+$/.test(args[i + 1] ?? '') && !seeds.length) { const n = Number(args[++i]); for (let k = 0; k < n; k++) seeds.push(k); } }
   else if (args[i] === '--scale') S = Number(args[++i]);
   else seeds.push(Number(args[i]) >>> 0);
 }
-if (!seeds.length) seeds.push(0, 1, 2, 3);
+if (!seeds.length) seeds.push(...(sheet ? [0, 1, 2, 3, 4, 5, 6, 7] : [0, 1, 2, 3]));
 mkdirSync(out, { recursive: true });
 
 function png(w, h, rgb) {
@@ -36,6 +39,7 @@ function png(w, h, rgb) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
+const drawn = [];
 for (const seed of seeds) {
   const land = townLand(seed), { W, D } = land, w = W * S, h = D * S, img = Buffer.alloc(w * h * 3);
   // (z down the image from the back of the town: the gate at the bottom)
@@ -71,7 +75,21 @@ for (const seed of seeds) {
   for (const f of land.features ?? []) fill(f.x - .6, f.z - .6, f.x + .6, f.z + .6, [230, 0, 230]);
   for (let s = 1; s < W / N; s++) for (let y = 0; y < h; y += 4) px(s * N * S, y, [0, 0, 0]);
   for (let s = 1; s < D / N; s++) for (let x = 0; x < w; x += 4) px(x, s * N * S, [0, 0, 0]);
+  const about = JSON.stringify({ spans: land.spans.length, falls: land.falls.length, features: (land.features ?? []).map(f => f.kind), landscape: land.landscape });
+  if (sheet) { drawn.push({ w, h, img }); console.log(seed, about); continue; }
   const file = join(out, `town-${seed}.png`);
   writeFileSync(file, png(w, h, img));
-  console.log(file, JSON.stringify({ spans: land.spans.length, falls: land.falls.length, features: (land.features ?? []).map(f => f.kind) }));
+  console.log(file, about);
+}
+if (sheet) {
+  // (in rows of up to eight, a gap between them)
+  const per = Math.min(8, drawn.length), gap = 2 * S, { w, h } = drawn[0], rowsN = Math.ceil(drawn.length / per);
+  const SW = per * w + (per - 1) * gap, SH = rowsN * h + (rowsN - 1) * gap, all = Buffer.alloc(SW * SH * 3, 255);
+  drawn.forEach((d, k) => {
+    const ox = (k % per) * (w + gap), oy = Math.floor(k / per) * (h + gap);
+    for (let y = 0; y < h; y++) d.img.copy(all, ((oy + y) * SW + ox) * 3, y * w * 3, (y + 1) * w * 3);
+  });
+  const file = join(out, 'towns.png');
+  writeFileSync(file, png(SW, SH, all));
+  console.log(file);
 }
