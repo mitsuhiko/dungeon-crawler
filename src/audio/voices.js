@@ -338,6 +338,16 @@ export function voices({ amp, noise, filter, tone, sweep }) {
       windup: (t, out, p) => { clicks(t, 3, 0.05, 2000 * p, 0.35, out); tone('sine', 520 * p, 300 * p, t, 0.08, amp(t, 0.002, 0.2, 0.08, out)); },
       death: (t, out, p) => { noise(t, 0.06, filter('highpass', 2500 * p, 0.8, amp(t, 0.001, 0.5, 0.06, out))); clicks(t + 0.05, 5, 0.04, 1500 * p, 0.35, out); },
     },
+    ward: {   // a wardstone (core/tasks.js): a low humming chime, a grinding of stone, a crack and crumble
+      alert: (t, out, p) => { tone('sine', 330 * p, 320 * p, t, 0.6, amp(t, 0.05, 0.25, 0.5, out)); tone('sine', 495 * p, 480 * p, t, 0.6, amp(t, 0.05, 0.12, 0.5, out)); },
+      windup: (t, out, p) => noise(t, 0.3, filter('lowpass', 600 * p, 1, amp(t, 0.05, 0.3, 0.25, out))),
+      death: (t, out, p) => {
+        noise(t, 0.08, filter('bandpass', 1800 * p, 1, amp(t, 0.001, 0.6, 0.08, out)));
+        tone('sine', 880 * p, 440 * p, t, 0.7, amp(t, 0.002, 0.2, 0.7, out));
+        clicks(t + 0.08, 10, 0.05, 900 * p, 0.4, out);
+        noise(t + 0.1, 0.6, filter('lowpass', 500 * p, 1, amp(t + 0.1, 0.05, 0.35, 0.5, out)));
+      },
+    },
   };
   const out = {};
   for (const [species, kinds] of Object.entries(V)) for (const k of VOICE_KINDS) out[`${species}_${k}`] = kinds[k];
