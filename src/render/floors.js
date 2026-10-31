@@ -186,8 +186,10 @@ export function buildFloors(m, layers) {
       B.tri(P[t[0]], P[t[1]], P[t[2]], col, [0, 1, 0], true);
     });
     walls(m, f, B);
+    // its underside (none where its top comes down onto it: the town's ground at level 0, its
+    // quarry's floor, its pool's bed; drawn both sides, it would fight with the top)
     const fb = f.bottom * LH;
-    B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
+    if (Math.min(...cs) - fb > 0.01) B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
     if (f.fluid) fluidVolume(m, f, L.fluids[drawnFluid(f)]);   // (a mud pool: its own part, render/parts.js)
   }
   if (m.town) buildClearingPaths(m, m.town.paths, layers[0].terrain);
