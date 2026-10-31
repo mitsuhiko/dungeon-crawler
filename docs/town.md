@@ -31,7 +31,11 @@ still to come.
   its head and spans across it; a hill with a tent on its top, a hollow with a tent at its bottom, the people's homes
   along every way, some of them on a terrace of their own; a wall round it all a few cells in from
   its sides, towers on it, its gate over the street, and outside it the forest, deep and close
-  ([world.md](world.md#the-town-worldtownjs-cubegentownjs-gamehandoverjs)).
+  ([world.md](world.md#the-town-worldtownjs-cubegentownjs-gamehandoverjs)). Each world's town has a
+  landscape of its own too: the kind of wood and how its woods lie, the forms of the upper and the
+  lower town's wild ground (a marsh with ponds, an orchard, terraces, rocky knolls, a ridge ...),
+  how settled each is, how high the cliff rises, the kinds of hill and hollow, the spans' heights
+  and styles.
   Its stairs, bridges and span have the invisible side rails of a cube's (`cubegen/fences.js
   runRails`): walking never takes the hero off their sides, only the jump key does.
 - **Known from the start.** All the town's tiles count as visited when the world begins: on the
