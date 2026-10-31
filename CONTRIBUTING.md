@@ -146,7 +146,8 @@ The game is plain ES modules and a vendored three.js; there is no build step.
   that run from the game's devtools console (in English, `?lang=en`: some read what it says).
 - `tools/`: dev server, the prop metadata generator, the GLB compressor (`compress-assets.mjs`;
   `glb.mjs` reads the GLBs for the tools and tests), the depth population measurement, the
-  weapon drop tables (`node tools/loot-table.mjs`), the balance simulation
+  weapon drop tables (`node tools/loot-table.mjs`), the town's land of a world seen from above
+  (`node tools/townmap.mjs [seed ...]`), the balance simulation
   (`node tools/balance.mjs`, see `docs/balance.md`), the enemy palette page
   (`/tools/palette.html`, see `docs/enemy-kinds.md`) and the iOS Safari probe in an Xcode simulator
   (`uv run --no-project tools/sim-probe.py --full`, see `docs/lighting.md`), the menus' glass

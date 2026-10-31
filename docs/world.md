@@ -134,12 +134,24 @@ from it (`tileGround` in `world/town.js`).
   out of the deep water: `physics/swimout.js`).
 - **The street** crosses the water on two bridges, a pier between them on the seam, to a quay at
   the cliff's foot in the inn's tile and climbs the cliff by a deep stair along it (`INN_STAIR`).
-- **The lake.** In the garden the water broadens to a bay; a long span comes down over it from the
-  upper town's edge to a rock standing in it on the seam (a run in each tile: a run never crosses a
-  seam), and on down to the lower town's shore.
+- **The lake.** In the garden the water broadens to a bay (8 to 13 cells deep into the upper
+  town); a long span comes down over it from the upper town's edge to a rock standing in it on the
+  seam (a run in each tile: a run never crosses a seam), and on down to the lower town's shore or a
+  cell or two past it into the lower town; in some worlds two of them, side by side.
+- **The gorge**, in about half the worlds: from the back of the bay on into the upper town, three
+  cells wide and as deep as the lake, winding a cell now and then (straight across a seam), cliffs
+  on both sides; a stream comes in from the back and falls into its head, one or two spans cross
+  it from rim to rim, high over its water (in a style of their own now and then), the lanes that
+  come to it cross it on bridges, and a ledge a level over its water in each tile it reaches into
+  is the way out of it. In such a world the hill stands in the other back corner and the grove's
+  wishing well on the gorge's far side.
 - **The river** comes in from the back of the town across the upper town, two cells wide, and
-  falls over the cliff's edge into the water (where the cliff runs straight); waded, bridged where
-  a way crosses it.
+  falls over the cliff's edge into the water (where the cliff runs straight), now by the wall, now
+  nearer the middle; waded, bridged where a way crosses it. In some worlds without a gorge a stream
+  comes down on the lake's side too, over the cliff into the bay.
+- Each world's land differs in more than where these lie: how deep the bay reaches, how far the
+  cliff winds, how far a span goes. `node tools/townmap.mjs [seed ...]` draws a world's land from
+  above (a PNG a seed: its levels, water, stairs, bridges, spans, falls, ways and homes).
 - **The hill** in a back corner (a tent on its top, the corner's set piece on a knoll on its
   shoulder), **the hollow** in a front corner (a tent at its bottom), trails up and down to them,
   woods here and there.

@@ -257,7 +257,7 @@ function tileGround(land, i, j, yaw, seed) {
     if (r.kind === 'stair') for (const c of cells) { ctx.cols[c][0].covered = true; ctx.cols[c][0].underStair = true; }
     ctx.runs.push(run);
     ctx.stats[r.kind === 'stair' ? 'stairs' : 'bridges']++;
-    if (r.span) ctx.spec.span.style = r.style;
+    if (r.span) { ctx.spec.span.style = r.style; run.spanStyle = r.style; }
     for (const c of [from, to, ...cells]) built.add(c);
   }
   smooth(ctx);
@@ -704,13 +704,15 @@ function forest({ tree, put, land, G, R, tile }) {
   for (let lz = .5; lz < N; lz += 1.05) for (let lx = .5; lx < N; lx += 1.05) {
     if (!out(lx, lz)) continue;
     const [gx, gz] = G(lx, lz), f = land.forest(gx, gz), kind = land.kind(gx, gz) + (R() - .5) * .3;
-    if (R() > f * 1.15) continue;
+    if (R() > f * 1.3) continue;
     const name = R() < .15 ? pick(R, SMALL) : kind < .45 ? pick(R, FIRS) : pick(R, BROADLEAVES), s = scaleOf(R, name) * (name.startsWith('darkforest') ? 1.15 : 1.05);
     let ok = false;
     for (let k = 0; k < 3 && !ok; k++) {
       const x = lx + (R() - .5) * .6, z = lz + (R() - .5) * .6;
       ok = out(x, z) && tree(name, x, z, s, true);
     }
+    // (a smaller one where it does not fit)
+    if (!ok) { const small = pick(R, SMALL); ok = out(lx, lz) && tree(small, lx, lz, scaleOf(R, small) * .9, true); }
     const x = lx, z = lz;
     if (!ok)
       put(pick(R, ['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_sapling_a', 'meadow_sapling_b', 'roots_moss_rock_a']), [[x, z]], { s: .9 + R() * .4 });
@@ -1248,8 +1250,8 @@ const TILES = [
       put(variant(R, 'lagoon_rowboat'), shore('lake'), { world: true, shore: true, s: 1.3 });
       put(variant(R, 'lagoon_driftwood'), shore('lake'), { world: true });
       const lake = plan.water.filter(c => plan.ground.water[c].lake);
-      for (const c of [...lake].sort(() => R() - .5).slice(0, 4 + Math.floor(R() * 5)))
-        put(variant(R, 'meadow_lily_pads'), [[c % N + .3 + R() * .4, Math.floor(c / N) + .3 + R() * .4]], { water: true, world: true });
+      const pads = [...lake].sort(() => R() - .5).map(c => [c % N + .3 + R() * .4, Math.floor(c / N) + .3 + R() * .4]);
+      for (let k = 4 + Math.floor(R() * 5); k > 0 && pads.length; k--) put(variant(R, 'meadow_lily_pads'), pads.splice(0, 6), { water: true, world: true });
       // the islet: a tree on it, or a bush and a stone
       for (const c of land.lake.islet) {
         const [x, z] = L(c % land.W + .5, Math.floor(c / land.W) + .5);

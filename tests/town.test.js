@@ -9,7 +9,7 @@ import { World } from '../src/world/world.js';
 import { step, faceKey } from '../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, HOMES, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
   PORTAL_TILE, START_TILE, enemyFreeAt, townOf, townLand, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
-import { INN_STAIR, UPPER, WALL } from '../src/world/townland.js';
+import { INN_STAIR, UPPER, WALL, WATER_FROM } from '../src/world/townland.js';
 import { floorY, runY } from '../src/core/surfaces.js';
 import { ITEMS, outfitOf } from '../src/core/items.js';
 import { state } from './fixtures.js';
@@ -618,34 +618,52 @@ test('grove assets have flat coloured geometry, ground pivots and explicit trunk
   }
 });
 
-test('every world\'s town lies in a land of its own: the lower town, the water and the upper town half a cube over it, the span over the lake, the river with its fall, the hill and the hollow with their tents', () => {
-  const kinds = new Set();
-  let falls = 0, bridges = 0;
+test('every world\'s town lies in a land of its own: the lower town, the water and the upper town half a cube over it, the spans over the lake (and a gorge), the river with its fall, the hill and the hollow with their tents', () => {
+  const kinds = new Set(), features = new Map();
+  let falls = 0, bridges = 0, gorges = 0, lakeSpans = 0, gorgeSpans = 0;
   for (let seed = 0; seed < 12; seed++) {
     const w = new World(seed), land = townLand(seed), tiles = tilesOf(w), { W } = land;
-    kinds.add(JSON.stringify([land.hill.tile, land.hollow.tile, land.lake.cells.length, land.spans.map(s => s.top), land.river.length]));
+    kinds.add(JSON.stringify([land.hill.tile, land.hollow.tile, land.lake.cells.length, land.spans.map(s => s.top), land.river.length, land.streams.length]));
+    for (const f of land.features) features.set(f.kind, (features.get(f.kind) ?? 0) + 1);
     // three bands: the gate's rows, the water across the whole town on the seam between the plaza's
-    // row and the inn's (but its pier and the span's rock), the upper town half a cube over them
+    // row and the inn's (but its pier and the spans' rocks), the upper town half a cube over them
     assert.equal(land.rows[0], TOWN_LEVEL);
     assert.equal(land.rows.at(-1), TOWN_LEVEL + UPPER);
     for (const { j, m } of tiles) assert.equal(m.town.level, land.rows[j]);
     const seam = START_TILE[1] * N;
     for (let x = 0; x < W; x++) for (const z of [seam - 1, seam]) assert.ok(land.water(x, z) || land.platforms.has(z * W + x), `the water at ${x}, ${z}`);
-    for (let x = 0; x < W; x++) assert.ok((land.water(x, land.edge[x]) || land.level(x, land.edge[x]) >= land.rows.at(-1) - 1) && land.edge[x] > seam, 'the cliff out of the water (but where the river falls)');
+    for (let x = 0; x < W; x++) assert.ok((land.water(x, land.edge[x]) || land.gorge.has(land.edge[x] * W + x) || land.level(x, land.edge[x]) >= land.rows.at(-1) - 1) && land.edge[x] > seam, 'the cliff out of the water (but where the river falls, or the gorge goes on)');
     // the cliff: a cliff, not a slope (the generator's own walls)
     const inn = tiles.find(({ i, j }) => i === START_TILE[0] && j === START_TILE[1]).m;
     assert.ok(inn.floors.some(f => !f.fluid && f.link.some((g, d) => !g && inn.floors.some(h => h.x === f.x + DIRS[d][0] && h.z === f.z + DIRS[d][1] && h.top - f.top >= UPPER - 2))));
-    // the span: from the upper town's edge over the lake to a rock on the seam, on down to the
-    // lower town's shore, a run in each tile
-    assert.equal(land.spans.length, 2);
-    const [top, down] = land.spans;
-    assert.ok(top.cells.length >= 7, `${top.cells.length} cells over the lake`);
-    assert.equal(Math.floor(top.land / W), seam); assert.equal(Math.floor(down.top / W), seam - 1);
-    assert.equal(land.platforms.get(top.land), land.platforms.get(down.top));
-    for (const c of top.cells) assert.ok(land.water(c % W, Math.floor(c / W))?.lake, 'over the lake');
+    // the lake's spans: from the upper town's edge over the lake to a rock on the seam, on down to
+    // the lower town's shore or past it, a run in each tile; one or two of them
+    const lake = land.spans.filter(s => s.kind === 'lake');
+    assert.ok(lake.length === 2 || lake.length === 4, `${lake.length / 2} spans over the lake`);
+    lakeSpans += lake.length / 2;
+    for (let k = 0; k < lake.length; k += 2) {
+      const [top, down] = [lake[k], lake[k + 1]];
+      assert.ok(top.cells.length >= 5, `${top.cells.length} cells over the lake`);
+      assert.equal(Math.floor(top.land / W), seam); assert.equal(Math.floor(down.top / W), seam - 1);
+      assert.equal(land.platforms.get(top.land), land.platforms.get(down.top));
+      // (over the lake, or a strand at the cliff's foot)
+      for (const c of top.cells) assert.ok(land.water(c % W, Math.floor(c / W))?.lake || land.level(c % W, Math.floor(c / W)) === TOWN_LEVEL, 'over the lake');
+      assert.ok(Math.floor(down.land / W) <= seam - N + WATER_FROM - 1, 'down on the shore or past it');
+    }
+    // the gorge: lake water down in the upper town, from the bay on; spans across it, rim to rim
+    if (land.gorge.size) {
+      gorges++;
+      // (its water the lake's; a ledge a level over it in each tile it reaches into, the way out)
+      for (const c of land.gorge) assert.ok(land.water(c % W, Math.floor(c / W))?.surf === TOWN_LEVEL - 1 || land.level(c % W, Math.floor(c / W)) === TOWN_LEVEL);
+    }
+    for (const s of land.spans.filter(s => s.kind === 'gorge')) {
+      gorgeSpans++;
+      for (const c of s.cells) assert.ok(land.gorge.has(c), 'over the gorge');
+      for (const c of [s.top, s.land]) assert.equal(land.level(c % W, Math.floor(c / W)) >= land.upper, true, 'from rim to rim');
+    }
     for (const { m } of tiles) for (const r of m.runs) {
       assert.ok(r.pieces.length === r.k && r.pieces.every(p => Number.isFinite(p.y0) && Number.isFinite(p.y1)));
-      if (r.kind === 'bridge' && r.span) assert.ok(Math.abs(r.y0 - r.y1) > LH && Math.abs(r.y0 - r.y1) / (r.k + 1) <= 1.5 * LH, 'a span comes down gently');
+      if (r.kind === 'bridge' && r.span) assert.ok(Math.abs(r.y0 - r.y1) / (r.k + 1) <= 1.5 * LH, 'a span comes down gently');
       if (r.kind === 'bridge' && !r.span) { bridges++; assert.ok(r.pieces.every(p => m.cols[p.c][0].fluid), 'a bridge over the water'); }
     }
     // the hill high over the upper town, a tent on its top; the hollow under the lower, a tent in it
@@ -655,11 +673,16 @@ test('every world\'s town lies in a land of its own: the lower town, the water a
     assert.ok(Math.min(...hollow.floors.map(f => Math.min(...f.cs))) <= (TOWN_LEVEL - 2) * LH, 'the hollow');
     assert.ok(hill.town.placements.some(p => p.name === 'peaks_expedition_camp_a'), 'a tent on the hill');
     assert.ok(hollow.town.placements.some(p => p.name === 'highlands_nomad_tent_a'), 'a tent in the hollow');
-    // the river: across the upper town, falling down its cliff into the water
+    // the river: across the upper town, falling down its cliff into the water (and a stream now
+    // and then, into the gorge's head or over the cliff)
     assert.ok(land.lake.cells.length >= 100 && land.river.length >= 15);
     falls += land.falls.length;
     for (const { m } of tiles) for (const f of m.falls) assert.equal(f.top - f.bot, UPPER);
   }
+  assert.ok(gorges >= 3 && gorges <= 10, `${gorges} gorges in 12 worlds`);
+  assert.ok(gorgeSpans >= 3, `${gorgeSpans} spans over a gorge`);
+  assert.ok(lakeSpans >= 15, `${lakeSpans} spans over a lake`);
+  assert.ok((features.get('stream') ?? 0) >= 4, `${features.get('stream') ?? 0} streams`);
   assert.ok(kinds.size >= 10, `${kinds.size} kinds of land in 12 worlds`);
   assert.ok(falls >= 12, `${falls} falls`);
   assert.ok(bridges >= 24, `${bridges} bridges`);

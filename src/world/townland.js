@@ -162,7 +162,8 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   // lake). By a seam as on its other side.
   const UP = Math.min(2, deep - 1), lower = level, upper = level + UPPER, rows = Array.from({ length: deep }, (_, j) => j < UP ? lower : upper);
   const mid = Math.floor(across / 2), upZ = UP * N, from = (UP - 1) * N + WATER_FROM, px = mid * N;
-  const lakeDeep = 8 + Math.floor(R() * 4);
+  // (how deep the lake's bay reaches into the upper town, how far the cliff winds elsewhere)
+  const lakeDeep = 8 + Math.floor(R() * 6), wind = 1 + Math.floor(R() * 2);
   const edge = Array.from({ length: W }, (_, x) => {
     const i = Math.floor(x / N), lx = x - i * N;
     if (i === mid) return upZ + WATER_TO + QUAY;
@@ -172,7 +173,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
       return upZ + WATER_TO + QUAY + (lx < N - 2 ? Math.round((lakeDeep - WATER_TO - QUAY) * bay) + wob : 0);
     }
     if (lx < 2 && i === mid + 1) return upZ + WATER_TO + QUAY;
-    return upZ + WATER_TO + (lx >= 3 && lx < N - 2 ? Math.floor(cliffy(Math.floor((x + 2) / 4) * 1.7, 9.1) * 1.99) : 0);
+    return upZ + WATER_TO + (lx >= 4 && lx < N - 2 ? Math.floor(cliffy(Math.floor((x + 2) / 4) * 1.7, 9.1) * (wind + .99)) : 0);
   });
   const quay = (x, z) => Math.floor(x / N) === mid && z >= upZ + WATER_TO && z < upZ + WATER_TO + QUAY && x - px >= 2 && x - px < N - 2;
   const tongue = new Set();
@@ -185,51 +186,21 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     stairs.push({ foot: cell(px + INN_STAIR.foot, z), top: cell(px + INN_STAIR.top, z), d: 0, cells: line });
     for (const c of [...line, cell(px + INN_STAIR.foot, z)]) used.add(c);
   }
+  // (the gorge's cells, below: lake water down in the upper town)
+  const gorge = new Set();
   const inWater = (x, z) => z >= from && z < edge[x] && !quay(x, z);
-  const base = (x, z) => tongue.has(cell(x, z)) || z >= edge[x] ? upper : lower;
+  const base = (x, z) => tongue.has(cell(x, z)) || (z >= edge[x] && !gorge.has(cell(x, z))) ? upper : lower;
   // A pier where the street crosses the seam in the water (dry, at the lower town's level: a bridge
-  // either side of it, world/town.js lays the street over them), and the span: from the upper town's
-  // edge on the lake's far side down over the water to a rock standing in it on the seam, and on down
-  // to the lower town's shore
+  // either side of it, world/town.js lays the street over them)
   const piers = [cell(px + Math.floor(STREET_X), upZ - 1), cell(px + Math.floor(STREET_X) + 1, upZ - 1), cell(px + Math.floor(STREET_X), upZ), cell(px + Math.floor(STREET_X) + 1, upZ)];
   for (const c of piers) platforms.set(c, lower);
-  {
-    // (where the lake is deepest, by its middle)
-    const xs = Array.from({ length: N - 5 - WALL }, (_, k) => WALL + 2 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - 7) * .3 - Math.abs(b - 7) * .3 + (R() - .5) * 2);
-    for (const lx of xs) {
-      const x = lx, top = edge[x], land = from - 1;
-      if (edge[x + 1] !== top || edge[x - 1] < top || top - upZ < 6 || insideBox(x + .5, land + .5, .8) || insideBox(x + .5, top + .5, .8)) continue;
-      const rock = [cell(x, upZ - 1), cell(x + 1, upZ - 1), cell(x, upZ), cell(x + 1, upZ)];
-      const p = lower + Math.round(UPPER * (upZ - 1 - land) / (top - land));
-      spans.push({ top: cell(x, top), land: cell(x, upZ), cells: Array.from({ length: top - upZ - 1 }, (_, k) => cell(x, top - 1 - k)), d: 3 });
-      spans.push({ top: cell(x, upZ - 1), land: cell(x, land), cells: Array.from({ length: upZ - 2 - land }, (_, k) => cell(x, upZ - 2 - k)), d: 3 });
-      for (const c of rock) platforms.set(c, p);
-      for (const sp of spans) for (const c of [sp.top, sp.land, ...sp.cells]) { used.add(c); used.add(c - 1); used.add(c + 1); }
-      break;
-    }
-  }
-  // a strand under the cliff here and there (in threes, one at least in each tile with no quay): a
-  // way out of the water, not under the span nor by a seam
-  const strand = new Set();
-  for (let i = 0; i < across; i++) {
-    if (i === mid) continue;
-    const blocks = [];
-    // (three cells wide, anywhere along the cliff, none overlapping another)
-    for (let x0 = i * N + 1; x0 + 3 < (i + 1) * N - 1; x0++) {
-      if (blocks.length && blocks.at(-1)[2] >= x0) continue;
-      const xs = [x0, x0 + 1, x0 + 2];
-      if (xs.every(x => edge[x] - 1 >= upZ + 1 && !strip(x, edge[x] - 1) && side(x, edge[x] - 1) === 0 && x > WALL + 1 && x < W - 2 - WALL
-        && ![-1, 0, 1].some(o => used.has(cell(x + o, edge[x] - 1))))) blocks.push(xs);
-    }
-    const take = blocks.filter(() => R() < .45);
-    if (!take.length && blocks.length) take.push(blocks[Math.floor(R() * blocks.length)]);
-    for (const xs of take) for (const x of xs) strand.add(cell(x, edge[x] - 1));
-  }
-  const structureCells = [...used];
 
   // ---- where the big things lie (the tiles' corners)
   const back = deep - 1, right = across - 1;
-  const hillI = R() < .5 ? 0 : right, hollowI = R() < .5 ? 0 : right;
+  // (in a world with a gorge, below, the hill stands in the other back corner: the gorge runs on
+  // into the grove)
+  const gorgy = across > 1 && deep > UP + 1 && R() < .55;
+  const hillI = gorgy || R() < .5 ? right : 0, hollowI = R() < .5 ? 0 : right;
   const inTile = (i, j, x, z) => [i * N + (i === right && i !== 0 ? N - x : x), j * N + z];
   const hill = (() => {
     const [x, z] = inTile(hillI, back, 7.6 + jit(.8), 7.4 + jit(.8)), r0 = 2.6 + R() * .5;
@@ -245,23 +216,153 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
       const a = Math.atan2(middle[1] - hill.z, middle[0] - hill.x) + jit(.5), d = hill.r0 + 3;
       return { tile: [i, back], x: hill.x + Math.cos(a) * d, z: hill.z + Math.sin(a) * d, level: upper + 2, r0: 2.6, r1: 4.6 };
     }
+    // (by the gorge: off it, on its far side from the wall)
+    if (gorgy && i === 0) { const [x, z] = inTile(i, back, 12.6 + jit(.3), 10 + jit(.5)); return { tile: [i, back], x, z, level: upper + 1, r0: 2, r1: 3.4 }; }
     const [x, z] = inTile(i, back, 8 + jit(1), 8.5 + jit(1));
     return { tile: [i, back], x, z, level: upper + 1, r0: 2.2, r1: 4 };
   });
-  // the lake: the water's broad part, in the garden
-  const lakeTile = [0, Math.min(UP, deep - 1)];
-  const lake = { tile: lakeTile, x: N * .45, z: upZ + lakeDeep / 2 - 1, rx: 3, rz: 2.5, islet: [] };
   // ---- what stands for good (the buildings, their streets, lanes and paths, the people, the
   // crash...: world/town.js), before the town is laid out round the big things: the river keeps off it
   const fixedDist = new Float64Array(W * D);
   for (let c = 0; c < W * D; c++) { const [x, z] = xz(c); let d = Infinity; for (const k of fixedKeep) d = Math.min(d, keepDistance(k, x + .5, z + .5)); fixedDist[c] = d; }
   // (what the river keeps off: a cell what stands for good is in, or right beside)
   const fixedKept = c => fixedDist[c] < .5;
+  // what of the land's set pieces (`features`: the gorge, the spans, the streams, where they are)
+  const features = [];
+
+  // ---- the gorge, in some worlds: from the back of the lake's bay on into the upper town, GORGE
+  // cells wide, winding a cell now and then (but straight across a seam), as deep as the lake: the
+  // cliff on both sides; a stream falls into its head (below) and spans cross it
+  const GORGE = 3;
+  let gorgeHead = null;
+  if (gorgy) {
+    // (from where the bay is deepest, on the wall's side of the garden)
+    const lo = WALL + 3, hi = WALL + 5;
+    const xs = Array.from({ length: hi - lo + 1 }, (_, k) => lo + k), deepest = x => Math.min(edge[x], edge[x + 1], edge[x + 2]);
+    let x0 = xs.sort((a, b) => deepest(b) - deepest(a) + (R() - .5) * 1.5)[0];
+    const z0 = Math.min(edge[x0], edge[x0 + 1], edge[x0 + 2]), rows = [];
+    let far = z0 + 8 + Math.floor(R() * 14);
+    for (const s of seamZ) if (far >= s - 3 && far <= s + 2) far = s + 3;
+    // (a row it may take: off the hill, the set pieces, what stands for good, inside the wall)
+    const fits = (x0, z) => z < D - 1 - WALL - 3 && [0, 1, 2, -1, 3].every(o => {
+      const x = x0 + o, c = cell(x, z);
+      return Math.hypot(x + .5 - hill.x, z + .5 - hill.z) > hill.r1 + 1.5 && pieces.every(p => Math.hypot(x + .5 - p.x, z + .5 - p.z) > p.r1 + 1)
+        && fixedDist[c] > 1.5 && !insideBox(x + .5, z + .5, 1.2);
+    });
+    const nearSeam = z => seamZ.some(s => z >= s - 3 && z <= s + 2);
+    for (let z = z0; z <= far && fits(x0, z); z++) {
+      rows.push({ z, x0 });
+      if (!nearSeam(z) && !nearSeam(z + 1) && R() < .3) {
+        const nx = x0 + (R() < .5 ? -1 : 1);
+        if (nx >= lo && nx <= hi && fits(nx, z + 1)) x0 = nx;
+      }
+    }
+    // (never ending by a seam: before it or well past it; and with room behind its head for the
+    // stream to come to it straight, three cells)
+    const behind = ({ z, x0 }) => [1, 2, 3].every(k => { const x = x0 + 1.5, zz = z + k + .5;
+      return zz < D - 1 - WALL && Math.hypot(x - hill.x, zz - hill.z) > hill.r1 + 1 && pieces.every(p => Math.hypot(x - p.x, zz - p.z) > p.r1 + .5) && !insideBox(x, zz, 1.3); });
+    while (rows.length && (nearSeam(rows.at(-1).z) || !behind(rows.at(-1)))) rows.pop();
+    if (rows.length && rows.at(-1).z - z0 >= 5) {
+      for (const { z, x0 } of rows) for (let x = x0; x < x0 + GORGE; x++) if (z >= edge[x]) gorge.add(cell(x, z));
+      const end = rows.at(-1);
+      gorgeHead = { x: end.x0 + 1, z: end.z, rows };
+      features.push({ kind: 'gorge', x: end.x0 + 1.5, z: (z0 + end.z) / 2 + .5, rows: rows.length });
+    }
+  }
+  const gorgeAt = (x, z) => gorge.has(cell(x, z));
+  // (in each tile it reaches into, a ledge along one of its sides a level over its water, two cells
+  // long: a way out of the water in that tile, physics/swimout.js)
+  const ledge = new Set();
+  if (gorgeHead) for (let j = UP; j < deep; j++) {
+    const rows = gorgeHead.rows.filter(r => Math.floor(r.z / N) === j && r.z < gorgeHead.z && seamZ.every(s => r.z < s - 1 || r.z > s));
+    const pairs = rows.filter((r, k) => rows[k + 1]?.z === r.z + 1 && rows[k + 1].x0 === r.x0);
+    if (!pairs.length) continue;
+    const r = pairs[Math.floor(R() * pairs.length)], x = R() < .5 ? r.x0 : r.x0 + GORGE - 1;
+    for (const z of [r.z, r.z + 1]) ledge.add(cell(x, z));
+  }
+
+  // ---- the spans. Over the lake: from the upper town's edge on the lake's far side down over the
+  // water to a rock standing in it on the seam, and on down to the lower town's shore (or a cell or
+  // two on into it); now and then two of them. Over the gorge: from rim to rim, level, high over
+  // its water. Each a run in a tile (a run never crosses a seam).
+  const take = (sp, w = [-1, 0, 1]) => { spans.push(sp); for (const c of [sp.top, sp.land, ...sp.cells]) for (const o of w) used.add(c + o); };
+  const lakeSpan = (avoid = []) => {
+    // (where the lake is deepest, by its middle; off the gorge's mouth and another span)
+    // (its top on the cliff's edge, the cliff beside it no further back)
+    const xs = Array.from({ length: N - 4 - WALL }, (_, k) => WALL + 2 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - 7) * .3 - Math.abs(b - 7) * .3 + (R() - .5) * 3);
+    for (const x of xs) {
+      const top = edge[x], shore = from - 1;
+      if (edge[x + 1] > top || edge[x - 1] > top || top - upZ < 6 || insideBox(x + .5, shore + .5, .8) || insideBox(x + .5, top + .5, .8)) continue;
+      if ([-1, 0, 1].some(o => gorgeAt(x + o, top) || gorgeAt(x + o, top + 1) || used.has(cell(x + o, top))) || avoid.some(a => Math.abs(a - x) < 4)) continue;
+      // (on into the lower town, where nothing stands for good)
+      let land = shore;
+      for (let k = Math.floor(R() * 3); k > 0; k--) {
+        const z = land - 1;
+        if ([-1, 0, 1].some(o => fixedDist[cell(x + o, z)] < 1) || insideBox(x + .5, z + .5, 1) || strip(x, z)) break;
+        land = z;
+      }
+      const rock = [cell(x, upZ - 1), cell(x + 1, upZ - 1), cell(x, upZ), cell(x + 1, upZ)];
+      const p = lower + Math.round(UPPER * (upZ - 1 - land) / (top - land));
+      take({ kind: 'lake', top: cell(x, top), land: cell(x, upZ), cells: Array.from({ length: top - upZ - 1 }, (_, k) => cell(x, top - 1 - k)), d: 3 });
+      take({ kind: 'lake', top: cell(x, upZ - 1), land: cell(x, land), cells: Array.from({ length: upZ - 2 - land }, (_, k) => cell(x, upZ - 2 - k)), d: 3 });
+      for (const c of rock) platforms.set(c, p);
+      features.push({ kind: 'span', x: x + .5, z: (top + land) / 2 + .5 });
+      return x;
+    }
+    return null;
+  };
+  {
+    const first = lakeSpan();
+    if (first !== null && R() < (gorgeHead ? .3 : .55)) lakeSpan([first]);
+  }
+  if (gorgeHead) {
+    // (across rows of it three cells wide, off its mouth and its head and the seams; a rim each side)
+    const ok = ({ z, x0 }) => {
+      const a = cell(x0 - 1, z), b = cell(x0 + GORGE, z);
+      if (!seamZ.every(s => Math.abs(z + .5 - s) > 2.5) || z < gorgeHead.rows[0].z + 2 || z > gorgeHead.z - 1) return false;
+      if (![0, 1, 2].every(o => gorgeAt(x0 + o, z)) || gorgeAt(x0 - 1, z) || gorgeAt(x0 + GORGE, z) || z < edge[x0 - 1] || z < edge[x0 + GORGE]) return false;
+      return ![a, b].some(c => used.has(c) || side(...xz(c)) > 0 || insideBox(c % W + .5, Math.floor(c / W) + .5, .8));
+    };
+    const rows = gorgeHead.rows.filter(ok).sort(() => R() - .5), taken = [];
+    for (const r of rows) {
+      if (taken.length >= 1 + (R() < .5 ? 1 : 0) || taken.some(t => Math.abs(t - r.z) < 4)) continue;
+      take({ kind: 'gorge', top: cell(r.x0 - 1, r.z), land: cell(r.x0 + GORGE, r.z), cells: Array.from({ length: GORGE }, (_, k) => cell(r.x0 + k, r.z)), d: 0 }, [-W, 0, W]);
+      features.push({ kind: 'span', x: r.x0 + 1.5, z: r.z + .5 });
+      taken.push(r.z);
+    }
+  }
+  // a strand under the cliff here and there (in threes, one at least in each tile with no quay): a
+  // way out of the water, not under the span nor by a seam
+  const strand = new Set();
+  for (let i = 0; i < across; i++) {
+    if (i === mid) continue;
+    // (three cells wide, anywhere along the cliff, none overlapping another, off the spans; two
+    // where there is no room for three, under a span if it must: high over it there)
+    const foot = (xs, off) => xs.every(x => edge[x] - 1 >= upZ + 1 && !strip(x, edge[x] - 1) && side(x, edge[x] - 1) === 0 && x > WALL + 1 && x < W - 2 - WALL
+      && !off.some(o => used.has(cell(x + o, edge[x] - 1))) && ![-1, 0, 1].some(o => gorgeAt(x + o, edge[x])));
+    let blocks = [];
+    for (const [wide, off] of [[3, [-1, 0, 1]], [2, [0]], [2, []]]) {
+      for (let x0 = i * N + 1; x0 + wide < (i + 1) * N - 1; x0++) {
+        const xs = Array.from({ length: wide }, (_, k) => x0 + k);
+        if (!(blocks.length && blocks.at(-1).at(-1) >= x0) && foot(xs, off)) blocks.push(xs);
+      }
+      if (blocks.length) break;
+    }
+    const take = blocks.filter(() => R() < .45);
+    if (!take.length && blocks.length) take.push(blocks[Math.floor(R() * blocks.length)]);
+    for (const xs of take) for (const x of xs) strand.add(cell(x, edge[x] - 1));
+  }
+  const structureCells = [...used];
+
+  // the lake: the water's broad part, in the garden (and the gorge on from it)
+  const lakeTile = [0, Math.min(UP, deep - 1)];
+  const lake = { tile: lakeTile, x: N * .45, z: upZ + lakeDeep / 2 - 1, rx: 3, rz: 2.5, islet: [] };
   // ---- the water
   const water = new Map();   // cell -> { surf, bed, lake }
   const falls = [];          // { c (the cell it falls into), d (DIRS4: the way it flows), top, bot }
   const lakeSet = new Set();
   for (let z = from; z < D; z++) for (let x = 0; x < W; x++) if (inWater(x, z) && !platforms.has(cell(x, z)) && !strand.has(cell(x, z))) lakeSet.add(cell(x, z));
+  for (const c of gorge) if (!ledge.has(c)) lakeSet.add(c);
   lake.cells = [...lakeSet];
   const surfOf = c => base(...xz(c)) - WATER_DROP;
   // (shallow along its shores, deep from two cells out)
@@ -272,7 +373,8 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   // The river: the cheapest way in from the town's back side to the water, over the cliff's edge
   // (straight down its wall, where the wall runs straight: its fall); off what is kept but where it
   // crosses a way (straight across: a bridge), off the hill, the stair and the span; across a seam
-  // only straight, never along one
+  // only straight, never along one. In some worlds a stream too: into the gorge's head, falling
+  // into it, or else over the cliff elsewhere.
   const ways = fixedWays;
   const onWay = (x, z) => ways.find(w => keepDistance({ seg: [w.a, w.b], r: w.w / 2 + .6 }, x + .5, z + .5) < 0);
   const along = (a, b) => {
@@ -290,50 +392,82 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     return z < 3 && Math.abs(x + .5 - gate[0]) < 5;
   };
   // (an upper cell beside the lower town: water there would stand over the wall, but at a lip: where
-  // the wall runs straight for the river's two cells and one either side, the river falling over it)
-  const rim = c => { const [x, z] = xz(c); return base(x, z) === upper && DIRS4.some(([dx, dz]) => x + dx >= 0 && x + dx < W && z + dz >= 0 && base(x + dx, z + dz) === lower); };
-  const lip = c => { const [x, z] = xz(c); return rim(c) && z === edge[x] && x > 1 && x < W - 2 && [-1, 0, 1].every(o => edge[x + o] === z) && !strip(x, z) && !strip(x, z - 1) && !tongue.has(c - 1) && !tongue.has(c + 1); };
-  const enter = (n, c, p) => {
-    if (shut(n) || along(c, n)) return Infinity;
-    const [nx, nz] = xz(n), [cx] = xz(c);
-    if ((side(nx, nz) > 0 || side(...xz(c)) > 0) && n !== c - W) return Infinity;
-    if (base(nx, nz) > base(...xz(c))) return Infinity;
-    // (down the escarpment: from a lip straight over its edge, come to it straight)
-    if (rim(n) && !(lip(n) && c === n + W && p === c + W)) return Infinity;
-    if (lip(c) && n !== c - W) return Infinity;
-    const way = fixedKept(n) ? onWay(nx, nz) : null;
-    if (fixedKept(n) && !way) return Infinity;
-    if (way && (way.a[0] === way.b[0]) === (nx === cx)) return Infinity;   // (across a way, not along it)
-    const w = wander(nx * .37 + 11, nz * .37 + 11);
-    return 1 + 4 * w * w + (way ? 3 : 0);
-  };
-  let river = [];
-  {
-    // (in from the back of the town on the other side of it from the lake: down its cliff in sight)
-    const starts = [], side = x => x > W / 2 + 4;
-    for (let x = WALL + 2; x < W - 2 - WALL; x++) if (!shut(cell(x, D - 1)) && offSeam(x, seamX) > 1) starts.push(cell(x, D - 1));
-    const into = cheapest(W, D, starts.some(c => side(c % W)) ? starts.filter(c => side(c % W)) : starts, c => lakeSet.has(c),
-      (n, c, p) => lakeSet.has(n) ? (lip(c) && n === c - W && p === c + W ? 1 : Infinity) : enter(n, c, p),
+  // the wall runs straight for the river's two cells and one either side, the river falling over it;
+  // or the gorge's head, the stream falling into its middle)
+  const rim = c => { const [x, z] = xz(c); return base(x, z) === upper && DIRS4.some(([dx, dz]) => x + dx >= 0 && x + dx < W && z + dz >= 0 && z + dz < D && base(x + dx, z + dz) === lower); };
+  const cliffLip = (c, roomy = true) => { const [x, z] = xz(c); return rim(c) && z === edge[x] && x > 1 && x < W - 2 && [-1, 0, 1].every(o => edge[x + o] === z && !gorgeAt(x + o, z) && lakeSet.has(cell(x + o, z - 1))) && !strip(x, z) && !strip(x, z - 1) && !tongue.has(c - 1) && !tongue.has(c + 1)
+    && (!roomy || [-1, 1].some(o => !shut(c + o) && !(fixedKept(c + o) && !onWay(x + o, z)) && base(x + 2 * o, z) === upper && !lakeSet.has(c + 2 * o))); };   // (room for its second cell beside it)
+  const headLip = c => !!gorgeHead && c === cell(gorgeHead.x, gorgeHead.z + 1);
+  const flow = (lip, starts, into) => {
+    const enter = (n, c, p) => {
+      if (shut(n) || along(c, n) || (water.has(n) && !lakeSet.has(n))) return Infinity;
+      const [nx, nz] = xz(n), [cx] = xz(c);
+      if ((side(nx, nz) > 0 || side(...xz(c)) > 0) && n !== c - W) return Infinity;
+      if (base(nx, nz) > base(...xz(c))) return Infinity;
+      // (down the escarpment: from a lip straight over its edge, come to it straight)
+      if (rim(n) && !(lip(n) && c === n + W && p === c + W)) return Infinity;
+      if (lip(c) && n !== c - W) return Infinity;
+      // (and nowhere beside another's water: they never run into each other)
+      if (DIRS4.some(([dx, dz]) => { const m = cell(nx + dx, nz + dz); return water.has(m) && !lakeSet.has(m); })) return Infinity;
+      const way = fixedKept(n) ? onWay(nx, nz) : null;
+      if (fixedKept(n) && !way) return Infinity;
+      if (way && (way.a[0] === way.b[0]) === (nx === cx)) return Infinity;   // (across a way, not along it)
+      const w = wander(nx * .37 + 11, nz * .37 + 11);
+      return 1 + 4 * w * w + (way ? 3 : 0);
+    };
+    const path = cheapest(W, D, starts, c => into(c),
+      (n, c, p) => into(n) ? (lip(c) && n === c - W && p === c + W ? 1 : Infinity) : lakeSet.has(n) ? Infinity : enter(n, c, p),
       c => { const [x, z] = xz(c); return Math.max(0, z - edge[x]); });
-    if (into) river = into.filter(c => !lakeSet.has(c));
+    if (!path) return [];
+    const bed = path.filter(c => !into(c));
     // two cells wide: each cell's neighbour to its right, as it flows (the way it crosses a way
     // along the way: the bridge goes over both)
     const wide = [];
-    for (const [i, c] of river.entries()) {
-      const n = river[i + 1] ?? c, p = river[i - 1] ?? c, [x, z] = xz(c), [ax, az] = xz(n === c ? c : n), [bx, bz] = xz(p === c ? c : p);
-      const fx = Math.sign((ax - bx) || 0), fz = Math.sign((az - bz) || 0), side = cell(x - fz, z + fx);
-      const [sx, sz] = xz(side);
-      if (!river.includes(side) && !lakeSet.has(side) && !shut(side) && base(sx, sz) === base(x, z) && !(fixedKept(side) && !onWay(sx, sz))
-        && strip(sx, sz) === strip(x, z) && (!rim(side) || lip(c))) wide.push(side);
+    for (const [i, c] of bed.entries()) {
+      const n = bed[i + 1] ?? c, p = bed[i - 1] ?? c, [x, z] = xz(c), [ax, az] = xz(n === c ? c : n), [bx, bz] = xz(p === c ? c : p);
+      const fx = Math.sign((ax - bx) || 0), fz = Math.sign((az - bz) || 0);
+      const fits = side => {
+        const [sx, sz] = xz(side);
+        return !bed.includes(side) && !wide.includes(side) && !lakeSet.has(side) && !water.has(side) && !shut(side) && base(sx, sz) === base(x, z)
+          && !(fixedKept(side) && !onWay(sx, sz)) && strip(sx, sz) === strip(x, z) && (!rim(side) || lip(c))
+          // (over the edge: the cliff runs straight on past it too, its foot in the water)
+          && (!lip(c) || (() => { const o = side + (side - c), [ox, oz] = xz(o); return base(ox, oz) === upper && !water.has(o); })());
+      };
+      // (on its left where its right is taken: by the wall, say)
+      const side = [cell(x - fz, z + fx), cell(x + fz, z - fx)].find(fits);
+      if (side !== undefined) wide.push(side);
     }
-    for (const c of [...river, ...wide]) water.set(c, { surf: surfOf(c), bed: surfOf(c) - 1, lake: false });
-    // where it comes down the escarpment: a fall from each cell over its edge, a deep pool under it
-    for (const c of water.keys()) {
-      const up = c + W;
-      if (water.has(up) && water.get(up).surf > water.get(c).surf) {
-        falls.push({ c, d: 3, top: water.get(up).surf, bot: water.get(c).surf });
-        water.get(c).bed = water.get(c).surf - 2;
-      }
+    for (const c of [...bed, ...wide]) water.set(c, { surf: surfOf(c), bed: surfOf(c) - 1, lake: false });
+    return bed;
+  };
+  const backRow = keep => { const out = []; for (let x = WALL + 2; x < W - 2 - WALL; x++) if (!shut(cell(x, D - 1)) && ![-1, 0, 1].some(o => water.has(cell(x + o, D - 1))) && offSeam(x, seamX) > 1 && keep(x)) out.push(cell(x, D - 1)); return out; };
+  const streams = [];
+  if (gorgeHead) {
+    // (from the back on the gorge's side, falling into its head)
+    const s = flow(headLip, backRow(x => x < W / 2), c => gorge.has(c));
+    if (s.length) { streams.push(s); features.push({ kind: 'stream', x: gorgeHead.x + .5, z: gorgeHead.z + 1.5 }); }
+  }
+  let river = [];
+  {
+    // (in from the back of the town on the other side of it from the lake: down its cliff in sight)
+    // (and down the cliff now by the town's wall, now nearer its middle, or wherever it comes)
+    const starts = backRow(() => true), right = x => x > W / 2 + 4, at = pick3(R, ['wall', 'middle', 'any']);
+    const lipAt = c => cliffLip(c) && (at === 'wall' ? c % W >= W - N + 9 : at === 'middle' ? c % W < W - N + 7 : true);
+    const east = starts.some(c => right(c % W)) ? starts.filter(c => right(c % W)) : starts, into = c => lakeSet.has(c) && !gorge.has(c);
+    for (const [lip, from] of [[lipAt, east], [cliffLip, east], [cliffLip, starts], [c => cliffLip(c, false), starts]]) if (!river.length) river = flow(lip, from, into);
+    if (river.length) features.push({ kind: 'river', x: river.at(-1) % W + .5, z: Math.floor(river.at(-1) / W) + .5 });
+  }
+  streams.unshift(river);
+  if (!gorgeHead && R() < .6) {
+    const s = flow(cliffLip, backRow(x => x < W / 2 - 4), c => lakeSet.has(c));
+    if (s.length) { streams.push(s); features.push({ kind: 'stream', x: s.at(-1) % W + .5, z: Math.floor(s.at(-1) / W) + .5 }); }
+  }
+  // where they come down the escarpment: a fall from each cell over its edge, a deep pool under it
+  for (const c of water.keys()) {
+    const up = c + W;
+    if (water.has(up) && water.get(up).surf > water.get(c).surf) {
+      falls.push({ c, d: 3, top: water.get(up).surf, bot: water.get(c).surf });
+      water.get(c).bed = water.get(c).surf - 2;
     }
   }
   // ---- the town round them
@@ -389,6 +523,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
     }
     if ((kept(c) && !(s === 2 && !road)) || used.has(c) || tongue.has(c)) L[c] = b + (kept(c) ? lift[c] : 0);
     if (platforms.has(c)) L[c] = platforms.get(c);
+    if (ledge.has(c)) L[c] = lower;
   }
 
   // the banks: no lower than the water, beside it on its own ground's level
@@ -407,8 +542,9 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   // ---- the stairs and bridges (runs: from a floor, over cells, to a floor; d the way, DIRS4)
   const runs = [];
   for (const s of stairs) runs.push({ kind: 'stair', from: s.foot, to: s.top, cells: s.cells, d: s.d });
-  const spanStyle = pick3(R, ['rope', 'chain', 'plank']);
-  for (const s of spans) runs.push({ kind: 'bridge', from: s.top, to: s.land, cells: s.cells, d: s.d, span: true, style: spanStyle });
+  // (the lake's spans in one style, the gorge's in another now and then)
+  const STYLES = ['rope', 'chain', 'plank'], lakeStyle = pick3(R, STYLES), gorgeStyle = R() < .5 ? lakeStyle : pick3(R, STYLES);
+  for (const s of spans) runs.push({ kind: 'bridge', from: s.top, to: s.land, cells: s.cells, d: s.d, span: true, style: s.kind === 'gorge' ? gorgeStyle : lakeStyle });
   // a bridge where a way crosses the river: over its water along the way, bank to bank
   for (const w of layout.ways ?? []) {
     const [[ax, az], [bx, bz]] = [w.a, w.b], vertical = ax === bx, len = Math.round(Math.abs(vertical ? bz - az : bx - ax));
@@ -467,7 +603,7 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   };
   const keepDist = (x, z) => { let d = Infinity; for (const k of keep) d = Math.min(d, keepDistance(k, x, z)); return d; };
   // (on or beside a stair, a bridge or the span: kept free of what stands in the way)
-  const built = new Set([...used, ...platforms.keys(), ...runs.flatMap(r => [r.from, r.to, ...r.cells])]);
+  const built = new Set([...used, ...platforms.keys(), ...ledge, ...runs.flatMap(r => [r.from, r.to, ...r.cells])]);
   const structureAt = (x, z, r = 0) => {
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
       const cx = Math.floor(x) + dx, cz = Math.floor(z) + dz;
@@ -515,7 +651,9 @@ export function makeLand(seed, { across, deep, level, layout: plan, gate, fixed 
   }
 
   return {
-    W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
+    W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
+    // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
+    gorge, features,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
     // gatehouse's middle (where the street comes in), whether (x, z) lies inside it by m
     wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall },

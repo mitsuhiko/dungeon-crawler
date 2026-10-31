@@ -62,7 +62,7 @@ export function shapeStructures(ctx) {
       const solid = below.every(g => g && deckLo - groundY(g) < 8)
         && r.pieces.every(p => !pathCols.has(p.c) && !pieces[p.c].some(q => q.run !== r && q.kind !== 'pillar' && Math.min(q.y0, q.y1) < deckLo));
       r.style = pickBridge(weights, { solid, k, room: roomOver(cols, pieces, r) }, R());
-      if (r.span) r.style = ctx.spec.span.style;   // a span's long bridge (span.js)
+      if (r.span) r.style = r.spanStyle ?? ctx.spec.span.style;   // a span's long bridge (span.js; the town's own each)
       r.sag = BRIDGE_STYLES[r.style].sag(k, r.span);
       if (r.sag) r.pieces.forEach(pieceEnds);
     }
