@@ -13,7 +13,7 @@ const layoutsOf = new Map();
 const layouts = seed => layoutsOf.get(seed) ?? layoutsOf.set(seed, makeLayouts(seed)).get(seed);
 
 test('every depth plans its spots from the seed: hiding places, two seats, a camp every third depth', () => {
-  for (const seed of [1, 123, 4242]) {
+  for (const seed of [1, 101, 123, 4242]) {   // (101: depth 0's glasses once shared a cube)
     const L = layouts(seed);
     for (let d = 0; d <= 20; d++) {
       const l = L(d), list = l.spotList, count = k => list.filter(s => s.kind === k).length;
@@ -29,6 +29,9 @@ test('every depth plans its spots from the seed: hiding places, two seats, a cam
         assert.ok(l.route.includes(glass[0].key) && glass[0].way, `depth ${d}: a glass on the way`);
         assert.ok(glass[1].tier >= glass[0].tier && glass[1].key !== glass[0].key, `depth ${d}: one hidden`);
       }
+      // never two glasses in one cube (the beginning's rock's counted too)
+      const glassRooms = list.filter(s => s.kind === 'glass').map(s => s.key).concat(l.firstGlass ? [l.firstGlass] : []);
+      assert.equal(new Set(glassRooms).size, glassRooms.length, `depth ${d}: one glass to a cube`);
       assert.equal(new Set(list.map(s => s.id)).size, list.length);
       for (const s of list) {
         assert.ok(SPOT_KINDS.includes(s.kind) && s.tier >= 0 && s.tier <= MAX_TIER && s.depth === d);

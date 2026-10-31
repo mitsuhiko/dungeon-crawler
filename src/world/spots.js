@@ -101,13 +101,19 @@ export function planSpots(seed, layout) {
     Object.assign(add(room, 'outpost'), { annex: layout.annex.gate });
     info.push(room);
   }
-  // the glassmaker's glass (on a stream of its own, after the rest: they stay where they were)
+  // the recording that came up with his sword (core/narration.js 'camp'): the first glass of his on
+  // the road past the beginning's rock (layout.firstGlass), in the first room of the way there is.
+  // Its room is chosen first, so the depth's other glass keeps out of it (one glass to a cube);
+  // its spot is added last.
+  const swordRoom = d === 0 ? info.filter(r => !r.branch && r.at >= 2 && !layout.hordes.has(r.key)).sort((a, b) => a.at - b.at)[0] : undefined;
+  // the glassmaker's glass (on a stream of its own, after the rest: they stay where they were),
+  // each in a room of its own
   const glass = glassAt(seed, d);
   if (glass.length) {
     const R3 = mulberry32(hash32(seed ^ Math.imul(d + 1, 0x61a55) ^ 0x61a));
     const plain = info.filter(r => r.key !== layout.annex?.key && r.key !== layout.firstGlass), last = Math.max(1, route.length - 1);
     const hi = Math.max(...plain.map(r => r.tier));
-    const used = new Set();
+    const used = new Set(swordRoom ? [swordRoom.key] : []);
     glass.forEach((part, i) => {
       // on the way: a room of the route about halfway along, as easy as there is; hidden: the
       // hardest to get to, a branch rather than the way
@@ -120,12 +126,7 @@ export function planSpots(seed, layout) {
       Object.assign(add(room, 'glass'), { glass: i, way: i === 0 });
     });
   }
-  // the recording that came up with his sword (core/narration.js 'camp'): the first glass of his on
-  // the road past the beginning's rock (layout.firstGlass), in the first room of the way there is
-  if (d === 0) {
-    const room = info.filter(r => !r.branch && r.at >= 2 && !layout.hordes.has(r.key)).sort((a, b) => a.at - b.at)[0];
-    if (room) Object.assign(add(room, 'glass'), { part: 'camp', way: true });
-  }
+  if (swordRoom) Object.assign(add(swordRoom, 'glass'), { part: 'camp', way: true });
   for (const r of info) if (r.spots.length) plans.set(r.key, r.spots);
   return { spots: plans, list: info.flatMap(r => r.spots) };
 }
