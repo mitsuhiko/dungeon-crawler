@@ -716,7 +716,7 @@ function groundCover({ put, land, G, R }, scale = 1) {
     const kept = land.keepDist(gx, gz);
     const hill = land.hill, hollow = land.hollow;
     const list = kept < 1 ? STREETS : land.waterDist(gx, gz) < 1.2 ? SHORE
-      : Math.hypot(gx - hollow.x, gz - hollow.z) < hollow.r1 - .5 ? HOLLOW
+      : Math.hypot(gx - hollow.x, gz - hollow.z) < hollow.r1 - .5 ? (hollow.kind === 'quarry' ? ROUGH : HOLLOW)
       : Math.hypot(gx - hill.x, gz - hill.z) < hill.r1 - .3 ? HILL
       : land.forest(gx, gz) > .35 ? woodOf(land).floor : (FORMS[land.formAt?.(gx, gz)] ?? FORMS.meadow).cover;
     const [names, , [lo, hi] = [.9, 1.1]] = draw(R, list);
@@ -739,9 +739,10 @@ function orchard({ tree, put, piece, land, G, R, tile }) {
   if (R() < .6) piece('town_beehives_a', near(8, 8, 6).filter(() => R() < .2));
 }
 
-// The marsh's ponds (world/townland.js): lily pads on them, reeds and cattails round them
+// The marsh's ponds and the hollow's pool (world/townland.js): lily pads on them, reeds and cattails
+// round them
 function ponds({ put, plan, R }) {
-  const g = plan.ground, pond = plan.water.filter(c => g.water[c].pond);
+  const g = plan.ground, pond = plan.water.filter(c => g.water[c].pond || g.water[c].pool);
   if (!pond.length) return;
   const set = new Set(pond), banks = [];
   for (const c of pond) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -1220,11 +1221,15 @@ function lookout(t) {
       facing(put, variant(R, 'town_bench'), [at(.6, -1.9), at(1.2, -1.6), at(-.2, -2.2)], [mx, mz], { s: 1 });
       put(variant(R, 'any_cairn'), [at(2.3, -1), at(2.4, 1.4), at(-2, .3)]);
     } });
-  // boulders on its sides
-  const [hx, hz] = L(land.hill.x, land.hill.z);
-  for (let k = 0; k < 6; k++) {
+  // boulders on its sides (on a peak more of them, and scree; on a mound flowers)
+  const [hx, hz] = L(land.hill.x, land.hill.z), kind = land.hill.kind;
+  for (let k = 0; k < (kind === 'peak' ? 10 : kind === 'mound' ? 2 : 6); k++) {
     const a = R() * Math.PI * 2, d = land.hill.r0 + .8 + R() * (land.hill.r1 - land.hill.r0 - 1.5);
     put(variant(R, 'any_boulder'), [[hx + Math.cos(a) * d, hz + Math.sin(a) * d]], { s: .8 + R() * .5, uneven: .8 });
+  }
+  for (let k = 0; k < (kind === 'peak' ? 8 : kind === 'mound' ? 8 : 0); k++) {
+    const a = R() * Math.PI * 2, d = land.hill.r0 + .5 + R() * (land.hill.r1 - land.hill.r0 - 1);
+    put(kind === 'peak' ? variant(R, 'highlands_scree_patch') : variant(R, R() < .5 ? 'meadow_flowers' : 'peaks_alpine_flowers'), [[hx + Math.cos(a) * d, hz + Math.sin(a) * d]], { s: 1 + R() * .3 });
   }
 }
 
@@ -1237,6 +1242,18 @@ function dell(t, traders) {
       put('town_woodpile_a', [at(-.4, 2.4), at(.4, -2.4), at(-1.8, 1.6)], { yaw: R() * Math.PI });
       if (!traders) put(variant(R, 'town_hay_bales'), [at(-2, -1.4), at(1.8, 2.2)]);
     } });
+  // (a quarry: stone broken out of its sides, a pick left in a block, a cart for the stone)
+  const h = t.land.hollow;
+  if (h.kind === 'quarry') {
+    const [cx, cz] = t.L(h.x, h.z);
+    put(variant(R, 'mines_pickaxe_in_rock'), near(cx + 2, cz - 1.2, 1.4), { uneven: 1 });
+    put('mines_ore_cart_a', near(cx - 2, cz + 1, 1.4), { yaw: R() * Math.PI });
+    put(variant(R, 'mines_plank_stack'), near(cx + 1.4, cz + 2, 1.2), { yaw: R() * Math.PI });
+    for (let k = 0; k < 9; k++) {
+      const a = R() * Math.PI * 2, d = h.r0 + .3 + R() * (h.r1 - h.r0 - .6);
+      put(pick(R, ['any_boulder_a', 'any_boulder_b', 'any_rock_c', 'any_stone_chips_a', 'highlands_scree_patch_a', 'any_rock_slab_a']), [[cx + Math.cos(a) * d, cz + Math.sin(a) * d]], { s: .8 + R() * .5, uneven: 1 });
+    }
+  }
 }
 
 // Where the stream rises: stones round its spring, reeds

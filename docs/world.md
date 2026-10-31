@@ -131,7 +131,7 @@ from it (`tileGround` in `world/town.js`).
 
 - **Three bands.** The lower town round the gate (the first rows, level 4), the water across the
   whole town (from the back of the plaza's row, `WATER_FROM`, into the inn's row, `WATER_TO`) and
-  the upper town half a cube over it (`UPPER`, 16 levels), its cliff rising straight out of the
+  the upper town up to half a cube over it (`UPPER`, 16 levels; 12 to 16, the landscape's `rise`), its cliff rising straight out of the
   water and winding a cell in and out, a strand at its foot here and there (in every tile a way
   out of the deep water: `physics/swimout.js`).
 - **The street** crosses the water on two bridges, a pier between them on the seam, to a quay at
@@ -189,6 +189,13 @@ from it (`tileGround` in `world/town.js`).
     `world/town.js`); the rugged ones come up closer to what stands level (a terrace's wall or a
     knoll's foot by a way). No form steps more than a level at a seam or near the wall, and the
     wall's own cells stand level;
+  - *its cliff, hill and hollow* (`CLIFFS`, `RISES`, `HILLS`, `HOLLOWS`): the cliff winding a cell
+    or two or straight, and twelve to sixteen levels high (the stair, the falls and the spans with
+    it); the hill a hill, a broad low mound rising gently (flowers on its sides) or a steep peak
+    (boulders and scree), each cut off where its foot would reach further; the hollow a dell, a
+    shallower dell with a pool at its bottom (on its far side from the town's middle, reeds and lily
+    pads round it), or a quarry deeper, its sides walls of stone two levels a cell but where a way
+    comes down into it from the town, a pick left in a block, a cart, stone lying about;
   - *how settled each band is* (`landscape.settled`, and how much room its form leaves: `ROOM` in
     `plotTown`): fewer short lanes and homes where the ground is rugged or wet, or the band hardly
     built up, so more of it is wild.

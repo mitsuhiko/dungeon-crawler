@@ -67,6 +67,12 @@ export const WOOD_SHAPES = ['belt', 'groves', 'corner', 'open'];
 // stones): `relief` below, world/town.js dresses them
 export const UPPER_FORMS = ['plateau', 'downs', 'terraces', 'highland', 'ridge'];
 export const LOWER_FORMS = ['meadow', 'marsh', 'orchard', 'green', 'dell', 'rocky'];
+// The cliff under the upper town (winding a cell or two in and out as it always did, or straight),
+// how high it rises (RISES:
+// levels), the hill (a hill, a broad low mound, a steep peak) and the hollow (a dell, a pool at its
+// bottom, a deep quarry)
+export const CLIFFS = ['winding', 'straight'], RISES = [12, 14, 16, 16];
+export const HILLS = ['hill', 'mound', 'peak'], HOLLOWS = ['dell', 'pond', 'quarry'];
 // The wall: the cells of the forest outside it on each outer side (the wall stands in the next row
 // in), how wide its gate is where the street comes in (cells, round the street)
 export const WALL = 3, WALL_GATE = 5;
@@ -174,6 +180,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   landscape.settled = { upper: pick3(K, [1, .75, .55]), lower: pick3(K, [1, .75, .55]) };
   const broad = makeNoise(K), wob = makeNoise(K), boggy = makeNoise(K);
   const terraceStep = 4 + Math.floor(K() * 3), terraceFrom = 6 + Math.floor(K() * 3), ridgeTop = 4 + Math.floor(K() * 2);
+  landscape.cliff = pick3(K, CLIFFS); landscape.rise = pick3(K, RISES); landscape.hill = pick3(K, HILLS); landscape.hollow = pick3(K, HOLLOWS);
   const knobCount = 6 + Math.floor(K() * 4), knobTries = Array.from({ length: 80 }, () => [K(), K(), 3 + Math.floor(K() * 3), 1 + K() * 1.5]);
   const xz = c => [c % W, Math.floor(c / W)], cell = (x, z) => z * W + x;
   const jit = s => (R() - .5) * 2 * s;
@@ -193,7 +200,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // row: in the middle tile under the quay at the cliff's foot (QUAY rows, the street's stair along
   // it), on the right as far as WATER_TO (a cell further now and then), in the garden a bay (the
   // lake). By a seam as on its other side.
-  const UP = Math.min(2, deep - 1), lower = level, upper = level + UPPER, rows = Array.from({ length: deep }, (_, j) => j < UP ? lower : upper);
+  const UP = Math.min(2, deep - 1), lower = level, upper = level + landscape.rise, rows = Array.from({ length: deep }, (_, j) => j < UP ? lower : upper);
   const mid = Math.floor(across / 2), upZ = UP * N, from = (UP - 1) * N + WATER_FROM, px = mid * N;
   // (how deep the lake's bay reaches into the upper town, how far the cliff winds elsewhere)
   const lakeDeep = 8 + Math.floor(R() * 6), wind = 1 + Math.floor(R() * 2);
@@ -206,7 +213,9 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       return upZ + WATER_TO + QUAY + (lx < N - 2 ? Math.round((lakeDeep - WATER_TO - QUAY) * bay) + wob : 0);
     }
     if (lx < 2 && i === mid + 1) return upZ + WATER_TO + QUAY;
-    return upZ + WATER_TO + (lx >= 4 && lx < N - 2 ? Math.floor(cliffy(Math.floor((x + 2) / 4) * 1.7, 9.1) * (wind + .99)) : 0);
+    // (straight, or winding a cell or two)
+    if (lx < 4 || lx >= N - 2 || landscape.cliff === 'straight') return upZ + WATER_TO;
+    return upZ + WATER_TO + Math.floor(cliffy(Math.floor((x + 2) / 4) * 1.7, 9.1) * (wind + .99));
   });
   const quay = (x, z) => Math.floor(x / N) === mid && z >= upZ + WATER_TO && z < upZ + WATER_TO + QUAY && x - px >= 2 && x - px < N - 2;
   const tongue = new Set();
@@ -256,12 +265,20 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const hillI = gorgy || R() < .5 ? right : 0, hollowI = R() < .5 ? 0 : right;
   const inTile = (i, j, x, z) => [i * N + (i === right && i !== 0 ? N - x : x), j * N + z];
   const hill = (() => {
-    const [x, z] = inTile(hillI, back, 7.6 + jit(.8), 7.4 + jit(.8)), r0 = 2.6 + R() * .5;
-    return { tile: [hillI, back], x, z, top: upper + 4 + Math.floor(R() * 2), r0, r1: r0 + 5 };
+    const [x, z] = inTile(hillI, back, 7.6 + jit(.8), 7.4 + jit(.8)), r0 = 2.6 + R() * .5, top = upper + 4 + Math.floor(R() * 2);
+    // (a broad low mound rising gently, a peak steeper: a level a cell from its foot to its flat top,
+    // as the hill, but higher, cut off where its foot would reach further)
+    if (landscape.hill === 'mound') return { tile: [hillI, back], x, z, top: upper + 3, r0, r1: r0 + 5, slope: .6, kind: 'mound' };
+    if (landscape.hill === 'peak') return { tile: [hillI, back], x, z, top: upper + 6 + Math.floor(R() * 2), r0: 2.6, r1: 2.6 + 5.5, kind: 'peak' };
+    return { tile: [hillI, back], x, z, top, r0, r1: r0 + 5, kind: 'hill' };
   })();
   const hollow = (() => {
     const [x, z] = inTile(hollowI, 0, 8.4 + jit(.7), 8.4 + jit(.7)), r0 = 2.8 + R() * .5;
-    return { tile: [hollowI, 0], x, z, bottom: lower - 3, r0, r1: r0 + 3 };
+    // (a quarry deeper, its bottom wider; a dell with a pool at its bottom, on the far side from the
+    // town's middle)
+    if (landscape.hollow === 'quarry') return { tile: [hollowI, 0], x, z, bottom: lower - 4, r0: r0 + .4, r1: r0 + 4.2, kind: 'quarry', ramp: Math.atan2(D * .6 - z, W / 2 - x) };
+    if (landscape.hollow === 'pond') return { tile: [hollowI, 0], x, z, bottom: lower - 2, r0: r0 + .6, r1: r0 + 2.6, kind: 'pond' };
+    return { tile: [hollowI, 0], x, z, bottom: lower - 3, r0, r1: r0 + 3, kind: 'dell' };
   })();
   const middle = [W / 2, D * .6];
   const pieces = [0, right].map(i => {
@@ -353,7 +370,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
         land = z;
       }
       const rock = [cell(x, upZ - 1), cell(x + 1, upZ - 1), cell(x, upZ), cell(x + 1, upZ)];
-      const p = lower + Math.round(UPPER * (upZ - 1 - land) / (top - land));
+      const p = lower + Math.round((upper - lower) * (upZ - 1 - land) / (top - land));
       take({ kind: 'lake', top: cell(x, top), land: cell(x, upZ), cells: Array.from({ length: top - upZ - 1 }, (_, k) => cell(x, top - 1 - k)), d: 3 });
       take({ kind: 'lake', top: cell(x, upZ - 1), land: cell(x, land), cells: Array.from({ length: upZ - 2 - land }, (_, k) => cell(x, upZ - 2 - k)), d: 3 });
       for (const c of rock) platforms.set(c, p);
@@ -670,6 +687,14 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     for (const pool of ponds) for (const c of pool) water.set(c, { surf: lower - WATER_DROP, bed: lower - WATER_DROP - 1, lake: false, pond: true });
     if (ponds.length) features.push({ kind: 'marsh', ponds: ponds.length });
   }
+  // (the hollow's pool: at its bottom, on its far side from the town's middle, a level under it)
+  if (hollow.kind === 'pond') {
+    const a = Math.atan2(hollow.z - middle[1], hollow.x - middle[0]), px = hollow.x + Math.cos(a) * 1.5, pz = hollow.z + Math.sin(a) * 1.5;
+    for (let z = Math.floor(pz - 2); z <= pz + 2; z++) for (let x = Math.floor(px - 2); x <= px + 2; x++)
+      if (Math.hypot(x + .5 - px, z + .5 - pz) < 1.2 && Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z) < hollow.r0 - .2)
+        water.set(cell(x, z), { surf: hollow.bottom - WATER_DROP, bed: hollow.bottom - WATER_DROP - 1, lake: false, pool: true });
+    features.push({ kind: 'pool', x: px, z: pz });
+  }
 
   // ---- the ground: each cell's level. The two towns; the wild ground rolling a level or two (none
   // where it is kept, coming in a level a cell); the hill, the hollow, the set pieces' knolls
@@ -687,10 +712,12 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   };
   // (the longest run of wild cells along a line)
   const run = cells => { let best = 0, n = 0; for (const w of cells) { n = w ? n + 1 : 0; best = Math.max(best, n); } return best; };
-  const knobAt = [];
-  for (const [u, v, top, r] of knobTries) {
-    const x = WALL + 4 + u * (W - 2 * WALL - 8), z = upper0 + 3 + v * (D - WALL - 5 - upper0);
-    if (knobAt.length < knobCount && wildAt(x, z) && knobAt.every(k => Math.hypot(k.x - x, k.z - z) > 4.5)) knobAt.push({ x, z, top, r });
+  const knobAt = [], wilds = [];
+  for (let z = upper0 + 3; z < D - WALL - 4; z++) for (let x = WALL + 4; x < W - WALL - 4; x++)
+    if (offSeam(x, seamX) >= 3 && offSeam(z, seamZ) >= 3 && wildAt(x + .5, z + .5)) wilds.push([x + .5, z + .5, wob(x * .9 + 20, z * .9 + 20)]);
+  for (const [x, z] of wilds.sort((a, b) => a[2] - b[2])) {
+    const [, , top, r] = knobTries[knobAt.length];
+    if (knobAt.length < knobCount && knobAt.every(k => Math.hypot(k.x - x, k.z - z) > 4.5)) knobAt.push({ x, z, top, r });
   }
   let ridge = { along: 'x', at: D - WALL - 7, score: -1 };
   for (let z = upper0 + 4; z < D - WALL - 5; z++) {
@@ -750,8 +777,11 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     const road = z < WALL && Math.abs(x + .5 - gate[0]) < 1.6;
     if (s === 2 && !road) L[c] = b + 3 + clamp(hills + 1, 0, 3);
     const dh = Math.hypot(x + .5 - hill.x, z + .5 - hill.z), dl = Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z);
-    if (dh < hill.r1 && b === upper) L[c] = Math.max(L[c], hill.top - Math.max(0, Math.ceil(dh - hill.r0)));
-    if (dl < hollow.r1 && b === lower) L[c] = Math.min(L[c], hollow.bottom + Math.max(0, Math.ceil(dl - hollow.r0)));
+    if (dh < hill.r1 && b === upper) L[c] = Math.max(L[c], hill.top - Math.max(0, Math.ceil((dh - hill.r0) * (hill.slope ?? 1))));
+    // (a quarry's sides walls of stone, two levels a cell, but on its side towards the town's middle,
+    // where a way comes down into it a level a cell)
+    const steep = hollow.kind === 'quarry' && Math.abs(Math.atan2(Math.sin(Math.atan2(z + .5 - hollow.z, x + .5 - hollow.x) - hollow.ramp), Math.cos(Math.atan2(z + .5 - hollow.z, x + .5 - hollow.x) - hollow.ramp))) > .7;
+    if (dl < hollow.r1 && b === lower && s !== 2) L[c] = Math.min(L[c], hollow.bottom + Math.max(0, Math.ceil(dl - hollow.r0)) * (steep ? 2 : 1));
     for (const p of pieces) {
       const d = Math.hypot(x + .5 - p.x, z + .5 - p.z);
       if (d < p.r1) L[c] = clamp(L[c], p.level - Math.max(0, Math.ceil(d - p.r0)), p.level + Math.max(0, Math.ceil(d - p.r0)));
