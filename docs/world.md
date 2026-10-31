@@ -165,6 +165,16 @@ from it (`tileGround` in `world/town.js`).
   foot (straight there), and a stair up along it to a tongue of the upper town by the seam. (Where
   it leaves the river nowhere to come down, the stream into the gorge is the river, or the world
   has no stage.)
+- **The lower town's own water.** Its shore winds: points of land a cell or two out into the water,
+  a few cells wide each (coves into the land where nothing stands for good, which the lane along
+  the shore leaves little room for), straight by the street's bridges, the landing stage, the
+  seams and the wall; a span over the lake never lands in a cove, and a boat lies pulled up on the
+  shore now and then. In some worlds (`landscape.brook`) a brook rises at a spring by the front
+  wall in one of the corner tiles (stones and reeds round it: `land.spring`) and winds on through
+  the lower town to the shore and into the lake, two cells wide, waded, bridged where a way
+  crosses it; a mill may stand by it. In some others (`landscape.pond`) the lower town has a pond of
+  its own, rounder and bigger than a marsh's, reeds and lily pads round it, a bench looking out
+  over it.
 - **The river** comes in from the back of the town across the upper town, two cells wide, and
   falls over the cliff's edge into the water (where the cliff runs straight), now by the wall, now
   nearer the middle; waded, bridged where a way crosses it. In some worlds without a gorge a stream

@@ -743,9 +743,17 @@ function orchard({ tree, put, piece, land, G, R, tile }) {
 
 // The marsh's ponds and the hollow's pool (world/townland.js): lily pads on them, reeds and cattails
 // round them
-function ponds({ put, plan, R }) {
+function ponds({ put, plan, R, land, tile, shore }) {
   const g = plan.ground, pond = plan.water.filter(c => g.water[c].pond || g.water[c].pool);
+  // (a boat pulled up on the lower town's shore now and then, on a point of it if there is one)
+  if (tile[1] < 2 && R() < .35) put(variant(R, 'lagoon_rowboat'), shore('lake').filter(([x, z]) => !g.water[Math.floor(z) * N + Math.floor(x)]), { world: true, shore: true, s: 1.2 });
   if (!pond.length) return;
+  // (the lower town's own pond: a bench looking out over it)
+  if (land.landscape?.pond && land.landscape.lower !== 'marsh' && pond.length > 6) {
+    const cx = pond.reduce((a, c) => a + c % N + .5, 0) / pond.length, cz = pond.reduce((a, c) => a + Math.floor(c / N) + .5, 0) / pond.length;
+    const [lx, lz] = rotateTownPoint(cx, cz, -plan.yaw), spots = [0, 1, 2, 3, 4, 5].map(k => { const a = k * Math.PI / 3 + R(); return [lx + Math.cos(a) * 3.4, lz + Math.sin(a) * 3.4]; });
+    facing(put, variant(R, 'town_bench'), spots, [lx, lz]);
+  }
   const set = new Set(pond), banks = [];
   for (const c of pond) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
     const x = c % N + dx, z = Math.floor(c / N) + dz;

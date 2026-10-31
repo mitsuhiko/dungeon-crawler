@@ -184,6 +184,10 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // (in some worlds a wide span, three tiles long, over the lake: the bay deep for it, the hill and
   // the gorge out of its way, below)
   landscape.wide = across > 1 && deep > 3 && K() < .3;
+  // (and the lower town's own water besides the lake's: a brook from a spring by its front wall, a
+  // pond on its green; its shore winding in coves and points, below)
+  landscape.brook = K() < .5; landscape.pond = K() < .45;
+  const shoreNoise = makeNoise(K);
   const knobCount = 6 + Math.floor(K() * 4), knobTries = Array.from({ length: 80 }, () => [K(), K(), 3 + Math.floor(K() * 3), 1 + K() * 1.5]);
   const xz = c => [c % W, Math.floor(c / W)], cell = (x, z) => z * W + x;
   const jit = s => (R() - .5) * 2 * s;
@@ -255,7 +259,10 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   }
   // (the gorge's cells, below: lake water down in the upper town)
   const gorge = new Set();
-  const inWater = (x, z) => z >= from && z < edge[x] && !quay(x, z) && !stage.has(cell(x, z)) && !tongue.has(cell(x, z));
+  // (the lower town's shore: winding a cell or two in and out, below; by the street, the landing
+  // stage and the seams straight)
+  const shoreOff = new Int8Array(W);
+  const inWater = (x, z) => z >= from + shoreOff[x] && z < edge[x] && !quay(x, z) && !stage.has(cell(x, z)) && !tongue.has(cell(x, z));
   const base = (x, z) => tongue.has(cell(x, z)) || (z >= edge[x] && !gorge.has(cell(x, z))) ? upper : lower;
   // A pier where the street crosses the seam in the water (dry, at the lower town's level: a bridge
   // either side of it, world/town.js lays the street over them)
@@ -304,6 +311,29 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   for (let c = 0; c < W * D; c++) { const [x, z] = xz(c); let d = Infinity; for (const k of fixedKeep) d = Math.min(d, keepDistance(k, x + .5, z + .5)); fixedDist[c] = d; }
   // (what the river keeps off: a cell what stands for good is in, or right beside)
   const fixedKept = c => fixedDist[c] < .5;
+  // ---- the lower town's shore: points of land a cell or two out into the water, coves a cell or two
+  // into the land where nothing stands for good, each a few cells wide; never by the street's
+  // bridges, the landing stage, a seam or the wall
+  {
+    const want = Array.from({ length: W }, (_, x) => clamp(Math.round((shoreNoise(x * .22 + 5, 3) - .44) * 8), -2, 2));
+    for (let x = 0; x < W; x++) {
+      const i = Math.floor(x / N), lx = x - i * N;
+      if (Math.abs(x + .5 - (px + N / 2)) < N / 2 + 2 || (i === mid + 1 && lx >= 8 && lx <= 12) || offSeam(x, seamX) < 1 || x <= WALL + 1 || x >= W - WALL - 2) continue;
+      let o = want[x];
+      if (o > 0) o = Math.min(o, upZ - 2 - from);
+      while (o < 0 && !Array.from({ length: -o }, (_, k) => from - 1 - k).every(z => fixedDist[cell(x, z)] > 1.6 && !insideBox(x + .5, z + .5, 1) && !strip(x, z) && side(x, z) === 0)) o++;
+      shoreOff[x] = o;
+    }
+    // (no point or cove a single cell wide: a spike comes down to the higher of its neighbours, a
+    // point or cove of one cell goes)
+    for (let x = 1; x < W - 1; x++) {
+      const [a, o, b] = [shoreOff[x - 1], shoreOff[x], shoreOff[x + 1]];
+      if (o > Math.max(a, b)) shoreOff[x] = Math.max(a, b);
+      else if (o < Math.min(a, b)) shoreOff[x] = Math.min(a, b);
+    }
+    for (let x = 1; x < W - 1; x++) if (shoreOff[x] && Math.sign(shoreOff[x - 1]) !== Math.sign(shoreOff[x]) && Math.sign(shoreOff[x + 1]) !== Math.sign(shoreOff[x])) shoreOff[x] = 0;
+    if (shoreOff.some(o => o)) features.push({ kind: 'shore', points: shoreOff.filter(o => o > 0).length, coves: shoreOff.filter(o => o < 0).length });
+  }
 
   // ---- the gorge, in some worlds: from the back of the lake's bay on into the upper town, GORGE
   // cells wide, winding a cell now and then (but straight across a seam), as deep as the lake: the
@@ -373,6 +403,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     const xs = Array.from({ length: N - 4 - WALL }, (_, k) => WALL + 2 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - 7) * .3 - Math.abs(b - 7) * .3 + (R() - .5) * 3);
     for (const x of xs) {
       const top = edge[x], shore = from - 1;
+      if ([-1, 0, 1].some(o => shoreOff[x + o] < 0)) continue;   // (not into a cove: over a point of land it may)
       if (edge[x + 1] > top || edge[x - 1] > top || top - upZ < 6 || insideBox(x + .5, shore + .5, .8) || insideBox(x + .5, top + .5, .8)) continue;
       if ([-1, 0, 1].some(o => gorgeAt(x + o, top) || gorgeAt(x + o, top + 1) || used.has(cell(x + o, top))) || avoid.some(a => Math.abs(a - x) < 4)) continue;
       // (on into the lower town, where nothing stands for good)
@@ -511,7 +542,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // only straight, never along one. In some worlds a stream too: into the gorge's head, falling
   // into it, or else over the cliff elsewhere.
   const ways = fixedWays;
-  const onWay = (x, z) => ways.find(w => keepDistance({ seg: [w.a, w.b], r: w.w / 2 + .6 }, x + .5, z + .5) < 0);
+  const onWay = (x, z) => ways.find(w => keepDistance({ seg: [w.a, w.b], r: w.w / 2 + 1.1 }, x + .5, z + .5) < 0);
   const along = (a, b) => {
     const [ax, az] = xz(a), [bx, bz] = xz(b);
     if (ax !== bx) return Math.min(offSeam(az, seamZ), offSeam(bz, seamZ)) <= 1;
@@ -533,7 +564,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const cliffLip = (c, roomy = true) => { const [x, z] = xz(c); return rim(c) && z === edge[x] && x > 1 && x < W - 2 && [-1, 0, 1].every(o => edge[x + o] === z && !gorgeAt(x + o, z) && lakeSet.has(cell(x + o, z - 1))) && !strip(x, z) && !strip(x, z - 1) && !tongue.has(c - 1) && !tongue.has(c + 1)
     && (!roomy || [-1, 1].some(o => !shut(c + o) && !(fixedKept(c + o) && !onWay(x + o, z)) && base(x + 2 * o, z) === upper && !lakeSet.has(c + 2 * o))); };   // (room for its second cell beside it)
   const headLip = c => !!gorgeHead && c === cell(gorgeHead.x, gorgeHead.z + 1);
-  const flow = (lip, starts, into) => {
+  const flow = (lip, starts, into, mouth = (n, c, p) => lip(c) && n === c - W && p === c + W) => {
     const enter = (n, c, p) => {
       if (shut(n) || along(c, n) || (water.has(n) && !lakeSet.has(n))) return Infinity;
       const [nx, nz] = xz(n), [cx] = xz(c);
@@ -551,7 +582,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       return 1 + 4 * w * w + (way ? 3 : 0);
     };
     const path = cheapest(W, D, starts, c => into(c),
-      (n, c, p) => into(n) ? (lip(c) && n === c - W && p === c + W ? 1 : Infinity) : lakeSet.has(n) ? Infinity : enter(n, c, p),
+      (n, c, p) => into(n) ? (mouth(n, c, p) ? 1 : Infinity) : lakeSet.has(n) ? Infinity : enter(n, c, p),
       c => { const [x, z] = xz(c); return Math.max(0, z - edge[x]); });
     if (!path) return [];
     const bed = path.filter(c => !into(c));
@@ -600,6 +631,22 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   if (!gorgeHead && R() < .6) {
     const s = flow(cliffLip, backRow(x => x < W / 2 - 4), c => lakeSet.has(c));
     if (s.length) { streams.push(s); features.push({ kind: 'stream', x: s.at(-1) % W + .5, z: Math.floor(s.at(-1) / W) + .5 }); }
+  }
+  // the brook, in some worlds: from a spring by the lower town's front wall, in one of its corner
+  // tiles, winding on to the lake's shore and into it (straight in)
+  let spring = null;
+  if (landscape.brook) {
+    const i = K() < .5 ? 0 : right, starts = [];
+    for (let x = i * N + 3; x < i * N + N - 3; x++) for (let z = WALL + 2; z <= WALL + 4; z++) {
+      const c = cell(x, z);
+      if (!shut(c) && !fixedKept(c) && offSeam(x, seamX) > 2 && Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z) > hollow.r1 + 2.5) starts.push(c);
+    }
+    const s = starts.length ? flow(() => false, starts, c => lakeSet.has(c) && Math.floor(c / W) < upZ, (n, c) => n === c + W && !strip(...xz(c))) : [];
+    if (s.length >= 8) {
+      streams.push(s);
+      spring = { x: s[0] % W + .5, z: Math.floor(s[0] / W) + .5 };
+      features.push({ kind: 'brook', x: spring.x, z: spring.z });
+    }
   }
   // where they come down the escarpment: a fall from each cell over its edge, a deep pool under it
   for (const c of water.keys()) {
@@ -739,7 +786,9 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // ground, waded, three to six of them, apart; off what is kept, the seams, the wall, the other
   // water, the hollow, the ruins and what is built
   const ponds = [];
-  if (landscape.lower === 'marsh') {
+  // (or, in other worlds, now and then one pond, bigger: the lower town's own)
+  const marsh = landscape.lower === 'marsh';
+  if (marsh || landscape.pond) {
     const dry = (x, z) => {
       const c = cell(x, z);
       if (x < WALL + 3 || z < WALL + 3 || x >= W - WALL - 3 || z >= from - 2 || base(x, z) !== lower) return false;
@@ -747,9 +796,9 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       if (Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z) < hollow.r1 + 1.5 || (ruins && Math.hypot(x + .5 - ruins.x, z + .5 - ruins.z) < ruins.r + 1.5)) return false;
       return ![-2, -1, 0, 1, 2].some(dz => [-2, -1, 0, 1, 2].some(dx => water.has(cell(x + dx, z + dz))));
     };
-    const want = 3 + Math.floor(K() * 4), placed = [];
+    const want = marsh ? 3 + Math.floor(K() * 4) : 1, placed = [];
     for (let k = 0; k < 120 && placed.length < want; k++) {
-      const x = WALL + 4 + K() * (W - 2 * WALL - 8), z = WALL + 4 + K() * (from - WALL - 7), r = 1.1 + K() * 1.3;
+      const x = WALL + 4 + K() * (W - 2 * WALL - 8), z = WALL + 4 + K() * (from - WALL - 7), r = marsh ? 1.1 + K() * 1.3 : 1.9 + K() * .8;
       if (placed.some(p => Math.hypot(p.x - x, p.z - z) < p.r + r + 2.5)) continue;
       const pool = [];
       let ok = true;
@@ -761,7 +810,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       if (ok && pool.length >= 3) { placed.push({ x, z, r }); ponds.push(pool); }
     }
     for (const pool of ponds) for (const c of pool) water.set(c, { surf: lower - WATER_DROP, bed: lower - WATER_DROP - 1, lake: false, pond: true });
-    if (ponds.length) features.push({ kind: 'marsh', ponds: ponds.length });
+    if (ponds.length) features.push(marsh ? { kind: 'marsh', ponds: ponds.length } : { kind: 'pond', x: placed[0].x, z: placed[0].z });
   }
   // (the hollow's pool: at its bottom, on its far side from the town's middle, a level under it)
   if (hollow.kind === 'pond') {
@@ -1059,7 +1108,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     water: (x, z) => (x < 0 || z < 0 || x >= W || z >= D ? null : water.get(z * W + x) ?? null),
     flat: (x, z) => (kept(z * W + x) && !ramped[z * W + x] && (side(x, z) < 2 || (z < WALL && Math.abs(x + .5 - gate[0]) < 1.6))) || strip(x, z) || built.has(z * W + x) || tongue.has(z * W + x),
     seamCell: (x, z) => strip(x, z),
-    keepDist, trailDist, waterDist, forest, structureAt,
+    keepDist, trailDist, waterDist, forest, structureAt, spring,
     // which trees grow where (0..1: firs low, broadleaves high)
     kind: (x, z) => kind(x * .08 + 3, z * .08 + 3),
   };

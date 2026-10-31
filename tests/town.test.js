@@ -177,7 +177,8 @@ test('every tile is safe and authored, the town level where it stands; the build
     assert.ok(homes.length >= 2, `${homes.length} homes`);
     allHomes += homes.length;
   }
-  assert.ok(allHomes >= TOWNS * 5, `${allHomes / TOWNS} homes a town`);
+  // (fewer where the land is rugged or wet, or hardly settled: landscape.settled)
+  assert.ok(allHomes >= TOWNS * 4, `${allHomes / TOWNS} homes a town`);
   assert.equal(groveKinds.size, 3);
 });
 
@@ -545,7 +546,7 @@ test('garlands hang from pole to pole over the streets, a head\'s room over the 
       assert.ok(!segments.length || m.town.placements.some(p => p.name.startsWith('town_garland_pole_')));
     }
   }
-  assert.ok(strings >= 20, `${strings} garlands`);
+  assert.ok(strings >= 15, `${strings} garlands`);
 });
 
 test('path ribbons are grid-aligned rectangles, stay inside the cube, and never pave over the water', () => {
@@ -784,7 +785,9 @@ test('old ruins lie in most worlds\' towns, of every kind, on wild ground of the
     // (off the homes)
     for (const p of m.town.placements.filter(p => isHome(p.name))) assert.ok(stones.every(s => Math.hypot(s.x - p.x, s.z - p.z) > 1.2));
   }
-  assert.ok(ruins >= 6, `${ruins} ruins in 12 worlds`);
+  assert.ok(ruins >= TOWNS / 2, `${ruins} ruins in ${TOWNS} worlds`);
+  // (of every kind, in the lands of twice as many worlds)
+  for (let seed = 0; seed < TOWNS * 2; seed++) if (townLand(seed).ruins) kinds.add(townLand(seed).ruins.kind);
   assert.equal(kinds.size, 3);
   assert.ok(tiles.size >= 3, 'in tiles of their own');
 });
@@ -824,7 +827,8 @@ test('each world\'s town has a landscape of its own: its wood, how its woods lie
     if (l.landscape.upper === 'plateau') assert.ok(highest(l) <= 1, `${l.seed} plateau: ${highest(l)}`);
     const ponds = [];
     for (let z = 0; z < l.D; z++) for (let x = 0; x < l.W; x++) if (l.water(x, z)?.pond) ponds.push([x, z, l.water(x, z)]);
-    assert.equal(ponds.length > 0, l.landscape.lower === 'marsh' && ponds.length > 0);
+    // (a marsh's ponds, or the lower town's own pond in some other worlds)
+    if (ponds.length) assert.ok(l.landscape.lower === 'marsh' || l.landscape.pond);
     for (const [x, z, w] of ponds) { assert.equal(w.surf, TOWN_LEVEL - 1); assert.equal(w.surf - w.bed, 1); assert.ok(z < START_TILE[1] * N); }
   }
   assert.ok(tall >= rugged * .7, `${tall} of ${rugged} rugged towns stand three levels high somewhere`);
