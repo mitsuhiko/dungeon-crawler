@@ -110,7 +110,9 @@ they meet there; rendered as grid-aligned ribbons rather than whole-cell paving.
   planks and coal, the lake's reeds/stones/lily pads, the traders' campfire with log seats and a
   woodpile, the windmill), garlands over the streets from pole to pole, hedges and dry stone walls
   a cell back from the ways (more of them in the lower town), a lamp every few steps along every
-  way, and seeded meadow ground cover, from `props/`/`clutter/` models and the
+  way, stones in groups here and there (`outcrops`), and seeded ground cover growing in patches
+  (`land.patch`: thick here, the grass bare there, about half as much as it once was), from
+  `props/`/`clutter/` models and the
   town's own (`assets/town_clutter.glb`, docs/assets/town.md), `put`/`group`/`scatter`. A set
   piece tries its candidates in order (`near`: the spots round a place, nearest first) and is
   skipped if none fits. Every prop avoids the oriented building footprints, trunks, other

@@ -629,12 +629,13 @@ function leadTo(plan, path, i, via, width = LANE_WIDTH) {
 }
 
 // What grows where (world/townland.js): [names, weight, [smallest, largest]] each
+// (the meadow mostly flat things, clover and daisies; its stones lie in groups of their own: outcrops)
 const MEADOW = [
-  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 9, [1, 1.45]], [['meadow_flowers_a', 'meadow_flowers_b'], 3, [.8, 1.1]],
-  [['meadow_clover_patch_a', 'meadow_clover_patch_b', 'meadow_daisies_a', 'meadow_daisies_b'], 5, [.9, 1.3]],
-  [['any_pebbles_a', 'any_pebbles_b', 'any_stone_chips_a', 'any_stone_chips_b'], 1.2], [['any_rock_a', 'any_rock_b', 'any_rock_c'], .8],
-  [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], .4], [['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_berry_bush_b'], 1.6, [.8, 1.15]],
-  [['highlands_blue_poppy_a', 'highlands_blue_poppy_b'], .6], [['meadow_fern_a', 'meadow_fern_b'], .5],
+  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 5, [1, 1.4]], [['meadow_flowers_a', 'meadow_flowers_b'], 2.5, [.8, 1.1]],
+  [['meadow_clover_patch_a', 'meadow_clover_patch_b', 'meadow_daisies_a', 'meadow_daisies_b'], 6, [.9, 1.3]],
+  [['any_pebbles_a', 'any_pebbles_b'], .5],
+  [['meadow_mushroom_small_a', 'meadow_mushroom_small_b'], .3], [['meadow_bush_a', 'meadow_bush_b', 'meadow_berry_bush_a', 'meadow_berry_bush_b'], .9, [.8, 1.15]],
+  [['highlands_blue_poppy_a', 'highlands_blue_poppy_b'], .6], [['meadow_fern_a', 'meadow_fern_b'], .4],
 ];
 const FOREST = [
   [['meadow_fern_a', 'meadow_fern_b', 'roots_cave_fern_a', 'roots_cave_fern_b'], 5, [.8, 1.2]],
@@ -664,9 +665,9 @@ const HOLLOW = [
 ];
 // (in the town itself: grass along the walls and the ways, flowers, a stone here and there)
 const STREETS = [
-  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 6, [.9, 1.3]], [['meadow_flowers_a', 'meadow_flowers_b'], 2, [.8, 1.1]],
+  [['meadow_grass_tuft_a', 'meadow_grass_tuft_b'], 4, [.9, 1.3]], [['meadow_flowers_a', 'meadow_flowers_b'], 2, [.8, 1.1]],
   [['meadow_clover_patch_a', 'meadow_clover_patch_b', 'meadow_daisies_a', 'meadow_daisies_b'], 3, [.9, 1.2]],
-  [['any_pebbles_a', 'any_pebbles_b', 'any_stone_chips_a', 'any_stone_chips_b'], 2], [['meadow_bush_a', 'meadow_bush_b'], .8, [.75, 1]],
+  [['any_pebbles_a', 'any_pebbles_b', 'any_stone_chips_a', 'any_stone_chips_b'], 1], [['meadow_bush_a', 'meadow_bush_b'], .5, [.75, 1]],
 ];
 const draw = (R, list) => {
   let r = R() * list.reduce((s, e) => s + e[1], 0);
@@ -675,11 +676,14 @@ const draw = (R, list) => {
 };
 
 // The ground cover, after everything else: what grows where it is (the land's: the shores, the
-// forest's floor, the hill, the hollow, the meadow; the town's own along its walls and ways).
+// forest's floor, the hill, the hollow, the meadow; the town's own along its walls and ways). In
+// patches (the land's `patch`): thick here, the grass bare there, never sprinkled evenly.
+const COVER = 120;
 function groundCover({ put, land, G, R }, scale = 1) {
-  const count = Math.round(230 * scale * CLUTTER);
-  for (let placed = 0, tries = 0; placed < count && tries < count * 6; tries++) {
+  const count = Math.round(COVER * scale * CLUTTER);
+  for (let placed = 0, tries = 0; placed < count && tries < count * 12; tries++) {
     const lx = .2 + R() * (N - .4), lz = .2 + R() * (N - .4), [gx, gz] = G(lx, lz);
+    if (R() > .08 + .92 * land.patch(gx, gz)) continue;
     const kept = land.keepDist(gx, gz);
     const hill = land.hill, hollow = land.hollow;
     const list = kept < 1 ? STREETS : land.waterDist(gx, gz) < 1.2 ? SHORE
@@ -688,6 +692,25 @@ function groundCover({ put, land, G, R }, scale = 1) {
       : land.forest(gx, gz) > .35 ? FOREST : MEADOW;
     const [names, , [lo, hi] = [.9, 1.1]] = draw(R, list);
     if (put(pick(R, names), [[lx, lz]], { s: lo + R() * (hi - lo) })) placed++;
+  }
+}
+
+// Stones in groups (outcrops): a boulder or a big stone among smaller ones and the grass round
+// them, on open wild ground, `n` of them at most
+const OUTCROP_BIG = ['any_boulder_a', 'any_boulder_b', 'any_rock_c', 'any_rock_b'];
+const OUTCROP_SMALL = ['any_rock_a', 'any_rock_b', 'any_stone_chips_a', 'any_stone_chips_b', 'any_pebbles_a', 'any_pebbles_b', 'meadow_grass_tuft_a', 'roots_moss_rock_a'];
+function outcrops({ put, land, G, R, plan }, n, { big = OUTCROP_BIG, small = OUTCROP_SMALL } = {}) {
+  for (let k = 0, made = 0; k < 12 * n && made < n; k++) {
+    const x = 1.5 + R() * (N - 3), z = 1.5 + R() * (N - 3), [gx, gz] = G(x, z);
+    if (land.wall.side(Math.floor(gx), Math.floor(gz)) !== 0 || land.keepDist(gx, gz) < 2 || land.waterDist(gx, gz) < 1.5 || land.forest(gx, gz) > .3) continue;
+    const p = put(pick(R, big), near(x, z, .5), { s: .8 + R() * .6, uneven: 1 });
+    if (!p) continue;
+    made++;
+    const [bx, bz] = rotateTownPoint(p.x, p.z, -plan.yaw);
+    for (let m = 2 + Math.floor(R() * 4); m > 0; m--) {
+      const a = R() * Math.PI * 2, d = .55 + R() * .7;
+      put(pick(R, small), [[bx + Math.cos(a) * d, bz + Math.sin(a) * d]], { s: .6 + R() * .5 });
+    }
   }
 }
 
@@ -1625,6 +1648,7 @@ export function townPlan(exit, seed, i, j, world = 0) {
   forest(tools);
   delete plan.frontagesLocal;
   drapes(tools);
+  outcrops(tools, 1 + Math.floor(tools.R() * 2));
   groundCover(tools, (j < 2 ? 1.3 : 1.1) * (land.style?.cover ?? 1));
   clearWays(tools, spec);
   delete plan.boxes;

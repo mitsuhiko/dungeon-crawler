@@ -763,8 +763,13 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     }
   }
 
+  // where the ground cover grows thick and where the grass is bare (0..1: world/town.js groundCover),
+  // in patches a few cells across
+  const patchy = makeNoise(mulberry32(hash32(seed ^ 0x9a7c3)));
+  const patch = (x, z) => smooth((patchy(x * .16 + 2, z * .16 + 2) - .38) / .24);
+
   return {
-    W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
+    W, D, level, rows, upper, seed, patch, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
     // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
     gorge, features, stage, mill, ruins, style,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
