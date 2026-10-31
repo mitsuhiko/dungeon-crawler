@@ -106,8 +106,9 @@ export async function runPartParityChecks() {
     try {
       for (const c of state.cubes.cubes.values()) {
         const world = buildWorld(c.map, false, {}, c.geo), full = [];
-        // the part meshes (the ghost twins sharing their geometry live on layer 1)
-        world.group.traverse(o => { if (o.isMesh && o.geometry.attributes.position?.array instanceof Int16Array && !o.layers.isEnabled(1)) full.push(o); });
+        // the part meshes (the ghost twins sharing their geometry live on layer 1, the section caps'
+        // twins are marked `cap`; the town's people are no part)
+        world.group.traverse(o => { if (o.isMesh && o.userData.part && !o.userData.cap && o.geometry.attributes.position?.array instanceof Int16Array && !o.layers.isEnabled(1)) full.push(o); });
         disposeWorld(world);
         showNeighbors([{ key: 'parity', geo: c.geo, dx: 1, dz: 0, open: [] }]);
         const [g] = detachNeighbors(); adoptNeighbors([g]);
