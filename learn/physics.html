@@ -98,6 +98,8 @@
       <p lang="de"><b>Hänge.</b> Bergauf gehen ist langsamer. Zu steile Hänge lassen dich runterrutschen.</p>
       <p lang="en"><b>Wading and swimming.</b> Shallow water you walk through, the slower the deeper it is (<code>p.wade</code>). Deeper than <b data-val="src/core/constants.js#SWIM_DEPTH">0.6</b>, the water lifts you off your feet and you swim, slowly, your feet <b data-val="src/core/constants.js#SWIM_FEET">0.5</b> under the surface. Out of the water you climb onto a bank up to one level over it.</p>
       <p lang="de"><b>Waten und Schwimmen.</b> Durch flaches Wasser läufst du, umso langsamer, je tiefer es ist (<code>p.wade</code>). Ist es tiefer als <b data-val="src/core/constants.js#SWIM_DEPTH">0,6</b>, hebt dich das Wasser von den Füßen und du schwimmst, langsam, die Füße <b data-val="src/core/constants.js#SWIM_FEET">0,5</b> unter der Oberfläche. Aus dem Wasser kletterst du auf ein Ufer, das bis zu eine Stufe darüber liegt.</p>
+      <p lang="en"><b>Diving.</b> In Umbra's flooded reef you walk on the bottom in a diving suit: the water holds you back, so you walk at <b data-val="src/core/umbra.js#DIVE.walk">0.8</b> of your speed and jump a little lower, but you can steer a jump better than on dry land.</p>
+      <p lang="de"><b>Tauchen.</b> In Umbras überflutetem Riff läufst du im Taucheranzug über den Grund: Das Wasser bremst dich, darum läufst du mit <b data-val="src/core/umbra.js#DIVE.walk">0,8</b> deiner Geschwindigkeit und springst etwas weniger hoch, aber einen Sprung lenkst du besser als an Land.</p>
       <p lang="en"><b>Pushed and pulled.</b> A Wolla's gust blows you back, and Gusto breathing in pulls you towards him. Both move you east-west and north-south one after the other too, so you slide along walls. Against Gusto's pull you can't run away, but you can still step aside, out of his breath.</p>
       <p lang="de"><b>Geschoben und gezogen.</b> Der Windstoß eines Wolla bläst dich zurück, und wenn Gusto einatmet, zieht er dich zu sich. Beide bewegen dich auch erst in Ost-West- und dann in Nord-Süd-Richtung, also rutschst du an Wänden entlang. Gegen Gustos Sog kannst du nicht weglaufen, aber du kannst noch zur Seite treten, aus seinem Atem heraus.</p>
       <p lang="en"><b>Ceilings.</b> Jump under a bridge, and you bump your head: your upward speed is set to zero.</p>
@@ -198,8 +200,8 @@
       <p lang="de"><code>p.jumpBuf</code> ist auch ein Zeitmesser: Die Sprungtaste setzt ihn auf 0,15, dann zählt er herunter.</p>
       <p lang="en">The jump only happens if <b>both</b> timers are still above zero. That's the whole trick: two countdowns!</p>
       <p lang="de">Der Sprung passiert nur, wenn <b>beide</b> Zeitmesser noch über null sind. Das ist der ganze Trick: zwei Countdowns!</p>
-      <p lang="en">In water, the same code makes you paddle up out of the water, a bit slower (4.8).</p>
-      <p lang="de">Im Wasser lässt dich derselbe Code aus dem Wasser hochpaddeln, etwas langsamer (4,8).</p>
+      <p lang="en">In water, the same code makes you paddle up out of the water, a bit slower (4.8). In the diving suit (<code>p.diving</code>) the jump is a little weaker: times <b data-val="src/core/umbra.js#DIVE.jump">0.85</b>.</p>
+      <p lang="de">Im Wasser lässt dich derselbe Code aus dem Wasser hochpaddeln, etwas langsamer (4,8). Im Taucheranzug (<code>p.diving</code>) ist der Sprung etwas schwächer: mal <b data-val="src/core/umbra.js#DIVE.jump">0,85</b>.</p>
       <p lang="en"><code>Math.hypot(vx, vz)</code> is the speed along the ground (Pythagoras!).</p>
       <p lang="de"><code>Math.hypot(vx, vz)</code> ist das Tempo über den Boden (Pythagoras!).</p>
       <p lang="en"><code>p.brink</code> is set while you stand stopped at the edge of lava, pushing on: there your speed is zero, so the jump goes the way you push instead. Otherwise it would only be a hop straight up.</p>

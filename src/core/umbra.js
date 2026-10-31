@@ -75,6 +75,7 @@ export const UMBRA_FIGHT = Object.freeze({
 // bottom; gravity pulls `gravity` as hard (a jump goes up `jump` as fast: higher and slower), walking
 // is `walk` as fast; and everything is slowed by the water (`attack`: a weapon's swing, `shots`:
 // what flies through it, an arrow, a spit, a lava bomb)
+// learn: physics.html#move-code #walls (see learn/README.md)
 export const DIVE = Object.freeze({ gravity: 0.5, jump: 0.85, walk: 0.8, attack: 0.8, shots: 0.6, control: 4 });
 
 // the health below which no blow takes him in phase `phase` (0 in the last)
