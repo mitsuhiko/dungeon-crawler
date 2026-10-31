@@ -98,7 +98,7 @@ import { tickFlames } from './render/flames.js';
 import { tickMotes } from './render/motes.js';
 import { tickFootprints } from './render/footprints.js';
 import { tickQuality } from './game/quality.js';   // the lighting's quality level (the settings: Auto or pinned)
-import './game/perf.js';   // ?perf=1: what the frames cost, on any device
+import { perfFrame } from './game/perf.js';   // ?perf=1: what the frames cost, on any device
 import { tickChill } from './render/chilled.js';
 import { tickShock, tickDaze } from './render/shocked.js';
 import { tickStatuses } from './render/statuses.js';
@@ -276,6 +276,7 @@ function frame(now = performance.now()) {
   }
   keepPrograms(true);   // compiled shaders stay (render/programs.js); any new one was compiled while drawing
   tickResolution(start, frameRate(), draw);   // fewer pixels while the GPU cannot keep up (render/resolution.js)
+  perfFrame(start, draw);   // (the perf overlay's graphs: game/perf.js)
   requestAnimationFrame(frame);
 }
 
@@ -323,6 +324,7 @@ function menuFrame(dt, start) {
   }
   keepPrograms(true);
   tickResolution(start, frameRate(), draw);
+  perfFrame(start, draw);
   requestAnimationFrame(frame);
 }
 

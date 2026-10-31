@@ -251,7 +251,12 @@ What the frames cost (`game/perf.js`), on any device: **`?perf=1`** (or `/perf`)
 rate and the worst frames, the quality level and what it draws (`render/shadows.js shadowState`),
 the pixel ratio and the MSAA samples, the bake's steps and waits (`bakeStats`), shaders compiled
 while drawing (`render/programs.js programStats`; with `?dev=1` each named in the console), draw
-calls. **`/bench`** holds the game and times the frame to the end of the GPU's work (a pixel read
+calls, what WebGL holds (`render/gpumem.js`), and under it graphs of the last 30 seconds on one
+time axis: the frames (the worst of each tenth of a second, coloured by the cap, the page's own
+time in grey, ticks where a shader compiled while drawing and where the bake stepped), the memory
+(WebGL's textures, buffers and render buffers stacked, the JS heap where Chrome tells it), the
+draw calls and triangles over the quality level and the pixel ratio, and a line across all three
+where the hero went into another cube. **`/bench`** holds the game and times the frame to the end of the GPU's work (a pixel read
 back from the screen: Safari has no GPU timers) with a part off at a time. On the software
 renderer (1280×720, a nests cube, a horde of 24): High 129 ms a frame (the lamp's maps 15, the
 sun's 16, the enemies' shadows 20, the fixed lights 6; the fluids' patterns would add 34), Medium

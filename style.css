@@ -919,8 +919,10 @@ body.cinematic :is(#quickbar, #effects, #minimap, #quest-track, #tutorial, #chat
 #trial-tip[hidden] { display: none; }
 
 /* the perf overlay (?perf=1, /perf: game/perf.js) */
-#perf { position: absolute; top: calc(8px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 6; margin: 0; padding: 4px 7px;
-  font: 10px/1.45 var(--font-mono); color: #cfd6e2; background: #0b0d12cc; border-radius: 3px; pointer-events: none; white-space: pre; }
+#perf { position: absolute; top: calc(8px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 6; padding: 4px 7px;
+  font: 10px/1.45 var(--font-mono); color: #cfd6e2; background: #0b0d12cc; border-radius: 3px; pointer-events: none; }
+#perf pre { margin: 0; font: inherit; white-space: pre-wrap; width: 300px; }   /* (as wide as its graphs: a phone's screen) */
+#perf canvas { display: block; margin-top: 2px; }
 
 /* the splash screen (game/splash.js): the glass bird breaking, over everything; black covers it
    until it draws (its fades are drawn, dithered) and the menu while it comes out of the black */
