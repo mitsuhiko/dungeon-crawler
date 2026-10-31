@@ -161,6 +161,12 @@ from it (`tileGround` in `world/town.js`).
   most often in the upper town by the cliff's edge, else out in the lower town: a temple's gate
   among the bases of its columns, a colossus's head among toppled columns, or a colonnade with an
   arch fallen at its end; rubble, tiles, urns and tablets about them (`RUINS`, `oldRuins`).
+- **A style of its own** (`land.style`, from a dice of its own): how many homes a tile has at
+  most and how many short lanes the town has, how many trees stand in the open and whether firs
+  or broadleaves, how many hedges and dry stone walls line the ways, how often a garland hangs
+  over a lane, how many homes stand on terraces, which trees line the avenues, how thick the
+  ground cover grows. The lane along the front of the town runs inside the market now (it never
+  fitted where it was).
 - Each world's land differs in more than where these lie: how deep the bay reaches, how far the
   cliff winds, how far a span goes. `node tools/townmap.mjs [seed ...]` draws a world's land from
   above (a PNG a seed: its levels, water, stairs, bridges, spans, falls, ways and homes).

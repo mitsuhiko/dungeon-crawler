@@ -99,6 +99,7 @@ test('the town is TOWN_ACROSS by TOWN_DEEP tiles of the depth-0 grid round its g
 });
 
 test('every tile is safe and authored, the town level where it stands; the buildings, the tents and the lake each in their own tile', () => {
+  let allHomes = 0;
   for (let seed = 0; seed < 40; seed++) {
     const w = new World(seed, { arche: 'chasm' }), t = townOf(seed);   // debug archetypes cannot destroy town
     const placed = new Map();
@@ -163,9 +164,12 @@ test('every tile is safe and authored, the town level where it stands; the build
     const trees = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => /tree/.test(p.name)));
     assert.ok(trees.length >= 100, `${trees.length} trees`);
     assert.equal(new Set(trees.filter(p => p.name.startsWith('town_tree_')).map(p => p.name)).size, 3);
+    // (as many as there is room for: fewer where the land's set pieces take it, the gorge, a mill)
     const homes = tilesOf(w).flatMap(({ m }) => m.town.placements.filter(p => isHome(p.name)));
-    assert.ok(homes.length >= 3, `${homes.length} homes`);
+    assert.ok(homes.length >= 2, `${homes.length} homes`);
+    allHomes += homes.length;
   }
+  assert.ok(allHomes >= 40 * 5, `${allHomes / 40} homes a town`);
 });
 
 test('the seams: flat faces, no glass or portal, nothing standing near, walkable all along, and walked across', () => {
@@ -733,4 +737,12 @@ test('old ruins lie in most worlds\' towns, of every kind, on wild ground of the
   assert.ok(ruins >= 6, `${ruins} ruins in 12 worlds`);
   assert.equal(kinds.size, 3);
   assert.ok(tiles.size >= 3, 'in tiles of their own');
+});
+
+test('each world\'s town has a style of its own: homes, lanes, trees in the open, hedges, garlands, avenue trees', () => {
+  const styles = Array.from({ length: 12 }, (_, s) => townLand(s).style);
+  for (const k of ['homes', 'lanes', 'park', 'firs', 'hedges', 'garlands', 'terraces', 'cover']) assert.ok(new Set(styles.map(s => s[k])).size >= 4, k);
+  assert.ok(new Set(styles.map(s => [...new Set(s.avenue)].sort().join())).size >= 6, 'avenue trees');
+  // (from a dice of its own: the land drawn before it stays as it is)
+  assert.deepEqual(townLand(3).style, townLand(3).style);
 });

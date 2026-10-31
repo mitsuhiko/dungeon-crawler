@@ -569,8 +569,18 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       features.push({ kind: 'ruins', x: s.x, z: s.z });
     }
   }
+  // ---- the town's own style, from a dice of its own (what is drawn above stays as it is): how
+  // many homes a tile has at most, how many short lanes there are, how many trees stand in the
+  // open, firs or broadleaves, how many hedges and walls line the ways, garlands over the lanes,
+  // homes on terraces, which trees line the avenues, how thick the ground cover grows
+  const S = mulberry32(hash32(seed ^ 0x57e1e)), AVENUE_TREES = ['meadow_tree_round', 'meadow_tree_tall', 'town_tree_birch', 'town_tree_elm', 'town_tree_oak'];
+  const style = {
+    homes: 5 + Math.floor(S() * 5), lanes: 6 + Math.floor(S() * 7), park: .5 + S() * 1.2, firs: (S() - .5) * .35,
+    hedges: .3 + S() * .7, garlands: .15 + S() * .6, terraces: .3 + S() * .7, cover: .8 + S() * .5,
+    avenue: AVENUE_TREES.filter(() => S() < .6).concat(AVENUE_TREES[Math.floor(S() * AVENUE_TREES.length)]),
+  };
   // ---- the town round them
-  const layout = plan({ hill, hollow, lake, pieces, W, D, level, rows, inWall, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
+  const layout = plan({ style, hill, hollow, lake, pieces, W, D, level, rows, inWall, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
     avoid: [...structureCells.map(c => { const [x, z] = xz(c); return { x0: x, z0: z, x1: x + 1, z1: z + 1 }; }), ...mill ? [mill.box] : [],
       ...ruins ? [{ x0: ruins.x - ruins.r, z0: ruins.z - ruins.r, x1: ruins.x + ruins.r, z1: ruins.z + ruins.r }] : []],
     water: c => water.has(c), wet: [...water.keys()] });
@@ -756,7 +766,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   return {
     W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
     // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
-    gorge, features, stage, mill, ruins,
+    gorge, features, stage, mill, ruins, style,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
     // gatehouse's middle (where the street comes in), whether (x, z) lies inside it by m
     wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall },
