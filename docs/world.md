@@ -143,7 +143,12 @@ from it (`tileGround` in `world/town.js`).
   fits, a *tall* one: its rock on the seam a pillar most of the way up the cliff, the span down from
   it long and as steep as a span may be (`LH` × 1.45 a cell), landing on a way of the lower town or
   far on into it (high over a way it passes); over a deep bay first to a second pillar out in it,
-  higher still, a span between the two. A span's ends are walked to from the town: kept level a
+  higher still, a span between the two. In some worlds (`landscape.wide`: the bay as deep as it
+  goes, the hill in the other back corner, no gorge, the grove's well off its way) a *wide* one,
+  three tiles long: from the back row's ground up to a pillar standing on the upper town behind
+  the bay on its seam (five to seven levels over it), from there high over the bay's back and the
+  lake down to the tall pillar on the lower seam, and on down to the lower town. Under a span the
+  ground stays a level under its deck. A span's ends are walked to from the town: kept level a
   little round them, and where no way comes near one a trail leads to it (`trails`, `to: 'span'`).
   Each span is built in a style of its own (`SPAN_STYLES`, themes/builds.js: rope, chain, plank,
   stone arches on piers, iron, prayer flags; a gorge's level ones a rock arch too), now and then the

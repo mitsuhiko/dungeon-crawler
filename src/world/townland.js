@@ -181,6 +181,9 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const broad = makeNoise(K), wob = makeNoise(K), boggy = makeNoise(K);
   const terraceStep = 4 + Math.floor(K() * 3), terraceFrom = 6 + Math.floor(K() * 3), ridgeTop = 4 + Math.floor(K() * 2);
   landscape.cliff = pick3(K, CLIFFS); landscape.rise = pick3(K, RISES); landscape.hill = pick3(K, HILLS); landscape.hollow = pick3(K, HOLLOWS);
+  // (in some worlds a wide span, three tiles long, over the lake: the bay deep for it, the hill and
+  // the gorge out of its way, below)
+  landscape.wide = across > 1 && deep > 3 && K() < .3;
   const knobCount = 6 + Math.floor(K() * 4), knobTries = Array.from({ length: 80 }, () => [K(), K(), 3 + Math.floor(K() * 3), 1 + K() * 1.5]);
   const xz = c => [c % W, Math.floor(c / W)], cell = (x, z) => z * W + x;
   const jit = s => (R() - .5) * 2 * s;
@@ -203,7 +206,9 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const UP = Math.min(2, deep - 1), lower = level, upper = level + landscape.rise, rows = Array.from({ length: deep }, (_, j) => j < UP ? lower : upper);
   const mid = Math.floor(across / 2), upZ = UP * N, from = (UP - 1) * N + WATER_FROM, px = mid * N;
   // (how deep the lake's bay reaches into the upper town, how far the cliff winds elsewhere)
-  const lakeDeep = 8 + Math.floor(R() * 6), wind = 1 + Math.floor(R() * 2);
+  let lakeDeep = 8 + Math.floor(R() * 6);
+  const wind = 1 + Math.floor(R() * 2);
+  if (landscape.wide) lakeDeep = 13;
   const edge = Array.from({ length: W }, (_, x) => {
     const i = Math.floor(x / N), lx = x - i * N;
     if (i === mid) return upZ + WATER_TO + QUAY;
@@ -261,8 +266,8 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const back = deep - 1, right = across - 1;
   // (in a world with a gorge, below, the hill stands in the other back corner: the gorge runs on
   // into the grove)
-  const gorgy = across > 1 && deep > UP + 1 && R() < .55;
-  const hillI = gorgy || R() < .5 ? right : 0, hollowI = R() < .5 ? 0 : right;
+  const gorgy = across > 1 && deep > UP + 1 && R() < .55 && !landscape.wide;
+  const hillI = gorgy || R() < .5 || landscape.wide ? right : 0, hollowI = R() < .5 ? 0 : right;
   const inTile = (i, j, x, z) => [i * N + (i === right && i !== 0 ? N - x : x), j * N + z];
   const hill = (() => {
     const [x, z] = inTile(hillI, back, 7.6 + jit(.8), 7.4 + jit(.8)), r0 = 2.6 + R() * .5, top = upper + 4 + Math.floor(R() * 2);
@@ -288,6 +293,8 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     }
     // (by the gorge: off it, on its far side from the wall)
     if (gorgy && i === 0) { const [x, z] = inTile(i, back, 12.6 + jit(.3), 10 + jit(.5)); return { tile: [i, back], x, z, level: upper + 1, r0: 2, r1: 3.4 }; }
+    // (by a wide span's top, off its way: towards the middle)
+    if (landscape.wide && i === 0) { const [x, z] = inTile(i, back, 12.4 + jit(.3), 10.5 + jit(.5)); return { tile: [i, back], x, z, level: upper + 1, r0: 2, r1: 3.4 }; }
     const [x, z] = inTile(i, back, 8 + jit(1), 8.5 + jit(1));
     return { tile: [i, back], x, z, level: upper + 1, r0: 2.2, r1: 4 };
   });
@@ -360,7 +367,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const spanStyle = (level = false) => (lastStyle = lastStyle && R() < .4 ? lastStyle : pick3(R, level ? [...SPAN_STYLES, 'rockarch'] : SPAN_STYLES));
   const tallNext = () => K() < .7;
   const take = (sp, w = [-1, 0, 1]) => { spans.push(sp); for (const c of [sp.top, sp.land, ...sp.cells]) for (const o of w) used.add(c + o); };
-  const lakeSpan = (avoid = [], wantTall = false) => {
+  const lakeSpan = (avoid = [], wantTall = false, wantWide = false) => {
     // (where the lake is deepest, by its middle; off the gorge's mouth and another span)
     // (its top on the cliff's edge, the cliff beside it no further back)
     const xs = Array.from({ length: N - 4 - WALL }, (_, k) => WALL + 2 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - 7) * .3 - Math.abs(b - 7) * .3 + (R() - .5) * 3);
@@ -391,30 +398,55 @@ export function makeLand(seed, opts, { stages = true } = {}) {
         if (fits && high - lower >= (upper - lower) * .4) { land = far; p = high; tall = true; }
       }
       if (wantTall && !tall) continue;
-      const style = spanStyle(), pair = { tall, style };
+      // (a wide one, three tiles long: from the back row's ground up to a pillar standing on the upper
+      // town behind the bay, on its seam, higher than the ground round it; from there high over the
+      // bay's back and the lake down to the tall pillar on the lower seam, and on down to the lower
+      // town. Off the hill, the set pieces, the gorge and what stands for good)
+      let wide = null;
+      if (wantWide && tall && seamZ.some(z => z > upZ)) {
+        const zs = seamZ.find(z => z > upZ), pW = upper + 5 + Math.floor(K() * 3), free = (v, z, m = 1.5) => base(v, z) === upper && !gorgeAt(v, z) && !used.has(cell(v, z)) && !tongue.has(cell(v, z))
+          && fixedDist[cell(v, z)] > m && !insideBox(v + .5, z + .5, 1) && side(v, z) === 0 && Math.hypot(v + .5 - hill.x, z + .5 - hill.z) > hill.r1 + 1
+          && pieces.every(q => Math.hypot(v + .5 - q.x, z + .5 - q.z) > q.r1 + .5);
+        const pillar = [zs - 1, zs].every(z => [x, x + 1].every(v => free(v, z)));
+        const deck = z => p + (pW - p) * (z - upZ) / (zs - 1 - upZ);
+        const over = Array.from({ length: zs - 2 - upZ }, (_, k) => upZ + 1 + k).every(z => inWater(x, z) || gorgeAt(x, z) || (free(x, z, .8) && deck(z) >= upper + 2));
+        const zTop = Array.from({ length: 5 }, (_, k) => zs + 4 + k).find(z => pW - upper <= 1.45 * (z - zs) && z < D - WALL - 2 && free(x, z, .2)
+          && Array.from({ length: z - zs - 1 }, (_, k) => zs + 1 + k).every(v => !strip(x, v) && free(x, v, .2)));
+        if (pillar && over && zTop !== undefined) wide = { zs, pW, zTop };
+      }
+      if (wantWide && !wide) continue;
+      const style = spanStyle(), pair = { tall, style, ...wide ? { wide: true } : {} };
+      if (wide) {
+        const { zs, pW, zTop } = wide;
+        take({ kind: 'lake', top: cell(x, zTop), land: cell(x, zs), cells: Array.from({ length: zTop - zs - 1 }, (_, k) => cell(x, zTop - 1 - k)), d: 3, ...pair }, [0]);
+        take({ kind: 'lake', top: cell(x, zs - 1), land: cell(x, upZ), cells: Array.from({ length: zs - 2 - upZ }, (_, k) => cell(x, zs - 2 - k)), d: 3, ...pair }, [0]);
+        for (const c of [cell(x, zs - 1), cell(x + 1, zs - 1), cell(x, zs), cell(x + 1, zs)]) { platforms.set(c, pW); used.add(c); }
+      }
       // (a tall one over a deep bay: a second pillar out in the bay, higher still, a span between the
       // two; never by a seam)
       const zA = upZ + 1 + Math.floor((top - upZ - 3) / 2), pA = p + Math.round((upper - p) * (zA - upZ + .5) / (top - upZ)) + 1;
-      const twice = tall && top - upZ >= 9 && [zA, zA + 1].every(z => [x, x + 1].every(v => inWater(v, z) && !gorgeAt(v, z) && !strip(v, z)))
+      const twice = !wide && tall && top - upZ >= 9 && [zA, zA + 1].every(z => [x, x + 1].every(v => inWater(v, z) && !gorgeAt(v, z) && !strip(v, z)))
         && upper - pA <= 1.45 * (top - zA - 1) && pA - p <= 1.45 * (zA - upZ);
       if (twice) {
         take({ kind: 'lake', top: cell(x, top), land: cell(x, zA + 1), cells: Array.from({ length: top - zA - 2 }, (_, k) => cell(x, top - 1 - k)), d: 3, ...pair });
         take({ kind: 'lake', top: cell(x, zA), land: cell(x, upZ), cells: Array.from({ length: zA - upZ - 1 }, (_, k) => cell(x, zA - 1 - k)), d: 3, ...pair });
         for (const c of [cell(x, zA), cell(x + 1, zA), cell(x, zA + 1), cell(x + 1, zA + 1)]) platforms.set(c, pA);
-      } else take({ kind: 'lake', top: cell(x, top), land: cell(x, upZ), cells: Array.from({ length: top - upZ - 1 }, (_, k) => cell(x, top - 1 - k)), d: 3, ...pair });
+      } else if (!wide) take({ kind: 'lake', top: cell(x, top), land: cell(x, upZ), cells: Array.from({ length: top - upZ - 1 }, (_, k) => cell(x, top - 1 - k)), d: 3, ...pair });
       // (the span down from a tall pillar: what is under it on the lower town's ground stays as it is,
       // a way under it free)
       take({ kind: 'lake', top: cell(x, upZ - 1), land: cell(x, land), cells: Array.from({ length: upZ - 2 - land }, (_, k) => cell(x, upZ - 2 - k)), d: 3, ...pair },
         tall ? [0] : undefined);
       for (const c of rock) platforms.set(c, p);
-      features.push({ kind: 'span', x: x + .5, z: (top + land) / 2 + .5, tall });
+      features.push({ kind: 'span', x: x + .5, z: (top + land) / 2 + .5, tall, ...wide ? { wide: true } : {} });
       return x;
     }
     return null;
   };
   {
     // (a tall one where one fits, if it is to be, else as they always were)
-    const span = avoid => (tallNext() ? lakeSpan(avoid, true) : null) ?? lakeSpan(avoid);
+    // (and now and then a wide one, three tiles long, where one fits)
+    let wideOnce = landscape.wide;
+    const span = avoid => (wideOnce && !(wideOnce = false) ? lakeSpan(avoid, true, true) : null) ?? (tallNext() ? lakeSpan(avoid, true) : null) ?? lakeSpan(avoid);
     const first = span([]);
     if (first !== null && R() < (gorgeHead ? .3 : stage.size ? .2 : .55)) span([first]);
   }
@@ -821,7 +853,8 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     const road = z < WALL && Math.abs(x + .5 - gate[0]) < 1.6;
     if (s === 2 && !road) L[c] = b + 3 + clamp(hills + 1, 0, 3);
     const dh = Math.hypot(x + .5 - hill.x, z + .5 - hill.z), dl = Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z);
-    if (dh < hill.r1 && b === upper) L[c] = Math.max(L[c], hill.top - Math.max(0, Math.ceil((dh - hill.r0) * (hill.slope ?? 1))));
+    // (the hill coming down to the wall: no more than a level over it beside it, two more a cell)
+    if (dh < hill.r1 && b === upper && s === 0) L[c] = Math.max(L[c], Math.min(hill.top - Math.max(0, Math.ceil((dh - hill.r0) * (hill.slope ?? 1))), b + 2 * wallIn - 1));
     // (a quarry's sides walls of stone, two levels a cell, but on its side towards the town's middle,
     // where a way comes down into it a level a cell)
     const steep = hollow.kind === 'quarry' && Math.abs(Math.atan2(Math.sin(Math.atan2(z + .5 - hollow.z, x + .5 - hollow.x) - hollow.ramp), Math.cos(Math.atan2(z + .5 - hollow.z, x + .5 - hollow.x) - hollow.ramp))) > .7;
@@ -840,9 +873,10 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     if (n < 0 || n >= W * D || water.has(n) || Math.abs((n % W) - (c % W)) > 1) continue;
     if (L[n] <= w.surf) L[n] = w.surf + WATER_DROP;
   }
-  // (the cells beside a seam alike: the higher of them both)
-  for (const s of seamX) for (let z = 0; z < D; z++) { const a = cell(s - 1, z), b = a + 1; if (!water.has(a) && !water.has(b)) L[a] = L[b] = Math.max(L[a], L[b]); }
-  for (const s of seamZ) for (let x = 0; x < W; x++) { const a = cell(x, s - 1), b = a + W; if (!water.has(a) && !water.has(b)) L[a] = L[b] = Math.max(L[a], L[b]); }
+  // (the cells beside a seam alike: the higher of them both, or what is kept of them as it is kept)
+  const alike = (a, b) => { if (water.has(a) || water.has(b)) return; L[a] = L[b] = kept(a) && !kept(b) ? L[a] : kept(b) && !kept(a) ? L[b] : Math.max(L[a], L[b]); };
+  for (const s of seamX) for (let z = 0; z < D; z++) alike(cell(s - 1, z), cell(s, z));
+  for (const s of seamZ) for (let x = 0; x < W; x++) alike(cell(x, s - 1), cell(x, s - 1) + W);
   // (and the water beside one as deep either side)
   for (const [a, b] of [...seamX.flatMap(s => Array.from({ length: D }, (_, z) => [cell(s - 1, z), cell(s, z)])), ...seamZ.flatMap(s => Array.from({ length: W }, (_, x) => [cell(x, s - 1), cell(x, s)]))])
     if (water.has(a) && water.has(b)) water.get(a).bed = water.get(b).bed = Math.min(water.get(a).bed, water.get(b).bed);
@@ -873,8 +907,13 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       t = e + 1;
     }
   }
-  // the floors at a run's ends and under it level with what they are kept at
-  for (const r of runs) { for (const c of r.cells) if (!water.has(c)) L[c] = Math.min(L[c], L[r.from], L[r.to]); }
+  // the floors at a run's ends and under it level with what they are kept at, under a span no higher
+  // than a level under its deck there (a wide one's passes high over the ground)
+  for (const r of runs) r.cells.forEach((c, j) => {
+    if (water.has(c)) return;
+    const deck = L[r.from] + (L[r.to] - L[r.from]) * (j + 1) / (r.cells.length + 1);
+    L[c] = r.span ? Math.min(L[c], Math.floor(deck) - 1) : Math.min(L[c], L[r.from], L[r.to]);
+  });
 
   // ---- the trails: up to the hill's top and down to the hollow's bottom, from the nearest level
   // ground, the gentlest way (wading through the river if it must, never into the lake)
