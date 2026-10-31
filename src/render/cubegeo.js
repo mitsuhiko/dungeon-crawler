@@ -12,6 +12,7 @@ import { buildStructures } from './structures.js';
 import { buildInteriorWalls } from './interior.js';
 import { lowWaterLines } from './surface.js';
 import { buildFlipGeometry } from './flipgeo.js';
+import { buildMudPockets } from './mudgeo.js';
 
 // The solids are split along the low-water line of the clear fluids in the cells a triangle
 // touches (render/surface.js lowWaterLines): what stands out of the water (a bank, a bridge's
@@ -36,7 +37,7 @@ export function buildCubeGeometry(m) {
   usePalette(themeOf(m));
   const cutAt = waterCuts(m);
   const layers = Array.from({ length: m.K }, () => ({
-    terrain: new GeoBuilder({ cutAt }), stone: new GeoBuilder({ cutAt }), wood: new GeoBuilder({ cutAt }), flags: new GeoBuilder({ sway: true }),
+    terrain: new GeoBuilder({ cutAt }), stone: new GeoBuilder({ cutAt }), wood: new GeoBuilder({ cutAt }), flags: new GeoBuilder({ sway: true }), pockets: new GeoBuilder(),
     fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, new GeoBuilder({ uvs: true })])),
   }));
   // bedrock under every column that is not open to the depth below
@@ -50,10 +51,11 @@ export function buildCubeGeometry(m) {
       { py: true, px: solid(x + 1, z), nx: solid(x - 1, z), pz: solid(x, z + 1), nz: solid(x, z - 1) });
   buildFloors(m, layers);
   buildStructures(m, layers);
+  buildMudPockets(m, layers[0].pockets);
   if (m.interior) buildInteriorWalls(m, layers);
   const arr = b => b.pos.length ? b.arrays() : null;
   return layers.map(L => ({
-    terrain: arr(L.terrain), stone: arr(L.stone), wood: arr(L.wood), flags: arr(L.flags),
+    terrain: arr(L.terrain), stone: arr(L.stone), wood: arr(L.wood), flags: arr(L.flags), pockets: arr(L.pockets),
     fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, arr(L.fluids[t])])),
   }));
 }

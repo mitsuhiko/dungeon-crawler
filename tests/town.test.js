@@ -863,7 +863,7 @@ test('each world\'s town has a landscape of its own: its wood, how its woods lie
   assert.deepEqual(townLand(3).landscape, townLand(3).landscape);
 });
 
-test('the hollow is muddy: pockets of mud on a quarry\'s floor, in some worlds a pool of mud with pockets round it; no ground draws an underside at its top', () => {
+test('the hollow is muddy: pockets of mud on a quarry\'s floor (baked for the surroundings), in some worlds a pool of mud with pockets round it; no ground draws an underside at its top', () => {
   let pockets = 0, mires = 0, quarries = 0;
   for (let seed = 0; seed < TOWNS; seed++) {
     const w = worldOf(seed), land = townLand(seed), h = land.hollow;
@@ -885,8 +885,16 @@ test('the hollow is muddy: pockets of mud on a quarry\'s floor, in some worlds a
       assert.ok(Math.hypot(gx + .5 - h.x, gz + .5 - h.z) < h.r0 + 1, `${seed}: on the hollow's floor`);
       assert.ok(!m.staticBlockers.flat().some(b => b.shape !== 'box' && Math.hypot(b.x - p.x, b.z - p.z) < b.r + p.r), `${seed}: nothing stands in it`);
     }
+    // (baked for the surroundings, render/mudgeo.js: a sheet over each, a little over the ground)
+    const geo = buildCubeGeometry(m)[0], sheet = geo.pockets?.pos ?? [];
+    assert.equal(sheet.length > 0, m.mudPockets.length > 0, `${seed}: the pockets baked`);
+    for (const p of m.mudPockets) {
+      let near = 0;
+      for (let i = 0; i < sheet.length; i += 3) if (Math.hypot(sheet[i] - p.x, sheet[i + 2] - p.z) < p.r) { near++; assert.ok(sheet[i + 1] > p.y && sheet[i + 1] < p.y + .2); }
+      assert.ok(near > 0, `${seed}: a pocket not baked`);
+    }
     // (the hollow's floor at the cube's bottom: its top drawn, no underside fighting with it)
-    const { pos, nor } = buildCubeGeometry(m)[0].terrain;
+    const { pos, nor } = geo.terrain;
     for (let i = 0; i < pos.length; i += 9) {
       if (nor[i + 1] > -.5 || [1, 4, 7].some(k => Math.abs(pos[i + k]) > 1e-4)) continue;
       const x = (pos[i] + pos[i + 3] + pos[i + 6]) / 3, z = (pos[i + 2] + pos[i + 5] + pos[i + 8]) / 3;

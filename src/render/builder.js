@@ -16,23 +16,25 @@ export class GeoBuilder {
   }
 
   // triangle; `want` is the intended facing (winding gets flipped to match);
-  // smooth=true shares normals with other smooth vertices at the same position
+  // smooth=true shares normals with other smooth vertices at the same position; col: its colour,
+  // or one for each corner ([a's, b's, c's])
   tri(a, b, c, col, want, smooth = false) {
     const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
     const vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
     let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
     const len = Math.hypot(nx, ny, nz);
     if (len < 1e-9) return;
-    if (want && nx * want[0] + ny * want[1] + nz * want[2] < 0) { [b, c] = [c, b]; nx = -nx; ny = -ny; nz = -nz; }
+    if (want && nx * want[0] + ny * want[1] + nz * want[2] < 0) { [b, c] = [c, b]; nx = -nx; ny = -ny; nz = -nz; if (Array.isArray(col)) col = [col[0], col[2], col[1]]; }
     if (this.cutAt) for (const y of this.cutAt(a, b, c)) {
       const parts = splitTri(a, b, c, y);
       if (parts) { for (const [p, q, r] of parts) this.tri(p, q, r, col, [nx, ny, nz], smooth); return; }
     }
     const base = this.pos.length / 3;
-    for (const v of [a, b, c]) {
+    for (const [k, v] of [a, b, c].entries()) {
+      const cv = Array.isArray(col) ? col[k] : col;
       this.pos.push(v[0], v[1], v[2]);
       this.nor.push(nx / len, ny / len, nz / len);
-      this.col.push(col.r, col.g, col.b);
+      this.col.push(cv.r, cv.g, cv.b);
       if (this.swayAt) this.uv.push(this.swayAt(v[1]), 0);
       else if (this.uv) {
         this.uv.push(this.uvNow[0], this.uvNow[1]); this.pal.push(this.palNow);

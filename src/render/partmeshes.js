@@ -38,7 +38,7 @@ export function partMeshes(geo, group, shadowless = [], water = null, bake = nul
   const fluidMeshes = [];
   for (const part of PARTS) {
     const arrays = geo.parts[part.name];
-    if (!arrays) continue;
+    if (!arrays || part.proxy) continue;   // (the surroundings' own: render/parts.js)
     const lit = part.lit && arrays.lm && bake;
     // (after the cut: it sets the shader edit afresh)
     const cut = (m => lit ? bakedSurface(m, bake) : m)(cutMaterial(partMaterial(part, 'full'), part.cap || false));

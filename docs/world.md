@@ -1018,7 +1018,9 @@ fainter, its lines leaning towards teal (never into the greens).
   surface (no structure, portal, ramp, site or the outer ring; no props in them): a dome of mud
   each (`map.mudPockets`: x, z, its ground y, radius, volume), a few centimetres deep. In the game
   each is a little field of mud as his are (`core/sollmeldon.js`), settled once and holding still,
-  drawn as his are (`render/mud.js mudSheet`) (`game/muddy.js`). Decided at the very end of a
+  drawn as his are (`render/mud.js mudSheet`) (`game/muddy.js`); the cubes round the one played in
+  show theirs baked, the same field as a still sheet of the goop's colours (`render/mudgeo.js`, the
+  part `pockets` only the surroundings draw). Decided at the very end of a
   cube on a random stream of its own: worlds without mud come out as they did.
   The town has mud of its own (`world/townland.js MIRE`, `MUD_POCKETS`, `world/town.js dell`): in
   half of the worlds whose hollow has a pool, the pool is mud (on dice of its own), with up to 3

@@ -10,6 +10,8 @@
 import { N, LH, DIRS, WATER, MUD } from '../core/constants.js';
 import { idx, inb, hash32 } from '../core/util.js';
 import { fallShift } from '../core/falls.js';
+import { floorY, runY } from '../core/surfaces.js';
+import { MUD_FLOW, newMudField, depositMud, stepMud } from '../core/sollmeldon.js';
 
 // how many of the mud pools have pockets round them, how many (at most), how far out from the pool
 // (cells), how much higher than its surface (levels), how big (radius, cells) and how deep in the
@@ -85,4 +87,26 @@ export function muddyWater(ctx, reserved = new Set()) {
     }
   }
   return pockets;
+}
+
+// A pocket's mud as it lies (core/sollmeldon.js: a field of mud), the same wherever it is made: the
+// game's to wade through and draw in the cube played in (game/muddy.js), the surroundings' baked
+// from it (render/mudgeo.js). Over the cells round it, on the ground about as high as its own (the
+// ground physics/collide.js groundAt finds there: no fluid, no structure, else a wall to the mud),
+// dropped as a dome and left to flow SETTLE s, then holding still.
+export const SETTLE = 1;
+export function pocketField(m, p) {
+  const box = [Math.max(0, Math.floor(p.x - p.r - 0.6)), Math.max(0, Math.floor(p.z - p.r - 0.6)),
+    Math.min(N, Math.ceil(p.x + p.r + 0.6)), Math.min(N, Math.ceil(p.z + p.r + 0.6))];
+  const field = newMudField(box, (x, z) => {
+    const cx = Math.floor(x), cz = Math.floor(z), fx = x - cx, fz = z - cz, top = p.y + 0.6;
+    if (!inb(cx, cz)) return null;
+    let h = -Infinity, s = null;
+    for (const f of m.cols[idx(cx, cz)]) { if (f.open) continue; const t = floorY(f, fx, fz); if (t <= top && t > h) { h = t; s = f; } }
+    for (const q of m.pieces?.[idx(cx, cz)] ?? []) { if (q.kind === 'pillar') continue; const t = runY(q, fx, fz); if (t <= top && t > h) { h = t; s = q; } }
+    return s && !s.fluid && !s.kind && Math.abs(h - p.y) < 0.3 ? h : null;
+  });
+  depositMud(field, p.x, p.z, p.vol, p.r);
+  for (let t = 0; t < SETTLE; t += MUD_FLOW.step * MUD_FLOW.most) stepMud(field, [0, 0], false, MUD_FLOW.step * MUD_FLOW.most);
+  return field;
 }

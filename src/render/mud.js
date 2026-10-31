@@ -18,9 +18,10 @@ import { scene } from './scene.js';
 import { inject } from './cutshader.js';
 import { MUD_RES, MUD_FLOW } from '../core/sollmeldon.js';
 import { GOOP_GLSL, GOOP_RIM } from './goop.js';
+import { MUD_LIFT, MUD_EDGE } from './mudgeo.js';
 
 const SUB = 3;   // sheet vertices a sample, each way
-const LIFT = '0.03';   // world units it stays over the (smoothed) ground at least
+const LIFT = MUD_LIFT.toFixed(3);   // world units it stays over the (smoothed) ground at least (render/mudgeo.js)
 
 // (the field, smoothed: a cubic B-spline over the 4 × 4 samples round p, cube coordinates; and its
 // slope along x and z, from the spline's own derivative; and the sheet's height there, never down on
@@ -108,7 +109,7 @@ export function mudSheet({ still = false } = {}) {
   let mesh = null, field = null, tex = null, data = null, time = 0;
   const drift = new THREE.Vector2();
   const uniforms = { uMudTex: { value: null }, uMudSize: { value: new THREE.Vector2(1, 1) }, uMudOrigin: { value: new THREE.Vector2() },
-    uMudTime: { value: 0 }, uMudDrift: { value: drift }, uMudEdge: { value: MUD_FLOW.wet * 1.4 } };
+    uMudTime: { value: 0 }, uMudDrift: { value: drift }, uMudEdge: { value: MUD_EDGE } };
 
   // the sheet over a field's box: SUB vertices a sample each way (only where they are: the shader
   // puts them at the surface)

@@ -98,7 +98,8 @@ function fixture() {
   return packParts([layer], { falls: [{ type: WATER, d: 0, c: 5 * N + 5, top: 8, bot: 4, layer: 0 }] });
 }
 
-// The parts a proxy draws are the parts the full cube draws, for every cube generated so far.
+// The parts a proxy draws are the parts the full cube draws (and its own: render/parts.js `proxy`),
+// for every cube generated so far.
 export async function runPartParityChecks() {
   return paused(async () => {
     const { state } = await import('../../src/game/state.js');
@@ -113,8 +114,9 @@ export async function runPartParityChecks() {
         showNeighbors([{ key: 'parity', geo: c.geo, dx: 1, dz: 0, open: [] }]);
         const [g] = detachNeighbors(); adoptNeighbors([g]);
         const proxy = new Set(g.instances.map(i => i.batch.part?.name).filter(Boolean));
-        const names = PARTS.filter(p => c.geo.parts[p.name]).map(p => p.name);
-        check(full.length === names.length, `${c.key}: the full cube must draw every part (${full.length} of ${names.length})`);
+        // (but what the surroundings draw of their own: the pockets of mud, drawn live in the cube)
+        const names = PARTS.filter(p => c.geo.parts[p.name]).map(p => p.name), own = PARTS.filter(p => c.geo.parts[p.name] && !p.proxy).length;
+        check(full.length === own, `${c.key}: the full cube must draw every part (${full.length} of ${own})`);
         check(names.every(n => proxy.has(n)) && proxy.size === names.length, `${c.key}: the proxy must draw the same parts`);
         names.forEach(n => seen.add(n));
         clearNeighbors();

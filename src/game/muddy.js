@@ -1,15 +1,16 @@
 // Mud in the wild (core/constants.js MUD): the mud pools of some themes (water with the look of
 // mud, cubegen/mudpools.js) and the pockets of mud lying on the ground round some of them
-// (map.mudPockets). Wading or swimming through a mud pool slows as Sollmeldon's mud does
-// (SOLLMELDON_FIGHT.mud.wade, game/mud.js), and so does wading through a pocket, the player's and
-// the enemies' alike (not those of the mud, nor what floats). A pocket is a little field of mud as
-// his is (core/sollmeldon.js), a dome of it settled on the ground once, holding still from then
-// on, drawn as his is (render/mud.js); rings spread where the hero wades through it, its footsteps
+// (map.mudPockets, each a field of mud: cubegen/mudpools.js pocketField). Wading or swimming through
+// a mud pool slows as Sollmeldon's mud does (SOLLMELDON_FIGHT.mud.wade, game/mud.js), and so does
+// wading through a pocket, the player's and the enemies' alike (not those of the mud, nor what
+// floats). A pocket is a little field of mud as his is (core/sollmeldon.js), a dome of it settled on
+// the ground once, holding still from then on, drawn as his is (render/mud.js; in the cubes round
+// about baked, render/mudgeo.js); rings spread where the hero wades through it, its footsteps
 // squelch and leave brown prints after it (game/footsteps.js pocketAt).
-import { N, LH, WATER, MUD } from '../core/constants.js';
-import { SOLLMELDON_FIGHT as G, MUD_FLOW, newMudField, depositMud, stepMud, depthAt, surfaceAt } from '../core/sollmeldon.js';
+import { LH, WATER, MUD } from '../core/constants.js';
+import { SOLLMELDON_FIGHT as G, MUD_FLOW, depthAt, surfaceAt } from '../core/sollmeldon.js';
+import { pocketField } from '../cubegen/mudpools.js';
 import { MUD_ROW } from '../themes/fluids.js';
-import { groundAt } from '../physics/collide.js';
 import { mudSheet } from '../render/mud.js';
 import { ripple } from '../render/ripples.js';
 import { state, player } from './state.js';
@@ -17,21 +18,8 @@ import { slowPlayer } from './enemycombat.js';
 import { afflictEnemy } from './statuses.js';
 import { mirroring } from './enemies.js';
 
-const SETTLE = 1;   // s a pocket's mud flows as it lands before it holds still
 let map = null, pockets = [];   // [{ field, sheet, y }]
 
-// a pocket's field: the cells round it, on ground about as high as its own (no fluid, no structure)
-function pocketField(m, p) {
-  const box = [Math.max(0, Math.floor(p.x - p.r - 0.6)), Math.max(0, Math.floor(p.z - p.r - 0.6)),
-    Math.min(N, Math.ceil(p.x + p.r + 0.6)), Math.min(N, Math.ceil(p.z + p.r + 0.6))];
-  const field = newMudField(box, (x, z) => {
-    const g = groundAt(x, z, p.y + 0.3, 0.3, m);
-    return g.s && !g.s.fluid && !g.s.kind && Math.abs(g.h - p.y) < 0.3 ? g.h : null;
-  });
-  depositMud(field, p.x, p.z, p.vol, p.r);
-  for (let t = 0; t < SETTLE; t += MUD_FLOW.step * MUD_FLOW.most) stepMud(field, [0, 0], false, MUD_FLOW.step * MUD_FLOW.most);
-  return field;
-}
 function build(m) {
   for (const p of pockets) p.sheet.clear();
   pockets = (m?.mudPockets ?? []).map(p => ({ field: pocketField(m, p), sheet: mudSheet({ still: true }), y: p.y }));

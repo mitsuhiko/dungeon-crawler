@@ -11,13 +11,16 @@ import { layoutLightmap } from './lightmap.js';
 
 // kind: 'solid' (vertex coloured, cut with a section cap of `cap`; `sway`: with uvs saying how
 // far each vertex swings in the wind, render/materials.js swayMaterial; `lit`: laid out in the
-// cube's lightmap, its fixed lights' shadows baked, render/bake.js), 'fluid' (a surface of
+// cube's lightmap, its fixed lights' shadows baked, render/bake.js; `proxy`: drawn by the
+// surroundings only, render/partmeshes.js), 'fluid' (a surface of
 // `fluid`), 'fall' (a sheet of `fluid` pouring over an edge, with uvs for its scrolling streaks)
 export const PARTS = [
   { name: 'terrain', kind: 'solid', cap: 'rock', lit: true },
   { name: 'stone', kind: 'solid', cap: 'stone', lit: true },
   { name: 'wood', kind: 'solid', cap: 'wood', lit: true },
   { name: 'flags', kind: 'solid', cap: 'wood', sway: true },   // prayer flags (render/bridges.js)
+  // the pockets of mud (render/mudgeo.js): the surroundings' only, the cube played in draws them live
+  { name: 'pockets', kind: 'solid', proxy: true },
   ...DRAWN_FLUIDS.map(t => ({ name: FLUID_NAME[t], kind: 'fluid', fluid: t })),   // (mud: a look of water, core/constants.js)
   ...FLUIDS.map(t => ({ name: FLUID_NAME[t] + '-fall', kind: 'fall', fluid: t })),
 ];

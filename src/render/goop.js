@@ -4,7 +4,7 @@
 // streaks swirling through it with a pale core here and there; a lighter rim where it thins out.
 // GLSL: goopColor(p, tm) the colour at p (its own coordinates, world units: the swirls are about a
 // cell and a half across) at time tm.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three/three.core.js';   // plain path, no renderer: also loads in the world worker (render/mudgeo.js)
 
 export const GOOP_COLORS = { dark: '#0d0805', mid: '#22160e', light: '#6a4a30', cream: '#a8845e', rim: '#3c2a1c' };
 const c = name => { const v = new THREE.Color(GOOP_COLORS[name]); return `vec3(${v.r.toFixed(4)}, ${v.g.toFixed(4)}, ${v.b.toFixed(4)})`; };
