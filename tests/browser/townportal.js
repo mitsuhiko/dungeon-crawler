@@ -1,5 +1,6 @@
 // Browser integration checks for the quick bar and the town portal scroll. Resets to a fresh
-// seed-3 run before and after. From the devtools console:
+// seed-3 run before and after. With ?dev=1 (the beginning's scenes skipped: one playing holds the
+// hero, and the cast), from the devtools console:
 //   await (await import('./tests/browser/townportal.js')).runTownPortalChecks()
 import { player, state } from '../../src/game/state.js';
 import { newWorld, enterCube, spawnAt } from '../../src/game/flow.js';
@@ -36,6 +37,7 @@ function stepIn(pad) {
 }
 
 export async function runTownPortalChecks() {
+  check(state.dev, 'Run with ?dev=1');
   const results = [];
   await newWorld(3); clearInput();
   try {
@@ -43,10 +45,14 @@ export async function runTownPortalChecks() {
       const inv = player.inventory, scroll = inv.slots.find(s => s?.itemId === TOWN_PORTAL.id);
       updateQuickbar();
       const slots = [...document.querySelectorAll('#quickbar .qb-slot')];
+      // (the dev tools' hero carries its staff and flail on slots 3 and 4: core/progression.js)
+      const kit = [inv.equipped, inv.slots.find(s => s?.itemId === 'weapon_flail_triple')?.instanceId];
       check(slots.length === 6 && barEntry(inv, 0)?.slot === scroll && !slots[0].querySelector('img').hidden
         && barEntry(inv, 1)?.itemId === 'item_potion_health' && !slots[1].querySelector('img').hidden
-        && slots.slice(2, 5).every(b => b.querySelector('img').hidden) && !slots[5].querySelector('img').hidden,
-        'A run starts with the scroll on quick bar slot 1, potions on 2 and the room portal scroll on 6');
+        && kit.every((id, i) => barEntry(inv, 2 + i)?.slot?.instanceId === id && !slots[2 + i].querySelector('img').hidden)
+        && slots[4].querySelector('img').hidden && !slots[5].querySelector('img').hidden,
+        'A run starts with the scroll on quick bar slot 1, potions on 2, the weapons on 3 and 4 and the room portal scroll on 6');
+      inv.bar[2] = inv.bar[3] = null;   // (free for what follows)
       check(!dropFromBag(scroll.instanceId) && inv.slots.includes(scroll), 'The scroll cannot be dropped');
       results.push('quick bar / scroll on 1 / bound');
 

@@ -110,11 +110,16 @@ export async function runWaterChecks() {
 
       state.map = arena(); state.arrival = { x: 3.5, y: 0, z: 3.5 };
       const water = state.map.floors[6 * N + 7], surface = water.surf * LH;
-      reset(6.74);
-      for (let i = 0; i < 120; i++) movePlayer(1 / 60, 1, 0, true, false);
-      check(player.x < 7 && player.grounded && player.y === 0, 'Run must stop at the deep water');
-      results.push('walking/running deep-water edge guard');
+      // deep water is no brink (docs/combat.md): walking and running go on into it, swimming
+      for (const run of [false, true]) {
+        reset(6.74);
+        let swum = false;
+        for (let i = 0; i < 60; i++) { const gr = movePlayer(1 / 60, 1, 0, run, false); applyHazards(1 / 60, gr); swum ||= player.swimming; }
+        check(swum && player.x > 7 && !player.ragdoll && player.hp === player.maxHp, (run ? 'Running' : 'Walking') + ' goes on into the deep water, swimming');
+      }
+      results.push('walking/running into deep water swims');
 
+      reset(6.74);
       jumpIn(90);
       check(player.x > 7 && player.swimming && !player.ragdoll && player.hp === player.maxHp, 'A jump into water swims');
       for (let i = 0; i < 60; i++) updatePlayer(1 / 60);

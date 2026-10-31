@@ -43,6 +43,8 @@ function strike(b, name) {
 }
 
 export async function runQualmosChecks() {
+  const god = player.god;
+  player.god = false;   // (the dev tools' god mode takes no damage: his slam must hurt)
   return paused(async () => {
     const out = {};
     await goBoss('qualmos');
@@ -114,5 +116,5 @@ export async function runQualmosChecks() {
     check(leapt, 'and leaps out at the hero');
     check(until(3, () => b.mode !== 'attack', tough) < 3 && wetAt(b.profile, b.f) === null, 'onto the land');
     return out;
-  });
+  }).finally(() => { player.god = god; });
 }
