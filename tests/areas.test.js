@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../src/world/world.js';
+import { worldOf } from './worlds.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { step, faceKey, parse } from '../src/world/coords.js';
 import { spiralAt, innerFaces, AREA_SIZE, templateCells } from '../src/world/areas.js';
@@ -24,7 +25,7 @@ const DT = 1 / 60;
 // every large area of a few worlds, with its world
 function* areas(seeds = SEEDS) {
   for (const seed of seeds) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     for (const d of DEPTHS) for (const piece of w.layout(d).areas) yield { w, piece, seed, d };
   }
 }
@@ -239,7 +240,7 @@ test("a hairpin: two bridges over one canyon, the summit high all round, the foo
 test('set pieces: a lone peak climbed by its ladder, a great lake walked round by its shore', () => {
   let peaks = 0, lakes = 0, islets = 0;
   for (const seed of Array.from({ length: 16 }, (_, i) => i)) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     for (const d of DEPTHS) {
       const L = w.layout(d);
       assert.ok([L.pinnacle, L.peak, L.lake].filter(Boolean).length <= 1);

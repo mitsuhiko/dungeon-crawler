@@ -677,17 +677,22 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // none at the way) where that runs (the ramp's cells not pinned flat: cubegen/smooth.js slopes them)
   // (and how far from what keeps the ground level: a home only its own footing, its yard rolls)
   const kd = new Float64Array(W * D), kg = new Float64Array(W * D), kway = new Float64Array(W * D), lift = new Int8Array(W * D), ramped = new Uint8Array(W * D);
+  // (and which shapes may be the nearest anywhere in the cell: those at most a cell's diagonal,
+  // and a hair, further from its middle than the nearest; keepDistance changes no faster than
+  // (x, z) moves)
+  const nearKept = new Array(W * D), es = new Float64Array(keep.length);
   for (let c = 0; c < W * D; c++) {
     const [x, z] = xz(c), px = x + .5, pz = z + .5;
     let d = Infinity, near = null, ramp = null, g = Infinity, gw = Infinity;
-    for (const k of keep) {
-      const e = keepDistance(k, px, pz);
+    for (let n = 0; n < keep.length; n++) {
+      const k = keep[n], e = es[n] = keepDistance(k, px, pz);
       g = Math.min(g, 'lift' in k ? e + k.r - .25 : e);
       if (!k.span) gw = Math.min(gw, 'lift' in k ? e + k.r - .25 : e);
       if (e < d) { d = e; near = k; }
       if (k.ramp && e < FLAT + .5 && (!ramp || e < ramp.e)) ramp = { k, e };
     }
     kd[c] = d; kg[c] = g; kway[c] = gw;
+    nearKept[c] = keep.filter((_, n) => es[n] <= d + 1.5);
     // (the ramp where it is about as near as what is nearest: not under the home it leads up to)
     if (ramp && ramp.e <= d + .3) {
       const [[ax, az], [bx, bz]] = ramp.k.seg, dx = bx - ax, dz = bz - az;
@@ -905,14 +910,40 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // ---- the forest: round the outer sides (but at the gate), a belt of its own depth along them,
   // and woods of their own here and there; not on what is kept, the trails, the water, the
   // structures, the hill's top or the hollow, few on the hill's side
-  const wetCells = [...water.keys()];
   const trailDist = (x, z) => Math.min(Infinity, ...trails.flatMap(t => t.points.slice(1).map((b, i) => keepDistance({ seg: [t.points[i], b], r: 0 }, x, z))));
+  // how far (x, z) lies from the nearest water cell (as the water is now): the same as trying every
+  // one, but the cells are sorted into buckets of WB x WB, searched in rings round (x, z)'s until
+  // none further out can be nearer
+  const WB = 4, BW = Math.ceil(W / WB), BD = Math.ceil(D / WB), buckets = Array.from({ length: BW * BD }, () => []);
+  for (const c of water.keys()) { const cx = c % W, cz = Math.floor(c / W); buckets[Math.floor(cz / WB) * BW + Math.floor(cx / WB)].push(cx, cz); }
+  const wet = water.size > 0;
   const waterDist = (x, z) => {
     let d = Infinity;
-    for (const c of wetCells) { const [cx, cz] = xz(c); d = Math.min(d, Math.hypot(Math.max(cx - x, 0, x - cx - 1), Math.max(cz - z, 0, z - cz - 1))); }
+    if (!wet) return d;
+    const bx = Math.floor(x / WB), bz = Math.floor(z / WB);
+    const far = Math.max(Math.abs(bx), Math.abs(BW - 1 - bx), Math.abs(bz), Math.abs(BD - 1 - bz));
+    // (a bucket k rings out holds nothing nearer than k - 1 buckets)
+    for (let k = 0; k <= far && d > (k - 1) * WB; k++) for (let j = bz - k; j <= bz + k; j++) {
+      if (j < 0 || j >= BD) continue;
+      const edge = j === bz - k || j === bz + k;
+      for (let i = bx - k; i <= bx + k; i += edge ? 1 : 2 * k) {
+        if (i < 0 || i >= BW) continue;
+        const b = buckets[j * BW + i];
+        for (let n = 0; n < b.length; n += 2) {
+          const cx = b[n], cz = b[n + 1];
+          d = Math.min(d, Math.hypot(Math.max(cx - x, 0, x - cx - 1), Math.max(cz - z, 0, z - cz - 1)));
+        }
+      }
+    }
     return d;
   };
-  const keepDist = (x, z) => { let d = Infinity; for (const k of keep) d = Math.min(d, keepDistance(k, x, z)); return d; };
+  // (how far from what is kept: in the town, only the shapes that may be the nearest in its cell)
+  const keepDist = (x, z) => {
+    let d = Infinity;
+    const inside = x >= 0 && z >= 0 && x < W && z < D;
+    for (const k of inside ? nearKept[Math.floor(z) * W + Math.floor(x)] : keep) d = Math.min(d, keepDistance(k, x, z));
+    return d;
+  };
   // (on or beside a stair, a bridge or the span: kept free of what stands in the way)
   const built = new Set([...used, ...platforms.keys(), ...ledge, ...runs.flatMap(r => [r.from, r.to, ...r.cells])]);
   const structureAt = (x, z, r = 0) => {

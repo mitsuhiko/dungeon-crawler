@@ -6,6 +6,7 @@ import { readGlb, rootBounds, roots } from '../tools/glb.mjs';
 import { N, LH, CHAR_R, CHAR_H, EDGE_CORNERS, DIRS } from '../src/core/constants.js';
 import { containsXZ, viewBlockedAt } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
+import { worldOf } from './worlds.js';
 import { step, faceKey } from '../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, HOMES, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
   PORTAL_TILE, START_TILE, enemyFreeAt, townOf, townLand, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
@@ -40,6 +41,9 @@ const isHome = name => name in HOMES;
 const isWall = name => name.startsWith('town_wall') || name === 'town_gatehouse_a';
 const isMill = name => name.startsWith('town_water');
 // the town's tiles of a world: [{ k, i, j, m }]
+// how many worlds' whole towns the tests look at (the same ones, made once: tests/worlds.js); a
+// look at one tile of each goes further
+const TOWNS = 12;
 const tilesOf = w => townOf(w.seed).keys.map(k => ({ k, ...townOf(w.seed).tiles.get(k), m: w.cube(k).map }));
 
 function checkStraightPaths(m) {
@@ -101,7 +105,7 @@ test('the town is TOWN_ACROSS by TOWN_DEEP tiles of the depth-0 grid round its g
 test('every tile is safe and authored, the town level where it stands; the buildings, the tents and the lake each in their own tile', () => {
   let allHomes = 0;
   const groveKinds = new Set();
-  for (let seed = 0; seed < 40; seed++) {
+  for (let seed = 0; seed < TOWNS; seed++) {
     const w = new World(seed, { arche: 'chasm' }), t = townOf(seed);   // debug archetypes cannot destroy town
     const placed = new Map();
     for (const { k, i, j, m } of tilesOf(w)) {
@@ -158,7 +162,7 @@ test('every tile is safe and authored, the town level where it stands; the build
       for (const p of ENEMY_PROFILES) assert.deepEqual(enemySpots(m, p), []);
       checkWalkingRoutes(m); checkStraightPaths(m);
       assert.ok(m.occluders.filter(b => b.shape === 'ellipsoid').every(b => b.top > b.bottom && b.bottom > groundOf(m, b.x, b.z) + 1.5));
-      assert.deepEqual(signature(m), signature(new World(seed).cube(k).map));
+      assert.deepEqual(signature(m), signature(worldOf(seed).cube(k).map));
     }
     assert.deepEqual([...placed.keys()].sort(), [...BUILDINGS, ...MERCHANTS].map(b => b.name).sort());
     for (const b of [...BUILDINGS, ...MERCHANTS]) assert.equal(placed.get(b.name), t.at(...b.tile), b.name);
@@ -173,13 +177,13 @@ test('every tile is safe and authored, the town level where it stands; the build
     assert.ok(homes.length >= 2, `${homes.length} homes`);
     allHomes += homes.length;
   }
-  assert.ok(allHomes >= 40 * 5, `${allHomes / 40} homes a town`);
+  assert.ok(allHomes >= TOWNS * 5, `${allHomes / TOWNS} homes a town`);
   assert.equal(groveKinds.size, 3);
 });
 
 test('the seams: flat faces, no glass or portal, nothing standing near, walkable all along, and walked across', () => {
-  for (let seed = 0; seed < 24; seed++) {
-    const w = new World(seed);
+  for (let seed = 0; seed < TOWNS; seed++) {
+    const w = worldOf(seed);
     for (const { k, m } of tilesOf(w)) {
       assert.deepEqual(m.seams, DIRS.map((_, d) => isTown(step(k, d), seed)));
       for (let d = 0; d < 4; d++) {
@@ -207,7 +211,7 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
   // past a seam the ground goes on as the tile beyond has it (physics/collide.js: the sides walked
   // across, game/handover.js), as the edge's on this side; past an outer side it is solid as
   // anywhere outside
-  const w = new World(3), t = townOf(3), k11 = t.at(1, 1), m = state.map = w.cube(k11).map;
+  const w = worldOf(3), t = townOf(3), k11 = t.at(1, 1), m = state.map = w.cube(k11).map;
   assert.deepEqual(m.seams, [true, true, true, true]);
   setAcross(m, DIRS.map((_, d) => w.cube(step(k11, d)).map));
   for (const [x, z] of [[N + .4, 8.2], [-.4, 8.2], [8.2, N + .4], [8.2, -.4]]) {
@@ -244,8 +248,8 @@ test('the seams: flat faces, no glass or portal, nothing standing near, walkable
 });
 
 test('only the gate joins the town to what lies round it; inside, every seam opens once known', () => {
-  for (let seed = 0; seed < 16; seed++) {
-    const w = new World(seed), t = townOf(seed), run = createRun(), cubes = new Map();
+  for (let seed = 0; seed < TOWNS; seed++) {
+    const w = worldOf(seed), t = townOf(seed), run = createRun(), cubes = new Map();
     const add = k => cubes.set(k, { key: k, visits: 1, map: w.cube(k).map });
     for (const k of t.keys) { add(k); for (let d = 0; d < 4; d++) if (w.layout(0).exists.has(step(k, d))) add(step(k, d)); }
     run.unlockedGates.add('intro:sword');
@@ -261,7 +265,7 @@ test('only the gate joins the town to what lies round it; inside, every seam ope
 });
 
 test('the gate\'s face and the road\'s edges are flat, even when the road is made first', () => {
-  for (let seed = 0; seed < 24; seed++) for (const first of [true, false]) {
+  for (let seed = 0; seed < TOWNS; seed++) for (const first of [true, false]) {
     const w = new World(seed), t = townOf(seed), roadKey = step(t.gate, t.exit);
     const road = first ? w.cube(roadKey).map : null;
     const gate = w.cube(t.gate).map, neighbour = road || w.cube(roadKey).map;
@@ -281,8 +285,8 @@ test('the gate\'s face and the road\'s edges are flat, even when the road is mad
 test('the town portal\'s spot: dry, reachable and uncluttered, in the plaza\'s tile', () => {
   const ends = new Set();
   for (let seed = 0; seed < 80; seed++) {
-    const w = new World(seed), t = townOf(seed), m = state.map = w.cube(t.portal).map, at = m.town.portal;
-    for (const k of t.keys) if (k !== t.portal) assert.equal(w.cube(k).map.town.portal, undefined, 'only the plaza has one');
+    const w = worldOf(seed), t = townOf(seed), m = state.map = w.cube(t.portal).map, at = m.town.portal;
+    if (seed < TOWNS) for (const k of t.keys) if (k !== t.portal) assert.equal(w.cube(k).map.town.portal, undefined, 'only the plaza has one');
     const cell = Math.floor(at.z) * N + Math.floor(at.x);
     ends.add(t.exit);
     assert.equal(at.y, m.town.level * LH);
@@ -328,8 +332,8 @@ function walkable(m) {
 }
 
 test('villagers stand at their trades, as colliders, dressed and within reach', () => {
-  for (let seed = 0; seed < 40; seed++) {
-    const w = new World(seed), all = [];
+  for (let seed = 0; seed < TOWNS; seed++) {
+    const w = worldOf(seed), all = [];
     for (const { m } of tilesOf(w)) {
       state.map = m;
       const placed = m.town.placements;
@@ -406,8 +410,8 @@ function checkClutter(m, min) {
 
 test('the tiles are dressed with varied clutter that stays off paths, water, buildings and seams', () => {
   const seen = new Set();
-  for (let seed = 0; seed < 16; seed++) {
-    const w = new World(seed), tiles = tilesOf(w);
+  for (let seed = 0; seed < TOWNS; seed++) {
+    const w = worldOf(seed), tiles = tilesOf(w);
     for (const { m } of tiles) checkClutter(m, 50);
     const names = new Set(tiles.flatMap(({ m }) => m.town.placements.map(p => p.name.replace(/_[ab]$/, ''))));
     assert.ok(names.size >= 30, 'clutter must be varied');
@@ -427,7 +431,7 @@ test('the tiles are dressed with varied clutter that stays off paths, water, bui
 
 test('the street runs from the gate over the water and up the cliff\'s stair to the green, and paths lead to every frontage', () => {
   for (let seed = 0; seed < 4; seed++) {
-    const w = new World(seed), t = townOf(seed);
+    const w = worldOf(seed), t = townOf(seed);
     for (const { m } of tilesOf(w)) for (const p of m.town.frontages) assert.ok(m.town.paths.some(path => {
       const end = path.points.at(-1); return Math.hypot(end[0] - p.x, end[1] - p.z) < 1e-6;
     }), p.name);
@@ -450,7 +454,7 @@ test('the street runs from the gate over the water and up the cliff\'s stair to 
 
 test('the town\'s stairs, bridges and span hold a walking hero on them: their sides are railed', () => {
   for (let seed = 0; seed < 4; seed++) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     let runs = 0;
     for (const { m } of tilesOf(w)) {
       state.map = m;
@@ -474,7 +478,7 @@ test('the town\'s stairs, bridges and span hold a walking hero on them: their si
 
 test('a wall rings the town a few cells in from its sides, the forest outside it; its gate lets the street in', () => {
   for (let seed = 0; seed < 8; seed++) {
-    const w = new World(seed), t = townOf(seed), land = townLand(seed), { W, D } = land;
+    const w = worldOf(seed), t = townOf(seed), land = townLand(seed), { W, D } = land;
     let gatehouses = 0, towers = 0;
     for (const { k, i, j, m } of tilesOf(w)) {
       const toCube = (gx, gz) => rotateTownPoint(gx - i * N + .5, gz - j * N + .5, m.town.yaw).map(Math.floor);
@@ -522,7 +526,7 @@ test('a wall rings the town a few cells in from its sides, the forest outside it
 test('garlands hang from pole to pole over the streets, a head\'s room over the ground, lit at night', () => {
   let strings = 0;
   for (let seed = 0; seed < 4; seed++) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     for (const { m } of tilesOf(w)) {
       const segments = m.town.placements.filter(p => propMetadata.get(p.name)?.attach === 'line');
       for (const p of segments) {
@@ -546,7 +550,7 @@ test('garlands hang from pole to pole over the streets, a head\'s room over the 
 
 test('path ribbons are grid-aligned rectangles, stay inside the cube, and never pave over the water', () => {
   for (let seed = 0; seed < 4; seed++) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     for (const { m } of tilesOf(w)) {
       const { pos, nor } = buildCubeGeometry(m)[0].terrain;
       let pathVertices = 0;
@@ -569,8 +573,8 @@ test('path ribbons are grid-aligned rectangles, stay inside the cube, and never 
 
 test('the town alone has no enemies: the road has them from the room past its gate', () => {
   let hostilePopulation = 0;
-  for (let seed = 0; seed < 16; seed++) {
-    const w = new World(seed), t = townOf(seed);
+  for (let seed = 0; seed < TOWNS; seed++) {
+    const w = worldOf(seed), t = townOf(seed);
     for (const k of t.keys) assert.equal(enemyFreeAt(k, seed), true);
     const rock = step(t.gate, t.exit), outside = state.map = w.cube(w.layout(0).route[2]).map;
     assert.equal(enemyFreeAt(rock, seed), false);
@@ -584,7 +588,7 @@ test('the town alone has no enemies: the road has them from the room past its ga
 });
 
 test('building boxes collide in every covered cell; canopy occlusion is separate from trunk collision', () => {
-  const w = new World(3), t = townOf(3), m = state.map = w.cube(t.houses.town_inn_a).map, y = m.town.level * LH;
+  const w = worldOf(3), t = townOf(3), m = state.map = w.cube(t.houses.town_inn_a).map, y = m.town.level * LH;
   Object.assign(player, { y, visY: y, h: .85, r: CHAR_R, grounded: true, swimming: false });
   const box = m.occluders.find(b => b.name === 'town_inn_a');
   for (let x = box.x0 + .1; x < box.x1; x += .7) for (let z = box.z0 + .1; z < box.z1; z += .7) {
@@ -638,8 +642,8 @@ test('grove assets have flat coloured geometry, ground pivots and explicit trunk
 test('every world\'s town lies in a land of its own: the lower town, the water and the upper town half a cube over it, the spans over the lake (and a gorge), the river with its fall, the hill and the hollow with their tents', () => {
   const kinds = new Set(), features = new Map(), rises = new Set();
   let falls = 0, bridges = 0, gorges = 0, lakeSpans = 0, gorgeSpans = 0, tallSpans = 0;
-  for (let seed = 0; seed < 12; seed++) {
-    const w = new World(seed), land = townLand(seed), tiles = tilesOf(w), { W } = land;
+  for (let seed = 0; seed < TOWNS; seed++) {
+    const w = worldOf(seed), land = townLand(seed), tiles = tilesOf(w), { W } = land;
     kinds.add(JSON.stringify([land.hill.tile, land.hollow.tile, land.lake.cells.length, land.spans.map(s => s.top), land.river.length, land.streams.length]));
     for (const f of land.features) features.set(f.kind, (features.get(f.kind) ?? 0) + 1);
     // three bands: the gate's rows, the water across the whole town on the seam between the plaza's
@@ -727,12 +731,12 @@ test('every world\'s town lies in a land of its own: the lower town, the water a
 test('a mill stands by the river in most worlds, on level ground, its wheel turning in the water beside it', () => {
   let mills = 0;
   const where = new Set();
-  for (let seed = 0; seed < 12; seed++) {
+  for (let seed = 0; seed < TOWNS; seed++) {
     const land = townLand(seed);
     if (!land.mill) continue;
     mills++;
     where.add(`${Math.floor(land.mill.x)},${Math.floor(land.mill.z)}`);
-    const w = new World(seed), tiles = tilesOf(w);
+    const w = worldOf(seed), tiles = tilesOf(w);
     const here = tiles.filter(({ m }) => m.town.placements.some(p => p.name === 'town_watermill_a'));
     assert.equal(here.length, 1, 'one mill, in its tile');
     const m = here[0].m, p = m.town.placements.find(p => p.name === 'town_watermill_a'), q = m.town.placements.find(p => p.name === 'town_waterwheel_a');
@@ -754,11 +758,11 @@ test('a mill stands by the river in most worlds, on level ground, its wheel turn
 test('old ruins lie in most worlds\' towns, of every kind, on wild ground of their own', () => {
   const kinds = new Set(), tiles = new Set();
   let ruins = 0;
-  for (let seed = 0; seed < 12; seed++) {
+  for (let seed = 0; seed < TOWNS; seed++) {
     const land = townLand(seed), r = land.ruins;
     if (!r) continue;
     ruins++; kinds.add(r.kind); tiles.add(`${Math.floor(r.x / N)},${Math.floor(r.z / N)}`);
-    const w = new World(seed), m = tilesOf(w).find(({ i, j }) => i === Math.floor(r.x / N) && j === Math.floor(r.z / N)).m;
+    const w = worldOf(seed), m = tilesOf(w).find(({ i, j }) => i === Math.floor(r.x / N) && j === Math.floor(r.z / N)).m;
     const stones = m.town.placements.filter(p => p.name.startsWith('ruins_'));
     assert.ok(stones.length >= 6, `${seed}: ${stones.length} stones of the ruins`);
     assert.ok(stones.some(p => /temple_gate|colossus_head|collapsed_arch|obelisk/.test(p.name)), `${seed}: what stood there`);

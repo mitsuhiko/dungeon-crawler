@@ -70,7 +70,7 @@ export function makeMoves(ctx) {
       flight.push(idx(sx, sz));
       const e = idx(ex, ez), targets = [];
       for (const g of cols[e]) if (!g.fluid && !g.siteBlocked && headOK(g, g.top)) targets.push(g);
-      if (allowLandings) for (const r of new Set([2 * k, 2 * k - 1])) if (r >= 2 && landingOK(e, h + r)) targets.push(landingAt(e, h + r));
+      if (allowLandings) for (let r = 2 * k; r >= 2 * k - 1; r--) if (r >= 2 && landingOK(e, h + r)) targets.push(landingAt(e, h + r));
       for (const g of targets) {
         const rise = g.top - h, ar = Math.abs(rise);
         if (ar < Math.max(f.landing || g.landing ? 2 : 3, k) || ar > 2 * k) continue;

@@ -1002,8 +1002,8 @@ fainter, its lines leaning towards teal (never into the greens).
 - **Dev:** `?palette=classic` (the old look) or `?palette=<seed>` (another world's),
   `/palette [seed|classic]` re-rolls them live and names the ones here;
   `tests/browser/palettes.html?seed=<n>` shows a world's palettes. **Checks:**
-  `tests/fluidcolors.test.js` (in gamut, hues per fluid, stretches, one colour per fluid in a
-  cube, the same across every face and down every fall).
+  `tests/fluidcolors.test.js` (in gamut, hues per fluid, stretches) and `tests/sweeps/fluids.js`
+  (one colour per fluid in a cube, the same across every face and down every fall).
 
 ## Themed structures (`themes/builds.js`, `render/bridges.js`)
 
@@ -1267,7 +1267,7 @@ in game devtools for real worker, asset, shader and collision checks.
   pools keep a dry rim instead of touching other water or the void. Upper pools and stream
   channels thicken their bank slabs down to their own bed, or are skipped. A last pass
   before routing turns any fluid that still stands above its neighbour into ground up to its
-  surface (`containFluids`). `tests/fluids.test.js` checks it with the renderer's heights;
+  surface (`containFluids`). `tests/sweeps/fluids.js` checks it with the renderer's heights;
   corner smoothing may still sag a bank by up to a level.
 - **Water is level with its shore**, walked into and out of: a pool's surface stands level with
   its lowest bank (`cubegen/river.js`, `pools.js`, `streams.js`, `cascades.js`, a guardian's pond,
@@ -1337,7 +1337,7 @@ The world guarantees that from anywhere you can arrive, you can get to depth 20.
   the exit, else onto any (whose own way on the escapes after it find). It is a move of its own
   (not a route: the routes keep out of the water) and dropped like the escapes when it does not fit.
   Its `map.ladders` entry carries the water's surface (`wet`): it is taken hold of swimming
-  (`physics/climb.js`), and climbing down it lets go into the water. `tests/swim.test.js` checks
+  (`physics/climb.js`), and climbing down it lets go into the water. `tests/sweeps/water.js` checks
   that no cube's water traps anyone, that a quarter to half of it is deep, and that a swimmer anywhere in it
   gets out with a click.
 - **No jump after a drop:** a route never jumps right after dropping the same way, because

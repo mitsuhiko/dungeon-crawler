@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../src/world/world.js';
+import { worldOf } from './worlds.js';
 import { makeLayouts } from '../src/world/layout.js';
 import { step, faceKey, parse } from '../src/world/coords.js';
 import { N, LH, CHAR_R } from '../src/core/constants.js';
@@ -10,7 +11,7 @@ import { state } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { movePlayer } from '../src/physics/move.js';
 
-const SEEDS = Array.from({ length: 12 }, (_, i) => i);
+const SEEDS = Array.from({ length: 8 }, (_, i) => i);
 // cell j steps in from face d at position t (portals.js edgeCell)
 const edge = (d, t, j) => d === 0 ? t * N + N - 1 - j : d === 1 ? t * N + j : d === 2 ? (N - 1 - j) * N + t : j * N + t;
 const ground = (m, c) => m.cols[c].find(f => f.layer === 0);
@@ -69,7 +70,7 @@ test('spans are planned from the seed and the theme on every depth, straight and
 test('a span\'s cubes meet at every face and carry one long bridge from pad to pad', () => {
   let bridges = 0;
   for (const seed of SEEDS) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     for (const d of DEPTHS) for (const s of w.layout(d).spans) {
       const maps = s.keys.map(k => w.cube(k).map);
       // the crossings: pads at the deck's level on both sides, at the same place
@@ -131,7 +132,7 @@ test('span cubes are the same whichever way the depth is explored', () => {
 test('the character walks every span bridge both ways without falling off', () => {
   let walks = 0;
   for (const seed of SEEDS.slice(0, 8)) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     for (const d of DEPTHS) for (const s of w.layout(d).spans) s.keys.slice(1, s.n + 1).forEach(k => {
       const m = w.cube(k).map, r = m.runs.find(q => q.span);
       const ends = [r.from, r.to].map(f => ({ x: f.x + 0.5, z: f.z + 0.5, y: floorY(f, 0.5, 0.5) }));

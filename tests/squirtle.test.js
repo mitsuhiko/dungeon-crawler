@@ -11,8 +11,6 @@ import { World } from '../src/world/world.js';
 import { testRoomKey } from '../src/world/testrooms.js';
 import { walker, walkerOf, wetAt, standY, livesOn, SUNK } from '../src/physics/dwell.js';
 import { walkable, findPath, nearest, stepEnemy } from '../src/physics/enemynav.js';
-import { enemySpots } from '../src/game/enemyspawn.js';
-import { population } from '../src/core/spawns.js';
 import { setTide } from '../src/physics/fluid.js';
 
 const world = new World(4);
@@ -69,19 +67,3 @@ test('a standing fluid of its own over the floor is its water too, while it is d
   } finally { setTide(null); }
 });
 
-test('the Squirtles of a cube are all in its fluids, each kind in its own', () => {
-  let n = 0;
-  for (const seed of [1, 2, 3]) {
-    const w = new World(seed);
-    for (const depth of [1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 15, 16, 17]) for (const k of [...w.layout(depth).exists].slice(0, 30)) {
-      const m = state.map = w.cube(k).map;
-      if (m.guardian || !population(m).has('squirtle')) continue;
-      for (const s of enemySpots(m, SQUIRTLE)) {
-        n++;
-        assert.ok(s.f.fluid && s.kind.dwells.includes(s.f.fluid), `${s.kind.type} in ${s.f.fluid}`);
-        assert.ok(livesOn(s.kind, s.f));
-      }
-    }
-  }
-  assert.ok(n > 10, `${n} Squirtles`);
-});

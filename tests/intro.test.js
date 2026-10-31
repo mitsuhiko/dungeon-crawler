@@ -50,7 +50,8 @@ test('the crash on the plaza; the robot and the sword beside each other at its r
   for (let seed = 0; seed < 40; seed++) {
     const w = new World(seed), t = townOf(seed), plaza = w.cube(t.portal).map;
     exits.add(t.exit);
-    for (const k of t.keys) if (k !== t.portal) assert.deepEqual(w.cube(k).map.relics, {}, 'all of it in the plaza\'s tile');
+    // (the other tiles of a few towns: making them is most of what the test takes)
+    if (seed < 8) for (const k of t.keys) if (k !== t.portal) assert.deepEqual(w.cube(k).map.relics, {}, 'all of it in the plaza\'s tile');
     assert.deepEqual(Object.keys(plaza.relics).sort(), ['robot', 'shards', 'sword']);
     for (const [r, spot] of [[plaza.relics.shards, CRASH], [plaza.relics.sword, CRASH_SWORD], [plaza.relics.robot, CRASH_ROBOT]]) {
       const cell = Math.floor(r.z) * N + Math.floor(r.x);

@@ -211,6 +211,21 @@ npm test
 In a git worktree the server and tests take `assets/` from the main checkout;
 see `docs/combat.md`.
 
+While working on something, run the test files it touches (`node --test tests/town.test.js`);
+the whole suite once at the end, its output kept in a file to read rather than run again
+(`npm test > /tmp/test.log 2>&1; tail -40 /tmp/test.log`).
+
+Making cubes is most of what the tests take, so they share them:
+
+- A check that looks at every cube of whole worlds goes into `tests/sweeps/` (a check of
+  `tests/sweep.js`): each world (`SWEEP_SEEDS`) is made once, in a file of its own
+  (`tests/sweep-<seed>.test.js`), for all those checks.
+- A file's tests that only look at a world share it: `worldOf(seed, opts)` (`tests/worlds.js`).
+  A test that changes a world, or makes its cubes in an order of its own, makes its own.
+- A check over many seeds rarely finds more than one over a few: past failures came from the
+  first two or three seeds. Look at a dozen whole towns, not forty; a count over all of them
+  can stop once it has enough.
+
 ## Blender MCP (Pi)
 
 Pi talks to Blender through the [Blender Lab MCP server](https://projects.blender.org/lab/blender_mcp).

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { N, LH, CHAR_R } from '../src/core/constants.js';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
+import { worldOf } from './worlds.js';
 import { step } from '../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, interiorKey, isInterior, townOf } from '../src/world/town.js';
 
@@ -57,7 +58,7 @@ test('only the houses with a door get an inside: the inn, the blacksmith and the
 test('every house door in town can be walked up to and takes you in, for every exit', () => {
   const exits = new Set();
   for (let seed = 0; seed < 12; seed++) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     exits.add(townOf(seed).exit);
     for (const { d, m } of townDoors(w)) {
       assert.ok(Math.abs(d.nx) + Math.abs(d.nz) === 1, 'doors face along the grid');
@@ -158,7 +159,7 @@ test('interiors sound and look like wood and plaster', () => {
 
 test('inside, the house stands as it does outside: the door on the same side, the way in kept', () => {
   for (let seed = 0; seed < 8; seed++) {
-    const w = new World(seed);
+    const w = worldOf(seed);
     for (const { d } of townDoors(w)) {
       const m = w.cube(d.to).map, inside = m.doors[0], { room, front } = m.interior;
       assert.deepEqual(front.map(Math.round), [d.nx, d.nz].map(Math.round), 'the front faces where the house does');

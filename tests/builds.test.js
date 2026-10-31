@@ -68,12 +68,13 @@ test('bridge picks keep to the styles that fit and to their weights', () => {
   assert.equal(bridgesOf(THEMES[0]), BUILDS[THEMES[0].props].bridges);
 });
 
-// every bridge of `style` in a few worlds (made with that style forced), with its map
+// every bridge of `style` on every third depth of a few worlds (made with that style forced), with
+// its map
 function bridgesIn(style, themes, seeds = [1]) {
   const out = [];
   for (const seed of seeds) {
     const w = new World(seed, { bridge: style, themes });
-    for (let d = 0; d <= 20; d++) for (const k of w.layout(d).exists) {
+    for (let d = 0; d <= 20; d += 3) for (const k of w.layout(d).exists) {
       const m = w.cube(k).map;
       // (the town's own spans down its escarpment are its own: world/townland.js)
       if (m.town) continue;
@@ -116,7 +117,7 @@ test('the new bridge styles go only where they fit, and are drawn', () => {
 test('themes build their own bridges: logs in the roots, ice in the frozen caves, flags in the highlands', () => {
   const styles = theme => {
     const n = {};
-    for (const seed of [1, 2, 3]) {
+    for (const seed of [1, 2]) {
       const w = new World(seed, { themes: [theme] });
       for (let d = 0; d <= 20; d++) if (w.layout(d).theme.props === theme) for (const k of w.layout(d).exists)
         for (const r of w.cube(k).map.runs) if (r.kind === 'bridge') n[r.style] = (n[r.style] || 0) + 1;

@@ -202,6 +202,8 @@
     <div>
       <p lang="en"><code>gs</code>: the cheapest cost found so far to reach each floor. <code>hfn</code>: the hunch, the distance across plus the distance down.</p>
       <p lang="de"><code>gs</code>: die bisher billigsten Kosten, um jeden Boden zu erreichen. <code>hfn</code>: die Ahnung, die Strecke quer plus die Strecke runter.</p>
+      <p lang="en"><code>scratch</code> hands out the same lists for every search, wiped clean: the builder searches thousands of times, and making new lists each time would be slow.</p>
+      <p lang="de"><code>scratch</code> gibt jeder Suche dieselben Listen, frisch geleert: Der Baumeister sucht tausende Male, und jedes Mal neue Listen zu machen wäre langsam.</p>
       <p lang="en"><code>open</code> is a <a class="w" href="words.html#heap">heap</a>: a to-do list that always hands you the item with the smallest number first. The game's heap is in <code>src/core/heap.js</code>, only 30 lines long. The A* in the demo uses it too.</p>
       <p lang="de"><code>open</code> ist ein <a class="w" href="words.html#heap">Heap</a>: eine Aufgabenliste, die dir immer zuerst das Ding mit der kleinsten Zahl gibt. Der Heap des Spiels steht in <code>src/core/heap.js</code> und ist nur 30 Zeilen lang. Das A* in der Demo benutzt ihn auch.</p>
       <p lang="en">See the trick from the last slide? A move already in <code>have</code> costs only <code>0.2</code>. Otherwise it costs its normal <code>cost</code> plus a little random <code>jitter</code>.</p>

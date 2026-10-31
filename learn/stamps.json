@@ -117,7 +117,7 @@
     "src/cubegen/index.js#generate": "465ab03c",
     "src/cubegen/index.js#tryGenerate": "f60c54a2",
     "src/cubegen/reach.js#reachTo": "f03a56c3",
-    "src/cubegen/route.js#search": "cdae09bf",
+    "src/cubegen/route.js#search": "b82d6a8f",
     "src/cubegen/setpieces.js#shapeLake": "563ed8c1",
     "src/cubegen/setpieces.js#shapePeak": "985fef72",
     "src/cubegen/span.js#shapeGorge": "0a70ed9e",

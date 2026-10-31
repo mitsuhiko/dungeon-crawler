@@ -791,9 +791,10 @@ volcanic fire shrine; candles stay as they are, too small for it).
 
 ## Checks
 
-- `tests/trials.test.js`: the plan (seeded, same whatever the exploration order, slots and
-  limits, never in excluded rooms, `from` an ordinary room, nothing falls into a trial room);
-  every kind over many seeds generating with its check passing; resolved rooms walkable both
+- `tests/trials.test.js` (the plan, the floods and the collapses) and `tests/puzzles.test.js`
+  (the puzzles and the other events): the plan (seeded, same whatever the exploration order,
+  slots and limits, never in excluded rooms, `from` an ordinary room, nothing falls into a trial
+  room); every kind over many seeds generating with its check passing; resolved rooms walkable both
   ways; puzzle solvers against known cases; the character walking the checked path of every
   timed event with the real hazard and making it; death and fail going to `from` with the
   room reset; `sunken` stages reachable at every level.

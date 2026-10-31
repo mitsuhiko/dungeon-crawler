@@ -3,11 +3,10 @@
 // keeps its colour. And fires under a trial's water go out (core/douse.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, DIRS, WATER, LAVA, ACID, MUD, drawnFluid } from '../src/core/constants.js';
-import { World } from '../src/world/world.js';
-import { parse, step } from '../src/world/coords.js';
+import { N, WATER, LAVA, ACID } from '../src/core/constants.js';
+import { parse } from '../src/world/coords.js';
 import { worldThemes, MAX_DEPTH } from '../src/themes/depth.js';
-import { worldPalettes, palRow, rowDepth, rowSlot, rowFluid, MUD_ROW, linearToOklch, familyOf, ANCHORS, PAL_ROWS, PAL_SLOTS, HUE, HUE_GAP } from '../src/themes/fluids.js';
+import { worldPalettes, palRow, rowDepth, rowSlot, rowFluid, linearToOklch, familyOf, ANCHORS, PAL_ROWS, PAL_SLOTS, HUE, HUE_GAP } from '../src/themes/fluids.js';
 import { stampFluidBodies } from '../src/cubegen/fluidbodies.js';
 import { doused, douses } from '../src/core/douse.js';
 
@@ -107,47 +106,6 @@ test('a cube\'s fluids: one colour each, running on at the edge, from above, or 
   assert.deepEqual(r.falls[0].pal, [palRow(2, WATER, 0), palRow(3, WATER, 0)]);
 });
 
-test('generated worlds: one colour per fluid in a cube, and whatever crosses a face keeps it on both sides', () => {
-  const bad = [];
-  let crossings = 0, fromAbove = 0;
-  for (const seed of [1, 4]) {
-    const w = new World(seed), rows = worldPalettes(seed, w.layout.themes ?? worldThemes(seed));
-    const body = row => rows[row].hex.body;
-    for (let depth = 0; depth <= 12; depth++) for (const k of w.layout(depth).exists) {
-      const m = w.cube(k).map;
-      // one colour per kind of fluid in a cube, its falls landing in it too (a mud pool: the mud's,
-      // cubegen/mudpools.js)
-      for (const t of [WATER, LAVA, ACID, MUD]) {
-        const rows = new Set([...m.floors.filter(f => f.fluid && drawnFluid(f) === t).map(f => f.pal), ...m.falls.filter(fl => fl.type === t).map(fl => fl.pal[1])]);
-        if (rows.size > 1) bad.push(`${k}: ${rows.size} colours of fluid ${t}`);
-      }
-      for (const f of m.floors) {
-        if (!f.fluid) continue;
-        if (f.pal == null) { bad.push(`${k}: a fluid floor without colours`); continue; }
-        if (f.look === MUD ? f.pal !== MUD_ROW : rowFluid(f.pal) !== f.fluid) bad.push(`${k} (${f.x},${f.z}): another fluid's colours`);
-        const edge = [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0];
-        edge.forEach((on, d) => {
-          if (!on) return;
-          const nk = step(k, d);
-          if (!w.layout(depth).exists.has(nk)) return;
-          const n = w.cube(nk).map, x = (f.x + DIRS[d][0] + N) % N, z = (f.z + DIRS[d][1] + N) % N;
-          const g = n.cols[z * N + x].find(h => h.fluid === f.fluid && h.surf === f.surf);
-          if (g) crossings++;
-          if (g && body(g.pal) !== body(f.pal)) bad.push(`${k} → ${nk} (${f.x},${f.z}): ${body(f.pal)} / ${body(g.pal)}`);
-        });
-      }
-      // a fall from above starts in the colour of the pool it left
-      for (const fl of m.falls.filter(fl => fl.in)) {
-        const up = w.cube(step(k, 5)).map, out = up.falls.find(o => o.out && o.c === fl.c);
-        if (out) fromAbove++;
-        if (out && body(out.pal[0]) !== body(fl.pal[0])) bad.push(`${k}: the fall from above changes colour`);
-      }
-    }
-  }
-  assert.deepEqual(bad, []);
-  assert.ok(crossings > 100 && fromAbove > 3, `${crossings} crossings, ${fromAbove} falls from above checked`);
-});
-
 test('fires go out under water and acid, not under lava, once it stands over a quarter of the flame', () => {
   assert.equal(doused(1, 0.8, null, WATER), false);
   assert.equal(doused(1, 0.8, 1.1, WATER), false);
@@ -158,28 +116,3 @@ test('fires go out under water and acid, not under lava, once it stands over a q
   assert.equal(douses(0), false);
 });
 
-test('no fire stands in a pool, river or lake of water or acid in the ordinary cubes', async () => {
-  const { placeProps } = await import('../src/render/propplace.js');
-  const { props } = await import('../src/core/propcatalog.js');
-  const { themeOf } = await import('../src/themes/depth.js');
-  const { LH } = await import('../src/core/constants.js');
-  const FIRE = new Set(['brazier', 'torch_sconce', 'tiki_torch', 'copal_bowl', 'fire_shrine']);
-  const bad = [];
-  let fires = 0;
-  const w = new World(2);
-  for (let depth = 0; depth <= MAX_DEPTH; depth++) for (const k of w.layout(depth).exists) {
-    const m = w.cube(k).map;
-    if (m.trialRoom) continue;   // (a trial's rising water: render/flames.js douses those)
-    for (const q of placeProps(m, themeOf(m)).out) {
-      const p = props.byName.get(q.name);
-      if (!p || !FIRE.has(p.base)) continue;
-      fires++;
-      const x = Math.floor(q.x), z = Math.floor(q.z);
-      if (x < 0 || z < 0 || x >= N || z >= N) continue;
-      const wet = m.cols[z * N + x].find(f => douses(f.fluid) && f.top * LH <= q.y + 0.01 && f.surf * LH > q.y + 0.05);
-      if (wet) bad.push(`${k} ${q.name} at (${q.x.toFixed(1)}, ${q.y.toFixed(2)}, ${q.z.toFixed(1)})`);
-    }
-  }
-  assert.ok(fires > 20, `${fires} fires checked`);
-  assert.deepEqual(bad, []);
-});

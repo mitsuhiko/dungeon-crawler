@@ -86,21 +86,27 @@ export function reserveSites(ctx) {
     const pin = !first ? null : sp.pinnacle ? { ...sp.pinnacle, fixed: true, ok: c => Math.hypot(c % N - sp.pinnacle.x, Math.floor(c / N) - sp.pinnacle.z) < PINNACLE_TOP, level: ctx.pinnacleTop }
       : ctx.peakTop?.size ? { ok: c => ctx.peakTop.has(c), level: ctx.pinnacleTop }
         : ctx.islet?.size ? { ok: c => ctx.islet.has(c), level: ctx.isletLevel } : null;
+    // (the cells no site takes: another site's, a portal's, the sky's, a spout's)
+    const taken = new Uint8Array(N * N);
+    for (const c of [...occupied, ...portalCells, ...pin ? [] : ctx.sky, ...ctx.spouts.flatMap(s => s.cells)]) taken[c] = 1;
     for (const shape of shapes) for (const layer of pin ? [0] : [...new Set([ctx.K - 1, 0])]) for (let turn = 0; turn < 4; turn++) {
       for (let cz = 2; cz < N - 2; cz++) for (let cx = 2; cx < N - 2; cx++) {
         if (pin?.fixed && (cx !== pin.x || cz !== pin.z)) continue;
-        const site = { ...intent, ...shape, rank, cx, cz, turn, layer }, cells = [];
         const { u0, u1, v0, v1 } = shape;
-        for (let v = v0; v <= v1; v++) for (let u = u0; u <= u1; u++) {
+        // (every cell in the cube but its outer two rings, free, on the pinnacle if there is one,
+        // and on dry solid ground on the lowest layer)
+        let fits = true;
+        for (let v = v0; v <= v1 && fits; v++) for (let u = u0; u <= u1 && fits; u++) {
           const [dx, dz] = rotate(u, v, turn), x = cx + dx, z = cz + dz;
-          if (x < 2 || z < 2 || x >= N - 2 || z >= N - 2) { cells.length = 0; break; }
-          cells.push({ c: idx(x, z), u, v });
+          if (x < 2 || z < 2 || x >= N - 2 || z >= N - 2) fits = false;
+          else { const c = idx(x, z); fits = !taken[c] && (!pin || pin.ok(c)) && (layer || !(ctx.fluid0[c] || ctx.void0[c])); }
         }
-        if (cells.length !== (u1 - u0 + 1) * (v1 - v0 + 1)) continue;
-        if (cells.some(({ c }) => occupied.has(c) || portalCells.has(c) || (!pin && ctx.sky.has(c))
-          || ctx.spouts.some(s => s.cells.includes(c)))) continue;
-        if (pin && cells.some(({ c }) => !pin.ok(c))) continue;
-        if (!layer && cells.some(({ c }) => ctx.fluid0[c] || ctx.void0[c])) continue;
+        if (!fits) continue;
+        const site = { ...intent, ...shape, rank, cx, cz, turn, layer }, cells = [];
+        for (let v = v0; v <= v1; v++) for (let u = u0; u <= u1; u++) {
+          const [dx, dz] = rotate(u, v, turn);
+          cells.push({ c: idx(cx + dx, cz + dz), u, v });
+        }
         // Top-layer platforms preserve fluids/void below; never crush existing ground.
         // (as high as the ground goes on a tableland's shelves, a pinnacle's top and in a large
         // area, where there are no slabs; elsewhere under the first layer)

@@ -2,6 +2,14 @@
 
 See `CONTRIBUTING.md` for the layout and how to run things.
 
+## Tests
+
+The whole suite takes a while: while working, run the test files your change touches
+(`node --test tests/<x>.test.js ...`), and `npm test` once at the end, into a file you read
+(`npm test > /tmp/test.log 2>&1`) rather than again for another part of its output. A new check over
+whole worlds goes into the sweep (`tests/sweeps/`), and a new test reuses the worlds of its file
+(`worldOf`) and looks at a few seeds, not dozens (`CONTRIBUTING.md`, after the commands).
+
 ## Translations
 
 `src/i18n/languages.js` lists the languages and how each keeps up (`docs/i18n.md`). When you change

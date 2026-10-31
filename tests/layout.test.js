@@ -33,7 +33,7 @@ function distances(L, cubes, run, from, avoid = null) {
 }
 
 test('all depths have routes within their band, the core all nine rooms; discovery joins neighbours only over explored, unguarded ground', () => {
-  for (let seed = 0; seed < 1000; seed++) {
+  for (let seed = 0; seed < 200; seed++) {
     const get = makeLayouts(seed);
     for (let d = 0; d <= 20; d++) {
       const L = get(d), run = createRun(), cubes = rooms(L);

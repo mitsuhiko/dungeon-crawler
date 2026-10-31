@@ -8,7 +8,7 @@ export const moveKey = m => m.kind + ':' + Math.min(m.from.id, m.to.id) + ':' + 
 // learn: paths.html#astar #astar-code (see learn/README.md)
 export function search(ctx, from, goal, jitter, have, ok = null) {
   const { SZ, movesFrom } = ctx;
-  const gs = new Float64Array(SZ).fill(Infinity), prev = new Array(SZ).fill(null), closed = new Uint8Array(SZ);
+  const { gs, prev, closed } = scratch(SZ);
   const many = typeof goal === 'function', isGoal = many ? goal : f => f === goal;
   const hfn = many ? () => 0 : f => Math.abs(f.x - goal.x) + Math.abs(f.z - goal.z);
   const open = new Heap();
@@ -31,6 +31,16 @@ export function search(ctx, from, goal, jitter, have, ok = null) {
   const moves = [];
   for (let f = end; f !== from; f = prev[f.id].from) moves.unshift(prev[f.id]);
   return moves;
+}
+
+// A search's arrays (gs all Infinity, prev all null, closed all 0), as long as the cube's nodes
+// and landings: the same ones for every search, set back each time (a search never runs inside
+// another one)
+const lent = { gs: new Float64Array(0), prev: [], closed: new Uint8Array(0) };
+function scratch(SZ) {
+  if (lent.gs.length < SZ) Object.assign(lent, { gs: new Float64Array(SZ), prev: new Array(SZ), closed: new Uint8Array(SZ) });
+  lent.gs.fill(Infinity, 0, SZ); lent.prev.fill(null, 0, SZ); lent.closed.fill(0, 0, SZ);
+  return lent;
 }
 
 export function findRoute(ctx) {
