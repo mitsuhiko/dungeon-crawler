@@ -11,11 +11,11 @@
 // (render/bake.js), and until they are they shine from here instead, fading over to the bake.
 // Elsewhere the glass stands between: they do not reach into the cube played in, nor its lights out.
 import * as THREE from 'three';
-import { BAKE, FAR_MAX, FAR_CELL, FAR_CELLS, FAR_K, farWalk } from './lighthook.js';
+import { BAKE, FAR_MAX, FAR_CELL, FAR_CELLS, FAR_K, FAR_W, FAR_TABLE, farWalk } from './lighthook.js';
 import { nightGlow, litAt } from './night.js';
 import { PROXY } from './materials.js';
 
-const FAR = { uFarT: BAKE.uFarT, uFarC: BAKE.uFarC, uFarO: BAKE.uFarO, uFarN: BAKE.uFarN };
+const FAR = { uFar: BAKE.uFar, uFarO: BAKE.uFarO, uFarN: BAKE.uFarN };
 
 // after three's lights (and the game's, render/lighthook.js): the grid's
 const LOOP = `
@@ -38,7 +38,8 @@ export function farLit(mat) {
     // of three's lights_fragment_begin by now, the material's own edits having run first)
     if (!sh.fragmentShader.includes('#include <lights_fragment_maps>')) return;
     Object.assign(sh.uniforms, FAR);
-    sh.fragmentShader = 'uniform highp sampler2D uFarT, uFarC;\nuniform int uFarN;\nuniform vec2 uFarO;\n' + sh.fragmentShader
+    // (FAR_LIT: render/lighthook.js, run after, neither declares the table again nor walks its own rows)
+    sh.fragmentShader = '#define FAR_LIT\nuniform highp sampler2D uFar;\nuniform int uFarN;\nuniform vec2 uFarO;\n' + sh.fragmentShader
       .replace('#include <lights_fragment_maps>', LOOP + '#include <lights_fragment_maps>');
   };
   mat.customProgramCacheKey = () => key + '|farlit';
@@ -59,7 +60,7 @@ const FADE = 3;
 const shown = [];
 let pool = [];
 const take = () => (pool.pop() ?? {});
-const grid = { ox: NaN, oz: NaN, sig: NaN };
+const grid = { ox: NaN, oz: NaN, sig: NaN, whole: true };   // (whole: the whole texture is still to go up)
 export function setFarLights(cubes, focus, here = null) {
   pool.push(...shown);
   shown.length = 0;
@@ -80,23 +81,32 @@ export function setFarLights(cubes, focus, here = null) {
     cut = Math.sqrt(shown[FAR_MAX].d);
     pool.push(...shown.splice(FAR_MAX));
   }
-  const table = BAKE.uFarT.value, L = table.image.data, count = shown.length;
+  const tex = BAKE.uFar.value, L = tex.image.data, count = shown.length, base = FAR_TABLE * FAR_W * 4;
   let sig = count;
   for (let i = 0; i < count; i++) {
-    const s = shown[i], o = i * 12, c = colorOf(s.l.color), edge = Math.min(1, Math.max(0, (cut - Math.sqrt(s.d)) / FADE)), k = s.k * edge;
+    const s = shown[i], o = base + i * 12, c = colorOf(s.l.color), edge = Math.min(1, Math.max(0, (cut - Math.sqrt(s.d)) / FADE)), k = s.k * edge;
     L[o] = s.x; L[o + 1] = s.y; L[o + 2] = s.z; L[o + 3] = s.l.reach;
     L[o + 4] = c.r * k; L[o + 5] = c.g * k; L[o + 6] = c.b * k; L[o + 7] = 0;
     L[o + 8] = s.prox; L[o + 9] = s.cube; L[o + 10] = 0; L[o + 11] = 0;
     sig = (sig * 31 + Math.round(s.x * 8) * 7 + Math.round(s.z * 8) * 13 + (s.cube > 0 ? 5 : 0)) % 2147483647;
   }
-  if (count || BAKE.uFarN.value) table.needsUpdate = true;
   BAKE.uFarN.value = count;
-  // (the grid: round the hero, laid out again as they walk a cell on, or the lights change)
+  // (the grid: round the hero, laid out again as they walk a cell on, or the lights change; then
+  // the whole texture goes up, else only the table's rows in use)
   const ox = (Math.floor(focus.x / FAR_CELL) - FAR_CELLS / 2) * FAR_CELL, oz = (Math.floor(focus.z / FAR_CELL) - FAR_CELLS / 2) * FAR_CELL;
   if (ox !== grid.ox || oz !== grid.oz || sig !== grid.sig) {
     grid.ox = ox; grid.oz = oz; grid.sig = sig;
     BAKE.uFarO.value.set(ox, oz);
     layGrid(ox, oz, count);
+    tex.clearUpdateRanges();
+    tex.needsUpdate = true;
+    grid.whole = true;
+    tex.onUpdate ??= () => { grid.whole = false; };
+  } else if (count && !grid.whole) {
+    // (a range a row: three.js uploads each within its row)
+    tex.clearUpdateRanges();
+    for (let r = 0; r * FAR_W < count * 3; r++) tex.addUpdateRange(base + r * FAR_W * 4, Math.min(FAR_W, count * 3 - r * FAR_W) * 4);
+    tex.needsUpdate = true;
   }
 }
 
@@ -118,8 +128,8 @@ function layGrid(ox, oz, count) {
       if (s.cube > 0) cells[(FAR_CELLS + cz) * FAR_CELLS + cx].push(i, w);
     }
   }
-  const t = BAKE.uFarC.value, D = t.image.data;
-  D.fill(-1);
+  const D = BAKE.uFar.value.image.data;
+  D.fill(-1, 0, FAR_TABLE * FAR_W * 4);
   const order = [];
   cells.forEach((list, k) => {
     if (!list.length) return;
@@ -129,7 +139,6 @@ function layGrid(ox, oz, count) {
     const row = Math.floor(k / FAR_CELLS), cx = k % FAR_CELLS, o = (row * FAR_CELLS + cx) * FAR_K;
     for (let j = 0; j < Math.min(FAR_K, order.length); j++) D[o + j] = list[order[j]];
   });
-  t.needsUpdate = true;
 }
 
 const colors = new Map();

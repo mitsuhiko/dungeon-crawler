@@ -45,29 +45,36 @@ export const CELLS = 20, CELL0 = -2, CELL_MAX = 16;
 // look alike at any zoom.
 export const EDGE = 0.025;
 
-// a table of lights: two texels a light (x, y, z, reach; r, g, b, channel); `wide` texels a light
-export function lightTable(n, wide = 2) {
-  const t = new THREE.DataTexture(new Float32Array(n * wide * 4), wide, n, THREE.RGBAFormat, THREE.FloatType);
+// a table of lights: two texels a light (x, y, z, reach; r, g, b, channel)
+export function lightTable(n) {
+  const t = new THREE.DataTexture(new Float32Array(n * 8), 2, n, THREE.RGBAFormat, THREE.FloatType);
   t.minFilter = t.magFilter = THREE.NearestFilter;
   t.needsUpdate = true;
   return t;
 }
 
 // The surroundings' lights (render/farlights.js fills them): every light of the cubes shown round
-// the one played in (and in the town that one's own too), in one table of FAR_MAX at most, three
-// texels a light (x, y, z, reach; r, g, b as bright as it is; how bright on the surroundings, how
-// bright in the cube played in, 0, 0), and a grid over the world round the hero (FAR_CELLS cells of
-// FAR_CELL a side from uFarO), each cell with the lights that reach into it, the strongest first,
-// FAR_K at most: its first FAR_CELLS rows the lights the surroundings take, the next the ones the
-// cube played in takes (in the town, its neighbours' across the seams). A point walks its cell's
-// only: however many lights there are, a point takes a dozen at most.
+// the one played in (and in the town that one's own too), FAR_MAX at most, and a grid over the
+// world round the hero (FAR_CELLS cells of FAR_CELL a side from uFarO), each cell with the lights
+// that reach into it, the strongest first, FAR_K at most: its first FAR_CELLS rows the lights the
+// surroundings take, the next the ones the cube played in takes (in the town, its neighbours'
+// across the seams). A point walks its cell's only: however many lights there are, a point takes
+// a dozen at most. Grid and table share one texture, FAR_W texels wide (a lit material has no
+// sampler to spare: a fragment shader takes 16 at most, and a lightmapped solid that is wet and
+// under water comes close; with one more it is not drawn at all): the grid's rows first (four lights a texel, -1: no more), then from
+// row FAR_TABLE on the table, three texels a light, one after the other across the rows (x, y, z,
+// reach; r, g, b as bright as it is; how bright on the surroundings, how bright in the cube played
+// in, 0, 0).
 export const FAR_MAX = 512, FAR_CELL = 2, FAR_CELLS = 48, FAR_K = 12;
-const farGrid = () => {
-  const t = new THREE.DataTexture(new Float32Array(FAR_CELLS * FAR_K * FAR_CELLS * 2).fill(-1), FAR_CELLS * FAR_K / 4, FAR_CELLS * 2, THREE.RGBAFormat, THREE.FloatType);
+export const FAR_W = FAR_CELLS * FAR_K / 4, FAR_TABLE = FAR_CELLS * 2, FAR_ROWS = FAR_TABLE + Math.ceil(FAR_MAX * 3 / FAR_W);
+const farTexture = () => {
+  const t = new THREE.DataTexture(new Float32Array(FAR_W * FAR_ROWS * 4).fill(-1, 0, FAR_W * FAR_TABLE * 4), FAR_W, FAR_ROWS, THREE.RGBAFormat, THREE.FloatType);
   t.minFilter = t.magFilter = THREE.NearestFilter;
   t.needsUpdate = true;
   return t;
 };
+// (texel k of light i in the table)
+const farLight = (i, k) => `texelFetch(uFar, ivec2((${i} * 3 + ${k}) % ${FAR_W}, ${FAR_TABLE} + (${i} * 3 + ${k}) / ${FAR_W}), 0)`;
 // the walk over a point's cell (at world point `w`): `proxy` the surroundings' rows (each light as
 // bright as on the surroundings), else the cube played in's
 export const farWalk = (w, proxy) => `
@@ -76,15 +83,15 @@ export const farWalk = (w, proxy) => `
     if (uFarN > 0 && all(greaterThanEqual(farC, ivec2(0))) && all(lessThan(farC, ivec2(${FAR_CELLS})))) {
       int farRow = farC.y${proxy ? '' : ` + ${FAR_CELLS}`};
       for (int j = 0; j < ${FAR_K / 4}; j++) {
-        vec4 ids = texelFetch(uFarC, ivec2(farC.x * ${FAR_K / 4} + j, farRow), 0);
+        vec4 ids = texelFetch(uFar, ivec2(farC.x * ${FAR_K / 4} + j, farRow), 0);
         ${['x', 'y', 'z', 'w'].map(c => `if (ids.${c} < 0.0) break;
         {
           int i = int(ids.${c});
-          vec4 la = texelFetch(uFarT, ivec2(0, i), 0);
+          vec4 la = ${farLight('i', 0)};
           vec3 lw = la.xyz - ${w};
           float d2 = dot(lw, lw);
           if (d2 < la.w * la.w) {
-            vec4 lb = texelFetch(uFarT, ivec2(1, i), 0), lc = texelFetch(uFarT, ivec2(2, i), 0);
+            vec4 lb = ${farLight('i', 1)}, lc = ${farLight('i', 2)};
             float r = sqrt(d2) / la.w, r2 = r * r;
             directLight.direction = normalize((viewMatrix * vec4(lw, 0.0)).xyz);
             directLight.color = lb.rgb * ${proxy ? 'lc.x' : 'lc.y'} / max(d2, 0.01) * (1.0 - r2 * r2) * (1.0 - r2 * r2);
@@ -134,8 +141,7 @@ export const BAKE = {
   uMoveN: { value: 0 },                        // how many moving lights
   uMoveT: { value: lightTable(MAX_MOVING) },   // their table (x, y, z in the world; channel unused)
   uFarN: { value: 0 },                         // how many of the surroundings' lights (render/farlights.js)
-  uFarT: { value: lightTable(FAR_MAX, 3) },    // their table (x, y, z in the world)
-  uFarC: { value: farGrid() },                 // the lights each cell of the world round the hero takes
+  uFar: { value: farTexture() },               // the lights each cell of the world round the hero takes, and their table
   uFarO: { value: new THREE.Vector2() },       // where its grid begins (x, z in the world)
   uBakeDbg: { value: 0 },                      // dev (/lightview): 1 the sun's baked shadow, 2 the fixed lights' light, 3 the lightmap's texels
 };
@@ -153,9 +159,13 @@ const sets = f => Array.from({ length: SETS }, (_, i) => f(i)).join('');
 const HEAD = `
 #ifndef NO_BAKE
 uniform float uBakeOn, uBakeR, uBakeDbg, uBakeK;
-uniform int uBakeN, uMoveN, uFarN;
-uniform highp sampler2D uBakeT, uMoveT, uBakeC, uFarT, uFarC;
+uniform int uBakeN, uMoveN;
+uniform highp sampler2D uBakeT, uMoveT, uBakeC;
+#ifndef FAR_LIT
+uniform int uFarN;
+uniform highp sampler2D uFar;
 uniform vec2 uFarO;
+#endif
 uniform vec3 uBakeO;
 uniform float uBakeSunT;
 uniform vec2 uBakeEdge;
@@ -324,8 +334,11 @@ const LOOP = `
         if (bakeDone) break;
       }`).join('\n      ')}
     }
-    // the surroundings' lights that shine in here (in the town: its tiles round it, across the seams)
+    // the surroundings' lights that shine in here (in the town: its tiles round it, across the seams;
+    // not on what stands in the surroundings, render/farlights.js farLit: it walks their rows)
+    #ifndef FAR_LIT
     ${farWalk('bakeW', false)}
+    #endif
   }
 #endif
 `;
