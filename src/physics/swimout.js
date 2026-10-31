@@ -3,9 +3,10 @@
 // standing water (a trial's, a boss's) may stand anywhere: a body swimming in one with nowhere to
 // climb out is pulled out by the robot (game/rescue.js). From the swimmer's cell over the cells
 // where the water is as deep, to a cell whose ground a swimmer steps up onto that is not as deep
-// (or a ladder out of the water). A wall more than a swimmer's step over the feet is no way.
-import { N, STEP, SWIM_STEP, SWIM_FEET, DIRS } from '../core/constants.js';
-import { groundAt } from './collide.js';
+// (or a ladder out of the water). A wall more than a swimmer's step over the feet is no way, nor
+// is a bank with no room for the body over it (a bridge's deck low over a ditch).
+import { N, STEP, SWIM_STEP, SWIM_FEET, CHAR_H, DIRS } from '../core/constants.js';
+import { groundAt, ceilingAt } from './collide.js';
 import { swimWater, wadeable, peril } from './fluid.js';
 import { state } from '../game/state.js';
 
@@ -33,15 +34,16 @@ export function wayOut(x, z, surface, map = state.map) {
       const n = nz * N + nx;
       if (wet.has(n)) continue;
       // (just over the edge into it: a bank sloping up from the water is climbed out onto at its edge)
-      const g = under(cx + 0.5 + dx * 0.6, cz + 0.5 + dz * 0.6, feet);
+      const px = cx + 0.5 + dx * 0.6, pz = cz + 0.5 + dz * 0.6, g = under(px, pz, feet);
       if (!g.s || !Number.isFinite(g.h)) continue;
       const w = swimWater(g, SWIM_FEET - 0.02);
       if (w !== null) {
         if (Math.abs(w - surface) < 0.3) { wet.add(n); queue.push(n); }
         continue;
       }
-      // ground to stand on: not under lava or acid, not a hole (it falls on to something lower)
-      if (g.h >= feet - 0.05 && !peril(g, g.h + 0.01) && wadeable(g, true)) return true;
+      // ground to stand on: not under lava or acid, not a hole (it falls on to something lower),
+      // with room to stand up on it
+      if (g.h >= feet - 0.05 && !peril(g, g.h + 0.01) && wadeable(g, true) && ceilingAt(px, pz, g.h + 0.05) >= g.h + CHAR_H) return true;
     }
   }
   return false;

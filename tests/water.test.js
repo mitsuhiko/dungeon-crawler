@@ -9,6 +9,7 @@ import { groundAt } from '../src/physics/collide.js';
 import { inFluid, wading, wadeable, tooDeep, peril, swimWater, setTide } from '../src/physics/fluid.js';
 import { climb } from '../src/physics/climb.js';
 import { wayOut } from '../src/physics/swimout.js';
+import { isCramped } from '../src/cubegen/reach.js';
 import { flight, along, RESCUE, CARRIED_H, shareOf, FALL_SHARE, lossOf } from '../src/core/rescue.js';
 
 function bank(dx = 1, dz = 0, fluid = WATER) {
@@ -261,6 +262,26 @@ test('a way out of the water: a bank to climb onto, or none', () => {
   state.map.ladders = [{ c: water.c, x: 6, z: 5, d: 1, y0: water.top * LH, y1: 1, wet: water.surf * LH, lo: water.id, hi: 0 }];
   assert.equal(wayOut(6.5, 5.5, water.surf * LH), true, 'up a ladder');
   state.map.ladders = [];
+});
+
+test('a bank under a bridge\'s deck with no room to stand up is no way out of the water', () => {
+  const water = bank(), m = state.map, ground = m.floors[5 * N + 5];
+  // the bank at (5, 5) is the only one: the rest walled in a level and a half over the water
+  for (const f of m.floors) if (f !== water && f !== ground) Object.assign(f, { top: 2, cs: Array(4).fill(1) });
+  const ctx = { ...m, nextAbove: () => null };
+  assert.equal(wayOut(6.5, 5.5, water.surf * LH), true);
+  assert.equal(isCramped(ctx, ground), false);
+  // a bridge across it two levels over the bank (cubegen/moves.js: the lowest a bridge goes over ground)
+  const run = { kind: 'bridge', y0: 2 * LH, y1: 2 * LH, sag: 0, k: 1 };
+  const deck = { kind: 'bridge', c: ground.c, j: 0, dx: 0, dz: 1, run, base: 2 * LH - 0.4 };
+  m.pieces[ground.c].push(deck);
+  assert.equal(wayOut(6.5, 5.5, water.surf * LH), false, 'the body does not fit under it');
+  assert.equal(isCramped(ctx, ground), true);
+  // three levels over it there is room
+  run.y0 = run.y1 = 3 * LH;
+  assert.equal(wayOut(6.5, 5.5, water.surf * LH), true);
+  assert.equal(isCramped(ctx, ground), false);
+  m.pieces[ground.c] = [];
 });
 
 test('the robot\'s flight: up out of it, over to the spot under the roof, as long as it takes', () => {

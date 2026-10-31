@@ -5,16 +5,45 @@
 // final slopes and fences; before smoothing only level ground and one-level steps count.
 import { N, LH, WATER, DIRS, OPP, EDGE_CORNERS, CHAR_H, SWIM_STEP, SWIM_FEET } from '../core/constants.js';
 import { idx, inb, edgeKey } from '../core/util.js';
+import { runY } from '../core/surfaces.js';
 
 const ONE_WAY = new Set(['walk', 'drop', 'jump']);
 const level = f => f.fluid ? f.surf : f.top;
 
-// smoothing can pull a corner up into the room under the floor above: too low to stand
-export const isCramped = (ctx, f) => { const a = !f.landing && ctx.nextAbove(f); return !!a && Math.max(...f.cs) + CHAR_H + 0.02 > a.bottom * LH; };
+// the underside of structure piece p over its cell (as physics/collide.js pieceBottom: a bridge's
+// deck 0.2 under its top)
+const pieceUnder = p => p.kind === 'bridge' ? Math.min(...[[0, 0], [1, 0], [0, 1], [1, 1]].map(([u, v]) => runY(p, u, v))) - 0.2 : p.base;
+
+// smoothing can pull a corner up into the room under the floor above: too low to stand; and a
+// structure may hang too low over a floor (a bridge's deck two levels over a ditch under it)
+export const isCramped = (ctx, f) => {
+  if (f.landing) return false;
+  const a = ctx.nextAbove(f), head = Math.max(...f.cs) + CHAR_H + 0.02, low = Math.min(...f.cs) + 0.05;
+  if (a && head > a.bottom * LH) return true;
+  return !f.fluid && (ctx.pieces?.[f.c] || []).some(p => {
+    if (p.kind === 'pillar') return false;
+    const b = pieceUnder(p);
+    return b > low && b < head;   // (one standing on the floor, a supported stair, is not over it)
+  });
+};
+
+// before the structures are built: the cells under the decks of the bridges the moves take, at
+// the deck's lowest level (cubegen/moves.js: at least two levels over the ground under it, where
+// the body does not fit under the deck)
+function bridgeDecks(moves) {
+  const decks = new Map();
+  for (const m of moves) if (m.kind === 'bridge') for (const c of m.cells) {
+    const h = Math.min(m.from.top, m.to.top);
+    if (!(decks.get(c) <= h)) decks.set(c, h);
+  }
+  return decks;
+}
 
 export function graph(ctx, real) {
   const { cols, floors, headOK, moves, fences } = ctx, adj = new Map();
-  const memo = new Map(), cramped = f => real && (memo.get(f) ?? memo.set(f, isCramped(ctx, f)).get(f));
+  const memo = new Map(), decks = !real && bridgeDecks(moves);
+  const cramped = f => real ? (memo.get(f) ?? memo.set(f, isCramped(ctx, f)).get(f))
+    : !f.fluid && !f.landing && decks.has(f.c) && decks.get(f.c) > f.top && decks.get(f.c) - f.top <= 2;
   const stand = f => !f.siteBlocked && (!f.fluid || f.fluid === WATER) && !cramped(f);
   const add = (a, b) => { if (cramped(a) || cramped(b)) return; let s = adj.get(a.id); if (!s) adj.set(a.id, s = []); s.push(b); };
   const fenced = (f, n, h) => real && (fences.get(edgeKey(f.x, f.z, n % N, (n / N) | 0)) || []).some(e => e.ymin < h + 0.6 && e.ymax > h - 0.6);

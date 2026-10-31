@@ -569,7 +569,8 @@ The other kinds: [sword](img/loadout-sword.jpg),
   for a while, fainter as they dry (brown out of Sollmeldon's mud: `render/footprints.js`). A ladder
   out of the water (`wet`, [world.md](world.md#the-way-down-cubegenroutejs-cubegenreachjs-cubegenescapejs))
   is taken hold of swimming. The generator gives every water a way out; where a standing water (a
-  trial's, a boss's) leaves none (`physics/swimout.js wayOut`, looked for twice a second), the robot
+  trial's, a boss's) leaves none (`physics/swimout.js wayOut`, looked for twice a second: a bank a
+  swimmer steps onto, with room to stand up on it, not under a bridge's low deck), the robot
   carries them out after 2 s; with no robot yet they tire, and drown after 8 s. So do they with the
   robot along when it cannot take them out (nowhere safe to go, or in his mud too little health
   left for its share): it tries again twice a second while they tire.
