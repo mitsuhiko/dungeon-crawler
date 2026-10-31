@@ -161,10 +161,12 @@ const placeMatrix = (q, target) => q.matrix ? target.fromArray(q.matrix) : propM
 // normal, color (vertex colour times the part's colour), glow (its emissive light times `glow`)
 // and pane (1: a house's window, lit at night only; the batch's shader lights it, and a night
 // lamp's glass, as the night goes: render/night.js), so glowing windows and braziers still glow
-// in the surroundings.
+// in the surroundings. Indexed as the prop's parts are (a corner shared by its triangles is drawn
+// once: about a quarter fewer than with every triangle's own).
 export function propBatchGeometry(p, glow = 1) {
-  const parts = (p.wholeParts ?? p.parts).map(({ geometry, material }) => {
-    const g = geometry.index ? geometry.toNonIndexed() : geometry.clone(), n = g.attributes.position.count;
+  const list = p.wholeParts ?? p.parts, indexed = list.every(({ geometry }) => geometry.index);
+  const parts = list.map(({ geometry, material }) => {
+    const g = indexed || !geometry.index ? geometry.clone() : geometry.toNonIndexed(), n = g.attributes.position.count;
     const base = material.color || new THREE.Color(1, 1, 1), isPane = isWindow(material) ? 1 : 0;
     const light = (material.emissive || new THREE.Color(0, 0, 0)).clone().multiplyScalar((material.emissiveIntensity ?? 1) * glow);
     const src = g.attributes.color, color = new Float32Array(n * 3), lit = new Float32Array(n * 3), panes = new Float32Array(n).fill(isPane);
@@ -179,12 +181,13 @@ export function propBatchGeometry(p, glow = 1) {
     out.setAttribute('color', new THREE.Float32BufferAttribute(color, 3));
     out.setAttribute('glow', new THREE.Float32BufferAttribute(lit, 3));
     out.setAttribute('pane', new THREE.Float32BufferAttribute(panes, 1));
+    if (indexed) out.setIndex(new THREE.BufferAttribute(g.index.array.slice(), 1));
     g.dispose();
     return out;
   });
   const merged = mergeGeometries(parts);
   parts.forEach(g => g.dispose());
-  merged.setIndex([...Array(merged.attributes.position.count).keys()]);
+  if (!indexed) merged.setIndex([...Array(merged.attributes.position.count).keys()]);
   return merged;
 }
 

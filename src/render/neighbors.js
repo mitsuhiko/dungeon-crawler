@@ -205,8 +205,13 @@ function batchFor(part) {
 }
 function landmarkBatch() {
   let b = batches.get('landmark');
-  if (!b) batches.set('landmark', b = new Batch(new THREE.MeshLambertMaterial({ vertexColors: true, color: PROXY.tint, side: THREE.DoubleSide }),
-    0, 'proxy-landmark', glowing));
+  if (!b) {
+    batches.set('landmark', b = new Batch(new THREE.MeshLambertMaterial({ vertexColors: true, color: PROXY.tint, side: THREE.DoubleSide }),
+      0, 'proxy-landmark', glowing));
+    // (thousands of them in the town's tiles, most of them small: each culled on its own, the
+    // view taking in only a part of a tile)
+    b.mesh.perObjectFrustumCulled = true;
+  }
   return b;
 }
 let glass = null;
@@ -214,7 +219,30 @@ const glassFor = () => {
   if (!glass) { glass = glassBatch(0.6); scene.add(...glass.objects); }
   return glass;
 };
-const landmarkGeometry = new Map();   // prop name -> geometry id in the landmark batch (kept)
+const landmarkGeometry = new Map();   // prop name -> { id: geometry id in the landmark batch, size, glows } (kept)
+// A prop's geometry in the landmark batch, once: how big it is (its largest side) and whether it
+// glows (a lamp, a window: never left out, DRESSING)
+function landmarkOf(name, p) {
+  let e = landmarkGeometry.get(name);
+  if (!e) {
+    const geometry = propBatchGeometry(p);
+    geometry.computeBoundingBox();
+    const s = geometry.boundingBox.getSize(new THREE.Vector3());
+    landmarkGeometry.set(name, e = { id: landmarkBatch().addGeometry(geometry), size: Math.max(s.x, s.y, s.z),
+      glows: geometry.attributes.glow.array.some(v => v > 0) || geometry.attributes.pane.array.some(v => v > 0) });
+  }
+  return e;
+}
+
+// The small dressing of the surroundings (flowers, grass, stones, little clutter: what shows
+// smaller than DRESSING, glowing nothing) only within `dressing` of the hero, fading out over
+// DRESSING_FADE: the quality level's (game/quality.js LOOKS `dressing`). In the town's tiles round
+// the one played in it is most of what they draw (about 40% of their triangles in 70% of their
+// props): the lower levels leave the far part of it out. Nothing compiles: they only are not drawn.
+const DRESSING = 1, DRESSING_FADE = 4;
+let dressing = Infinity;
+const hero = { x: N / 2, z: N / 2 }, faded = [0, 0, 0, 0];
+export function setProxyDressing(reach) { dressing = reach; }
 
 // A cube as it will be a proxy, ahead, for its shaders to be compiled (render/cubeassets.js):
 // its parts go into their batches now (cached like a proxy's that went, render/warmup.js entries
@@ -231,8 +259,7 @@ export function proxyWarmup(geo, landmarks = []) {
   }
   for (const L of landmarks) {
     const p = props.byName.get(L.name);
-    if (!p?.parts || landmarkGeometry.has(L.name)) continue;
-    landmarkGeometry.set(L.name, landmarkBatch().addGeometry(propBatchGeometry(p)));
+    if (p?.parts) landmarkOf(L.name, p);
   }
   if (landmarkGeometry.size) out.push(landmarkBatch().mesh);
   return [...out, ...glassFor().objects];
@@ -283,12 +310,13 @@ function addLandmarks(g) {
   for (const L of g.landmarks) {
     const p = props.byName.get(L.name);
     if (!p?.parts) continue;
-    const batch = landmarkBatch();
-    if (!landmarkGeometry.has(L.name)) landmarkGeometry.set(L.name, batch.addGeometry(propBatchGeometry(p)));
-    const id = batch.addInstance(landmarkGeometry.get(L.name));
+    const batch = landmarkBatch(), e = landmarkOf(L.name, p);
+    const id = batch.addInstance(e.id);
     batch.setLamp(id, glowSeed(L), !!L.night);
     // (a garland's segment: its own matrix, sheared along its sag, world/town.js)
-    g.instances.push({ batch, id, local: L.matrix ? new THREE.Matrix4().fromArray(L.matrix) : propMatrix(L), at: null });
+    const local = L.matrix ? new THREE.Matrix4().fromArray(L.matrix) : propMatrix(L);
+    const small = !e.glows && !L.night && e.size * (L.s ?? 1) < DRESSING;
+    g.instances.push({ batch, id, local, at: null, dressing: small ? new THREE.Vector3().setFromMatrixPosition(local) : null });
   }
 }
 
@@ -376,6 +404,7 @@ export function tickNeighbors(dt) {
 // whole cubes, then writes every proxy into the batches (sync).
 // floor: the lowest height the player reveal may cut proxies at (see REVEAL)
 export function cullNeighbors(x, z, revealPlayer = true, enabled = true, floor = -1e3) {
+  hero.x = x; hero.z = z;
   reveal.value = revealPlayer ? 1 : 0;
   revealFloor.value = floor;
   camera.updateMatrixWorld();
@@ -410,13 +439,27 @@ function sync() {
     for (const inst of g.instances) {
       const moved = !inst.at || !inst.at.equals(position);
       if (moved) { inst.at = position.clone(); place.makeTranslation(position.x, position.y, position.z).multiply(inst.local); }
-      inst.batch.set(inst.id, moved ? place : null, fade, shown);
+      const near = instanceFade(g, inst);
+      if (near < 1) { faded[0] = fade[0]; faded[1] = fade[1]; faded[2] = fade[2] * near; faded[3] = fade[3]; }
+      inst.batch.set(inst.id, moved ? place : null, near < 1 ? faded : fade, shown && near > 0);
     }
     if (shown) boxes.push({ position, fade, state: g.glass });
   }
   for (const b of batches.values()) b.commit();
   if (live.size || glass) glassFor().update(boxes);
 }
+
+// how far a small thing of the surroundings shows (1: all of it, 0: not at all; in steps of a
+// 16th, the dither's, so its fade is written again only when that changes), at `at` in its cube
+// placed at `position`
+function dressingFade(position, at) {
+  if (dressing === Infinity) return 1;
+  const d = Math.hypot(position.x + at.x - hero.x, position.z + at.z - hero.z);
+  return Math.round(Math.min(1, Math.max(0, (dressing - d) / DRESSING_FADE)) * 16) / 16;
+}
+// how far an instance of proxy g shows on top of its proxy's fades (1 but for the small dressing
+// near the edge of its reach; the checks too, tests/browser/neighbor.js)
+export const instanceFade = (g, inst) => inst.dressing && g.cull.visible && g.group.visible ? dressingFade(g.group.position, inst.dressing) : 1;
 
 export const neighborStats = () => {
   const visible = [...live].filter(g => g.cull.visible && g.group.visible).length;

@@ -13,7 +13,7 @@ import { buildWorld, disposeWorld } from '../../src/render/world.js';
 import { setFade } from '../../src/render/fade.js';
 import { U } from '../../src/render/cutshader.js';
 import { buildNeighbors, disposeNeighbors, detachNeighbors, adoptNeighbors, showNeighbors,
-  clearNeighbors, clearNeighborCache, cullNeighbors, tickNeighbors, neighborStats, liveNeighbors } from '../../src/render/neighbors.js';
+  clearNeighbors, clearNeighborCache, cullNeighbors, tickNeighbors, neighborStats, liveNeighbors, instanceFade } from '../../src/render/neighbors.js';
 import { paused } from './combat.js';
 
 const check = (condition, message) => { if (!condition) throw Error(message); };
@@ -233,13 +233,15 @@ function integrity(state, label, sliding = false) {
       check(info?.active, `${label}: ${g.key} instance ${i} inactive`);
       if (i < g.geometry.parts.length) check(info.geometryIndex === g.geometry.parts[i].id, `${label}: ${g.key} instance ${i} draws another geometry`);
       check(inst.batch.mesh._geometryInfo[info.geometryIndex].active, `${label}: ${g.key} instance ${i} geometry deleted`);
-      check(info.visible === shown, `${label}: ${g.key} instance ${i} visible ${info.visible}, proxy ${shown}`);
+      // (the small dressing only near the hero: render/neighbors.js instanceFade)
+      const near = instanceFade(g, inst);
+      check(info.visible === (shown && near > 0), `${label}: ${g.key} instance ${i} visible ${info.visible}, proxy ${shown}, near ${near}`);
       const m = new THREE.Matrix4(); inst.batch.mesh.getMatrixAt(inst.id, m);
       const at = new THREE.Vector3().setFromMatrixPosition(m), want = new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().makeTranslation(g.group.position).multiply(inst.local));
       check(at.distanceTo(want) < 1e-4, `${label}: ${g.key} instance ${i} at ${at.toArray()}, proxy at ${g.group.position.toArray()}`);
       const d = inst.batch.data.value.image.data, u = g.group.userData;
       const f = Math.fround;
-      check(d[inst.id * 4] === f(u.fadeU.value) && d[inst.id * 4 + 1] === f(u.fadeInv.value) && d[inst.id * 4 + 2] === f(u.rangeFadeU.value), `${label}: ${g.key} instance ${i} fade out of date`);
+      check(d[inst.id * 4] === f(u.fadeU.value) && d[inst.id * 4 + 1] === f(u.fadeInv.value) && d[inst.id * 4 + 2] === f(u.rangeFadeU.value * near), `${label}: ${g.key} instance ${i} fade out of date`);
       batches.set(inst.batch, (batches.get(inst.batch) || 0) + (info.visible ? 1 : 0));
       // the batch still holds this cube's arrays where its draw range says
       if (i < g.geometry.parts.length) {
@@ -256,11 +258,15 @@ function integrity(state, label, sliding = false) {
   }
   // what the GPU is told to draw (BatchedMesh builds its draw list when it renders)
   renderer.render(scene, camera);
+  const viewFrustum = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse), camera.coordinateSystem, camera.reversedDepth);
   for (const [batch, visible] of batches) {
     const mesh = batch.mesh, drawn = mesh._instanceInfo.filter(i => i.active && i.visible).length;
     check(drawn === visible, `${label}: a batch draws ${drawn} instances, the proxies show ${visible}`);
     if (!mesh.visible) { check(!visible, `${label}: a hidden batch with ${visible} shown instances`); continue; }
-    check(mesh._multiDrawCount === visible, `${label}: ${batch.part?.name || 'landmark'} draw list has ${mesh._multiDrawCount} of ${visible}`);
+    // (the landmarks' batch culls each instance against the view: those in it)
+    const inView = !mesh.perObjectFrustumCulled ? visible : mesh._instanceInfo.filter((info, id) => info.active && info.visible
+      && viewFrustum.intersectsSphere(mesh.getBoundingSphereAt(info.geometryIndex, new THREE.Sphere()).applyMatrix4(mesh.getMatrixAt(id, new THREE.Matrix4()).premultiply(mesh.matrixWorld)))).length;
+    check(mesh._multiDrawCount === inView, `${label}: ${batch.part?.name || 'landmark'} draw list has ${mesh._multiDrawCount} of ${inView}`);
     const bpe = mesh.geometry.index.array.BYTES_PER_ELEMENT, ids = mesh._indirectTexture.image.data;
     for (let k = 0; k < mesh._multiDrawCount; k++) {
       const info = mesh._instanceInfo[ids[k]], geo = mesh._geometryInfo[info.geometryIndex];

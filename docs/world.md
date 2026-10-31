@@ -1618,7 +1618,9 @@ falls pour there too, and a new part or fluid shows in both or neither.
 `render/neighbors.js` draws every proxy as instances in shared `BatchedMesh`es, one per part
 plus one for all landmarks (the only props shown; their glowing parts still glow, dimmed with the
 cube, the town's windows and street lamps lit at night as in the cube played in), without
-enemies, lights or shadows. Every proxy's glass box is one instanced draw for the panes and one
+enemies, lights or shadows. The landmarks' batch culls each of its props against the view on
+its own, and the small ones (the town's flowers and grass) show only within the quality level's
+reach of the hero (docs/lighting.md, `dressing`). Every proxy's glass box is one instanced draw for the panes and one
 for the outlines (`render/glass.js glassBatch`). All the surroundings take at most a dozen draw
 calls, however many cubes they are. A proxy's fades (travel dissolve, inverted cross-fade and
 distance) live per instance in a small data texture of each batch; its `group` is a stand-in

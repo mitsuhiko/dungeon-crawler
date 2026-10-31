@@ -1,4 +1,5 @@
 // Entry point: load the first cube and run the frame loop.
+import './render/gpumem.js';   // (first: ?perf=1 counts what WebGL holds from the start, render/gpumem.js)
 import './render/lighthook.js';   // (first: every lit material takes the fixed lights, render/lighthook.js)
 import { playSplash, splashCovers } from './game/splash.js';   // (early: its input comes before the game's)
 import { playFilm, filmCovers, filmNow } from './film/player.js';   // (early too: the same)

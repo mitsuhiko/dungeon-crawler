@@ -33,6 +33,7 @@ import { renderer, sun } from './scene.js';
 import { BAKE, MAX_BAKED, SETS, NO_SUN, NO_VOL, lightTable, CELLS, CELL0, CELL_MAX, EDGE } from './lighthook.js';
 import { lightCells as cellsOf } from '../core/lightcells.js';
 import { NOON, NOON_KEY } from '../core/daycycle.js';
+import { small } from './device.js';
 
 const NEAR = 0.3;               // a light's shadow starts this far from it (not its own lamp's frame)
 const CHANNELS = SETS * 4 - 1;  // channels for lights (the lightmap's first is not used: the sun has its own)
@@ -41,10 +42,9 @@ const CHANNELS = SETS * 4 - 1;  // channels for lights (the lightmap's first is 
 // curtain (game/hud.js), where nothing else is drawn meanwhile (main.js)
 const STEPS = 4, BUDGET = 3, HIDDEN_STEPS = 16, HIDDEN_BUDGET = 12;
 const FADE_IN = 350;            // ms: a cube's lights and baked shadows come on over this, once baked
-// where the screen is touched (phones, tablets): fewer bakes kept (memory: ~10-28 MB each)
-const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-const CACHE = touch ? 1 : 3;    // bakes of cubes no longer shown, kept to be taken again
-export const AHEAD = touch ? 1 : 3;   // cubes next door baked ahead (game/bakeahead.js)
+// on a small device (phones, tablets: render/device.js) fewer bakes kept (memory: ~10-28 MB each)
+const CACHE = small ? 1 : 3;    // bakes of cubes no longer shown, kept to be taken again
+export const AHEAD = small ? 1 : 3;   // cubes next door baked ahead (game/bakeahead.js)
 
 // How finely a cube is baked (game/quality.js: for the cube baked next; the lightmap's texels
 // a unit are the world worker's, chosen when the world starts: bakeDensity):
@@ -60,8 +60,13 @@ export const BAKE_DETAIL = {
   light: { sunMap: 1024, cubeMap: 512, voxel: 2, density: 8, sunLm: 1 },
   lighter: { sunMap: 1024, cubeMap: 512, voxel: 0, density: 8, sunLm: 1 },
 };
-let detail = BAKE_DETAIL.full;
-export function setBakeDetail(name) { detail = BAKE_DETAIL[name] ?? BAKE_DETAIL.full; }
+// (a small device bakes no finer than `light`, on any level: render/device.js)
+const finest = small ? BAKE_DETAIL.light : BAKE_DETAIL.full;
+let detail = finest;
+export function setBakeDetail(name) {
+  detail = BAKE_DETAIL[name] ?? BAKE_DETAIL.full;
+  if (detail.sunMap > finest.sunMap) detail = finest;
+}
 export const bakeDensity = () => detail.density;
 
 // the bakes of the cubes built (their lights follow them every frame: updateBakes)
@@ -765,7 +770,7 @@ const keyOf = (S, k) => k && { id: `${k.id}#${S.gen}`, dir: k.dir };
 function stopSunJob(S) { S.job?.return(); S.job = null; S.jobId = null; }
 function dropSunKey(e) {
   e.lm?.dispose();
-  if (e.map) { e.map.depthTexture?.dispose(); e.map.dispose(); }
+  e.map?.dispose();
 }
 function releaseSun(S) {
   stopSunJob(S);
@@ -782,7 +787,8 @@ function sunTarget(w, h) {
 // One of the sun's places baked (the steps of a bake, or tickBakes's for the places to come): its
 // shadow map of the fixed parts (size² 16-bit depth, its colour let go: kept for what is not
 // lightmapped), then its lightmap in `strips` strips (a step each), then filled out round the
-// charts. Returns it: { id, dir, lm, map, M (from the cube's coordinates into its shadow map) }.
+// charts. Returns it: { id, dir, lm, map (the shadow map's depth texture), M (from the cube's
+// coordinates into its shadow map) }.
 function* sunSteps(bake, key, size, scenes = null) {
   const S = materials(), geo = bake.geo, b = geo.bounds, { width: w, height: h } = bake.sun.cover;
   // (as many more strips as the sun's lightmap has texels more than the lights')
@@ -802,12 +808,16 @@ function* sunSteps(bake, key, size, scenes = null) {
     Object.assign(light.shadow.camera, { left: -radius, right: radius, top: radius, bottom: -radius, near: 1, far: radius * 2 + 10 });
     light.shadow.camera.updateProjectionMatrix();
     light.shadow.mapSize.set(size, size);
-    const map = e.map = light.shadow.map = new THREE.WebGLRenderTarget(size, size, { depthBuffer: true });
-    map.depthTexture = new THREE.DepthTexture(size, size, THREE.UnsignedShortType);
+    const map = light.shadow.map = new THREE.WebGLRenderTarget(size, size, { depthBuffer: true });
+    map.depthTexture = e.map = new THREE.DepthTexture(size, size, THREE.UnsignedShortType);
     // (read raw, compared by hand: render/lighthook.js bakeSunAt, VISIBLE here)
     Object.assign(map.depthTexture, { format: THREE.DepthFormat, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
-    sunPass(light, sunCasters);
-    map.texture.dispose();
+    try { sunPass(light, sunCasters); } finally {
+      // only its depth is kept: the target goes, and its colour with it (size² RGBA that nothing
+      // reads: 16 MB a place at 2048², about three places kept a cube). The target's own
+      // texture.dispose() does nothing in three.js: a render target's texture goes with it.
+      map.depthTexture = null; map.dispose(); light.shadow.map = null;
+    }
     const mapM = light.shadow.matrix.clone();
     // (the map's matrix takes world points; the shaders give points in the cube)
     e.M.copy(mapM).multiply(new THREE.Matrix4().makeTranslation(origin.x, origin.y, origin.z));
@@ -856,8 +866,8 @@ function updateSun(bake, now) {
   S.dir.copy(eA.dir).lerp(eB.dir, eA === eB ? 0 : S.T).normalize();
   S.step.copy(eA === eB || S.T < 0.5 ? eA.dir : eB.dir);
   u.uBakeSunA.value = eA.lm.texture; u.uBakeSunB.value = eB.lm.texture; u.uBakeSunT.value = eA === eB ? 0 : S.T;
-  u.uBakeSun.value = eA.map.depthTexture; u.uBakeSunM.value.copy(eA.M);
-  u.uBakeSun2.value = eB.map.depthTexture; u.uBakeSunM2.value.copy(eB.M);
+  u.uBakeSun.value = eA.map; u.uBakeSunM.value.copy(eA.M);
+  u.uBakeSun2.value = eB.map; u.uBakeSunM2.value.copy(eB.M);
   u.uBakeSunPA.value.set(eA.dir.x, eA.dir.y, eA.dir.z, eA.depth); u.uBakeSunPB.value.set(eB.dir.x, eB.dir.y, eB.dir.z, eB.depth);
   u.uBakeSunD.value.copy(S.dir); u.uBakeSunX.value.set(eA.span / eA.size, eB.span / eB.size, shadeReach(eA, S.dir), shadeReach(eB, S.dir));
 }

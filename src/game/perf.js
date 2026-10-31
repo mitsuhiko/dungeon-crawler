@@ -2,7 +2,8 @@
 // hand):
 //   - the overlay (?perf=1, or /perf with the dev tools): frame rate and the worst frames, the
 //     lighting's quality level and what it draws (render/shadows.js), the resolution, the bake's
-//     pace (render/bake.js), shaders compiled while drawing (render/programs.js), draw calls.
+//     pace (render/bake.js), shaders compiled while drawing (render/programs.js), draw calls,
+//     what WebGL holds (render/gpumem.js) and whether the device counts as small (render/device.js).
 //   - the bench (/bench with the dev tools, runBench): the game held, the world drawn a few times
 //     over with a part of it off at a time, each timed to the end of the GPU's work (a pixel read
 //     back from the screen waits for it: there are no GPU timers in Safari). Prints a table to
@@ -18,6 +19,8 @@ import { beginFrame, endFrame, msaaSamples, readScreenPixel } from '../render/ms
 import { CELLS, bakeCells } from '../render/watercells.js';
 import { graphics } from './settings.js';
 import { qualityLevel } from './quality.js';
+import { gpuMemory } from '../render/gpumem.js';
+import { small } from '../render/device.js';
 import { state } from './state.js';
 
 // --- the overlay -----------------------------------------------------------------------------
@@ -47,7 +50,14 @@ function show(t) {
     `fixed lights a point ${round(BAKE.uBakeK.value, 1)} · draw calls ${info.calls} · triangles ${round(info.triangles / 1000)}k`,
     `bake: ${baked(state.world) ? 'done' : 'baking'} · steps ${b.steps} in ${b.frames} frames · waited ${b.waits} · sun places ${b.suns}`,
     `shaders compiled while drawing ${programStats.compiledWhileDrawing}${programStats.last ? ' (last ' + programStats.last + ')' : ''}`,
+    memoryLine(),
   ].join('\n');
+}
+// what WebGL holds (counted only with ?perf=1 in the address: from the start)
+function memoryLine() {
+  const m = gpuMemory();
+  const sizes = m ? `${round(m.total)} MB (textures ${round(m.textures)}, buffers ${round(m.buffers)}, render buffers ${round(m.renderbuffers)}) · at most ${round(m.peak)} MB` : 'counted with ?perf=1';
+  return `WebGL holds ${sizes} · ${small ? 'small device' : 'not a small device'}`;
 }
 export function showPerf(on = !box) {
   if (on && !box) {

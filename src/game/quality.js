@@ -18,6 +18,11 @@
 //           lightmap's texels a unit when a world starts)
 //   movingSun whether the sun goes round with the time of day under an open sky, its shadows baked
 //           again as it goes (game/daycycle.js; else it stays at noon and only the light turns)
+//   dressing how far from the hero the surroundings' small dressing shows (render/neighbors.js:
+//           flowers, grass and stones of the town's tiles round the one played in, most of what
+//           they draw)
+// A small device (render/device.js: phones, tablets) bakes no finer than `light` and keeps the
+// sun's map at SMALL_SUN_MAP at most on every level: what its memory affords, whatever the frame rate.
 import { graphics, onSettingsChange } from './settings.js';
 import { BAKE } from '../render/lighthook.js';
 import { setShadowLook, tickShadows, snapShadows } from '../render/shadows.js';
@@ -26,23 +31,24 @@ import { setMoteRate } from '../render/motes.js';
 import { setCellDetail } from '../render/watercells.js';
 import { setAutoQuality, autoQuality } from '../render/resolution.js';
 import { setBakeDetail } from '../render/bake.js';
+import { small, touchScreen, SMALL_SUN_MAP } from '../render/device.js';
+import { setProxyDressing } from '../render/neighbors.js';
 
 export const LEVELS = ['lowest', 'low', 'medium', 'high'];
 // learn: light.html#looks #looks-code (see learn/README.md)
 export const LOOKS = {
   high: { lamp: { range: Infinity, figures: Infinity, every: 1, strength: 1 }, sun: { map: 2048, figures: Infinity, every: 1 },
-    cells: 16, fluid: [512, 0], motes: 1, bake: 'full', movingSun: true },
+    cells: 16, fluid: [512, 0], motes: 1, bake: 'full', movingSun: true, dressing: Infinity },
   medium: { lamp: { range: 5, figures: 5, every: 1, strength: 1 }, sun: { map: 1024, figures: 12, every: 1 },
-    cells: 12, fluid: [512, 30], motes: 1, bake: 'full', movingSun: true },
+    cells: 12, fluid: [512, 30], motes: 1, bake: 'full', movingSun: true, dressing: 32 },
   low: { lamp: { range: 5, figures: 0, every: 2, strength: 1 }, sun: { map: 1024, figures: 8, every: 2 },
-    cells: 8, fluid: [256, 30], motes: 0.5, bake: 'light', movingSun: true },
+    cells: 8, fluid: [256, 30], motes: 0.5, bake: 'light', movingSun: true, dressing: 18 },
   lowest: { lamp: { range: 5, figures: 0, every: 2, strength: 0 }, sun: { map: 512, figures: 0, every: 2 },
-    cells: 6, fluid: [256, 20], motes: 0.5, bake: 'lighter', movingSun: false },
+    cells: 6, fluid: [256, 20], motes: 0.5, bake: 'lighter', movingSun: false, dressing: 10 },
 };
 const KEY = 'crawler.quality';    // the level Auto reached last
 const CELL_EASE = 8;              // lights a second: how fast uBakeK follows
 
-const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 const saved = () => { try { return LEVELS.indexOf(localStorage.getItem(KEY)); } catch { return -1; } };
 let level = -1, cells = BAKE.uBakeK.value;
 
@@ -50,7 +56,7 @@ let level = -1, cells = BAKE.uBakeK.value;
 const asked = () => graphics() === 'auto' ? autoQuality() : LEVELS.indexOf(graphics());
 function settings() {
   if (graphics() === 'auto') {
-    const start = level >= 0 ? level : saved() >= 0 ? saved() : touch ? 1 : 2;
+    const start = level >= 0 ? level : saved() >= 0 ? saved() : touchScreen ? 1 : 2;
     setAutoQuality(LEVELS.length - 1, start);
   } else setAutoQuality(0, LEVELS.indexOf(graphics()));
 }
@@ -59,13 +65,15 @@ function settings() {
 function apply(n) {
   const L = LOOKS[LEVELS[n]];
   setShadowLook({ lamp: L.lamp, sun: { figures: L.sun.figures, every: L.sun.every, strength: 1 } });
-  if (sun.shadow.mapSize.x !== L.sun.map) {
-    sun.shadow.mapSize.set(L.sun.map, L.sun.map);
+  const map = small ? Math.min(L.sun.map, SMALL_SUN_MAP) : L.sun.map;
+  if (sun.shadow.mapSize.x !== map) {
+    sun.shadow.mapSize.set(map, map);
     sun.shadow.map?.dispose(); sun.shadow.map = null;   // (three makes it anew at the new size)
   }
   setCellDetail(...L.fluid);
   setMoteRate(L.motes);
-  setBakeDetail(L.bake);
+  setBakeDetail(L.bake);   // (on a small device no finer than `light`: render/bake.js)
+  setProxyDressing(L.dressing);
 }
 
 // every frame (main.js; dt: real seconds, the fades go on while the game is paused)

@@ -72,7 +72,7 @@ its baked shadows with them (`uBakeR`); a bake that fails leaves them on, withou
 
 - **Ahead** (`game/bakeahead.js`): once the cube played in is baked, the cubes behind its
   nearest ways out (the sides walked across, the town's seams and the open faces; its portals:
-  `AHEAD`, 3, one where the screen is touched, the nearest to the hero) are built off-screen as
+  `AHEAD`, 3, one on a small device, the nearest to the hero) are built off-screen as
   they will be entered (`game/flow.js buildCube`; behind a side portal with that face open, as
   going through opens it), never shown, and baked after everything shown, one at a time; their
   suns follow the time of day like the cube's own (each one's bake in memory: about 35 MB on
@@ -91,13 +91,14 @@ its baked shadows with them (`uBakeR`); a bake that fails leaves them on, withou
   of GPU work on a software renderer: a weak GPU's driver gives up on less, and the context is
   lost.)
 - **A cube built again** as it was (a prop set that came late, a quest's change: `game/flow.js
-  rebuildWorld`) takes its bake at once: the last three cubes' bakes are kept (one where the
-  screen is touched), by geometry, and taken if the lights and props are where they were
+  rebuildWorld`) takes its bake at once: the last three cubes' bakes are kept (one on a small
+  device: Small devices, below), by geometry, and taken if the lights and props are where they were
   (`signature`); so does one baked ahead.
 - **How finely** (`BAKE_DETAIL`, by the quality level, `game/quality.js`): High and Medium as
   below; Low 1024² for the sun, 512² cube maps, 2 volume samples a unit, 8 lightmap texels a unit
-  (a quarter of the memory); Lowest the same without a volume. The lightmap's texels are the world
-  worker's, chosen when the world starts (`bakeDensity`); the rest is for the next cube baked.
+  (a quarter of the memory); Lowest the same without a volume; a small device never finer than
+  Low. The lightmap's texels are the world worker's, chosen when the world starts
+  (`bakeDensity`); the rest is for the next cube baked.
 - The baking's shaders are compiled ahead with the cube's (`render/cubeassets.js warmCube`), for a
   render target and a scene without the world's fog and lights (else others: the first bake
   compiled them all while drawing), and three's programs of the shadow maps it draws (a sun's and
@@ -299,6 +300,7 @@ changes is how much is drawn for that:
 | fixed lights a point takes | 16 | 12 | 8 | 6 |
 | fluids' patterns | 512², every frame | 512², 30 Hz | 256², 30 Hz | 256², 20 Hz |
 | motes | all | all | half | half |
+| the town's small dressing round the tile played in | all | within 32 | within 18 | within 10 |
 
 - **Why these:** drawing the realtime shadow maps is most of what shadows cost, and every enemy is
   drawn again in each of the lamp's six maps and the sun's. On a software renderer (1280×720, a
@@ -312,6 +314,13 @@ changes is how much is drawn for that:
   goes through walls, faintly), which enemies cast into which map (each map drawn in a call of its
   own, the others' meshes not casting meanwhile), how often (every n-th frame) and how strong
   (`shadow.intensity`) are what change.
+- **The town's small dressing** (`dressing`, `render/neighbors.js`): the tiles round the one
+  played in are drawn with all they are dressed with, and its small things (flowers, grass,
+  stones, little clutter: smaller than a unit, glowing nothing) were 40% of their triangles in 70%
+  of their props (600k triangles in 2500 props for a town). Past the level's reach from the hero
+  they fade out (the proxies' dither, per instance, over 4 units) and are not drawn; each prop of
+  the batch is frustum-culled on its own too. On a software renderer (390×844, the inn's tile)
+  the surroundings went from 66 of a 102 ms frame to 40 of 74 on Low.
 - **Every change fades:** the shadows' strength over half a second, the reaches eased (8 units a
   second: enemies' shadows drop out and come back one by one at the edge), the fixed lights a
   point takes eased (`uBakeK`, a float: the last light fades); the fluids' patterns and the sun's
@@ -325,6 +334,29 @@ changes is how much is drawn for that:
   at Medium elsewhere.
 
 Where the screen is touched the frame rate cap is 30 at first (a setting like any other).
+
+## Small devices (`render/device.js`)
+
+Auto follows the frame rate, but a phone's other limit is its memory: its GPU shares the
+phone's, and iOS Safari kills a page that takes more than it allows (no lost context to recover
+from: the tab reloads, or Safari goes with it). Nothing in Safari says how much that is, nor how
+much a page uses, and a phone's GPU is fast enough for Auto to climb to High at 30 frames a
+second. So a **small device** (a touched screen, an iPad, or a browser saying it has 4 GB or less;
+`?small=1` / `?small=0` forces it) keeps what costs memory small on every level: it bakes no
+finer than Low (`BAKE_DETAIL.light`, so its worlds' lightmaps have 8 texels a unit), the sun's map
+of what moves is at most 1024² (`SMALL_SUN_MAP`), and it keeps one bake and bakes one cube ahead
+(`CACHE`, `AHEAD`). What the levels change otherwise (the shadows drawn, the lights a point takes,
+the town's dressing) still follows the frame rate.
+
+In the town (seed 7, the twelve tiles walked through, Chrome emulating a phone; WebGL's
+textures, buffers and render buffers counted as they are made: `render/gpumem.js`) the most held
+at once went from 397 MB on High (131 MB on Low) to 103 MB on High (100 MB on Low). Most of that
+was the sun's places: each one's shadow map kept a 2048² RGBA colour target beside its depth (16
+MB, three places a cube, for every cube baked or kept), let go now with its target
+(`render/bake.js sunSteps`: a render target's `texture.dispose()` does nothing in three.js).
+
+`?perf=1` shows what WebGL holds (counted from the start: only with it in the address) and
+whether the device counts as small.
 
 The anti-aliasing is not one of Auto's steps (`render/msaa.js`): its setting's Auto picks once, as
 the page starts, 2× MSAA on a high-DPI screen (a device pixel ratio of 1.5 or more) and 4×
@@ -340,7 +372,11 @@ keep up (and taking them back after a calm spell) was the worst of the stutters.
   the frames themselves runs behind, so its fences come late and it bakes about a light a frame
   (on a software renderer a 37-light cube took ~16 s, frames being ~180 ms there).
 - How much memory iOS Safari allows a page's WebGL before it reloads it is unmeasured (the
-  simulator does not enforce it); a bake is ~28 MB on High, ~10 MB on Low.
+  simulator does not enforce it); a bake is ~28 MB on High, ~10 MB on Low. `?perf=1` on the
+  phone shows what the game holds.
+- three.js's own shadow maps (the sun's of what moves, the lamp's cube, a light's cube while
+  baking) carry an RGBA colour target nothing reads, as big as their depth: 16 MB for the sun's
+  2048² map on High.
 - The lightmap is laid out for every cube the worker builds (10-25 ms), proxies too.
 - More than eleven overlapping lights: some shine without shadows (a dark forest cube: one of 40).
 - The moving lights (but the hero's lamp) cast no shadows: one inside what carries it (an enemy's
