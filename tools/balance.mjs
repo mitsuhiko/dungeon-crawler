@@ -42,6 +42,7 @@ const { mulberry32, hash32 } = await import('../src/core/util.js');
 const { RESPAWN } = await import('../src/core/respawn.js');
 const { ITEMS, isMelee } = await import('../src/core/items.js');
 const { trialTime } = await import('../src/core/trials.js');
+const { pickBearer, keybearerKind, WARD_KIND } = await import('../src/core/tasks.js');
 const { hordeKinds, hordeSize } = await import('../src/world/hordes.js');
 const { enchantCost, rerollCost } = await import('../src/core/crafting.js');
 const { questRewards } = await import('../src/core/quests.js');
@@ -114,14 +115,18 @@ for (let seed = 1; seed <= SEEDS; seed++) {
     const cubes = [...L.route.map(k => ({ k, share: L.guardians.has(k) ? 1 : SHARE })),
       ...[...L.exists].filter(k => !L.route.includes(k)).map(k => ({ k, share: R() < 0.5 ? SHARE : 0 }))];
     // the trial rooms on the way (and those in the branches visited): their time
-    for (const t of L.trials) if (t.role === 'route' || R() < 0.5) {
+    // (and the room tasks laid over ordinary rooms: world/tasks.js)
+    for (const t of [...L.trials, ...L.tasks ?? []]) if (t.role === 'route' || R() < 0.5) {
       row.trials++; row.trialTime += trialTime(t.kind);
-      // a siege's waves (game/trialevents.js): the horde's kinds at swarm strength, half rewards;
+      // a circle's waves (game/tasks.js): the horde's kinds at swarm strength, half rewards;
       // about half of them fall before the hold is full, the rest flee
-      if (t.kind === 'siege') {
+      if (t.kind === 'hold') {
         const [lo, hi] = hordeSize(depth), kinds = hordeKinds(depth);
-        for (let i = 0; i < Math.round((lo + hi) / 4); i++) kill(swarmKind(ENEMY_KINDS[kinds[i % kinds.length]], 0.5), depthLevel(depth, world));
+        for (let i = 0; i < Math.round((lo + hi) / 8); i++) kill(swarmKind(ENEMY_KINDS[kinds[i % kinds.length]], 0.5), depthLevel(depth, world));
       }
+      // the keybearer (core/tasks.js): one of the depth's kinds, golden, a level over the depth's
+      if (t.kind === 'keybearer') { const type = pickBearer(depth, hash32(wseed ^ serial)); if (type) kill(keybearerKind(type), depthLevel(depth, world) + 1); }
+      if (t.kind === 'wardstones') for (let i = 0; i < 3; i++) kill(WARD_KIND, depthLevel(depth, world));
     }
     for (const { k, share } of cubes) {
       if (enemyFreeAt(k) || !share) continue;

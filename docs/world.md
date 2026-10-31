@@ -443,7 +443,11 @@ Which cubes exist and how they connect depends only on the world seed:
   holds its exit shut like a side guardian's gate (`gateFaces`, `trial:<key>`). Never in a
   guardian's, the horde's, a span's, a height piece's or the area's room, next to a cube the
   WFC pins, or under a void or a shaft; pinned `LLLL` with its own layers (no river crosses it).
-  Entered only by its portals; the portal into it warns of it.
+  Entered only by its portals, which look like any other.
+- **Room tasks:** 2-4 a depth laid over ordinary rooms ([trials.md](trials.md#room-tasks),
+  `world/tasks.js`), planned last, on their own stream: light the braziers, find the shards,
+  defeat the keybearer ... A task on the route holds its exit shut (`gateFaces`, `trial:<key>`),
+  one in a branch the cage round its reward site. Never two gated rooms in a row.
 
 Layer counts are part of the WFC state. A collapsing cube's count is drawn towards its
 neighbours' counts, so tall regions form. A face's portal sits on any layer both cubes
@@ -711,6 +715,11 @@ Rooms built round a goal that is more than walking to the exit: events (the floo
 summit before the water) and puzzles. Planned from the seed (see the layout above), built by the
 kind's generator in `cubegen/trials/`, checked (an event's timing against a slow player,
 `cubegen/trials/timing.js`), run by `game/trials.js`. See [trials.md](trials.md).
+
+Room tasks (`world/tasks.js`, `cubegen/tasks.js`, `game/tasks.js`) are trials laid over ordinary
+rooms: the room is built as any other, the task places its things in it after the spots
+(`placeTask`) and checks them at the end (`finishTask`), falling back to a hidden button where its
+kind cannot be had. See [trials.md](trials.md#room-tasks).
 
 ## Set pieces: lone peak and great lake (`cubegen/setpieces.js`)
 
@@ -1355,8 +1364,12 @@ The world guarantees that from anywhere you can arrive, you can get to depth 20.
     from `SWIM_FEET` under the surface);
   - use the built structures both ways.
 
-  Every portal must reach the exit, and no route may pass a floor whose smoothed corner
-  leaves less than the character's height under the slab above. Nobody who can get into a
+  Nothing stands on a floor whose smoothed corner leaves less than the character's height
+  under the slab above, or under a structure hanging over it (a bridge's deck two levels over a
+  ditch: `isCramped`; before the structures are built, the decks of the bridges the moves take).
+  So a decorative bridge (`cubegen/decor.js`) never spans ground got to two levels under its
+  deck: that ground may be a water's only bank. Every portal must reach the exit, and no route
+  may pass a cramped floor. Nobody who can get into a
   water may be stuck in it: from every water floor got to, some floor out of the water must be
   got to (`stuckInWater`; trial rooms aside, their fluid is the trial's). Otherwise the attempt
   is retried.

@@ -36,6 +36,7 @@ import { descentRoute, pinnacleRoute } from './heights.js';
 import { areaRoute } from './areas.js';
 import { setPieceRoute } from './setpieces.js';
 import { routeTrial, finishTrial, trialCosts, placeClues } from './trials/index.js';
+import { placeTask, finishTask } from './tasks.js';
 
 function indexFloors(ctx) {
   const floors = ctx.floors = [];
@@ -106,6 +107,7 @@ function tryGenerate(seed, spec) {
   if (!routeTrial(ctx)) return null;   // the way to a trial's goal (cubegen/trials/)
   if (!routeHorde(ctx)) return null;
   placeSpots(ctx);
+  placeTask(ctx);   // a room task's things (cubegen/tasks.js), after the spots: they keep their room
   placeVignettes(ctx);   // a theme's little set pieces (cubegen/vignettes.js), off the ways just found
   addAccess(ctx);
   addEscapes(ctx);
@@ -140,6 +142,7 @@ function tryGenerate(seed, spec) {
   // the spots (cubegen/spots.js): kept like the reward sites (no props on them, the camp's fire
   // among the site placements); one that failed is tried again for like a site
   const spots = finishSpots(ctx);
+  const task = finishTask(ctx);   // a room task (cubegen/tasks.js): map.trial, as a trial room's is
   sites.sitePlacements.push(...spots.spotPlacements);
   for (const b of spots.spotBlockers) {   // an outpost's cart: in every cell the character could touch it from
     for (let z = Math.max(0, Math.floor(b.z - b.r - CHAR_R)); z <= Math.min(N - 1, Math.floor(b.z + b.r + CHAR_R)); z++)
@@ -147,7 +150,7 @@ function tryGenerate(seed, spec) {
   }
   sites.siteReservations.push(...spots.spots.flatMap(s => s.cells.map(c => ({ c, layer: s.layer }))));
   sites.siteFailures.push(...spots.spotFailures);
-  sites.siteReservations.push(...trial.reservations || [], ...clues.reservations);   // (no props on a trial's own ground, nor the tablet's)
+  sites.siteReservations.push(...trial.reservations || [], ...clues.reservations, ...task.reservations);   // (no props on a trial's own ground, nor the tablet's)
   // some pools are mud, with pockets of it round them (cubegen/mudpools.js; on their own random stream)
   const mudPockets = muddyWater(ctx, new Set(sites.siteReservations.map(r => r.c)));
   sites.siteReservations.push(...mudPockets.map(p => ({ c: p.c, layer: p.layer })));   // (no props in them)
@@ -159,8 +162,8 @@ function tryGenerate(seed, spec) {
     vignettes: vignettes.list,   // the theme's little set pieces (cubegen/vignettes.js): [{ name, x, y, z, yaw }]
     mudPockets,   // pockets of mud on the ground round a mud pool (cubegen/mudpools.js): [{ x, z, y, r, vol }]
     roomRole: spec.roomRole, biome: spec.biome, populationScale: spec.populationScale, annexRoom: !!spec.annexRoom,
-    trialRoom: !!spec.trial, trialFaces: spec.trialFaces || [null, null, null, null],   // (world/trials.js)
-    trial: trial.trial,   // what the trial is built of (cubegen/trials/)
+    trialRoom: !!spec.trial,   // (world/trials.js)
+    trial: trial.trial ?? task.trial,   // what the trial is built of (cubegen/trials/), or the room's task (cubegen/tasks.js)
     clues: clues.clues,   // rune rooms' tablets: [{ key (the trial's room), x, y, z, glyphs (in order) }]
     ladders: ctx.ladders.map(l => ladderInfo(l, ladderStyle(spec, l))), exit: spec.exit,
     routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys,

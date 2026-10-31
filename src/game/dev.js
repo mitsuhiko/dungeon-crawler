@@ -353,7 +353,8 @@ const lastTrial = {};
 export async function goTrial(kind, from, key = null) {
   if (state.transitioning || state.inventoryOpen) return;
   const cubes = state.cubes, here = from ?? Math.max(1, state.map?.depth ?? 1), all = [];
-  for (let d = 1; d < 20; d++) all.push(...cubes.layout(d).trials.filter(t => !kind || t.kind === kind));
+  // (the trial rooms, and the rooms with a task laid over them: world/tasks.js)
+  for (let d = 1; d < 20; d++) all.push(...[...cubes.layout(d).trials, ...cubes.layout(d).tasks ?? []].filter(t => !kind || t.kind === kind));
   if (!all.length) {
     if (!kind) { setStatus('No trials in this world'); return; }
     const p = new URLSearchParams(location.search);

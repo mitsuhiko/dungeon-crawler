@@ -290,7 +290,7 @@ dev({
     if (TRIALS[kind]) { await goTrial(kind, depth === undefined ? undefined : Number(depth)); return; }
     if (kind === 'list') {
       const lines = [];
-      for (let d = 1; d < 20; d++) for (const t of state.cubes.layout(d).trials)
+      for (let d = 1; d < 20; d++) for (const t of [...state.cubes.layout(d).trials, ...state.cubes.layout(d).tasks ?? []])
         lines.push(`depth ${d}: ${TRIALS[t.kind].name} (${t.kind}, ${t.role}) in ${t.key}${t.stages ? ' · ' + t.stages.join(', ') : ''}${state.run.unlockedGates.has(t.gate) ? ' · done' : ''}`);
       return lines.length ? lines.join('\n') : 'No trials in this world (/trial <kind> makes one)';
     }

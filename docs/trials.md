@@ -1,12 +1,17 @@
 # Trials: events and puzzles in a cube
 
 Status: steps 1 to 10 are done: every kind (`flood`, `collapse`, `balance`, `miasma`, `cold`,
-`storm`, `siege`, `chase`, `sunken`, and the puzzles `slide`, `mirror`, `braziers`, `crates`,
+`storm`, `chase`, `sunken`, and the puzzles `slide`, `mirror`, `braziers`, `crates`,
 `timedgate`, `runes`) is planned, built, checked, playable (alone and together) and on in every
 world (an event on 45% of the depths from 1 to 19, a puzzle on 60%, a second on 25%). The rest is
 the list of what to build, kind by kind, until done (see "Implementation order" at the end).
 `drift`, `channels`, `stones`, `sluices` and `plates` were built once and taken out again: they did
-not play well (`balance`'s stones are not the old `stones` puzzle).
+not play well (`balance`'s stones are not the old `stones` puzzle). `siege` (Hold the beacon, a
+sealed room of its own) was replaced by the room task `hold` ("Room tasks" below).
+
+**Room tasks** (step 15, "Room tasks" below) are a third family: small trials laid over ordinary
+rooms (light the braziers, find the shards, defeat the keybearer ...), 2-4 a depth, holding a
+room's exit (or a branch's vault) shut until done.
 
 Steps 12 and 13 ("Retiming and combiners" at the end) followed play: the events were far too easy
 (timed for a walker given half again as long, but the hero always runs), and the sunken room built
@@ -39,7 +44,6 @@ above, and every puzzle you solve drains it one stage further.
 | `balance` | event | yes, but the way back | per stone | jump from stone to stone to the exit apron | a miss (into the basin) | 1–19, lava and acid themes, forge |
 | `cold` | event | yes | meter | light the great fire | freezing | peaks, frozen caves (1–13) |
 | `storm` | event | yes | gusts | pull the lightning rod on top of the hill | (blown off: a fall) | sky and surface themes (1–6) |
-| `siege` | event | yes | yes | hold the beacon long enough | death | 2–19, any |
 | `chase` | event | yes | yes | take the relic, run, drop the portcullis on its warden | death | 4–19, any |
 | `miasma` | event | yes | yes | open the vent valve at the bottom | the fog (damage) | walled: canyon, caves 5–19 |
 | `slide` | puzzle | no | no | slide across the ice to the goal | – | ice only: peaks, frozen caves |
@@ -79,13 +83,12 @@ All numbers below are starting values, to be tuned in play.
   timing is checked, and puzzles that are proven solvable with no way to soft-lock, may go on
   the route.
 
-### The warning
+### No warning
 
-"Only where you have been" holds: the trial room is not seen before you enter it. Instead, the
-portal into it (in the room before) looks different: a ring of the trial's colour and a glyph
-for its family (an hourglass for events, a knot for puzzles). Hovering over it names the kind
-("Rising water", "Ice slide"). The minimap marks it in the same colour once the room before
-has been visited.
+"Only where you have been" holds: the trial room is not seen before you enter it, and the portal
+into it looks like any other (it once carried a ring of the trial's colour and a glyph, named the
+kind on hover and was marked on the minimap: taken out, a trial is found by walking in). The banner
+says what it is as an event arms, the HUD as a puzzle's room is entered.
 
 ### States
 
@@ -162,8 +165,7 @@ that while it is not resolved:
 - `flood`, `miasma`: the room as built; the hazard is gone.
 - `collapse`, `balance`: the crust or the stones are whole and hold (they no longer fall).
 - `sunken`: drained to the stage reached; fully drained once done.
-- `cold`, `storm`, `siege`, `chase`: the room as built, braziers lit, the beacon
-  burning, the portcullis up.
+- `cold`, `storm`, `chase`: the room as built, braziers lit, the portcullis up.
 - Puzzles: solved state (mirrors set, crates on plates, gate open for good).
 
 ### Timing check (`cubegen/trials/timing.js`)
@@ -242,7 +244,10 @@ One small set of parts serves every puzzle; a puzzle is a layout of parts plus a
   and respected by discovery (`core/boundaries.js`) the way guardian gates are. Until then the
   room joins its neighbours only through its portals, and its glass box glows orange
   (`portalsOnly`). Resolved, its other faces open by discovery like any room's. `run.trials`
-  only holds what a gate cannot (`sunken` stages).
+  only holds what a gate cannot (`sunken` stages). Walked into while shut, the gate says what
+  opens it, not a guardian's message (`core/guardians.js` `lockMessage`): in its room, solve the
+  puzzle, master the trial or finish the room's task (by its family, with its name); from the
+  room beyond, that it opens from the other side.
 
 ### Dev: `/trial`
 
@@ -491,33 +496,11 @@ pull the rod at the top.
   cell and a half are shelter, the rest of the ramp `exposed`. The checked way is the fastest that
   keeps to the shelter (exposed time counting five times, `arrivals`' `weigh`).
 
-### `siege`: Hold the beacon
+### `siege`: Hold the beacon (taken out)
 
-Light the beacon and hold its ring against waves from the room's edges.
-
-- **Room:** one layer, a flat ring of radius 3 cells around the **beacon**, 2–3 **spawn
-  mouths** (cave mouths, ruined arches) at least 8 cells from it, each with a clear way to
-  the ring.
-- **Running:** starts when the beacon is lit (`F`), not on stepping off the pad, so you can
-  look around first. Hold progress fills only while a player is in the ring; it pauses (does
-  not drop) while nobody is. `HOLD` is 45 s at depth 2, rising to 90 s at depth 19.
-- **Waves:** 4, each from 2 of the mouths, together about the depth's horde count, mostly
-  light kinds and one heavy in the last wave. They go for the ring (the defense quests' raid
-  code). No `respawn`; rewards reduced like a horde's.
-- **Goal:** hold to full. The beacon flares, the remaining attackers flee into the mouths and
-  are gone, and the seals open.
-- **Fails by:** death.
-- **Check:** every mouth reaches the ring; the ring is flat and dry.
-- **As built** (`cubegen/trials/siege.js`, `index.js finishSiege`; `game/trialevents.js`): the
-  beacon in the room's middle (as far from the portals as it gets), flat a cell further out than
-  its ring so the smoothing leaves the ring flat. The mouths (dark arches) stand two cells in from
-  the edge, at least 6.5 cells from the beacon (8 fits only a 16-cell room's corners), 5 apart.
-  The waves come at each quarter of the hold, the horde's kinds (swarm stats, half rewards), the
-  heaviest close fighter of the roster once in the last; they go straight for the players (to
-  their floor, else where they can strike them from), and with no way to anyone make for posts in
-  the ring (`e.defence` always engaged; `e.siege` keeps a guardian room's posting,
-  `game/defence.js`, from taking them over). The trial's owner spawns them and counts the hold
-  (`bits.hold`, `bits.wave`).
+A sealed room of its own: the beacon in the middle of a flat ring, waves out of dark arches by the
+room's edges for 45-90 s. Replaced by the room task `hold` ("Room tasks" below): the same beacon,
+circle, arches and waves, smaller, in an ordinary room by its exit, and never sealed.
 
 ### `chase`: The relic
 
@@ -554,7 +537,7 @@ warden; run back through the gate and drop the portcullis on it.
   from the corner, the gate in the middle of the wall's longer arm, the altar a flat 3x3 two cells in
   from the far corner, nothing built onto or over the wall and the rocks (`chaseRoute`). The owner of
   the trial spawns the warden and sets its speed every frame; it comes to the others like any enemy.
-  The relic's model is the emitter's for now, the lair the siege's mouth. A perfect runner is at
+  The relic's model is the emitter's for now, the lair the circle's arch (`trial_mouth`). A perfect runner is at
   the lever about 2 s before the warden is at the gate.
 
 ### `miasma`: Sinking fog
@@ -717,6 +700,123 @@ decks (field and rim or ring: 7) fit side by side in a room.
   the rune room the HUD then shows the order, the pressed ones bracketed. The stones stand round
   the edge of a 5x5 walk-on deck. Not a sunken stage.
 
+## Room tasks
+
+A **room task** is a small trial laid over an ordinary room: the room is generated as any other,
+and the task claims a few cells of it and the ways to them. Until it is done, it holds the room's
+exit shut (a gate like a trial's, `trial:<key>`, the red seal on the exit's portal), or, in a
+branch room, the cage round its reward site's chest (a vault, as a branch puzzle's). It never
+seals the room, never times out with a death, and the way back stays open.
+
+| id | Name | Goal | Depths |
+|---|---|---|---|
+| `keybearer` | The keybearer | defeat the golden enemy carrying the key | 1–19 |
+| `wardstones` | Wardstones | break 2–4 stones that mend the wounds of the enemies round them | 1–19 |
+| `clear` | Clear the room | defeat every enemy of the room | 1–19 |
+| `lanterns` | Kindle the braziers | light 3–4 braziers (they stay lit) | 1–19 |
+| `fading` | Fading flames | light 3–4 braziers while the others still burn | 5–19 |
+| `shards` | Shards | pick up 3–5 shards (on ledges, off the way) | 1–19 |
+| `hold` | Hold the circle | light the beacon by the exit, hold its circle against 3 waves | 2–19, the route only |
+| `hidden` | The hidden button | find the button tucked away in a nook, under an overhang, up high | 1–19 |
+
+### Planning (`world/tasks.js`)
+
+- From the seed alone, on a stream of their own, after everything else of the depth (trials,
+  branches, reward sites, set pieces), so nothing else moves for them. `layout.tasks`,
+  `layout.taskCells`; `spec.task` for the cube.
+- **How many:** `taskCount(d)` per depth: 2-3 down to depth 4, 3-4 from 5 (fewer where the route
+  has no room for them). None at depth 0 or in the core.
+- **Where:** ordinary rooms only: never a guardian's, the horde's, a trial room, a span's, a height
+  piece's, a large area's, the annex or its parent, the depth's entrance or descent, the
+  beginning's peak. On the route from index 2 to length − 2, and never two gated rooms in a row
+  (a guardian's, a trial's, a task's), so neither the room before a guardian.
+- **Branches:** at most one a depth, by `BRANCH` (50%) where a one-room branch has a reward site:
+  its gate is the cage round the site's chest (`vaultLocked`), the site as planned.
+- **Kinds:** by weight among those that fit (their depths; a branch not `hold`), no kind twice in
+  a depth until every one that fits has had its turn; `lanterns` weigh 1.5 in caves.
+- `?trial=<task kind>` (dev, tests) fills every depth's slots with that kind, and no trial rooms.
+- The task rooms have no warning at their portals (neither do trial rooms now: "No warning"),
+  and are no trial rooms: their faces open by discovery as any room's (`portalsOnly` is false).
+
+### Building (`cubegen/tasks.js`)
+
+- `placeTask`, after the route, the reward sites' ways and the spots (they keep their room):
+  scores the room's standing cells for the kind and picks them, spread out (`PLACE`: how many,
+  how far apart, how far off the way at least the first lies, or `HIGH` levels over the way in),
+  building the ways there and back that are missing (`search`, `take`, as a spot's). Their cells
+  are claimed like a spot's: kept flat, nothing built over them, no props, nobody spawning.
+  - braziers, shards: off the way and up high score best; the hidden button in a nook (walls
+    round it, a roof over it), far from the way and the portals;
+  - the wardstones and the keybearer's post: on ground with room to fight round it, 4+ cells
+    from the portals;
+  - the circle: a cell 2.5-9 cells from the exit's pad with at least six of the eight round it
+    level ground a level up or down at most (the circle is the ground as it is), and two dark
+    arches at the room's edge 6+ cells from it, each with an enemy's way to it.
+- `finishTask`, with the final slopes and fences: every thing on flat dry ground reached from the
+  way in and leading on to the exit (`safe`), nothing built on it. A brazier, shard or wardstone
+  that is not drops out while enough are left; a kind that cannot be had (or a fight in a room
+  without enemies) falls back to the hidden button, which always can be (`map.trial.planned`
+  keeps what was planned). About nine in ten are built as planned (the circle about four in five).
+- `fading`: the burn is fitted like an event's hazard: the fastest round of the braziers (from
+  whichever is lit first, at running speed, `USE_TIME` at each) at the slow player's pace
+  (`SLACK`), a second more, 8-40 s (`fitBurn`).
+- `map.trial`: the task as a trial's record (`task: true`, `kind`, `role`, `gate`, `parts`, the
+  wardstones `wards`, the keybearer's post `bearer`, the circle `ring` and `mouths`, `burn`).
+
+### Running (`game/tasks.js`, through `game/trials.js`)
+
+The task is the room's trial: `state.trial` (it never arms by stepping off the pad, nor seals),
+its parts used with the action key or a click, the HUD, the gate, the chronicle, playing together.
+Coming in, a banner says what it wants; the HUD keeps the count.
+
+- `keybearer`: one of the depth's kinds that fights up close (`pickBearer`, from the task's id),
+  golden, four times its health, a level over the depth's (`keybearerKind`), at its post; a
+  golden mark over it. Defeated: done.
+- `wardstones`: each an enemy that never moves nor strikes (`WARD_KIND`, kept `waiting`), hit like
+  any (blades, shots, flasks), drawn by the task (`render/tasks.js`). While one stands it mends the
+  enemies within `WARD.radius` (4.5) cells, `WARD.mend` (8%) of their health every `WARD.every`
+  (2) s; motes drift to them. All broken: done.
+- `clear`: every enemy of the room that lives on ground leading on (not the fluid dwellers) is
+  defeated; the last three get a mark over them.
+- `lanterns`: each brazier lit (`F`) stays lit; all lit: done.
+- `fading`: a brazier lit burns `burn` s (its bit: when it was lit, on the task's clock); all
+  burning at once: done. None burning: the clock starts over.
+- `shards`: taken by walking into one (or `F`); all taken: done.
+- `hold`: the siege's rules, smaller: lighting the beacon arms it; the hold (`holdTime`, 20 s at
+  depth 2 to 40 s at 19) fills while a player stands in the circle (`HOLD.radius`, 1.8 cells) and
+  pauses while nobody does; three waves of the horde's light kinds (swarm strength, half rewards)
+  come out of the arches at even shares of it and go for the circle. Full: the rest flee.
+- `hidden`: pressed (`F`): done. It glints within `HIDDEN.near` (3.5) cells; `HIDDEN.hint` (60 s)
+  after coming into the room, a pale light rises over it.
+
+### Coming back, dying
+
+- **Done is done for good:** its gate in `run.unlockedGates`, saved and shared; coming back up
+  through the room finds it open, its enemies coming back as anywhere's.
+- **Leaving keeps the progress** of the braziers lit and the shards taken (`run.trials`,
+  `task:<key>`: a bit each, saved, merged by bits playing together); defeated enemies stay
+  defeated as anywhere (the keybearer and the wardstones never come back), and in a room to clear
+  nothing comes back until it is done (`holdsRespawn`). The circle's hold and the fading flames
+  start over.
+- **A death in the room** puts it back as it was when entered, as it does the enemies
+  (`beginVisit` keeps the task's bits, `restoreVisit` puts them back): what was lit or taken
+  before stays, what since is undone.
+- The robot pulls the hero out of a fluid or the void as in any room (to the last safe spot, not
+  the start: `trialStart` is null for a task).
+
+### Checks
+
+- `tests/tasks.test.js`: the plan over 30 seeds (counts, rooms, spacing, branches, the same plan
+  twice, every kind seen), a forced kind, the rules (fading flames, the burn, the hold, the bits
+  kept, the keybearer's kind), every kind forced in two worlds: built as planned in three of four
+  rooms at least, its things on floors that lead on, apart, off the portals.
+- `tests/sweeps/tasks.js`: every task of the sweep's worlds built in its room, its things reached
+  and left, a vault with its site, a route task's exit shut.
+- `tests/browser/tasks.js` (`?dev=1&trial=<kind>`, then `await (await
+  import('./tests/browser/tasks.js')).runTaskChecks('<kind>')`): into the room, nothing sealed,
+  the exit shut, the HUD; each kind done its own way (a brazier kept after leaving, undone by a
+  death; a wardstone mending a wounded enemy; the circle's first wave); then the exit open.
+
 ## Assets (Blender, `assets/trials.glb`)
 
 `blender/trials.py` builds the parts in the props' style (flat-shaded, vertex colours, a
@@ -743,7 +843,7 @@ the sluice tank and float, the waypad); nothing uses them.
 | great fire, beacon | `trial_great_fire`, `trial_beacon`; their `_flame` pieces only say where the flame stands and how big it is |
 | crate | the mines' `mines_crate_a` (borrowed), a cell big |
 | runestone, tablet | `trial_runestone`, `trial_tablet` (the glyphs drawn on them in code) |
-| siege mouth | `trial_mouth` |
+| the circle's arches (`hold`), the warden's lair | `trial_mouth` |
 
 A fire is lit or out (`render/trials.js fire`): out, no flame and no light; lit, its flame
 flares up and flickers with its light (its intensity: the light pool takes no light with
@@ -788,6 +888,11 @@ volcanic fire shrine; candles stay as they are, too small for it).
 | `render/trials.js` | parts, the rising fluid, crumbling crust, fog, gusts, beam |
 | `net/` | trial state from the cube's owner, part presses to it |
 | `game/devcommands.js` | `/trial` |
+| `core/tasks.js` | the room tasks' rules and numbers: counts, placing, the keybearer's and the wardstones' kinds, the fading flames' burn, the circle's hold |
+| `world/tasks.js` | the room tasks' plan (`layout.tasks`, `layout.taskCells`, a route task's gate) |
+| `cubegen/tasks.js` | a task's things placed in the room as built, their ways, the final check and the fallback |
+| `game/tasks.js` | running a task: the actors, the circle's waves, the wardstones mending, parts, progress, HUD |
+| `render/tasks.js` | the shards, the hidden button, the wardstones, the marks over enemies |
 
 ## Checks
 
@@ -813,9 +918,9 @@ volcanic fire shrine; candles stay as they are, too small for it).
 Each step is done when its kind is planned, generated, checked, playable, reachable with
 `/trial`, tested and documented here (status line updated).
 
-1. [x] **Framework + `flood`:** plan, the warning on the portal, states, sealing, death to
-   `from`, the trial fluid level (physics and render), the timing check (deadlines),
-   `/trial`, playing together. In phases: "Step 1 in phases" below.
+1. [x] **Framework + `flood`:** plan, the warning on the portal (taken out again), states,
+   sealing, death to `from`, the trial fluid level (physics and render), the timing check
+   (deadlines), `/trial`, playing together. In phases: "Step 1 in phases" below.
 2. [x] **`collapse`:** crust, wave, keystone; shares the deadlines.
 3. [x] **Parts + `slide`:** lever, button, plate, gate, reset; the action key's `part`; the
    first solver.
@@ -824,10 +929,10 @@ Each step is done when its kind is planned, generated, checked, playable, reacha
 6. [x] **`crates`** (crates, Sokoban solver; `plates` taken out again).
 7. [x] **`timedgate`** (`stones`, `sluices` taken out again).
 8. [x] **`miasma`** (fog; deadlines again), **`cold`** (meter; gaps), **`storm`** (gusts; gaps).
-9. [x] **`siege`, `chase`** (`drift` taken out again).
+9. [x] **`siege`, `chase`** (`drift` taken out again; `siege` later too, for the task `hold`).
 10. [x] **`runes`** (the clue room across cubes).
 11. [x] The balance simulation (`docs/balance.md`, `tools/balance.mjs`) counts trial time (every
-    kind has its `TRIAL_TIME`) and rewards (a siege's waves as kills, a vault's site with the
+    kind has its `TRIAL_TIME`) and rewards (a circle's waves as kills, a vault's site with the
     chests). The weights and numbers are still the starting values above (some already fitted
     to a cube's size, see each kind's "As built"); tuning them is for play.
 12. [x] **Retiming:** every timed event checked and fitted against a running player, tight from
@@ -836,6 +941,9 @@ Each step is done when its kind is planned, generated, checked, playable, reacha
     built exactly as in its own room, mounted on its platforms ("Step 13" below).
 14. [x] **`balance`:** the crumbling floor's room with stones that sink under a landing, and a
     miss back to the start instead of a fail.
+15. [x] **Room tasks** (below): `keybearer`, `wardstones`, `clear`, `lanterns`, `fading`, `shards`,
+    `hold` (the siege's successor), `hidden`, laid over ordinary rooms; the portal's warning taken
+    out.
 
 ## Retiming and combiners
 
@@ -968,8 +1076,7 @@ Trials stay off in real worlds until the last phase: the planner's chance is 0 u
   cascade and no shaft lands in it.
 - WFC (`world/wfc.js`): a `flood` room is pinned `LLLL`, one layer (like the lone peak's field),
   so no river crosses it.
-- `world/world.js spec()`: `spec.trial` (the plan entry), `spec.trialFaces[dir]` (the kind behind
-  each face, for the warning), no tunnel or pinnacle in a trial room. `opts.trial` through
+- `world/world.js spec()`: `spec.trial` (the plan entry), no tunnel or pinnacle in a trial room. `opts.trial` through
   `WorldClient` from `?trial=` (dev), like `?bridge=`.
 - **Done when** `tests/trials.test.js` covers: no trials without `opts.trial` (and every
   existing test unchanged); with it, one `flood` per depth 1–19 where a room fits, the same
@@ -1056,13 +1163,10 @@ Trials stay off in real worlds until the last phase: the planner's chance is 0 u
   (`tests/browser/trials.js`) enters, gets sealed in (portals, faces, scrolls refuse),
   drowns, comes back in the room before, walks in again to an `idle` room, and resolves it.
 
-### 1.6 The warning
+### 1.6 The warning (taken out again)
 
-- The portal into a trial room (from `spec.trialFaces` → `map.trialFaces`) gets the trial's
-  ring and glyph (`render/markers.js`), the hover name ("Rising water"), and the minimap marks it
-  once the room before has been visited. Gone once resolved.
-- **Done when** the portal looks different from the room before, and a test checks
-  `map.trialFaces` against the plan.
+- The portal into a trial room got the trial's ring and glyph, a hover name and a mark on the
+  minimap (`spec.trialFaces`). Taken out later ("No warning"): the portal looks like any other.
 
 ### 1.7 Playing together
 

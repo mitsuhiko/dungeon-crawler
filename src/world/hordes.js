@@ -1,7 +1,8 @@
 // Route-level encounters, on a separate stream from topology and terrain retries.
 import { hash32, mulberry32 } from '../core/util.js';
 
-// the horde's kinds at a depth, and how many it has (lo, hi); a siege's waves are drawn from them too
+// the horde's kinds at a depth, and how many it has (lo, hi); the waves of a room task's circle are drawn
+// from them too (game/tasks.js)
 export const hordeKinds = depth => depth <= 1 ? ['snake'] : depth === 2 ? ['snake', 'spider'] : depth === 3 ? ['frostspider']
   : depth <= 6 ? ['sandviper', 'spider'] : depth <= 8 ? ['spider'] : depth <= 10 ? ['frostspider', 'frostadder']
     : depth <= 12 ? ['bogspider', 'venomadder'] : depth === 13 ? ['venomadder', 'bloodviper'] : depth <= 16 ? ['spider', 'redback']

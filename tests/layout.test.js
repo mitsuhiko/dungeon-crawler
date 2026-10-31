@@ -49,7 +49,7 @@ test('all depths have routes within their band, the core all nine rooms; discove
       }
       if (d < 20) assert.equal(goal, L.down);
       for (const k of L.guardians.keys()) run.unlockedGates.add(k);
-      for (const t of L.trials) run.unlockedGates.add(t.gate);   // (trial rooms, world/trials.js: resolved)
+      for (const t of [...L.trials, ...L.tasks]) run.unlockedGates.add(t.gate);   // (trial rooms, world/trials.js, and room tasks, world/tasks.js: resolved)
       // the beginning (core/intro.js): the town (all its tiles, world/town.js) is walked through, its
       // gate shut until the sword is taken, the rock's room's until his glass on it is found
       if (d === 0) {

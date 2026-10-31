@@ -3,8 +3,6 @@
 // cube face, down portals wells in the ground, up portals rings hovering above a pad.
 import * as THREE from 'three';
 import { N, CUBE_H } from '../core/constants.js';
-import { TRIALS } from '../core/trials.js';
-import { makeFadable } from './fade.js';
 
 let STONE = null;   // one per cube (cubes fade on their own)
 // sealed: an annex's portal before a quest opens it (world/layout.js): grey, and nothing glows
@@ -14,58 +12,7 @@ const glowMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: t
 // shows or hides)
 const box = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), STONE); m.position.set(x, y, z); m.castShadow = true; m.userData.sunCast = true; return m; };
 
-// The warning on a portal into a trial room (docs/trials.md "The warning"): a ring of the trial's
-// colour round the gate and its family's glyph over it, an hourglass for an event, a knot for a
-// puzzle. The glyph is drawn on a canvas, one texture per kind.
-const glyphs = new Map();
-function glyphTexture(kind) {
-  if (glyphs.has(kind)) return glyphs.get(kind);
-  const S = 128, cv = Object.assign(document.createElement('canvas'), { width: S, height: S }), g = cv.getContext('2d');
-  const t = TRIALS[kind];
-  g.fillStyle = '#0b0e14cc'; g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 4, 0, Math.PI * 2); g.fill();
-  g.strokeStyle = t.color; g.lineWidth = 6; g.stroke();
-  g.lineWidth = 7; g.lineJoin = 'round'; g.lineCap = 'round';
-  if (t.family === 'event') {   // an hourglass
-    g.beginPath(); g.moveTo(38, 30); g.lineTo(90, 30); g.lineTo(64, 64); g.lineTo(90, 98); g.lineTo(38, 98); g.lineTo(64, 64); g.closePath(); g.stroke();
-    g.fillStyle = t.color; g.beginPath(); g.moveTo(50, 92); g.lineTo(78, 92); g.lineTo(64, 76); g.closePath(); g.fill();
-  } else {   // a knot: two loops crossing
-    g.beginPath(); g.ellipse(50, 64, 20, 28, 0, 0, Math.PI * 2); g.stroke();
-    g.beginPath(); g.ellipse(78, 64, 20, 28, 0, 0, Math.PI * 2); g.stroke();
-  }
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  glyphs.set(kind, tex);
-  return tex;
-}
-function warning(kind) {
-  const g = new THREE.Group(), color = new THREE.Color(TRIALS[kind].color);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.05, 8, 40), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 }));
-  ring.position.y = 0.95; ring.position.z = 0.04;
-  const glyph = new THREE.Sprite(new THREE.SpriteMaterial({ map: glyphTexture(kind), transparent: true, depthWrite: false }));
-  glyph.scale.set(0.7, 0.7, 1); glyph.position.y = 2.55;
-  const light = new THREE.PointLight(color, 1.5, 3.5, 2);
-  light.position.set(0, 1.4, 0.4);
-  g.add(ring, glyph, light);
-  g.userData.trialWarning = kind;
-  return { obj: g, ring, glyph };
-}
-
-// A trial's warning as a cube has it, for the warm-up (render/cubeassets.js): a cube is warmed
-// before the game knows whether its portals warn (game/trials.js warnTrials), and the warning's
-// two programs were compiled while drawing the first one. (Without its light: the cube's lights
-// are taken out of it.)
-let warned = null;
-export function markerWarmup() {
-  if (!warned) {
-    const w = warning(Object.keys(TRIALS)[0]);
-    w.obj.remove(w.obj.children.find(o => o.isLight));
-    warned = new THREE.Group().add(w.obj);
-    makeFadable(warned);
-  }
-  return [warned];
-}
-
-function gate(p, [c, e], guardian, warn = null) {
+function gate(p, [c, e], guardian) {
   const g = new THREE.Group();
   g.add(box(0.24, 1.8, 0.24, -0.78, 0.9, 0), box(0.24, 1.8, 0.24, 0.78, 0.9, 0), box(1.9, 0.26, 0.3, 0, 1.9, 0));
   const curtain = new THREE.Mesh(new THREE.PlaneGeometry(1.32, 1.76), glowMat(c, 0.4));
@@ -76,8 +23,6 @@ function gate(p, [c, e], guardian, warn = null) {
     const cross = new THREE.Mesh(new THREE.PlaneGeometry(1.6, .1), glowMat(COLORS.locked[0], .95));
     cross.rotation.z = yaw; cross.position.set(0, .88, .02); seal.add(cross);
   }
-  const w = warn && warning(warn);
-  if (w) g.add(w.obj);
   g.add(curtain, light, seal);
   const out = 0.14;
   const pos = [[N - out, p.z + 0.5], [out, p.z + 0.5], [p.x + 0.5, N - out], [p.x + 0.5, out]][p.dir];
@@ -91,7 +36,6 @@ function gate(p, [c, e], guardian, warn = null) {
   } : null, tick: t => {
     curtain.material.opacity = 0.32 + Math.sin(t * 3 + p.id) * 0.1;
     curtain.material.color.lerp(target, .15); light.color.lerp(lightTarget, .15);
-    if (w) { w.ring.material.opacity = 0.6 + Math.sin(t * 2.4) * 0.25; w.glyph.position.y = 2.55 + Math.sin(t * 1.8) * 0.06; }
   } };
 }
 
@@ -189,8 +133,7 @@ export function buildMarkers(m, group, showPath, seen = {}, open = [], locked = 
     const guardian = p.dir === m.exit ? m.guardian : null;
     // a trial room's gates (world/trials.js) can all be sealed: its exit until it is resolved, every
     // one while an event runs (game/trials.js)
-    // (and a portal into a trial room warns of it, map.trialWarn: game/trials.js)
-    const fx = p.kind === 'side' ? gate(p, col, guardian || !!m.trial, m.trialWarn?.[p.dir] ?? null)
+    const fx = p.kind === 'side' ? gate(p, col, guardian || !!m.trial)
       : p.kind === 'down' ? well(p, col, guardian) : p.kind === 'up' ? ring(p, col) : spawnPad(p);
     fx.obj.userData.guardianRole = guardian?.role ?? null;
     fx.obj.userData.bossPlaceholder = !!guardian?.bossPlaceholder;

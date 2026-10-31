@@ -17,7 +17,6 @@ import { scene } from './scene.js';
 import { warm } from './warmup.js';
 import { warmBake } from './bake.js';
 import { flameWarmup } from './flames.js';
-import { markerWarmup } from './markers.js';
 import { introWarmup } from './introfx.js';
 import { footprintWarmup } from './footprints.js';
 import { meteorWarmup } from './meteors.js';
@@ -38,7 +37,7 @@ export async function warmCube(c) {
   scene.remove(world.group);   // never drawn
   const enemies = enemyWarmup(kindsIn(c.map));
   try {
-    await warm([world.group, ...proxyWarmup(c.geo, shownFar(c.map)), ...enemies.objects, ...lootWarmup(c.map.enemyFree ? [] : coins), ...warmBake(), ...flameWarmup(), ...markerWarmup(), ...introWarmup(c.map), ...cellWarmup(), ...footprintWarmup(), ...themeOf(c.map).meteors ? meteorWarmup() : []]);
+    await warm([world.group, ...proxyWarmup(c.geo, shownFar(c.map)), ...enemies.objects, ...lootWarmup(c.map.enemyFree ? [] : coins), ...warmBake(), ...flameWarmup(), ...introWarmup(c.map), ...cellWarmup(), ...footprintWarmup(), ...themeOf(c.map).meteors ? meteorWarmup() : []]);
   } finally {
     disposeWorld(world);
     enemies.dispose();

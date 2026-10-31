@@ -21,8 +21,9 @@ const wait = async (test, text, ms = 15000) => {
 export async function runBalanceChecks() {
   check(state.dev, 'requires ?dev=1');
   await goTrial('balance');
-  await wait(() => !state.transitioning && state.map.trialFaces.includes('balance'), 'warning portal', 90000);
-  const dir = state.map.trialFaces.indexOf('balance');
+  const before = () => [...Array(19).keys()].flatMap(i => state.cubes.layout(i + 1).trials).find(x => x.kind === 'balance' && x.from === state.cubeKey);
+  await wait(() => !state.transitioning && before(), 'the room before', 90000);
+  const dir = before().fromDir;
   takePortal(state.map.portals.find(p => p.dir === dir));
   await wait(() => !state.transitioning && state.map.trial?.kind === 'balance', 'inside', 90000);
   const m = state.map, tr = m.trial, q = tr.crust.find(q => tr.slabs[q.stone].kind === 'steady'), f = m.floors[q.f];

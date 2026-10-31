@@ -242,11 +242,3 @@ export function trialPins(layout) {
   for (const t of layout.trials || []) pins.set(t.key, { sock: ['L', 'L', 'L', 'L'], K: t.K });
   return pins;
 }
-
-// the kind of trial behind each side face of cube k (for the warning on its portals), or null
-export function trialFaces(layout, k) {
-  return [0, 1, 2, 3].map(dir => {
-    const t = (layout.trials || []).find(x => x.from === k && x.fromDir === dir);
-    return t ? t.kind : null;
-  });
-}

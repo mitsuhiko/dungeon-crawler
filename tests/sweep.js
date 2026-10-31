@@ -11,10 +11,11 @@ import fluids from './sweeps/fluids.js';
 import water from './sweeps/water.js';
 import sites from './sweeps/sites.js';
 import guardians from './sweeps/guardians.js';
+import tasks from './sweeps/tasks.js';
 
 // the worlds looked at, each in its file
 export const SWEEP_SEEDS = [0, 1, 2];
-export const CHECKS = [...fluids, ...water, ...sites, ...guardians];
+export const CHECKS = [...fluids, ...water, ...sites, ...guardians, ...tasks];
 
 export function sweep(seed) {
   if (seed === SWEEP_SEEDS[0]) test('every world of the sweep has its file, and only those', () => {

@@ -10,6 +10,7 @@ import { ENCHANTER_SAYS, SMITH_SAYS, ENCHANTED_SAYS, SOLD_SAYS, REROLLED_SAYS } 
 import { SHOPS } from '../core/shops.js';
 import * as enemies from '../core/enemies.js';
 import { BOUNTY_NAMES } from '../core/bounties.js';
+import { WARD_KIND } from '../core/tasks.js';
 import { GIVERS, landmarkName } from '../core/quests.js';
 import { ROLES } from '../core/npcs.js';
 import { PROP_METADATA } from '../core/propmetadata.js';
@@ -57,6 +58,7 @@ export function sources() {
     'src/core/enemies.js labels': [...new Set(Object.values(enemies.ENEMY_KINDS).filter(k => !k.baseLabel).map(k => k.label))],
     'src/core/enemies.js reasons': reasons(),
     'src/core/bounties.js': BOUNTY_NAMES,
+    'src/core/tasks.js WARD_KIND': [WARD_KIND.label],
     'src/core/quests.js GIVERS': Object.values(GIVERS).map(g => g.title),
     'src/core/npcs.js': [...PEOPLE, ...ROLE_NAMES.map(p => `she|${p}`)],
     'src/core/propmetadata.js landmarks': [...new Set(PROP_METADATA.filter(p => p.landmark).map(p => landmarkName(p.name)))],

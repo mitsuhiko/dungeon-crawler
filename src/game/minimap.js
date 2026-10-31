@@ -21,8 +21,6 @@ import { online, playerColor, together } from '../net/online.js';
 import { truePosition } from './travel.js';
 import { followedQuest } from './questpanel.js';
 import { questTarget, questWay } from './questworld.js';
-import { warnedFace } from './trials.js';
-import { TRIALS } from '../core/trials.js';
 import { DISPLAY, BODY } from '../render/fonts.js';
 import { tr } from '../i18n/i18n.js';
 import { uiScale } from './uiscale.js';
@@ -174,12 +172,7 @@ export function drawMinimap() {
         else g.fillRect(x - CELL / 2 + 3, y - 1, CELL - 6, 2);
       } else if (f?.portal) {
         const color = portalLocked(c.map, state.run, { dir: d }) ? '#ff3547' : visited(step(k, d)) ? '#5fd3ff' : '#ffc94a';
-        // into a trial room not resolved yet: a ring of the trial's colour round it (game/trials.js)
-        const trial = warnedFace(c.map, d);
-        marks.push([edgePt(px, pz, d, (f.portal.pos + 0.5) / 16), ([x, y]) => {
-          g.fillStyle = color; g.fillRect(x - 3, y - 3, 6, 6);
-          if (trial) { g.strokeStyle = TRIALS[trial].color; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 6.5, 0, Math.PI * 2); g.stroke(); }
-        }]);
+        marks.push([edgePt(px, pz, d, (f.portal.pos + 0.5) / 16), ([x, y]) => { g.fillStyle = color; g.fillRect(x - 3, y - 3, 6, 6); }]);
       }
     }
     for (const d of [4, 5]) if (t.faces[d]?.portal) {

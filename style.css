@@ -913,10 +913,6 @@ body.cinematic :is(#quickbar, #effects, #minimap, #quest-track, #tutorial, #chat
 #trial-banner.out { opacity: 0; }
 #trial-banner b { display: block; font: bold 34px/1.2 var(--font-display); letter-spacing: .04em; }
 #trial-banner span { display: block; font: 18px/1.4 var(--font-body); margin-top: 4px; }
-/* (placed by game/trials.js in the screen's pixels: grown by the UI scale, not zoomed) */
-#trial-tip { position: fixed; z-index: 1; pointer-events: none; transform: translateX(-50%); white-space: nowrap; padding: calc(3px * var(--ui)) calc(8px * var(--ui));
-  background: #0b0e14d8; border: 1px solid #fff4; border-radius: 4px; font: calc(15px * var(--ui))/1.3 var(--font-body); color: #e6edf5; }
-#trial-tip[hidden] { display: none; }
 
 /* the perf overlay (?perf=1, /perf: game/perf.js) */
 #perf { position: absolute; top: calc(8px + var(--safe-t)); left: 50%; transform: translateX(-50%); z-index: 6; padding: 4px 6px;

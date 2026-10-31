@@ -105,7 +105,7 @@ export function generateClearing(spec) {
       return { ...mudPocket(f, p.x, p.z, p.r, p.deep), y: floorY(f, p.x - f.x, p.z - f.z) };
     }),
     fences, fenceList, stats: ctx.stats, moves, portals, exit: spec.exit,
-    routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys, trialFaces: spec.trialFaces || [null, null, null, null],
+    routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys,
     safe: Uint8Array.from(floors, f => prev.has(f.c) ? 1 : 0),
     kind: 'meadow', archetype: 'plain', key: spec.key, depth: 0, cave: false, enemyFree: true, biome: 'meadow',
     staticBlockers, blockers: staticBlockers, occluders: plan.occluders, authoredProps: plan.placements, doors: plan.doors,

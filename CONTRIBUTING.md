@@ -17,7 +17,9 @@ The game is plain ES modules and a vendored three.js; there is no build step.
   - `src/world/`: the world graph and everything shared between cubes (layout, WFC, faces,
     falls across faces, sites, town plan, the trial rooms' plan), plus the worker that owns it.
     Trial rooms (`docs/trials.md`): planned in `src/world/trials.js`, built in `src/cubegen/trials/`,
-    run by `src/game/trials.js` (rules in `src/core/trials.js`).
+    run by `src/game/trials.js` (rules in `src/core/trials.js`). Room tasks, trials laid over
+    ordinary rooms: `src/world/tasks.js`, `src/cubegen/tasks.js`, `src/game/tasks.js`
+    (`src/core/tasks.js`).
   - `src/cubegen/`: builds one cube's map from the spec `world/` hands it. Files named like
     a `world/` file (`cascades`, `spouts`, `sites`, `town`) carve that shared decision into the cube.
   - `src/themes/`: per-theme data: palettes, lighting, generator settings, structure materials;
@@ -198,7 +200,8 @@ npm run serve            # uv run --no-project tools/serve.py [port]
 # http://localhost:8000/            the main menu: your hero, its world, joining a friend
 # http://localhost:8000/?seed=123   straight into that world, nothing saved
 #   (?dev=1 for dev tools: ` opens their commands; it skips the menu too, ?menu=1 shows it;
-#    ?trial=flood puts a trial of that kind on every depth, docs/trials.md; the dev tools skip
+#    ?trial=flood puts a trial (or a room task: ?trial=shards) of that kind on every depth,
+#    docs/trials.md; the dev tools skip
 #    the beginning, its glass and sword: &intro=1 plays it, docs/story.md)
 # ?touch=1 forces the touch controls (docs/touch.md); ?lang=de or ?lang=en picks the language
 # with RADIUS_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY set, the guide's tutor uses it through the server

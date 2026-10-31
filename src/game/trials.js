@@ -2,13 +2,9 @@
 // (state.trial, core/trials.js), the rising fluid, the HUD, the parts the action key uses
 // (game/action.js), resolving and resetting it.
 //   state.trial: { key, kind, phase, t, done, at } (core/trials.js newTrial) or null
-import * as THREE from 'three';
 import { LH, N } from '../core/constants.js';
-import { step } from '../world/coords.js';
-import { camera } from '../render/scene.js';
-import { pointer } from './pointer.js';
 import { TRIALS, ARM_DISTANCE, ARM_TIME, PART_REACH, fogY, fogLevel, fogHurt, COLD, coldStep, STORM, stormPhase, newTrial, stepTrial, resolveTrial, resetTrial, trialFluidLevel,
-  nextPulse, floodEnd, trialSealed, trialGate, crustState, touchStone, stoneLeft, stoneTime, spendTrial, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
+  nextPulse, floodEnd, trialSealed, crustState, touchStone, stoneLeft, stoneTime, spendTrial, PART_LABELS, slideStop, fieldIn, isRock, isPuzzle, useBit, plateHeld, sinkStage,
   traceBeam, beamDone, allLit, pressBrazier, pushTarget, clueMark } from '../core/trials.js';
 import { groundAt } from '../physics/collide.js';
 import { setTrialFluid } from '../physics/fluid.js';
@@ -25,13 +21,15 @@ import { allEnemies, mirroring } from './enemies.js';
 import { relay, online } from '../net/online.js';
 import { followTrial } from '../net/trials.js';
 import { solveMirror, solveBraziers } from '../cubegen/trials/solve.js';
-import { refreshOpenFaces, spawnEntry, backBeforeTrial, besidePortal, rebuildWorld, hurt } from './flow.js';
+import { refreshOpenFaces, spawnEntry, backBeforeTrial, besidePortal, hurt } from './flow.js';
 import { CHAR_H } from '../core/constants.js';
 import { emit, soft, rand } from '../render/particles.js';
-import { stepSiege, stepChase, dropPortcullis, resetEvents, lightBeacon, eventHud, EVENT_HOW, EVENT_DONE } from './trialevents.js';
+import { stepChase, dropPortcullis, resetEvents, lightBeacon, eventHud, EVENT_HOW, EVENT_DONE } from './trialevents.js';
+import { stepTask, useTaskPart, taskHud, taskProgress, keepTaskProgress, resetTasks, taskMarks, TASK_DONE } from './tasks.js';
+import { setTaskView } from '../render/tasks.js';
+import { HIDDEN, lanternLit } from '../core/tasks.js';
 import { path as teachPath, label as teachLabel } from './teach.js';
 import { tr, msg } from '../i18n/i18n.js';
-import { uiScale } from './uiscale.js';
 import { narrate } from './narrator.js';
 
 const $ = id => document.getElementById(id);
@@ -54,18 +52,38 @@ const HOW = {
   cold: msg('The cold sets in. Light the braziers on your way to the great fire!'),
   storm: msg('Gusts tear off the hill. Climb in the lulls, wait out the gusts behind the boulders, pull the lightning rod on top!'),
   ...EVENT_HOW,
+  hold: msg('Hold the circle round the beacon against the waves!'),
+};
+// what the banner says on coming into a room with a task not done yet
+const TASK_HOW = {
+  keybearer: msg('One of them carries the key to the way on. Find it and defeat it.'),
+  wardstones: msg('Wardstones hold the way shut, and mend those near them. Break them all.'),
+  clear: msg('The way on stays shut while anything here still stands.'),
+  lanterns: msg('Light every brazier in the room to open the way.'),
+  fading: msg('Light every brazier: each burns only a while. All of them at once open the way.'),
+  shards: msg('Shards of a seal lie about the room. Gather them all.'),
+  hold: msg('Light the beacon when you are ready, then hold its circle against what comes.'),
+  hidden: msg('Somewhere in this room a hidden button opens the way.'),
 };
 const SEALED = msg('The portals are sealed.');
 const SEALED_AHEAD = msg('The way on is sealed. The way back stays open.');
 export const trialHere = () => state.trial;
 const mapTrial = () => state.map?.trial ?? null;
 const resolvedIn = (map, run) => !!map?.trial && run.unlockedGates.has(map.trial.gate);
+// how long we have been in the room (s): the hidden button's light (render/tasks.js)
+let taskSince = 0;
+// a part walked into (a shard): used once, its press asked of the owner once
+const touched = new Set();
 
 // coming into a cube (game/flow.js enterCube): its trial, as built or resolved for good
 export function enterTrial(map) {
   state.trial = map?.trial ? newTrial(map.trial, resolvedIn(map, state.run)) : null;
   if (state.trial && map.trial.kind === 'sunken') state.trial.stage = state.run.trials.get(map.trial.key) ?? 0;   // (drained for the run)
-  gone.clear(); crust.clear(); stoneAsked.clear(); ice = null; player.skidding = false; cold = 0; exposedOf = null; resetEvents();
+  if (state.trial && map.trial.task) Object.assign(state.trial.bits, taskProgress(map.trial, state.run));   // (lit, taken: for the run)
+  gone.clear(); crust.clear(); stoneAsked.clear(); ice = null; player.skidding = false; cold = 0; exposedOf = null; resetEvents(); resetTasks();
+  taskSince = 0; touched.clear();
+  // a room task not done yet: the banner says what it wants
+  if (map?.trial?.task && state.trial.phase !== 'resolved') banner(tr(TRIALS[map.trial.kind].name), tr(TASK_HOW[map.trial.kind]));
   partBlockers(map?.trial);
   showTrial(true);
 }
@@ -208,8 +226,9 @@ export function beforeTrialSpot() {
 export function restartTrial() {
   if (!state.trial || state.trial.phase === 'resolved') return;
   resetTrial(state.trial, mapTrial()?.start);
+  if (mapTrial()?.task) Object.assign(state.trial.bits, taskProgress(mapTrial(), state.run));   // (lit, taken: as the run has them now)
   stoneAsked.clear();
-  resetEvents();
+  resetEvents(); resetTasks(); touched.clear();
   showTrial();
 }
 
@@ -227,6 +246,7 @@ function showTrial(immediate = false) {
   setTrialWater(state.world, level == null ? null : level * LH, s?.phase ?? null);
   setTrialFog(state.world, fogY(m, s));
   setTrialParts(state.world, s, immediate);
+  if (m?.task) setTaskView(state.world, m, s, { enemies: allEnemies(), marks: taskMarks(m, s), since: taskSince, player });
   hud();
 }
 
@@ -256,8 +276,9 @@ export function updateTrial(dt) {
   stepFog(m, s, dt);
   stepCold(m, s, dt);
   stepStorm(m, s, dt);
-  stepSiege(m, s, dt, resolve);
   stepChase(m, s, dt, resolve);
+  taskSince += dt;
+  stepTask(m, s, dt, { resolve, use: touchPart });
   keystone(m, s);
   stepCrates(m, s, dt);
   stepTimed(m, s, dt);
@@ -265,10 +286,16 @@ export function updateTrial(dt) {
   showTrial();
   if (!mirroring()) drown(m, s);
 }
+function touchPart(p) {
+  const s = state.trial;
+  if (!s || touched.has(`${s.key}:${p.id}`)) return;
+  if (mirroring()) touched.add(`${s.key}:${p.id}`);
+  usePart(p);
+}
 // what a phase coming says: the banner and the rumble as it arms
 function announce(s, happened) {
   if (happened === 'armed') {
-    setStatus(`${tr(TRIALS[s.kind].name)}! ${tr(TRIALS[s.kind].wayBack ? SEALED_AHEAD : SEALED)}`);
+    setStatus(TRIALS[s.kind].sealed ? `${tr(TRIALS[s.kind].name)}! ${tr(TRIALS[s.kind].wayBack ? SEALED_AHEAD : SEALED)}` : `${tr(TRIALS[s.kind].name)}!`);
     banner(tr(TRIALS[s.kind].name), HOW[s.kind] ? tr(HOW[s.kind]) : '');
     sfx('rumble'); sfx('gate', { delay: 0.4 }); jingle('trialsealed'); narrate('trial', { what: 'sealed', kind: s.kind });
   }
@@ -284,6 +311,7 @@ export function takeTrialWord(m) {
   if (m.phase === 'resolved') { resolve(false); return; }   // (its gate, the banner, the water draining)
   const happened = followTrial(s, m);
   if (happened === 'idle') stoneAsked.clear();
+  keepTaskProgress(mapTrial(), s);   // (a brazier lit, a shard taken: for the run, ours too)
   announce(s, happened);
   showTrial();
 }
@@ -305,11 +333,6 @@ export function shareTrialResolved(m) {
   if (state.trial?.key === m.key && state.trial.phase !== 'resolved') { resolve(false); return; }
   state.run.unlockedGates.add(m.gate);
   refreshOpenFaces();
-  // standing at its portal: the warning goes
-  if (state.map?.trialWarn?.some(Boolean)) {
-    const before = state.map.trialWarn.join();
-    if (warnTrials(state.map).join() !== before) rebuildWorld();
-  }
 }
 
 // enemies the trial's fluid goes over drown (no reward: the water took them; physics/fluid.js:
@@ -333,6 +356,10 @@ export function usableParts() {
   for (const p of m.parts) {
     if (!PART_LABELS[p.type] || (p.puzzle != null && puzzleSolved(s, p.puzzle)) || (p.type === 'warm' && s.bits[p.id])) continue;
     if ((p.type === 'beacon' && s.phase !== 'idle') || (p.type === 'relic' && s.phase !== 'idle')) continue;   // (plates, gates: nothing to use; a solved puzzle: done)
+    if ((p.type === 'lantern' && lanternLit(m, s, p)) || (p.type === 'shard' && s.bits[p.id])) continue;   // (a task's: lit, taken)
+    // (the hidden button: not labelled nor hovered from afar, X shows no label over it either, till
+    // one comes close to it or its light rose: core/tasks.js HIDDEN)
+    if (p.type === 'hidden' && Math.hypot(p.x - player.x, p.z - player.z) >= HIDDEN.near && taskSince < HIDDEN.hint) continue;
     if (m.kind === 'chase' && p.type === 'lever' && s.phase !== 'armed' && s.phase !== 'running') continue;   // (the relic's gate: only once it is taken)
     out.push(p);
   }
@@ -363,16 +390,14 @@ export function usePart(p, fromOther = false) {
   if (!s || !m || s.phase === 'spent') return false;
   if (!fromOther && mirroring()) { sfx('clink'); relay.trialAct?.({ key: s.key, act: 'part', id: p.id }); return true; }
   if (p.type === 'button' && m.kind === 'flood') { if (!fromOther) sfx('clink'); resolve(); return true; }
+  const task = useTaskPart(m, s, p, fromOther, { resolve, show: () => showTrial() });
+  if (task) { if (task === 'armed') { announce(s, 'armed'); showTrial(); } return true; }
   if (p.type === 'valve') { if (!fromOther) sfx('door'); resolve(); return true; }
   if (p.type === 'fire') { if (!fromOther) sfx('fireball'); resolve(); return true; }
   if (p.type === 'rod') { if (!fromOther) sfx('unlock'); resolve(); return true; }
   if (p.type === 'lever' && m.kind === 'chase') { if (!fromOther) sfx('door'); sfx('gate', { delay: 0.1 }); dropPortcullis(m); resolve(); return true; }
   if (p.type === 'relic') {   // taken: the room arms, and its warden wakes (game/trialevents.js)
     if (lightBeacon(s)) { s.bits.relic = 1; if (!fromOther) sfx('pickup'); sfx('rumble', { delay: 0.3, volume: 0.5, pitch: 0.6 }); announce(s, 'armed'); showTrial(); }
-    return true;
-  }
-  if (p.type === 'beacon') {
-    if (lightBeacon(s)) { if (!fromOther) sfx('fireball'); announce(s, 'armed'); showTrial(); }
     return true;
   }
   if (p.type === 'warm') { if (!fromOther) sfx('fireball'); s.bits[p.id] = 1; showTrial(); return true; }
@@ -406,12 +431,13 @@ export function resolve(tell = true) {
   refreshOpenFaces();
   if (tell) relay.trialDone?.({ key: s.key, gate: m.gate, time: s.t });   // resolved for everyone (net/session.js)
   sfx('unlock'); if (!jingle('trial')) sfx('levelUp', { delay: 0.2 });
-  setStatus(tr('{trial}: done! The way on is open', { trial: tr(TRIALS[m.kind].name) }));
+  setStatus(m.task && m.role === 'branch' ? tr('{trial}: done! The vault is open', { trial: tr(TRIALS[m.kind].name) })
+    : tr('{trial}: done! The way on is open', { trial: tr(TRIALS[m.kind].name) }));
   const done = { flood: msg('The water drains away.'), miasma: msg('The vents open: the fog lifts.'), cold: msg('The great fire burns: the cold lifts.'),
     storm: msg('Lightning strikes the rod: the storm ends.'), ...EVENT_DONE, collapse: msg('The keystone holds: the floor is whole again.'),
     balance: msg('You made it across: the stones rise and hold.'),
     sunken: msg('The room is drained: the way on is clear.'), timedgate: msg('You made it through: the gate stays open.'),
-    slide: m.role === 'branch' ? msg('The gate is open, and the vault with it.') : msg('The gate is open: the way on too.') }[m.kind];
+    slide: m.role === 'branch' ? msg('The gate is open, and the vault with it.') : msg('The gate is open: the way on too.'), ...TASK_DONE }[m.kind];
   banner(isPuzzle(m.kind) ? tr('Solved!') : tr('Well done!'), done ? tr(done) : '');
   log('trial', { name: TRIALS[m.kind].name, depth: state.map.depth, what: 'resolved' }, { share: tell });
   narrate('trial', { what: 'resolved', kind: m.kind });
@@ -446,7 +472,7 @@ function hud() {
   if (!el) return;
   if (bannerUntil && performance.now() > bannerUntil) { $('trial-banner').classList.add('out'); bannerUntil = 0; }
   // (an event while it runs; a puzzle, or the sunken room's, while it is not solved)
-  const show = !!s && !!m && (s.phase === 'armed' || s.phase === 'running' || s.phase === 'spent' || (isPuzzle(s.kind) || s.kind === 'sunken' || s.kind === 'siege') && s.phase !== 'resolved');
+  const show = !!s && !!m && (s.phase === 'armed' || s.phase === 'running' || s.phase === 'spent' || (isPuzzle(s.kind) || s.kind === 'sunken' || m.task) && s.phase !== 'resolved');
   el.hidden = !show;
   if (!show) return;
   // (a combiner, the sunken room: the puzzle it is at, as in a room of its own, under its own name)
@@ -471,7 +497,7 @@ function hud() {
     line = PUZZLE_HINT[at.kind] ? tr(PUZZLE_HINT[at.kind]) : '';
     fill = (s.stage ?? 0) / m.puzzles.length;
   }
-  const ev = m && eventHud(m, s);
+  const ev = m && (m.task ? taskHud(m, s) : eventHud(m, s));
   if (ev) ({ line, fill } = ev);
   if (s.kind === 'storm') {
     const g = stormPhase(s.t);
@@ -589,7 +615,7 @@ function pushCrateAt(pz, i, d, fromOther = false) {
   updateCrateBlockers(pz, s);
   return true;
 }
-// (every trial's parts are drawn as the state says: the puzzles', the fires of the cold and the siege)
+// (every trial's parts are drawn as the state says: the puzzles', the fires of the cold, a task's braziers and beacon)
 function stepParts(m, s) {
   const bodies = [player, ...online.buddies.filter(b => b.here && b.hp > 0)];
   for (const pz of m.puzzles || []) {
@@ -643,7 +669,7 @@ export function sweptAway() {
 // "Failing and dying"). null: not in one
 export function trialStart() {
   const s = state.trial;
-  if (!s || !mapTrial() || s.phase === 'resolved' || !state.arrival) return null;
+  if (!s || !mapTrial() || mapTrial().task || s.phase === 'resolved' || !state.arrival) return null;   // (a room task's room is any room's)
   return state.arrival;
 }
 // ... and in an event that is armed or running, with nobody else still in the room, the attempt is
@@ -715,45 +741,6 @@ function solveLens() {
       { id: `trial-solve-${i}`, size: 0.16, ttl: 60 });
   });
   return `The way up: ${m.check.path.at(-1).t.toFixed(1)} s walking, slack ${m.check.slack} s (shown for a minute)`;
-}
-
-// --- the warning (docs/trials.md "The warning") ---------------------------------------------------
-
-// Which side faces of `map` lead into a trial room not resolved yet (by dir: its kind, or null):
-// their portals carry the trial's ring and glyph (render/markers.js). Before the cube is built.
-export function warnTrials(map) {
-  map.trialWarn = (map.trialFaces || [null, null, null, null]).map((kind, d) => kind && !state.run.unlockedGates.has(trialGate(step(map.key, d))) ? kind : null);
-  return map.trialWarn;
-}
-
-// the kind behind face d of a visited cube on the minimap (game/minimap.js), or null
-export const warnedFace = (map, d) => {
-  const kind = map?.trialFaces?.[d];
-  return kind && !state.run.unlockedGates.has(trialGate(step(map.key, d))) ? kind : null;
-};
-
-// Hovering over a warned portal (or standing near it) names the trial: a tip over its glyph
-const tipAt = new THREE.Vector3();
-export function updateTrialTip() {
-  const el = $('trial-tip');
-  if (!el) return;
-  const map = state.map;
-  let show = null;
-  if (map?.trialWarn && !state.transitioning && state.mode === 'play') for (const p of map.portals) {
-    const kind = p.kind === 'side' && map.trialWarn[p.dir];
-    if (!kind) continue;
-    tipAt.set(p.dir < 2 ? (p.dir === 0 ? N : 0) : p.x + 0.5, p.y + 2.55, p.dir < 2 ? p.z + 0.5 : (p.dir === 2 ? N : 0)).project(camera);
-    if (tipAt.z > 1) continue;
-    const x = (tipAt.x + 1) / 2 * innerWidth, y = (1 - tipAt.y) / 2 * innerHeight;
-    const cursor = pointer.inside ? [(pointer.ndc.x + 1) / 2 * innerWidth, (1 - pointer.ndc.y) / 2 * innerHeight] : null;
-    const near = Math.hypot(player.x - p.x - 0.5, player.z - p.z - 0.5) < 3;
-    if (near || (cursor && Math.hypot(cursor[0] - x, cursor[1] - y) < 70)) { show = { kind, x, y }; break; }
-  }
-  el.hidden = !show;
-  if (!show) return;
-  const t = TRIALS[show.kind], text = `${tr(t.name)} · ${t.family === 'event' ? tr('an event: it seals the room') : tr('a puzzle')}`;
-  if (el.textContent !== text) { el.textContent = text; el.style.borderColor = t.color; }
-  el.style.left = `${Math.round(show.x)}px`; el.style.top = `${Math.round(show.y - 34 * uiScale())}px`;   // (it grows with the UI scale: style.css)
 }
 
 // --- puzzles (docs/trials.md "Puzzles") ----------------------------------------------------------

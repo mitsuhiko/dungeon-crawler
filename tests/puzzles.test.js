@@ -10,7 +10,7 @@ import { MAX_DEPTH, worldThemes } from '../src/themes/depth.js';
 import { TRIALS, floodEnd, ARM_TIME, CLOSE, stormAllowance, newTrial, stepTrial, resolveTrial, resetTrial,
   trialFluidLevel, slideStop, fieldIn, isRock, useBit, plateHeld, sinkStage, SINK, traceBeam, beamDone,
   pressBrazier, allLit, pushTarget, platesHeld, FOG, fogLevel, fogY, fogHurt, COLD, coldStep, STORM,
-  stormPhase, holdTime, HUNTER, runeOrder } from '../src/core/trials.js';
+  stormPhase, HUNTER, runeOrder } from '../src/core/trials.js';
 import { solveSlide, slideBand, solveMirror, solveBraziers, brazierPattern, solveSokoban } from '../src/cubegen/trials/solve.js';
 import { PUZZLE_SIZE } from '../src/cubegen/trials/puzzles.js';
 import { player } from '../src/game/state.js';
@@ -414,21 +414,7 @@ test('every storm room: the rod on a tall hill, the way round it, out in the win
   assert.ok(n > 10, `${n}`);
 });
 
-// --- siege, chase -----------------------------------------------------------------------------------
-
-test('every siege room: the ring flat round the beacon, 2-3 mouths far from it, each reaching it; the hold grows with depth', () => {
-  let n = 0;
-  for (const { seed, d, m } of events('siege', [0, 1, 2])) {
-    const tr = m.trial;
-    assert.ok(tr.mouths.length >= 2 && tr.mouths.length <= 3, `${seed}/${d}: ${tr.mouths.length} mouths`);
-    assert.ok(tr.mouths.every(o => Math.hypot(o.x - tr.ring.x, o.z - tr.ring.z) >= 6.5));
-    for (const f of m.floors) if (!f.fluid && f.layer === 0 && Math.hypot(f.x + 0.5 - tr.ring.x, f.z + 0.5 - tr.ring.z) <= tr.ring.r)
-      assert.ok(Math.max(...f.cs) - Math.min(...f.cs) <= 0.2 && Math.abs(f.top * LH - tr.ring.y) < 0.01, `${seed}/${d}: the ring is not flat`);
-    n++;
-  }
-  assert.ok(n > 20, `${n}`);
-  assert.equal(holdTime(2), 45); assert.equal(holdTime(19), 90);
-});
+// --- chase -----------------------------------------------------------------------------------------
 
 test('every relic room: a courtyard with both portals walled off from the hall but for its gate; the race to the lever won running, just', () => {
   let n = 0;

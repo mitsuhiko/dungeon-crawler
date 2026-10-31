@@ -48,7 +48,8 @@ import { checkQuestLog } from '../core/quests.js';
 import { checkSmith } from '../core/save.js';
 import { depthOf, MAX_DEPTH } from '../themes/depth.js';
 import { ACTS } from '../themes/index.js';
-import { enterTrial, restartTrial, refreshTrialView, sealedIn, warnTrials } from './trials.js';
+import { enterTrial, restartTrial, refreshTrialView, sealedIn } from './trials.js';
+import { holdsRespawn, taskMarkOf, restoreTaskMark } from './tasks.js';
 import { setFluidPalettes } from '../render/fluidpal.js';
 import { tr } from '../i18n/i18n.js';
 import { askRespawn, forgetDeath } from './deathask.js';
@@ -104,14 +105,17 @@ export function hurt(amount, reason, by = null) {
 // The cube as you came in. A death puts it back: the enemies you defeated since return and
 // the coins they dropped (and you did not pick up yet) go. Those dead long enough are back first
 // (core/respawn.js), unless a friend is in the cube already: it stays as they have it.
+// (A room that must be cleared keeps its dead dead until it is: game/tasks.js holdsRespawn. Its
+// task's braziers lit and shards taken go back with a death too.)
 // learn: memory.html#death (see learn/README.md)
 export function beginVisit() {
-  if (!online.buddies.some(b => b.cube === state.cubeKey)) respawnCube(state.run, state.cubeKey);
-  state.visit = { key: state.cubeKey, defeated: new Set(state.run.defeated), loot: lootMark(), quests: questMark() };
+  if (!online.buddies.some(b => b.cube === state.cubeKey) && !holdsRespawn(state.map, state.run)) respawnCube(state.run, state.cubeKey);
+  state.visit = { key: state.cubeKey, defeated: new Set(state.run.defeated), loot: lootMark(), quests: questMark(), task: taskMarkOf(state.map?.trial, state.run) };
 }
 function restoreVisit(v) {
   if (!v) return;
   restoreDefeated(state.run, v.defeated);
+  restoreTaskMark(v.task, state.run);
   forgetLoot(v.key, v.loot);
   restoreQuests(v.quests);   // a horde broken since comes back, and so do the quests' goals (game/quests.js)
   forgetPicked();
@@ -421,14 +425,12 @@ onPropSet(set => {
   rebuildWorld();
 });
 // Cube c built as it is now: the people living there and what the quests put there
-// (game/questworld.js), its portals into trial rooms not resolved yet warning of them
-// (game/trials.js), its portals and faces as they stand (open: its sides open, if not as they
+// (game/questworld.js), its portals and faces as they stand (open: its sides open, if not as they
 // stand now). The cube played in, and one baked ahead (game/bakeahead.js): built the same way, so
 // the bake made ahead is the one it takes.
 export function buildCube(c, open = openedSides(state.openedFaces, c.key)) {
   const k = c.key, m = c.map;
   questWorld(m);
-  warnTrials(m);
   return buildWorld(m, state.showPath, portalSeen(k, m), c.geo, open, gateLocked(m, state.run), townPadIn(m, state.run), state.run.chests);
 }
 

@@ -2,9 +2,10 @@
 // Pure rules and data, shared by the world (the plan), the generator, the game and the tests.
 //
 // Two families: events change the room while you are in it (timed, the room sealed, failing
-// puts you back in the room before); puzzles are untimed and open (walk away, come back).
+// puts you back in the room before); puzzles are untimed and open (walk away, come back). A third,
+// tasks (core/tasks.js), are laid over ordinary rooms: untimed, never sealed.
 //
-//   kind: { id, name (what the warning on the portal says), family: 'event' | 'puzzle',
+//   kind: { id, name (what the banner and the HUD say), family: 'event' | 'puzzle' | 'task',
 //           sealed, timed, depths: [first, last], themes (theme ids it fits, null: any),
 //           weight (when drawn among the kinds that fit), color, built (planned at all),
 //           strict (its themes hold even for a sunken room's stages: the ice slide is ice only),
@@ -30,8 +31,6 @@ export const TRIALS = {
   storm: { name: msg('The storm'), family: 'event', sealed: true, timed: true, depths: [1, 6],
     themes: ['meadow', 'clouds', 'lagoon', 'karst', 'peaks', 'highlands', 'badlands', 'saltflats', 'canyon'], weight: 1, color: '#b0b8ff', built: true,
     population: 0.3 },
-  siege: { name: msg('Hold the beacon'), family: 'event', sealed: true, timed: true, depths: [2, 19], themes: null, weight: 1, color: '#ff7a3a', built: true,
-    population: 0.3, armByPart: true },
   chase: { name: msg('The relic'), family: 'event', sealed: true, timed: true, depths: [4, 19], themes: null, weight: 1, color: '#ff4060', built: true,
     population: 0, armByPart: true },
   miasma: { name: msg('Sinking fog'), family: 'event', sealed: true, timed: true, depths: [5, 19], themes: 'walled', weight: 1, color: '#9adf50', built: true,
@@ -48,6 +47,16 @@ export const TRIALS = {
     population: 0.5 },
   runes: { name: msg('Rune order'), family: 'puzzle', sealed: false, timed: false, depths: [1, 19], themes: ['ruins', 'highlands', 'ossuary', 'karst', 'abyss'], weight: 1.5, color: '#c0a0ff',
     built: true, population: 0.5 },
+  // the room tasks (core/tasks.js, world/tasks.js): `combat` needs the room's enemies; `routeOnly`:
+  // never a branch's vault; `dark`: weighs so much more in a cave
+  keybearer: { name: msg('The keybearer'), family: 'task', sealed: false, timed: false, depths: [1, 19], themes: null, weight: 1, color: '#ffcf4a', built: true, combat: true },
+  wardstones: { name: msg('Wardstones'), family: 'task', sealed: false, timed: false, depths: [1, 19], themes: null, weight: 1, color: '#b48cff', built: true, combat: true },
+  clear: { name: msg('Clear the room'), family: 'task', sealed: false, timed: false, depths: [1, 19], themes: null, weight: 1, color: '#ff6a5a', built: true, combat: true },
+  lanterns: { name: msg('Kindle the braziers'), family: 'task', sealed: false, timed: false, depths: [1, 19], themes: null, weight: 1, color: '#ffa040', built: true, dark: 1.5 },
+  fading: { name: msg('Fading flames'), family: 'task', sealed: false, timed: false, depths: [5, 19], themes: null, weight: 1, color: '#ff7040', built: true },
+  shards: { name: msg('Shards'), family: 'task', sealed: false, timed: false, depths: [1, 19], themes: null, weight: 1, color: '#7ae8ff', built: true },
+  hold: { name: msg('Hold the circle'), family: 'task', sealed: false, timed: false, depths: [2, 19], themes: null, weight: 1, color: '#ff7a3a', built: true, routeOnly: true },
+  hidden: { name: msg('The hidden button'), family: 'task', sealed: false, timed: false, depths: [1, 19], themes: null, weight: 1, color: '#c8d8a0', built: true },
 };
 for (const [id, t] of Object.entries(TRIALS)) t.id = id;
 export const TRIAL_KINDS = Object.keys(TRIALS);
@@ -58,6 +67,7 @@ export const isTrialGate = g => typeof g === 'string' && g.startsWith('trial:');
 export const trialOf = kind => TRIALS[kind] ?? null;
 export const isEvent = kind => TRIALS[kind]?.family === 'event';
 export const isPuzzle = kind => TRIALS[kind]?.family === 'puzzle';
+export const isTask = kind => TRIALS[kind]?.family === 'task';
 
 // does kind fit depth d of theme `theme` (themes/index.js)? force: the dev's ?trial= lifts the limits
 export function trialFits(kind, d, theme, force = false) {
@@ -192,12 +202,6 @@ export function stormPhase(t) {
     : { phase: 'lull', left: STORM.period - c };
 }
 
-// --- siege ---------------------------------------------------------------------------------------------
-// HOLD s in the ring (it fills only while a player is in it; it pauses, never drops) from depth 2's 45
-// to depth 19's 90; four waves come at even shares of it.
-export const SIEGE = { waves: 4 };
-export const holdTime = depth => Math.round(45 + 45 * Math.max(0, Math.min(1, (depth - 2) / 17)));
-
 // --- chase: the relic ---------------------------------------------------------------------------------
 // Taking the relic arms the room; `wake` s later (the room's, map.trial.wake) its warden breaks out of
 // its lair: a kind of the depth's roster (its heaviest that fights up close), HUNTER.mods stronger,
@@ -312,7 +316,9 @@ export const PART_REACH = 1.1;   // how near a part (a button, a lever ...) has 
 // estimate (tools/balance.mjs). An event: its clock to the goal (about the slow player's, the
 // hazard fitted to it); a puzzle: walking it through.
 export const TRIAL_TIME = { flood: 18, collapse: 16, balance: 25, slide: 60, sunken: 150, mirror: 60, braziers: 50, crates: 120, timedgate: 40,
-  miasma: 10, cold: 20, storm: 25, siege: 75, chase: 20, runes: 45 };
+  miasma: 10, cold: 20, storm: 25, chase: 20, runes: 45,
+  // the room tasks (core/tasks.js)
+  keybearer: 25, wardstones: 35, clear: 45, lanterns: 40, fading: 40, shards: 45, hold: 45, hidden: 40 };
 export const trialTime = kind => TRIAL_TIME[kind] ?? 60;
 
 // --- collapse ----------------------------------------------------------------------------------------
@@ -390,7 +396,8 @@ export function touchStone(m, s, stone) {
 export const PART_LABELS = { button: msg('Press the button'), lever: msg('Pull the lever'), reset: msg('Pull the lever: start again'),
   mirror: msg('Turn the mirror'), brazier: msg('Light or put out the brazier'), crate: null, valve: msg('Open the vent valve'),
   warm: msg('Light the brazier'), fire: msg('Light the great fire'), rod: msg('Pull the lightning rod'), beacon: msg('Light the beacon'),
-  portcullis: null, relic: msg('Take the relic'), runestone: msg('Press the runestone'), tablet: msg('Read the carved tablet') };
+  portcullis: null, relic: msg('Take the relic'), runestone: msg('Press the runestone'), tablet: msg('Read the carved tablet'),
+  lantern: msg('Light the brazier'), shard: msg('Take the shard'), hidden: msg('Press the hidden button') };
 export const USE_TIME = 1;   // s an F on a part takes
 
 // --- slide (docs/trials.md, `slide`) -------------------------------------------------------------

@@ -8,7 +8,6 @@
 //                 the entry and lead on to the exit, and the kind's own check must pass (the
 //                 timing of an event, cubegen/trials/timing.js); else the attempt is retried
 import { N, LH, RUN_SPEED, CHAR_H } from '../../core/constants.js';
-import { idx } from '../../core/util.js';
 import { floorY } from '../../core/surfaces.js';
 import { search, take } from '../route.js';
 import { reachFrom, reachTo, graph } from '../reach.js';
@@ -24,7 +23,6 @@ import { shapeTimed, timedGoal, timedRoute } from './timed.js';
 import { shapeMiasma, miasmaGoal } from './miasma.js';
 import { shapeCold, coldGoal, coldRoute } from './cold.js';
 import { shapeStorm, stormGoal, stormRoute } from './storm.js';
-import { shapeSiege, siegeGoal, RING } from './siege.js';
 import { shapeChase, chaseGoal, chaseRoute } from './chase.js';
 import { arrivals, pathOf, checkDeadlines, floorLevel, USE_TIME } from './timing.js';
 import { ARM_TIME, SLACK, REACT, slowTime, fitFlood, floodTime, FLOOD, WAVE, crumbleTime, FOG, COLD, STORM, stormAllowance, HUNTER, runeOrder } from '../../core/trials.js';
@@ -36,7 +34,6 @@ const KINDS = {
   miasma: { shape: shapeMiasma, goal: miasmaGoal, costs: null, finish: finishMiasma },
   cold: { shape: shapeCold, goal: coldGoal, costs: coldRoute, finish: finishCold },
   storm: { shape: shapeStorm, goal: stormGoal, costs: stormRoute, finish: finishStorm },
-  siege: { shape: shapeSiege, goal: siegeGoal, costs: null, finish: finishSiege },
   chase: { shape: shapeChase, goal: chaseGoal, costs: chaseRoute, finish: finishChase },
   slide: { shape: shapePuzzle, goal: puzzleGoal, costs: slideRoute, finish: finishPuzzles },
   sunken: { shape: shapeSunken, goal: sunkenGoal, costs: slideRoute, finish: finishSunken },
@@ -275,23 +272,6 @@ function finishStorm(ctx, t, out) {
   for (const c of t.hill) for (const f of ctx.cols[c]) f.noSpawn = true;
   return { eye: t.eye, exposed: t.exposed, stones: t.stones, rod: at, parts: [{ id: 'rod', type: 'rod', ...at }],
     check: { exposed: Math.round(worst * 100) / 100, slow: Math.round(worst * SLACK * 100) / 100, climb: path.filter(n => t.hill.has(n.c)).length, path: checkPath(path, arr, () => null) } };
-}
-
-// --- siege --------------------------------------------------------------------------------------------
-
-// The ring flat and dry; every mouth reaches it
-function finishSiege(ctx, t, out) {
-  const b = t.beacon, ring = t.ring.map(c => ctx.layerFloor(c, 0));
-  if (ring.some(f => !f || f.fluid || f.top !== b.level || Math.max(...f.cs) - Math.min(...f.cs) > 0.2)) return null;
-  const centre = ctx.layerFloor(b.c, 0), mouths = [];
-  for (const m of t.mouths) {
-    const f = ctx.layerFloor(idx(m.x, m.z), 0);
-    if (!f || f.fluid || !reachFrom(ctx, [f], true).has(centre.id)) return null;
-    mouths.push({ x: f.x + 0.5, y: floorY(f, 0.5, 0.5), z: f.z + 0.5, yaw: Math.atan2(b.x - m.x, b.z - m.z) });
-  }
-  for (const f of ring) f.noSpawn = true;
-  const at = { x: b.x + 0.5, y: b.level * LH, z: b.z + 0.5 };
-  return { beacon: at, ring: { x: at.x, z: at.z, r: RING, y: at.y }, mouths, parts: [{ id: 'beacon', type: 'beacon', ...at }] };
 }
 
 // --- chase: the relic -------------------------------------------------------------------------------

@@ -88,7 +88,7 @@ function finish(ctx, spec, { K = 1, B = [0], arrival, note, lineup = [], shape =
     seed: spec.seed, attempts: 1, K, B, cols: ctx.cols, floors, pieces: ctx.pieces ?? Array.from({ length: N * N }, () => []),
     runs: ctx.runs ?? [], falls: ctx.falls, mudPockets: ctx.mudPockets ?? [], fences: new Map(), fenceList: [], stats: ctx.stats, moves: [], portals: [], exit: null,
     ladders: ctx.ladders.map(l => ladderInfo(l, l.style)),
-    gateKeys: [null, null, null, null], trialFaces: [null, null, null, null], trial: null, clues: [],
+    gateKeys: [null, null, null, null], trial: null, clues: [],
     safe: new Uint8Array(floors.length).fill(1),
     kind: 'meadow', archetype: 'test', key: spec.key, depth: spec.depth, biome: spec.biome,
     cave: false, walled: false, enemyFree: false, populationScale: 0, horde: null,
@@ -293,7 +293,7 @@ function bossRoom(spec) {
   const name = testRoomOf(spec.key);
   Object.assign(m.stats, { mode: `test room (${name}, ${m.arena.type} arena)` });
   return { ...m, key: spec.key, portals: [], exit: null, guardian: null, moves: [], routes: [],
-    gateKeys: [null, null, null, null], trialFaces: [null, null, null, null], archetype: 'test', roomRole: null,
+    gateKeys: [null, null, null, null], archetype: 'test', roomRole: null,
     populationScale: 0, horde: null,
     testRoom: { name, arrival, note: `${ENEMY_KINDS[boss].label} in his ${m.arena.type} arena, idle until hit`,
       lineup: [{ type: boss, x: g.x, z: g.z, yaw: g.yaw }] } };

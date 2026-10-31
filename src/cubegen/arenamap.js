@@ -34,7 +34,7 @@ export function finishArena({ spec, ctx, role, cols, floors, portals, exit, guar
   return { seed: spec.seed, attempts: 1, K: 1, B: [0], cols, floors,
     pieces: Array.from({ length: N * N }, () => []), runs: [], falls: [], ladders: [],
     fences, fenceList, stats: ctx.stats, moves, portals, exit, guardian, arena, tide, ...more,
-    routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys, trialFaces: spec.trialFaces || [null, null, null, null],
+    routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys,
     safe: Uint8Array.from(floors, f => reached.has(f) ? 1 : 0),
     kind: spec.kind, archetype: 'arena', roomRole: `${role}-guardian`, biome: spec.biome,
     key: spec.key, depth: spec.depth, cave: !!spec.cave, walled, enemyFree: false,

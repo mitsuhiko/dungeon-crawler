@@ -9,7 +9,7 @@ export function coordinateDefence(map, run, list, player) {
   const guardian = list.find(e => e.guardianGate && e.mode !== 'dead');   // not a dev-spawned one
   if (!gateLocked(map, run) || !guardian) {
     for (const e of list) {
-      if (e.raid || e.siege) continue;   // a raid's (game/defense.js): posted at the cart they raid; a siege's (game/trialevents.js): at the beacon
+      if (e.raid || e.siege) continue;   // a raid's (game/defense.js): posted at the cart they raid; a circle's waves (game/tasks.js): at the beacon
       if (e.defence && e.mode === 'defend') { e.mode = 'idle'; e.t = 1; e.path = null; }
       e.defence = null;
     }

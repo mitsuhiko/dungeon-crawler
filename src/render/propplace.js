@@ -12,7 +12,7 @@ const ambientSets = theme => [theme.props, 'any', ...(theme.cave ? ['relics'] : 
 // The props a trial room's parts borrow (render/trials.js): its braziers (the cold's to warm
 // at too) and the crates of a crate puzzle; the rest of its parts are the trials' library
 // (assets/trials.glb, set `trial`), a rune room's clue tablet too.
-export const TRIAL_PROPS = { brazier: 'ruins_brazier_a', warm: 'ruins_brazier_a', crate: 'mines_crate_a' };
+export const TRIAL_PROPS = { brazier: 'ruins_brazier_a', warm: 'ruins_brazier_a', lantern: 'ruins_brazier_a', crate: 'mines_crate_a' };
 function trialSets(m, of) {
   if (!m.trial && !m.clues?.length) return;
   of({ name: 'trial_button' });

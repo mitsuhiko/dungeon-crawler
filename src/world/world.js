@@ -18,7 +18,6 @@ import { spanSpec } from './spans.js';
 import { heightSpec, heightsOf, shaftAbove } from './heights.js';
 import { areaSpec } from './areas.js';
 import { bridgesOf } from '../themes/builds.js';
-import { trialFaces } from './trials.js';
 import { isTestRoom, testRoomOf } from './testrooms.js';
 import { generateTestRoom } from '../cubegen/testrooms.js';
 
@@ -121,8 +120,9 @@ export class World {
       seed: hash32(this.seed ^ hashKey(k)),
       trial: trial && { id: trial.id, key: trial.key, kind: trial.kind, role: trial.role, from: trial.from, fromDir: trial.fromDir,
         exit: trial.exit, gate: trial.gate, stages: trial.stages || null, depth: trial.depth, entry: trial.fromDir ^ 1 },
-      trialFaces: trialFaces(L, k),   // the kind of trial behind each side face (the warning on its portal)
       clues: (L.trialClues?.get(k) ?? []).map(t => ({ key: t.key, id: t.id, depth: t.depth })),   // rune rooms' tablets (world/trials.js)
+      // a room task laid over the room (world/tasks.js, cubegen/tasks.js)
+      task: (t => t && { id: t.id, key: t.key, kind: t.kind, role: t.role, from: t.from, fromDir: t.fromDir, exit: t.exit, gate: t.gate, depth: t.depth })(L.taskCells?.get(k)),
       archetype: trial ? 'trial' : span ? span.role : area ? area.role : height ? height.role : pinnacle ? 'pinnacle' : peak ? 'peak' : lake ? 'lake' : -Y === 0 || annex ? 'plain'
         : this.opts.arche || archetype(theme, t.kind, this.wfc.rng(k, 0xa7c4)), span,
       forceBridge: this.opts.bridge || null, forceLadder: this.opts.ladder || null,

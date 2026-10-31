@@ -1517,7 +1517,7 @@ export const LINES = [
     'A cold snap: light the braziers on the way to the great fire.', WARN),
   says('trial', { what: 'sealed', kind: 'storm' }, 'trial.storm', 'Wind! Hide behind the rocks when it gusts, and climb when it calms.',
     'A storm: climb in the lulls to the lightning rod on top.', TIP),
-  says('trial', { what: 'sealed', kind: 'siege' }, 'trial.siege', 'Keep them away from the beacon! Only for a little while.',
+  says('trial', { what: 'sealed', kind: 'hold' }, 'trial.siege', 'Keep them away from the beacon! Only for a little while.',
     'Hold the beacon: defend it long enough.', WARN),
   says('trial', { what: 'sealed', kind: 'chase' }, 'trial.chase', 'Take the relic and run! Drop the gate behind us!',
     'The relic: take it, run, drop the portcullis on its warden.', WARN),

@@ -91,8 +91,6 @@ export default {
   'Run! Reach the far side': 'Lari! Capailah seberangnya',
   'The gate shut: back to the lever': 'Gerbangnya menutup: kembali ke tuasnya',
   'The trial is lost': 'Ujiannya gagal',
-  'an event: it seals the room': 'sebuah peristiwa: ia mengunci ruangannya',
-  'a puzzle': 'sebuah teka-teki',
   'Stage {n} of {of}: the water sinks': 'Tahap {n} dari {of}: airnya surut',
   'The water sinks': 'Airnya surut',
   'A way down is clear: on to the next platform.': 'Satu jalan turun sudah bebas: lanjut ke pijakan berikutnya.',

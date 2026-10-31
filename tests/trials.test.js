@@ -43,7 +43,7 @@ test('trials come with the seed: an event on about 45% of the depths from 1 to 1
     }
   }
   // (45% of the depths roll one; not every depth has a room that fits)
-  assert.ok(events / depths > 0.32 && events / depths < 0.47, `events on ${(100 * events / depths).toFixed(1)}% of the depths`);
+  assert.ok(events / depths > 0.3 && events / depths < 0.47, `events on ${(100 * events / depths).toFixed(1)}% of the depths`);
 });
 
 test('forced floods: one per depth where a room fits, the same plan whatever the order, never in an excluded room', () => {
@@ -106,8 +106,6 @@ test('nothing falls into a trial room, no river crosses it, it has one layer', (
       }
       const spec = w.spec(t.key);
       assert.equal(spec.trial.kind, 'flood'); assert.ok(!spec.tunnel && !spec.pinnacle && !spec.voidOK);
-      w.prepare(t.from);
-      assert.equal(w.spec(t.from).trialFaces[t.fromDir], 'flood');
     }
   }
   assert.ok(n > 150, `${n} trial rooms`);
@@ -115,7 +113,7 @@ test('nothing falls into a trial room, no river crosses it, it has one layer', (
 
 test('the kinds: every one has a name, a family and depths', () => {
   for (const [id, t] of Object.entries(TRIALS)) {
-    assert.ok(t.name && ['event', 'puzzle'].includes(t.family) && t.depths[0] >= 1 && t.depths[1] <= 19, id);
+    assert.ok(t.name && ['event', 'puzzle', 'task'].includes(t.family) && t.depths[0] >= 1 && t.depths[1] <= 19, id);
     assert.equal(t.id, id);
   }
 });
@@ -409,23 +407,16 @@ test('an annex joins only through its portals, resolved or not; a trial room unt
   assert.equal(portalsOnly({ key: 'b', trialRoom: true }), true, 'without a run: as unresolved');
 });
 
-test('the warning: every map knows which of its faces lead into a trial room, as planned', () => {
+test('the room before every trial room has a portal into it, as planned', () => {
   let n = 0;
   for (const seed of [0, 1]) {
     const w = worldOf(seed, { trial: 'flood' });
-    for (const d of DEPTHS) {
-      const L = w.layout(d);
-      for (const k of L.exists) {
-        const m = w.cube(k).map;
-        for (let d4 = 0; d4 < 4; d4++) {
-          const t = L.trials.find(x => x.from === k && x.fromDir === d4);
-          assert.equal(m.trialFaces[d4], t ? t.kind : null, `${seed}/${d}: ${k} face ${d4}`);
-          if (t) { n++; assert.ok(m.portals.some(p => p.dir === d4), `${seed}/${d}: no portal to warn on`); }
-        }
-      }
+    for (const d of DEPTHS) for (const t of w.layout(d).trials) {
+      n++;
+      assert.ok(w.cube(t.from).map.portals.some(p => p.dir === t.fromDir), `${seed}/${d}: ${t.from} has no portal into ${t.key}`);
     }
   }
-  assert.ok(n > 20, `${n} warnings`);
+  assert.ok(n > 20, `${n} trial rooms`);
 });
 
 // --- collapse --------------------------------------------------------------------------------------

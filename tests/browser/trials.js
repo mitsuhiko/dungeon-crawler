@@ -315,7 +315,7 @@ export async function runTrialChecks(kind = 'flood') {
   await goTrial(kind, t.depth, t.key);
   await until(() => !state.transitioning && state.cubeKey === t.from, 'into the room before');
   const q = state.map.portals.find(p => p.dir === t.fromDir);
-  check(state.map.trialFaces[t.fromDir] === kind, 'the room before knows the trial behind its portal');
+  check(state.map.portals.some(p => p.dir === t.fromDir), 'the room before has a portal into the trial room');
   results.push('room before');
   // in through its portal
   takePortal(q);
@@ -324,10 +324,10 @@ export async function runTrialChecks(kind = 'flood') {
   check(portalLocked(state.map, state.run, { dir: t.exit }), 'the exit is locked until resolved');
   // stepping off the pad arms it, and seals every portal
   const [ax, az] = DIRS[t.fromDir], into = [ax, az];
-  if (kind === 'siege' || kind === 'chase') {   // (armed by lighting the beacon or taking the relic, not by stepping off the pad)
+  if (kind === 'chase') {   // (armed by taking the relic, not by stepping off the pad)
     await walkIn(into, () => false, null, 1000);
     check(state.trial.phase === 'idle', 'stepping off the pad arms nothing');
-    const b = state.map.trial.parts.find(p => p.type === 'beacon' || p.type === 'relic');
+    const b = state.map.trial.parts.find(p => p.type === 'relic');
     Object.assign(player, { x: b.x + 0.8, y: b.y, z: b.z, vx: 0, vz: 0 });
     await delay(150);
     useAction();
@@ -436,35 +436,6 @@ export async function runTrialChecks(kind = 'flood') {
     }
     results.push('the gusts');
     if (player.hp <= 0 || state.cubeKey !== t.key) return results;
-  }
-  // the siege: idle until the beacon is lit; waves come; holding the ring fills it
-  if (kind === 'siege') {
-    const m = state.map.trial, b = m.parts.find(p => p.type === 'beacon');
-    await walkIn(into, () => false, null, 1200);
-    check(state.trial.phase === 'idle', 'stepping off the pad does not start it');
-    Object.assign(player, { x: b.x + 0.8, y: b.y, z: b.z, vx: 0, vz: 0 });
-    await delay(150);
-    check(pendingAction()?.target?.id === 'beacon', 'the beacon in reach');
-    useAction();
-    await until(() => state.trial.phase === 'running', 'lit, running', 6000);
-    await delay(1500);
-    const { allEnemies } = await import('../../src/game/enemies.js');
-    check(allEnemies().some(e => e.id.startsWith(`trial:${t.key}:siege`)), 'the first wave');
-    check((state.trial.bits.hold ?? 0) > 0.5, 'the hold fills in the ring');
-    // they come for whoever holds the ring, not stand about their mouths
-    const hp = [player.hp, player.maxHp];
-    player.hp = player.maxHp = 1e6; state.devPassive = false;
-    const raiders = () => allEnemies().filter(e => e.id.startsWith(`trial:${t.key}:siege`) && e.mode !== 'dead');
-    check(raiders().every(e => e.defence), 'still posted at the beacon');
-    await until(() => raiders().some(e => Math.hypot(e.x - player.x, e.z - player.z) < 2.5), 'an attacker at the ring', 12000);
-    [player.hp, player.maxHp] = hp;
-    state.devPassive = true;
-    const { holdTime } = await import('../../src/core/trials.js');
-    state.trial.bits.hold = holdTime(state.map.depth) - 0.5;
-    await until(() => state.trial.phase === 'resolved', 'held', 3000);
-    await delay(200);
-    check(!allEnemies().some(e => e.id.startsWith(`trial:${t.key}:siege`) && e.mode !== 'dead'), 'the rest fled');
-    results.push('held');
   }
   // the relic: taken, its warden (a known kind, stronger) breaks out and hunts faster than the
   // player can run (a swiftness potion quickens it too); the run back along the checked way at

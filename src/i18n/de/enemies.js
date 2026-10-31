@@ -275,6 +275,10 @@ export default {
   'your echo': 'dein Echo',
   'Raging {kind:lower}': '{kind, select, m {Wütender} f {Wütende} n {Wütendes} other {Wütende}} {kind}',
   'Caught by the raging {kind:lower}!': '{kind, select, f {Von der wütenden {kind}} other {Vom wütenden {kind}}} erwischt!',
+  // a room task's (core/tasks.js): the keybearer, the wardstones
+  'Keybearer {kind:lower}': '{kind} mit dem Schlüssel',
+  'Struck down by the keybearer {kind:lower}!': '{kind, select, f {Von der {kind} mit dem Schlüssel} other {Vom {kind} mit dem Schlüssel}} niedergestreckt!',
+  "Wardstone": { text: 'Wächterstein', g: 'm', pl: 'Wächtersteine' },
 
   // the bounties (core/bounties.js): names
   Grimfang: 'Grimmzahn',

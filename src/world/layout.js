@@ -14,6 +14,7 @@ import { planSpans, indexSpans } from './spans.js';
 import { planHeights, planSetPiece, planSlots, indexHeights, near } from './heights.js';
 import { AREA_SIZE, templateCells, planArea, indexAreas } from './areas.js';
 import { planTrials, planPuzzles, indexTrials } from './trials.js';
+import { planTasks } from './tasks.js';
 import { TRIALS } from '../core/trials.js';
 import { INTRO_GATES } from '../core/intro.js';
 import { townOf } from './town.js';
@@ -271,6 +272,10 @@ function build(seed, d, above, theme, opts = {}) {
     layout.roles.set(k, 'discovery');
   }
   Object.assign(layout, planSetPiece(layout, slots));
+  // the room tasks (world/tasks.js): last, on their own stream, so nothing above moves for them
+  planTasks(layout, { seed, d, force: opts.trial, branches: branches.map(b => ({ key: K(b.cell), parent: K(b.parent) })),
+    blocked: k => k === layout.up || k === layout.down || guardians.has(k) || hordes.has(k) || trialPlan.cells.has(k) || spanPlan.cells.has(k)
+      || layout.heightCells?.has(k) || layout.areaCells?.has(k) || k === annex?.key || k === annex?.parent || k === layout.firstGlass });
   for (const [k, g] of guardians) layout.roles.set(k, `${g.role}-guardian`);
   layout.populationScale = new Map();
   for (const k of hordes.keys()) {

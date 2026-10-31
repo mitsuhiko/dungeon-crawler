@@ -655,7 +655,6 @@ export default {
   'where you jump from stone to stone': 'wo man von Stein zu Stein springt',
   'where the cold bites': 'wo die Kälte beißt',
   'where the lightning strikes': 'wo der Blitz einschlägt',
-  'where a beacon must be held': 'wo ein Leuchtfeuer gehalten werden muss',
   'where a warden guards a relic': 'wo ein Wärter ein Relikt bewacht',
   'where the fog sinks': 'wo der Nebel sinkt',
   'where the ice is slippery': 'wo das Eis glatt ist',

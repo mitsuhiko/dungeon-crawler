@@ -570,7 +570,7 @@ KINDS.defense = {
 // is open: run.unlockedGates)
 const ROOMS = { flood: msg('where the water rises'), sunken: msg('where the water stands up to the ceiling'), collapse: msg('where the floor falls away'),
   balance: msg('where you jump from stone to stone'), cold: msg('where the cold bites'), storm: msg('where the lightning strikes'),
-  siege: msg('where a beacon must be held'), chase: msg('where a warden guards a relic'), miasma: msg('where the fog sinks'),
+  chase: msg('where a warden guards a relic'), miasma: msg('where the fog sinks'),
   slide: msg('where the ice is slippery'), mirror: msg('where mirrors bend a beam of light'), braziers: msg('where the braziers wait to be lit'),
   crates: msg('where crates wait to be pushed onto plates'), timedgate: msg('where a gate shuts too quickly'),
   runes: msg('where runestones wait to be pressed in order') };

@@ -760,7 +760,8 @@ function takeRun(run) {
   if (run.clock !== null) state.run.clock = run.clock;
   for (const [id, k] of run.kills) state.run.kills.set(id, k);
   for (const k of run.gates) state.run.unlockedGates.add(k);
-  for (const [k, n] of run.trials) state.run.trials.set(k, Math.max(n, state.run.trials.get(k) ?? 0));
+  // (a room task's progress is bits: core/tasks.js taskMark)
+  for (const [k, n] of run.trials) state.run.trials.set(k, k.startsWith('task:') ? n | (state.run.trials.get(k) ?? 0) : Math.max(n, state.run.trials.get(k) ?? 0));
   // the floor loot is the host's (also after getting back in: what we dropped meanwhile went)
   takeLoot(run.loot);
   state.run.dropped = new Set(run.dropped);

@@ -171,8 +171,10 @@ export function checkWorld(w) {
 // the Smith's stock (core/progression.js createRun smith): which visit, what of it was bought
 export const checkSmith = s => ({ visit: Number.isSafeInteger(s?.visit) && s.visit >= 0 ? s.visit : 0,
   sold: Array.isArray(s?.sold) ? [...new Set(s.sold.filter(i => Number.isInteger(i) && i >= 0 && i < 32))] : [] });
-// a sunken room's stages drained (core/progression.js createRun trials): [[key, count], ...]
-export const checkTrials = t => Array.isArray(t) ? t.filter(e => Array.isArray(e) && typeof e[0] === 'string' && Number.isInteger(e[1]) && e[1] > 0 && e[1] < 10) : [];
+// a sunken room's stages drained, a rune room's clue read, a room task's progress (core/tasks.js
+// taskMark: the braziers lit, the shards taken, a bit each) (core/progression.js createRun trials):
+// [[key, count], ...]
+export const checkTrials = t => Array.isArray(t) ? t.filter(e => Array.isArray(e) && typeof e[0] === 'string' && Number.isInteger(e[1]) && e[1] > 0 && e[1] < 1024) : [];
 
 // what the menu lists of a world, without reading all of it (the heroes: those that were there)
 export const worldEntry = w => ({ id: w.id, seed: w.seed, copy: w.copy, level: w.level, updated: w.updated, deepest: w.deepest, heroes: Object.keys(w.spots) });

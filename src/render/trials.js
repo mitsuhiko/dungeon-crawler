@@ -25,6 +25,8 @@ import { props } from './props.js';
 import { TRIAL_PROPS } from './propplace.js';
 import { flameSet, douseFlames } from './flames.js';
 import { BODY } from './fonts.js';
+import { lanternLit } from '../core/tasks.js';
+import { buildTaskView, tickTaskView } from './tasks.js';
 
 const glow = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
 
@@ -161,7 +163,7 @@ function fire(p, { model, flame = null, scale = 1, light = 2.2, reach = 4, high 
 const brazierPart = p => fire(p, { model: TRIAL_PROPS.brazier, scale: 1.25 });
 const greatFire = p => fire(p, { model: 'trial_great_fire', flame: 'trial_great_fire_flame', light: 3, reach: 8, high: 1.2 });
 const beaconPart = p => fire(p, { model: 'trial_beacon', flame: 'trial_beacon_flame', light: 3.2, reach: 7, high: 2.1 });
-const FIRES = new Set(['brazier', 'warm', 'fire', 'beacon']);
+const FIRES = new Set(['brazier', 'warm', 'fire', 'beacon', 'lantern']);
 
 // a heavy crate: the mines' crate, a cell big
 function cratePart(p) {
@@ -325,7 +327,7 @@ export function buildTrialView(m, group, over = null) {
     if (p.type === 'lever' || p.type === 'reset') { const b = lever(p, color); group.add(b.obj); view.levers.set(p.id, b); }
     const grid = p.type === 'mirror' ? mirrorPart(p) : p.type === 'emitter' ? crystal(p, 0xffe060, 'trial_emitter') : p.type === 'receiver' ? crystal(p, 0x6080a0, 'trial_receiver')
       : p.type === 'lens' ? crystal(p, 0x7a5aa0, 'trial_receiver') : p.type === 'relic' ? crystal(p, 0xffc040, 'trial_emitter')
-      : p.type === 'brazier' || p.type === 'warm' ? brazierPart(p) : p.type === 'fire' ? greatFire(p) : p.type === 'beacon' ? beaconPart(p)
+      : p.type === 'brazier' || p.type === 'warm' || p.type === 'lantern' ? brazierPart(p) : p.type === 'fire' ? greatFire(p) : p.type === 'beacon' ? beaconPart(p)
         : p.type === 'crate' ? cratePart(p) : p.type === 'runestone' ? runestone(p) : null;
     if (grid) { grid.part = p; group.add(grid.obj); view.grid.set(p.id, grid); }
   }
@@ -333,7 +335,9 @@ export function buildTrialView(m, group, over = null) {
     if (pz.kind === 'braziers') { const lk = linkLines(pz); group.add(lk.group); view.links.set(pz.index, lk); }
     if (pz.kind === 'mirror') { const beam = new THREE.Group(); group.add(beam); view.beams.set(pz.index, { group: beam, key: '', segs: [], t0: 0, reach: 0, sparked: 0 }); }
   }
-  // the siege's mouths: dark arches the waves come out of
+  // a room task's own things (render/tasks.js): its shards, its hidden button, its wardstones
+  view.task = buildTaskView(t, group, piece);
+  // the circle's arches (Hold the circle, a room task): dark arches the waves come out of
   for (const mo of t.mouths || []) { const g = at(piece('trial_mouth'), mo); g.rotation.y = mo.yaw; group.add(g); }
   if (fires.specs.length) { view.fires = flameSet(fires.specs, fires.lights); group.add(view.fires.mesh); }
   // the relic's warden's lair: a dark arch in the wall it breaks out of
@@ -654,7 +658,7 @@ export function setGridParts(world, m, s, shown, nearId = null) {
       g.angle += g.av; g.turn.rotation.y = g.angle;
     }
     else if (FIRES.has(p.type)) {   // (the cold's: lit for good once resolved; the beacon once lit; its flame and light: render/flames.js)
-      const lit = p.type === 'brazier' ? !!bit : p.type === 'beacon' ? s.phase !== 'idle' : s.phase === 'resolved' || (p.type === 'warm' && !!bit);
+      const lit = p.type === 'brazier' ? !!bit : p.type === 'beacon' ? s.phase !== 'idle' : p.type === 'lantern' ? lanternLit(m, s, p) : s.phase === 'resolved' || (p.type === 'warm' && !!bit);
       if (g.lit !== lit) { g.lit = lit; v.fires?.power(g.flame, lit ? 1 : 0); }
     }
     else if (p.type === 'receiver' || p.type === 'lens') {   // lit once the beam gets there (the receiver: through every lens)
@@ -732,6 +736,7 @@ export function tickTrialView(world, time) {
     v.cage.clip.constant = -v.cage.obj.localToWorld(slot.set(0, 0, 0)).y;
   }
   for (const [, pl] of v.plates) pl.rune.material.opacity = 0.45 + Math.sin(time * 2.6) * 0.2;
+  tickTaskView(v.task, time);
   for (const [, b] of v.parts) {
     const pulse = b.done ? 0.2 : 0.5 + Math.sin(time * 3.2) * 0.25;
     b.halo.material.opacity = pulse; b.light.intensity = b.done ? 1 : 2 + Math.sin(time * 3.2) * 0.8;
