@@ -34,11 +34,13 @@ export const isFire = p => FIRES.has(p.base) || /^trial_.*_flame$/.test(p.name);
 // --- the flames in a fire prop's model ---------------------------------------------------------
 // A fire prop's glowing part split into its pieces (triangles joined by shared corners); the
 // tall ones are flames, the rest (a glowing rim, embers in a bowl) stays. p.flames: [{ x, y, z,
-// w, h }] (where the flames stood, in the prop, and their size, all of them as one fire);
+// w, h }] (where the flames stood, in the prop, and their size: the ones close together as one
+// fire, a brazier's few licks; a prop with fires apart, the temple gate's two braziers, one each);
 // p.parts without them (p.wholeParts: as loaded, for the far proxies of landmarks).
+const FIRE_GAP = 0.05;   // (model units)
 export function splitFlames(p) {
   if (!isFire(p) || !p.parts || p.flames) return;
-  const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  const fires = [];   // [lo x, y, z, hi x, y, z] each
   const parts = [];
   for (const part of p.parts) {
     if (!part.material.name.endsWith('_glow')) { parts.push(part); continue; }
@@ -57,7 +59,7 @@ export function splitFlames(p) {
       for (let a = 0; a < 3; a++) { b[a] = Math.min(b[a], v[a]); b[a + 3] = Math.max(b[a + 3], v[a]); }
     }
     const tall = new Set([...boxes].filter(([, b]) => b[4] - b[1] > 0.04 && b[4] - b[1] > 0.8 * Math.max(b[3] - b[0], b[5] - b[2])).map(([c]) => c));
-    for (const c of tall) { const b = boxes.get(c); for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], b[a]); hi[a] = Math.max(hi[a], b[a + 3]); } }
+    for (const c of tall) fires.push([...boxes.get(c)]);
     const keep = [];
     for (let t = 0; t < tris; t++) if (!tall.has(of(t))) keep.push(t);
     if (keep.length === tris) { parts.push(part); continue; }
@@ -70,11 +72,21 @@ export function splitFlames(p) {
     }
     parts.push({ geometry: rest, material: part.material });
   }
-  if (lo[0] === Infinity) return;
+  if (!fires.length) return;
+  // (the spikes whose boxes come within FIRE_GAP of each other across the ground: one fire)
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let i = 0; i < fires.length && !merged; i++) for (let j = i + 1; j < fires.length && !merged; j++) {
+      const a = fires[i], b = fires[j];
+      if (a[0] - FIRE_GAP > b[3] || b[0] - FIRE_GAP > a[3] || a[2] - FIRE_GAP > b[5] || b[2] - FIRE_GAP > a[5]) continue;
+      for (let k = 0; k < 3; k++) { a[k] = Math.min(a[k], b[k]); a[k + 3] = Math.max(a[k + 3], b[k + 3]); }
+      fires.splice(j, 1); merged = true;
+    }
+  }
   p.wholeParts = p.parts;
   p.parts = parts;
   // (a third bigger: the drawn flame fills less of its size than the spikes did)
-  p.flames = [{ x: (lo[0] + hi[0]) / 2, y: lo[1], z: (lo[2] + hi[2]) / 2, w: 1.3 * Math.max(hi[0] - lo[0], hi[2] - lo[2]), h: 1.35 * (hi[1] - lo[1]) }];
+  p.flames = fires.map(([x0, y0, z0, x1, y1, z1]) => ({ x: (x0 + x1) / 2, y: y0, z: (z0 + z1) / 2, w: 1.3 * Math.max(x1 - x0, z1 - z0), h: 1.35 * (y1 - y0) }));
 }
 
 // --- drawing them --------------------------------------------------------------------------------
