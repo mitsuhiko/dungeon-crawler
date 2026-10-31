@@ -246,6 +246,8 @@ function tileGround(land, i, j, yaw, seed) {
   }
   const floors = ctx.floors = [];
   for (const col of ctx.cols) for (const f of col) { f.id = floors.length; floors.push(f); }
+  // (where the town walks, no bridge's legs or piers stand: cubegen/shape.js)
+  ctx.pathFloors = floors.filter(f => !f.fluid && land.keepDist(...toLand(f.c).map(v => v + .5)) < 1);
   const built = new Set();
   for (const r of land.runs) {
     const from = toCube(r.from), to = toCube(r.to), cells = r.cells.map(toCube);

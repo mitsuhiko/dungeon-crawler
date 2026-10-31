@@ -139,11 +139,19 @@ from it (`tileGround` in `world/town.js`).
 - **The lake.** In the garden the water broadens to a bay (8 to 13 cells deep into the upper
   town); a long span comes down over it from the upper town's edge to a rock standing in it on the
   seam (a run in each tile: a run never crosses a seam), and on down to the lower town's shore or a
-  cell or two past it into the lower town; in some worlds two of them, side by side.
+  cell or two past it into the lower town; in some worlds two of them, side by side. Or, where one
+  fits, a *tall* one: its rock on the seam a pillar most of the way up the cliff, the span down from
+  it long and as steep as a span may be (`LH` × 1.45 a cell), landing on a way of the lower town or
+  far on into it (high over a way it passes); over a deep bay first to a second pillar out in it,
+  higher still, a span between the two. A span's ends are walked to from the town: kept level a
+  little round them, and where no way comes near one a trail leads to it (`trails`, `to: 'span'`).
+  Each span is built in a style of its own (`SPAN_STYLES`, themes/builds.js: rope, chain, plank,
+  stone arches on piers, iron, prayer flags; a gorge's level ones a rock arch too), now and then the
+  same as the last; no leg or pier stands where the town walks (`pathFloors` in `tileGround`).
 - **The gorge**, in about half the worlds: from the back of the bay on into the upper town, three
   cells wide and as deep as the lake, winding a cell now and then (straight across a seam), cliffs
   on both sides; a stream comes in from the back and falls into its head, one or two spans cross
-  it from rim to rim, high over its water (in a style of their own now and then), the lanes that
+  it from rim to rim, high over its water (each in a style of its own, as the lake's), the lanes that
   come to it cross it on bridges, and a ledge a level over its water in each tile it reaches into
   is the way out of it. In such a world the hill stands in the other back corner and the grove's
   wishing well on the gorge's far side.
