@@ -1,10 +1,8 @@
 // What the frames cost, to see on any device (phones above all, where there are no dev tools at
 // hand):
-//   - the overlay (?perf=1, or /perf with the dev tools): frame rate and the worst frames, the
-//     lighting's quality level and what it draws (render/shadows.js), the resolution, the bake's
-//     pace (render/bake.js), shaders compiled while drawing (render/programs.js), draw calls,
-//     what WebGL holds (render/gpumem.js) and whether the device counts as small (render/device.js);
-//     under it graphs of the last 30 seconds: the frames, the memory, what is drawn (graph).
+//   - the overlay (?perf=1, or /perf with the dev tools): graphs of the last 30 seconds side by
+//     side, the frames, what WebGL holds (render/gpumem.js) and what is drawn, and a line of what
+//     the lighting draws, the bake and shaders compiled while drawing (render/programs.js) (graph).
 //   - the bench (/bench with the dev tools, runBench): the game held, the world drawn a few times
 //     over with a part of it off at a time, each timed to the end of the GPU's work (a pixel read
 //     back from the screen waits for it: there are no GPU timers in Safari). Prints a table to
@@ -13,7 +11,6 @@ import { renderer, scene, camera, sun } from '../render/scene.js';
 import { lamp } from '../render/character.js';
 import { programStats } from '../render/programs.js';
 import { bakeStats, baked } from '../render/bake.js';
-import { shadowState } from '../render/shadows.js';
 import { resolutionState } from '../render/resolution.js';
 import { BAKE } from '../render/lighthook.js';
 import { beginFrame, endFrame, msaaSamples, readScreenPixel } from '../render/msaa.js';
@@ -30,8 +27,7 @@ import { state } from './state.js';
 // frame rate cap draws), gathered into columns of COLUMN seconds, WINDOW seconds of them kept,
 // for the graphs; the text from the last second and the last few.
 const COLUMN = 0.1, WINDOW = 30, COLUMNS = Math.round(WINDOW / COLUMN);
-const LEVEL_COLOURS = { lowest: '#8a5a5a', low: '#a8854a', medium: '#5a8a9a', high: '#5aa070' };
-let box = null, text = null, canvas = null, frames = [], last = 0, drawnAt = 0, bake0 = { ...bakeStats };
+let box = null, text = null, canvas = null, frames = [], last = 0, drawnAt = 0;
 let columns = [], column = null, compiled = programStats.compiledWhileDrawing, steps = bakeStats.steps, cube = null;
 const round = (v, d = 0) => (Number.isFinite(v) ? v.toFixed(d) : '∞');
 const heap = () => performance.memory ? performance.memory.usedJSHeapSize / 2 ** 20 : null;   // (Chrome's; Safari has none)
@@ -63,6 +59,24 @@ export function perfFrame(start, drawn = true) {
   if (now - drawnAt > 100) { drawnAt = now; draw(now); }   // (ten times a second: the overlay is cheap)
 }
 
+// The overlay: three graphs side by side, the last WINDOW seconds on one time axis (a column a
+// COLUMN, newest on the right), each titled with what it shows now, and a line of text under them.
+//   frames  the worst frame of each column (green within the cap, yellow to 50 ms, red past it;
+//           cut off at FRAME_MS), the page's own time in it in grey; ticks along the top where a
+//           shader compiled while drawing (magenta), along the bottom where the bake stepped (blue)
+//   memory  what WebGL holds, stacked: textures (green), buffers (blue), render buffers (purple);
+//           the JS heap as a line (Chrome only)
+//   drawing draw calls (orange) and triangles (cyan), each to its own scale, over a strip of the
+//           quality level (a colour each)
+// A white line in all three where the hero went into another cube.
+// The text: the lighting's level, the pixel ratio, MSAA, the sun's map, whether the device counts
+// as small (render/device.js); the bake; shaders compiled while drawing; the most WebGL held.
+const TITLE = 11, PANEL = 40, SPACE = 6, H = TITLE + PANEL;
+const FRAME_MS = 66;        // the frames graph's top
+const PAGE = '#55607a';     // the page's own time in a frame
+const LEVEL_COLOURS = { lowest: '#8a5a5a', low: '#a8854a', medium: '#5a8a9a', high: '#5aa070' };
+const width = () => Math.min(480, (document.documentElement.clientWidth || innerWidth) - 16);
+
 let textAt = 0;
 function draw(now) {
   if (now - textAt > 500) { textAt = now; show(now); }
@@ -70,133 +84,91 @@ function draw(now) {
 }
 
 function show(t) {
-  const second = frames.filter(([at]) => t - at < 1000).map(f => f[1]).sort((a, b) => a - b);
-  const worst = Math.max(0, ...frames.filter(([at]) => t - at < 5000).map(f => f[1]));
-  const long = frames.filter(([, d]) => d > 50).length;
-  const sh = shadowState(), res = resolutionState(), info = renderer.info.render;
-  const b = { frames: bakeStats.frames - bake0.frames, waits: bakeStats.waits - bake0.waits, steps: bakeStats.steps - bake0.steps, suns: bakeStats.suns - bake0.suns };
-  bake0 = { ...bakeStats };
+  const res = resolutionState(), m = gpuMemory();
+  const level = `${qualityLevel()}${graphics() === 'auto' ? ' (auto)' : ''}`;
   text.textContent = [
-    `fps ${second.length} · p95 ${round(second[Math.floor(second.length * 0.95)] ?? 0)} ms · worst (5 s) ${round(worst)} ms · over 50 ms (10 s) ${long}`,
-    `lighting ${qualityLevel()}${graphics() === 'auto' ? ' (auto)' : ''} · pixel ratio ${round(res.ratio, 2)} · MSAA ${msaaSamples() ? msaaSamples() + 'x' : 'off'}`,
-    `lamp: shadow reach ${round(sh.lampRange, 1)} · enemies within ${round(sh.lampFigures, 1)} · every ${sh.lamp.every} · strength ${round(sh.lampStrength, 2)}`,
-    `sun: map ${sun.shadow.mapSize.x} · enemies within ${round(sh.sunFigures, 1)} · every ${sh.sun.every}`,
-    `fixed lights a point ${round(BAKE.uBakeK.value, 1)} · draw calls ${info.calls} · triangles ${round(info.triangles / 1000)}k`,
-    `bake: ${baked(state.world) ? 'done' : 'baking'} · steps ${b.steps} in ${b.frames} frames · waited ${b.waits} · sun places ${b.suns}`,
-    `shaders compiled while drawing ${programStats.compiledWhileDrawing}${programStats.last ? ' (last ' + programStats.last + ')' : ''}`,
-    memoryLine(),
+    `${level} · ×${round(res.ratio, 2)} · MSAA ${msaaSamples() ? msaaSamples() + 'x' : 'off'} · sun ${sun.shadow.mapSize.x}${small ? ' · small' : ''}`,
+    `${baked(state.world) ? 'baked' : 'baking'} · ${programStats.compiledWhileDrawing} shaders while drawing${programStats.last ? ' (' + programStats.last + ')' : ''}${m ? ` · GL most ${round(m.peak)} MB` : ''}`,
   ].join('\n');
 }
-// what WebGL holds (counted only with ?perf=1 in the address: from the start)
-function memoryLine() {
-  const m = gpuMemory(), h = heap();
-  const sizes = m ? `${round(m.total)} MB (textures ${round(m.textures)}, buffers ${round(m.buffers)}, render buffers ${round(m.renderbuffers)}) · at most ${round(m.peak)} MB` : 'counted with ?perf=1';
-  return `WebGL holds ${sizes}${h !== null ? ` · JS ${round(h)} MB` : ''} · ${small ? 'small device' : 'not a small device'}`;
-}
 
-// The graphs, the last WINDOW seconds on one time axis (a column a COLUMN), newest on the right;
-// a white line where the hero went into another cube, across all three:
-//   frames  the worst frame of each column (green within the cap, yellow to 50 ms, red past it;
-//           cut off at the top, the worst one written there), the page's own time in it (grey),
-//           the average as a line; 16.7 and 33.3 ms marked. Ticks along the top: shaders compiled
-//           while drawing (magenta); along the bottom: the bake's steps (blue).
-//   memory  what WebGL holds, stacked: textures, buffers, render buffers; the JS heap as a line
-//           (Chrome only)
-//   drawing draw calls and triangles, each to its own scale; along the bottom the quality level
-//           (a colour each) and the pixel ratio as a line over it
-const W = 300, PANEL = 54, GAP = 14, H = 3 * PANEL + 3 * GAP;
-const FRAME_MS = 66;   // the frames graph's top
-const PAGE = '#55607a';   // the page's own time in a frame
 function graph() {
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  if (canvas.width !== W * dpr) { canvas.width = W * dpr; canvas.height = H * dpr; }
+  const W = width(), PW = (W - 2 * SPACE) / 3, dpr = Math.min(devicePixelRatio || 1, 2);
+  if (canvas.width !== Math.round(W * dpr)) {
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px'; text.style.width = W + 'px';
+  }
   const g = canvas.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, W, H);
   g.font = '9px ui-monospace, Menlo, monospace'; g.textBaseline = 'top';
-  const newest = columns.at(-1)?.at ?? 0, cw = W / COLUMNS;
-  const x = c => W - (newest - c.at + 1) * cw;
-  const panels = [GAP, 2 * GAP + PANEL, 3 * GAP + 2 * PANEL];   // each panel's top
-  // a panel's title: [text, colour] pieces (the colours are the graph's)
-  const label = (y, ...pieces) => {
-    let at = 0;
-    for (const [s, colour = '#cfd6e2'] of pieces) { g.fillStyle = colour; g.fillText(s, at, y - GAP + 2); at += g.measureText(s).width; }
+  const newest = columns.at(-1)?.at ?? 0, cw = PW / COLUMNS, now = columns.at(-1);
+  // a panel at x0: its title ([text, colour] pieces), its frame; x(c): a column's left
+  const panel = (x0, ...title) => {
+    let at = x0;
+    for (const [s, colour = '#cfd6e2'] of title) { g.fillStyle = colour; g.fillText(s, at, 0); at += g.measureText(s).width; }
+    g.strokeStyle = '#ffffff22'; g.strokeRect(x0 + 0.5, TITLE + 0.5, PW - 1, PANEL - 1);
+    return c => x0 + PW - (newest - c.at + 1) * cw;
   };
-  const frame = (y) => { g.strokeStyle = '#ffffff22'; g.strokeRect(0.5, y + 0.5, W - 1, PANEL - 1); };
+  const bottom = TITLE + PANEL;
+  const lineOf = (x, list, y) => {
+    g.beginPath();
+    list.forEach((c, i) => g[i ? 'lineTo' : 'moveTo'](x(c) + cw / 2, y(c)));
+    g.stroke();
+  };
 
   // frames
-  let y = panels[0];
-  const cap = frameRate(), budget = cap ? 1000 / cap + 2 : 17.5, sy = v => y + PANEL - Math.min(1, v / FRAME_MS) * PANEL;
-  const shown = columns.filter(c => c.n), worst = Math.max(0, ...shown.map(c => c.worst)), now = columns.at(-1);
-  label(y, [`frame ${round(now?.n ? now.sum / now.n : 0)} ms · worst ${round(worst)}${cap ? ` · cap ${cap}` : ''} · `], ['page ', PAGE], ['shader ', '#ff5ad2'], ['bake', '#5a9cff']);
-  frame(y);
-  for (const ms of [1000 / 60, 1000 / 30]) { g.fillStyle = '#ffffff30'; g.fillRect(0, Math.round(sy(ms)), W, 1); }
+  const second = frames.filter(([at]) => performance.now() - at < 1000).length;
+  const shown = columns.filter(c => c.n), worst = Math.max(0, ...shown.map(c => c.worst));
+  const cap = frameRate(), budget = cap ? 1000 / cap + 2 : 17.5;
+  const colour = ms => ms <= budget ? '#5fc48c' : ms <= 50 ? '#e2c05a' : '#f06464';
+  let x = panel(0, [`${second} fps ${round(now?.n ? now.sum / now.n : 0)} ms`], ...(worst > budget ? [[` ▲${round(worst)}`, colour(worst)]] : []));
+  const fy = ms => bottom - Math.min(1, ms / FRAME_MS) * PANEL;
+  for (const ms of [1000 / 60, 1000 / 30]) { g.fillStyle = '#ffffff30'; g.fillRect(x({ at: newest - COLUMNS + 1 }), Math.round(fy(ms)), PW, 1); }
   for (const c of shown) {
-    g.fillStyle = c.worst <= budget ? '#5fc48c' : c.worst <= 50 ? '#e2c05a' : '#f06464';
-    g.fillRect(x(c), sy(c.worst), cw, y + PANEL - sy(c.worst));
-    g.fillStyle = PAGE;
-    g.fillRect(x(c), sy(c.work), cw, y + PANEL - sy(c.work));
-    if (c.compiled) { g.fillStyle = '#ff5ad2'; g.fillRect(x(c), y, Math.max(cw, 2), 4); }
-    if (c.steps) { g.fillStyle = '#5a9cff'; g.fillRect(x(c), y + PANEL - 3, Math.max(cw, 1.5), 3); }
+    g.fillStyle = colour(c.worst); g.fillRect(x(c), fy(c.worst), cw, bottom - fy(c.worst));
+    g.fillStyle = PAGE; g.fillRect(x(c), fy(c.work), cw, bottom - fy(c.work));
+    if (c.compiled) { g.fillStyle = '#ff5ad2'; g.fillRect(x(c), TITLE, Math.max(cw, 1.5), 3); }
+    if (c.steps) { g.fillStyle = '#5a9cff'; g.fillRect(x(c), bottom - 2, Math.max(cw, 1), 2); }
   }
-  g.strokeStyle = '#ffffffaa'; g.beginPath();
-  shown.forEach((c, i) => g[i ? 'lineTo' : 'moveTo'](x(c) + cw / 2, sy(c.sum / c.n)));
-  g.stroke();
-  if (worst > FRAME_MS) { g.fillStyle = '#f06464'; g.textAlign = 'right'; g.fillText(`${round(worst)} ms`, W - 2, y + 2); g.textAlign = 'left'; }
+  g.strokeStyle = '#ffffffaa'; lineOf(x, shown, c => fy(c.sum / c.n));
+  cubes(x);
 
   // memory
-  y = panels[1];
-  const mem = columns.filter(c => c.tex !== undefined), heaps = columns.filter(c => c.heap !== undefined);
+  const mem = columns.filter(c => c.tex !== undefined), heaps = columns.filter(c => c.heap !== undefined), m = mem.at(-1);
+  x = panel(PW + SPACE, [m ? `GL ${round(m.tex + m.buf + m.rb)} MB` : 'GL: ?perf=1'], ...(heaps.length ? [[` JS ${round(heaps.at(-1).heap)}`, '#ffffff']] : []));
   const top = Math.max(64, ...mem.map(c => c.tex + c.buf + c.rb), ...heaps.map(c => c.heap)) * 1.1;
-  const my = v => y + PANEL - (v / top) * PANEL;
-  const m = mem.at(-1);
-  if (m) label(y, [`WebGL MB ${round(m.tex + m.buf + m.rb)}: `], [`tex ${round(m.tex)} `, '#5fc48c'], [`buf ${round(m.buf)} `, '#4fa3c7'], [`rb ${round(m.rb)}`, '#a98af0'],
-    ...(heaps.length ? [[' · '], [`JS ${round(heaps.at(-1).heap)}`, '#ffffff']] : []));
-  else label(y, ['WebGL MB · counted with ?perf=1']);
-  frame(y);
+  const my = v => bottom - (v / top) * PANEL;
   for (const c of mem) {
     let base = 0;
-    for (const [v, colour] of [[c.rb, '#a98af0'], [c.buf, '#4fa3c7'], [c.tex, '#5fc48c']]) {
-      g.fillStyle = colour; g.fillRect(x(c), my(base + v), cw, my(base) - my(base + v)); base += v;
-    }
+    for (const [v, fill] of [[c.rb, '#a98af0'], [c.buf, '#4fa3c7'], [c.tex, '#5fc48c']]) { g.fillStyle = fill; g.fillRect(x(c), my(base + v), cw, my(base) - my(base + v)); base += v; }
   }
-  if (heaps.length) {
-    g.strokeStyle = '#ffffffcc'; g.beginPath();
-    heaps.forEach((c, i) => g[i ? 'lineTo' : 'moveTo'](x(c) + cw / 2, my(c.heap)));
-    g.stroke();
-  }
-  g.fillStyle = '#ffffff70'; g.textAlign = 'right'; g.fillText(round(top), W - 2, y + 2); g.textAlign = 'left';
+  g.strokeStyle = '#ffffffcc'; lineOf(x, heaps, c => my(c.heap));
+  cubes(x);
 
   // drawing
-  y = panels[2];
-  const drawn = columns.filter(c => c.calls), calls = Math.max(1, ...drawn.map(c => c.calls)), tris = Math.max(1, ...drawn.map(c => c.tris));
-  const d = drawn.at(-1);
-  label(y, [`draw calls ${d?.calls ?? 0} (most ${calls})`, '#f0a050'], [' · '], [`triangles ${round((d?.tris ?? 0) / 1000)}k (most ${round(tris / 1000)}k)`, '#60d0e0']);
-  frame(y);
-  for (const c of columns) if (c.level) { g.fillStyle = LEVEL_COLOURS[c.level] ?? '#666'; g.fillRect(x(c), y + PANEL - 6, cw, 6); }
-  const line = (list, value, colour, scale) => {
-    g.strokeStyle = colour; g.beginPath();
-    list.forEach((c, i) => g[i ? 'lineTo' : 'moveTo'](x(c) + cw / 2, y + PANEL - 8 - (value(c) / scale) * (PANEL - 12)));
-    g.stroke();
-  };
-  line(drawn, c => c.calls, '#f0a050', calls * 1.2);
-  line(drawn, c => c.tris, '#60d0e0', tris * 1.2);
-  line(columns.filter(c => c.ratio), c => c.ratio, '#ffffff88', 2.2);
-  g.fillStyle = '#cfd6e2'; g.textAlign = 'right';
-  g.fillText(`${now?.level ?? ''} · ×${round(now?.ratio ?? 0, 2)}`, W - 2, y + PANEL - 18); g.textAlign = 'left';
+  const drawn = columns.filter(c => c.calls), d = drawn.at(-1);
+  const calls = Math.max(1, ...drawn.map(c => c.calls)) * 1.2, tris = Math.max(1, ...drawn.map(c => c.tris)) * 1.2;
+  x = panel(2 * (PW + SPACE), [`${d?.calls ?? 0}`, '#f0a050'], [' calls '], [`${round((d?.tris ?? 0) / 1000)}k`, '#60d0e0'], [' tris']);
+  for (const c of columns) if (c.level) { g.fillStyle = LEVEL_COLOURS[c.level] ?? '#666'; g.fillRect(x(c), bottom - 4, cw, 4); }
+  const dy = (v, scale) => bottom - 5 - (v / scale) * (PANEL - 7);
+  g.strokeStyle = '#f0a050'; lineOf(x, drawn, c => dy(c.calls, calls));
+  g.strokeStyle = '#60d0e0'; lineOf(x, drawn, c => dy(c.tris, tris));
+  cubes(x);
 
-  // into another cube
-  g.fillStyle = '#ffffffcc';
-  for (const c of columns) if (c.cube) g.fillRect(Math.round(x(c)), GAP, 1, H - GAP);
+  // where the hero went into another cube
+  function cubes(x) {
+    g.fillStyle = '#ffffffcc';
+    for (const c of columns) if (c.cube) g.fillRect(Math.round(x(c)), TITLE, 1, PANEL);
+  }
 }
 
 export function showPerf(on = !box) {
   if (on && !box) {
     box = Object.assign(document.createElement('div'), { id: 'perf' });
+    canvas = document.createElement('canvas');
     text = document.createElement('pre');
-    canvas = Object.assign(document.createElement('canvas'), { width: W, height: H });
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    box.append(text, canvas);
+    box.append(canvas, text);
     document.body.append(box);
     last = 0; frames = []; columns = []; column = null; cube = state.cubeKey;
   } else if (!on && box) { box.remove(); box = text = canvas = null; }
