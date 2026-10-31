@@ -3,6 +3,7 @@ import { DIRS } from './constants.js';
 import { tr, noun } from '../i18n/i18n.js';
 import { enemyWords, enemyName } from './enemies.js';
 import { INTRO_LOCKED } from './intro.js';
+import { TRIALS, isTrialGate, trialGate } from './trials.js';
 
 export const GUARDIAN_COLOR = '#ff3fa8';
 export const DESCENT_GUARDIAN_COLOR = '#ff9b35';
@@ -23,13 +24,27 @@ export const guardianLockMessage = (map, kind = null) => map.guardian?.role === 
   ? tr('Defeat {who:the} to unlock this descent', { who: guardianCalled(map, kind) })
   : tr('Defeat {who:the} to unlock this passage', { who: guardianCalled(map, kind) });
 export const guardianId = key => `${key}:guardian`;
-// what a locked portal (towards dir) says: a guardian's, an annex's sealed one (world/layout.js), or
-// one of the beginning's (core/intro.js); kind: this arena's guardian's (a gate of another cube's
-// guardian says only 'the guardian')
+// what a trial's gate (`trial:<key>`, core/trials.js) says: in its own room what opens it, by the
+// family of what the room holds (a puzzle, an event, a room task: map.trial, cubegen/trials/,
+// cubegen/tasks.js) and its name; from the room beyond it only that it opens from the other side
+function trialLockMessage(map, gate) {
+  const t = gate === trialGate(map.key) && TRIALS[map.trial?.kind];
+  if (!t) return tr('Barred: this way opens from the room beyond');
+  const p = { trial: tr(t.name) };
+  if (t.family === 'puzzle') return tr('Solve the puzzle ({trial}) to open the way on', p);
+  if (t.family === 'task') return tr('Finish the room\'s task ({trial}) to open the way on', p);
+  return tr('Master the trial ({trial}) to open the way on', p);
+}
+
+// what a locked portal (towards dir) says: a guardian's, a trial's or a room task's
+// (trialLockMessage), an annex's sealed one (world/layout.js), or one of the beginning's
+// (core/intro.js); kind: this arena's guardian's (a gate of another cube's guardian says only 'the
+// guardian')
 export function lockMessage(map, dir, kind = null) {
   const gate = map?.gateKeys?.[dir];
   if (gate?.startsWith('annex:')) return tr('Sealed. Somebody on this depth may know the way in.');
   if (INTRO_LOCKED[gate]) return tr(INTRO_LOCKED[gate]);
+  if (isTrialGate(gate)) return trialLockMessage(map, gate);
   if (gate && gate !== map.key) return tr('Defeat the guardian to unlock this passage');
   return guardianLockMessage(map, kind);
 }

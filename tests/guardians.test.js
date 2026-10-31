@@ -116,6 +116,17 @@ test('guardians are pink and amber, except where a species dresses them otherwis
     assert.ok(k.hp > wolk.hp * 3 && k.guardian, k.type);
   }
 });
+test('a trial\'s or a room task\'s gate says what opens it, not to defeat a guardian', () => {
+  const room = (kind, other = 'trial:-1,-2,0') => ({ key: '0,-2,0', gateKeys: ['trial:0,-2,0', other, '0,-2,1', null], trial: kind && { kind } });
+  assert.equal(lockMessage(room('runes'), 0), 'Solve the puzzle (Rune order) to open the way on');
+  assert.equal(lockMessage(room('flood'), 0), 'Master the trial (Rising water) to open the way on');
+  assert.equal(lockMessage(room('hold'), 0), 'Finish the room\'s task (Hold the circle) to open the way on');
+  // another room's: it opens from there
+  assert.equal(lockMessage(room('runes'), 1), 'Barred: this way opens from the room beyond');
+  assert.equal(lockMessage(room(null), 1), 'Barred: this way opens from the room beyond');
+  // another cube's guardian's gate: as before
+  assert.equal(lockMessage(room('runes'), 2), 'Defeat the guardian to unlock this passage');
+});
 test('the messages call a guardian by its kind: the one guardianSpots promotes', () => {
   const w = new World(5);
   for (const depth of [0, 1, 3, 4]) for (const [key, g] of w.layout(depth).guardians) {
