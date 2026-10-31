@@ -1095,6 +1095,18 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     }
   }
 
+  // ---- the cliff's towers: where the wall comes down the cliff (on the town's sides), a tower
+  // standing on the edge, its shaft rising from the water (or the lower town) at the cliff's foot:
+  // the cell on the edge, the one under it, the point between them it stands on (world/town.js)
+  const cliffTowers = [];
+  for (const x of [WALL, W - 1 - WALL]) for (let z = WALL + 2; z < D - WALL - 1; z++) {
+    const c = cell(x, z), n = c - W, w = water.get(n);
+    const foot = w ? w.surf : L[n];
+    if (L[c] - foot < 6 || seamZ.includes(z) || water.has(c)) continue;
+    cliffTowers.push({ x: x + .5, z, c, n, top: L[c], foot, wet: !!w });
+    for (let k = -2; k <= 2; k++) towers.delete(cell(x, z + k));
+  }
+
   // where the ground cover grows thick and where the grass is bare (0..1: world/town.js groundCover),
   // in patches a few cells across
   const patchy = makeNoise(mulberry32(hash32(seed ^ 0x9a7c3)));
@@ -1106,7 +1118,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     gorge, features, stage, mill, ruins, style,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
     // gatehouse's middle (where the street comes in), whether (x, z) lies inside it by m
-    wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall },
+    wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall, cliffTowers },
     // cell (x, z)'s level, its water ({ surf, bed, lake }, or null), whether its ground stays level
     // (what is kept, the cells beside a seam: their corners pinned flat, cubegen/smooth.js)
     level: (x, z) => L[clamp(z, 0, D - 1) * W + clamp(x, 0, W - 1)],

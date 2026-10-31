@@ -17,17 +17,17 @@ function terrain(seed) {
     siteReservations: [], sitePlacements: [] };
 }
 
-test('checked-in metadata matches all 908 exported models, including the 240 clutter roots, the 429 theme roots, the chest, the town (its houses, trees, clutter, homes and wall) and the 42 trial pieces', () => {
+test('checked-in metadata matches all 909 exported models, including the 240 clutter roots, the 429 theme roots, the chest, the town (its houses, trees, clutter, homes and wall) and the 42 trial pieces', () => {
   const { metadata, files } = propCatalog(assets);
   assert.deepEqual(PROP_METADATA, metadata);
   assert.deepEqual(PROP_FILES, files);
-  assert.equal(new Set(PROP_METADATA.map(p => p.name)).size, 908);
-  assert.equal(PROP_METADATA.filter(p => p.set === 'town').length, 63);
+  assert.equal(new Set(PROP_METADATA.map(p => p.name)).size, 909);
+  assert.equal(PROP_METADATA.filter(p => p.set === 'town').length, 64);
   assert.equal(PROP_METADATA.filter(p => p.cube_crawler_town_clutter).length, 23);
   // the garlands' segments hang from their cord (attach 'line')
   assert.deepEqual(PROP_METADATA.filter(p => p.set === 'town' && p.attach === 'line').map(p => p.name), ['town_garland_a', 'town_garland_b', 'town_garland_c']);
-  // the wall round the town (blender/town_walls.py)
-  assert.equal(PROP_METADATA.filter(p => p.cube_crawler_town_wall).length, 8);
+  // the wall round the town (blender/town_walls.py; a tower's shaft for where it comes down the cliff)
+  assert.equal(PROP_METADATA.filter(p => p.cube_crawler_town_wall).length, 9);
   // the homes and their yards (blender/town_homes.py)
   assert.equal(PROP_METADATA.filter(p => 'cube_crawler_town_home' in p).length, 22);
   // (the mill's wheel turns about its hub, render/props.js)

@@ -1002,9 +1002,26 @@ function walls(t) {
   const block = (p, b, grow = 0) => footprints.push({ x: p.x, z: p.z, c: snap(Math.cos(p.yaw)), s: snap(Math.sin(p.yaw)), bounds: b.map((v, k) => v + (k < 2 ? -grow : grow)),
     box: turnedBox(b, p.x, p.z, p.yaw, grow) });
   const body = (p, b, bottom, top) => ({ shape: 'box', name: p.name, ...turnedBox(b, p.x, p.z, p.yaw), bottom, top });
+  // (where the wall comes down the cliff: a tower on its edge, its shaft from the cliff's foot,
+  // standing on the point between the two cells, on both)
+  const cliffy = new Set((wall.cliffTowers ?? []).flatMap(t => [t.c, t.n]));
+  for (const t of wall.cliffTowers ?? []) {
+    const lx = t.x - ti * N, lz = t.z - tj * N;
+    if (lx < 0 || lz < 0 || lx >= N || lz >= N) continue;
+    const yaw = Math.atan2(t.x < W / 2 ? -1 : 1, 0), bottom = t.wet ? t.foot * LH - ARCH_FOOT : t.foot * LH - WALL_FOOT;
+    const name = (t.x + t.z + land.seed) % 2 ? 'town_wall_tower_b' : 'town_wall_tower_a', y = t.top * LH - WALL_FOOT + .02;
+    const p = place(name, lx, lz, yaw, y), shaft = propMetadata.get('town_wall_tower_shaft_a'), top = y + .3;
+    // (the shaft in as many pieces as it takes, each stretched a little to fit)
+    const n = Math.max(1, Math.round((top - bottom) / shaft.height)), sy = (top - bottom) / n / shaft.height;
+    for (let k = 0; k < n; k++)
+      plan.placements.push({ name: shaft.name, x: p.x, y: bottom + k * shaft.height * sy, z: p.z, yaw: 0, s: 1, tint: null,
+        matrix: [1, 0, 0, 0, 0, sy, 0, 0, 0, 0, 1, 0, p.x, bottom + k * shaft.height * sy, p.z, 1] });
+    const round = { name, x: p.x, z: p.z, r: .86, bottom, top: y + propMetadata.get(name).height };
+    collide(round); occluders.push(round); block(p, [-.95, -.95, .95, .95]);
+  }
   for (let lz = 0; lz < N; lz++) for (let lx = 0; lx < N; lx++) {
     const gx = ti * N + lx, gz = tj * N + lz;
-    if (wall.side(gx, gz) !== 1 || wall.gateAt(gx, gz)) continue;
+    if (wall.side(gx, gz) !== 1 || wall.gateAt(gx, gz) || cliffy.has(gz * W + gx)) continue;
     const [cx, cz] = rotateTownPoint(lx + .5, lz + .5, plan.yaw), c = Math.floor(cz) * N + Math.floor(cx);
     const water = g.water[c], h = hash32(gx * 7919 + gz * 104729 + land.seed);
     // (its outer face away from the town; a corner's towards its nearer side)

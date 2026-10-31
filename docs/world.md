@@ -237,7 +237,10 @@ from it (`tileGround` in `world/town.js`).
   (ivy on some, a lantern on its inner face on every fourth), an arch with a grate where it crosses
   the water (the lake's bay at the sides, the river at the back), a round tower at each corner and
   every 7 to 10 cells along it (off the seams, the water and the cliff), the gatehouse over the
-  street where it comes in from the gate (`WALL_GATE`). Each piece stands on a footing sunk into
+  street where it comes in from the gate (`WALL_GATE`). Where it comes down the cliff on the town's
+  sides a tower stands on the cliff's edge instead, its round shaft rising from the water at the
+  cliff's foot (`land.wall.cliffTowers`; the shaft stacked and stretched to fit, `walls` in
+  `world/town.js`), in the way all the way up. Each piece stands on a footing sunk into
   the ground under it, so it follows the ground's levels, the cliff too; it stands in the way as
   its box and hides the hero behind it (the cutaway). It runs on across the seams (the one thing
   that does). Outside it the forest stands close and tall on ground three to six levels over the

@@ -483,9 +483,25 @@ test('a wall rings the town a few cells in from its sides, the forest outside it
     let gatehouses = 0, towers = 0;
     for (const { k, i, j, m } of tilesOf(w)) {
       const toCube = (gx, gz) => rotateTownPoint(gx - i * N + .5, gz - j * N + .5, m.town.yaw).map(Math.floor);
+      // (where it comes down the cliff, on the town's sides: a tower on the edge, its shaft rising from
+      // the cliff's foot, stretched to reach from there up under it)
+      const cliffy = new Set(land.wall.cliffTowers.flatMap(q => [q.c, q.n]));
+      for (const q of land.wall.cliffTowers) {
+        if (Math.floor(q.x / N) !== i || Math.floor(q.z / N) !== j) continue;
+        const [px, pz] = rotateTownPoint(q.x - i * N, q.z - j * N, m.town.yaw);
+        const near = m.town.placements.filter(p => Math.hypot(p.x - px, p.z - pz) < 1e-6);
+        const tower = near.find(p => /^town_wall_tower_[ab]$/.test(p.name)), shafts = near.filter(p => p.name === 'town_wall_tower_shaft_a').sort((a, b) => a.y - b.y);
+        assert.ok(tower && shafts.length, `${seed}: a tower down the cliff at ${q.x}, ${q.z}`);
+        assert.ok(Math.abs(tower.y - (q.top * LH - .88)) < 1e-6 && q.top - q.foot >= 6);
+        const sy = shafts[0].matrix[5], H = propMetadata.get('town_wall_tower_shaft_a').height * sy;
+        assert.ok(shafts[0].y < q.foot * LH && shafts.at(-1).y + H >= tower.y + .29, 'from the foot up under the tower');
+        assert.ok(m.staticBlockers.flat().some(b => b.name === tower.name && b.bottom === shafts[0].y), 'standing in the way all the way');
+        towers++;
+      }
       const walls = m.town.placements.filter(p => isWall(p.name) && p.name !== 'town_gatehouse_a');
       for (let lz = 0; lz < N; lz++) for (let lx = 0; lx < N; lx++) {
         const gx = i * N + lx, gz = j * N + lz, [cx, cz] = toCube(gx, gz), c = cz * N + cx, side = land.wall.side(gx, gz);
+        if (cliffy.has(gz * W + gx)) continue;
         assert.equal(m.town.wallSide[c], side);
         assert.equal(side, gx < WALL || gz < WALL || gx >= W - WALL || gz >= D - WALL ? 2 : gx === WALL || gz === WALL || gx === W - 1 - WALL || gz === D - 1 - WALL ? 1 : 0);
         const here = walls.filter(p => Math.floor(p.x) === cx && Math.floor(p.z) === cz);

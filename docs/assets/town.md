@@ -84,7 +84,8 @@ by `blender/town_walls.py` (editable source `blender/town_walls.blend`, preview
 `blender/previews/town_walls-preview.png`): a stretch of crenellated wall a cell long in three
 kinds (plain, ivy over it, a lantern on its inner face), an arch for where it crosses the water
 (a grate in it; one with a lantern), a round tower open on top with a brazier or under a pointed
-roof with a banner, and the gatehouse (two square towers, the arch over the way between them, its
+roof with a banner, a tower's shaft without foot or top (3 tall: the game stacks and stretches it
+under a tower where the wall comes down the cliff), and the gatehouse (two square towers, the arch over the way between them, its
 gates open, the portcullis up, lanterns either side, banners with the glass bird). Each stands on
 a footing under the ground's line (`foot`: 0.9, an arch's 1.1 under the water's), its outer face
 -Y in Blender (+Z in glTF, to the forest), and carries `cube_crawler_town_wall`; the lanterns and

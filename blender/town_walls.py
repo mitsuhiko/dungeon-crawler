@@ -227,6 +227,31 @@ def build_tower(m, v):
     wall_lantern(m, .5, R - .1, FOOT + 1.25)
 
 
+# how tall a tower's shaft is (world/town.js stretches it a little, and stacks them, to reach from
+# the foot of the cliff up under a tower standing on its edge)
+SHAFT = 3.0
+
+
+def build_shaft(m, v):
+    """A round tower's shaft without foot or top: its stones in rings, an arrow slit now and then,
+    a string course of the cap's stone half way; stacked under a tower where the wall comes down a
+    cliff (world/town.js), the tower rising from the water or the lower town to over the cliff."""
+    rng = random.Random(711 + v)
+    R = .8
+    rings = 11
+    for i in range(rings):
+        z0, z1 = SHAFT * i / rings, SHAFT * (i + 1) / rings
+        start = len(m.faces)
+        m.lathe((0, 0, z0), [(0, R), (z1 - z0, R)], STONES[i % len(STONES)], n=10, jitter=.012,
+                phase=(i % 2) * math.pi / 10)
+        for k in range(start, len(m.faces)):
+            m.colors[k] = tuple(min(1, c * rng.uniform(.9, 1.08)) for c in m.colors[k][:3]) + (1,)
+    m.lathe((0, 0, SHAFT / 2 - .06), [(0, R + .05), (.12, R + .05)], CAP, n=10, jitter=0)
+    for k in range(2):
+        a = -math.pi / 2 + (k - .5) * 1.4
+        m.box((math.cos(a) * (R + .005), math.sin(a) * (R + .005), SHAFT * (.3 + .45 * k)), (.07, .04, .34), DARK, tilt=a + math.pi / 2)
+
+
 def bird(m, x, y, z, s):
     """The glass bird on a banner: its body, its wings up, its tail (a raised amber shape)."""
     pts = [(-.5, .05), (-.15, .12), (-.32, .5), (0, .22), (.32, .5), (.15, .12), (.5, .05), (.12, -.08),
@@ -302,6 +327,7 @@ SPECS = [
     ('town_wall_arch_b', build_arch, 1, {'blocking': True, 'light': LIGHT, 'intensity': 2}),
     ('town_wall_tower_a', build_tower, 0, {'blocking': True, 'light': LIGHT, 'intensity': 2.5}),
     ('town_wall_tower_b', build_tower, 1, {'blocking': True, 'light': LIGHT, 'intensity': 2}),
+    ('town_wall_tower_shaft_a', build_shaft, 0, {'blocking': True}),
     ('town_gatehouse_a', build_gatehouse, 0, {'blocking': True, 'light': LIGHT, 'intensity': 3}),
 ]
 
@@ -348,7 +374,7 @@ def main(directory=None, render=True):
     # the preview: a stretch of wall with its towers and the gate in it, an arcade over a pool
     layout = {'town_gatehouse_a': (0, 0), 'town_wall_tower_a': (-5, 0), 'town_wall_tower_b': (5, 0),
               'town_wall_a': (-3, 0), 'town_wall_b': (3, 0), 'town_wall_lantern_a': (-4, 0),
-              'town_wall_arch_a': (-1, -4), 'town_wall_arch_b': (0, -4)}
+              'town_wall_arch_a': (-1, -4), 'town_wall_arch_b': (0, -4), 'town_wall_tower_shaft_a': (-7, -4)}
     for obj in objects:
         x, y = layout[obj.name]
         obj.location = (x, y, -(ARCH_FOOT if 'arch' in obj.name else FOOT))
