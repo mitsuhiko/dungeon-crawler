@@ -89,6 +89,35 @@ function swayMaterial(mat, sway) {
   return mat;
 }
 
+// spin: turn about the prop's own X axis through its hub, `spin` over its foot, `rate` radians a
+// second (a mill's water wheel, world/town.js), each instance a little out of step with the others
+function spinMaterial(mat, hub, rate) {
+  const prev = mat.onBeforeCompile, key = mat.customProgramCacheKey();
+  mat.onBeforeCompile = (sh, r) => {
+    prev.call(mat, sh, r);
+    sh.uniforms.uWind = wind; sh.uniforms.uSpin = { value: new THREE.Vector2(hub, rate) };
+    // (cos and sin of the turn now; a function, as the normal's part may be compiled out)
+    const head = `uniform vec2 uSpin;
+vec2 spinTurn() {
+  float ph = 0.0;
+  #ifdef USE_INSTANCING
+    ph = instanceMatrix[3].x * 1.3 + instanceMatrix[3].z * 0.7;
+  #endif
+  float a = uWind * uSpin.y + ph;
+  return vec2(cos(a), sin(a));
+}
+vec2 spinRot(vec2 v, vec2 t) { return vec2(v.x * t.x - v.y * t.y, v.x * t.y + v.y * t.x); }
+`;
+    sh.vertexShader = withWind(sh.vertexShader.replace('void main() {', head + 'void main() {')
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+      objectNormal.yz = spinRot(objectNormal.yz, spinTurn());`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+      transformed.yz = vec2(uSpin.x, 0.0) + spinRot(transformed.yz - vec2(uSpin.x, 0.0), spinTurn());`));
+  };
+  mat.customProgramCacheKey = () => key + '|spin';
+  return mat;
+}
+
 // a glowing part of a prop whose light lives (`flicker`): its glow flickers like a flame ('flame',
 // render/flames.js flicker) or breathes ('pulse', breathe), each instance in its own time and in
 // step with its light (both seeded by where it stands: fireSeed below; wind is the game's clock)
@@ -181,7 +210,7 @@ export function buildProps(placed, group, water = null) {
       if (water) underwaterMaterial(c, water, p.maxY ?? p.height ?? 0);
       if (pane) glowMaterial(c, 'window', true);
       else if (glow && (p.flicker || night)) glowMaterial(c, p.flicker ?? 'steady', night);
-      const mesh = new THREE.InstancedMesh(part.geometry, p.sway ? swayMaterial(c, p.sway) : c, list.length);
+      const mesh = new THREE.InstancedMesh(part.geometry, p.sway ? swayMaterial(c, p.sway) : p.spin ? spinMaterial(c, p.spin, p.spin_rate ?? 1) : c, list.length);
       mesh.name = p.name;
       mesh.userData.sharedGeo = true;   // the catalog owns the geometry
       list.forEach((q, i) => {

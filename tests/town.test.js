@@ -38,6 +38,7 @@ const groundOf = (m, x, z) => {
 const level = (m, x, z, y = m.town.level * LH) => m.cols[Math.floor(z) * N + Math.floor(x)][0].cs.every(h => Math.abs(h - y) < 1e-9);
 const isHome = name => name in HOMES;
 const isWall = name => name.startsWith('town_wall') || name === 'town_gatehouse_a';
+const isMill = name => name.startsWith('town_water');
 // the town's tiles of a world: [{ k, i, j, m }]
 const tilesOf = w => townOf(w.seed).keys.map(k => ({ k, ...townOf(w.seed).tiles.get(k), m: w.cube(k).map }));
 
@@ -354,7 +355,7 @@ function checkClutter(m, min) {
   const plan = m.town, water = new Set(plan.water);
   // (the wall and the garlands: checked on their own, below)
   const clutter = plan.placements.filter(p => !p.name.startsWith('town_tree_') && ![...BUILDINGS, ...MERCHANTS].some(b => b.name === p.name) && !isHome(p.name)
-    && !isWall(p.name) && propMetadata.get(p.name)?.attach !== 'line');
+    && !isWall(p.name) && !isMill(p.name) && propMetadata.get(p.name)?.attach !== 'line');
   assert.ok(clutter.length >= min, `only ${clutter.length} clutter props`);
   // Oriented footprints: the axis-aligned collider envelopes have empty corners.
   const footprints = [...[...BUILDINGS, ...MERCHANTS].flatMap(b => plan.placements.filter(p => p.name === b.name)
@@ -686,4 +687,31 @@ test('every world\'s town lies in a land of its own: the lower town, the water a
   assert.ok(kinds.size >= 10, `${kinds.size} kinds of land in 12 worlds`);
   assert.ok(falls >= 12, `${falls} falls`);
   assert.ok(bridges >= 24, `${bridges} bridges`);
+});
+
+test('a mill stands by the river in most worlds, on level ground, its wheel turning in the water beside it', () => {
+  let mills = 0;
+  const where = new Set();
+  for (let seed = 0; seed < 12; seed++) {
+    const land = townLand(seed);
+    if (!land.mill) continue;
+    mills++;
+    where.add(`${Math.floor(land.mill.x)},${Math.floor(land.mill.z)}`);
+    const w = new World(seed), tiles = tilesOf(w);
+    const here = tiles.filter(({ m }) => m.town.placements.some(p => p.name === 'town_watermill_a'));
+    assert.equal(here.length, 1, 'one mill, in its tile');
+    const m = here[0].m, p = m.town.placements.find(p => p.name === 'town_watermill_a'), q = m.town.placements.find(p => p.name === 'town_waterwheel_a');
+    assert.ok(quarterTurn(p.yaw) && q.yaw === p.yaw && p.night);
+    // (on its own level ground)
+    const meta = propMetadata.get(p.name), body = m.occluders.find(b => b.name === p.name);
+    for (let x = body.x0 + .3; x < body.x1 - .3; x += .3) for (let z = body.z0 + .3; z < body.z1 - .3; z += .3)
+      if (!m.cols[Math.floor(z) * N + Math.floor(x)][0].fluid) assert.ok(Math.abs(groundOf(m, x, z) - p.y) < .02, `the mill's ground at ${x}, ${z}`);
+    assert.ok(meta.height > 3);
+    // (its wheel in the river, its foot under the water's surface, its hub on the mill's axle)
+    const f = m.cols[Math.floor(q.z) * N + Math.floor(q.x)][0], wheel = propMetadata.get(q.name);
+    assert.ok(f.fluid && q.y < f.surf * LH && q.y > f.surf * LH - .5, `the wheel at ${q.y} in water at ${f.surf * LH}`);
+    assert.ok(wheel.spin > 0 && Math.abs(q.y + wheel.spin - p.y - .45) < 1e-9);
+  }
+  assert.ok(mills >= 3, `${mills} mills in 12 worlds`);
+  assert.ok(where.size >= 2, 'mills in places of their own');
 });

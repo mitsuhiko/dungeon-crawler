@@ -341,6 +341,73 @@ def build_scarecrow(m, v):
 
 
 # (name, builder, variant, hints)
+# The water wheel's size, and how high the mill's axle is over its floor (world/town.js puts the wheel
+# beside the mill, in the river, its hub on the axle: its foot a little under the water's surface,
+# the river a level under the bank; render/props.js turns it about its hub, `spin`)
+WHEEL_R, WHEEL_W, AXLE = 1.05, .44, .45
+
+
+def build_watermill(m, v):
+    # a mill by the river: a stone storey, a timber one over it, the wheel's axle out of its +X
+    # side (the wheel itself is town_waterwheel_a, turning), sacks of flour by its door
+    w, d, eave, ridge = 2.3, 2.1, 2.25, 3.45
+    house(m, w, d, eave, ridge, ROOF_RED, '#d8c8a2')
+    front = -d / 2
+    rng = random.Random(907)
+    # the stone storey: blocks over the plaster to a band at a metre
+    for side, (x0, x1, y) in enumerate(((-w / 2, w / 2, front - .02), (-w / 2, w / 2, d / 2 + .02))):
+        for row in range(4):
+            x = x0 + (.1 if row % 2 else 0)
+            while x < x1 - .1:
+                bw = rng.uniform(.28, .44)
+                m.box((min(x + bw / 2, x1 - .1), y, .32 + row * .2), (min(bw, x1 - x) - .02, .05, .18), rng.choice([STONE, '#a3a199', '#8a8984']))
+                x += bw
+    for x in (-w / 2 - .02, w / 2 + .02):
+        for row in range(4):
+            for k in range(4):
+                m.box((x, -d / 2 + .3 + k * .5 + (.12 if row % 2 else 0), .32 + row * .2), (.05, .44, .18), rng.choice([STONE, '#a3a199', '#8a8984']))
+    m.box((0, 0, 1.12), (w + .12, d + .12, .1), TIMBER)
+    door(m, -.45, front, w=.7, h=1.3)
+    window(m, .55, front, 1.6, .46, .5)
+    window(m, -.4, front, 2.7, .36, .36)
+    side_windows(m, w, -.3, 1.65, (.42, .48))
+    chimney(m, -.6, .6, 2.4, 3.7)
+    lantern(m, (-1.0, front - .14, 1.35), .6)
+    # the axle out of its side, on a timber bearing, at the wheel's hub
+    hub = AXLE
+    m.box((w / 2 + .12, 0, hub), (.24, .5, .4), TIMBER)
+    m.lathe((w / 2, 0, hub), [(0, .09), (.62, .09)], IRON, n=8, jitter=0, axis=(1, 0, 0))
+    # flour sacks and a millstone leaning on the wall
+    for i, (x, y) in enumerate(((.35, front - .35), (.62, front - .3), (.5, front - .55))):
+        m.blob((x, y, .2 + (i == 2) * .18), (.17, .14, .2), '#e6dcc4', n=6)
+    m.lathe((-w / 2 - .12, -.3, .42), [(-.08, .42), (.08, .42)], '#9d978b', n=10, jitter=.02, axis=(1, 0, 0))
+
+
+def build_waterwheel(m, v):
+    # the mill's wheel: two rims on spokes round an iron hub, paddles between them; its foot at the
+    # origin, its hub WHEEL_R over it, its axle along X
+    R, W, n = WHEEL_R, WHEEL_W, 16
+    hub = (0, 0, R)
+    at = lambda x, a, r: (x, r * math.cos(a), R + r * math.sin(a))
+    for x in (-W / 2, W / 2):
+        for k in range(n):
+            a, b = 2 * math.pi * k / n, 2 * math.pi * (k + 1) / n
+            beam(m, at(x, a, R - .05), at(x, b, R - .05), .08, WOOD)
+            beam(m, at(x, a, R - .32), at(x, b, R - .32), .06, TIMBER)
+        for k in range(8):
+            a = 2 * math.pi * (k + .5) / 8
+            beam(m, at(x, a, .1), at(x, a, R - .32), .07, TIMBER)
+    for k in range(n):
+        a = 2 * math.pi * k / n
+        # a paddle: a plank from the inner rim out past the outer one, across the wheel
+        c, s = math.cos(a), math.sin(a)
+        r0, r1 = R - .34, R + .02
+        solid(m, [(-W / 2 - .02, r0 * c - .03 * s, R + r0 * s + .03 * c), (W / 2 + .02, r0 * c - .03 * s, R + r0 * s + .03 * c),
+                  (W / 2 + .02, r1 * c - .03 * s, R + r1 * s + .03 * c), (-W / 2 - .02, r1 * c - .03 * s, R + r1 * s + .03 * c)],
+              (0, .06 * s, -.06 * c), EDGE if k % 2 else WOOD)
+    m.lathe((-W / 2 - .12, 0, R), [(0, .14), (W + .24, .14)], IRON, n=8, jitter=0, axis=(1, 0, 0))
+
+
 SPECS = [
     ('town_cottage_a', build_cottage_a, 0, {'blocking': True, 'light': GLOW, 'intensity': .6}),
     ('town_cottage_b', build_cottage_b, 0, {'blocking': True, 'light': GLOW, 'intensity': .6}),
@@ -362,6 +429,8 @@ SPECS = [
     ('town_planter_a', build_planter, 0, {}),
     ('town_planter_b', build_planter, 1, {}),
     ('town_scarecrow_a', build_scarecrow, 0, {}),
+    ('town_watermill_a', build_watermill, 0, {'blocking': True, 'light': GLOW, 'intensity': .6}),
+    ('town_waterwheel_a', build_waterwheel, 0, {}),
 ]
 
 
@@ -376,6 +445,10 @@ def build(scene=None):
         builder(m, variant)
         obj = props.finish(m, name, 'ground', {'max_radius': None, 'blocking': False, **hints}, collection)
         obj['cube_crawler_town_home'] = name.startswith(('town_cottage', 'town_barn'))
+        if name == 'town_waterwheel_a':
+            # (it turns about its hub: render/props.js; how high its hub is, how fast, radians a second)
+            obj['spin'] = WHEEL_R
+            obj['spin_rate'] = -.7
         objects.append(obj)
     return objects
 

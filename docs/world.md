@@ -154,6 +154,9 @@ from it (`tileGround` in `world/town.js`).
   falls over the cliff's edge into the water (where the cliff runs straight), now by the wall, now
   nearer the middle; waded, bridged where a way crosses it. In some worlds without a gorge a stream
   comes down on the lake's side too, over the cliff into the bay.
+- **The mill**, in about half the worlds: on a bank of the river (or a stream) where it runs
+  straight on for a few cells, well up from its fall, on level ground of its own; its wheel turns
+  in the water beside it, and its windows light up at night.
 - Each world's land differs in more than where these lie: how deep the bay reaches, how far the
   cliff winds, how far a span goes. `node tools/townmap.mjs [seed ...]` draws a world's land from
   above (a PNG a seed: its levels, water, stairs, bridges, spans, falls, ways and homes).

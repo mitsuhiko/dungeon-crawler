@@ -493,9 +493,56 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       water.get(c).bed = water.get(c).surf - 2;
     }
   }
+  // ---- the mill, in most worlds: on a bank of the river (or a stream) where it runs straight on
+  // for three cells, well up from its fall, on level ground of its own; its wheel in the water
+  // beside it (world/town.js: MILL), turning
+  let mill = null;
+  if (R() < .75) {
+    // (its body: the mill's bounds but its axle, blender/town_homes.py; turned by a quarter turn
+    // yaw (its +X, the axle's side, to the river), as world/town.js turns a building)
+    const BODY = [-1.45, -1.37, 1.4, 1.75];
+    const bodyAt = (mx, mz, yaw) => {
+      const c = Math.round(Math.cos(yaw)), sn = Math.round(Math.sin(yaw));
+      const pts = [[BODY[0], BODY[1]], [BODY[2], BODY[1]], [BODY[0], BODY[3]], [BODY[2], BODY[3]]].map(([u, v]) => [mx + u * c + v * sn, mz - u * sn + v * c]);
+      return { x0: Math.min(...pts.map(p => p[0])), z0: Math.min(...pts.map(p => p[1])), x1: Math.max(...pts.map(p => p[0])), z1: Math.max(...pts.map(p => p[1])) };
+    };
+    const over = (b, g, test) => { for (let z = Math.floor(b.z0 - g); z <= Math.floor(b.z1 + g); z++) for (let x = Math.floor(b.x0 - g); x <= Math.floor(b.x1 + g); x++) if (!test(x, z)) return false; return true; };
+    const river = c => water.get(c)?.lake === false;
+    const spots = [];
+    // (where it flows along z, the mill beside it east or west; along x, north or south: [along, across])
+    for (const [ax, az, bx, bz] of [[0, 1, 1, 0], [1, 0, 0, 1]]) for (const bed of streams) for (const c of bed) {
+      const [x, z] = xz(c);
+      // (the river's cells across it here, t along it: [first, last] of their offsets)
+      const run = t => { const x0 = x + ax * t, z0 = z + az * t; if (!river(cell(x0, z0))) return null; let a = 0, b = 0;
+        while (river(cell(x0 + bx * (a - 1), z0 + bz * (a - 1)))) a--; while (river(cell(x0 + bx * (b + 1), z0 + bz * (b + 1)))) b++; return [a, b]; };
+      const here = run(0);
+      if (!here || [-2, -1, 1, 2].some(t => String(run(t)) !== String(here)) || falls.some(f => Math.abs(f.c % W - x) < 4 && Math.abs(Math.floor(f.c / W) - z) < 4)) continue;
+      for (const sd of [1, -1]) {
+        // (the bank's edge across the river from c, and the mill a cell and a half off it)
+        const e = sd > 0 ? here[1] + 1 : here[0], ex = x + bx * e, ez = z + bz * e;
+        const mx = (bx ? ex : x + .5) + bx * sd * 1.5, mz = (bz ? ez : z + .5) + bz * sd * 1.5;
+        // (its +X towards the river: -sd along the across axis)
+        const yaw = bx ? (sd > 0 ? Math.PI : 0) : (sd > 0 ? Math.PI / 2 : -Math.PI / 2), body = bodyAt(mx, mz, yaw);
+        const ok = over(body, .05, (nx, nz) => { const n = cell(nx, nz); return nx >= 0 && nz >= 0 && nx < W && nz < D && !water.has(n) && !used.has(n) && !tongue.has(n) && !shut(n)
+            && fixedDist[n] > .8 && !gorgeAt(nx, nz) && base(nx, nz) === base(x, z); })
+          && over(body, .3, (nx, nz) => side(nx, nz) === 0)
+          // (SEAM_CLEAR off the seams, world/town.js, and a cell more: the ground by a seam stands as
+          // on its other side)
+          && seamX.every(sx => body.x0 - 1.95 > sx || body.x1 + 1.95 < sx) && seamZ.every(sz => body.z0 - 1.95 > sz || body.z1 + 1.95 < sz);
+        if (ok) spots.push({ mx, mz, yaw, wx: mx - bx * sd * 1.67, wz: mz - bz * sd * 1.67, body, level: base(x, z) });
+      }
+    }
+    if (spots.length) {
+      const s = spots[Math.floor(R() * spots.length)];
+      mill = { x: s.mx, z: s.mz, yaw: s.yaw, wheel: { x: s.wx, z: s.wz }, level: s.level, box: s.body };
+      // (its ground and a cell round it level: pinned so, cubegen/smooth.js)
+      over(s.body, 1, (x, z) => { const c = cell(x, z); if (!water.has(c) && base(x, z) === s.level && side(x, z) === 0 && !strip(x, z)) used.add(c); return true; });
+      features.push({ kind: 'mill', x: s.mx, z: s.mz });
+    }
+  }
   // ---- the town round them
   const layout = plan({ hill, hollow, lake, pieces, W, D, level, rows, inWall, levelAt: (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)),
-    avoid: structureCells.map(c => { const [x, z] = xz(c); return { x0: x, z0: z, x1: x + 1, z1: z + 1 }; }),
+    avoid: [...structureCells.map(c => { const [x, z] = xz(c); return { x0: x, z0: z, x1: x + 1, z1: z + 1 }; }), ...mill ? [mill.box] : []],
     water: c => water.has(c), wet: [...water.keys()] });
   const keep = layout.keep;
   // how far each cell lies from what is kept, and how far over its ground's level it is kept: a
@@ -677,7 +724,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   return {
     W, D, level, rows, upper, seed, hill, hollow, lake, pieces, river, streams, trails, layout, falls, runs, stairs, spans, edge, platforms, piers,
     // the gorge's cells (lake water down in the upper town), what of the land's set pieces it has and where
-    gorge, features, stage,
+    gorge, features, stage, mill,
     // the wall: where a cell lies by it (wallSide), its towers' cells, its gate's cells and the
     // gatehouse's middle (where the street comes in), whether (x, z) lies inside it by m
     wall: { side: (x, z) => side(clamp(x, 0, W - 1), clamp(z, 0, D - 1)), towers, gateAt, gate: [gate[0], WALL + .5], inWall },

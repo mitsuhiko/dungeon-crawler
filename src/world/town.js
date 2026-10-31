@@ -878,6 +878,28 @@ function walls(t) {
   block(p, [-2.5, -.75, 2.5, .75], .1);
 }
 
+// The mill by the river (world/townland.js mill), in the tile it stands in: on its level ground, its
+// wheel in the water beside it on its axle (MILL_AXLE over the mill's floor: blender/town_homes.py
+// AXLE), turning (render/props.js spin), its windows lit at night. It stands in the way as its box
+// and hides the hero behind it; the wheel as its own.
+const MILL_AXLE = .45;
+function watermill(t) {
+  const { land, L, add, collide, footprints, occluders } = t, m = land.mill;
+  if (!m || !t.inTile(m)) return;
+  const [lx, lz] = L(m.x, m.z), y = m.level * LH;
+  const p = add('town_watermill_a', lx, lz, m.yaw), meta = propMetadata.get(p.name);
+  p.y = y; p.night = true;
+  const box = turnedBox(meta.bounds, p.x, p.z, p.yaw), body = { shape: 'box', name: p.name, ...box, bottom: y, top: y + meta.height };
+  collide(body); occluders.push(body);
+  footprints.push({ x: p.x, z: p.z, c: snap(Math.cos(p.yaw)), s: snap(Math.sin(p.yaw)), bounds: meta.bounds, box });
+  const [wx, wz] = L(m.wheel.x, m.wheel.z), wheel = propMetadata.get('town_waterwheel_a');
+  const q = add('town_waterwheel_a', wx, wz, m.yaw);
+  q.y = y + MILL_AXLE - wheel.spin;
+  const hub = { shape: 'box', name: q.name, ...turnedBox(wheel.bounds, q.x, q.z, q.yaw), bottom: q.y, top: q.y + wheel.height };
+  collide(hub);
+  footprints.push({ x: q.x, z: q.z, c: snap(Math.cos(q.yaw)), s: snap(Math.sin(q.yaw)), bounds: wheel.bounds, box: turnedBox(wheel.bounds, q.x, q.z, q.yaw) });
+}
+
 // What stands round a home (HOMES): flowers by its door, trees in its yard, behind it a garden
 // fenced in, the wash hanging out, wood stacked, or the animals (`rural`: on the town's edge)
 function yard(t, h) {
@@ -944,7 +966,7 @@ function clearWays({ plan, seamGap }, spec) {
   for (const q of [...Object.values(plan.relics), ...plan.portal ? [plan.portal] : []]) needed.add(cellOf(q.x, q.z));
   if (plan.spawn) { needed.add(plan.spawn[1] * N + plan.spawn[0]); start.push(plan.spawn[1] * N + plan.spawn[0]); }
   if (!start.length) start.push(...needed);
-  const fixed = b => KEEPS.has(b.name) || isHome(b.name) || isWall(b.name) || b.name.startsWith('villager_');
+  const fixed = b => KEEPS.has(b.name) || isHome(b.name) || isWall(b.name) || b.name.startsWith('town_water') || b.name.startsWith('villager_');
   const gone = new Set();
   for (let round = 0; round < 40; round++) {
     const cells = indexBlockers(plan.colliders), reach = townReach(g, cells, start);
@@ -1556,6 +1578,7 @@ export function townPlan(exit, seed, i, j, world = 0) {
   // (each cube cell by the wall: 0 inside, 1 on it, 2 outside it, world/townland.js wallSide)
   plan.wallSide = Array.from({ length: N * N }, (_, c) => land.wall.side(...tools.G(...rotateTownPoint(c % N + .5, Math.floor(c / N) + .5, -plan.yaw)).map(Math.floor)));
   walls(tools);
+  watermill(tools);
   spec.dress(tools);
   hedgerows(tools);
   for (const h of laid.homes) yard(tools, h);

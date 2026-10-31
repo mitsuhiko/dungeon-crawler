@@ -100,6 +100,15 @@ market stalls, a trough, beehives, a chicken coop, two planters and a scarecrow.
 `cube_crawler_town_home`; the houses face their door (front +Z in glTF, where their path leads),
 have no inside (their doors stay shut) and collide with their footprint. `src/world/town.js` (`HOMES`, `plotTown`) lays them out along the town's ways.
 
+The same file has the mill by the river (`town_watermill_a`: a stone storey, a timber one, its
+windows lit at night, the wheel's axle out of its +X side `AXLE` (0.45) over its floor) and its
+wheel (`town_waterwheel_a`: two rims on spokes, paddles between them, its foot at the origin and
+its hub `WHEEL_R` (1.05) over it, its axle along X). The wheel carries `spin` (how high its hub is)
+and `spin_rate` (radians a second): the game turns it about its hub (`src/render/props.js`), each
+in its own time. `src/world/townland.js` finds a place for the mill on a bank where the river runs
+straight, `src/world/town.js` (`watermill`) puts the wheel in the water beside it, its hub on the
+axle.
+
 ## Rebuild / validate
 
 From the repository root (replace `Blender` with your executable):
