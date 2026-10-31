@@ -286,6 +286,13 @@ function tileGround(land, i, j, yaw, seed) {
   }
   shapeStructures(ctx);
   for (const r of ctx.runs) delete r.street;
+  // (a span's pillar dressed in stone, its sides from its foot to under its top: render/structures.js)
+  const piers = new Set(land.piers);
+  for (const r of ctx.runs) for (const e of [r.from, r.to]) {
+    const g = toLand(e.c), gc = g[1] * land.W + g[0];
+    if (!(r.span || r.kind === 'stair') || !land.platforms.has(gc) || piers.has(gc)) continue;
+    (r.piers ||= []).push({ c: e.c, x0: -.04, z0: -.04, x1: 1.04, z1: 1.04, bottom: 0, top: Math.min(...e.cs) - .04 });
+  }
   for (const f of floors) delete f.spot;
   // the falls: their cell and the way they flow, turned into the cube
   const falls = [];

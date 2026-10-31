@@ -1,7 +1,7 @@
 // All built structures: stairs, landings, bridges and visible fences.
-import { buildStair, buildLanding } from './stairs.js';
+import { buildStair, buildLanding, pillarBox } from './stairs.js';
 import { BRIDGES, buildPlankBridge } from './bridges.js';
-import { POST, RAIL, SURFACE } from './palette.js';
+import { POST, RAIL, SURFACE, PIER } from './palette.js';
 import { buildLadder } from './ladders.js';
 
 export function buildStructures(m, layers) {
@@ -10,6 +10,8 @@ export function buildStructures(m, layers) {
     if (r.kind === 'landing') buildLanding(r, L);
     else if (r.kind === 'stair') buildStair(r, L);
     else (BRIDGES[r.style] || buildPlankBridge)(r, L);
+    // (a span's pillar of rock, dressed in stone: world/town.js tileGround)
+    for (const q of r.piers || []) pillarBox(L.stone, q, PIER);
   }
   for (const l of m.ladders || []) buildLadder(l, layers[l.layer]);
   // wooden fences: posts follow the surface, rails are sloped beams

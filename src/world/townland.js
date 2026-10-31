@@ -395,7 +395,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const SPAN_STYLES = ['rope', 'chain', 'plank', 'stone', 'iron', 'flags'];
   let lastStyle = null;
   const spanStyle = (level = false) => (lastStyle = lastStyle && R() < .4 ? lastStyle : pick3(R, level ? [...SPAN_STYLES, 'rockarch'] : SPAN_STYLES));
-  const tallNext = () => K() < .7;
+  const tallNext = () => K() < .85;
   const take = (sp, w = [-1, 0, 1]) => { spans.push(sp); for (const c of [sp.top, sp.land, ...sp.cells]) for (const o of w) used.add(c + o); };
   const lakeSpan = (avoid = [], wantTall = false, wantWide = false) => {
     // (where the lake is deepest, by its middle; off the gorge's mouth and another span)
@@ -417,16 +417,19 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       // (a rock standing on the line from the top to the shore; or, `tall`, a pillar of rock most of
       // the way up, the span down from it long, far on into the lower town, high over a way it
       // passes: never steeper than LH * 1.45 a cell, a body's room and more over the way)
-      let p = lower + Math.round((upper - lower) * (upZ - 1 - land) / (top - land)), tall = false;
+      let p = lower + Math.round((upper - lower) * (upZ - 1 - land) / (top - land)), tall = false, stairDown = false;
       if (wantTall) for (let far = shore - 9; far < shore && !tall; far++) {
-        const run = upZ - 1 - far, high = lower + Math.min(Math.round((upper - lower) * (.62 + K() * .18)), Math.floor(1.45 * run));
+        // (as high as the way down from it lets it stand, up to a level under the cliff's top: the span
+        // over the lake nearly level, high over the water, a viaduct; the way down a span, or a stair
+        // down from the pillar where that is too short for a span, two levels a cell)
+        const run = upZ - 1 - far, high = lower + Math.min(upper - lower - 1, Math.floor(2 * run));
         const deck = z => lower + (high - lower) * (z - far) / run;
         // (landing on free ground, or on a way: a road to it)
         const onWay = fixedWays.some(w => keepDistance({ seg: [w.a, w.b], r: w.w / 2 + .1 }, x + .5, far + .5) < 0);
         const fits = (fixedDist[cell(x, far)] > 1.2 || onWay) && [-1, 0, 1].every(o => side(x + o, far) === 0) && !insideBox(x + .5, far + .5, onWay ? .4 : 1) && !strip(x, far)
           && Array.from({ length: shore - far }, (_, k) => far + 1 + k).every(z => !strip(x, z) && !insideBox(x + .5, z + .5, .3)
             && (fixedDist[cell(x, z)] > 1 || deck(z) - lower >= 5 || z <= far + 1));
-        if (fits && high - lower >= (upper - lower) * .4) { land = far; p = high; tall = true; }
+        if (fits && high - lower >= (upper - lower) * .4) { land = far; p = high; tall = true; stairDown = high - lower > 1.45 * run; }
       }
       if (wantTall && !tall) continue;
       // (a wide one, three tiles long: from the back row's ground up to a pillar standing on the upper
@@ -456,7 +459,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       // (a tall one over a deep bay: a second pillar out in the bay, higher still, a span between the
       // two; never by a seam)
       const zA = upZ + 1 + Math.floor((top - upZ - 3) / 2), pA = p + Math.round((upper - p) * (zA - upZ + .5) / (top - upZ)) + 1;
-      const twice = !wide && tall && top - upZ >= 9 && [zA, zA + 1].every(z => [x, x + 1].every(v => inWater(v, z) && !gorgeAt(v, z) && !strip(v, z)))
+      const twice = !wide && tall && top - upZ >= 9 && upper - p >= 5 && [zA, zA + 1].every(z => [x, x + 1].every(v => inWater(v, z) && !gorgeAt(v, z) && !strip(v, z)))
         && upper - pA <= 1.45 * (top - zA - 1) && pA - p <= 1.45 * (zA - upZ);
       if (twice) {
         take({ kind: 'lake', top: cell(x, top), land: cell(x, zA + 1), cells: Array.from({ length: top - zA - 2 }, (_, k) => cell(x, top - 1 - k)), d: 3, ...pair });
@@ -465,9 +468,10 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       } else if (!wide) take({ kind: 'lake', top: cell(x, top), land: cell(x, upZ), cells: Array.from({ length: top - upZ - 1 }, (_, k) => cell(x, top - 1 - k)), d: 3, ...pair });
       // (the span down from a tall pillar: what is under it on the lower town's ground stays as it is,
       // a way under it free)
-      take({ kind: 'lake', top: cell(x, upZ - 1), land: cell(x, land), cells: Array.from({ length: upZ - 2 - land }, (_, k) => cell(x, upZ - 2 - k)), d: 3, ...pair },
+      take({ kind: 'lake', top: cell(x, upZ - 1), land: cell(x, land), cells: Array.from({ length: upZ - 2 - land }, (_, k) => cell(x, upZ - 2 - k)), d: 3, ...pair, ...stairDown ? { stair: true } : {} },
         tall ? [0] : undefined);
-      for (const c of rock) platforms.set(c, p);
+      // (a tall one a slender pillar, a cell wide)
+      for (const c of tall ? [rock[0], rock[2]] : rock) platforms.set(c, p);
       features.push({ kind: 'span', x: x + .5, z: (top + land) / 2 + .5, tall, ...wide ? { wide: true } : {} });
       return x;
     }
@@ -936,7 +940,8 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   for (const s of stairs) runs.push({ kind: 'stair', from: s.foot, to: s.top, cells: s.cells, d: s.d });
   for (const b of crossings) runs.push({ kind: 'bridge', from: b.from, to: b.to, cells: b.cells, d: b.d });
   // (each span in its own style, spanStyle above)
-  for (const s of spans) runs.push({ kind: 'bridge', from: s.top, to: s.land, cells: s.cells, d: s.d, span: true, style: s.style });
+  for (const s of spans) runs.push(s.stair ? { kind: 'stair', from: s.top, to: s.land, cells: s.cells, d: s.d }
+    : { kind: 'bridge', from: s.top, to: s.land, cells: s.cells, d: s.d, span: true, style: s.style });
   // a bridge where a way crosses the river: over its water along the way, bank to bank
   for (const w of layout.ways ?? []) {
     const [[ax, az], [bx, bz]] = [w.a, w.b], vertical = ax === bx, len = Math.round(Math.abs(vertical ? bz - az : bx - ax));

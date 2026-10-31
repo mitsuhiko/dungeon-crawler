@@ -843,7 +843,7 @@ function* sunSteps(bake, key, size, scenes = null) {
     yield;
     for (let i = 0; i < strips; i++) {
       const y0 = Math.floor(h * i / strips), y1 = Math.floor(h * (i + 1) / strips), su = S.sun.uniforms;
-      su.uMap.value = map.depthTexture; su.uMapM.value.copy(mapM); su.uSunDir.value.copy(e.dir); su.uMask.value.copy(MASKS[0]);
+      su.uMap.value = e.map; su.uMapM.value.copy(mapM); su.uSunDir.value.copy(e.dir); su.uMask.value.copy(MASKS[0]);
       su.uTexel.value.set(e.span / size, e.depth);
       temp.scissor.set(0, y0, w, y1 - y0); temp.scissorTest = strips > 1;
       renderer.setRenderTarget(temp);

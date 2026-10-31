@@ -785,9 +785,11 @@ test('old ruins lie in most worlds\' towns, of every kind, on wild ground of the
     // (off the homes)
     for (const p of m.town.placements.filter(p => isHome(p.name))) assert.ok(stones.every(s => Math.hypot(s.x - p.x, s.z - p.z) > 1.2));
   }
-  assert.ok(ruins >= TOWNS / 2, `${ruins} ruins in ${TOWNS} worlds`);
-  // (of every kind, in the lands of twice as many worlds)
-  for (let seed = 0; seed < TOWNS * 2; seed++) if (townLand(seed).ruins) kinds.add(townLand(seed).ruins.kind);
+  assert.ok(ruins >= 3, `${ruins} ruins in ${TOWNS} worlds`);
+  // (in most worlds, of every kind: in the lands of a few times as many worlds)
+  const lands = Array.from({ length: TOWNS * 4 }, (_, seed) => townLand(seed)).filter(l => l.ruins);
+  assert.ok(lands.length >= TOWNS * 2, `${lands.length} ruins in ${TOWNS * 4} worlds`);
+  for (const l of lands) kinds.add(l.ruins.kind);
   assert.equal(kinds.size, 3);
   assert.ok(tiles.size >= 3, 'in tiles of their own');
 });

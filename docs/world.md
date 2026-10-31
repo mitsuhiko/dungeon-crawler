@@ -140,9 +140,12 @@ from it (`tileGround` in `world/town.js`).
   town); a long span comes down over it from the upper town's edge to a rock standing in it on the
   seam (a run in each tile: a run never crosses a seam), and on down to the lower town's shore or a
   cell or two past it into the lower town; in some worlds two of them, side by side. Or, where one
-  fits, a *tall* one: its rock on the seam a pillar most of the way up the cliff, the span down from
-  it long and as steep as a span may be (`LH` × 1.45 a cell), landing on a way of the lower town or
-  far on into it (high over a way it passes); over a deep bay first to a second pillar out in it,
+  fits (most worlds), a *tall* one: its rock on the seam a slender pillar a cell wide, as high as the
+  way down from it lets it stand (up to a level under the cliff's top), so the span over the lake
+  runs nearly level, high over the water; the way down from it a span (`LH` × 1.45 a cell at most),
+  or where that is too short a stone stair two levels a cell, landing on a way of the lower town or
+  far on into it (high over a way it passes); every span's pillar dressed in stone (`piers` of its
+  runs, `tileGround`); over a deep bay first to a second pillar out in it,
   higher still, a span between the two. In some worlds (`landscape.wide`: the bay as deep as it
   goes, the hill in the other back corner, no gorge, the grove's well off its way) a *wide* one,
   three tiles long: from the back row's ground up to a pillar standing on the upper town behind
