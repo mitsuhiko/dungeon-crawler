@@ -73,6 +73,10 @@ export const LOWER_FORMS = ['meadow', 'marsh', 'orchard', 'green', 'dell', 'rock
 // bottom, a deep quarry)
 export const CLIFFS = ['winding', 'straight'], RISES = [12, 14, 16, 16];
 export const HILLS = ['hill', 'mound', 'peak'], HOLLOWS = ['dell', 'pond', 'quarry'];
+// The share of the pond hollows whose pool is mud; the pockets of mud lying on the floor of a quarry
+// and round a pool of mud (how many at most, [radius], [how deep in the middle]: world/town.js dell)
+export const MIRE = .5;
+export const MUD_POCKETS = { quarry: 4, mire: 3, r: [.35, .6], deep: [.08, .12] };
 // The wall: the cells of the forest outside it on each outer side (the wall stands in the next row
 // in), how wide its gate is where the street comes in (cells, round the street)
 export const WALL = 3, WALL_GATE = 5;
@@ -816,12 +820,14 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     for (const pool of ponds) for (const c of pool) water.set(c, { surf: lower - WATER_DROP, bed: lower - WATER_DROP - 1, lake: false, pond: true });
     if (ponds.length) features.push(marsh ? { kind: 'marsh', ponds: ponds.length } : { kind: 'pond', x: placed[0].x, z: placed[0].z });
   }
-  // (the hollow's pool: at its bottom, on its far side from the town's middle, a level under it)
+  // (the hollow's pool: at its bottom, on its far side from the town's middle, a level under it; in
+  // half of the worlds a pool of mud, MIRE, on dice of its own: cubegen/mudpools.js)
+  hollow.mire = hollow.kind === 'pond' && mulberry32(hash32(seed ^ 0x6d697265))() < MIRE;
   if (hollow.kind === 'pond') {
     const a = Math.atan2(hollow.z - middle[1], hollow.x - middle[0]), px = hollow.x + Math.cos(a) * 1.5, pz = hollow.z + Math.sin(a) * 1.5;
     for (let z = Math.floor(pz - 2); z <= pz + 2; z++) for (let x = Math.floor(px - 2); x <= px + 2; x++)
       if (Math.hypot(x + .5 - px, z + .5 - pz) < 1.2 && Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z) < hollow.r0 - .2)
-        water.set(cell(x, z), { surf: hollow.bottom - WATER_DROP, bed: hollow.bottom - WATER_DROP - 1, lake: false, pool: true });
+        water.set(cell(x, z), { surf: hollow.bottom - WATER_DROP, bed: hollow.bottom - WATER_DROP - 1, lake: false, pool: true, ...hollow.mire ? { mud: true } : {} });
     features.push({ kind: 'pool', x: px, z: pz });
   }
 

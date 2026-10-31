@@ -7,6 +7,7 @@ import { containsXZ, indexBlockers } from '../core/blockers.js';
 import { floorY } from '../core/surfaces.js';
 import { edgeCell } from './portals.js';
 import { runRails } from './fences.js';
+import { mudPocket } from './mudpools.js';
 import { townPlan, townReach } from '../world/town.js';
 
 export function generateClearing(spec) {
@@ -97,6 +98,12 @@ export function generateClearing(spec) {
     tile: plan.tile, level: plan.level, wallSide: plan.wallSide, ...(portal ? { portal } : {}) };
   return { seed: spec.seed, attempts: 1, K: 1, B: [0], cols: ctx.cols, floors,
     pieces: ctx.pieces, runs: ctx.runs, falls: plan.falls.map(f => ({ ...f, type: WATER, layer: 0 })), ladders: [],
+    // the pockets of mud on the hollow's floor (world/town.js dell, game/muddy.js)
+    // (at the ground's height where it lies: the cell may slope further off)
+    mudPockets: plan.mud.map(p => {
+      const f = ctx.cols[Math.floor(p.z) * N + Math.floor(p.x)][0];
+      return { ...mudPocket(f, p.x, p.z, p.r, p.deep), y: floorY(f, p.x - f.x, p.z - f.z) };
+    }),
     fences, fenceList, stats: ctx.stats, moves, portals, exit: spec.exit,
     routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys, trialFaces: spec.trialFaces || [null, null, null, null],
     safe: Uint8Array.from(floors, f => prev.has(f.c) ? 1 : 0),

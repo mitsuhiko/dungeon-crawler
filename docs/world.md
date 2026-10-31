@@ -1020,6 +1020,12 @@ fainter, its lines leaning towards teal (never into the greens).
   each is a little field of mud as his are (`core/sollmeldon.js`), settled once and holding still,
   drawn as his are (`render/mud.js mudSheet`) (`game/muddy.js`). Decided at the very end of a
   cube on a random stream of its own: worlds without mud come out as they did.
+  The town has mud of its own (`world/townland.js MIRE`, `MUD_POCKETS`, `world/town.js dell`): in
+  half of the worlds whose hollow has a pool, the pool is mud (on dice of its own), with up to 3
+  pockets round it; a quarry has up to 4 on its floor (rain standing in the dug-up ground). They
+  lie round the camp in its middle, on level ground, off the water and what stands there (on the
+  trail down too), and what is dressed after them keeps off them (`plan.mud`, the tile's
+  `mudPockets`, at the ground's height where each lies).
 - **Dev:** `?palette=classic` (the old look) or `?palette=<seed>` (another world's),
   `/palette [seed|classic]` re-rolls them live and names the ones here;
   `tests/browser/palettes.html?seed=<n>` shows a world's palettes. **Checks:**

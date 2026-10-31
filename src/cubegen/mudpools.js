@@ -6,7 +6,7 @@
 // of them (POCKETS) pockets of mud lie on the ground, a few centimetres deep: { x, z, y (the
 // ground), r, vol, c, layer (its floor's cell: no props there) } (game/muddy.js slows whoever wades through them, render/mud.js draws them).
 // Decided at the end of a cube, on a random stream of its own: worlds without mud come out as
-// they did.
+// they did. (The town's mud, its hollow's: world/townland.js MIRE, world/town.js dell.)
 import { N, LH, DIRS, WATER, MUD } from '../core/constants.js';
 import { idx, inb, hash32 } from '../core/util.js';
 import { fallShift } from '../core/falls.js';

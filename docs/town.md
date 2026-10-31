@@ -28,7 +28,8 @@ still to come.
   climbs the cliff by a stair (in some worlds a second stair climbs it from a landing stage, bridges
   out to it over the water); one or two long spans come down over the lake; the river falls over
   the cliff; in some worlds a gorge cuts on from the lake into the upper town, a stream falling into
-  its head and spans across it; a hill with a tent on its top, a hollow with a tent at its bottom, the people's homes
+  its head and spans across it; a hill with a tent on its top, a hollow with a tent at its bottom (in a quarry pockets of
+  mud, in some worlds its pool a pool of mud), the people's homes
   along every way, some of them on a terrace of their own; a wall round it all a few cells in from
   its sides, towers on it, its gate over the street, and outside it the forest, deep and close
   ([world.md](world.md#the-town-worldtownjs-cubegentownjs-gamehandoverjs)). Each world's town has a

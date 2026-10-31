@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { assets } from './paths.js';
 import { readGlb, rootBounds, roots } from '../tools/glb.mjs';
-import { N, LH, CHAR_R, CHAR_H, EDGE_CORNERS, DIRS } from '../src/core/constants.js';
+import { N, LH, CHAR_R, CHAR_H, EDGE_CORNERS, DIRS, MUD } from '../src/core/constants.js';
 import { containsXZ, viewBlockedAt } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { worldOf } from './worlds.js';
@@ -45,6 +45,11 @@ const isMill = name => name.startsWith('town_water');
 // look at one tile of each goes further
 const TOWNS = 12;
 const tilesOf = w => townOf(w.seed).keys.map(k => ({ k, ...townOf(w.seed).tiles.get(k), m: w.cube(k).map }));
+// the land's cell (world/townland.js) under floor f of tile m
+const landCell = (m, f) => {
+  const [lx, lz] = rotateTownPoint(f.x + .5, f.z + .5, -m.town.yaw);
+  return [m.town.tile.i * N + Math.floor(lx), m.town.tile.j * N + Math.floor(lz)];
+};
 
 function checkStraightPaths(m) {
   for (const path of m.town.paths) for (const [i, b] of path.points.slice(1).entries()) {
@@ -856,4 +861,37 @@ test('each world\'s town has a landscape of its own: its wood, how its woods lie
   assert.ok(styles.size >= 6 && styles.has('stone') && styles.has('iron'), [...styles].join());
   // (from a dice of its own)
   assert.deepEqual(townLand(3).landscape, townLand(3).landscape);
+});
+
+test('the hollow is muddy: pockets of mud on a quarry\'s floor, in some worlds a pool of mud with pockets round it; no ground draws an underside at its top', () => {
+  let pockets = 0, mires = 0, quarries = 0;
+  for (let seed = 0; seed < TOWNS; seed++) {
+    const w = worldOf(seed), land = townLand(seed), h = land.hollow;
+    const m = tilesOf(w).find(t => t.i === h.tile[0] && t.j === h.tile[1]).m;
+    // (its pool mud where the land says so, no lily pads on it)
+    const pool = m.floors.filter(f => f.fluid && land.water(...landCell(m, f))?.pool);
+    assert.equal(pool.length > 0 && pool.every(f => f.look === MUD), !!h.mire, `${seed}: the pool's mud`);
+    if (h.mire) { mires++; assert.ok(!m.town.placements.some(p => p.name.startsWith('meadow_lily_pads') && pool.some(f => f.c === Math.floor(p.z) * N + Math.floor(p.x)))); }
+    assert.ok(m.floors.every(f => f.look !== MUD || pool.includes(f)), 'no other mud pool');
+    if (h.kind === 'quarry') quarries += m.mudPockets.length > 0;
+    if (h.kind === 'dell' || (h.kind === 'pond' && !h.mire)) assert.equal(m.mudPockets.length, 0);
+    // (each on level dry ground, on the hollow's floor, under nothing that stands)
+    for (const p of m.mudPockets) {
+      pockets++;
+      const f = m.cols[p.c][0];
+      const ring = [0, 1, 2, 3, 4, 5, 6, 7].map(k => groundOf(m, p.x + Math.cos(k * Math.PI / 4) * p.r, p.z + Math.sin(k * Math.PI / 4) * p.r));
+      assert.ok(!f.fluid && Math.abs(p.y - groundOf(m, p.x, p.z)) < 1e-6 && ring.every(y => Math.abs(y - p.y) < .1), `${seed}: level ground`);
+      const [gx, gz] = landCell(m, f);
+      assert.ok(Math.hypot(gx + .5 - h.x, gz + .5 - h.z) < h.r0 + 1, `${seed}: on the hollow's floor`);
+      assert.ok(!m.staticBlockers.flat().some(b => b.shape !== 'box' && Math.hypot(b.x - p.x, b.z - p.z) < b.r + p.r), `${seed}: nothing stands in it`);
+    }
+    // (the hollow's floor at the cube's bottom: its top drawn, no underside fighting with it)
+    const { pos, nor } = buildCubeGeometry(m)[0].terrain;
+    for (let i = 0; i < pos.length; i += 9) {
+      if (nor[i + 1] > -.5 || [1, 4, 7].some(k => Math.abs(pos[i + k]) > 1e-4)) continue;
+      const x = (pos[i] + pos[i + 3] + pos[i + 6]) / 3, z = (pos[i + 2] + pos[i + 5] + pos[i + 8]) / 3;
+      assert.ok(Math.min(...m.cols[Math.floor(z) * N + Math.floor(x)][0].cs) > .01, `${seed}: an underside at the top of ${Math.floor(x)},${Math.floor(z)}`);
+    }
+  }
+  assert.ok(mires >= 1 && quarries >= 3 && pockets >= 8, `${mires} pools of mud, ${quarries} muddy quarries, ${pockets} pockets`);
 });

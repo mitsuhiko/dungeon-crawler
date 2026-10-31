@@ -6,13 +6,13 @@
 // onto the road (depth 0's route starts there, world/layout.js). Every tile has a plan of its own
 // (TILES: what stands where, in the tile's own frame), turned with the gate: a tile's local z = 0
 // side faces the gate's side of the town, local +x the next tile across.
-import { N, LH, CHAR_R, CHAR_H, DIRS, OPP, EDGE_CORNERS, WATER } from '../core/constants.js';
+import { N, LH, CHAR_R, CHAR_H, DIRS, OPP, EDGE_CORNERS, WATER, MUD } from '../core/constants.js';
 import { mulberry32, hash32 } from '../core/util.js';
 import { propMetadata, CLUTTER } from '../core/propcatalog.js';
 import { floorY } from '../core/surfaces.js';
 import { containsXZ, indexBlockers } from '../core/blockers.js';
 import { key, step } from './coords.js';
-import { makeLand, INN_STAIR, WALL } from './townland.js';
+import { makeLand, INN_STAIR, WALL, MUD_POCKETS } from './townland.js';
 import { createContext } from '../cubegen/context.js';
 import { smooth } from '../cubegen/smooth.js';
 import { shapeStructures } from '../cubegen/shape.js';
@@ -239,7 +239,7 @@ function tileGround(land, i, j, yaw, seed) {
   const water = [];
   for (let c = 0; c < N * N; c++) {
     const [gx, gz] = toLand(c), w = water[c] = land.water(gx, gz), f = ctx.mk(c, land.level(gx, gz), 0, 0);
-    if (w) { f.fluid = WATER; f.surf = w.surf; }
+    if (w) { f.fluid = WATER; f.surf = w.surf; if (w.mud) f.look = MUD; }   // (the hollow's pool of mud: cubegen/mudpools.js)
     // (pinned flat at its level: cubegen/smooth.js does so for a quest's spot)
     if (land.flat(gx, gz) && !w) f.spot = true;
     ctx.cols[c].push(f);
@@ -461,7 +461,7 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
   const seamGap = (x, z) => Math.min(seams.left ? x : Infinity, seams.right ? N - x : Infinity,
     seams.front ? z : Infinity, seams.back ? N - z : Infinity);
   const [sx, sz] = spawn ? rotateTownPoint(...spawn, yaw) : [null, null];
-  const plan = { placements, colliders, occluders, frontages, paths, doors, villagers, water, yaw, seams, boxes, ground, falls: ground?.falls ?? [], level,
+  const plan = { placements, colliders, occluders, frontages, paths, doors, villagers, water, yaw, seams, boxes, ground, falls: ground?.falls ?? [], level, mud: [],
     spawn: spawn ? [Math.floor(sx), Math.floor(sz)] : null, relics: Object.fromEntries(Object.entries(relics).map(([k, at]) => {
       // (the crater keeps the clutter further off)
       const [x, z] = rotateTownPoint(...at, yaw); return [k, { x, z, ...(k === 'shards' ? { r: 2 } : {}) }];
@@ -537,6 +537,22 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
         // (what is as tall as the hero hides them: the cutaway looks through it)
         if (m.height * s > 1.4) occluders.push(body);
       }
+      return p;
+    }
+    return null;
+  };
+  // A pocket of mud (cubegen/mudpools.js mudPocket, game/muddy.js) of radius r, `deep` deep in its
+  // middle, at the first candidate (town-local) where it fits: on level ground (it settles there),
+  // off the ways and the water, apart from what stands there, and what comes after keeps off it
+  const pocket = (candidates, r, deep) => {
+    for (const [lx, lz] of candidates) {
+      const [x, z] = rotateTownPoint(lx, lz, yaw);
+      // (on the trail down too: it is walked through, slowly)
+      if (!fits(x, z, r, 'prop', { trail: false }, [lx, lz])) continue;
+      const [lo, hi] = under(x, z, r);
+      if (hi - lo > .06) continue;
+      const p = { x, z, r, deep };
+      plan.mud.push(p); clutter.add({ x, z, r: r + .15, kind: 'solid' });
       return p;
     }
     return null;
@@ -627,7 +643,7 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
   };
   // the land's things in this tile, town-local (null: elsewhere)
   const here = f => f && f.tile?.[0] === tile[0] && f.tile?.[1] === tile[1] ? f : null;
-  return { plan, add, path, tree, put, piece, group, shore, R, land, G, L, here, groundAt, under, seamGap, tile, collide, footprints, occluders, outside };
+  return { plan, add, path, tree, put, piece, pocket, group, shore, R, land, G, L, here, groundAt, under, seamGap, tile, collide, footprints, occluders, outside };
 }
 
 // a path from the corner points `via` (town-local) to frontage i
@@ -748,10 +764,10 @@ function orchard({ tree, put, piece, land, G, R, tile }) {
   if (R() < .6) piece('town_beehives_a', near(8, 8, 6).filter(() => R() < .2));
 }
 
-// The marsh's ponds and the hollow's pool (world/townland.js): lily pads on them, reeds and cattails
-// round them
+// The marsh's ponds and the hollow's pool (world/townland.js): lily pads on them (not on a pool of
+// mud), reeds and cattails round them
 function ponds({ put, plan, R, land, tile, shore }) {
-  const g = plan.ground, pond = plan.water.filter(c => g.water[c].pond || g.water[c].pool);
+  const g = plan.ground, pond = plan.water.filter(c => g.water[c].pond || g.water[c].pool), mud = c => g.water[c].mud;
   // (a boat pulled up on the lower town's shore now and then, on a point of it if there is one)
   if (tile[1] < 2 && R() < .35) put(variant(R, 'lagoon_rowboat'), shore('lake').filter(([x, z]) => !g.water[Math.floor(z) * N + Math.floor(x)]), { world: true, shore: true, s: 1.2 });
   if (!pond.length) return;
@@ -769,7 +785,8 @@ function ponds({ put, plan, R, land, tile, shore }) {
   banks.sort(() => R() - .5);
   for (let k = Math.ceil(banks.length / 3); k > 0 && banks.length; k--)
     put(pick(R, ['meadow_cattails_a', 'meadow_cattails_b', 'swamp_reeds_a', 'swamp_reeds_b', 'any_shore_stones_a']), banks.splice(0, 3), { world: true });
-  const pads = [...pond].sort(() => R() - .5).map(c => [c % N + .3 + R() * .4, Math.floor(c / N) + .3 + R() * .4]);
+  // (no lily pads on mud)
+  const pads = pond.filter(c => !mud(c)).sort(() => R() - .5).map(c => [c % N + .3 + R() * .4, Math.floor(c / N) + .3 + R() * .4]);
   for (let k = Math.ceil(pond.length / 3); k > 0 && pads.length; k--) put(variant(R, 'meadow_lily_pads'), pads.splice(0, 4), { water: true, world: true });
 }
 
@@ -1276,8 +1293,21 @@ function dell(t, traders) {
       put('town_woodpile_a', [at(-.4, 2.4), at(.4, -2.4), at(-1.8, 1.6)], { yaw: R() * Math.PI });
       if (!traders) put(variant(R, 'town_hay_bales'), [at(-2, -1.4), at(1.8, 2.2)]);
     } });
+  // (pockets of mud on its floor: a quarry's, where the rain stands in the dug-up ground, or round
+  // its pool of mud: world/townland.js MUD_POCKETS)
+  const h = t.land.hollow, most = h.kind === 'quarry' ? MUD_POCKETS.quarry : h.mire ? MUD_POCKETS.mire : 0;
+  if (most) {
+    const [cx, cz] = t.L(h.x, h.z), { r: [r0, r1], deep: [d0, d1] } = MUD_POCKETS;
+    for (let k = 1 + Math.floor(R() * most); k > 0; k--) {
+      const r = r0 + R() * (r1 - r0), deep = d0 + R() * (d1 - d0);
+      // (on its floor, round the camp in its middle)
+      t.pocket(Array.from({ length: 40 }, () => {
+        const a = R() * Math.PI * 2, d = Math.min(1.3 + R() * (h.r0 - r - 1.5), h.r0 - r - .2);
+        return [cx + Math.cos(a) * d, cz + Math.sin(a) * d];
+      }), r, deep);
+    }
+  }
   // (a quarry: stone broken out of its sides, a pick left in a block, a cart for the stone)
-  const h = t.land.hollow;
   if (h.kind === 'quarry') {
     const [cx, cz] = t.L(h.x, h.z);
     put(variant(R, 'mines_pickaxe_in_rock'), near(cx + 2, cz - 1.2, 1.4), { uneven: 1 });
