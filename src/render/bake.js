@@ -232,8 +232,11 @@ export function disposeBake(bake) {
   bake.job = null;
   if (bake.ready && !bake.failed && bake.owned) {
     stopSunJob(bake.sun);
-    kept.delete(bake.geo);
-    kept.set(bake.geo, { sig: bake.sig, owned: bake.owned, channels: bake.lights.map(s => s.channel), u: bake.u, sun: bake.sun });
+    // (one kept already for the same geometry, not taken: one baked ahead whose lights or props
+    // were not the ones it came with, game/bakeahead.js; let go, not just forgotten)
+    const old = kept.get(bake.geo);
+    if (old) { kept.delete(bake.geo); release(old.owned); releaseSun(old.sun); }
+    kept.set(bake.geo, { sig: bake.sig, owned: bake.owned, channels: bake.lights.map(s => s.channel), u: bake.u, sun: bake.sun, at: performance.now() });
     while (kept.size > CACHE) { const [g, k] = kept.entries().next().value; kept.delete(g); release(k.owned); releaseSun(k.sun); }
   } else {
     if (bake.owned) release(bake.owned);
@@ -307,6 +310,20 @@ export function tickBakes(current, hidden = false) {
   }
   // (the light's cube of shadow maps is only needed while baking)
   if (!order.some(b => b.job) && shared.light?.shadow.map) shared.light.shadow.dispose();
+  pruneKept(start);
+}
+
+// A kept bake not taken again within KEPT_SUN goes on with only the two of the sun's places it
+// showed (taken, it shows those until the sun's next ones are baked). One taken at once (a cube
+// built again, one baked ahead walked into) keeps the place after them too, wanted next. The sun
+// moves on a place every 1.5 s: past that a kept bake's places are out of date anyway.
+const KEPT_SUN = 2000;   // ms
+function pruneKept(now) {
+  for (const k of kept.values()) {
+    if (k.pruned || now - k.at < KEPT_SUN) continue;
+    k.pruned = true;
+    for (const [id, e] of k.sun.keys) if (id !== k.sun.A && id !== k.sun.B) { dropSunKey(e); k.sun.keys.delete(id); }
+  }
 }
 
 // one of the sun's places a little further (tickBakes)
@@ -717,7 +734,8 @@ function* bakeSteps(bake) {
     }
 
     // the charts' edges filled outwards, into the textures kept
-    const filled = lm.map(src => fill(src, cover, target(), S.fill));
+    // (each one it was baked into let go once filled: fewer of them at once)
+    const filled = lm.map(src => { const t = fill(src, cover, target(), S.fill); src.dispose(); return t; });
     owned.targets.push(...filled);
     filled.forEach((t, i) => { bake.u['uBakeLm' + i].value = t.texture; });
     vol.forEach((t, i) => { bake.u['uBakeVol' + i].value = t.texture; });

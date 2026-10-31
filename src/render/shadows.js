@@ -87,9 +87,37 @@ function hideHero() {
 }
 function showFigures() { for (const m of hidden) m.castShadow = true; hidden.length = 0; }
 
+// three.js gives every shadow map a colour target beside its depth, as big as the map (RGBA: the
+// sun's 16 MB at 2048², the lamp's cube 6 MB, a bake light's cube 24 MB while it bakes, each sun
+// place baked a moment), and nothing reads it: the shaders read the depth. Once three has set a
+// map up (its first draw), its colour goes: a framebuffer of depth alone is complete in WebGL 2,
+// and what the depth materials write to colour falls away. three binds a cube's colour again for
+// each face it draws: none now (its texture is null). Its own note of the framebuffer bound is
+// kept (state.bindFramebuffer), and what it had bound bound again.
+const gl = renderer.getContext();
+function colourless(target) {
+  if (!target || target.colourless) return;
+  const texture = renderer.properties.get(target.texture), buffers = renderer.properties.get(target).__webglFramebuffer;
+  if (!texture.__webglTexture || !buffers) return;
+  const cube = !!target.isWebGLCubeRenderTarget;
+  for (let face = 0; face < (cube ? 6 : 1); face++) {
+    renderer.state.bindFramebuffer(gl.FRAMEBUFFER, cube ? buffers[face] : buffers);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, cube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + face : gl.TEXTURE_2D, null, 0);
+  }
+  gl.deleteTexture(texture.__webglTexture);
+  texture.__webglTexture = null;
+  target.colourless = true;
+  renderer.setRenderTarget(renderer.getRenderTarget(), renderer.getActiveCubeFace(), renderer.getActiveMipmapLevel());
+}
+
 // three draws every light's map in one call: the lamp and the sun each get a call of their own,
-// with their own casters (anything else, a bake's light, passes as it came)
-const render = renderer.shadowMap.render.bind(renderer.shadowMap);
+// with their own casters (anything else, a bake's light, passes as it came); each map's colour
+// let go after (colourless)
+const draw = renderer.shadowMap.render.bind(renderer.shadowMap);
+const render = (lights, s, camera) => {
+  draw(lights, s, camera);
+  for (const light of lights) colourless(light.shadow?.map);
+};
 renderer.shadowMap.render = (lights, s, camera) => {
   frame++;
   const hasLamp = lights.includes(lamp), hasSun = lights.includes(sun);

@@ -21,10 +21,13 @@ import { LAYER as GHOSTS, glassLook, glassRim } from './ghosts.js';
 import { props, loadPropSets, propSetLoaded, propMatrix, propBatchGeometry, glowSeed, LAMP_BY_DAY } from './props.js';
 import { nightGlow, LIT_GLSL } from './night.js';
 import { farLit } from './farlights.js';
+import { small } from './device.js';
 
 let current = [];   // [{ key, source, group, cull, glass, geometry, base, instances, landmarks }]
 const live = new Set(), cache = new Map();   // cache keyed by worker geometry identity
-const MAX_CACHE = 64, MAX_BYTES = 32 * 1024 * 1024;
+// (the proxies of cubes no longer shown, kept to be shown again: their geometry stays in the
+// batches, on the GPU and beside it, so a small device keeps fewer: render/device.js)
+const MAX_CACHE = small ? 32 : 64, MAX_BYTES = (small ? 12 : 32) * 1024 * 1024;
 let cacheBytes = 0, time = 0;
 const frustum = new THREE.Frustum(), projection = new THREE.Matrix4();
 const bounds = new THREE.Box3(), point = new THREE.Vector3(), center = new THREE.Vector3();

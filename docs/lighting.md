@@ -360,6 +360,24 @@ was the sun's places: each one's shadow map kept a 2048² RGBA colour target bes
 MB, three places a cube, for every cube baked or kept), let go now with its target
 (`render/bake.js sunSteps`: a render target's `texture.dispose()` does nothing in three.js).
 
+Nothing of what shows is lost for the rest (`render/shadows.js colourless`, `render/bake.js`):
+
+- **three.js's shadow maps** (the sun's of what moves, the lamp's cube, a light's cube while
+  baking) came with an RGBA colour target as big as their depth that nothing reads (the shaders
+  read the depth): once three has set a map up its colour goes, the framebuffer keeping only its
+  depth. 16 MB for the sun's map on High, 6 MB for the lamp's, 24 MB while a cube bakes on High.
+- **A kept bake not taken again** within 2 s goes on with only the two places of the sun it
+  showed (the sun has moved on by then: its next one is baked again if the cube comes back).
+- **One bake kept for a geometry**: a cube baked ahead whose lights or props were not the ones
+  it was built with (another face opened by its portal) was kept beside the cube's own bake, and
+  the one kept first was forgotten, not let go, on the GPU for good: walking to and fro between
+  two cubes through a side portal lost a bake each time (~50 MB on High). Exploring 48 cubes of
+  depths 1 to 4: 708 MB held at the end on a desktop, 394 MB now; 147 to 121 MB on a phone.
+- The lightmaps a light is baked into go as each is filled out (fewer at once).
+- A small device keeps fewer proxies of cubes no longer shown (`render/neighbors.js`: 32 cubes,
+  12 MB of their geometry, not 64 and 32 MB): their geometry stays in the batches, on the GPU and
+  beside it.
+
 `?perf=1` shows what WebGL holds (counted from the start: only with it in the address) and
 whether the device counts as small.
 
@@ -379,9 +397,6 @@ keep up (and taking them back after a calm spell) was the worst of the stutters.
 - How much memory iOS Safari allows a page's WebGL before it reloads it is unmeasured (the
   simulator does not enforce it); a bake is ~28 MB on High, ~10 MB on Low. `?perf=1` on the
   phone shows what the game holds.
-- three.js's own shadow maps (the sun's of what moves, the lamp's cube, a light's cube while
-  baking) carry an RGBA colour target nothing reads, as big as their depth: 16 MB for the sun's
-  2048² map on High.
 - The lightmap is laid out for every cube the worker builds (10-25 ms), proxies too.
 - More than eleven overlapping lights: some shine without shadows (a dark forest cube: one of 40).
 - The moving lights (but the hero's lamp) cast no shadows: one inside what carries it (an enemy's
