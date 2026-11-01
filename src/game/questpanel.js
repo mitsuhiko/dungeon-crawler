@@ -6,6 +6,7 @@
 // Restart (a failed quest, from the beginning). Everything goes through game/quests.js, which asks
 // the host when playing together.
 import { ITEMS } from '../core/items.js';
+import { pictureImg } from '../render/itemviews.js';
 import { formatCoins } from '../core/inventory.js';
 import { rarityOf } from '../core/gear/rarities.js';
 import { displayName } from '../core/gear/stats.js';
@@ -43,9 +44,10 @@ const entry = (q, on) => {
   return `<button class="quest-entry ${q.state}${on ? ' selected' : ''}" role="option" aria-selected="${on}" data-quest="${esc(q.id)}">`
     + `<span class="mark">${mark}</span><span><b>${esc(say(q.title))}</b><small>${esc(stateText(q))}</small></span></button>`;
 };
+// a reward item: its picture in its look (core/looks.js: a rolled weapon as it will be), its name
 const itemLine = i => {
   const def = ITEMS[i.itemId], color = i.gen ? ` style="color:${rarityOf(i).css}"${rarityOf(i).glow?.rainbow ? ' class="rainbow"' : ''}` : '';
-  return `<li${color}>${esc(i.gen ? tr('{item} ({rarity} {base})', { item: displayName(i), rarity: tr(rarityOf(i).name), base: tr(def.name) })
+  return `<li${color}>${pictureImg(i)}${esc(i.gen ? tr('{item} ({rarity} {base})', { item: displayName(i), rarity: tr(rarityOf(i).name), base: tr(def.name) })
     : `${tr(def.name)}${i.count > 1 ? ` ×${i.count}` : ''}`)}</li>`;
 };
 
@@ -94,7 +96,7 @@ export function drawQuests() {
 function carrying(q) {
   const n = new Map();
   for (const id of carried(q)) n.set(id, (n.get(id) ?? 0) + 1);
-  return [...n].map(([id, k]) => `<li>${esc(tr(ITEMS[id].name))}${k > 1 ? ` ×${k}` : ''}</li>`).join('');
+  return [...n].map(([id, k]) => `<li>${pictureImg(id)}${esc(tr(ITEMS[id].name))}${k > 1 ? ` ×${k}` : ''}</li>`).join('');
 }
 function details(q) {
   const atGiver = !!talker && giverOf(talker) === q.giver, r = q.rewards, who = giverName(q), where = q.from?.where ?? GIVERS[q.giver]?.where ?? '';

@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { loadGLB } from './gltf.js';
 import { ITEMS } from '../core/items.js';
 import { lookKey, parseLook } from '../core/looks.js';
-import { dressLook } from './looks.js';
+import { dressLook, lookPulse } from './looks.js';
 
 const PICTURE = 192;         // px, square: a bag slot (~80 CSS px) on a screen of pixel ratio 2
 const VIEW = new THREE.Vector3(2, 3, 5).normalize();   // the camera direction of blender/items.py render_previews
@@ -118,7 +118,10 @@ export function paintItem(out, m, yaw) {
 function snapshot(key) {
   const m = protos.get(key), out = document.createElement('canvas');
   out.width = out.height = PICTURE;
+  const pulse = lookPulse.value;
+  lookPulse.value = 1;   // (a picture glows as much as it ever does)
   paintItem(out, m, 0);
+  lookPulse.value = pulse;
   pictures.set(key, out.toDataURL('image/png'));
   for (const fn of listeners) fn(key);
 }

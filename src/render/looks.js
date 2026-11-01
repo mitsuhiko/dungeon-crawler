@@ -9,13 +9,20 @@
 //                         look alike, made once); item: a bag slot, a pickup, an id, a key, or null
 //                         for the model's own
 //   lookOnto(material, item)  the same on a material of one's own, in place (render/figure.js)
-//   markLookScale(scene)  on load (render/gltf.js): how many texels a unit of this model takes
+//   markLookScale(scene)  on load (render/gltf.js): how many texels a unit each part of the model
+//                         takes (an attribute of its geometry, core/looks.js partScales)
+//   pulseLooks(time)      every frame (render/loot.js, render/itemviews.js): the glowing texels
+//                         pulse together, like rare armor's trim (render/figure.js animateWorn)
 import * as THREE from 'three';
-import { LOOK_W, LOOK_H, LOOK_TILE, lookSlot, lookKey, parseLook, paintLook } from '../core/looks.js';
+import { LOOK_W, LOOK_H, LOOK_TILE, lookSlot, lookKey, parseLook, paintLook, partScales } from '../core/looks.js';
 
-// texels per model unit (the hero's rig: a short sword gets about 23 along its blade, a breastplate
-// about 39 across), more on small things so a coin or a potion still shows a whole tile
+// texels per model unit (the hero's rig: a breastplate gets about 56 across), more on small things
+// so a coin or a potion still shows a whole tile, and on thin parts (core/looks.js partScales: a
+// long sword's blade about 6 across, up to twice this)
 const DENSITY = 40, MIN_TEXELS = 16;
+// how bright the glowing texels are now (pulseLooks)
+export const lookPulse = { value: 1 };
+export const pulseLooks = time => { lookPulse.value = 0.75 + 0.25 * Math.sin(time * 3.1); };
 const KEEP = 256;   // looks' textures kept (4 KB each)
 
 const textures = new Map();   // key -> DataTexture, the most recently used last
@@ -35,8 +42,9 @@ export function lookTexture(key) {
   return t;
 }
 
-// the box of every mesh of a freshly loaded model, in its own frame: its texel density, kept on
-// its geometries (shared by every copy, however the copy is turned or scaled)
+// the box of every mesh of a freshly loaded model, in its own frame: its texel density, and each
+// part's, kept on its geometries as the attribute lookScale (shared by every copy, however the
+// copy is turned or scaled)
 export function markLookScale(scene) {
   let any = false;
   scene.traverse(o => { if (o.isMesh) any ||= [].concat(o.material).some(m => lookSlot(m.name) >= 0); });
@@ -46,16 +54,21 @@ export function markLookScale(scene) {
   scene.traverse(o => { if (o.isMesh) box.expandByObject(o); });
   const size = box.getSize(new THREE.Vector3()), big = Math.max(size.x, size.y, size.z, 1e-3);
   const scale = Math.max(DENSITY, MIN_TEXELS / big);
-  scene.traverse(o => { if (o.isMesh) o.geometry.userData.lookScale = scale; });
+  scene.traverse(o => {
+    if (!o.isMesh || o.geometry.attributes.lookScale) return;
+    const g = o.geometry, p = g.attributes.position, xyz = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { xyz[i * 3] = p.getX(i); xyz[i * 3 + 1] = p.getY(i); xyz[i * 3 + 2] = p.getZ(i); }
+    g.setAttribute('lookScale', new THREE.BufferAttribute(partScales(xyz, g.index ? Array.from(g.index.array) : null, scale), 1));
+  });
 }
 
-const VERT = 'varying vec3 vLookPos;\n';
-const FRAG = 'uniform sampler2D uLookMap;\nuniform float uLookTile, uLookScale;\nvarying vec3 vLookPos;\n';
+const VERT = 'attribute float lookScale;\nvarying vec3 vLookPos;\n';
+const FRAG = 'uniform sampler2D uLookMap;\nuniform float uLookTile, uLookPulse;\nvarying vec3 vLookPos;\n';
 // the tile's texel under this fragment: alpha 0 shades the model's colour (0.5 leaves it), up to
 // 0.5 paints over it, above glows (core/looks.js)
 const SAMPLE = `
   vec3 lookF = abs(cross(dFdx(vLookPos), dFdy(vLookPos)));
-  vec3 lookP = vLookPos * uLookScale;
+  vec3 lookP = vLookPos;
   vec2 lookUv = (lookF.x >= lookF.y && lookF.x >= lookF.z ? lookP.zy : lookF.y >= lookF.z ? lookP.xz : lookP.xy) + ${LOOK_TILE / 2}.0;
   const vec2 LOOK_SIZE = vec2(${LOOK_W}.0, ${LOOK_H}.0);
   vec4 lookT = textureGrad(uLookMap, (vec2(uLookTile * ${LOOK_TILE}.0, 0.0) + mod(lookUv, ${LOOK_TILE}.0)) / LOOK_SIZE,
@@ -64,19 +77,19 @@ const SAMPLE = `
   float lookPaint = clamp(lookT.a * 2.0, 0.0, 1.0), lookGlow = clamp(lookT.a * 2.0 - 1.0, 0.0, 1.0);
   diffuseColor.rgb = mix(diffuseColor.rgb * lookT.rgb * 2.0, lookC, lookPaint);`;
 const GLOW = `
-  totalEmissiveRadiance += lookC * lookGlow * 1.6;`;
+  totalEmissiveRadiance += lookC * lookGlow * 1.6 * uLookPulse;`;
 
 const looks = new WeakMap();   // a look's material -> { base, key }
 // material m (one's own) in the look of `key` (with texture tex), in place
-function patch(m, key, tex, scale) {
+function patch(m, key, tex) {
   const slot = lookSlot(m.name);
   if (slot < 0 || !m.isMeshStandardMaterial) return m;
   const prev = m.onBeforeCompile, cacheKey = m.customProgramCacheKey();
-  const uniforms = { uLookMap: { value: tex }, uLookTile: { value: slot }, uLookScale: { value: scale } };
+  const uniforms = { uLookMap: { value: tex }, uLookTile: { value: slot }, uLookPulse: lookPulse };
   m.onBeforeCompile = (sh, r) => {
     prev.call(m, sh, r);
     Object.assign(sh.uniforms, uniforms);
-    sh.vertexShader = VERT + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vLookPos = position;');
+    sh.vertexShader = VERT + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vLookPos = position * lookScale;');
     sh.fragmentShader = FRAG + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>' + SAMPLE)
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>' + GLOW);
   };
@@ -85,11 +98,9 @@ function patch(m, key, tex, scale) {
   looks.set(m, { key });
   return m;
 }
-const scaleOf = mesh => mesh.geometry.userData.lookScale ?? DENSITY;
-
-export function lookOnto(material, item, mesh) {
+export function lookOnto(material, item) {
   const key = lookKey(item), tex = key && lookTexture(key);
-  return tex ? patch(material, key, tex, scaleOf(mesh)) : material;
+  return tex ? patch(material, key, tex) : material;
 }
 
 // the marks of the shader edits made on a material in place (render/fade.js, farlook.js,
@@ -97,20 +108,19 @@ export function lookOnto(material, item, mesh) {
 const EDITS = ['fadeU', 'farLook', 'diveTinted'];
 // base material -> Map(key -> its look's material)
 const made = new WeakMap();
-function lookMaterial(base, key, tex, scale) {
+function lookMaterial(base, key, tex) {
   if (lookSlot(base.name) < 0 || !base.isMeshStandardMaterial) return base;
   let byKey = made.get(base);
   if (!byKey) made.set(base, byKey = new Map());
-  const id = key + '@' + scale;
-  let m = byKey.get(id);
+  let m = byKey.get(key);
   if (!m) {
     m = base.clone();
     // (a clone keeps the base's userData but not its shader edits: the edits made in place since
     // it was loaded, by their marks, are made on it again when they come)
     for (const k of EDITS) delete m.userData[k];
-    m = patch(m, key, tex, scale);
+    m = patch(m, key, tex);
     looks.get(m).base = base;
-    byKey.set(id, m);
+    byKey.set(key, m);
   }
   return m;
 }
@@ -118,7 +128,7 @@ export function dressLook(root, item) {
   const key = item ? lookKey(item) : '', tex = key ? lookTexture(key) : null;
   root.traverse(o => {
     if (!o.isMesh) return;
-    const one = m => { const base = looks.get(m)?.base ?? m; return tex ? lookMaterial(base, key, tex, scaleOf(o)) : base; };
+    const one = m => { const base = looks.get(m)?.base ?? m; return tex ? lookMaterial(base, key, tex) : base; };
     o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material);
   });
   return root;

@@ -162,8 +162,8 @@ The resistances add up to at most 75%. Names come from `core/gear/names.js` with
 - Look: every piece wears a small pixelated texture from its own data like a weapon
   ([looks.md](looks.md)): cloth or leather on its clay, plates, scales, rings or dents on its
   metal, a rope, beads, a zigzag or a meander on its trim (shaded by the trim's rarity colour
-  above), rust on Crap, inlays, gems, filigree and runes further up, and a mark for each affix (a
-  heart for of the Big Breakfast, a frame for Sturdy ...). The hero wears it (`game/armor.js` passes
+  above), rust on Crap, inlays, gems, filigree and runes further up, and a mark for up to three
+  affixes (a heart for of the Big Breakfast, a frame for Sturdy ...; fewer on the best). The hero wears it (`game/armor.js` passes
   each piece's look to `render/figure.js wear`), and so do the villagers (their kind's look).
 - Playing together the others see it ([online.md](online.md)): `me.worn` carries
   `id@rarity@back@look` for everything worn (`render/partner.js capturedLook`, `net/protocol.js

@@ -6,12 +6,12 @@ import { resolve } from 'node:path';
 import { assets } from './paths.js';
 import { readGlb } from '../tools/glb.mjs';
 import { mulberry32 } from '../src/core/util.js';
-import { ITEMS, OLD_SWORD } from '../src/core/items.js';
+import { ITEMS, OLD_SWORD, QUEST_ITEMS } from '../src/core/items.js';
 import { RARITIES } from '../src/core/gear/rarities.js';
 import { AFFIXES } from '../src/core/gear/affixes.js';
 import { ENCHANTS } from '../src/core/gear/enchants.js';
 import { rollWeapon, rollArmor, fixedWeapon } from '../src/core/gear/generate.js';
-import { lookOf, lookKey, parseLook, paintLook, lookSlot, LOOK_W, LOOK_H, LOOK_SLOTS } from '../src/core/looks.js';
+import { lookOf, lookKey, parseLook, paintLook, lookSlot, lookHash, partScales, QUEST_STUFF, MIN_ACROSS, BOOST, LOOK_W, LOOK_H, LOOK_SLOTS } from '../src/core/looks.js';
 
 const sword = (seed, rarity = 'unusual') => rollWeapon(mulberry32(seed), 12, { itemId: 'weapon_sword_long', rarity });
 const same = (a, b) => Buffer.from(a).equals(Buffer.from(b));
@@ -82,4 +82,63 @@ test('every affix leaves a mark and every enchantment an element', () => {
     assert.ok(!same(paintLook(lookOf(item)), paintLook(lookOf({ ...item, gen: { ...item.gen, affixes: [] } }))), `${a.id} shows`);
   }
   for (const e of ENCHANTS) assert.equal(lookOf({ ...sword(7), gen: { ...sword(7).gen, enchant: e.id } }).enchant, e.id, e.id);
+});
+
+// a tile of a look's pixels (0: clay, 1: metal, 2: trim, 3: facets)
+const tileOf = (px, i) => Array.from({ length: 16 }, (_, y) => Array.from(px.subarray((y * LOOK_W + i * 16) * 4, (y * LOOK_W + i * 16 + 16) * 4))).flat();
+
+test('pinned looks: the hash, the generator and the layers stay as they are', () => {
+  // A change here changes how every item in every world looks. If it is meant, update the hashes.
+  const PINNED = {
+    'weapon_sword_long:98528a95:crap::': 'bc86f2ea',
+    'weapon_staff_arcane:5184dc32:remarkable:zappy:brutal+leech+precision': '99f6b7b9',
+    'weapon_flail_triple:3f4f0236:omg::brutal+swift+sweeping+leech+force': 'f5b98fda',
+    'armor_body_plate:cb3faffa:fabled::sturdy+thick+hearty+steady': '4ac45e50',
+    'item_coin_gold:7f050c51:::': '4cd75ce2',
+    'quest_honey_pot:6fc199b4:::': '405ff18f',
+  };
+  for (const [key, hash] of Object.entries(PINNED))
+    assert.equal(lookHash(String.fromCharCode(...paintLook(parseLook(key)))).toString(16), hash, key);
+  assert.equal(lookOf('item_coin_gold').seed.toString(16), '7f050c51', 'the seed of an id');
+  assert.equal(lookHash('abc').toString(16), '1a47e90b', 'FNV-1a');
+});
+
+test('each layer draws on its own: an enchantment or a mark leaves the patterns and the other tiles alone', () => {
+  const item = sword(9), px = paintLook(lookOf(item));
+  for (const other of [{ ...item, gen: { ...item.gen, enchant: 'icky' } }, { ...item, gen: { ...item.gen, affixes: [{ id: 'force', tier: 1, value: 20 }] } }]) {
+    const o = paintLook(lookOf(other));
+    assert.deepEqual(tileOf(o, 2), tileOf(px, 2), 'the trim');
+    assert.deepEqual(tileOf(o, 3), tileOf(px, 3), 'the facets');
+  }
+  // a rarer roll of the same name: the same patterns under the rarity's work
+  const plain = paintLook({ ...lookOf(item), rarity: 'vanilla' }), rare = paintLook({ ...lookOf(item), rarity: 'decent' });
+  const differ = tileOf(plain, 1).filter((v, i) => v !== tileOf(rare, 1)[i]).length;
+  assert.ok(differ > 0 && differ <= 16 * 4, `only the inlay's row changes (${differ})`);
+});
+
+test('the best rarities show fewer marks: their runes and filigree speak', () => {
+  const look = { ...lookOf(sword(4)), marks: ['sharp', 'brutal', 'swift', 'leech', 'force'] };
+  for (const [rarity, shown] of [['unusual', 3], ['fabled', 2], ['impossible', 1], ['omg', 1]]) {
+    const all = paintLook({ ...look, rarity }), some = paintLook({ ...look, rarity, marks: look.marks.slice(0, shown) });
+    assert.ok(same(all, some), `${rarity}: ${shown}`);
+  }
+});
+
+test('every quest thing is made of something of its own', () => {
+  for (const q of QUEST_ITEMS) {
+    const json = readGlb(resolve(assets, q.model.replace(/^assets\//, ''))).json;
+    if (json.materials.some(m => m.name === 'Items_Clay')) assert.ok(QUEST_STUFF[q.id], q.id);
+  }
+});
+
+test('thin parts take more texels: enough across, up to twice as many', () => {
+  // a box 1 x 0.5 x 0.5 and, apart, a blade 1 x 0.05 x 0.01 (two triangles of each, enough)
+  const quad = (x0, y0, w, h, z = 0) => [x0, y0, z, x0 + w, y0, z, x0, y0 + h, z, x0 + w, y0 + h, z, x0 + w, y0, z, x0, y0 + h, z];
+  const box = [...quad(0, 0, 1, 0.5), ...quad(0, 0, 1, 0.5, 0.5)], blade = quad(3, 0, 0.05, 1, 0).map((v, i) => i % 3 === 2 ? v + (i % 9 === 2 ? 0.01 : 0) : v);
+  const s = partScales(Float32Array.from([...box, ...blade]), null, 40);
+  assert.equal(s[0], 40, 'a broad part keeps the model\'s');
+  assert.equal(s.at(-1), Math.min(40 * BOOST, MIN_ACROSS / 0.05), 'a thin one more');
+  // a small part inside a big one's box goes with it
+  const inner = quad(0.2, 0.1, 0.02, 0.02, 0.5);
+  assert.equal(partScales(Float32Array.from([...box, ...inner]), null, 40).at(-1), 40);
 });

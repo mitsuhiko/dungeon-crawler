@@ -22,7 +22,7 @@ import { partnerAt } from './partner.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { emit, glow as glowLayer, rand } from './particles.js';
 import { glassBubble, GLASS_VIEW } from './glassbubble.js';
-import { dressLook } from './looks.js';
+import { dressLook, pulseLooks } from './looks.js';
 
 const protos = new Map();   // itemId -> prototype (null while loading)
 const loads = new Map();    // itemId -> Promise (resolves once loaded or failed)
@@ -256,6 +256,7 @@ function forget(view) {
 }
 
 export function drawLoot(list, world, time, dt = 0) {
+  pulseLooks(time);   // (the glowing texels of every look, in hands and on bodies too: render/looks.js)
   if (world !== viewsWorld) {   // old views leave with their cube; their lights go out
     for (const view of views.values()) if (view.fx?.userData.light) untrackLight(view.fx.userData.light);
     views.clear(); viewsWorld = world;

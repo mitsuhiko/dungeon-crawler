@@ -22,6 +22,7 @@ import { RENEW_FIGHT as G, newTape, record, spanAt, tapeLength, lerp, lerpYaw, e
 import { equippedWeapon, readiedFlask, cancelSwing } from '../core/combat.js';
 import { groundAt } from '../physics/collide.js';
 import { capturePose } from '../render/partner.js';
+import { character } from '../render/character.js';
 import { poseHero, drawEchoes, removeEchoViews } from '../render/renewview.js';
 import { projectiles, addProjectile, clearProjectiles } from './projectiles.js';
 import { shots, clearShots } from './shots.js';
@@ -87,7 +88,7 @@ export function updateRewind(dt, list) {
 function tapeHero(clock, list) {
   const p = player, s = p.sword, st = s.stats;
   record(tape, clock, { x: p.x, y: p.y, z: p.z, yaw: p.yaw, hp: p.hp, grounded: p.grounded, pose: capturePose(),
-    weapon: (readiedFlask(p) ?? equippedWeapon(p))?.model ?? null,
+    weapon: (readiedFlask(p) ?? equippedWeapon(p))?.model ?? null, look: character.look ?? '',   // (in its look: core/looks.js)
     sw: s.active && st ? { n: s.serial, t: s.t, yaw: s.yaw, fired: s.fired, ranged: !!st.ranged, kind: st.kind, range: st.range,
       arc: st.arc, a0: st.activeStart, a1: st.activeEnd, color: st.color ?? null, balls: st.balls ?? 1 } : null,
     pr: projectiles.map(pr => [pr, pr.x, pr.y, pr.z]), shots: shots.map(sh => [sh, sh.x, sh.y, sh.z]),

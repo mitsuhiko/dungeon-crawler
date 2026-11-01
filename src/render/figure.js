@@ -150,7 +150,7 @@ export function wear(f, id, opts = {}) {
   object.traverse(o => {
     if (!o.isMesh) return;
     o.material = [].concat(o.material).map(m => {
-      m = lookOnto(m.clone(), opts.look || id, o);
+      m = lookOnto(m.clone(), opts.look || id);
       materials.push(m);
       // the gem-like part (the glTF material Items_Facets) shines in the item's glow colour
       if (def.glow && /Facets/.test(m.name)) { m.emissive.set(def.glow); m.emissiveIntensity = .6; glowing.push(m); }
@@ -234,7 +234,7 @@ function wearArmor(f, id, template, { rarity = null, back = false, look = '' } =
     object.matrix.multiply(_m.multiplyMatrices(inv, node.matrixWorld));
     object.traverse(o => {
       if (!o.isMesh) return;
-      o.material = [].concat(o.material).map(m => { m = lookOnto(m.clone(), look || id, o); materials.push(m); return m; });
+      o.material = [].concat(o.material).map(m => { m = lookOnto(m.clone(), look || id); materials.push(m); return m; });
       if (o.material.length === 1) o.material = o.material[0];
       o.castShadow = true;
       overGhost(o);

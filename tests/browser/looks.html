@@ -2,8 +2,9 @@
 <!-- Items' looks (core/looks.js, docs/looks.md): many of them at once, each as the bag's picture
      (render/itempictures.js) with its texture beside it (the four tiles: clay, metal, trim, facets).
        ?item=<id or part of one> (default weapon_sword_long): every rarity, a row each, n rolls each
-       ?item=stack: every item that has a look of its kind only (potions, coins, crystals, quest things)
-       ?n=<rolls> (default 6), ?level=<item level> (default 20), ?seed=<n> (default 1),
+       ?item=stack: every item that has a look of its kind only (potions, coins, crystals, quest things);
+       an id or part of one that is none of the gear: those of them (?item=quest_)
+       ?rarity=<id>[,<id>...] (default all), ?n=<rolls> (default 6), ?level=<item level> (default 20), ?seed=<n> (default 1),
        ?enchant=<id>|mix|none (default mix: every other roll enchanted)
        ?size=<px> (default: the bag's pictures, 132): bigger, drawn live (render/itempictures.js
        paintItem), turned by ?yaw=<rad>
@@ -67,16 +68,18 @@ const row = (head, items) => {
   for (const [item, label] of items) r.append(cell(item, label));
   out.append(r);
 };
-if (want === 'stack') {
-  const all = Object.values(ITEMS).filter(d => !d.weapon && !d.armor && (d.model || d.picture));
+const kinds = Object.values(ITEMS).filter(d => !d.weapon && !d.armor && (d.model || d.picture));
+if (want === 'stack' || !Object.keys(ITEMS).some(id => id.includes(want) && (ITEMS[id].weapon || ITEMS[id].armor))) {
+  const all = want === 'stack' ? kinds : kinds.filter(d => d.id.includes(want));
   for (let i = 0; i < all.length; i += 8) row('', all.slice(i, i + 8).map(d => [d.id, d.name]));
 } else {
   const ids = Object.keys(ITEMS).filter(id => id === want || (id.includes(want) && (ITEMS[id].weapon || ITEMS[id].armor)));
   for (const itemId of ids.slice(0, 4)) {
     const def = ITEMS[itemId], roll = def.weapon ? rollWeapon : rollArmor;
     document.getElementById('head').textContent = `${ids.slice(0, 4).join(', ')} · item level ${level} · seed ${seed}`;
+    const only = q.get('rarity')?.split(',');
     for (const r of RARITIES) {
-      if (r.guardianOnly && !def.weapon) continue;
+      if (only && !only.includes(r.id)) continue;
       const R = mulberry32(seed * 7919 + r.rank);
       row(`${def.name}<br>${r.name}`, Array.from({ length: n }, (_, i) => {
         const item = roll(R, level, { itemId, rarity: r.id });

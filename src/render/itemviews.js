@@ -12,7 +12,7 @@ import { rig, createFigure, poseFigure, takeOff, wearLike, wornKey, animateWorn 
 import { character, mountWeapon } from './character.js';
 import { paint, load, modelUrl, paintItem, itemModel, pictureKey } from './itempictures.js';
 import { parseLook } from '../core/looks.js';
-import { dressLook } from './looks.js';
+import { dressLook, pulseLooks } from './looks.js';
 import { uiScale } from '../game/uiscale.js';
 
 export { itemPicture, itemModelReady, onItemPictures, pictureImg, pictureKey } from './itempictures.js';
@@ -90,6 +90,7 @@ function fit(c) {
 // main.js, every frame the inventory is open: the live views inside `root`; `hand`: what is in
 // the hero's hand (a bag slot, an item id, or null); time: s, for the turning
 export function drawLiveViews(root, hand, time) {
+  pulseLooks(time);
   for (const c of root.querySelectorAll('canvas[data-live-item]')) {
     const m = itemModel(c.dataset.liveItem);
     if (m && fit(c)) paintItem(c, m, time * SPIN);

@@ -97,8 +97,9 @@ the base lean towards that kind.
 
 Unremarkable rolls no affixes on purpose: it is a slightly better plain weapon and nothing more.
 The rarity shows on the weapon itself too ([looks.md](looks.md)): rust on Crap and Shitty, an
-inlay in its colour from Decent, gems from Remarkable, gold filigree from Fabled, glowing runes on
-Impossible and OMG.
+inlay in its colour from Decent, gems from Remarkable, gold filigree from Fabled, glowing runes
+between gold lines on Impossible and OMG (fewer affix marks on the best: the runes speak), all of it
+pulsing where it glows.
 OMG's rainbow (`glow.rainbow`) also shows in the UI: its label, name, chronicle line and slot
 backdrop cycle through every hue (`.rainbow` in `style.css`; a fixed colour with reduced motion).
 

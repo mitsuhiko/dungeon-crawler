@@ -131,7 +131,7 @@ function arm(v, e) {
     if (!model || w.id !== id || !v.group.parent) return;
     const copy = model.clone(true);
     // (his own materials, in the look of its kind: core/looks.js)
-    copy.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(m => lookOnto(m.clone(), id, o)) : lookOnto(o.material.clone(), id, o); });
+    copy.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(m => lookOnto(m.clone(), id)) : lookOnto(o.material.clone(), id); });
     const item = mountWeapon(v.f.bones, copy);
     w.object = copy; w.held = prepareHeld(copy, item);
   });
@@ -315,7 +315,8 @@ export function drawEchoes(list, dt, off = { x: 0, y: 0, z: 0 }) {
     applyPose(v.group, v.f.bones, span.a.pose, span.b.pose, span.k);
     v.group.position.x += off.x; v.group.position.y += off.y; v.group.position.z += off.z;
     v.group.visible = true;
-    echoWeapon(v, span.k < 0.5 ? span.a.weapon : span.b.weapon);
+    const at = span.k < 0.5 ? span.a : span.b;
+    echoWeapon(v, at.weapon, at.look);
     if (v.weapon.held) { v.group.updateMatrixWorld(true); updateHeld(v.weapon.held, IDLE, null, dt); }
     for (const m of v.materials) m.opacity = 0.5 * alpha;
     v.light.intensity = 0.9 * alpha;
@@ -347,17 +348,18 @@ function makeEcho() {
   scene.add(f.group);
   return { group: f.group, f, materials, light, weapon: { url: null, object: null, mats: [], held: null }, flicker: 0 };
 }
-function echoWeapon(v, url) {
+// the hero's weapon (its model's url) in its look (a key, core/looks.js) in the echo's hand
+function echoWeapon(v, url, look = '') {
   const w = v.weapon;
-  if (w.url === url) return;
-  w.url = url;
+  if (w.url === url && w.look === look) return;
+  w.url = url; w.look = look;
   if (w.object) { v.materials = v.materials.filter(m => !w.mats.includes(m)); w.mats.forEach(m => m.dispose()); w.object.removeFromParent(); w.object = null; w.held = null; }
   if (!url) return;
   if (!echoWeapons.has(url)) echoWeapons.set(url, loadGLB(url).then(g => g.scene).catch(() => null));
   echoWeapons.get(url).then(model => {
-    if (!model || w.url !== url || !v.group.parent) return;
+    if (!model || w.url !== url || w.look !== look || !v.group.parent) return;
     const copy = model.clone(true), mats = [];
-    const own = m => { m = m.clone(); m.transparent = true; m.depthWrite = false; mats.push(m); return m; };
+    const own = m => { m = lookOnto(m.clone(), look); m.transparent = true; m.depthWrite = false; mats.push(m); return m; };
     copy.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(own) : own(o.material); });
     const item = mountWeapon(v.f.bones, copy);
     w.object = copy; w.mats = mats; v.materials.push(...mats);
