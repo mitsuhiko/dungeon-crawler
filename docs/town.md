@@ -39,7 +39,12 @@ still to come.
   how settled each is, how high the cliff rises, the kinds of hill and hollow, the spans' heights
   and styles.
   Its stairs, bridges and span have the invisible side rails of a cube's (`cubegen/fences.js
-  runRails`): walking never takes the hero off their sides, only the jump key does.
+  runRails`): walking never takes the hero off their sides, only the jump key does. Its cliffs
+  and shores are cut at an angle where they step round cells, as a cube's are (`cubegen/town.js`,
+  [world.md](world.md#angled-cliffs-cut-cells-cubegencutsjs-corecutsjs)): what blocks, the
+  mill and its wheel, what hangs on a line and the mud's pockets keep their cells square; a small
+  thing that would stand across a line or hang off an edge that is no more is left out, and drapes
+  hang off the lines' higher sides as off a cell's.
 - **Known from the start.** All the town's tiles count as visited when the world begins: on the
   map, drawn as surroundings, their faces open. The town is home. This is the one exception to
   "Only where you have been" ([world.md](world.md#only-where-you-have-been)).

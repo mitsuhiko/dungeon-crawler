@@ -170,25 +170,40 @@ function fluidVolume(m, w, b, host = w, side = 0) {
   };
   // what of a solid g in the neighbouring column faces us along side d at t (a cut cell: its side there)
   const facing = (g, d, t) => g.cut ? partAt(g, ...sidePoint(OPP[d], t)) : g;
-  // a bank: a solid in the neighbouring column (a floor, or a stair or landing standing in it:
-  // render/shore.js waterSolids) reaching down under the surface and up over it along our side d
-  // (as far as the fluid reaches it); down to our bed it hides our side there
-  const bank = (d, low = sy) => {
+  // the pieces of side d the fluid reaches ([t0, t1]), split where a cut beyond meets it: what
+  // faces us may change there (a shore cut at an angle: the bank along a part of the side, the
+  // water along the rest)
+  const pieces = d => {
     const sp = span(d), nx = x + DIRS[d][0], nz = z + DIRS[d][1];
-    if (!sp || !inb(nx, nz)) return null;
-    const tm = (sp[0] + sp[1]) / 2;
+    if (!sp) return [];
+    const ts = [...sp];
+    if (inb(nx, nz)) for (const g of waterSolids(m, idx(nx, nz))) if (g.cut) for (const t of cutPoints(g, OPP[d])) if (t > sp[0] + 1e-6 && t < sp[1] - 1e-6) ts.push(t);
+    ts.sort((a, b) => a - b);
+    return ts.slice(1).map((t, i) => [ts[i], t]).filter(([t0, t1]) => t1 - t0 > 1e-6);
+  };
+  // a bank along a piece of side d: a solid in the neighbouring column (a floor, or a stair or
+  // landing standing in it: render/shore.js waterSolids) reaching down under the surface and up
+  // over it all along the piece; down to our bed it hides our side there
+  const bankAt = (d, [t0, t1], low = sy) => {
+    const nx = x + DIRS[d][0], nz = z + DIRS[d][1];
+    if (!inb(nx, nz)) return null;
     return waterSolids(m, idx(nx, nz)).find(g => {
-      const s = facing(g, d, tm);
-      return !g.fluid && !s.fluid && g.bottom * LH < low && Math.min(...sp.map(t => cornersY(s.cs, s.split, ...sidePoint(OPP[d], t)))) >= sy;
+      const s = facing(g, d, (t0 + t1) / 2);
+      return !g.fluid && !s.fluid && g.bottom * LH < low && Math.min(cornersY(s.cs, s.split, ...sidePoint(OPP[d], t0)), cornersY(s.cs, s.split, ...sidePoint(OPP[d], t1))) >= sy;
     }) || null;
   };
-  const hidden = d => {
+  // ... all along the side (its shore bit)
+  const bank = d => { const ps = pieces(d); return ps.length && ps.every(p => bankAt(d, p)) ? bankAt(d, ps[0]) : null; };
+  const hidden = (d, p) => {
     const nx = x + DIRS[d][0], nz = z + DIRS[d][1];
     // (past a town's seam the water goes on as it is here: world/townland.js)
     if (!inb(nx, nz)) return !!m.seams?.[d];
-    const sp = span(d), tm = sp ? (sp[0] + sp[1]) / 2 : 0.5;
-    return !!bank(d, by + 0.02) || m.cols[idx(nx, nz)].some(g => { const s = facing(g, d, tm); return !g.crust && s.fluid && s.surf >= w.surf && s.top * LH <= sy; });
+    const tm = (p[0] + p[1]) / 2;
+    return !!bankAt(d, p, by + 0.02) || m.cols[idx(nx, nz)].some(g => { const s = facing(g, d, tm); return !g.crust && s.fluid && s.surf >= w.surf && s.top * LH <= sy; });
   };
+  // the banks along only a piece of a side (local segments): the foam follows them as it does a cut's line
+  const partial = [];
+  for (let d = 0; d < 4; d++) if (!bank(d)) for (const p of pieces(d)) if (bankAt(d, p)) partial.push([sidePoint(d, p[0]), sidePoint(d, p[1])]);
   let shores = 0;
   for (let d = 0; d < 4; d++) if (bank(d)) shores |= 1 << d;
   DIAG.forEach(([dx, dz], i) => {
@@ -216,11 +231,12 @@ function fluidVolume(m, w, b, host = w, side = 0) {
       const px = cut ? v[0] + cut.n[0] * 1e-4 * toward : v[0], pz = cut ? v[2] + cut.n[1] * 1e-4 * toward : v[2];
       const g = grounds.reduce((a, g) => groundAt(g, px, pz) > groundAt(a, px, pz) ? g : a, host);
       let s = [groundAt(g, px, pz), slopeAt(m, g, px, pz), 0, 0];
-      if (cut) {
-        // the bank along the line: steeply up to it, if that is the nearer shore
-        const r = Math.abs(cut.n[0] * (v[0] - x) + cut.n[1] * (v[2] - z) - cut.c), dg = s[1] > 0.02 ? (sy - s[0]) / s[1] : Infinity;
-        if (r + LINE_DROP / LINE_SLOPE < dg) s = [sy - LINE_DROP - r * LINE_SLOPE, LINE_SLOPE, 0, 0];
-      }
+      // the bank along a cut's line, or along a piece of a side: steeply up to it, if that is the
+      // nearer shore
+      const lx = v[0] - x, lz = v[2] - z;
+      const r = Math.min(cut ? Math.abs(cut.n[0] * lx + cut.n[1] * lz - cut.c) : Infinity, ...partial.map(([p, q]) => toSegment(lx, lz, p, q)));
+      const dg = s[1] > 0.02 ? (sy - s[0]) / s[1] : Infinity;
+      if (r + LINE_DROP / LINE_SLOPE < dg) s = [sy - LINE_DROP - r * LINE_SLOPE, LINE_SLOPE, 0, 0];
       memo.set(k, s);
     }
     return memo.get(k);
@@ -246,25 +262,30 @@ function fluidVolume(m, w, b, host = w, side = 0) {
     const P0 = [x + s.p[0] + nrm[0] * 0.005, z + s.p[1] + nrm[1] * 0.005], P1 = [x + s.q[0] + nrm[0] * 0.005, z + s.q[1] + nrm[1] * 0.005];
     wallRegion(b, P0, P1, [ours, [sy - BAND, sy - BAND]], [theirs, [sy + BAND, sy + BAND]], [nrm[0], 0, nrm[1]], WHITE);
   }
-  for (let d = 0; d < 4; d++) {
-    const sp = span(d);
-    if (!sp) continue;
+  for (let d = 0; d < 4; d++) for (const sp of pieces(d)) {
     const [[ax, az], [bx, bz]] = edgePts(x, z, d);
     const at = t => [ax + (bx - ax) * t, az + (bz - az) * t];
-    const g = bank(d);
+    const g = bankAt(d, sp);
     if (g) {
       // the wet band on the bank's wall facing us, round the surface (a structure is wet by its
       // own material: render/wet.js)
       b.uvNow = [-1, sy];
       if (!g.piece) wetWall(b, wallPieces(m, g, OPP[d]).filter(p => (p.t0 + p.t1) / 2 > sp[0] && (p.t0 + p.t1) / 2 < sp[1]), sy - BAND, sy + BAND);
-    } else if (!hidden(d)) {
+    } else if (!hidden(d, sp)) {
       b.uvNow = [-2, sy];
-      for (let k = 0; k < SUB; k++) {
-        const [px, pz] = at(sp[0] + (sp[1] - sp[0]) * k / SUB), [qx, qz] = at(sp[0] + (sp[1] - sp[0]) * (k + 1) / SUB);
+      const k0 = Math.max(1, Math.round((sp[1] - sp[0]) * SUB));
+      for (let k = 0; k < k0; k++) {
+        const [px, pz] = at(sp[0] + (sp[1] - sp[0]) * k / k0), [qx, qz] = at(sp[0] + (sp[1] - sp[0]) * (k + 1) / k0);
         b.quad([px, by, pz], [qx, by, qz], [qx, sy, qz], [px, sy, pz], DIRV[d], white);
       }
     }
   }
+}
+// the distance from (x, z) to the segment p -> q
+function toSegment(x, z, p, q) {
+  const dx = q[0] - p[0], dz = q[1] - p[1], l = dx * dx + dz * dz;
+  const t = l ? Math.max(0, Math.min(1, ((x - p[0]) * dx + (z - p[1]) * dz) / l)) : 0;
+  return Math.hypot(x - p[0] - dx * t, z - p[1] - dz * t);
 }
 // the wet band on the sloping ones of these triangles (local, with their heights) of cell (x, z)
 function wetTriangles(b, tris, x, z) {

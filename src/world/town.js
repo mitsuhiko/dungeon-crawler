@@ -1160,7 +1160,7 @@ function yard(t, h) {
 }
 
 // Grass, roots and moss hanging over the terraces' walls (props hung on a lip: render/propplace.js)
-const DRAPES = ['meadow_grass_drape_a', 'meadow_grass_drape_b', 'roots_root_drape_a', 'roots_root_drape_b', 'darkforest_root_drape_a'];
+export const DRAPES = ['meadow_grass_drape_a', 'meadow_grass_drape_b', 'roots_root_drape_a', 'roots_root_drape_b', 'darkforest_root_drape_a'];
 function drapes({ plan, R }) {
   const g = plan.ground, own = new Set(plan.paths.flatMap(p => p.points.map(([x, z]) => Math.floor(z) * N + Math.floor(x))));
   for (let c = 0; c < N * N; c++) {

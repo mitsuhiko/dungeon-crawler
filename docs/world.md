@@ -1171,7 +1171,10 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   wades and swims in it (`physics/fluid.js` goes by the surface underfoot), it is drawn clipped to
   its side (`render/floors.js fluidVolume`: its quads, its sides where it reaches the cell's sides,
   the wet band on the bank along the line) with its foam along the line (its vertices' `shore`
-  says the ground rises steeply up to the line: `LINE_SLOPE`), and the cell counts it as its
+  says the ground rises steeply up to the line: `LINE_SLOPE`). A neighbour's water meets such a
+  cell's side in pieces (the line meets the side between them): each piece of the side is a bank,
+  water going on, or the water's own side face, and where a bank stands along a piece only, the
+  foam follows it as it does a line. The cell counts it as its
   fluid (`fluidsOf`: the waves under it, the wet banks). A side a swimmer climbs out over
   (`playernav.js waterEdges`) keeps its middle like a linked one where the part would rise higher
   than a swimmer climbs. Not where a fall comes
@@ -1198,7 +1201,8 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   round as straight lines take them). The guardian arenas are cut too, in their theme's styles
   (`cubegen/arenamap.js finishArena`: what blocks keeps its square, a prop that would stand across
   a line is left out); Foggery's is all `sixteen`, its built floors too (`built`: the round tower,
-  its ramp's turns, drawn in courses of blocks along the lines), and Flip's box never.
+  its ramp's turns, drawn in courses of blocks along the lines), and Flip's box never. The town's
+  tiles are cut too (`cubegen/town.js`, [town.md](town.md)), in the default styles.
 - **What keeps its square:** what the generator pinned (portals, ramps, landings, reward sites
   and spots, the ends of stairs and bridges, ladders, the cells a jump or drop of the route starts
   or ends in, the ground under a stair), built floors (`surface`), the crumbling crust, the

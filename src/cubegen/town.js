@@ -8,7 +8,37 @@ import { floorY } from '../core/surfaces.js';
 import { edgeCell } from './portals.js';
 import { runRails } from './fences.js';
 import { mudPocket } from './mudpools.js';
-import { townPlan, townReach } from '../world/town.js';
+import { townPlan, townReach, DRAPES } from '../world/town.js';
+import { cutCliffs } from './cuts.js';
+import { cutLine } from '../core/cuts.js';
+import { propMetadata } from '../core/propcatalog.js';
+import { mulberry32, hash32 } from '../core/util.js';
+
+// does (x, z) lie within r of a cut's part (core/cuts.js) in a cell round it?
+function nearCut(cols, x, z, r) {
+  for (let cz = Math.floor(z - r); cz <= Math.floor(z + r); cz++) for (let cx = Math.floor(x - r); cx <= Math.floor(x + r); cx++) {
+    const f = cx >= 0 && cz >= 0 && cx < N && cz < N && cols[cz * N + cx].at(-1);
+    if (!f?.cut) continue;
+    const lx = Math.min(1, Math.max(0, x - cx)), lz = Math.min(1, Math.max(0, z - cz));
+    if (f.cut.c - f.cut.n[0] * lx - f.cut.n[1] * lz < r - Math.hypot(x - cx - lx, z - cz - lz)) return true;
+  }
+  return false;
+}
+// the drapes along the cuts' lines, off their higher sides' edges, as often as along a cell's side
+// (world/town.js drapes)
+function drapesAlong(floors, seed) {
+  const R = mulberry32(hash32(seed ^ 0xd4a9e)), out = [];
+  for (const f of floors) if (f.cut) for (const s of cutLine(f)) {
+    const hiOwn = s.own[0] + s.own[1] > s.part[0] + s.part[1], high = hiOwn ? f : f.cut.part, low = hiOwn ? f.cut.part : f;
+    const len = Math.hypot(s.q[0] - s.p[0], s.q[1] - s.p[1]), t = .25 + R() * .5;
+    const at = ys => ys[0] + (ys[1] - ys[0]) * t, top = at(hiOwn ? s.own : s.part), below = low.fluid ? low.surf * LH : at(hiOwn ? s.part : s.own);
+    if (high.fluid || top - below < .55 || R() > .45 * len) continue;
+    const out2 = hiOwn ? f.cut.n : [-f.cut.n[0], -f.cut.n[1]];
+    out.push({ name: DRAPES[Math.floor(R() * DRAPES.length)], x: f.x + s.p[0] + (s.q[0] - s.p[0]) * t, y: top, z: f.z + s.p[1] + (s.q[1] - s.p[1]) * t,
+      yaw: Math.atan2(-out2[0], -out2[1]), s: .85 + R() * .3, tint: null });
+  }
+  return out;
+}
 
 export function generateClearing(spec) {
   const t = spec.town, side = spec.portals.filter(p => p.dir < 4);
@@ -93,8 +123,23 @@ export function generateClearing(spec) {
   // the stairs', bridges' and the span's invisible side rails (cubegen/fences.js): kept on them
   // as in a cube, off their sides with the jump key only
   const { fences, fenceList } = runRails(ctx.runs);
+  // its cliffs and shores cut at an angle (cubegen/cuts.js), as a cube's: what stands keeps its
+  // cells square (what blocks, the water's mill and wheel, the mud's pockets), a small thing that
+  // would stand across a line, or hang off an edge that is no more, is left out (but what hangs
+  // on a line between two things: it stays up there)
+  const kept = new Set();
+  const cover = (x, z, r) => { for (let cz = Math.floor(z - r); cz <= Math.floor(z + r); cz++) for (let cx = Math.floor(x - r); cx <= Math.floor(x + r); cx++) if (cx >= 0 && cz >= 0 && cx < N && cz < N) kept.add(cz * N + cx); };
+  const stays = p => p.name.startsWith('town_water') || p.name.startsWith('villager_') || propMetadata.get(p.name)?.attach === 'line';
+  for (const p of plan.placements) if (stays(p)) cover(p.x, p.z, (propMetadata.get(p.name)?.radius ?? 0.3) * (p.s ?? 1));
+  for (const p of plan.mud) cover(p.x, p.z, p.r + 0.5);
+  const at = { ...ctx, cols: ctx.cols, floors, fences, fenceList, falls: plan.falls, moves: [], ladders: [],
+    noCut: [...kept, ...staticBlockers.flatMap((list, c) => list.length ? [c] : [])] };
+  cutCliffs(at);
+  const placements = plan.placements.filter(p => stays(p) || !nearCut(ctx.cols, p.x, p.z, 0.3));
+  const lineDrapes = drapesAlong(floors, spec.seed);
+  placements.push(...lineDrapes);
   ctx.stats.layers = 1; ctx.stats.mode = 'town ' + plan.tile.name; ctx.stats.fluids = plan.water.length ? ['town water'] : [];
-  const clearing = { placements: plan.placements, frontages: plan.frontages, doors: plan.doors, water: plan.water, yaw: plan.yaw, paths: plan.paths,
+  const clearing = { placements, frontages: plan.frontages, doors: plan.doors, water: plan.water, yaw: plan.yaw, paths: plan.paths,
     tile: plan.tile, level: plan.level, wallSide: plan.wallSide, ...(portal ? { portal } : {}) };
   return { seed: spec.seed, attempts: 1, K: 1, B: [0], cols: ctx.cols, floors,
     pieces: ctx.pieces, runs: ctx.runs, falls: plan.falls.map(f => ({ ...f, type: WATER, layer: 0 })), ladders: [],
@@ -104,11 +149,11 @@ export function generateClearing(spec) {
       const f = ctx.cols[Math.floor(p.z) * N + Math.floor(p.x)][0];
       return { ...mudPocket(f, p.x, p.z, p.r, p.deep), y: floorY(f, p.x - f.x, p.z - f.z) };
     }),
-    fences, fenceList, stats: ctx.stats, moves, portals, exit: spec.exit,
+    fences, fenceList: at.fenceList, lineFences: at.lineFences ?? null, stats: ctx.stats, moves, portals, exit: spec.exit,
     routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys,
     safe: Uint8Array.from(floors, f => prev.has(f.c) ? 1 : 0),
     kind: 'meadow', archetype: 'plain', key: spec.key, depth: 0, cave: false, enemyFree: true, biome: 'meadow',
-    staticBlockers, blockers: staticBlockers, occluders: plan.occluders, authoredProps: plan.placements, doors: plan.doors,
+    staticBlockers, blockers: staticBlockers, occluders: plan.occluders, authoredProps: placements, doors: plan.doors,
     villagers: plan.villagers, spots: [], relics, town: clearing,
     // the sides (DIRS) with another of the town's tiles beyond: walked across without a seam
     // (game/handover.js; the physics reads the ground on as this tile's edge, physics/collide.js)

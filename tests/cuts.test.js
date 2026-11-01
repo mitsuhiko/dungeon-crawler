@@ -2,7 +2,7 @@
 // at an angle through them. The geometry, the fit on a staircase, and walking at a cut.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, LH, CHAR_R, CHAR_H, DIRS, WATER } from '../src/core/constants.js';
+import { N, LH, CHAR_R, CHAR_H, DIRS, OPP, WATER } from '../src/core/constants.js';
 import { wading } from '../src/physics/fluid.js';
 import { flatMap } from './fixtures.js';
 import { player } from '../src/game/state.js';
@@ -14,6 +14,15 @@ import { cutCliffs } from '../src/cubegen/cuts.js';
 import { edgeKey } from '../src/core/util.js';
 import { worldOf } from './worlds.js';
 import { placeProps } from '../src/render/propplace.js';
+import { buildFloors } from '../src/render/floors.js';
+import { GeoBuilder } from '../src/render/builder.js';
+import { DRAWN_FLUIDS, drawnFluid } from '../src/core/constants.js';
+import { usePalette } from '../src/render/palette.js';
+import { themeOf as themeAt } from '../src/themes/depth.js';
+import { townOf } from '../src/world/town.js';
+import { propMetadata } from '../src/core/propcatalog.js';
+import { buildCubeGeometry } from '../src/render/cubegeo.js';
+import { sidePoint as MID_AT } from '../src/core/cuts.js';
 import { themeOf } from '../src/themes/depth.js';
 
 const DT = 1 / 60;
@@ -148,8 +157,8 @@ test('a generated room: its staircase cliffs are cut, every cut keeps its cell\'
 
 test('a shore at 45°: the bank takes a corner of the water, the water one of the bank, and it is waded in', () => {
   const m = flatMap();
-  // water (surface 2 levels, its bed at 0) over the cells x <= z, a bank at its level elsewhere
-  for (const f of m.floors) Object.assign(f, f.x <= f.z ? { top: 0, fluid: WATER, surf: 2, cs: [0, 0, 0, 0] } : { top: 2, cs: Array(4).fill(2 * LH) }, { bottom: -2 });
+  // water (surface 2 levels, its bed at 0) over the cells x <= z, a bank two levels over it elsewhere
+  for (const f of m.floors) Object.assign(f, f.x <= f.z ? { top: 0, fluid: WATER, surf: 2, cs: [0, 0, 0, 0] } : { top: 4, cs: Array(4).fill(4 * LH) }, { bottom: -2 });
   for (const f of m.floors) f.link = f.link.map(g => g && !!g.fluid === !!f.fluid ? g : null);
   const ctx = { ...m, fenceList: [], seed: 1, stats: {}, ladders: [], runs: [], moves: [], spec: {}, border: f => !f.x || !f.z || f.x === N - 1 || f.z === N - 1 };
   cutCliffs(ctx, () => 'octo');
@@ -161,6 +170,20 @@ test('a shore at 45°: the bank takes a corner of the water, the water one of th
   const f = m.floors[8 * N + 9], gr = groundAt(9.1, 8.9, 100, 0);
   assert.ok(f.cut && gr.s === f.cut.part && gr.s.fluid === WATER, 'the water is underfoot');
   assert.ok(wading(gr, gr.h) > 0.5, 'deep enough to wade: ' + wading(gr, gr.h));
+  // drawn: no side of the water stands in the water (where a side meets the bank only along a
+  // piece of it, the rest goes on into the next cell's water)
+  m.K = 1; m.depth = 0; m.biome = 'meadow';
+  for (const f of m.floors) f.layer = 0;
+  usePalette(themeAt(m));
+  const layers = [{ terrain: new GeoBuilder(), stone: new GeoBuilder(), wood: new GeoBuilder(), fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, new GeoBuilder({ uvs: true })])) }];
+  buildFloors(m, layers);
+  const water = layers[0].fluids[drawnFluid({ fluid: WATER })];
+  let sides = 0;
+  for (let v = 0; v < water.uv.length / 2; v++) if (water.uv[v * 2] === -2) {
+    const x = water.pos[v * 3], z = water.pos[v * 3 + 2];
+    if (x > 0.01 && z > 0.01 && x < N - 0.01 && z < N - 0.01) sides++;
+  }
+  assert.equal(sides, 0, 'a side face in the water');
 });
 
 // an island over the void: ground at 2 levels over the cells x <= z, nothing elsewhere
@@ -190,4 +213,42 @@ test('an island\'s rim over the void: the corners of its staircase cut off, noth
   stand(m, 8.3, 8.6);
   push(1, -1, 1.5);
   assert.ok(player.grounded && player.y === 2 * LH && player.x - player.z < 0.5, 'at the brink: ' + [player.x, player.y, player.z]);
+});
+
+test('the town is cut too: what blocks keeps its square, nothing small stands across a line', () => {
+  const w = worldOf(461656543);
+  let cuts = 0;
+  for (const k of townOf(w.seed).keys) {
+    const m = w.cube(k).map;
+    for (const f of m.floors) if (f.cut) {
+      cuts++;
+      assert.equal(partAt(f, 0.5, 0.5), f);
+      assert.ok(!m.staticBlockers[f.c].length, `${k} (${f.x}, ${f.z}): a cut under what blocks`);
+    }
+    for (const p of m.authoredProps) {
+      const f = m.cols[Math.floor(p.z) * N + Math.floor(p.x)].at(-1), meta = propMetadata.get(p.name);
+      if (!f.cut || meta?.attach === 'line' || meta?.attach === 'lip') continue;
+      assert.ok(f.cut.c - f.cut.n[0] * (p.x - f.x) - f.cut.n[1] * (p.z - f.z) >= 0.3 - 1e-9, `${k}: ${p.name} across a line`);
+    }
+  }
+  assert.ok(cuts > 20, 'cuts in the town: ' + cuts);
+});
+
+test('a water by a shore cut at an angle: its foam along a side only where a bank stands all along it', () => {
+  const m = worldOf(461656543).cube('0,0,-3').map;
+  let bits = 0;
+  for (const l of buildCubeGeometry(m)) for (const a of Object.values(l.fluids)) if (a?.uv) for (let v = 0; v < a.uv.length / 2; v += 3) {
+    const u = a.uv[v * 2];
+    if (u < 0) continue;
+    const c = Math.floor(u / 256), sh = u % 256, x = c % N, z = (c / N) | 0, f = m.cols[c].at(-1);
+    for (let d = 0; d < 4; d++) if (sh & (1 << d)) {
+      const n = (z + DIRS[d][1]) * N + x + DIRS[d][0], g = m.cols[n]?.at(-1);
+      if (!g || m.pieces[n].length) continue;   // (a stair or a bridge's pier standing in the water there)
+      bits++;
+      // (where our water reaches the side, what faces it there is no water)
+      for (const t of [0.1, 0.3, 0.5, 0.7, 0.9]) if (partAt(f, ...MID_AT(d, t)).fluid)
+        assert.ok(!partAt(g, ...MID_AT(OPP[d], t)).fluid, `(${x}, ${z}): foam along its side ${d}, water beyond it at ${t}`);
+    }
+  }
+  assert.ok(bits > 20, 'shores: ' + bits);
 });

@@ -414,7 +414,9 @@ function checkClutter(m, min) {
     if (meta.attach === 'water') assert.equal(p.y, m.cols[c][0].surf * LH);
     else if (meta.attach === 'lip') {
       const round = [-1, 0, 1].flatMap(dz => [-1, 0, 1].map(dx => m.cols[Math.min(N - 1, Math.max(0, Math.floor(p.z) + dz)) * N + Math.min(N - 1, Math.max(0, Math.floor(p.x) + dx))][0]));
-      assert.ok(round.some(f => f.cs.some(h => Math.abs(h - p.y) < 1e-6)) && p.y < 15, p.name);
+      // (at a corner's height, or on a cut's line: cubegen/town.js drapesAlong)
+      const onLine = f => f.cut && Math.abs(f.cut.n[0] * (p.x - f.x) + f.cut.n[1] * (p.z - f.z) - f.cut.c) < 1e-6;
+      assert.ok(round.some(f => f.cs.some(h => Math.abs(h - p.y) < 1e-6) || onLine(f)) && p.y < 15, p.name);
       continue;
     }
     else if (p.normal || meta.cover || meta.height < .2) assert.ok(Math.abs(p.y - g - .008) < .01, p.name);
