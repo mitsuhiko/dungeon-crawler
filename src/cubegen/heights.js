@@ -9,7 +9,7 @@
 //   under a shaft: a flat basin where the shaft above comes down
 // The route search finds the way up and down (stairs, ladders, the ramps, the plunge's drop).
 // Cells these shapes depend on are kept (ctx.keep): no slabs, sites or hordes on them.
-import { N, MAX_L, DIRS } from '../core/constants.js';
+import { N, MAX_L, DIRS, at16 } from '../core/constants.js';
 import { idx, clamp } from '../core/util.js';
 import { edgeCell } from './portals.js';
 
@@ -22,7 +22,7 @@ const wrap = a => ((a % TAU) + TAU) % TAU;
 // a terrace halfway up a cliff that stands at u = cu (between cu - 1 and cu, or cu + 1 for a
 // shelf that is low beyond): part of its width
 function terrace(ctx, h, from, to, level) {
-  const len = ctx.ri(5, 8), w0 = ctx.ri(2, N - 2 - len);
+  const len = ctx.ri(Math.round(at16(5)), Math.round(at16(8))), w0 = ctx.ri(2, N - 2 - len);
   inner((x, z, i) => {
     const [u, w] = along(h.dir, x, z);
     if (u >= from && u <= to && w >= w0 && w < w0 + len) ctx.lvl0[i] = level;
@@ -43,8 +43,15 @@ function cove(ctx, h, cap) {
   if (!p || p.dir >= 4 || (p.dir >> 1) === (h.dir >> 1)) return;
   const pads = [];
   for (let t = p.pos - 1; t <= p.pos + 1; t++) for (let j = 0; j < 2; j++) pads.push(edgeCell(p.dir, t, j));
+  // (where the pad is up on the shelf's side of the cliff, the cove runs on along the face to the
+  // cliff's foot, so the way out is down there: in a big cube the pad may stand well in from it)
+  const uw = pads.map(c => along(h.dir, c % N, c / N | 0)), us = uw.map(p => p[0]), ws = uw.map(p => p[1]);
+  const shelf = h.role === 'descent' ? Math.max(...us) < h.cu : Math.min(...us) > h.cu;
+  const [u0, u1] = [Math.min(...us, h.cu), Math.max(...us, h.cu)], [w0, w1] = [Math.min(...ws) - 2, Math.max(...ws) + 2];
   inner((x, z, i) => {
-    if (pads.some(c => Math.max(Math.abs(c % N - x), Math.abs((c / N | 0) - z)) <= 2)) ctx.lvl0[i] = Math.min(ctx.lvl0[i], cap);
+    const [u, w] = along(h.dir, x, z);
+    if (pads.some(c => Math.max(Math.abs(c % N - x), Math.abs((c / N | 0) - z)) <= 2) || (shelf && u >= u0 - 2 && u <= u1 + 2 && w >= w0 && w <= w1))
+      ctx.lvl0[i] = Math.min(ctx.lvl0[i], cap);
   });
 }
 
@@ -88,7 +95,12 @@ export function shapeDescent(ctx) {
     // the landing: three cells wide, two deep, right under the edge, on the way to the exit;
     // flat, soft and kept
     const exit = ctx.spec.portals.find(q => q.dir === h.way), wx = exit && exit.dir < 4 ? along(h.dir, ...cellXZ(edgeCell(exit.dir, exit.pos, 1)))[1] : null;
-    const wp = wx === null ? ri(4, N - 5) : clamp(wx + ri(-2, 2), 3, N - 4), soft = ctx.soft;
+    // (and never where the cove round a way out lowered the edge it is leapt from: a little further
+    // along it)
+    const first = wx === null ? ri(4, N - 5) : clamp(wx + ri(-2, 2), 3, N - 4), soft = ctx.soft;
+    const atUW = (u, w) => [[u, w], [N - 1 - u, w], [w, u], [w, N - 1 - u]][h.dir];
+    const edgeUp = w => [-1, 0, 1].every(o => ctx.lvl0[idx(...atUW(h.cu - 1, w + o))] >= h.hi);
+    const wp = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6].map(o => first + o).find(w => w >= 3 && w <= N - 4 && edgeUp(w)) ?? first;
     const landing = clamp(Math.min(base, h.hi - 11), 3, base);   // a long way down
     inner((x, z, i) => {
       const [u, w] = along(h.dir, x, z);

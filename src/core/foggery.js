@@ -26,6 +26,7 @@
 // for a quarter of one's health, onto safe ground well over the lava, the top of the tower once
 // nothing lower is, else a platform).
 import { mulberry32 } from './util.js';
+import { N, ROOM_SCALE, at16, count16 } from './constants.js';
 
 export const FOGGERY_FIGHT = Object.freeze({
   splits: [1 / 3, 1 / 6],     // the shares of his health phase 2 and phase 3 start at
@@ -36,13 +37,14 @@ export const FOGGERY_FIGHT = Object.freeze({
   waitAggro: 4.5,             // cells: how far they notice the player from
   hurry: 2.2,                 // how much faster he climbs at a third of his health, not yet on top
   eyes: { grow: 2.5 },        // s an eye he threw takes to grow back
-  lava: { rise: 60, flood: 6, drain: 7 },   // s the lava takes to rise, to flood the top, to drain away
+  // (the rise as much longer as the way up the ramp is: the tower's grown with the cube)
+  lava: { rise: 60 * ROOM_SCALE, flood: 6, drain: 7 },   // s the lava takes to rise, to flood the top, to drain away
   minions: [3, 2, 2],         // the most Fire-faces (phase 1) / Fire-cats (2, 3) at once
   summonCool: 10,             // s from one summon of Fire-faces to the next
   firstSummon: 4,             // s into the fight before his first summon
   catsAgain: 8,               // s after both cats are dead before he calls new ones
   geyser: { first: 2, every: [7, 10] },   // s into phase 2 before the first geysers, then between them
-  orbit: { r: 2.3, speed: 0.22, lift: 0.4 },   // rising into phase 3: how far from the middle he circles (cells), how fast (rad/s), how high
+  orbit: { r: at16(2.3), speed: 0.22 / ROOM_SCALE, lift: 0.4 },   // rising into phase 3: how far from the middle he circles (cells), how fast (rad/s), how high
   hop: { speed: 2.2, dwell: [2.5, 4], near: 0.7, lift: 0.02 },   // phase 3, over the platforms: cells/s, s on each, how often next to the player, over its top
   // his Fire-cats leap after a player on the platforms (and back down onto the top of the tower):
   // cells a leap goes at most (edge to edge), cells/s, how high (cells, and per cell of the leap),
@@ -73,22 +75,22 @@ export function barred({ phase, eyes = [1, 1], summonDue = false, catsDue = fals
 // The lava fills the whole cube, out to its sides (no walls); the platforms float a level over the
 // top.
 export const TOWER = Object.freeze({
-  mid: 8,
+  mid: N / 2,
   ground: 1,                // the caldera's floor
   top: 20,                  // the top of the tower
-  base: 6.2,                // cells: how far the tower reaches out at its foot
-  crown: 2.6,               // cells: its top, round the middle (with the last of the ramp about half the foot)
-  path: 1.5,                // cells: how wide the ramp is
+  base: at16(6.2),          // cells: how far the tower reaches out at its foot
+  crown: at16(2.6),         // cells: its top, round the middle (with the last of the ramp about half the foot)
+  path: at16(1.5),          // cells: how wide the ramp is (as many turns round the tower however big it is)
   junction: 0.12,           // turns of the ramp kept flat where the bridge joins it
   slab: 2,                  // levels thick: the bridge
-  pit: [0, 16],             // the caldera's cells (each way: from, past the last): the whole cube
+  pit: [0, N],              // the caldera's cells (each way: from, past the last): the whole cube
   lava: { rest: 2, high: 19, flood: 20.6, gone: -1 },   // levels: the lava at rest, under the top, over it, drained
 });
 export const PLATFORMS = Object.freeze({
   top: 21,                  // levels: where their tops float
   thick: 0.32,              // cells
   size: 2,                  // cells each way: a slot
-  count: 22,                // platforms in the slots round the top
+  count: count16(22),       // platforms in the slots round the top
   every: 2,                 // s between steps of the puzzle
   move: 1.2,                // s a step's slides take
   moves: 3,                 // platforms that may slide at once
@@ -147,14 +149,15 @@ export function stepLava(w, dt) {
 }
 
 // --- the platforms -------------------------------------------------------------------------
-// The slots (map.movers.slots, cubegen/towerarena.js): the cube's 14 x 14 cells inside its outer
-// ring cut into 7 x 7 slots of 2 x 2, less the middle 3 x 3 (the top of the tower) and any where the tower reaches up
-// too close under them; `next`: the slots next to each (along the grid). Slot -> { i, j (slot
-// grid), x, z (its first cell) }.
+// The slots (map.movers.slots, cubegen/towerarena.js): the cube's cells inside its outer ring cut
+// into slots of 2 x 2 (7 x 7 of them in a cube of 16), less those over the top of the tower (the
+// middle 3 x 3 there) and any where the tower reaches up too close under them; `next`: the slots
+// next to each (along the grid). Slot -> { i, j (slot grid), x, z (its first cell) }.
 export function slotGrid() {
-  const out = [];
-  for (let j = 0; j < 7; j++) for (let i = 0; i < 7; i++) if (i < 2 || j < 2 || i > 4 || j > 4)
-    out.push({ i, j, x: 1 + i * PLATFORMS.size, z: 1 + j * PLATFORMS.size });
+  const out = [], G = Math.floor((N - 2) / PLATFORMS.size), mid = s => 1 + s * PLATFORMS.size + PLATFORMS.size / 2;
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++)
+    if (Math.max(Math.abs(mid(i) - TOWER.mid), Math.abs(mid(j) - TOWER.mid)) > TOWER.crown + 0.4)
+      out.push({ i, j, x: 1 + i * PLATFORMS.size, z: 1 + j * PLATFORMS.size });
   return out;
 }
 export const slotNext = slots => slots.map(a => slots.flatMap((b, k) => Math.abs(a.i - b.i) + Math.abs(a.j - b.j) === 1 ? [k] : []));

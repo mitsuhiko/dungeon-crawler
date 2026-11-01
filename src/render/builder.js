@@ -8,6 +8,9 @@
 // clear fluids' low-water lines, so what stands out of them bends under them only).
 import * as THREE from '../../vendor/three/three.core.js';   // plain path, no renderer: also loads in the world worker
 
+// a smooth corner's place, to a thousandth of a unit, as one number (up to 65 units from the origin)
+const smoothKey = v => ((Math.round(v[0] * 1000) + 65536) * 131072 + Math.round(v[1] * 1000) + 65536) * 131072 + Math.round(v[2] * 1000) + 65536;
+
 export class GeoBuilder {
   constructor({ sway = false, uvs = false, cutAt = null } = {}) {
     this.pos = []; this.nor = []; this.col = []; this.smoothKeys = []; this.cutAt = cutAt;
@@ -29,20 +32,24 @@ export class GeoBuilder {
       const parts = splitTri(a, b, c, y);
       if (parts) { for (const [p, q, r] of parts) this.tri(p, q, r, col, [nx, ny, nz], smooth); return; }
     }
-    const base = this.pos.length / 3;
-    for (const [k, v] of [a, b, c].entries()) {
-      const cv = Array.isArray(col) ? col[k] : col;
-      this.pos.push(v[0], v[1], v[2]);
-      this.nor.push(nx / len, ny / len, nz / len);
-      this.col.push(cv.r, cv.g, cv.b);
-      if (this.swayAt) this.uv.push(this.swayAt(v[1]), 0);
-      else if (this.uv) {
-        this.uv.push(this.uvNow[0], this.uvNow[1]); this.pal.push(this.palNow);
-        if (this.shoreAt) this.shore.push(...this.shoreAt(v)); else this.shore.push(0, 0, 0, 1);
-      }
+    const base = this.pos.length / 3, many = Array.isArray(col);
+    this.corner(a, many ? col[0] : col, nx / len, ny / len, nz / len);
+    this.corner(b, many ? col[1] : col, nx / len, ny / len, nz / len);
+    this.corner(c, many ? col[2] : col, nx / len, ny / len, nz / len);
+    if (smooth) for (let k = 0; k < 3; k++) {
+      const v = k === 0 ? a : k === 1 ? b : c;
+      this.smoothKeys.push(base + k, smoothKey(v), nx, ny, nz);
     }
-    if (smooth) [a, b, c].forEach((v, k) =>
-      this.smoothKeys.push([base + k, v[0].toFixed(3) + ',' + v[1].toFixed(3) + ',' + v[2].toFixed(3), nx, ny, nz]));
+  }
+  corner(v, cv, nx, ny, nz) {
+    this.pos.push(v[0], v[1], v[2]);
+    this.nor.push(nx, ny, nz);
+    this.col.push(cv.r, cv.g, cv.b);
+    if (this.swayAt) this.uv.push(this.swayAt(v[1]), 0);
+    else if (this.uv) {
+      this.uv.push(this.uvNow[0], this.uvNow[1]); this.pal.push(this.palNow);
+      if (this.shoreAt) { const s = this.shoreAt(v); this.shore.push(s[0], s[1], s[2], s[3]); } else this.shore.push(0, 0, 0, 1);
+    }
   }
 
   quad(a, b, c, d, want, col, smooth = false) { this.tri(a, b, c, col, want, smooth); this.tri(a, c, d, col, want, smooth); }
@@ -77,13 +84,15 @@ export class GeoBuilder {
 
   // smoothed normals, as typed arrays (these can be sent from the worker)
   arrays() {
-    const acc = new Map();
-    for (const [, key, nx, ny, nz] of this.smoothKeys) {
-      const a = acc.get(key) || [0, 0, 0];
-      a[0] += nx; a[1] += ny; a[2] += nz; acc.set(key, a);
+    // (smoothKeys: five numbers a corner, its vertex, its place's key and its triangle's normal)
+    const acc = new Map(), K = this.smoothKeys;
+    for (let i = 0; i < K.length; i += 5) {
+      let a = acc.get(K[i + 1]);
+      if (!a) acc.set(K[i + 1], a = [0, 0, 0]);
+      a[0] += K[i + 2]; a[1] += K[i + 3]; a[2] += K[i + 4];
     }
-    for (const [vi, key] of this.smoothKeys) {
-      const a = acc.get(key), l = Math.hypot(a[0], a[1], a[2]) || 1;
+    for (let i = 0; i < K.length; i += 5) {
+      const vi = K[i], a = acc.get(K[i + 1]), l = Math.hypot(a[0], a[1], a[2]) || 1;
       this.nor[vi * 3] = a[0] / l; this.nor[vi * 3 + 1] = a[1] / l; this.nor[vi * 3 + 2] = a[2] / l;
     }
     const out = { pos: new Float32Array(this.pos), nor: new Float32Array(this.nor), col: new Float32Array(this.col) };

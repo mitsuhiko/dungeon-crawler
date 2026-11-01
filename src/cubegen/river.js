@@ -2,7 +2,7 @@
 // neighbours) and meet at a junction, a lake for lake cubes, plus a few pools. Water spreads wider
 // than lava or acid (WIDER): a pool, a lake of it is bigger, and so deep in more of its middle
 // (cubegen/escape.js shoalWater), to swim in.
-import { N, DIRS, FLUID_NAME, WATER } from '../core/constants.js';
+import { N, DIRS, FLUID_NAME, WATER, at16, count16 } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 import { edgeCell } from './portals.js';
 import { bankGround } from './contain.js';
@@ -22,7 +22,7 @@ export function carveRiver(ctx) {
   const ends = spec.faces.map((f, d) => f.river && { d, ...f.river }).filter(Boolean), lake = spec.kind === 'lake' && !spec.lake;
   const sea = new Set(ctx.seaCells || []);
   if (ends.length || lake) {
-    const jx = ri(6, 9), jz = ri(6, 9), cells = new Set();
+    const jx = ri(Math.round(at16(6)), Math.round(at16(9))), jz = ri(Math.round(at16(6)), Math.round(at16(9))), cells = new Set();
     for (const e of ends) {
       const c0 = edgeCell(e.d, e.pos, 0), lat = e.d < 2 ? [0, 1] : [1, 0];
       let x = c0 % N, z = (c0 / N) | 0;
@@ -36,7 +36,7 @@ export function carveRiver(ctx) {
       }
     }
     if (lake || ends.length === 1 && !spec.lake) {   // a lake, or a pool where a lone river ends
-      const rad = (lake ? 3.4 + R() * 1.8 : 1.8 + R() * 0.8) + wider(spec.fluid);
+      const rad = (lake ? at16(3.4 + R() * 1.8) : 1.8 + R() * 0.8) + wider(spec.fluid);
       for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) if (Math.hypot(x - jx, z - jz) < rad) cells.add(idx(x, z));
     }
     fill([...cells].filter(i => !prot0[i]), spec.fluid, RIVER_SURF);
@@ -52,7 +52,7 @@ export function carveRiver(ctx) {
   const rim = (x, z) => DIRS.some(([dx, dz]) => wet(idx(x + dx, z + dz)));
   // (none on a hairpin's summit, cubegen/areas.js: it stays level; none round a lone peak: mostly empty)
   // (nor in a trial room, cubegen/trials/: the trial decides its fluids)
-  for (let p = spec.area?.role === 'summit' || spec.peak || spec.trial ? 0 : ri(1, 3); p > 0; p--) {
+  for (let p = spec.area?.role === 'summit' || spec.peak || spec.trial ? 0 : ri(count16(1), count16(3)); p > 0; p--) {
     const type = pickFluid();
     const cx = 3 + R() * (N - 6), cz = 3 + R() * (N - 6), rad = 1.1 + R() * 1.4 + wider(type);
     const cells = [];

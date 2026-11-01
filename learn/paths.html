@@ -35,8 +35,8 @@
     <div class="card">
       <h3 lang="en">The floor is a grid</h3>
       <h3 lang="de">Der Boden ist ein Gitter</h3>
-      <p lang="en">Each cube is 16 by 16 cells. For walking, the game only asks: from this cell, which of my four neighbours (east, west, south, north) can I step to?</p>
-      <p lang="de">Jeder Würfel hat 16 mal 16 Zellen. Fürs Laufen fragt das Spiel nur: Von dieser Zelle aus, auf welche meiner vier Nachbarn (Osten, Westen, Süden, Norden) kann ich treten?</p>
+      <p lang="en">Each cube is 24 by 24 cells. For walking, the game only asks: from this cell, which of my four neighbours (east, west, south, north) can I step to?</p>
+      <p lang="de">Jeder Würfel hat 24 mal 24 Zellen. Fürs Laufen fragt das Spiel nur: Von dieser Zelle aus, auf welche meiner vier Nachbarn (Osten, Westen, Süden, Norden) kann ich treten?</p>
       <p lang="en">A neighbour is blocked by walls, cliffs that are too high, fences, water, and ceilings too low for your body. (A big Stunder needs more headroom than a little spider!)</p>
       <p lang="de">Ein Nachbar ist versperrt durch Wände, zu hohe Klippen, Zäune, Wasser und Decken, die zu niedrig für deinen Körper sind. (Ein großer Stunder braucht mehr Kopffreiheit als eine kleine Spinne!)</p>
       <p lang="en">A map of "who can step where" is called a <a class="w" href="words.html#graph">graph</a>.</p>
@@ -113,13 +113,15 @@
       <h3 lang="de">Der Weltbauer benutzt A*</h3>
       <p lang="en">When the builder plans the routes through a cube, a step is not just "walk": it can be a stair, a bridge, a ladder, a jump or a drop. Each <b>costs</b> a different amount, so the builder prefers walking.</p>
       <p lang="de">Wenn der Baumeister die Routen durch einen Würfel plant, ist ein Schritt nicht nur "gehen": Es kann eine Treppe sein, eine Brücke, eine Leiter, ein Sprung oder ein Fall. Jeder <b>kostet</b> unterschiedlich viel, darum geht der Baumeister lieber zu Fuß.</p>
-      <p lang="en">Two more tricks:</p>
-      <p lang="de">Zwei weitere Tricks:</p>
+      <p lang="en">Three more tricks:</p>
+      <p lang="de">Drei weitere Tricks:</p>
       <ul>
         <li lang="en">Moves already used by another route cost almost nothing. So routes <b>share</b> stairs and bridges instead of building new ones.</li>
         <li lang="de">Bewegungen, die schon eine andere Route benutzt, kosten fast nichts. So <b>teilen</b> sich Routen Treppen und Brücken, statt neue zu bauen.</li>
         <li lang="en">Every square gets a small random extra cost. So two cubes with the same shape still get different routes.</li>
         <li lang="de">Jedes Feld bekommt kleine zufällige Extrakosten. So bekommen zwei Würfel mit derselben Form trotzdem verschiedene Routen.</li>
+        <li lang="en">The guess is taken a bit bigger than it is (<code>GREED</code>). Then A* rushes towards the goal even more and looks at far fewer squares. The way it finds may be a little longer than the shortest one, but nobody notices, and a big cube is built much faster.</li>
+        <li lang="de">Die Schätzung wird etwas größer genommen, als sie ist (<code>GREED</code>). Dann stürmt A* noch mehr aufs Ziel zu und schaut sich viel weniger Felder an. Der Weg, den es findet, ist vielleicht ein bisschen länger als der kürzeste, aber das merkt niemand, und ein großer Würfel ist viel schneller gebaut.</li>
       </ul>
     </div>
   </div>
@@ -200,8 +202,8 @@
   <div class="cols wide-left">
     <pre data-code="src/cubegen/route.js#search"></pre>
     <div>
-      <p lang="en"><code>gs</code>: the cheapest cost found so far to reach each floor. <code>hfn</code>: the hunch, the distance across plus the distance down.</p>
-      <p lang="de"><code>gs</code>: die bisher billigsten Kosten, um jeden Boden zu erreichen. <code>hfn</code>: die Ahnung, die Strecke quer plus die Strecke runter.</p>
+      <p lang="en"><code>gs</code>: the cheapest cost found so far to reach each floor. <code>hfn</code>: the hunch, the distance across plus the distance down, times <code>GREED</code>.</p>
+      <p lang="de"><code>gs</code>: die bisher billigsten Kosten, um jeden Boden zu erreichen. <code>hfn</code>: die Ahnung, die Strecke quer plus die Strecke runter, mal <code>GREED</code>.</p>
       <p lang="en"><code>scratch</code> hands out the same lists for every search, wiped clean: the builder searches thousands of times, and making new lists each time would be slow.</p>
       <p lang="de"><code>scratch</code> gibt jeder Suche dieselben Listen, frisch geleert: Der Baumeister sucht tausende Male, und jedes Mal neue Listen zu machen wäre langsam.</p>
       <p lang="en"><code>open</code> is a <a class="w" href="words.html#heap">heap</a>: a to-do list that always hands you the item with the smallest number first. The game's heap is in <code>src/core/heap.js</code>, only 30 lines long. The A* in the demo uses it too.</p>

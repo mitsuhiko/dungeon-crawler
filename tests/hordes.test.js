@@ -20,6 +20,7 @@ import { enemyDrops } from '../src/core/gear/drops.js';
 import { placeProps } from '../src/render/propplace.js';
 import { themeOf } from '../src/themes/depth.js';
 import { buildCubeGeometry } from '../src/render/cubegeo.js';
+import { N } from '../src/core/constants.js';
 
 
 function clearing(seed = 123, depth = 1) {
@@ -86,7 +87,7 @@ test('local wild patches keep normal terrain, hold their crowd and survive worke
     const placed = placeProps(map, themeOf(map));
     for (const f of map.floors) if (f.hordeReserved) assert.equal(placed.blockers[f.c].length, 0);
     for (const q of placed.out) {
-      const f = map.cols[Math.floor(q.z) * 16 + Math.floor(q.x)].find(f => f.hordeReserved && Math.abs(floorY(f, .5, .5) - q.y) < .1);
+      const f = map.cols[Math.floor(q.z) * N + Math.floor(q.x)].find(f => f.hordeReserved && Math.abs(floorY(f, .5, .5) - q.y) < .1);
       if (f) assert.ok(props.byName.get(q.name).cover && !props.byName.get(q.name).blocking);
     }
     map.blockers = placed.blockers.map((list, c) => [...(map.staticBlockers?.[c] ?? []), ...list]);

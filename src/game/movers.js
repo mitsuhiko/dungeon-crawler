@@ -11,7 +11,7 @@
 import { state, setStatus } from './state.js';
 import { setMovers } from '../physics/collide.js';
 import { platformsAt, PLATFORMS } from '../core/foggery.js';
-import { LH } from '../core/constants.js';
+import { N, LH } from '../core/constants.js';
 import { sfx } from '../audio/sfx.js';
 import { tr } from '../i18n/i18n.js';
 
@@ -63,7 +63,7 @@ function sink(dt) {
     o.dx = o.dz = 0;
     let floor = -Infinity;
     for (let b = 0; b < T; b++) for (let a = 0; a < T; a++) {
-      const col = cols[(Math.floor(o.z0) + b) * 16 + Math.floor(o.x0) + a] ?? [];
+      const col = cols[(Math.floor(o.z0) + b) * N + Math.floor(o.x0) + a] ?? [];
       for (const f of col) floor = Math.max(floor, ...f.cs);
     }
     o.y1 -= SINK * dt; o.y0 = o.y1 - state.map.movers.thick; o.cs.fill(o.y1);

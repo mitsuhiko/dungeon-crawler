@@ -10,7 +10,7 @@ import { voidAllowed, isVoid } from './voids.js';
 const CHANCE = 0.45;
 
 // where a vertical portal on face fk sits (same stream as faces.js verticalFace)
-const portalAt = (world, fk) => { const R = world.wfc.rng(fk, 0xd0e); return [4 + Math.floor(R() * 8), 4 + Math.floor(R() * 8)]; };
+const portalAt = (world, fk) => { const R = world.wfc.rng(fk, 0xd0e); return [4 + Math.floor(R() * (N - 8)), 4 + Math.floor(R() * (N - 8))]; };
 
 // the fall from cube `up` into the one below it, or null (memoised: it depends on the fall
 // into `up` from above, which has to stay clear of it)

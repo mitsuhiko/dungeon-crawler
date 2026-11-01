@@ -181,7 +181,8 @@ test('tunnels: a roof over a passage two cells wide, and the way leads through m
       const m = w.cube(k).map;
       if (!m.tunnel) continue;
       tunnels++;
-      const roofs = m.floors.filter(f => f.roof);
+      // (a waterfall's hidden cave, cubegen/grotto.js, has a roof of its own)
+      const roofs = m.floors.filter(f => f.roof && !m.grotto?.cells.includes(f.c));
       assert.equal(roofs.length, 2 * m.tunnel.len, `${seed}/${d}: ${k}`);
       for (const r of roofs) {
         const below = m.cols[r.c][m.cols[r.c].indexOf(r) - 1];

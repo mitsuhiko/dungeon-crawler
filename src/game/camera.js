@@ -6,7 +6,7 @@
 // a setting). A boss's intro (game/bossintro.js) takes the camera over for a few seconds: a free
 // camera, blended over whichever view is on (setCine).
 import * as THREE from 'three';
-import { N, CUBE_H, BASE, LH } from '../core/constants.js';
+import { N, VIEW_H, BASE, LH } from '../core/constants.js';
 import { clamp } from '../core/util.js';
 import { OVERVIEW_FOV, BLEND_TIME, ANCHOR, AHEAD, closeDistance, snapYaw } from '../core/view.js';
 import { camera } from '../render/scene.js';
@@ -22,7 +22,10 @@ import { showcaseCubes } from './showcase.js';
 
 // learn: drawing.html#camera (see learn/README.md)
 const pitch = THREE.MathUtils.degToRad(44);
-const cubeCenter = new THREE.Vector3(N / 2, CUBE_H / 2 - BASE - 1.5, N / 2);
+// (the lower VIEW_H of the cube: what is in it; the empty air over it is left out of the frame)
+const cubeCenter = new THREE.Vector3(N / 2, VIEW_H / 2 - BASE - 1.5, N / 2);
+// the radius the overview fits into its view: most of that part's bounding sphere (12.5 for a cube of 16)
+const FIT = 0.9 * Math.hypot(N / 2, VIEW_H / 2, N / 2);
 const target = new THREE.Vector3(), focus = new THREE.Vector3();
 const overPos = new THREE.Vector3(), overQuat = new THREE.Quaternion();
 const closePos = new THREE.Vector3(), closeQuat = new THREE.Quaternion(), look = new THREE.Vector3();
@@ -81,7 +84,7 @@ function overview(dt = 0) {
   // distance that fits the cube's bounding sphere into the narrower field of view
   const fovV = THREE.MathUtils.degToRad(OVERVIEW_FOV);
   const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
-  const d = 12.5 / Math.sin(Math.min(fovV, fovH) / 2) * view.zoom;
+  const d = FIT / Math.sin(Math.min(fovV, fovH) / 2) * view.zoom;
   // hit kicks shove the whole view a little (scaled with the view distance; and as much as the
   // settings let the camera shake)
   const s = d * 0.03 * shakeAmount();

@@ -8,12 +8,14 @@ const cube = (x, y, z, visits = 1) => ({ key: key(x, y, z), visits, geo: [] });
 const store = list => new Map(list.map(c => [c.key, c]));
 
 test('discovery includes diagonals and distant visited cubes, never other strata or prefetches', () => {
-  const list = [cube(5, -2, -6), cube(6, -2, -5), cube(8, -2, -6), cube(3, -2, -8),
+  // (east: the farthest cube along a row whose near side is in reach)
+  const far = Math.ceil(VIEW_DISTANCE / N);
+  const list = [cube(5, -2, -6), cube(6, -2, -5), cube(5 + far, -2, -6), cube(3, -2, -8),
     cube(6, -1, -6), cube(5, -3, -6), cube(4, -2, -6, 0), cube(10, -2, -6)];
   const result = discoveredCubes(store(list), list[0].key);
   assert.deepEqual(new Set(result.map(c => c.key)), new Set([list[1].key, list[2].key, list[3].key]));
   const east = result.find(c => c.key === list[2].key);
-  assert.equal(east.dx, 3); assert.equal(east.dz, 0); assert.equal(east.geo, list[2].geo);
+  assert.equal(east.dx, far); assert.equal(east.dz, 0); assert.equal(east.geo, list[2].geo);
 });
 
 test('candidate selection covers the radius from any point in the active footprint', () => {

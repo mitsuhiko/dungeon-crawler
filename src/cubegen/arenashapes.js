@@ -6,7 +6,7 @@
 //   ramp:  overrides crisp, so terraces stay connected by slopes
 //   marks: where the type wants its focal clutter (cubegen/arenaprops.js)
 // Scenery is never walkable from the zone: guardian.js raises it into walls or rails it off.
-import { N, LH, HEAD_Y } from '../core/constants.js';
+import { N, LH, HEAD_Y, count16 } from '../core/constants.js';
 import { idx, clamp } from '../core/util.js';
 
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -290,7 +290,7 @@ export const ARENA_TYPES = Object.keys(SHAPES);
 // higher is never deeper in it than a body can wade, the flats drown. There are `hills` hills,
 // at least `peaks`; from every floor of the flats wadeable ground is at most `reach` steps away
 // (another hill grows where it is not, or a low knoll where no hill fits), so a player who runs when he calls the tide gets out.
-export const TIDAL = { low: -3, top: 1, safe: -1, reach: 4, rest: 0.8, high: -0.45, hills: 5, peaks: 4 };
+export const TIDAL = { low: -3, top: 1, safe: -1, reach: 3, rest: 0.8, high: -0.45, hills: count16(5), peaks: count16(4) };
 const DIAG = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
 function tidal(fr) {
   const { R, noise } = fr, hills = [];
@@ -364,7 +364,7 @@ function tidal(fr) {
   shape();
   // the flats too far from ground a body can wade: a hill grows near the farthest (or a knoll
   // there, where none fits), until none is
-  for (let pass = 0; pass < 16; pass++) {
+  for (let pass = 0; pass < count16(16); pass++) {
     const far = stepsUp(s);
     if (!far) break;
     if (!addHill(far)) knolls.push(idx(...far));
@@ -453,7 +453,7 @@ function bowl(fr) {
 // side when the world tips, deep there, so the islands are spread over the basin (`apart`): wherever
 // it tips, there is dry ground on the high side. The basin stays wide and flat: room for a big body to
 // walk and land on.
-export const MIRE = { low: -2, mud: 0.6, islands: 4, r: [1, 1.5], apart: 4.5, clear: 3 };
+export const MIRE = { low: -2, mud: 0.6, islands: count16(4), r: [1, 1.5], apart: 4.5, clear: 3 };
 function mire(fr) {
   const { R } = fr, s = blank(), islands = [];
   const bank = (x, z) => x === 1 || z === 1 || x === N - 2 || z === N - 2;

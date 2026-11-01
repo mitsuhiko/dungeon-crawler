@@ -376,19 +376,34 @@ function restoreState(s) {
 // its reach a light gives less than a fortieth of what it gives at a unit.) A light left without
 // one takes the shadow of one next to it (TWIN: the lanterns on a string), else none (-1).
 // twin: the light whose shadow it shares (not baked itself).
-const REACH = 0.85, TWIN = 1.2;
+// Lights in a group (GROUP units round the brightest of them: a lamp's twin flames, the braziers
+// by a door, a cluster of glowing eggs) share one shadow from the first of them, baked as far as the
+// farthest of them reaches (`reach`): one bake step for the lot. A cube of 24 cells has about 43
+// lights, 22 such groups (a cube of 16 had 18 lights).
+const REACH = 0.85, TWIN = 1.2, GROUP = 2.5;
 // learn: light.html#pots #pots-code (see learn/README.md)
 function assignChannels(lights) {
   const order = [...lights].sort((a, b) => peak(b.light) * b.light.distance ** 2 - peak(a.light) * a.light.distance ** 2);
-  for (const s of order) { s.channel = -1; s.twin = null; }
+  for (const s of order) { s.channel = -1; s.twin = null; s.reach = s.light.distance || 6; }
+  // the groups: each light not yet in one leads one of the lights round it
+  const leads = [];
   for (const s of order) {
+    if (s.twin) continue;
+    leads.push(s);
+    for (const t of order) if (t !== s && !t.twin && !leads.includes(t) && t.at.distanceTo(s.at) < GROUP) {
+      t.twin = s; s.reach = Math.max(s.reach, t.at.distanceTo(s.at) + (t.light.distance || 6));
+    }
+  }
+  for (const s of leads) {
     const taken = new Set();
-    for (const t of order) if (t !== s && t.channel > 0 && !t.twin && t.at.distanceTo(s.at) < (s.light.distance + t.light.distance) * REACH) taken.add(t.channel);
+    for (const t of leads) if (t !== s && t.channel > 0 && !t.twin && t.at.distanceTo(s.at) < (s.reach + t.reach) * REACH) taken.add(t.channel);
     for (let c = 1; c <= CHANNELS; c++) if (!taken.has(c)) { s.channel = c; break; }
     if (s.channel > 0) continue;
-    const near = order.filter(t => t.channel > 0 && !t.twin && t.at.distanceTo(s.at) < TWIN).sort((a, b) => a.at.distanceTo(s.at) - b.at.distanceTo(s.at))[0];
-    if (near) { s.channel = near.channel; s.twin = near; }
+    const near = leads.filter(t => t.channel > 0 && !t.twin && t.at.distanceTo(s.at) < TWIN).sort((a, b) => a.at.distanceTo(s.at) - b.at.distanceTo(s.at))[0];
+    if (near) { s.channel = near.channel; s.twin = near; near.reach = Math.max(near.reach, near.at.distanceTo(s.at) + s.reach); }
   }
+  // (the group's lights take their lead's channel, or none)
+  for (const s of order) if (s.twin && !leads.includes(s)) s.channel = s.twin.channel;
 }
 
 // a stand-in of a mesh (same geometry and material, where it is now) for the bake's own scenes
@@ -702,7 +717,7 @@ function* bakeSteps(bake) {
     const pu = S.point.uniforms, vu = S.vol.uniforms;
     for (const s of bake.lights) {
       if (s.channel < 0 || s.twin) continue;
-      const at = s.at.clone().add(origin), reach = s.light.distance || 6;
+      const at = s.at.clone().add(origin), reach = s.reach;
       S.light.position.copy(at); S.light.distance = reach; S.light.updateMatrixWorld();
       shadowPass(S.light, scenes.casters);
       const cube = S.light.shadow.map.depthTexture, mask = MASKS[s.channel % 4], set = s.channel >> 2;

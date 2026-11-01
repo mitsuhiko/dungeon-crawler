@@ -26,9 +26,10 @@
 // its own cube's lights (render/bake.js bakeMaterials), also while another cube is the one played
 // in; everything else (the hero, enemies, loot) the cube played in.
 import * as THREE from 'three';
+import { N } from '../core/constants.js';
 
 // learn: light.html#kinds (see learn/README.md)
-export const MAX_BAKED = 128;  // fixed lights a cube gives off at most
+export const MAX_BAKED = 256;  // fixed lights a cube gives off at most
 // learn: light.html#kinds (see learn/README.md)
 export const MAX_MOVING = 64;  // moving lights shining at once at most (render/lightpool.js)
 // learn: light.html#pots (see learn/README.md)
@@ -38,7 +39,7 @@ export const SETS = 3;         // the lightmap's (and volume's) textures, four c
 // reach it, the strongest first, CELL_MAX at most (uBakeK: how many of them a point takes, fewer
 // on the lower quality levels, eased between them). A dark forest's cube has 40-50 lights, a point is reached by a dozen.
 // learn: light.html#cells (see learn/README.md)
-export const CELLS = 20, CELL0 = -2, CELL_MAX = 16;
+export const CELLS = N + 4, CELL0 = -2, CELL_MAX = 16;
 // The edge rule of every shadow: as sharp as a pixel, but never sharper than EDGE world units
 // (about what the realtime map of what moves shows: two of its texels), so the baked shadows on
 // the solids (uBakeEdge, in their distances), on everything else (bakeSunAt) and the figures'
@@ -100,7 +101,7 @@ export const bakeTexture = () => tableTexture(BAKE_W, BAKE_ROWS, new Float32Arra
 // reach; r, g, b as bright as it is; how bright on the surroundings, how bright in the cube played
 // in, 0, 0), and in the last row, FAR_MOVE, the moving lights, two texels each (x, y, z in the
 // world, reach; r, g, b, 0).
-export const FAR_MAX = 512, FAR_CELL = 2, FAR_CELLS = 48, FAR_K = 12;
+export const FAR_MAX = 1024, FAR_CELL = 2, FAR_CELLS = 48, FAR_K = 12;
 export const FAR_W = FAR_CELLS * FAR_K / 4, FAR_TABLE = FAR_CELLS * 2, FAR_MOVE = FAR_TABLE + Math.ceil(FAR_MAX * 3 / FAR_W), FAR_ROWS = FAR_MOVE + 1;
 if (MAX_MOVING * 2 > FAR_W) throw Error('lighthook: the moving lights take more than a row');
 const farTexture = () => tableTexture(FAR_W, FAR_ROWS, new Float32Array(FAR_W * FAR_ROWS * 4).fill(-1, 0, FAR_W * FAR_TABLE * 4));

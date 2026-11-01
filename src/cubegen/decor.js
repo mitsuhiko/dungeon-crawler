@@ -4,6 +4,7 @@
 // way into the next cube). Nor a bridge low over ground the character gets to: two levels under
 // its deck the body does not fit (cubegen/reach.js isCramped), and that ground may be a way on
 // (out of a water onto its only bank).
+import { count16 } from '../core/constants.js';
 import { reachFrom } from './reach.js';
 
 export function addDecor(ctx, canPlace, place) {
@@ -18,7 +19,8 @@ export function addDecor(ctx, canPlace, place) {
   };
   // (nor onto a trial's own ground, cubegen/trials/: the flood's summit is climbed by its ramp)
   const off = f => !f.landing && (ctx.ramp?.has(f.c) || ctx.peakTop?.has(f.c) || (ctx.spec.area && ctx.border(f)) || ctx.trialKeep?.has(f.c));
-  let ds = ri(1, 3), db = ri(0, 2), tries = 0;
+  // (as many more as the room is bigger than one of 16 cells)
+  let ds = ri(count16(1), count16(3)), db = ri(0, count16(2)), tries = 0;
   while ((ds > 0 || db > 0) && tries++ < 300) {
     const f = floors[ri(0, floors.length - 1)];
     if (f.fluid || f.prot) continue;

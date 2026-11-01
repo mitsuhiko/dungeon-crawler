@@ -6,7 +6,7 @@
 // onto the road (depth 0's route starts there, world/layout.js). Every tile has a plan of its own
 // (TILES: what stands where, in the tile's own frame), turned with the gate: a tile's local z = 0
 // side faces the gate's side of the town, local +x the next tile across.
-import { N, LH, CHAR_R, CHAR_H, DIRS, OPP, EDGE_CORNERS, WATER, MUD } from '../core/constants.js';
+import { N, LH, CHAR_R, CHAR_H, DIRS, OPP, EDGE_CORNERS, WATER, MUD, at16, count16, ROOM_SCALE } from '../core/constants.js';
 import { mulberry32, hash32 } from '../core/util.js';
 import { propMetadata, CLUTTER } from '../core/propcatalog.js';
 import { floorY } from '../core/surfaces.js';
@@ -16,6 +16,13 @@ import { makeLand, INN_STAIR, WALL, MUD_POCKETS } from './townland.js';
 import { createContext } from '../cubegen/context.js';
 import { smooth } from '../cubegen/smooth.js';
 import { shapeStructures } from '../cubegen/shape.js';
+
+// The town was laid out on tiles of 16 cells: a place in a tile given in those cells is u16(v) in a
+// tile of this world's (core/constants.js at16), so what stands there stands as far apart as the
+// tile has grown (the things themselves keep their size)
+const u16 = at16;
+// (... and a line on the grid: through the middle of a cell, or along its edge, as it was)
+const grid16 = v => Math.floor(at16(v)) + v % 1;
 
 export const TOWN_LEVEL = 4;
 export const TOWN_ACROSS = 3, TOWN_DEEP = 4;
@@ -27,7 +34,7 @@ export const townExit = seed => (seed >>> 0) % 4;
 // tile-local +x in the world for each exit (the next tile across)
 const ACROSS = [[0, 1], [0, -1], [-1, 0], [1, 0]];
 const exitYaw = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
-export const townExitPosition = d => d === 0 || d === 3 ? 8 : 7;
+export const townExitPosition = d => d === 0 || d === 3 ? Math.floor(STREET) : N - 1 - Math.floor(STREET);
 
 // The town of a world (seed): { exit, tiles: key -> { i, j }, at(i, j) -> key, keys, gate, start,
 // portal, houses: building name -> its tile's key }
@@ -81,7 +88,7 @@ export function rotateTownPoint(x, z, yaw) {
 // Buildings without parts collide with their whole bounds.
 export const BUILDINGS = [
   // the inn, west of the street in the tile a new world starts in, its door to the street
-  { name: 'town_inn_a', tile: [1, 2], x: 4.2, z: 8.22, yaw: Math.PI / 2, bounds: [-2.310, -1.764, 2.074, 2.459], height: 4.790,
+  { name: 'town_inn_a', tile: [1, 2], x: u16(4.2), z: u16(8.22), yaw: Math.PI / 2, bounds: [-2.310, -1.764, 2.074, 2.459], height: 4.790,
     door: { x: -.28, z: 1.6, w: .8 }, body: { x: 0, w: 3.55, d: 2.9 }, upper: 'gallery',
     parts: [
       { box: [-1.84, -1.52, 1.84, 1.6], top: 4.79 },
@@ -91,9 +98,9 @@ export const BUILDINGS = [
       { box: [-1.1, 1.27, .54, 2.38], bottom: 1.6, top: 2.1, solid: false },   // porch roof
     ] },
   // the stable, west of the plaza, its horses facing the lane
-  { name: 'town_stable_a', tile: [0, 1], x: 7.0, z: 6.0, yaw: 0, bounds: [-2.440, -1.564, 2.224, 2.142], height: 3.293 },
+  { name: 'town_stable_a', tile: [0, 1], x: u16(7.0), z: u16(6.0), yaw: 0, bounds: [-2.440, -1.564, 2.224, 2.142], height: 3.293 },
   // the smithy, east of the plaza
-  { name: 'town_blacksmith_a', tile: [2, 1], x: 8.0, z: 6.0, yaw: 0, bounds: [-2.446, -1.564, 2.578, 1.731], height: 3.376,
+  { name: 'town_blacksmith_a', tile: [2, 1], x: u16(8.0), z: u16(6.0), yaw: 0, bounds: [-2.446, -1.564, 2.578, 1.731], height: 3.376,
     door: { x: -1.3, z: 1.42, w: .65 }, body: { x: -.75, w: 2.5, d: 2.5 }, upper: 'loft',
     parts: [
       { box: [-2.07, -1.32, .57, 1.42], top: 3.38 },
@@ -106,7 +113,7 @@ export const BUILDINGS = [
       { box: [.5, -1.32, 2.6, .4], bottom: 1.6, top: 2.05, solid: false },     // lean-to roof
     ] },
   // the pet shop, east of the inn, its door to the street
-  { name: 'town_pet_shop_a', tile: [2, 2], x: 8.0, z: 7.53, yaw: -Math.PI / 2, bounds: [-1.771, -1.489, 2.494, 2.122], height: 3.333,
+  { name: 'town_pet_shop_a', tile: [2, 2], x: u16(8.0), z: grid16(7) + .53, yaw: -Math.PI / 2, bounds: [-1.771, -1.489, 2.494, 2.122], height: 3.333,
     door: { x: -.53, z: 1.33, w: .63 }, body: { x: 0, w: 2.6, d: 2.35 }, upper: 'loft',
     parts: [
       { box: [-1.36, -1.24, 1.36, 1.33], top: 3.33 },
@@ -121,9 +128,9 @@ export const BUILDINGS = [
 ];
 // The market: the three tents along the street inside the gate
 export const MERCHANTS = [
-  { name: 'town_merchant_a', tile: [1, 0], x: 4.0, z: 11.2, yaw: Math.PI / 2, bounds: [-1.551, -1.276, 1.786, 1.628], height: 2.630 },
-  { name: 'town_merchant_b', tile: [1, 0], x: 12.0, z: 8.0, yaw: -Math.PI / 2, bounds: [-1.701, -1.276, 1.612, 1.644], height: 2.697 },
-  { name: 'town_merchant_c', tile: [1, 0], x: 4.35, z: 6.2, yaw: Math.PI / 2, bounds: [-1.671, -1.276, 1.801, 1.637], height: 2.757 },
+  { name: 'town_merchant_a', tile: [1, 0], x: u16(4.0), z: u16(11.2), yaw: Math.PI / 2, bounds: [-1.551, -1.276, 1.786, 1.628], height: 2.630 },
+  { name: 'town_merchant_b', tile: [1, 0], x: u16(12.0), z: u16(8.0), yaw: -Math.PI / 2, bounds: [-1.701, -1.276, 1.612, 1.644], height: 2.697 },
+  { name: 'town_merchant_c', tile: [1, 0], x: u16(4.35), z: u16(6.2), yaw: Math.PI / 2, bounds: [-1.671, -1.276, 1.801, 1.637], height: 2.757 },
 ];
 // how far a home's terrace reaches round it (world/townland.js: kept at its level)
 const TERRACE = .55;
@@ -580,7 +587,8 @@ function tilePlan(exit, seed, { buildings = [], homes = [], gates = [], relics =
       }
       if (water.some(c => boxDistance(box, c % N + .5, Math.floor(c / N) + .5) < .75)) continue;
       if (spawn && boxDistance(box, sx, sz) < 1.4) continue;
-      if (plan.portal && boxDistance(box, plan.portal.x, plan.portal.z) < 1.2) continue;
+      // (as the generator's check looks: cubegen/town.js, a box grown by the margin)
+      if (plan.portal && containsXZ({ shape: 'box', ...box }, plan.portal.x, plan.portal.z, 1.2)) continue;
       if (Object.values(plan.relics).some(q => boxDistance(box, q.x, q.z) < (q.r ?? .9))) continue;
       if (m.blocking && keepOut().some(q => boxDistance(box, q.x, q.z) < q.r)) continue;
       const [under, hi] = underBox(box), lo = Math.min(under, groundAt(x, z));
@@ -732,7 +740,7 @@ const draw = (R, list) => {
 // The ground cover, after everything else: what grows where it is (the land's: the shores, the
 // forest's floor, the hill, the hollow, the meadow; the town's own along its walls and ways). In
 // patches (the land's `patch`): thick here, the grass bare there, never sprinkled evenly.
-const COVER = 120;
+const COVER = Math.round(120 * ROOM_SCALE);   // (as many more as the tile is wider, not as much bigger: what it costs to draw)
 function groundCover({ put, land, G, R }, scale = 1) {
   const count = Math.round(COVER * scale * CLUTTER);
   for (let placed = 0, tries = 0; placed < count && tries < count * 12; tries++) {
@@ -1297,12 +1305,14 @@ function dell(t, traders) {
   // its pool of mud: world/townland.js MUD_POCKETS)
   const h = t.land.hollow, most = h.kind === 'quarry' ? MUD_POCKETS.quarry : h.mire ? MUD_POCKETS.mire : 0;
   if (most) {
+    // (on a stream of their own: what else stands in the tile, as big as it is, leaves them be)
+    const P = mulberry32(hash32(t.land.seed ^ 0x6d0d));
     const [cx, cz] = t.L(h.x, h.z), { r: [r0, r1], deep: [d0, d1] } = MUD_POCKETS;
-    for (let k = 1 + Math.floor(R() * most); k > 0; k--) {
-      const r = r0 + R() * (r1 - r0), deep = d0 + R() * (d1 - d0);
+    for (let k = 1 + Math.floor(P() * most); k > 0; k--) {
+      const r = r0 + P() * (r1 - r0), deep = d0 + P() * (d1 - d0);
       // (on its floor, round the camp in its middle)
       t.pocket(Array.from({ length: 40 }, () => {
-        const a = R() * Math.PI * 2, d = Math.min(1.3 + R() * (h.r0 - r - 1.5), h.r0 - r - .2);
+        const a = P() * Math.PI * 2, d = Math.min(1.3 + P() * (h.r0 - r - 1.5), h.r0 - r - .2);
         return [cx + Math.cos(a) * d, cz + Math.sin(a) * d];
       }), r, deep);
     }
@@ -1369,16 +1379,17 @@ function woodsScene(t) {
 // The streets (town-local, in every tile alike, so they meet at the seams): the main street runs
 // from the gate straight back along the middle column (x = STREET) to the green; the lanes cross
 // the plaza's row (z = LANE_1) and the inn's (z = LANE_2) to the houses either side.
-export const STREET = 8.5, LANE_1 = 10.5, LANE_2 = 7;
+export const STREET = grid16(8.5), LANE_1 = grid16(10.5), LANE_2 = grid16(7);
 // Where the town end of a town portal stands (town-local, in the plaza's tile: PORTAL_TILE): west
 // of the street, across from the crash. Nothing is put on it.
-export const TOWN_PORTAL_SPOT = [4.5, 6.0];
+export const TOWN_PORTAL_SPOT = [u16(4.5), u16(6.0)];
 // Where the beginning's things lie (town-local, in the plaza's tile; core/intro.js, docs/story.md
 // "The beginning"): the glassmaker's big glass came down here and burst (render/shards.js: the
 // shards round a scorched patch, the crater); thrown out at its rim, the robot asleep in the grass
 // (core/robot.js) and his old sword stuck in the ground beside it, both off the street (walking
 // along it takes neither). Nothing is put on them.
-export const CRASH = [12.2, 5.6], CRASH_ROBOT = [11.0, 7.6], CRASH_SWORD = [12.5, 8.0];
+// (the robot and the sword at the crater's rim, as far from it as in a tile of 16 cells)
+export const CRASH = [u16(12.2), u16(5.6)], CRASH_ROBOT = [CRASH[0] - 1.2, CRASH[1] + 2], CRASH_SWORD = [CRASH[0] + .3, CRASH[1] + 2.4];
 // the house a new hero comes out of as the world comes up (game/intro.js): the inn
 export const WAKE_HOUSE = 'town_inn_a';
 
@@ -1396,42 +1407,42 @@ const TILES = [
       if (dell_) dell(t, false);
       // fruit trees: in rows, or about the hollow's rim and the meadow
       const rows = !dell_ && R() < .6, trees = [];
-      if (rows) for (let z = 3.5; z < 14; z += 3.2) for (let x = 3 + (R() < .5 ? 0 : 1.2); x < 14; x += 3.2) trees.push([x + (R() - .5) * .4, z + (R() - .5) * .4]);
-      else for (let k = 0; k < 18; k++) trees.push([2 + R() * 12, 2 + R() * 12]);
+      if (rows) for (let z = 3.5; z < N - 2; z += 3.2) for (let x = 3 + (R() < .5 ? 0 : 1.2); x < N - 2; x += 3.2) trees.push([x + (R() - .5) * .4, z + (R() - .5) * .4]);
+      else for (let k = 0; k < count16(18); k++) trees.push([2 + R() * (N - 4), 2 + R() * (N - 4)]);
       for (const [x, z] of trees) put(variant(R, R() < .7 ? 'meadow_tree_round' : 'meadow_tree_tall'), near(x, z, .5), { s: 1.1 + R() * .3 });
-      const [cx, cz] = dell_ ? L(dell_.x + (dell_.x < 8 ? 6 : -6), dell_.z) : [8, 8];
+      const [cx, cz] = dell_ ? L(dell_.x + (dell_.x < u16(8) ? u16(6) : -u16(6)), dell_.z) : [u16(8), u16(8)];
       put(variant(R, 'town_hay_bales'), near(cx, cz, 2));
-      put('town_scarecrow_a', [...near(cx + 2, cz + 1, 2), ...near(5, 6, 3)], { yaw: R() * Math.PI * 2 });
-      piece('town_beehives_a', [...near(3, 3, 2), ...near(13, 13, 2)]);
-      put(variant(R, 'mines_wheelbarrow'), [...near(7.5, 12.5, 2), ...near(12, 4, 2)], { yaw: R() * Math.PI });
-      group([[12.8, 8.5], [3, 12]], ['mines_crate_a', 'mines_sacks_a', 'mines_barrel_b', 'mines_sacks_b'], .8);
-      put(variant(R, 'meadow_stump'), near(3, 8, 2));
-      put(variant(R, 'town_handcart'), near(10, 13, 2), { yaw: R() * Math.PI * 2, s: .85 });
+      put('town_scarecrow_a', [...near(cx + 2, cz + 1, 2), ...near(u16(5), u16(6), 3)], { yaw: R() * Math.PI * 2 });
+      piece('town_beehives_a', [...near(u16(3), u16(3), 2), ...near(u16(13), u16(13), 2)]);
+      put(variant(R, 'mines_wheelbarrow'), [...near(u16(7.5), u16(12.5), 2), ...near(u16(12), u16(4), 2)], { yaw: R() * Math.PI });
+      group([[u16(12.8), u16(8.5)], [u16(3), u16(12)]], ['mines_crate_a', 'mines_sacks_a', 'mines_barrel_b', 'mines_sacks_b'], .8);
+      put(variant(R, 'meadow_stump'), near(u16(3), u16(8), 2));
+      put(variant(R, 'town_handcart'), near(u16(10), u16(13), 2), { yaw: R() * Math.PI * 2, s: .85 });
     } },
-    { name: 'market', gates: [[STREET, .9]], keep: [[STREET, 1.5, 2.5], [STREET, 3.5, 3.2]], ways({ path, plan }) {
+    { name: 'market', gates: [[STREET, u16(.9)]], keep: [[STREET, u16(1.5), 2.5], [STREET, u16(3.5), 3.2]], ways({ path, plan }) {
       path([[STREET, 0], [STREET, N]]);
-      leadTo(plan, path, 0, [[STREET, 11.2]]);
-      leadTo(plan, path, 1, [[STREET, 8]]);
-      leadTo(plan, path, 2, [[STREET, 6.2]]);
+      leadTo(plan, path, 0, [[STREET, u16(11.2)]]);
+      leadTo(plan, path, 1, [[STREET, u16(8)]]);
+      leadTo(plan, path, 2, [[STREET, u16(6.2)]]);
     }, dress(t) {
       const { put, piece, group, R } = t;
       // a waymark outside the gate, lamps where the traders set up, stalls along the street
-      put('relics_signpost_b', [[7.0, 1.2], [10.0, 1.4]], { yaw: Math.PI / 2 - .2, s: 1 });
-      lamps(put, [['town_street_lamp_a', [[7.0, 9.4], [6.8, 8.8]]], ['town_street_lamp_a', [[10.0, 6.0], [10.2, 5.2]]],
-        ['town_street_lamp_b', [[9.9, 13.2], [7.1, 13.0]]], ['town_street_lamp_b', [[7.0, 5.0], [10.0, 5.2]]],
-        ['town_street_lamp_a', [[7.2, 1.6], [9.8, 1.8]]]]);
-      for (const [x, z, q] of [[10.6, 4.6, 3], [10.8, 12.6, 3], [6.3, 8.4, 1], [6.2, 14.4, 1]].sort(() => R() - .5).slice(0, 3))
+      put('relics_signpost_b', [[u16(7.0), u16(1.2)], [u16(10.0), u16(1.4)]], { yaw: Math.PI / 2 - .2, s: 1 });
+      lamps(put, [['town_street_lamp_a', [[u16(7.0), u16(9.4)], [u16(6.8), u16(8.8)]]], ['town_street_lamp_a', [[u16(10.0), u16(6.0)], [u16(10.2), u16(5.2)]]],
+        ['town_street_lamp_b', [[u16(9.9), u16(13.2)], [u16(7.1), u16(13.0)]]], ['town_street_lamp_b', [[u16(7.0), u16(5.0)], [u16(10.0), u16(5.2)]]],
+        ['town_street_lamp_a', [[u16(7.2), u16(1.6)], [u16(9.8), u16(1.8)]]]]);
+      for (const [x, z, q] of [[u16(10.6), u16(4.6), 3], [u16(10.8), u16(12.6), 3], [u16(6.3), u16(8.4), 1], [u16(6.2), u16(14.4), 1]].sort(() => R() - .5).slice(0, 3))
         piece(variant(R, 'town_market_stall'), [[x, z, q], ...near(x, z, .75).map(([a, b]) => [a, b, q])]);
       // garlands across the street, from pole to pole, zigzag up it
-      garlands(t, [[9.9, 5.6], [7.1, 7.9], [9.9, 10.3], [7.1, 12.6], [9.9, 14.8]]);
-      put(variant(R, 'town_handcart'), [...near(3.4, 13.4, 1), ...near(2.4, 6.4, 1)], { yaw: R() * Math.PI * 2, s: .85 });
-      for (const [x, z] of [[6.2, 10.4], [10.6, 7.3], [6.4, 4.6], [10.4, 11.8]]) put(variant(R, 'town_flower_pots'), near(x, z, .5), { s: .9 + R() * .2 });
-      group([[2.6, 9.4], [2.8, 10.2]], ['mines_barrel_a', 'mines_barrel_b', 'mines_crate_a'], .7);
-      group([[13.6, 6.2], [13.4, 9.6]], ['mines_crate_b', 'mines_crate_a', 'mines_barrel_a', 'mines_sacks_a'], .8);
-      group([[13.2, 12.2], [2.4, 5.4]], ['mines_sacks_b', 'mines_crate_a', 'mines_barrel_b'], .8);
-      put('mines_wheelbarrow_b', [[10.6, 13.0], [11.6, 12.6]], { yaw: .9 });
-      put('relics_abandoned_pack_a', [[11.6, 4.2], [13.0, 4.0]]);
-      put(variant(R, 'town_hay_bales'), [...near(12.6, 5.2, 1.5), ...near(2.6, 5.2, 1.5)]);
+      garlands(t, [[u16(9.9), u16(5.6)], [u16(7.1), u16(7.9)], [u16(9.9), u16(10.3)], [u16(7.1), u16(12.6)], [u16(9.9), u16(14.8)]]);
+      put(variant(R, 'town_handcart'), [...near(u16(3.4), u16(13.4), 1), ...near(u16(2.4), u16(6.4), 1)], { yaw: R() * Math.PI * 2, s: .85 });
+      for (const [x, z] of [[u16(6.2), u16(10.4)], [u16(10.6), u16(7.3)], [u16(6.4), u16(4.6)], [u16(10.4), u16(11.8)]]) put(variant(R, 'town_flower_pots'), near(x, z, .5), { s: .9 + R() * .2 });
+      group([[u16(2.6), u16(9.4)], [u16(2.8), u16(10.2)]], ['mines_barrel_a', 'mines_barrel_b', 'mines_crate_a'], .7);
+      group([[u16(13.6), u16(6.2)], [u16(13.4), u16(9.6)]], ['mines_crate_b', 'mines_crate_a', 'mines_barrel_a', 'mines_sacks_a'], .8);
+      group([[u16(13.2), u16(12.2)], [u16(2.4), u16(5.4)]], ['mines_sacks_b', 'mines_crate_a', 'mines_barrel_b'], .8);
+      put('mines_wheelbarrow_b', [[u16(10.6), u16(13.0)], [u16(11.6), u16(12.6)]], { yaw: .9 });
+      put('relics_abandoned_pack_a', [[u16(11.6), u16(4.2)], [u16(13.0), u16(4.0)]]);
+      put(variant(R, 'town_hay_bales'), [...near(u16(12.6), u16(5.2), 1.5), ...near(u16(2.6), u16(5.2), 1.5)]);
     } },
     { name: 'camp', rural: true, dress(t) {
       const { put, group, here, R } = t;
@@ -1439,7 +1450,7 @@ const TILES = [
       // lies here, with their tent)
       if (here(t.land.hollow)) dell(t, true);
       else {
-        const fire = put('relics_old_campfire_b', [...near(8, 7, 1.5), ...near(8, 7, 5)], { s: 1 });
+        const fire = put('relics_old_campfire_b', [...near(u16(8), u16(7), 1.5), ...near(u16(8), u16(7), 5)], { s: 1 });
         if (fire) {
           const [fx, fz] = rotateTownPoint(fire.x, fire.z, -t.plan.yaw);
           [[-1.0, .25], [.75, -.75], [.55, .9]].forEach(([dx, dz]) =>
@@ -1447,32 +1458,32 @@ const TILES = [
           put('town_woodpile_a', [[fx + 1.6, fz + .4], [fx - .4, fz + 1.7], [fx + 1.5, fz - 1.2]], { yaw: R() * Math.PI });
           put(variant(R, 'mines_lantern'), [[fx - 1.4, fz - 1.2], [fx + 1.2, fz + 1.6]], { s: .9 });
         }
-        put(variant(R, 'town_hay_bales'), near(11.5, 11.5, 2));
+        put(variant(R, 'town_hay_bales'), near(u16(11.5), u16(11.5), 2));
       }
-      put('relics_abandoned_pack_b', near(6, 5, 2));
-      group([[5, 11], [11, 4.5]], ['mines_sacks_b', 'mines_crate_b', 'mines_barrel_b', 'mines_sacks_a'], .7);
-      put('mines_plank_stack_b', [...near(11.5, 4.5, 1.5), ...near(4, 12, 2)], { yaw: .3 });
-      lamps(put, [['town_street_lamp_a', near(4.5, 7.5, 1.5)]]);
+      put('relics_abandoned_pack_b', near(u16(6), u16(5), 2));
+      group([[u16(5), u16(11)], [u16(11), u16(4.5)]], ['mines_sacks_b', 'mines_crate_b', 'mines_barrel_b', 'mines_sacks_a'], .7);
+      put('mines_plank_stack_b', [...near(u16(11.5), u16(4.5), 1.5), ...near(u16(4), u16(12), 2)], { yaw: .3 });
+      lamps(put, [['town_street_lamp_a', near(u16(4.5), u16(7.5), 1.5)]]);
     } },
   ],
   // the plaza's row: the stable, the plaza with the crash, the smithy
   [
     { name: 'stable', ways({ path, plan }) {
-      leadTo(plan, path, 0, [[N, LANE_1], [7, LANE_1]]);
+      leadTo(plan, path, 0, [[N, LANE_1], [u16(7), LANE_1]]);
     }, dress({ put, piece, group, R }) {
-      put(variant(R, 'town_hay_bales'), near(11.2, 5.0, 1.2));
-      put(variant(R, 'town_hay_bales'), [...near(3, 12.6, 1.5), ...near(12.6, 13.4, 1.5)]);
-      piece('town_trough_a', [...near(10.6, 8.2, 1), ...near(3.2, 8.6, 1)], { turn: 0 });
-      group([[11.4, 7.0]], ['mines_sacks_a', 'mines_sacks_b', 'mines_crate_a'], .7);
-      group([[2.6, 4]], ['mines_barrel_a', 'mines_sacks_b', 'mines_crate_b'], .8);
-      put('mines_wheelbarrow_a', near(3.5, 9.5, 1), { yaw: -.6 });
-      put(variant(R, 'town_handcart'), near(10.5, 13.2, 1), { yaw: Math.PI / 2 + R() * .4 - .2, s: .85 });
-      put('town_woodpile_a', [...near(12.4, 2.4, 1.2), ...near(2.4, 1.8, 1.2)], { yaw: R() * Math.PI });
-      for (const u of [3.2, 5.3]) piece('town_fence_a', [[u, 9.2, 0], [u, 9.4, 0]]);
-      lamps(put, [['town_street_lamp_a', near(12.5, 11.6, .75)]]);
+      put(variant(R, 'town_hay_bales'), near(u16(11.2), u16(5.0), 1.2));
+      put(variant(R, 'town_hay_bales'), [...near(u16(3), u16(12.6), 1.5), ...near(u16(12.6), u16(13.4), 1.5)]);
+      piece('town_trough_a', [...near(u16(10.6), u16(8.2), 1), ...near(u16(3.2), u16(8.6), 1)], { turn: 0 });
+      group([[u16(11.4), u16(7.0)]], ['mines_sacks_a', 'mines_sacks_b', 'mines_crate_a'], .7);
+      group([[u16(2.6), u16(4)]], ['mines_barrel_a', 'mines_sacks_b', 'mines_crate_b'], .8);
+      put('mines_wheelbarrow_a', near(u16(3.5), u16(9.5), 1), { yaw: -.6 });
+      put(variant(R, 'town_handcart'), near(u16(10.5), u16(13.2), 1), { yaw: Math.PI / 2 + R() * .4 - .2, s: .85 });
+      put('town_woodpile_a', [...near(u16(12.4), u16(2.4), 1.2), ...near(u16(2.4), u16(1.8), 1.2)], { yaw: R() * Math.PI });
+      for (const fx of [u16(3.2), u16(5.3)]) piece('town_fence_a', [[fx, u16(9.2), 0], [fx, u16(9.4), 0]]);
+      lamps(put, [['town_street_lamp_a', near(u16(12.5), u16(11.6), .75)]]);
     } },
     { name: 'plaza', relics: { shards: CRASH, robot: CRASH_ROBOT, sword: CRASH_SWORD }, portal: true,
-      keep: [[5.2, 8.6, 1.2], [14.4, 9.6, 1.1], [6.4, 3.2, 1.6]], ways({ path }) {
+      keep: [[u16(5.2), u16(8.6), 1.2], [u16(14.4), u16(9.6), 1.1], [u16(6.4), u16(3.2), 1.6]], ways({ path }) {
         // the street up to the lane and on over the water (its bridge, world/townland.js)
         path([[STREET, 0], [STREET, N]]);
         path([[0, LANE_1], [N, LANE_1]], LANE_WIDTH);
@@ -1480,28 +1491,28 @@ const TILES = [
         const { put, piece, R } = t;
         // the plaza: benches and the notice board round it, lamps along the street, flower beds,
         // garlands over the street
-        facing(put, 'town_bench_a', near(5.2, 8.6, 1), [STREET, LANE_1]);
-        facing(put, 'town_bench_b', near(14.4, 9.6, 1), [STREET, LANE_1]);
-        facing(put, 'town_notice_board_a', near(6.4, 3.2, 1.2), [STREET, 4]);
-        lamps(put, [['town_street_lamp_a', near(9.6, 2.4, .75)], ['town_street_lamp_b', near(7.3, 9.4, .75)],
-          ['town_street_lamp_a', near(9.7, 11.2, .75)], ['town_street_lamp_b', near(9.8, 6.4, .75)], ['town_street_lamp_a', near(7.2, 13.4, .75)]]);
-        for (const [x, z] of [[2.6, 9.2], [13.6, 11.4], [6.2, 8.4], [2.4, 7.4]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
-        for (const [x, z] of [[2.4, 3], [13.8, 2.6]]) piece('town_garden_bed_b', [[x, z, 0], ...near(x, z, .6).map(([a, b]) => [a, b, 0])]);
-        piece('town_planter_b', [...near(9.9, 8.6, .6).map(([a, b]) => [a, b, 1])]);
-        garlands(t, [[9.9, 1.4], [7.1, 4.2], [9.9, 6.9], [7.1, 11.6], [9.9, 13.6]]);
+        facing(put, 'town_bench_a', near(u16(5.2), u16(8.6), 1), [STREET, LANE_1]);
+        facing(put, 'town_bench_b', near(u16(14.4), u16(9.6), 1), [STREET, LANE_1]);
+        facing(put, 'town_notice_board_a', near(u16(6.4), u16(3.2), 1.2), [STREET, u16(4)]);
+        lamps(put, [['town_street_lamp_a', near(u16(9.6), u16(2.4), .75)], ['town_street_lamp_b', near(u16(7.3), u16(9.4), .75)],
+          ['town_street_lamp_a', near(u16(9.7), u16(11.2), .75)], ['town_street_lamp_b', near(u16(9.8), u16(6.4), .75)], ['town_street_lamp_a', near(u16(7.2), u16(13.4), .75)]]);
+        for (const [x, z] of [[u16(2.6), u16(9.2)], [u16(13.6), u16(11.4)], [u16(6.2), u16(8.4)], [u16(2.4), u16(7.4)]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
+        for (const [x, z] of [[u16(2.4), u16(3)], [u16(13.8), u16(2.6)]]) piece('town_garden_bed_b', [[x, z, 0], ...near(x, z, .6).map(([a, b]) => [a, b, 0])]);
+        piece('town_planter_b', [...near(u16(9.9), u16(8.6), .6).map(([a, b]) => [a, b, 1])]);
+        garlands(t, [[u16(9.9), u16(1.4)], [u16(7.1), u16(4.2)], [u16(9.9), u16(6.9)], [u16(7.1), u16(11.6)], [u16(9.9), u16(13.6)]]);
       } },
     { name: 'smithy', ways({ path, plan }) {
-      leadTo(plan, path, 0, [[0, LANE_1], [6.7, LANE_1]]);
+      leadTo(plan, path, 0, [[0, LANE_1], [u16(8.0) - 1.3, LANE_1]]);   // (to the smithy's door, BUILDINGS)
     }, dress({ put, piece, group, R }) {
       // timber and fuel for the forge, a coal spill, a finished cart wheel
-      group([[12.6, 9.8], [12, 12.5]], ['mines_plank_stack_a', 'mines_barrel_a', 'mines_crate_b', 'mines_sacks_b'], .8);
-      put('mines_coal_scatter_a', [[10.8, 8.6], [11.4, 9.2], [4.4, 8.2]]);
-      put('mines_coal_scatter_b', [[11.6, 2.6], [4.6, 2.4]]);
-      put('badlands_broken_wagon_wheel_a', [[3.2, 12.6], [4, 13], [12.6, 3.4]]);
-      put('town_woodpile_a', [...near(13.2, 5.4, 1.2), ...near(3, 3, 1.2)], { yaw: R() * Math.PI });
-      put('mines_ore_cart_a', [...near(3.4, 6, 1), ...near(13, 13, 1.5)], { yaw: R() * Math.PI });
-      piece('town_trough_a', [...near(11.2, 8.4, 1)], { turn: 0 });
-      lamps(put, [['town_street_lamp_a', near(3.6, 11.6, .75)]]);
+      group([[u16(12.6), u16(9.8)], [u16(12), u16(12.5)]], ['mines_plank_stack_a', 'mines_barrel_a', 'mines_crate_b', 'mines_sacks_b'], .8);
+      put('mines_coal_scatter_a', [[u16(10.8), u16(8.6)], [u16(11.4), u16(9.2)], [u16(4.4), u16(8.2)]]);
+      put('mines_coal_scatter_b', [[u16(11.6), u16(2.6)], [u16(4.6), u16(2.4)]]);
+      put('badlands_broken_wagon_wheel_a', [[u16(3.2), u16(12.6)], [u16(4), u16(13)], [u16(12.6), u16(3.4)]]);
+      put('town_woodpile_a', [...near(u16(13.2), u16(5.4), 1.2), ...near(u16(3), u16(3), 1.2)], { yaw: R() * Math.PI });
+      put('mines_ore_cart_a', [...near(u16(3.4), u16(6), 1), ...near(u16(13), u16(13), 1.5)], { yaw: R() * Math.PI });
+      piece('town_trough_a', [...near(u16(11.2), u16(8.4), 1)], { turn: 0 });
+      lamps(put, [['town_street_lamp_a', near(u16(3.6), u16(11.6), .75)]]);
     } },
   ],
   // the inn's row: the lake (the garden), the inn, the pet shop
@@ -1512,7 +1523,7 @@ const TILES = [
       // benches looking out over it, flowers, a lamp
       for (const [x, z] of [[lx + 5.5, lz + 1], [lx + 1, lz + 5.5], [lx + 5, lz - 4], [lx - .5, lz - 5.5]])
         if (facing(put, variant(R, 'town_bench'), near(x, z, 1.5), [lx, lz])) if (R() < .5) break;
-      for (const [x, z] of [[13, 13], [13.5, 3], [3, 14], [2.6, 2.2]]) put(variant(R, 'meadow_flowers'), near(x, z, 1.5), { s: 1 });
+      for (const [x, z] of [[u16(13), u16(13)], [u16(13.5), u16(3)], [u16(3), u16(14)], [u16(2.6), u16(2.2)]]) put(variant(R, 'meadow_flowers'), near(x, z, 1.5), { s: 1 });
       lamps(put, [['town_street_lamp_a', near(lx + 5.6, lz + 2.4, 1.5)]]);
       // reeds and stones on its banks, a boat pulled up on one, lily pads on the water
       const banks = shore('lake');
@@ -1541,22 +1552,22 @@ const TILES = [
     }, dress(t) {
       const { put, group, R } = t;
       // deliveries by the inn's side, a cask by the porch, lamps along the street, garlands over it
-      group([[3.2, 12.4]], ['mines_barrel_a', 'mines_barrel_b', 'mines_crate_a', 'mines_sacks_a'], .7);
-      group([[3, 3.4]], ['mines_barrel_b', 'mines_crate_b'], .6);
-      lamps(put, [['town_street_lamp_a', near(9.7, 4.2, .75)], ['town_street_lamp_b', near(9.8, 11.6, .75)],
-        ['town_street_lamp_c', near(7.2, 14.4, .75)], ['town_street_lamp_a', near(10.4, 2.0, .75)], ['town_street_lamp_c', near(4.2, 2.4, .75)]]);
-      garlands(t, [[9.9, 10.4], [7.1, 12.6], [9.9, 15.0]]);
-      for (const [x, z] of [[6.4, 10.6], [6.4, 5.8], [12.6, 5.4], [13, 9]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
-      facing(put, variant(R, 'town_bench'), near(12.4, 11.6, 1.2), [STREET, 11.6]);
+      group([[u16(3.2), u16(12.4)]], ['mines_barrel_a', 'mines_barrel_b', 'mines_crate_a', 'mines_sacks_a'], .7);
+      group([[u16(3), u16(3.4)]], ['mines_barrel_b', 'mines_crate_b'], .6);
+      lamps(put, [['town_street_lamp_a', near(u16(9.7), u16(4.2), .75)], ['town_street_lamp_b', near(u16(9.8), u16(11.6), .75)],
+        ['town_street_lamp_c', near(u16(7.2), u16(14.4), .75)], ['town_street_lamp_a', near(u16(10.4), u16(2.0), .75)], ['town_street_lamp_c', near(u16(4.2), u16(2.4), .75)]]);
+      garlands(t, [[u16(9.9), u16(10.4)], [u16(7.1), u16(12.6)], [u16(9.9), u16(15.0)]]);
+      for (const [x, z] of [[u16(6.4), u16(10.6)], [u16(6.4), u16(5.8)], [u16(12.6), u16(5.4)], [u16(13), u16(9)]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
+      facing(put, variant(R, 'town_bench'), near(u16(12.4), u16(11.6), 1.2), [STREET, u16(11.6)]);
     } },
     { name: 'petshop', ways({ path, plan }) {
       leadTo(plan, path, 0, [[0, LANE_2]]);
     }, dress({ put, group, R }) {
-      group([[11.6, 11.6], [11.2, 4]], ['mines_sacks_a', 'mines_crate_a', 'mines_sacks_b'], .6);
-      put(variant(R, 'meadow_stump'), near(3.6, 12, 1.5));
-      put(variant(R, 'town_hay_bales'), [...near(4, 3, 1.5), ...near(12.5, 13.5, 1.5)]);
-      for (const [x, z] of [[4.4, 9.6], [4.2, 4.6]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .2 });
-      lamps(put, [['town_street_lamp_a', near(3.2, 8.4, .75)]]);
+      group([[u16(11.6), u16(11.6)], [u16(11.2), u16(4)]], ['mines_sacks_a', 'mines_crate_a', 'mines_sacks_b'], .6);
+      put(variant(R, 'meadow_stump'), near(u16(3.6), u16(12), 1.5));
+      put(variant(R, 'town_hay_bales'), [...near(u16(4), u16(3), 1.5), ...near(u16(12.5), u16(13.5), 1.5)]);
+      for (const [x, z] of [[u16(4.4), u16(9.6)], [u16(4.2), u16(4.6)]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .2 });
+      lamps(put, [['town_street_lamp_a', near(u16(3.2), u16(8.4), .75)]]);
     } },
   ],
   // the back row: a wishing well in the grove, the green with the town's well, the windmill (and
@@ -1569,23 +1580,23 @@ const TILES = [
       facing(put, 'meadow_wishing_well_a', [...near(px, pz, 1.2), ...near(px, pz, 3)], [mx, mz], { s: 1 });
       facing(put, variant(R, 'town_bench'), near(px + (mx > px ? 1.8 : -1.8), pz + 1.4, 1.2), [px, pz]);
       for (let k = 0; k < 3; k++) put(variant(R, 'meadow_flowers'), near(px + (R() - .5) * 6, pz + (R() - .5) * 6, 1), { s: 1 });
-      put(variant(R, 'meadow_stump'), near(11, 4.5, 2));
+      put(variant(R, 'meadow_stump'), near(u16(11), u16(4.5), 2));
     } },
-    { name: 'green', keep: [[STREET, 10.4, 1.6], [5.6, 9, 1.1], [11.4, 9, 1.1]], ways({ path }) {
-      path([[STREET, 0], [STREET, 8]]);
+    { name: 'green', keep: [[STREET, u16(10.4), 1.6], [u16(5.6), u16(9), 1.1], [u16(11.4), u16(9), 1.1]], ways({ path }) {
+      path([[STREET, 0], [STREET, u16(8)]]);
     }, dress(t) {
       const { put, piece, R } = t;
       // the town's well where the street ends, benches round the green, garlands over the street
-      facing(put, 'town_well_a', near(STREET, 10.4, 1), [STREET, 8]);
-      facing(put, 'town_bench_a', near(5.6, 9, 1), [STREET, 10.4]);
-      facing(put, 'town_bench_b', near(11.4, 9, 1), [STREET, 10.4]);
-      lamps(put, [['town_street_lamp_a', near(9.7, 3.4, .75)], ['town_street_lamp_a', near(7.2, 7.4, .75)],
-        ['town_street_lamp_b', near(5.0, 10.6, .9)], ['town_street_lamp_b', near(12.0, 10.6, .9)]]);
-      garlands(t, [[7.1, 1.2], [9.9, 3.8], [7.1, 6.4]]);
-      garlands(t, [[5.4, 12.4], [STREET, 13.4], [11.6, 12.4]]);
-      for (const [x, z] of [[5, 12], [12, 12.2], [6, 4], [11.2, 5]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
+      facing(put, 'town_well_a', near(STREET, u16(10.4), 1), [STREET, u16(8)]);
+      facing(put, 'town_bench_a', near(u16(5.6), u16(9), 1), [STREET, u16(10.4)]);
+      facing(put, 'town_bench_b', near(u16(11.4), u16(9), 1), [STREET, u16(10.4)]);
+      lamps(put, [['town_street_lamp_a', near(u16(9.7), u16(3.4), .75)], ['town_street_lamp_a', near(u16(7.2), u16(7.4), .75)],
+        ['town_street_lamp_b', near(u16(5.0), u16(10.6), .9)], ['town_street_lamp_b', near(u16(12.0), u16(10.6), .9)]]);
+      garlands(t, [[u16(7.1), u16(1.2)], [u16(9.9), u16(3.8)], [u16(7.1), u16(6.4)]]);
+      garlands(t, [[u16(5.4), u16(12.4)], [STREET, u16(13.4)], [u16(11.6), u16(12.4)]]);
+      for (const [x, z] of [[u16(5), u16(12)], [u16(12), u16(12.2)], [u16(6), u16(4)], [u16(11.2), u16(5)]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
       for (const [x, z] of [[STREET - 2.6, 12.6], [STREET + 2.6, 12.6]]) piece('town_garden_bed_b', [[x, z, 0], ...near(x, z, .6).map(([a, b]) => [a, b, 0])]);
-      put(variant(R, 'meadow_flowers'), [...near(3.4, 6, 1.5), ...near(13.4, 6.4, 1.5)], { s: 1 });
+      put(variant(R, 'meadow_flowers'), [...near(u16(3.4), u16(6), 1.5), ...near(u16(13.4), u16(6.4), 1.5)], { s: 1 });
     } },
     { name: 'windmill', rural: true, dress(t) {
       const { put, piece: box, group, land, L, here, R } = t;
@@ -1595,7 +1606,7 @@ const TILES = [
       put(variant(R, 'town_hay_bales'), [...near(px + 2.6, pz - 1.4, 1.2), ...near(px - 2.6, pz - 1.4, 1.2)]);
       group([[px - 2.2, pz + 1.6], [px + 2.2, pz + 1.6]], ['mines_sacks_a', 'mines_sacks_b', 'mines_sacks_a'], .7);
       box('town_shed_a', [...near(px + 3, pz + 2, 2)]);
-      put(variant(R, 'town_handcart'), [...near(4.6, 11.4, 2), ...near(4, 4, 2)], { yaw: R() * Math.PI, s: .85 });
+      put(variant(R, 'town_handcart'), [...near(u16(4.6), u16(11.4), 2), ...near(u16(4), u16(4), 2)], { yaw: R() * Math.PI, s: .85 });
     } },
   ],
 ];
@@ -1631,7 +1642,7 @@ function baseLayout() {
 // any way), the people's homes along every way, their doors to it, a path to each door. What of it
 // stays level (`keep`, in the town's frame) and per tile its lanes and homes ({ lanes: [{ points,
 // width }], homes: [{ name, x, z, yaw }] }, tile-local).
-const STYLE = { homes: 6, lanes: 7, park: 1, firs: 0, hedges: 1, garlands: .4, terraces: 1, cover: 1, avenue: null };
+const STYLE = { homes: count16(6), lanes: Math.round(7 * ROOM_SCALE), park: 1, firs: 0, hedges: 1, garlands: .4, terraces: 1, cover: 1, avenue: null };
 // (how much of the room for homes and lanes a band's form leaves them: the rugged and the wet ones
 // keep more of their ground wild), and how settled the band is besides (landscape.settled)
 const ROOM = { plateau: 1, downs: .75, terraces: .55, highland: .4, ridge: .5, meadow: 1, marsh: .5, orchard: .55, green: .85, dell: .65, rocky: .5 };
@@ -1691,9 +1702,9 @@ function plotTown(seed, { style = STYLE, landscape = {}, hill, hollow, lake, pie
     return w;
   };
   // along the front of the town, inside the market; to the lake; along the back, by the green
-  for (const s of [-1, 1]) if (R() < .85) lane(S, 12.2 + R() * .8, s, 0, 4, 22);
-  if (R() < .9) lane(S, 2 * N + 12.8 + R() * .6, -1, 0, 4, 16);
-  for (const s of [-1, 1]) if (R() < .85) lane(S, 3 * N + 5.8 + R() * .6, s, 0, 4, 20);
+  for (const s of [-1, 1]) if (R() < .85) lane(S, u16(12.2 + R() * .8), s, 0, 4, u16(22));
+  if (R() < .9) lane(S, 2 * N + u16(12.8 + R() * .6), -1, 0, 4, u16(16));
+  for (const s of [-1, 1]) if (R() < .85) lane(S, 3 * N + u16(5.8 + R() * .6), s, 0, 4, u16(20));
   // and short ones off any way
   for (let k = 0, made = 0; k < 90 && made < style.lanes; k++) {
     const w = pick(R, ways), len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
@@ -1725,7 +1736,7 @@ function plotTown(seed, { style = STYLE, landscape = {}, hill, hollow, lake, pie
     const { w, nx, nz } = slot, bounds = propMetadata.get(name).bounds;
     // (its front, +Z, to the way: the way lies along -n from it; on the way's own ground)
     const yaw = snap(Math.atan2(-nx, -nz)), level = wayLevel(w), lv = level + lift;
-    const set = w.w / 2 + .55 + R() * .45 + (lift ? TERRACE + .2 + lift * .5 : 0);
+    const set = w.w / 2 + .55 + R() * .45 + (lift ? TERRACE + .2 + lift * .75 : 0);   // (a ramp of a level or so a cell)
     const x = slot.x + nx * (set + bounds[3]), z = slot.z + nz * (set + bounds[3]);
     const box = turnedBox(bounds, x, z, yaw), [i, j] = tileOf(x, z);
     if (i !== ti || j !== tj) return null;
@@ -1758,7 +1769,7 @@ function plotTown(seed, { style = STYLE, landscape = {}, hill, hollow, lake, pie
   };
   // (again over what is left, set back otherwise, while the town has few: the land's set pieces
   // leave less room in some worlds)
-  for (let pass = 0; pass < 3 && (pass === 0 || homes.length < 7); pass++) for (const slot of pass ? [...slots].sort(() => R() - .5) : slots) {
+  for (let pass = 0; pass < 3 && (pass === 0 || homes.length < count16(7)); pass++) for (const slot of pass ? [...slots].sort(() => R() - .5) : slots) {
     const [ti, tj] = tileOf(slot.x + slot.nx * 3, slot.z + slot.nz * 3), spec = TILES[tj]?.[ti];
     if (!spec || (count.get(spec) ?? 0) >= Math.max(2, Math.round(style.homes * roomOf(rows[tj]))) || R() > .9) continue;
     const kinds = [...COTTAGES].sort(() => R() - .5);

@@ -19,7 +19,8 @@ still to come.
 
 ## Decided
 
-- **Tiles.** The town is 12 ordinary cubes of 16 × 16 cells, 3 across and 4 deep (48 × 64 cells),
+- **Tiles.** The town is 12 ordinary cubes of 24 × 24 cells, 3 across and 4 deep (72 × 96 cells; laid out
+  for tiles of 16, its plan spread over the bigger ones: [world.md](world.md#cube-size)),
   on the depth-0 grid round its gate's tile `(0,0,0)` and turned with it. A building or a tree
   trunk lies wholly in one tile, and nothing that stands in the way comes near a seam.
 - **A land of its own.** Every world's town lies in its own land, the generator's ground (whole

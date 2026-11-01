@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../src/world/world.js';
-import { FLUIDS, LAVA, ACID } from '../src/core/constants.js';
+import { N, CUBE_H, FLUIDS, LAVA, ACID } from '../src/core/constants.js';
 import { buildCubeGeometry, buildCubeParts } from '../src/render/cubegeo.js';
 import { PARTS, packParts, partBuffers } from '../src/render/parts.js';
 import { waterSolids } from '../src/render/shore.js';
@@ -47,7 +47,7 @@ test('packed parts keep every triangle, in place to a quantization step', () => 
       else assert.equal(p.col, null, 'fluid surfaces take their colour from the material');
     }
     const [x0, y0, z0, x1, y1, z1] = geo.bounds;
-    assert.ok(x0 >= -1 && z0 >= -1 && x1 <= 17 && z1 <= 17 && y0 >= -1 && y1 <= 17, `${m.key}: bounds ${geo.bounds}`);
+    assert.ok(x0 >= -1 && z0 >= -1 && x1 <= N + 1 && z1 <= N + 1 && y0 >= -1 && y1 <= CUBE_H + 1, `${m.key}: bounds ${geo.bounds}`);
   }
 });
 
@@ -65,7 +65,7 @@ test('fluid surfaces say where their shores are, and banks get a wet band', () =
           // a top: at its rest height, in its cell
           const c = Math.floor(u / 256), x = p.pos[v * 4] * geo.scale, z = p.pos[v * 4 + 2] * geo.scale;
           assert.ok(Math.abs(y - p.uv[v * 2 + 1]) <= geo.scale, 'tops at the rest height');
-          assert.ok(x >= c % 16 - 1e-3 && x <= c % 16 + 1 + 1e-3 && z >= Math.floor(c / 16) - 1e-3 && z <= Math.floor(c / 16) + 1 + 1e-3, 'tops in their cell');
+          assert.ok(x >= c % N - 1e-3 && x <= c % N + 1 + 1e-3 && z >= Math.floor(c / N) - 1e-3 && z <= Math.floor(c / N) + 1 + 1e-3, 'tops in their cell');
           if (u % 256) shores++;
         } else if (u === -1) bands++;
         else assert.equal(u, -2);

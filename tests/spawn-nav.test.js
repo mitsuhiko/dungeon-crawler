@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, LH } from '../src/core/constants.js';
+import { N, LH, ROOM_SCALE } from '../src/core/constants.js';
 import { edgeKey } from '../src/core/util.js';
 import { flatMap, state } from './fixtures.js';
 import { SPIDER, STUNDER, ENEMY_PROFILES, ENEMY_KINDS, makeEnemy, isRanged } from '../src/core/enemies.js';
@@ -13,12 +13,12 @@ import { World } from '../src/world/world.js';
 const signature = spots => spots.map(s => [s.f.id, s.x, s.y, s.z, s.yaw]);
 const at = (seed, depth) => Object.assign(flatMap(seed), { depth });
 
-test('seeded Stunder population is repeatable, spans 0-2 and stays away from entrances', () => {
-  const counts = new Set();
+test('seeded Stunder population is repeatable, spans 0-2 (a room of 16 cells; more in a bigger one) and stays away from entrances', () => {
+  const counts = new Set(), most = Math.ceil(2 * ROOM_SCALE);
   for (let seed = 0; seed < 150; seed++) {
     const map = at(seed, 3), a = enemySpots(map, STUNDER);
     counts.add(a.length);
-    assert.ok(a.length <= 2);
+    assert.ok(a.length <= most);
     assert.deepEqual(signature(a), signature(enemySpots(map, STUNDER)));
     for (const e of a) {
       assert.ok(walkable(e.f, STUNDER.height));
@@ -29,7 +29,7 @@ test('seeded Stunder population is repeatable, spans 0-2 and stays away from ent
     enemySpots(map, STUNDER);
     assert.deepEqual(signature(enemySpots(map, SPIDER)), spiders);
   }
-  assert.deepEqual([...counts].sort(), [0, 1, 2]);
+  assert.deepEqual([...counts].sort(), Array.from({ length: most + 1 }, (_, k) => k));
 });
 test('no dry safe floor means no Stunders, never an unsafe fallback spawn', () => {
   const map = at(3, 4);
@@ -147,7 +147,7 @@ test('each depth draws its species from its own roster, within the mix, worth ab
     }
     assert.deepEqual([...seen].sort(), [...new Set(row.roster.map(e => e.type))].sort(), `depth ${depth}`);
     // (on average: the rooms of shooters alone stay under it, see core/spawns.js fitBudget)
-    const mean = worth / cubes, budget = budgetAt(depth);
+    const mean = worth / cubes, budget = budgetAt(depth) * ROOM_SCALE;   // (core/spawns.js: a bigger room holds more)
     assert.ok(mean > budget * (1 - SPREAD) && mean < budget * (1 + SPREAD), `depth ${depth}: ${mean.toFixed(0)} for ${budget}`);
   }
   assert.equal(new Set(ENEMY_PROFILES.map(p => p.seedSalt)).size, ENEMY_PROFILES.length);

@@ -37,6 +37,7 @@
 // Ranged species (Fire-face, Triangle, Shraps, Spicy, Wolla, Wolk, Squirtle, Tornado, Slug) stay at a few per cube; the melee ones, the spiders
 // above all, come in larger and larger packs further down.
 import { mulberry32, hash32 } from './util.js';
+import { ROOM_SCALE } from './constants.js';
 import { ENEMY_KINDS, STAGE_PROFILES, isRanged, cleanWorldLevel } from './enemies.js';
 
 export const D = (mix, ...roster) => ({ mix, roster: roster.map(([type, chance, lo, hi, pack = 1, kinds = { [type]: 1 }, where = null, world = 1]) =>
@@ -205,8 +206,10 @@ export function population(map) {
     const mid = (e.lo + e.hi) / 2, lo = e === lead ? Math.ceil(mid) : e.lo, hi = e === lead ? e.hi : Math.floor(mid);
     return lo + Math.floor(R() * (hi - lo + 1));
   });
-  // (a test arena's own row, map.spawns: as it says)
-  const fitted = map.spawns ? counts : fitBudget(present, counts, budgetAt(map.depth || 0) * (1 + SPREAD * (2 * R() - 1)), R, map.guardian ? 1 : GROW_MOST);
+  // (a test arena's own row, map.spawns: as it says; an ordinary room bigger than one of 16 cells
+  // holds as many more as it is longer across: as many on the way through it as there were)
+  const room = map.guardian ? 1 : ROOM_SCALE;
+  const fitted = map.spawns ? counts : fitBudget(present, counts, budgetAt(map.depth || 0) * room * (1 + SPREAD * (2 * R() - 1)), R, map.guardian ? 1 : GROW_MOST * room);
   return new Map(present.map((e, i) => {
     let count = Math.max(1, Math.round(fitted[i] * (map.populationScale ?? 1)));
     const troop = ENEMY_KINDS[e.type]?.troop;

@@ -105,7 +105,7 @@ import { RARITY } from '../core/gear/rarities.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
-export const PROTOCOL = 19;
+export const PROTOCOL = 20;   // (20: cubes of 24 cells, core/constants.js N)
 
 export const MAX_PLAYERS = 4;
 // what the host passes on from one guest to the others

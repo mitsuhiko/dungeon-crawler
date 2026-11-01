@@ -1,10 +1,11 @@
 // Deterministic ambient placement, independent of the terrain RNG. Destination arrangements
 // are emitted by the worker; ambient blockers stay away from routes and reservations.
-import { N, LH, BASE, DIRS, EDGE_CORNERS, FLUID_NAME, CHAR_H, drawnFluid } from '../core/constants.js';
+import { N, LH, BASE, DIRS, EDGE_CORNERS, FLUID_NAME, CHAR_H, ROOM_AREA, drawnFluid } from '../core/constants.js';
 import { mulberry32, hash32, idx, inb, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { restY } from './surface.js';
-import { props, signatureProp, CLUTTER } from '../core/propcatalog.js';
+import { props, propMetadata, signatureProp, CLUTTER } from '../core/propcatalog.js';
+import { small } from './device.js';
 
 // the prop sets ambient props come from in a theme
 const ambientSets = theme => [theme.props, 'any', ...(theme.cave ? ['relics'] : [])];
@@ -12,6 +13,21 @@ const ambientSets = theme => [theme.props, 'any', ...(theme.cave ? ['relics'] : 
 // The props a trial room's parts borrow (render/trials.js): its braziers (the cold's to warm
 // at too) and the crates of a crate puzzle; the rest of its parts are the trials' library
 // (assets/trials.glb, set `trial`), a rune room's clue tablet too.
+// What a small device draws of a cube's small dressing (grass, flowers, stones, little clutter:
+// smaller than a unit, standing in nobody's way, glowing nothing, no site's): a share of it, about
+// as much as a cube of 16 cells had (render/device.js). Only what is drawn: the colliders and the
+// lights stay as they are, so a small device's cube is the same as anyone's to play in (playing
+// together). The same things go every time (by where they stand).
+const THIN = small ? 1 / ROOM_AREA : 1;
+export function thinDressing(out) {
+  if (THIN >= 1) return out;
+  return out.filter(q => {
+    const m = propMetadata.get(q.name);
+    if (!m || m.blocking || m.light || q.site || q.night || q.matrix || Math.max(m.radius * 2, m.height) * (q.s ?? 1) >= 1) return true;
+    return (hash32(Math.round(q.x * 97) ^ Math.imul(Math.round(q.z * 89), 0x9e3779b1)) % 1000) / 1000 < THIN;
+  });
+}
+
 export const TRIAL_PROPS = { brazier: 'ruins_brazier_a', warm: 'ruins_brazier_a', lantern: 'ruins_brazier_a', crate: 'mines_crate_a' };
 function trialSets(m, of) {
   if (!m.trial && !m.clues?.length) return;

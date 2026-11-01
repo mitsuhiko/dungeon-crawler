@@ -5,13 +5,13 @@
 // whose banks all stand more than a level over its surface (the most a swimmer climbs out:
 // cubegen/reach.js) gets a ladder up out of it (addWaterEscapes); cubegen/index.js checks that
 // every water got to leads out.
-import { N, DIRS, WATER } from '../core/constants.js';
+import { N, DIRS, WATER, count16 } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 import { graph, reachFrom, reachTo, stuckInWater } from './reach.js';
 import { search, take, moveKey } from './route.js';
 
-const MAX = 12;          // escape routes per cube
-const ACCESS = 8;        // ways onto cut-off platforms per cube
+const MAX = count16(12);  // escape routes per cube
+const ACCESS = count16(8); // ways onto cut-off platforms per cube
 // floors a cut-off platform needs to be worth a way up: floating platforms (upper layers)
 // look like places to go; on the ground most are scenery (mesa tops, crater rims)
 const ACCESS_MIN = 8, ACCESS_MIN_GROUND = 40;
@@ -28,6 +28,8 @@ export function addAccess(ctx) {
   const { hub, floors, jitter, have } = ctx;
   if (!hub) return;
   ctx.bigLadders = true;
+  // (the floors stay as they are meanwhile: their graph and moves kept, cubegen/reach.js, route.js)
+  ctx.graphs = new Map(); ctx.moveMemo = new Map();
   // never onto the cube's rim, nor from the foot of a spiral's mountain (cubegen/areas.js: the way up is the ramp)
   const stand = f => f && !f.fluid && !f.prot && !f.siteBlocked && !f.landing && !ctx.border(f) && !ctx.foot?.has(f.c);
   const failed = new Set();
@@ -61,12 +63,15 @@ export function addAccess(ctx) {
     ctx.stats.access = (ctx.stats.access || 0) + 1;
   }
   ctx.bigLadders = false;
+  ctx.graphs = ctx.moveMemo = null;
 }
 
 export function addEscapes(ctx) {
   const { hub, floors, jitter, have } = ctx;
   if (!hub) return;
   ctx.bigLadders = true;
+  // (the floors stay as they are meanwhile: their graph and moves kept, cubegen/reach.js, route.js)
+  ctx.graphs = new Map(); ctx.moveMemo = new Map();
   const failed = new Set();
   for (let n = 0; n < MAX; n++) {
     const safe = reachTo(ctx, hub, false), seen = reachable(ctx, false);
@@ -86,6 +91,7 @@ export function addEscapes(ctx) {
     ctx.stats.escapes = (ctx.stats.escapes || 0) + 1;
   }
   ctx.bigLadders = false;
+  ctx.graphs = ctx.moveMemo = null;
 }
 
 // The water floors joined to water floor w at its surface (on its layer), by the four sides

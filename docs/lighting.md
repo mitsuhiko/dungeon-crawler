@@ -106,10 +106,14 @@ its baked shadows with them (`uBakeR`); a bake that fails leaves them on, withou
 
 What it does:
 
-1. **Channels.** Lights whose reaches overlap get different channels, eleven in all: the brightest
-   first, each the first channel none of its neighbours has (reaches count to 85%: beyond that a
-   light is faint). A light left without one shares the channel of one within 1.2 units (the
-   lanterns on a string: its shadow is near enough); else it shines without a shadow.
+1. **Groups and channels.** Lights within `GROUP` (2.5 units) of a brighter one share its shadow:
+   it alone is baked, as far out as the farthest of its group reaches (a brazier's twin flames, the
+   lamps by a door, a cluster of glowing eggs: a cube of 24 cells has about 43 lights, 22 groups,
+   one bake step each). The groups' leads whose reaches overlap get different channels, eleven in
+   all: the brightest first, each the first channel none of its neighbours has (reaches count to
+   85%: beyond that a light is faint). A lead left without one shares the channel of one within
+   1.2 units (the lanterns on a string: its shadow is near enough); else its group shines without a
+   shadow.
 2. **The lightmap** (three RGBA8 textures, the first's red unused; the sun has its own, below): for each texel of the
    solids, the **signed distance** to the edge of the light's shadow, in texels (±1.5, 0.5 on the
    edge). Found by testing points a quarter texel apart round the texel (on its plane) against
@@ -360,6 +364,10 @@ finer than Low (`BAKE_DETAIL.light`, so its worlds' lightmaps have 8 texels a un
 of what moves is at most 1024² (`SMALL_SUN_MAP`), and it keeps one bake and bakes one cube ahead
 (`CACHE`, `AHEAD`). What the levels change otherwise (the shadows drawn, the lights a point takes,
 the town's dressing) still follows the frame rate.
+It also draws only a share of the small dressing (grass, flowers, stones, little clutter: under a
+unit, blocking nothing, glowing nothing; `render/propplace.js thinDressing`), about as much as a
+cube of 16 cells had, in the cube played in and in the town's surroundings. Only what is drawn: the
+colliders and the lights are everyone's, so playing together a small device's cube is the same.
 
 In the town (seed 7, the twelve tiles walked through, Chrome emulating a phone; WebGL's
 textures, buffers and render buffers counted as they are made: `render/gpumem.js`) the most held

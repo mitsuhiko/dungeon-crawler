@@ -54,7 +54,9 @@ function facing(t) {
 // the two axes a chart facing `axis` is laid out along (u, v)
 const PLANE = [[2, 1], [0, 2], [0, 1]];
 
-const key = (p, o) => Math.round(p[o] * 512) + ',' + Math.round(p[o + 1] * 512) + ',' + Math.round(p[o + 2] * 512);
+// (a corner's place, to a 512th of a unit, as one number: up to 128 units from the origin each way)
+const Q = 2 ** 17, H = Q / 2;
+const key = (p, o) => ((Math.round(p[o] * 512) + H) * Q + Math.round(p[o + 1] * 512) + H) * Q + Math.round(p[o + 2] * 512) + H;
 
 function chartsOf(tris) {
   // neighbours across shared edges, among the triangles facing the same way

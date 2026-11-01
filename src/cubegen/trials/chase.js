@@ -6,7 +6,7 @@
 // the gate and drop the portcullis on it (cubegen/trials/index.js finishChase checks the race).
 //   build: { courtyard: [cells], wall: [cells], gate: { c, dir (the way out of the hall) },
 //            lever: { c }, altar: { c, cells }, lair: { c, x, z, yaw }, rocks: [cells], hall: Set }
-import { N } from '../../core/constants.js';
+import { N, at16 } from '../../core/constants.js';
 import { idx, clamp } from '../../core/util.js';
 
 export const WALL_UP = 6;   // levels over the ground round the wall (and the rocks)
@@ -21,7 +21,7 @@ export function cornerOf(a, b) {
 }
 // how far along its face from the corner a portal at pos on face d stands
 export const fromCorner = (d, pos, corner) => Math.abs(pos - (d < 2 ? corner[1] : corner[0]));
-export const COURT = { least: 4, most: 8 };   // the courtyard's reach from the corner (cells), each way
+export const COURT = { least: Math.round(at16(4)), most: Math.round(at16(8)) };   // the courtyard's reach from the corner (cells), each way
 
 export function shapeChase(ctx) {
   const { spec, lvl0, void0, R } = ctx;

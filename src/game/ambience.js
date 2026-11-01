@@ -2,7 +2,7 @@
 // waterfalls, lava and acid by how close the nearest is (falls carry further), wind under an
 // open sky by the depth and the height, cave air and drips below ground. Also the two drones:
 // the charge of a well, ring or the town portal pad, and the cast of the town portal scroll.
-import { N, LH, CUBE_H, WATER, LAVA, ACID } from '../core/constants.js';
+import { N, LH, VIEW_H, WATER, LAVA, ACID } from '../core/constants.js';
 import { player, state } from './state.js';
 import { fallShift } from '../core/falls.js';
 import { themeOf } from '../themes/depth.js';
@@ -45,7 +45,7 @@ export function updateAmbience(dt) {
   if (theme.cave) {
     levels.cave = 0.6;
     if (Math.random() < (DRIPS[theme.props] ?? 0.3) * dt) drip(0.4 + Math.random() * 0.6);
-  } else levels.wind = (WIND[theme.props] ?? 0.3) * (0.7 + 0.3 * Math.min(1, Math.max(0, p.y / CUBE_H)));
+  } else levels.wind = (WIND[theme.props] ?? 0.3) * (0.7 + 0.3 * Math.min(1, Math.max(0, p.y / VIEW_H)));
   if (levels.lava > 0.05 && Math.random() < 3 * levels.lava * dt) pop(levels.lava);
   setAmbience(last = levels);
   drones();

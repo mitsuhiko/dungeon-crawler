@@ -31,7 +31,7 @@ const term = (key, words, note, { en, de, id, except = [] } = {}) => ({ key, ...
   id: id ?? (words.word.id && new RegExp(words.word.id, 'i')), except });
 export const GLOSSARY = [
   // the world
-  term('cube', { word: { en: 'cube', de: 'Würfel', id: 'kubus' }, g: 'm' }, 'one room of the world: 16 by 16 cells, stacked in layers'),
+  term('cube', { word: { en: 'cube', de: 'Würfel', id: 'kubus' }, g: 'm' }, 'one room of the world: 24 by 24 cells, stacked in layers'),
   term('depth', { word: { en: 'depth', de: 'Tiefe', id: 'kedalaman' }, g: 'f' }, 'how far down a cube is: 0 is the road out of town, 20 the deepest',
     { en: /\bdepths?\b/i, de: /tiefe/i }),
   term('town', { word: { en: 'town', de: 'Stadt', id: 'kota' }, g: 'f' }, 'the place at the top of every world, many cubes under one glass, where the villagers live',

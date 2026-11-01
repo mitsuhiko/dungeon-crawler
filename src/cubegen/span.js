@@ -5,7 +5,7 @@
 // island's foot. Its bridge is
 // laid down whole, pad to pad (spanBridge), instead of being found by the route search, whose
 // bridges are short and nearly level. An island is a plateau standing in the valley.
-import { N, LH, MAX_L, SHEAD, DIRS } from '../core/constants.js';
+import { N, LH, MAX_L, SHEAD, DIRS, at16 } from '../core/constants.js';
 import { idx, clamp } from '../core/util.js';
 import { valleyFloor } from '../world/spans.js';
 import { VOID } from '../world/profile.js';
@@ -40,10 +40,10 @@ export function shapeGorge(ctx) {
 
 export function shapeIsland(ctx) {
   const { spec, noise } = ctx, s = spec.span, back = s.dir ^ 1, P = spec.faces[back].profile;
-  const cw = clamp(s.pos, 5, N - 6), rw = 4.6 + ctx.R() * 0.8, ru = 5.2 + ctx.R() * 0.6;
+  const cw = clamp(s.pos, 5, N - 6), rw = at16(4.6 + ctx.R() * 0.8), ru = at16(5.2 + ctx.R() * 0.6);
   for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) {
     const [u, w] = along(s.dir, x, z), i = idx(x, z);
-    const du = Math.abs(u + 0.5 - 7.2) / ru, dw = Math.abs(w + 0.5 - cw - 0.5) / rw;
+    const du = Math.abs(u + 0.5 - at16(7.2)) / ru, dw = Math.abs(w + 0.5 - cw - 0.5) / rw;
     const on = du ** 4 + dw ** 4 + (noise(x * 0.6 + 7, z * 0.6 + 3) - 0.5) * 0.7 < 1 || (u <= 2 && Math.abs(w - s.pos) <= 1);
     put(ctx, i, u <= 1 && !on ? P[w] : on ? s.level : valleyFloor(s, spec.noise, spec.X * N + x + 0.5, spec.Z * N + z + 0.5, spec.Y), s.level - 4);
   }

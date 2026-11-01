@@ -49,10 +49,10 @@ export function towerArena({ spec, ctx, entry, role, own }) {
   // the bridge: from the doorway to the ramp (over the doorway's rows, and along the side to the
   // middle rows if the doorway is off to a side), wherever the tower does not stand yet
   const bridge = new Set();
-  for (let t = Math.min(pad.pos - 1, 6); t <= Math.max(pad.pos + 1, 8); t++) for (let j = 0; j <= 4; j++) bridge.add(at(j, t));
+  for (let t = Math.min(pad.pos - 1, N / 2 - 2); t <= Math.max(pad.pos + 1, N / 2); t++) for (let j = 0; j <= 4; j++) bridge.add(at(j, t));
   // the well: a 3 x 3 pad on the caldera's floor in a far corner, clear of the tower's foot
-  const wt = R() < 0.5 ? 2 : 13, wellC = at(13, wt), well = [];
-  for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) well.push(at(13 + a, wt + b));
+  const wt = R() < 0.5 ? 2 : N - 3, wellC = at(N - 3, wt), well = [];
+  for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) well.push(at(N - 3 + a, wt + b));
   const wellId = pad.id + 1;
 
   // the tower's surface at the point (x, z) for the ramp's turn at u (the cell's own turn,

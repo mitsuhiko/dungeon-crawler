@@ -34,7 +34,10 @@
 //
 // Seams: the cells either side of one (s - 1 and s) stand alike and level (the physics reads a cell
 // past a seam as the edge's, physics/collide.js cellAt): nothing steps, flows down or is built there.
-import { N } from '../core/constants.js';
+import { N, at16, count16, ROOM_SCALE } from '../core/constants.js';
+
+// a place in a tile laid out at 16 cells, in this world's tiles (world/town.js u16)
+const u16 = at16, cell16 = v => Math.round(at16(v));
 import { mulberry32, hash32, makeNoise, clamp } from '../core/util.js';
 
 const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
@@ -47,12 +50,12 @@ export const WATER_DROP = 1;
 export const UPPER = 16;
 // The water: from this far into the plaza's row (local z) to this far into the inn's, further in
 // the garden (its lake); in the inn's tile a quay of QUAY rows between it and the cliff
-export const WATER_FROM = 12, WATER_TO = 3, QUAY = 2;
+export const WATER_FROM = cell16(12), WATER_TO = cell16(3), QUAY = 2;
 // The street's stair up the cliff (in the inn's tile, its own frame): along the cliff's foot on the
 // quay's back row z, from the foot (lower town) to the top (upper town), its flight the cells between
-export const INN_STAIR = { z: WATER_TO + QUAY - 1, foot: 4, top: 13 };
+export const INN_STAIR = { z: WATER_TO + QUAY - 1, foot: cell16(4), top: cell16(13) };
 // (where the street runs in the middle tiles: world/town.js STREET)
-const STREET_X = 8.5;
+const STREET_X = Math.floor(u16(8.5)) + .5;
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 // the kinds of old ruins a town may have (world/town.js dresses them)
 export const RUINS = ['temple', 'colossus', 'colonnade'];
@@ -161,9 +164,10 @@ function cheapest(W, D, starts, goal, enter, guess = () => 0) {
 // gate where the road leaves (x, z), fixed the boxes of the town's buildings (the town's frame);
 // layout(features) lays the town out round the big things (world/town.js: its lanes and homes):
 // { keep: what stands level, ways: its streets, lanes and paths ([{ a, b, w }]), bodies }
-export function makeLand(seed, opts, { stages = true } = {}) {
+export function makeLand(seed, opts, { stages = true, flip = false, again = 0 } = {}) {
   const { across, deep, level, layout: plan, gate, fixed = [], fixedWays = [], fixedKeep = [] } = opts;
-  const W = across * N, D = deep * N, R = mulberry32(hash32(seed ^ 0x1a4d5));
+  // (again: the land drawn anew, where the one before left the river no way down to the water)
+  const W = across * N, D = deep * N, R = mulberry32(hash32(seed ^ 0x1a4d5 ^ Math.imul(again, 0x2c1b3c6d)));
   const roll = makeNoise(R), wander = makeNoise(R), belt = makeNoise(R), woods = makeNoise(R), kind = makeNoise(R),
     shore = makeNoise(R), cliffy = makeNoise(R);
   // ---- the landscape, from a dice of its own (what the dice above make stays as it is): what kind
@@ -175,7 +179,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   {
     const spots = [[0, 1], [1, 1], [0, .55], [1, .55], [0, .2], [1, .2]].sort(() => K() - .5);
     for (const [u, v] of spots.slice(0, 1 + (K() < .5 ? 1 : 0)))
-      bigWoods.push({ x: u ? W - WALL - 2 : WALL + 1, z: WALL + 1 + v * (D - 2 * WALL - 3), r: 6 + K() * 4 });
+      bigWoods.push({ x: u ? W - WALL - 2 : WALL + 1, z: WALL + 1 + v * (D - 2 * WALL - 3), r: u16(6 + K() * 4) });
   }
   const woodsNoise = makeNoise(K);
   // (the forms of the upper and the lower town's wild ground: what shapes them, from the same dice)
@@ -214,9 +218,9 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const UP = Math.min(2, deep - 1), lower = level, upper = level + landscape.rise, rows = Array.from({ length: deep }, (_, j) => j < UP ? lower : upper);
   const mid = Math.floor(across / 2), upZ = UP * N, from = (UP - 1) * N + WATER_FROM, px = mid * N;
   // (how deep the lake's bay reaches into the upper town, how far the cliff winds elsewhere)
-  let lakeDeep = 8 + Math.floor(R() * 6);
+  let lakeDeep = cell16(8 + Math.floor(R() * 6));
   const wind = 1 + Math.floor(R() * 2);
-  if (landscape.wide) lakeDeep = 13;
+  if (landscape.wide) lakeDeep = cell16(13);
   const edge = Array.from({ length: W }, (_, x) => {
     const i = Math.floor(x / N), lx = x - i * N;
     if (i === mid) return upZ + WATER_TO + QUAY;
@@ -249,7 +253,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // there). Its cells dry at the lower town's level (`stage`), its bridges and stair runs.
   const stage = new Set(), crossings = [];
   if (across > 2 && R() < .5 && stages) {
-    const i = mid + 1, fx = i * N + 10, tx = fx - 9, z = upZ + WATER_TO - 1;
+    const i = mid + 1, fx = i * N + cell16(10), tx = fx - cell16(9), z = upZ + WATER_TO - 1;
     for (let x = tx; x <= fx + 1; x++) edge[x] = upZ + WATER_TO;
     tongue.add(cell(tx, z));
     const line = Array.from({ length: fx - tx - 1 }, (_, k) => cell(fx - 1 - k, z));
@@ -278,10 +282,11 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // (in a world with a gorge, below, the hill stands in the other back corner: the gorge runs on
   // into the grove)
   const gorgy = across > 1 && deep > UP + 1 && R() < .55 && !landscape.wide;
-  const hillI = gorgy || R() < .5 || landscape.wide ? right : 0, hollowI = R() < .5 ? 0 : right;
+  // (flip: the hill in the other back corner, where it left the river no way down to the water, below)
+  const hillAt = gorgy || R() < .5 || landscape.wide ? right : 0, hillI = flip ? right - hillAt : hillAt, hollowI = R() < .5 ? 0 : right;
   const inTile = (i, j, x, z) => [i * N + (i === right && i !== 0 ? N - x : x), j * N + z];
   const hill = (() => {
-    const [x, z] = inTile(hillI, back, 7.6 + jit(.8), 7.4 + jit(.8)), r0 = 2.6 + R() * .5, top = upper + 4 + Math.floor(R() * 2);
+    const [x, z] = inTile(hillI, back, u16(7.6 + jit(.8)), u16(7.4 + jit(.8))), r0 = 2.6 + R() * .5, top = upper + 4 + Math.floor(R() * 2);
     // (a broad low mound rising gently, a peak steeper: a level a cell from its foot to its flat top,
     // as the hill, but higher, cut off where its foot would reach further)
     if (landscape.hill === 'mound') return { tile: [hillI, back], x, z, top: upper + 3, r0, r1: r0 + 5, slope: .6, kind: 'mound' };
@@ -289,7 +294,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     return { tile: [hillI, back], x, z, top, r0, r1: r0 + 5, kind: 'hill' };
   })();
   const hollow = (() => {
-    const [x, z] = inTile(hollowI, 0, 8.4 + jit(.7), 8.4 + jit(.7)), r0 = 2.8 + R() * .5;
+    const [x, z] = inTile(hollowI, 0, u16(8.4 + jit(.7)), u16(8.4 + jit(.7))), r0 = 2.8 + R() * .5;
     // (a quarry deeper, its bottom wider; a dell with a pool at its bottom, on the far side from the
     // town's middle)
     if (landscape.hollow === 'quarry') return { tile: [hollowI, 0], x, z, bottom: lower - 4, r0: r0 + .4, r1: r0 + 4.2, kind: 'quarry', ramp: Math.atan2(D * .6 - z, W / 2 - x) };
@@ -303,10 +308,10 @@ export function makeLand(seed, opts, { stages = true } = {}) {
       return { tile: [i, back], x: hill.x + Math.cos(a) * d, z: hill.z + Math.sin(a) * d, level: upper + 2, r0: 2.6, r1: 4.6 };
     }
     // (by the gorge: off it, on its far side from the wall)
-    if (gorgy && i === 0) { const [x, z] = inTile(i, back, 12.6 + jit(.3), 10 + jit(.5)); return { tile: [i, back], x, z, level: upper + 1, r0: 2, r1: 3.4 }; }
+    if (gorgy && i === 0) { const [x, z] = inTile(i, back, u16(12.6 + jit(.3)), u16(10 + jit(.5))); return { tile: [i, back], x, z, level: upper + 1, r0: 2, r1: 3.4 }; }
     // (by a wide span's top, off its way: towards the middle)
-    if (landscape.wide && i === 0) { const [x, z] = inTile(i, back, 12.4 + jit(.3), 10.5 + jit(.5)); return { tile: [i, back], x, z, level: upper + 1, r0: 2, r1: 3.4 }; }
-    const [x, z] = inTile(i, back, 8 + jit(1), 8.5 + jit(1));
+    if (landscape.wide && i === 0) { const [x, z] = inTile(i, back, u16(12.4 + jit(.3)), u16(10.5 + jit(.5))); return { tile: [i, back], x, z, level: upper + 1, r0: 2, r1: 3.4 }; }
+    const [x, z] = inTile(i, back, u16(8 + jit(1)), u16(8.5 + jit(1)));
     return { tile: [i, back], x, z, level: upper + 1, r0: 2.2, r1: 4 };
   });
   // ---- what stands for good (the buildings, their streets, lanes and paths, the people, the
@@ -322,7 +327,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     const want = Array.from({ length: W }, (_, x) => clamp(Math.round((shoreNoise(x * .22 + 5, 3) - .44) * 8), -2, 2));
     for (let x = 0; x < W; x++) {
       const i = Math.floor(x / N), lx = x - i * N;
-      if (Math.abs(x + .5 - (px + N / 2)) < N / 2 + 2 || (i === mid + 1 && lx >= 8 && lx <= 12) || offSeam(x, seamX) < 1 || x <= WALL + 1 || x >= W - WALL - 2) continue;
+      if (Math.abs(x + .5 - (px + N / 2)) < N / 2 + 2 || (i === mid + 1 && lx >= cell16(8) && lx <= cell16(12)) || offSeam(x, seamX) < 1 || x <= WALL + 1 || x >= W - WALL - 2) continue;
       let o = want[x];
       if (o > 0) o = Math.min(o, upZ - 2 - from);
       while (o < 0 && !Array.from({ length: -o }, (_, k) => from - 1 - k).every(z => fixedDist[cell(x, z)] > 1.6 && !insideBox(x + .5, z + .5, 1) && !strip(x, z) && side(x, z) === 0)) o++;
@@ -404,7 +409,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   const lakeSpan = (avoid = [], wantTall = false, wantWide = false) => {
     // (where the lake is deepest, by its middle; off the gorge's mouth and another span)
     // (its top on the cliff's edge, the cliff beside it no further back)
-    const xs = Array.from({ length: N - 4 - WALL }, (_, k) => WALL + 2 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - 7) * .3 - Math.abs(b - 7) * .3 + (R() - .5) * 3);
+    const xs = Array.from({ length: N - 4 - WALL }, (_, k) => WALL + 2 + k).sort((a, b) => edge[b] - edge[a] + Math.abs(a - u16(7)) * .3 - Math.abs(b - u16(7)) * .3 + (R() - .5) * 3);
     for (const x of xs) {
       const top = edge[x], shore = from - 1;
       if ([-1, 0, 1].some(o => shoreOff[x + o] < 0)) continue;   // (not into a cove: over a point of land it may)
@@ -626,7 +631,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
     // (in from the back of the town on the other side of it from the lake: down its cliff in sight)
     // (and down the cliff now by the town's wall, now nearer its middle, or wherever it comes)
     const starts = backRow(() => true), right = x => x > W / 2 + 4, at = pick3(R, ['wall', 'middle', 'any']);
-    const lipAt = c => cliffLip(c) && (at === 'wall' ? c % W >= W - N + 9 : at === 'middle' ? c % W < W - N + 7 : true);
+    const lipAt = c => cliffLip(c) && (at === 'wall' ? c % W >= W - N + cell16(9) : at === 'middle' ? c % W < W - N + cell16(7) : true);
     const east = starts.some(c => right(c % W)) ? starts.filter(c => right(c % W)) : starts, into = c => lakeSet.has(c) && !gorge.has(c);
     for (const [lip, from] of [[lipAt, east], [cliffLip, east], [cliffLip, starts], [c => cliffLip(c, false), starts]]) if (!river.length) river = flow(lip, from, into);
     if (river.length) features.push({ kind: 'river', x: river.at(-1) % W + .5, z: Math.floor(river.at(-1) / W) + .5 });
@@ -634,7 +639,9 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // (the landing stage left the river nowhere to come down: the stream into the gorge is the
   // river, or else the land without the stage)
   if (!river.length && streams.length) river = streams.shift();
-  if (!river.length && stage.size) return makeLand(seed, opts, { stages: false });
+  if (!river.length && stage.size) return makeLand(seed, opts, { stages: false, flip });
+  if (!river.length && !flip && !gorgy && !landscape.wide) return makeLand(seed, opts, { stages, flip: true, again });
+  if (!river.length && again < 4) return makeLand(seed, opts, { again: again + 1 });
   streams.unshift(river);
   if (!gorgeHead && R() < .6) {
     const s = flow(cliffLip, backRow(x => x < W / 2 - 4), c => lakeSet.has(c));
@@ -744,7 +751,7 @@ export function makeLand(seed, opts, { stages = true } = {}) {
   // homes on terraces, which trees line the avenues, how thick the ground cover grows
   const S = mulberry32(hash32(seed ^ 0x57e1e)), AVENUE_TREES = ['meadow_tree_round', 'meadow_tree_tall', 'town_tree_birch', 'town_tree_elm', 'town_tree_oak'];
   const style = {
-    homes: 5 + Math.floor(S() * 5), lanes: 6 + Math.floor(S() * 7), park: .5 + S() * 1.2, firs: (S() - .5) * .35,
+    homes: count16(5 + Math.floor(S() * 5)), lanes: Math.round((6 + Math.floor(S() * 7)) * ROOM_SCALE), park: .5 + S() * 1.2, firs: (S() - .5) * .35,
     hedges: .3 + S() * .7, garlands: .15 + S() * .6, terraces: .3 + S() * .7, cover: .8 + S() * .5,
     avenue: AVENUE_TREES.filter(() => S() < .6).concat(AVENUE_TREES[Math.floor(S() * AVENUE_TREES.length)]),
   };

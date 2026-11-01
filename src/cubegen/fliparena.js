@@ -7,7 +7,7 @@
 // pyramids, humps, each with its stairs: FEATURES), overhead on a wall, and small clutter glued to
 // it. The doorway, the well and the boss's spot on the floor stay clear, and so does the middle of
 // every side (where the fight goes on after a turn) and the way from the doorway to the well.
-import { N, LH } from '../core/constants.js';
+import { N, LH, at16, count16 } from '../core/constants.js';
 import { idx } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { S, vi, GROUP, SIDES, FACES, IDENTITY, orientedFloors, dirIndex, turnTo, turnPoint } from '../core/flip.js';
@@ -17,13 +17,13 @@ import { smallProps } from './arenaprops.js';
 import { finishArena, reachFrom } from './arenamap.js';
 
 export const FLIP_ARENA = Object.freeze({
-  island: { r: 4.1, y0: 7, y1: 9 },   // the floating island: its radius (cells) and the cells it fills up the box
+  island: { r: at16(4.1), y0: Math.round(at16(7)), y1: Math.round(at16(7)) + 2 },   // the floating island: its radius (cells) and the cells it fills up the box
   door: 3,                            // cells the doorway is high
-  holes: [3, 4],                      // holes in each wall (least, most)
+  holes: [count16(3), count16(4)],    // holes in each wall (least, most)
   balcony: { rise: 4, depth: 4, length: 5 },   // a balcony: cells up (its staircase's steps), out of its wall, along it
-  features: [3, 4],                   // things to climb on each side (cubegen/fliparena.js FEATURES)
-  pillars: [1, 2],                    // ... and pillars
-  clutter: [12, 18],                  // small things glued to each side
+  features: [count16(3), count16(4)], // things to climb on each side (cubegen/fliparena.js FEATURES)
+  pillars: [count16(1), count16(2)],  // ... and pillars
+  clutter: [count16(12), count16(18)],   // small things glued to each side
 });
 // the wall of each face direction (DIRS order: +x, -x, +z, -z)
 const WALL = ['px', 'nx', 'pz', 'nz'];
@@ -49,6 +49,8 @@ function walkable(flip, face, cells, shelves = []) {
     // (upside down the floor is the island, whatever else stands at its height)
     const base = Math.min(...fight.map(f => f.top)), cut = floors.filter(f => f.top === base && !f.encounter && f.link.some(Boolean));
     if (down !== 'top' && cut.length > 2) return false;
+    // (a stair leads somewhere both ways: not up against what something of another side put there)
+    if (fight.some(f => f.stair && f.link.filter(Boolean).length < 2)) return false;
     if (down === face && !reached(flip, O, cells, turned)) return false;
     for (const sh of shelves) if (sh.face === down && !reached(flip, O, sh.cells, turned)) return false;
   }
@@ -227,7 +229,7 @@ export function flipArena({ spec, ctx, level, U, approach: [dx, dz], exit, role,
   for (const face of SIDES) {
     const want = rand(...FLIP_ARENA.holes);
     for (let tries = 0, made = 0; made < want && tries < 60; tries++) {
-      const w = R() < 0.5 ? 2 : 1, h = R() < 0.5 ? 2 : 1, u0 = rand(3, 12 - w + 1), v0 = rand(lowHole, 14 - h);
+      const w = R() < 0.5 ? 2 : 1, h = R() < 0.5 ? 2 : 1, u0 = rand(3, S - 4 - w + 1), v0 = rand(lowHole, S - 2 - h);
       if (!free(face, u0, v0, w, h)) continue;
       mark(face, u0, v0, w, h, 1);
       const cells = [];
@@ -245,7 +247,7 @@ export function flipArena({ spec, ctx, level, U, approach: [dx, dz], exit, role,
   // from each other, clear of the holes and of the middle of the side (where the fight goes on
   // after a turn). On a wall they stand out of it overhead: two cells up from the floor at least,
   // and two from every edge, so whatever side is down nothing of another side stands in the way.
-  const middle = (u, v) => Math.abs(u - 7.5) < 2 && Math.abs(v - 7.5) < 2;
+  const middle = (u, v) => Math.abs(u - (S / 2 - 0.5)) < 2 && Math.abs(v - (S / 2 - 0.5)) < 2;
   const place = (face, kind, lo, hi, ok = () => true) => {
     for (let tries = 0; tries < 150; tries++) {
       const r = rand(0, 3), u0 = rand(lo[0], hi[0]), v0 = rand(lo[1], hi[1]), f = FEATURES[kind](R);
@@ -281,14 +283,14 @@ export function flipArena({ spec, ctx, level, U, approach: [dx, dz], exit, role,
   };
   const kinds = Object.keys(FEATURES).filter(k => k !== 'pillar');
   for (const face of ['bottom', ...SIDES]) {
-    const lo = face === 'bottom' ? [3, 3] : [3, bottom + 2], hi = [12, 13], ok = face === 'bottom' ? floorOk : undefined;
+    const lo = face === 'bottom' ? [3, 3] : [3, bottom + 2], hi = [S - 4, S - 3], ok = face === 'bottom' ? floorOk : undefined;
     const order = kinds.map(k => [k, R()]).sort((a, b) => a[1] - b[1]).map(([k]) => k);   // (every side its own mix)
     const want = rand(...FLIP_ARENA.features);
     for (let i = 0, made = 0; i < order.length * 4 && made < want; i++) if (place(face, order[i % order.length], lo, hi, ok)) made++;
     for (let i = rand(...FLIP_ARENA.pillars); i > 0; i--) place(face, 'pillar', lo, hi, ok);
   }
   // on the island's underside (its floor upside down) a little stepped pyramid in the middle
-  place('island', 'pyramid', [6, 6], [9, 9]);
+  place('island', 'pyramid', [S / 2 - 2, S / 2 - 2], [S / 2 + 1, S / 2 + 1]);
 
   // Clutter on every side (the theme's small things and loose stones of its rock, and what the
   // arena brings: core/bosses.js BOSS_ARENAS `props`): glued to it, its up the side's, so it is

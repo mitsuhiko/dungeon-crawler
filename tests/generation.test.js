@@ -39,7 +39,7 @@ test('all six mine/ruin settings generate and prestige invests more space withou
     assert.ok(['mines', 'ruins'].includes(spec.biome), spec.biome);
     for (const prestige of PRESTIGE) for (const setting of settings) {
       const intent = { ...siteIntent(1, key, spec.biome, prestige), setting };
-      const custom = { ...spec, rewardSites: [intent] }, m = generate(custom);
+      const custom = { ...spec, grotto: false, rewardSites: [intent] }, m = generate(custom);   // (no cave's chest besides: cubegen/grotto.js)
       assert.equal(m.rewardSites.length, 1, `${spec.biome}/${prestige}/${setting}: ${JSON.stringify(m.siteFailures)}`);
       checkSites(m);
       assert.deepEqual(signature(m), signature(generate(custom)), 'same spec deterministically realizes the site');
@@ -58,7 +58,8 @@ test('unplaceable destinations are reported without downgrading or breaking requ
   w.prepare(key);
   const spec = w.spec(key);
   // An overcrowded budget cannot fit: test bounded best-effort generation without a fake floor fallback.
-  const blocked = { ...spec, rewardSites: Array.from({ length: 20 }, (_, slot) => siteIntent(3, key, 'mines', 'exceptional', slot)) };
+  // (no waterfall's hidden cave, cubegen/grotto.js: its chest would be a site of its own)
+  const blocked = { ...spec, grotto: false, rewardSites: Array.from({ length: 20 }, (_, slot) => siteIntent(3, key, 'mines', 'exceptional', slot)) };
   const m = generate(blocked);
   assert.ok(m.siteFailures.length);
   assert.ok((m.siteAttempts || m.attempts) <= 200);

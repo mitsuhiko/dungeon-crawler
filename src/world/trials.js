@@ -27,7 +27,7 @@ import { cornerOf, fromCorner, COURT } from '../cubegen/trials/chase.js';
 // Where the portal on side face d of trial room k stands along the face: a trial room's faces are
 // flat (LLLL, no river) and nothing else moves their portals, so it is the face's own first draw
 // (world/faces.js sideFace), known now already; but a sunken room's (sunkenPads)
-export const portalPos = (seed, k, d) => 3 + Math.floor(mulberry32(hash32(seed ^ hashKey(faceKey(k, d)) ^ 0x51de))() * 10);
+export const portalPos = (seed, k, d) => 3 + Math.floor(mulberry32(hash32(seed ^ hashKey(faceKey(k, d)) ^ 0x51de))() * (N - 6));
 // a kind's room needs room between its two portals: the collapse's aprons in front of them
 // (cubegen/trials/collapse.js; the timed gate's and the balance's too) must stand well apart where
 // the way turns
@@ -94,7 +94,7 @@ export function combinerStages(kind, d, theme, R, force = null) {
 function sunkenPads(seed, k, entry, exit, depth) {
   const L = sunkenStrip(depth), own = [portalPos(seed, k, entry), portalPos(seed, k, exit)];
   let best = null;
-  for (let pe = 3; pe <= 12; pe++) for (let px = 3; px <= 12; px++) {
+  for (let pe = 3; pe <= N - 4; pe++) for (let px = 3; px <= N - 4; px++) {
     const cost = Math.abs(pe - own[0]) + Math.abs(px - own[1]);
     if ((!best || cost < best.cost) && sunkenLayout({ dir: entry, pos: pe }, { dir: exit, pos: px }, L)) best = { cost, pads: { [entry]: pe, [exit]: px } };
   }

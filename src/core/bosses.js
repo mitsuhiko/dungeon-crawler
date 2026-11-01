@@ -10,6 +10,8 @@
 // last cube, the final arena, with no way on (world/layout.js `final`, cubegen/guardian.js).
 // The layout marks that arena's guardian with `boss` (world/layout.js, cubegen/guardian.js); its
 // spawn is the boss alone (game/enemyspawn.js guardianSpots), with no defenders. docs/bosses.md.
+import { N } from './constants.js';
+
 export const BOSSES = Object.freeze({ 0: 'gusto', 1: 'totnar', 2: 'squarlo', 3: 'flip', 4: 'foggery', 5: 'renew', 6: 'mansk', 7: 'monteur', 10: 'sollmeldon', 13: 'slomo', 16: 'umbra', 20: 'qualmos' });
 export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[depth] ?? null : null;
 // How a boss's arena differs from its planned one (cubegen/guardian.js, cubegen/arenaprops.js):
@@ -38,6 +40,6 @@ export const bossAt = (depth, role = 'descent') => role === 'descent' ? BOSSES[d
 // the others stay at noon, the light being their fight's (Totnar's darkness, Squarlo's mist,
 // Flip's void, Renew's dusk).
 export const BOSS_ARENAS = Object.freeze({ gusto: { days: true }, totnar: { braziers: 5 }, squarlo: { type: 'tidal' }, flip: { type: 'flip' },
-  foggery: { type: 'tower', door: 8, centre: 7, props: ['volcanic'] }, renew: { braziers: 4 },
+  foggery: { type: 'tower', door: 8, centre: N / 2 - 1, props: ['volcanic'] }, renew: { braziers: 4 },
   slomo: { type: 'bowl', props: ['slime'], night: true }, mansk: { type: 'stage', props: ['museum'] }, sollmeldon: { type: 'mire', props: ['swamp'] },
   umbra: { type: 'reef', props: ['grotto'] }, qualmos: { braziers: 6, lagoon: 24 } });

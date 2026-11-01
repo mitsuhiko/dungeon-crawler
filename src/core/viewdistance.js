@@ -5,8 +5,9 @@
 import { N } from './constants.js';
 import { key, parse } from '../world/coords.js';
 
-export const VIEW_DISTANCE = 3 * N;
-export const VIEW_FADE = N / 2;
+// (in units: as far as three cubes of 16 cells, however big the cubes are)
+export const VIEW_DISTANCE = 48;
+export const VIEW_FADE = 8;
 // cubes: what lives in the surroundings (their people, the friends there: game/drawn.js) is drawn
 // this far round the cube played in, no further
 export const NEAR_CUBES = 2;

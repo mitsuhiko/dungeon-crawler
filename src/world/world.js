@@ -2,7 +2,7 @@
 // per depth), decides its faces, and then generates its map from a spec built out of those faces.
 import { hash32 } from '../core/util.js';
 import { cleanWorldLevel } from '../core/enemies.js';
-import { WATER, LAVA } from '../core/constants.js';
+import { WATER, LAVA, at16 } from '../core/constants.js';
 import { worldNoise } from '../core/wnoise.js';
 import { generate } from '../cubegen/index.js';
 import { WFC } from './wfc.js';
@@ -81,15 +81,15 @@ export class World {
     // a needle with a reward site on top (heights.js), where no river runs
     const R = this.wfc.rng(k, 0x9e1d7), top = heightsOf(theme).top;
     const pinnacle = L.pinnacle === k && !special && !t.sock.includes('W')
-      ? { x: 6 + Math.floor(R() * 4), z: 6 + Math.floor(R() * 4), top: top[0] + Math.floor(R() * (top[1] - top[0] + 1)) } : null;
+      ? { x: Math.floor(at16(6 + R() * 4)), z: Math.floor(at16(6 + R() * 4)), top: top[0] + Math.floor(R() * (top[1] - top[0] + 1)) } : null;
     // the set-piece cubes (cubegen/setpieces.js): a lone peak with a discovery on top, up a ladder,
     // in a flat empty field; a great lake, a discovery on an islet in it
     const discovery = (L.sitePlans.get(k) || []).find(i => !i.landmark), Rs = this.wfc.rng(k, 0x5e7c);
     // (the beginning's third room is one too, with his first glass on top: core/intro.js)
     const firstGlass = L.firstGlass === k;
-    const peak = (L.peak === k || firstGlass) && !special ? { x: 5 + Math.floor(Rs() * 3), z: 5 + Math.floor(Rs() * 3),
+    const peak = (L.peak === k || firstGlass) && !special ? { x: Math.floor(at16(5 + Rs() * 3)), z: Math.floor(at16(5 + Rs() * 3)),
       side: firstGlass || discovery && discovery.prestige !== 'basic' ? 5 : 4, rise: (firstGlass ? 6 : 10) + Math.floor(Rs() * 4) } : null;
-    const lake = L.lake === k && !special ? { islet: discovery ? { x: 7 + Rs(), z: 7 + Rs(), r: discovery.prestige === 'basic' ? 2.3 : 2.9 } : null } : null;
+    const lake = L.lake === k && !special ? { islet: discovery ? { x: at16(7 + Rs()), z: at16(7 + Rs()), r: discovery.prestige === 'basic' ? 2.3 : 2.9 } : null } : null;
     // a short tunnel the way leads through (cubegen/tunnel.js): not where rivers run, falls come
     // or go, spouts pour, a horde waits, or something else shapes the cube
     // an annex (world/layout.js): plain ground to fight on, no holes, no tunnel

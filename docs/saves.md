@@ -81,8 +81,9 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   at noon (`START_CLOCK`, `core/daycycle.js`); the beginning's two gates (`intro:glass`,
   `intro:sword`, [story.md](story.md#the-beginning)) are kept with the guardians' in `gates`. A
   world saved before the beginning existed, somebody already out past the rock, gets both
-  opened when it is loaded. A world saved before version 2 (before the town was a place of many
-  tiles, [town.md](town.md): every depth of its seed came out different) starts again as new,
+  opened when it is loaded. A world saved before version 3 (before the town was a place of many
+  tiles, [town.md](town.md), and before the cubes were 24 cells wide, [world.md](world.md#cube-size):
+  every depth of its seed came out different) starts again as new,
   keeping its seed, name and level; the heroes keep all they carry. A hero's Old Sword saved before it was the glassmaker's is renamed so.
   `{ v, id, seed, copy, name, level, created, updated, deepest, run: { defeated, gates, chests, dropped,
   loot, townPortal, quests, clock, kills, told }, faces, visited, spots }`

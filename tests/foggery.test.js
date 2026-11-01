@@ -11,7 +11,7 @@ import { tideLevel } from '../src/core/squarlo.js';
 import { findPath } from '../src/physics/enemynav.js';
 import { mulberry32 } from '../src/core/util.js';
 import { floorY } from '../src/core/surfaces.js';
-import { LH, HEAD, JUMP_V, GRAV, WALK_SPEED, CHAR_H } from '../src/core/constants.js';
+import { N, ROOM_SCALE, LH, HEAD, JUMP_V, GRAV, WALK_SPEED, CHAR_H } from '../src/core/constants.js';
 
 const fifthDescent = seed => {
   const w = new World(seed), L = w.layout(4);
@@ -54,7 +54,7 @@ test('his doorway is in the middle of its face, high up, and you come in onto th
     assert.ok(g.y > tideLevel(map.tide, LAVA.rest) * LH, 'on dry land');
     assert.ok(findPath(bridge, g.floor, 200, FOGGERY.height).length > 8);
     // no parapets up the ramp
-    assert.ok(map.fenceList.every(r => r.pts.every(([x, , z]) => map.cols[Math.floor(z) * 16 + Math.floor(x)].some(f => f.tower === 'bridge'))));
+    assert.ok(map.fenceList.every(r => r.pts.every(([x, , z]) => map.cols[Math.floor(z) * N + Math.floor(x)].some(f => f.tower === 'bridge'))));
     // the well lies on the caldera's floor, under the lava until he is beaten
     assert.equal(well.kind, 'down'); assert.equal(well.y, TOWER.ground * LH);
     assert.ok(tideLevel(map.tide, LAVA.rest) > TOWER.ground && tideLevel(map.tide, LAVA.gone) < TOWER.ground);
@@ -75,7 +75,6 @@ test('the lava: under the top in phases 1 and 2, over it in phase 3, under the p
 });
 
 test('the tower narrows as it rises, half as wide at the top, a ramp winding up round it from the floor to the top', () => {
-  const N = 16;
   for (const seed of [0, 1, 2, 3, 4, 7, 11, 23]) {
     const { map } = fifthDescent(seed), t = map.tower;
     // no walls: the caldera's floor and its lava go out to the cube's sides (but the bridge from the doorway)
@@ -88,7 +87,7 @@ test('the tower narrows as it rises, half as wide at the top, a ramp winding up 
     // wide at the foot, half as wide at the top (and clear of the rim all round)
     const reach = test => Math.max(...map.floors.filter(test).map(f => Math.hypot(f.x + 0.5 - TOWER.mid, f.z + 0.5 - TOWER.mid)));
     const foot = reach(f => f.tower === 'ramp'), crown = reach(f => f.tower === 'top');
-    assert.ok(foot > 5 && foot < 6.6, 'foot ' + foot); assert.ok(crown < foot * 0.65, `crown ${crown} vs foot ${foot}`);
+    assert.ok(foot > TOWER.base - 1.2 && foot < TOWER.base + 0.4, 'foot ' + foot); assert.ok(crown < foot * 0.65, `crown ${crown} vs foot ${foot}`);
     for (const f of map.floors) if (f.tower) assert.ok(f.x > 1 && f.z > 1 && f.x < N - 2 && f.z < N - 2 || f.tower === 'bridge', `${f.x},${f.z} by the rim`);
     // the higher up the ramp, the nearer the middle
     const ramp = map.floors.filter(f => f.tower === 'ramp'), r = f => Math.hypot(f.x + 0.5 - TOWER.mid, f.z + 0.5 - TOWER.mid);
@@ -98,7 +97,7 @@ test('the tower narrows as it rises, half as wide at the top, a ramp winding up 
     for (const col of map.cols) assert.ok(col.length === 1 || col.length === 2 && col[1].tower === 'bridge');
     const m = rampMarks(t.door);
     assert.equal(rampHeight(0, t.door), TOWER.ground); assert.equal(rampHeight(m.jc, t.door), t.door); assert.equal(rampHeight(m.t, t.door), TOWER.top);
-    const goal = map.cols[t.goal.z * 16 + t.goal.x].at(-1);
+    const goal = map.cols[t.goal.z * N + t.goal.x].at(-1);
     assert.equal(goal.tower, 'top');
     for (const h of [FOGGERY.height, FOGGERY_BALL.height]) assert.ok(findPath(map.guardian.floor, goal, 200, h), `${seed}: he climbs to the top`);
     assert.ok(findPath(goal, map.portals[1].floor, 200, CHAR_H), `${seed}: the way down to the well`);
@@ -114,10 +113,10 @@ test('the tower narrows as it rises, half as wide at the top, a ramp winding up 
     assert.ok(map.movers.touch.length >= PLATFORMS.near + 2);
     // nothing of the tower reaches up close under where the platforms float
     for (const s of map.movers.slots) for (let b = 0; b < 2; b++) for (let a = 0; a < 2; a++)
-      for (const f of map.cols[(s.z + b) * 16 + s.x + a]) assert.ok(Math.max(...f.cs) / LH <= PLATFORMS.top - PLATFORMS.clear, `${f.x},${f.z}`);
+      for (const f of map.cols[(s.z + b) * N + s.x + a]) assert.ok(Math.max(...f.cs) / LH <= PLATFORMS.top - PLATFORMS.clear, `${f.x},${f.z}`);
     // stones and rocks lie about, none in the doorway
     assert.ok(map.arenaPlacements.length > 20);
-    for (const q of map.arenaPlacements) assert.ok(!map.portals[0].cells.includes(Math.floor(q.z) * 16 + Math.floor(q.x)), q.name);
+    for (const q of map.arenaPlacements) assert.ok(!map.portals[0].cells.includes(Math.floor(q.z) * N + Math.floor(q.x)), q.name);
   }
 });
 
@@ -191,5 +190,5 @@ test('his fight: eyes thrown one at a time, Fire-faces, then the ball, his cats,
   const geyser = FOGGERY_BALL.attacks.find(a => a.name === 'geyser');
   assert.ok(geyser.beam.kind === 'geyser' && geyser.beam.bolts === 3 && geyser.burn && geyser.pop > 0);
   assert.equal(FOGGERY_BALL.attacks.find(a => a.name === 'volley').projectile.volley, 3);
-  assert.equal(FOGGERY_FIGHT.catsAgain, 8); assert.equal(FOGGERY_FIGHT.lava.rise, 60);
+  assert.equal(FOGGERY_FIGHT.catsAgain, 8); assert.equal(FOGGERY_FIGHT.lava.rise, 60 * ROOM_SCALE);   // (as long as the ramp is: core/foggery.js)
 });

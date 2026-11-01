@@ -39,7 +39,16 @@ function bridgeDecks(moves) {
   return decks;
 }
 
+// (ctx.graphs: while the escapes and the ways up are added, cubegen/escape.js, the floors stay as they
+// are and only moves come: a graph is made again only once there are more of them)
 export function graph(ctx, real) {
+  const kept = ctx.graphs?.get(real);
+  if (kept && kept.n === ctx.moves.length) return kept.adj;
+  const adj = makeGraph(ctx, real);
+  ctx.graphs?.set(real, { n: ctx.moves.length, adj });
+  return adj;
+}
+function makeGraph(ctx, real) {
   const { cols, floors, headOK, moves, fences } = ctx, adj = new Map();
   const memo = new Map(), decks = !real && bridgeDecks(moves);
   const cramped = f => real ? (memo.get(f) ?? memo.set(f, isCramped(ctx, f)).get(f))

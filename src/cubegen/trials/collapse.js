@@ -44,7 +44,7 @@ const edgeTouch = (cells, set) => cells.some(c => { const [x, z] = xz(c); return
 // way keep two cells of basin between them, at one level, and three from the aprons, the pads and
 // the ground beside them)
 function causeway(R, o, entry, exit, want, most) {
-  const nb = (12 - o[0]) >> 1, nz = (12 - o[1]) >> 1, ok = new Map();
+  const nb = (N - 4 - o[0]) >> 1, nz = (N - 4 - o[1]) >> 1, ok = new Map();
   const anchored = a => [...a.cells, ...a.pad, ...a.ears];
   const all = [...anchored(entry), ...anchored(exit)];
   for (let bz = 0; bz <= nz; bz++) for (let bx = 0; bx <= nb; bx++) {

@@ -22,6 +22,7 @@ import { props, loadPropSets, propSetLoaded, propMatrix, propBatchGeometry, glow
 import { nightGlow, LIT_GLSL } from './night.js';
 import { farLit } from './farlights.js';
 import { small } from './device.js';
+import { thinDressing } from './propplace.js';
 
 let current = [];   // [{ key, source, group, cull, glass, geometry, base, instances, landmarks }]
 const live = new Set(), cache = new Map();   // cache keyed by worker geometry identity
@@ -304,7 +305,8 @@ function geometryFor(geo) {
 // its theme's little set pieces (map.vignettes, cubegen/vignettes.js), [{ name, x, y, z, yaw }]
 // (the town's tiles: all they are dressed with, its houses and trees too: the town is one place,
 // docs/town.md)
-export const shownFar = map => map.town ? map.town.placements
+// (a small device: some of the town's small dressing, render/propplace.js thinDressing)
+export const shownFar = map => map.town ? thinDressing(map.town.placements)
   : [...(map.rewardSites || []).map(s => s.landmark).filter(Boolean), ...(map.vignettes || [])];
 
 // landmarks: shownFar(map); their geometry is the catalog's

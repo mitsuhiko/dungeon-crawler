@@ -158,7 +158,9 @@ function finishMiasma(ctx, t, out) {
   const valve = t.goal, reach = reachFrom(ctx, [t.entry], true);
   const top = Math.max(...ctx.floors.filter(f => !f.fluid && reach.has(f.id)).map(f => f.landing ? f.top : Math.max(...f.cs) / LH));
   const head = CHAR_H / LH, from = Math.ceil(top) + FOG.over, to = valve.top + head + 0.5;
-  const u = n => from - (floorLevel(n) + head);   // (the fog's sinking to reach a head on floor n)
+  // (the fog's sinking to reach a head on floor n: on its highest corner, a body walking up a slope
+  // stands that high on it)
+  const u = n => from - ((n.landing ? n.top : Math.max(...n.cs) / LH) + head);
   const arr = arrivals(ctx, t.entry), path = pathOf(arr, valve);
   if (!path) return null;
   const end = from - to, needs = [], step = Math.max(FLOOD.step, Math.ceil(end / FOG.pulses));

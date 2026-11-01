@@ -4,13 +4,17 @@ import { Heap } from '../core/heap.js';
 
 export const moveKey = m => m.kind + ':' + Math.min(m.from.id, m.to.id) + ':' + Math.max(m.from.id, m.to.id);
 
+// How much the search leans towards the goal (1: the cheapest way for sure). A little more finds
+// nearly as cheap a way after looking at far fewer floors: in a cube of 24 cells a search looked at
+// about five times as many as in one of 16.
+export const GREED = 1.3;
 // `goal`: a floor, or a test for any of several (then plain Dijkstra); `ok`: which moves count
 // learn: paths.html#astar #astar-code (see learn/README.md)
 export function search(ctx, from, goal, jitter, have, ok = null) {
-  const { SZ, movesFrom } = ctx;
+  const { SZ, movesFrom, moveMemo: memo } = ctx;
   const { gs, prev, closed } = scratch(SZ);
   const many = typeof goal === 'function', isGoal = many ? goal : f => f === goal;
-  const hfn = many ? () => 0 : f => Math.abs(f.x - goal.x) + Math.abs(f.z - goal.z);
+  const hfn = many ? () => 0 : f => (Math.abs(f.x - goal.x) + Math.abs(f.z - goal.z)) * GREED;
   const open = new Heap();
   gs[from.id] = 0; open.push(hfn(from), from);
   let end = null;
@@ -19,7 +23,9 @@ export function search(ctx, from, goal, jitter, have, ok = null) {
     if (isGoal(cur)) { end = cur; break; }
     if (closed[cur.id]) continue;
     closed[cur.id] = 1;
-    for (const mv of movesFrom(cur)) {
+    // (ctx.moveMemo: the moves from a floor, kept while they cannot change: one search after another)
+    const mvs = memo ? memo.get(cur.id) ?? memo.set(cur.id, movesFrom(cur)).get(cur.id) : movesFrom(cur);
+    for (const mv of mvs) {
       if (ok && !ok(mv)) continue;
       // no jump straight after a drop the same way (the fall carries you into the gap)
       if (mv.kind === 'jump' && prev[cur.id]?.kind === 'drop' && prev[cur.id].d === mv.d) continue;
@@ -51,11 +57,13 @@ export function findRoute(ctx) {
   // back from it is only tried (a portal may be one-sided). No exit (the core): first portal.
   const hi = Math.max(0, portals.findIndex(p => p.dir === spec.exit)), hub = portalFloors[hi];
   const others = portalFloors.filter((_, i) => i !== hi), toHub = spec.exit != null;
-  Object.assign(ctx, { have: new Set(), moves: [], segments: [], jitter, hub: toHub ? hub : null });
-  for (const f of others) if (!take(ctx, toHub ? search(ctx, f, hub, jitter, ctx.have) : search(ctx, hub, f, jitter, ctx.have))) return false;
-  ctx.reqMoves = ctx.moves.length;
-  if (toHub) for (const f of others) take(ctx, search(ctx, hub, f, jitter, ctx.have));
-  return true;
+  Object.assign(ctx, { have: new Set(), moves: [], segments: [], jitter, hub: toHub ? hub : null, moveMemo: new Map() });
+  try {
+    for (const f of others) if (!take(ctx, toHub ? search(ctx, f, hub, jitter, ctx.have) : search(ctx, hub, f, jitter, ctx.have))) return false;
+    ctx.reqMoves = ctx.moves.length;
+    if (toHub) for (const f of others) take(ctx, search(ctx, hub, f, jitter, ctx.have));
+    return true;
+  } finally { ctx.moveMemo = null; }
 }
 
 // add a route (a list of moves) unless it is missing; returns whether it was there

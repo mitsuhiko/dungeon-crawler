@@ -2,7 +2,7 @@
 // and the roster in them (core/spawns.js, game/enemyspawn.js)
 import assert from 'node:assert/strict';
 import { state } from '../fixtures.js';
-import { DIRS } from '../../src/core/constants.js';
+import { N, DIRS, ROOM_SCALE } from '../../src/core/constants.js';
 import { edgeKey } from '../../src/core/util.js';
 import { step } from '../../src/world/coords.js';
 import { voidAllowed } from '../../src/world/voids.js';
@@ -36,11 +36,11 @@ export default [{
       // (Flip's box has floors stacked in its columns: its walls, its island, core/flip.js; so has
       // Foggery's caldera, its bridge over the floor, cubegen/towerarena.js)
       const stacked = !!m.flip || !!m.tower;
-      if (!stacked) assert.equal(m.floors.length, 256);
+      if (!stacked) assert.equal(m.floors.length, N * N);
       const fluids = pondFluids(m);
       assert.ok(m.floors.every(f => !f.covered && (!f.fluid || f.encounter && fluids.has(f.fluid))));
       if (!stacked) for (const f of m.floors) if (f.encounter) for (const [dx, dz] of DIRS) {
-        const other = m.floors[(f.z + dz) * 16 + f.x + dx];
+        const other = m.floors[(f.z + dz) * N + f.x + dx];
         if (!other.encounter && other.top < f.top - 1) assert.ok(m.fences.has(edgeKey(f.x, f.z, other.x, other.z)));
       }
       const entry = m.portals[0], down = m.portals[1];
@@ -48,8 +48,8 @@ export default [{
       if (m.tower) assert.ok(down.y < entry.y); else assert.equal(entry.y, down.y);   // (his well lies on the caldera's floor)
       for (const cfg of ENEMY_PROFILES) {
         assert.ok(walkable(m.guardian.floor, cfg.height));
-        assert.ok(findPath(entry.floor, m.guardian.floor, 40, cfg.height));
-        assert.ok(findPath(m.guardian.floor, down.floor, 40, cfg.height));
+        assert.ok(findPath(entry.floor, m.guardian.floor, Math.round(40 * ROOM_SCALE), cfg.height));
+        assert.ok(findPath(m.guardian.floor, down.floor, Math.round(40 * ROOM_SCALE), cfg.height));
       }
       if (!m.tower) assert.equal(Math.hypot(m.guardian.x - down.x - .5, m.guardian.z - down.z - .5), 2);
       assert.equal(clone.guardian.floor, clone.floors[m.guardian.floor.id]);
@@ -87,7 +87,7 @@ export default [{
       for (const a of spots) {
         // (a fluid dweller in its pond, and the guardian a way off: it is only ever there)
         if (a.kind.dwells) { assert.ok(walkable(a.f, walker(a.kind)), 'in its pond'); continue; }
-        assert.ok(walkable(a.f, a.kind.height) && findPath(a.f, guard.kind.dwells ? map.guardian.floor : guard.f, 40, a.kind.height));
+        assert.ok(walkable(a.f, a.kind.height) && findPath(a.f, guard.kind.dwells ? map.guardian.floor : guard.f, Math.round(40 * ROOM_SCALE), a.kind.height));
         for (const b of spots) if (a !== b)
           assert.ok(Math.hypot(a.x - b.x, a.z - b.z) >= a.kind.radius + b.kind.radius + .1);
       }

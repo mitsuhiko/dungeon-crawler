@@ -15,7 +15,7 @@
 // character could not stand, covered (kept flat, no structure through them) under them. Their
 // colliders and occluders come from the prop (assets/themes/manifest.json). A few small things of
 // the theme's stand around them. Optional: one that finds no room is left out.
-import { N, LH, CHAR_R } from '../core/constants.js';
+import { N, LH, CHAR_R, DIRS, count16 } from '../core/constants.js';
 import { idx, inb, hash32, mulberry32 } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { PROP_METADATA } from '../core/propmetadata.js';
@@ -79,7 +79,8 @@ export function placeVignettes(ctx) {
   const theme = themeOf(ctx.spec), range = theme.vignettes, pieces = vignettesOf(theme.props);
   if (!range || !pieces.length || !ctx.portalFloors.length || ctx.spec.trial) return;
   const R = mulberry32(hash32(ctx.seed ^ 0x7195e7));
-  const count = range[0] + Math.floor(R() * (range[1] - range[0] + 1));
+  // (a theme's range is for a room of 16 cells: as many more as the room is bigger)
+  const count = count16(range[0] + Math.floor(R() * (range[1] - range[0] + 1)));
   if (!count) return;
   // the way: its structures' cells and its floors, and how far every cell is from it
   const runCells = new Set(ctx.moves.flatMap(m => m.cells));
@@ -126,6 +127,9 @@ export function placeVignettes(ctx) {
       if (floors.some(g => !free(g, true) || Math.abs(g.top - f.top) > LEVEL || ctx.nextAbove(g) && ctx.nextAbove(g).bottom < f.top + height + 1)) continue;
       const { blocked, covered } = landmarkClaims(floors, colliders, occluders), was = floors.map(g => g.top);
       if (floors.some(g => routeFloors.has(g.id) && (blocked.has(g.c) || g.top !== f.top))) continue;
+      // (nor lowered where it walls in a fluid beside it: cubegen/contain.js)
+      if (floors.some(g => f.top < g.top && DIRS.some(([dx, dz]) => inb(g.x + dx, g.z + dz)
+        && ctx.cols[idx(g.x + dx, g.z + dz)].some(h => h.fluid && h.surf > f.top)))) continue;
       if (checks++ >= CHECKS) break;
       // levelled and its cells blocked, everything the cube must reach is still reached both ways
       for (const g of floors) { g.top = f.top; if (blocked.has(g.c)) g.siteBlocked = true; }

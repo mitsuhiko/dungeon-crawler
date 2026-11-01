@@ -1,6 +1,6 @@
 // Fluid pools on upper layers, plus a generic "pool around a floor" used under waterfalls. Their
 // surface is level with their lowest bank (walked into and out of there), their bed two under it.
-import { N, HEAD, DIRS, FLUID_NAME, WATER } from '../core/constants.js';
+import { N, HEAD, DIRS, FLUID_NAME, WATER, count16 } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 import { WIDER } from './river.js';
 
@@ -34,7 +34,7 @@ function flood(ctx, cells, type, S) {
 
 export function addPools(ctx) {
   const { R, ri, K, pickFluid, layerFloor, stats } = ctx;
-  for (let k = 1; k < K; k++) {
+  for (let k = 1; k < K; k++) for (let n = count16(1); n > 0; n--) {
     if (R() > 0.6) continue;
     const type = pickFluid();
     const ok = c => { const f = layerFloor(c, k); return f && !f.prot && !f.ramp && !f.site; };

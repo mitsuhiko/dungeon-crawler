@@ -1,6 +1,6 @@
 // Ground floors for every column, then the upper layers: slabs made of blobs (plus portal
 // pads) that merge into whatever pokes up from below (hills become overhangs / pillars).
-import { N, HEAD } from '../core/constants.js';
+import { N, HEAD, count16 } from '../core/constants.js';
 import { idx } from '../core/util.js';
 import { spoutSlabs } from './spouts.js';
 
@@ -29,7 +29,7 @@ export function buildSlabs(ctx) {
         if (dx ** 4 + dz ** 4 + (noise(x * 0.7 + k * 13, z * 0.7 + k * 7) - 0.5) * 0.9 < 1) mask[idx(x, z)] = 1;
       }
     };
-    for (let b = ri(1, 3); b > 0; b--) blob(ri(2, N - 3) + 0.5, ri(2, N - 3) + 0.5, 1.8 + R() * 3, 1.8 + R() * 3);
+    for (let b = ri(count16(1), count16(3)); b > 0; b--) blob(ri(2, N - 3) + 0.5, ri(2, N - 3) + 0.5, 1.8 + R() * 3, 1.8 + R() * 3);
     // slabs only touch the cube faces at portal pads, so the edges match the neighbours
     for (let c = 0; c < N * N; c++) { const x = c % N, z = (c / N) | 0; if (!x || !z || x === N - 1 || z === N - 1 || ctx.sky?.has(c)) mask[c] = 0; }
     for (const [c, reserved] of ctx.siteSpace || []) mask[c] = reserved.layer === k ? 1 : 0;

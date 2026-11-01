@@ -383,6 +383,8 @@ vec4 v = clamp((s - 0.5) / fwidth(s) + 0.5, 0.0, 1.0);</code></pre>
     <pre data-code="src/render/bake.js#assignChannels"></pre>
     <div>
       <ul class="small">
+        <li lang="en">First the groups: lamps closer than <code>GROUP</code> to a brighter one join it (a brazier's twin flames, a cluster of glowing eggs). Only the first of a group (a <i>lead</i>) gets a pot, and its shadow is baked for all of them, out as far as the farthest of them shines (<code>reach</code>). That is one bake for many lamps.</li>
+        <li lang="de">Zuerst die Gruppen: Lampen, die näher als <code>GROUP</code> an einer helleren sind, schließen sich ihr an (die zwei Flammen einer Feuerschale, ein Haufen leuchtender Eier). Nur die erste einer Gruppe bekommt einen Topf, und ihr Schatten wird für alle gebacken, so weit hinaus, wie die weiteste von ihnen leuchtet (<code>reach</code>). Das ist ein Backen für viele Lampen.</li>
         <li lang="en"><code>order</code>: the lamps sorted, brightest first (how bright, times how far it reaches, squared). <code>peak</code> is how bright a lamp gets: the town's windows and street lamps are dark by day and only light up at night.</li>
         <li lang="de"><code>order</code>: die Lampen sortiert, die hellste zuerst (wie hell, mal wie weit sie reicht, zum Quadrat). <code>peak</code> ist, wie hell eine Lampe wird: Die Fenster und Straßenlaternen der Stadt sind am Tag dunkel und leuchten erst in der Nacht.</li>
         <li lang="en"><code>taken</code>: a <code>Set</code> of the pots the lamp's neighbours already have. A neighbour is a lamp closer than their two reaches together (times <code>REACH</code>).</li>

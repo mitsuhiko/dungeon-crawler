@@ -1,7 +1,7 @@
 // Layer count / heights and the rolling ground of layer 0. The four face profiles (shared with
 // the neighbouring cubes) pin the edge cells; inwards the ground blends from them into local
 // detail, hills and plateaus.
-import { N, MAX_L } from '../core/constants.js';
+import { N, MAX_L, ROOM_SCALE, count16 } from '../core/constants.js';
 import { idx, clamp } from '../core/util.js';
 import { VOID } from '../world/profile.js';
 import { isVoid } from '../world/voids.js';
@@ -18,13 +18,14 @@ function relief(ctx, theme) {
   const extra = new Float32Array(N * N);
   if (spec.height || spec.pinnacle || spec.area || spec.peak || spec.lake || spec.trial) return extra;   // shaped whole (cubegen/heights.js, areas.js, setpieces.js, trials/)
   const many = theme.hills?.count;
-  const hills = many ? ri(spec.kind === 'highland' ? 0 : many[0], spec.kind === 'highland' ? 1 : many[1])
-    : spec.kind === 'highland' ? 0 : ri(1, 2);
+  // (hills keep their size: a bigger room has more of them)
+  const hills = many ? ri(spec.kind === 'highland' ? 0 : count16(many[0]), spec.kind === 'highland' ? count16(1) : count16(many[1]))
+    : spec.kind === 'highland' ? 0 : ri(count16(1), count16(2));
   for (let h = 0; h < hills; h++) {
     const cx = 3 + R() * (N - 6), cz = 3 + R() * (N - 6), rad = 2.2 + R() * 2.5, amp = ri(1, 3 + Math.round(2 * spec.relief));
     for (let i = 0; i < N * N; i++) extra[i] += amp * Math.max(0, 1 - Math.hypot(i % N + 0.5 - cx, ((i / N) | 0) + 0.5 - cz) / rad);
   }
-  const plateaus = spec.kind === 'highland' || spec.kind === 'meadow' && ctx.K === 1 ? ri(1, 2) : 0;
+  const plateaus = spec.kind === 'highland' || spec.kind === 'meadow' && ctx.K === 1 ? ri(1, Math.round(2 * ROOM_SCALE)) : 0;
   for (let p = 0; p < plateaus; p++) {
     const cx = ri(4, N - 5) + 0.5, cz = ri(4, N - 5) + 0.5;
     const hx = 1.5 + R() * 2.5, hz = 1.5 + R() * 2.5, raise = ri(3, 6 + Math.round(6 * spec.relief));

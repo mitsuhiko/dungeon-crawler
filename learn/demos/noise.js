@@ -50,9 +50,9 @@ export default function mount(el) {
     g.strokeStyle = '#ffffffaa'; g.lineWidth = 1.5; g.beginPath();
     for (let px = 0; px <= W; px += 2) { const y = base - sum(px / cw / zoom) * (base - top); px ? g.lineTo(px, y) : g.moveTo(px, y); }
     g.stroke();
-    // cube borders: every 16 cells a new cube, but the ground goes on smoothly
+    // cube borders: every 24 cells a new cube, but the ground goes on smoothly
     g.strokeStyle = '#ffffff33'; g.setLineDash([4, 4]);
-    for (let i = 16; i < cells; i += 16) { g.beginPath(); g.moveTo(i * cw, top - 10); g.lineTo(i * cw, base); g.stroke(); }
+    for (let i = 24; i < cells; i += 24) { g.beginPath(); g.moveTo(i * cw, top - 10); g.lineTo(i * cw, base); g.stroke(); }
     g.setLineDash([]);
     g.fillStyle = '#8a96a8'; g.fillText(tr('dashed lines: where one cube ends and the next begins', 'gestrichelt: wo ein Würfel endet und der nächste beginnt'), 8, top - 14);
     out.innerHTML = tr(`${on.filter(Boolean).length} layer(s) added together, cut into <b>${levels}</b> levels. White line: the smooth noise. Blocks: the ground.`,

@@ -83,38 +83,57 @@ function pack(list, scale, { kind, sway, lit }) {
   const col = color ? new Uint16Array(total * 4) : null, uv = uvs ? new Float32Array(total * 2) : null;
   const pal = pals ? new Uint16Array(total * 4) : null, p = new Int32Array(3), shore = shores ? new Float32Array(total * 4) : null;
   const lm = lms ? new Uint16Array(total * 2) : null, l = new Int32Array(2);
-  const index = new Uint32Array(total), seen = new Map();
+  const index = new Uint32Array(total);
+  // (identical corners found in a hash table of the vertices kept so far, open addressing: the
+  // attributes hashed as they are stored, compared with what is stored)
+  const mask = 2 ** Math.ceil(Math.log2(total * 2 + 16)) - 1, table = new Int32Array(mask + 1).fill(-1);
+  const f32 = new Float32Array(8), i32 = new Int32Array(f32.buffer);
   let n = 0, k = 0;
   const q = new Int32Array(6), c = new Int32Array(3);
+  let h = 0;
+  const mix = x => { h = Math.imul(h ^ x, 16777619); };
+  const same = v => {
+    for (let j = 0; j < 3; j++) if (pos[v * 4 + j] !== q[j] || nor[v * 4 + j] !== q[j + 3]) return false;
+    if (color) for (let j = 0; j < 3; j++) if (col[v * 4 + j] !== c[j]) return false;
+    if (uvs && (uv[v * 2] !== f32[0] || uv[v * 2 + 1] !== f32[1])) return false;
+    if (pals) for (let j = 0; j < 3; j++) if (pal[v * 4 + j] !== p[j]) return false;
+    if (shores) for (let j = 0; j < 4; j++) if (shore[v * 4 + j] !== f32[2 + j]) return false;
+    if (lms && (lm[v * 2] !== l[0] || lm[v * 2 + 1] !== l[1])) return false;
+    return true;
+  };
   for (const a of list) for (let i = 0; i < a.pos.length / 3; i++) {
     for (let j = 0; j < 3; j++) {
       q[j] = Math.round(a.pos[i * 3 + j] / scale);
       q[j + 3] = Math.max(-127, Math.min(127, Math.round(a.nor[i * 3 + j] * 127)));
       if (color) c[j] = Math.max(0, Math.min(65535, Math.round(a.col[i * 3 + j] * 65535)));
     }
-    let key = q.join(',');
-    if (color) key += ',' + c.join(',');
-    if (uvs) key += ',' + a.uv[i * 2] + ',' + a.uv[i * 2 + 1];
     if (pals) {
       // (a surface's: one row; a fall's: top, foot, how far down)
       if (a.pal.length === a.pos.length) { p[0] = a.pal[i * 3]; p[1] = a.pal[i * 3 + 1]; p[2] = Math.round(a.pal[i * 3 + 2] * 1000); }
       else { p[0] = p[1] = a.pal[i]; p[2] = 0; }
-      key += ',' + p.join(',');
+      for (let j = 0; j < 3; j++) p[j] &= 65535;
     }
-    if (shores) for (let j = 0; j < 4; j++) key += ',' + a.shore[i * 4 + j];
-    if (lms) {
-      for (let j = 0; j < 2; j++) l[j] = Math.max(0, Math.min(65535, Math.round(a.lm[i * 2 + j] * 65535)));
-      key += ',' + l[0] + ',' + l[1];
-    }
-    let v = seen.get(key);
-    if (v === undefined) {
+    if (uvs) { f32[0] = a.uv[i * 2]; f32[1] = a.uv[i * 2 + 1]; }
+    if (shores) for (let j = 0; j < 4; j++) f32[2 + j] = a.shore[i * 4 + j];
+    if (lms) for (let j = 0; j < 2; j++) l[j] = Math.max(0, Math.min(65535, Math.round(a.lm[i * 2 + j] * 65535)));
+    h = 2166136261;
+    for (let j = 0; j < 6; j++) mix(q[j]);
+    if (color) for (let j = 0; j < 3; j++) mix(c[j]);
+    if (uvs) { mix(i32[0]); mix(i32[1]); }
+    if (pals) for (let j = 0; j < 3; j++) mix(p[j]);
+    if (shores) for (let j = 2; j < 6; j++) mix(i32[j]);
+    if (lms) { mix(l[0]); mix(l[1]); }
+    h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13;
+    let slot = h & mask, v = -1;
+    for (; table[slot] >= 0; slot = (slot + 1) & mask) if (same(table[slot])) { v = table[slot]; break; }
+    if (v < 0) {
       v = n++;
-      seen.set(key, v);
+      table[slot] = v;
       for (let j = 0; j < 3; j++) { pos[v * 4 + j] = q[j]; nor[v * 4 + j] = q[j + 3]; }
       if (color) { for (let j = 0; j < 3; j++) col[v * 4 + j] = c[j]; col[v * 4 + 3] = 65535; }
-      if (uvs) { uv[v * 2] = a.uv[i * 2]; uv[v * 2 + 1] = a.uv[i * 2 + 1]; }
+      if (uvs) { uv[v * 2] = f32[0]; uv[v * 2 + 1] = f32[1]; }
       if (pals) for (let j = 0; j < 3; j++) pal[v * 4 + j] = p[j];
-      if (shores) for (let j = 0; j < 4; j++) shore[v * 4 + j] = a.shore[i * 4 + j];
+      if (shores) for (let j = 0; j < 4; j++) shore[v * 4 + j] = f32[2 + j];
       if (lms) { lm[v * 2] = l[0]; lm[v * 2 + 1] = l[1]; }
     }
     index[k++] = v;

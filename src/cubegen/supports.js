@@ -1,11 +1,12 @@
 // Ramps leading up to slab edges, and pillars so no slab floats freely.
-import { N, HEAD, DIRS } from '../core/constants.js';
+import { N, HEAD, DIRS, count16 } from '../core/constants.js';
 import { idx, inb } from '../core/util.js';
 
 // raise the layer below into a 2-wide slope leading up to a slab edge
 export function addRamps(ctx) {
   const { R, ri, K, cols, layerFloor, nextAbove, stats } = ctx;
-  for (let k = 1; k < K; k++) {
+  // (a ramp or so a layer for a room of 16 cells, more in a bigger one)
+  for (let k = 1; k < K; k++) for (let n = count16(1); n > 0; n--) {
     if (R() > 0.6) continue;
     const cands = [];
     for (let c = 0; c < N * N; c++) {

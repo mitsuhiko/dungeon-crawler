@@ -13,6 +13,7 @@ import { isTown, townExitPosition } from './town.js';
 import { MAX_DEPTH } from '../themes/depth.js';
 import { trialPortalLayer, trialPortalPos } from './trials.js';
 import { BOSS_ARENAS } from '../core/bosses.js';
+import { N, at16 } from '../core/constants.js';
 
 export const LAYER_BASE = [0, 10, 16, 22];   // the levels of the world-wide layers
 
@@ -33,7 +34,7 @@ function sideFace(world, k, d, withPortal) {
   const f = { sock, profile: profile(world, fk, sock), river: null, portal: null };
   const guardian = guarded(world, k) || guarded(world, step(k, d));
   if (sock === 'W' && !guardian) {   // the crossing is never open to the depth below
-    f.river = { pos: 4 + Math.floor(R() * 7), w: R() < 0.5 ? 2 : 3 };
+    f.river = { pos: Math.floor(at16(4 + R() * 7)), w: R() < 0.5 ? 2 : 3 };
     // ground under the crossing and a bank on either side of it (never water next to the void)
     for (let t = f.river.pos - 1; t <= f.river.pos + f.river.w; t++) if (f.profile[t] === VOID) f.profile[t] = 3;
   }
@@ -45,7 +46,7 @@ function sideFace(world, k, d, withPortal) {
   const townDir = isTown(k, world.seed) ? d : isTown(step(k, d), world.seed) ? d ^ 1 : null;
   let pos;
   if (townDir !== null) pos = townExitPosition(townDir);
-  else do pos = 3 + Math.floor(R() * 10); while (f.river && Math.abs(pos - f.river.pos - (f.river.w - 1) / 2) < 3.5);
+  else do pos = 3 + Math.floor(R() * (N - 6)); while (f.river && Math.abs(pos - f.river.pos - (f.river.w - 1) / 2) < 3.5);
   if (spanFace(world, fk)?.kind === 'cross') pos = spanFace(world, fk).span.pos;   // one straight bridge
   pos = areaPad(world, fk)?.pos ?? pos;   // where a large area's ramp or ridge meets the face
   pos = trialPortalPos(world, fk) ?? pos;   // where a trial room's shape wants it (a sunken room's, world/trials.js)
@@ -67,7 +68,7 @@ function sideFace(world, k, d, withPortal) {
 
 function verticalFace(world, k, d, withPortal) {
   const fk = faceKey(k, d), R = world.wfc.rng(fk, 0xd0e);
-  return { vertical: true, portal: withPortal ? { x: 4 + Math.floor(R() * 8), z: 4 + Math.floor(R() * 8) } : null,
+  return { vertical: true, portal: withPortal ? { x: 4 + Math.floor(R() * (N - 8)), z: 4 + Math.floor(R() * (N - 8)) } : null,
     fall: guarded(world, k) || guarded(world, step(k, d)) ? null : cascade(world, d === 4 ? k : step(k, 5)) };   // a fall through it (cascades.js)
 }
 

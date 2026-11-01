@@ -292,7 +292,7 @@ test('every timed gate room: a causeway over the fluid with gaps to jump, the ru
     assert.ok(m.trial.check.path.length > 15, `${seed}/${d}: ${m.trial.check.path.length} cells`);
     gaps += pz.check.gaps;
     // the way runs over the fluid: the cells beside it are wet
-    const wet = m.trial.check.path.filter(p => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => m.cols[Math.floor(p.z + dz) * 16 + Math.floor(p.x + dx)]?.some(f => f.fluid)));
+    const wet = m.trial.check.path.filter(p => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dz]) => m.cols[Math.floor(p.z + dz) * N + Math.floor(p.x + dx)]?.some(f => f.fluid)));
     assert.ok(wet.length > 8, `${seed}/${d}: ${wet.length} cells by the fluid`);
   }
   assert.ok(n > 20 && gaps >= n / 3, `${n} rooms, ${gaps} gaps`);   // (many have a gap or two to jump)
@@ -425,7 +425,7 @@ test('every relic room: a courtyard with both portals walled off from the hall b
       assert.ok(c.lever <= c.hunter && c.cells >= HUNTER.least, `${seed}/${d}: lever ${c.lever} s, warden ${c.hunter} s, ${c.cells} cells`);
       assert.ok(c.hunter - c.lever < 0.2, `${seed}/${d}: the warden ${c.hunter - c.lever} s behind the slow player: no race`);
       assert.ok(tr.wake >= HUNTER.wake && tr.wake <= HUNTER.late, `${seed}/${d}: it wakes after ${tr.wake} s`);
-      const cellOf = p => Math.floor(p.z) * 16 + Math.floor(p.x), part = type => tr.parts.find(p => p.type === type);
+      const cellOf = p => Math.floor(p.z) * N + Math.floor(p.x), part = type => tr.parts.find(p => p.type === type);
       // the relic and the lair in the hall, the lever and both portals' pads out of it
       assert.ok(hall.has(cellOf(part('relic'))) && hall.has(cellOf(tr.lair)), `${seed}/${d}: relic or lair outside the hall`);
       assert.ok(!hall.has(cellOf(part('lever'))) && !hall.has(cellOf(part('portcullis'))), `${seed}/${d}: the lever in the hall`);

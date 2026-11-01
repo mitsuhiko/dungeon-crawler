@@ -925,7 +925,7 @@ of the tower) or a platform. Only if that quarter is all you have left does it k
 - He waits at the foot of the ramp, on its first floor out of the lava at rest, facing the doorway
   (`waiting`: the AI leaves him be). A player setting foot on the ramp (or coming within 2.4 cells
   of him, or a hit) starts the fight (`wake`): "Foggery croaks: the lava is rising! Up the
-  tower!". The lava rises from rest to its highest in **60 s**; three Fire-faces wait spread up the
+  tower!". The lava rises from rest to its highest in **60 s** (in a cube of 16 cells; as much longer as its ramp is in a bigger one: 90 s at 24); three Fire-faces wait spread up the
   ramp between the bridge and the top (`lieInWait`), each idle where it is till the player comes
   within 4.5 cells of it; and he comes up the ramp after the player (`route`, `game/enemyai.js`:
   the way to the player's floor, or as close as it gets), 1.6 cells/s, stopping to attack whoever is

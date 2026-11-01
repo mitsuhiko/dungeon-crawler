@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
-import { DIRS, LH } from '../src/core/constants.js';
+import { N, DIRS, LH } from '../src/core/constants.js';
 import { edgeKey } from '../src/core/util.js';
 import { World } from '../src/world/world.js';
 import { makeLayouts } from '../src/world/layout.js';
@@ -63,14 +63,14 @@ test('every arena type keeps a connected zone, flat doorways, out-of-reach scene
     for (const f of m.floors) if (f.encounter && !blocked.has(f.c)) assert.ok(seen.has(f), `${type}: stranded ${f.x},${f.z}`);
     // scenery beside the zone is a wall, or lower ground behind a rail
     for (const f of m.floors) if (f.encounter) for (const [dx, dz] of DIRS) {
-      const g = m.floors[(f.z + dz) * 16 + f.x + dx];
+      const g = m.floors[(f.z + dz) * N + f.x + dx];
       if (!g.arenaCell || g.encounter) continue;
       assert.ok(g.top >= f.top + 2 || g.top < f.top && m.fences.has(edgeKey(f.x, f.z, g.x, g.z)), `${type}: ledge at ${g.x},${g.z}`);
       assert.ok(!f.link.includes(g));
     }
     // clutter: real props, blockers inside their own cell
     for (const q of m.arenaPlacements) assert.ok(propMetadata.has(q.name) && Number.isFinite(q.y), q.name);
-    m.staticBlockers.forEach((list, c) => { for (const b of list) assert.equal(Math.floor(b.z) * 16 + Math.floor(b.x), c); });
+    m.staticBlockers.forEach((list, c) => { for (const b of list) assert.equal(Math.floor(b.z) * N + Math.floor(b.x), c); });
     // the doubled roster fits and every body can reach the guardian
     const spots = guardianSpots(m), guard = spots.find(s => s.guardian);
     for (const s of spots) assert.ok(walkable(s.f, s.kind.height) && findPath(s.f, guard.f, 40, s.kind.height), `${type}: spot`);

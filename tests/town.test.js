@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { assets } from './paths.js';
 import { readGlb, rootBounds, roots } from '../tools/glb.mjs';
-import { N, LH, CHAR_R, CHAR_H, EDGE_CORNERS, DIRS, MUD } from '../src/core/constants.js';
+import { N, at16, LH, CHAR_R, CHAR_H, EDGE_CORNERS, DIRS, MUD } from '../src/core/constants.js';
 import { containsXZ, viewBlockedAt } from '../src/core/blockers.js';
 import { World } from '../src/world/world.js';
 import { worldOf } from './worlds.js';
@@ -467,7 +467,7 @@ test('the street runs from the gate over the water and up the cliff\'s stair to 
       const along = z => local.some(pts => pts.some(([x, pz]) => Math.abs(x - STREET) < 1e-6 && Math.abs(pz - z) < 1e-6));
       assert.ok(along(0), `the street in ${j}`);
       // (in the inn's tile onto the quay, and on from the top of the stair up the cliff)
-      assert.ok(along(j < TOWN_DEEP - 1 ? N : 8), 'on through the tile, to the green');
+      assert.ok(along(j < TOWN_DEEP - 1 ? N : at16(8)), 'on through the tile, to the green');
       if (j === START_TILE[1]) {
         const stair = m.runs.find(r => r.kind === 'stair' && r.k === INN_STAIR.top - INN_STAIR.foot - 1);
         const land = townLand(seed);
@@ -863,7 +863,8 @@ test('each world\'s town has a landscape of its own: its wood, how its woods lie
   // (the forms shape the wild ground: the rugged ones stand higher than the flat ones somewhere; the
   // marsh has ponds, shallow, in the lower town)
   const highest = l => { let h = 0; for (let z = 0; z < l.D; z++) for (let x = 0; x < l.W; x++) if (l.wall.side(x, z) === 0 && !l.water(x, z) && !l.platforms.has(z * l.W + x) && l.formAt(x, z) === l.landscape.upper
-    && Math.hypot(x + .5 - l.hill.x, z + .5 - l.hill.z) > l.hill.r1 + 1 && l.pieces.every(p => Math.hypot(x + .5 - p.x, z + .5 - p.z) > p.r1 + 1)) h = Math.max(h, l.level(x, z) - l.upper); return h; };
+    && Math.hypot(x + .5 - l.hill.x, z + .5 - l.hill.z) > l.hill.r1 + 1 && l.pieces.every(p => Math.hypot(x + .5 - p.x, z + .5 - p.z) > p.r1 + 1)
+    && l.keepDist(x + .5, z + .5) > 1.5) h = Math.max(h, l.level(x, z) - l.upper); return h; };   // (wild ground: not a home's terrace)
   let rugged = 0, tall = 0;
   for (const l of lands) {
     // (where its wild ground leaves room for it)

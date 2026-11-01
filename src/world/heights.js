@@ -22,7 +22,7 @@
 //            cu: [ascent, descent] (where the cliff stands, along the travel direction),
 //            descent: 'plunge' | 'stairs' | 'shaft', seed }
 import { mulberry32, hash32 } from '../core/util.js';
-import { N } from '../core/constants.js';
+import { N, at16 } from '../core/constants.js';
 import { key, parse, step } from './coords.js';
 import { MAX_DEPTH } from '../themes/depth.js';
 
@@ -79,7 +79,7 @@ export function planHeights(seed, d, theme, spine, K, blocked, tableland) {
     if (runs.length) {
       const [p, a, b, c, n] = runs[Math.floor(R() * runs.length)], hi = ri(...cfg.shelf), r = R();
       const piece = { id: `${seed}:${K(a)}:tableland`, kind: 'tableland', keys: [a, b, c].map(K),
-        dirs: [direction(a, b), direction(b, c)], ways: [direction(a, p), direction(c, n)], hi, cu: [ri(7, 9), ri(5, 7)],
+        dirs: [direction(a, b), direction(b, c)], ways: [direction(a, p), direction(c, n)], hi, cu: [ri(...[7, 9].map(v => Math.round(at16(v)))), ri(...[5, 7].map(v => Math.round(at16(v))))],
         descent: r < 0.6 ? 'shaft' : r < 0.85 ? 'plunge' : 'stairs', seed: hash32(seed ^ d ^ 0x7ab1e) };
       pieces.push(piece);
       ['ascent', 'plateau', 'descent'].forEach((role, i) => cells.set(piece.keys[i], { piece, role }));
@@ -193,7 +193,7 @@ export function shaftOf(world, piece) {
 // the hole of a shaft, in the shaft cube's (and the room below's) cells: centre and radius
 export function shaftHole(piece) {
   const R = mulberry32(piece.seed ^ 0x5a4f7);
-  return { cx: 7 + R() * 2, cz: 7 + R() * 2, r: 2.6 + R() * 0.6 };
+  return { cx: at16(7 + R() * 2), cz: at16(7 + R() * 2), r: at16(2.6 + R() * 0.6) };
 }
 
 // what the generator needs to know about cube k's part in a tableland (cubegen/heights.js), or null

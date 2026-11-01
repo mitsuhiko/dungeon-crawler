@@ -1,5 +1,6 @@
 // Group intentions only: species AI retains paths, committed attacks and damage.
 import { HORDE } from '../core/hordes.js';
+import { ROOM_SCALE } from '../core/constants.js';
 import { walkable, findPath, clearLine } from '../physics/enemynav.js';
 
 export function createHordeGroups(map, list) {
@@ -39,7 +40,7 @@ export function coordinateHordes(groups, player, dt) {
     if (!members.length) { activate(group, false); continue; }
     const cfg = members[0].profile, target = player.grounded && !player.swimming && walkable(player.support, cfg.height) ? player.support : null;
     const within = Math.hypot(player.x - group.anchor.x, player.z - group.anchor.z) <= group.radius;
-    const reachable = within && target && findPath(group.floor, target, 32, cfg.height);
+    const reachable = within && target && findPath(group.floor, target, Math.round(32 * ROOM_SCALE), cfg.height);
     const spotted = reachable && members.some(e => Math.hypot(player.x - e.x, player.z - e.z) < cfg.aggro
       && Math.abs(player.y - e.y) <= 1 && clearLine(e.x, e.y + .4, e.z, player.x, player.y + .6, player.z));
     if (!group.active && reachable && (provoked || spotted)) { activate(group, true); awakened++; }

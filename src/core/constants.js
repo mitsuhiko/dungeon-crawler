@@ -1,10 +1,20 @@
 // Shared dimensions, fluid ids, grid directions and physics tuning.
 
 // learn: code.html#names, space.html#address, start.html#cubes (see learn/README.md)
-export const N = 16;            // cube footprint in cells
+export const N = 24;            // cube footprint in cells
+// The generator was first laid out for cubes of 16 cells. A place or a reach across the room given
+// in those cells is at16(v) in this one (the middle: at16(8)); a count of things a room holds grows
+// with its floor (count16). What the hero walks over or round keeps its size: a portal's pad, a
+// stair, a ladder, a bridge, a pool's rim.
+export const ROOM_SCALE = N / 16, ROOM_AREA = ROOM_SCALE * ROOM_SCALE;
+export const at16 = v => v * ROOM_SCALE;
+export const count16 = n => Math.round(n * ROOM_AREA);
 // learn: physics.html#adding (see learn/README.md)
 export const LH = 0.5;          // height of one terrain level
-export const CUBE_H = 16;       // visual height of the cube
+export const CUBE_H = N;        // visual height of the cube (its glass): as high as it is wide
+// how high what is in a cube reaches, about (MAX_L levels and a little over them): the overview
+// frames that much of it (game/camera.js), the air over it is left empty
+export const VIEW_H = 16;
 export const BASE = 0.6;        // thickness of the bedrock slab under the map
 export const MAX_L = 24;        // highest level a floor may reach
 export const HEAD = 3;          // min free levels between two stacked floors

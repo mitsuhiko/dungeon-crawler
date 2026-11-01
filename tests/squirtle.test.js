@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
-import { LH, WATER, LAVA, ACID } from '../src/core/constants.js';
+import { N, LH, WATER, LAVA, ACID } from '../src/core/constants.js';
 import { SQUIRTLE, LAVA_SQUIRTLE, TOXIC_SQUIRTLE, ENEMY_KINDS, makeEnemy } from '../src/core/enemies.js';
 import { World } from '../src/world/world.js';
 import { testRoomKey } from '../src/world/testrooms.js';
@@ -15,7 +15,7 @@ import { setTide } from '../src/physics/fluid.js';
 
 const world = new World(4);
 const room = name => state.map = world.cube(testRoomKey(name, 3)).map;
-const floor = (m, x, z) => m.cols[z * 16 + x].find(f => !f.kind && f.layer === 0);
+const floor = (m, x, z) => m.cols[z * N + x].find(f => !f.kind && f.layer === 0);
 const lake = m => m.floors.filter(f => f.fluid === WATER);
 const ashore = (m, x, z) => m.floors.find(f => !f.fluid && f.x === x && f.z === z);
 

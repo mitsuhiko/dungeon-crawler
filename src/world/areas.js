@@ -25,7 +25,7 @@
 //              mid (the level of the pad between c and d), turn: { fk, pos }, exit: { dir, pos },
 //              sky, seed }
 import { mulberry32, hash32, clamp } from '../core/util.js';
-import { N, MAX_L } from '../core/constants.js';
+import { N, MAX_L, at16 } from '../core/constants.js';
 import { key, parse, step, faceKey } from './coords.js';
 import { MAX_DEPTH } from '../themes/depth.js';
 
@@ -80,8 +80,10 @@ function spiralPiece(seed, d, theme, spine, at, K, R) {
   const walled = theme.cave || theme.walls, hi = walled ? ri(14, 16) : ri(19, 21);
   const p = { id: `${seed}:${K(cells[0])}:spiral`, kind: 'spiral', keys: cells.map(K), O, sense,
     t0: angle(cells[0]) - sense * Math.PI / 4, lo: 5, hi, core: Math.min(MAX_L, hi + 3), rc: 4.6, w: 3.4,
-    entry: { dir: direction(cells[0], spine[at - 1]), pos: ri(4, N - 5) },
-    exit: { dir: direction(cells[3], spine[at + 4]), pos: ri(4, N - 5) }, seed: hash32(seed ^ d ^ 0x5b1a1) };
+    // (where they meet the faces: as far along them as in a cube of 16 cells, the angles round the
+    // mountain as they were)
+    entry: { dir: direction(cells[0], spine[at - 1]), pos: ri(Math.round(at16(4)), N - Math.round(at16(5))) },
+    exit: { dir: direction(cells[3], spine[at + 4]), pos: ri(Math.round(at16(4)), N - Math.round(at16(5))) }, seed: hash32(seed ^ d ^ 0x5b1a1) };
   p.fe = phiOf(p, ...faceAt(cells[0], p.entry.dir, p.entry.pos));
   const exit = faceAt(cells[3], p.exit.dir, p.exit.pos), end = p.t0 + sense * (p.fx = phiOf(p, ...exit)), mid = p.rc + p.w / 2;
   p.ridge = [[O[0] * N + Math.cos(end) * mid, O[1] * N + Math.sin(end) * mid], exit];

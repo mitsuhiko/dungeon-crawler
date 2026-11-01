@@ -4,7 +4,7 @@ import { SOLLMELDON_FIGHT as G, HEAD_SIDE, BITES, ALL_HEADS, headsOf, nextHead, 
   stepLift, flying, groundTime, airTime, newTilt, tiltToward, levelTilt, stepTilt, tipped, slopeOf,
   PIVOT, planeY, mudVolume, mudLevel, MUD_RES, MUD_FLOW, newMudField, fillMud, depositMud, stepMud, drainMud, mudTotal, depthAt, surfaceAt, cellSurfaces,
   SOLLMELDON_MUSIC, sollmeldonMusic } from '../src/core/sollmeldon.js';
-import { N, LH, HEAD_Y, WATER, MUD } from '../src/core/constants.js';
+import { N, ROOM_SCALE, LH, HEAD_Y, WATER, MUD } from '../src/core/constants.js';
 import { state } from './fixtures.js';
 import { World } from '../src/world/world.js';
 import { BOSSES, bossAt, BOSS_ARENAS } from '../src/core/bosses.js';
@@ -210,10 +210,10 @@ test('tipped, all of his mud runs to the low side of his mire, none kept in its 
       const vol = mudTotal(f);
       settle(f, slopeOf(v), true, 8);
       close(mudTotal(f), vol, 1e-3, 'no mud lost or made');
-      // what lies further than 4 cells from the low side
+      // what lies further than 4 cells from the low side (in a cube of 16 cells; as much further in a bigger one)
       let edge = -Infinity, far = 0;
       for (let k = 0; k < f.depth.length; k++) if (Number.isFinite(f.ground[k])) edge = Math.max(edge, (k % f.w) * v[0] + Math.floor(k / f.w) * v[1]);
-      for (let k = 0; k < f.depth.length; k++) if (edge - ((k % f.w) * v[0] + Math.floor(k / f.w) * v[1]) > 4 * MUD_RES) far += f.depth[k];
+      for (let k = 0; k < f.depth.length; k++) if (edge - ((k % f.w) * v[0] + Math.floor(k / f.w) * v[1]) > 4 * ROOM_SCALE * MUD_RES) far += f.depth[k];
       assert.ok(far / (vol * MUD_RES * MUD_RES) < 0.05, `seed ${seed}, tipped ${v}: ${(100 * far / (vol * MUD_RES * MUD_RES)).toFixed(0)}% left behind`);
     }
   }

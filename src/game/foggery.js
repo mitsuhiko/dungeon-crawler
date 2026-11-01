@@ -18,7 +18,7 @@
 // His Fire-cats leap after a player standing on a platform (`jump`) and fight on it (`deck`: the AI
 // moves them over the slab, physics/enemynav.js onDeck, and the platform carries them), and leap
 // back down onto the top of the tower after one who goes back there.
-import { LH } from '../core/constants.js';
+import { N, LH } from '../core/constants.js';
 import { state, setStatus } from './state.js';
 import { FOGGERY, FOGGERY_BALL, ENEMY_KINDS, makeEnemy, enemyProfile, attackOf, enemyName } from '../core/enemies.js';
 import { FOGGERY_FIGHT as G, TOWER, PLATFORMS, LAVA, splitHp, summonCount, barred, newLava, moveLava, stepLava } from '../core/foggery.js';
@@ -72,7 +72,7 @@ export function updateFoggerys(dt) {
 
 // his tower (his caldera, or its test room): the floor he climbs to
 const tower = () => state.map?.tower ?? null;
-const goal = () => { const t = tower(); return t && state.map.cols[t.goal.z * 16 + t.goal.x].at(-1); };
+const goal = () => { const t = tower(); return t && state.map.cols[t.goal.z * N + t.goal.x].at(-1); };
 const onTop = e => !tower() || e.f?.tower === 'top';
 
 function run(f, dt) {

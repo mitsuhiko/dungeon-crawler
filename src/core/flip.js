@@ -2,7 +2,7 @@
 // turns the world; his profile is core/enemies.js FLIP). docs/bosses.md tells the whole fight.
 //
 // His arena (cubegen/fliparena.js) is a box: a floor and four walls of solid cells, open at the
-// top, with a floating island in the middle. It is kept as cells (`map.flip.solid`, 16 x 16 x 16
+// top, with a floating island in the middle. It is kept as cells (`map.flip.solid`, N x N x N
 // of them, a cell a unit each way) so that any of its sides can be the floor: an orientation
 // (`O`, a rotation of the box about its middle, as a 3 x 3 matrix of whole numbers) says which
 // way it is turned, and orientedMap builds the floors of the box turned that way (the physics
@@ -18,6 +18,8 @@
 // down. Phase 2: he opens black holes as well: the scene darkens, the hole pulls the player in,
 // and whoever it swallows comes out of another one after the world has flipped; and when he flips
 // the world a black hole takes the player through the turn instead of the beam.
+import { N } from './constants.js';
+
 export const FLIP_FIGHT = Object.freeze({
   split: 0.5,             // the share of his health phase 2 starts at
   splitTime: 2.4,         // s he spins up at half his health, nothing hurting him
@@ -53,7 +55,8 @@ export function barred({ phase, flipDue, summonDue, holeDue }) {
 
 // --- the box turned -----------------------------------------------------------------------------
 
-export const S = 16, MID = S / 2;   // the box: S cells each way (a cell is a unit), turned about its middle
+// the box: S cells each way (a cell is a unit), turned about its middle: the whole cube
+export const S = N, MID = S / 2;
 export const vi = (x, y, z) => (y * S + z) * S + x;
 export const IDENTITY = Object.freeze([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 // row-major 3 x 3 matrices of whole numbers

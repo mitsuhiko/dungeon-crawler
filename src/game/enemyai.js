@@ -36,6 +36,7 @@
 // flood drained) it goes `ashore`: it stands a moment, dissolves into a puddle and runs back into
 // the nearest of it; with none to get back to it seeps away. It keeps its distance from a player
 // who shoots, but comes up to the shore near one with a short weapon (`closeIn`).
+import { ROOM_SCALE } from '../core/constants.js';
 import { player, state } from './state.js';
 import { party, chooseTarget, alive as canHurt } from './party.js';
 import { playerFloor, strikePlayer, hitBody, attacker } from './enemycombat.js';
@@ -65,7 +66,7 @@ const SEARCH = 4;          // s it searches around the spot it lost the player a
 const STRANDED = 1.5;      // s it glares from as close as it gets at a player it cannot reach
 const BALK = 0.4;          // s, after a hit: a player out of reach for this long sends it into cover
 const HUNT = 24;           // longest path (steps) it plans on a hunt
-const FAR = 40;            // longest path (steps) it plans after a hit, and to cover
+const FAR = Math.round(40 * ROOM_SCALE);   // longest path (steps) it plans after a hit, to cover and home (across a room)
 const HIDE = 6;            // s it lies low in cover before it goes home
 const DANGER = 8;          // cells: how far a player whose weapon it cannot tell hits from
 const SAFE = 4;            // cells: the least it keeps away from a player it hides from
@@ -167,7 +168,7 @@ function provoke(e) {
   call(e);
   if (e.mode !== 'attack' && e.mode !== 'chase') { e.mode = 'chase'; e.think = 0; }
 }
-function goHome(e) { e.mode = 'home'; e.path = findPath(e.f, e.home, 40, nav(e)) || [e.f]; e.provoked = 0; e.shy = false; }
+function goHome(e) { e.mode = 'home'; e.path = findPath(e.f, e.home, FAR, nav(e)) || [e.f]; e.provoked = 0; e.shy = false; }
 // searching: to where it lost the player (as close as it gets), then about there
 function search(e) {
   const s = e.seen, h = nav(e);
@@ -276,7 +277,7 @@ function decide(e) {
     // rather than stand there as a target; with no way to them it keeps to its post
     const engage = alive && (relentless || e.defence.engage || e.provoked > 0);
     const route = engage && ((target && findPath(e.f, target, FAR, nav(e))) || postPath(e, p, FAR));
-    e.path = route || findPath(e.f, e.defence?.post ?? e.home, 40, nav(e));
+    e.path = route || findPath(e.f, e.defence?.post ?? e.home, FAR, nav(e));
     e.mode = route ? 'chase' : 'defend'; e.lost = 0;
     return;
   }
@@ -287,7 +288,7 @@ function decide(e) {
       // Approach from different neighbouring floors, then close for the actual bite.
       const flank = dist > 2.5 ? around(target, 1, cfg.height).filter(f => f !== target) : [];
       const goal = flank.length ? flank[e.hordeSlot % flank.length] : target;
-      e.path = findPath(e.f, goal, 32, cfg.height);
+      e.path = findPath(e.f, goal, Math.round(32 * ROOM_SCALE), cfg.height);
       e.mode = 'chase'; e.lost = 0;
     } else if (e.mode === 'chase') goHome(e);
     return;

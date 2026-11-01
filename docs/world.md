@@ -4,6 +4,36 @@ The world is an unbounded grid of cubes `(X, Y, Z)`. `Y = 0` is the surface and 
 strata go down to depth 20 (`MIN_Y = -20`). Cubes come into existence lazily, the first time you get
 near them, and stay around after that.
 
+## Cube size
+
+A cube is `N` cells across (`core/constants.js`: 24) and as high (`CUBE_H`, its glass). What is in
+it reaches about `VIEW_H` (16) units up (floors reach `MAX_L` levels, 12 units): the overview
+frames that part (`game/camera.js`), the air over it stays empty. The generator was first laid out for cubes of 16 cells, and much of it
+still says so in its numbers: `ROOM_SCALE` (`N / 16`) carries them over.
+
+- **Where things are in a room** (an archetype's middle, a river's junction, a pinnacle's place,
+  a shaft's hole, the town's streets and what stands along them) is `at16(v)`: v cells of a cube of
+  16, as far across this one.
+- **How much a room holds** (hills, pools, slabs, ramps, decorations, vignettes, the ways onto cut-off
+  platforms, Flip's holes, features and clutter) grows with its floor: `count16(n)`.
+- **What the hero walks over or round** keeps its size: a portal's pad, a stair, a ladder, a
+  bridge, a pool's rim, a building.
+- **The big shapes of a room** (a mesa, a crater, a sinkhole, a great lake, an island) grow with
+  it; landforms from world-space noise (the face profiles, the void, the relief) keep theirs, so a
+  bigger room has more of them.
+- **Enemies:** an ordinary room's budget (`core/spawns.js`) grows by `ROOM_SCALE`, as the way
+  through it does: as many met on the way as before (a guardian's arena keeps its own).
+- **The town** keeps its tiles (3 × 4) and its plan: everything placed in a tile stands
+  `ROOM_SCALE` as far apart (`world/town.js` `u16`), the buildings and the props as big as they were.
+- **Boss arenas:** Flip's box is the whole cube; Foggery's tower and caldera (its ramp wider, as
+  many turns round it, the lava's rise as much slower as the ramp is longer), Squarlo's hills and
+  Sollmeldon's islands grow with the room.
+- **Seeing:** the overview frames the whole cube (`game/camera.js` `FIT`), so the hero shows
+  smaller at the same zoom; the surroundings are drawn to 48 units (`core/viewdistance.js`), as far
+  as they were (two cubes now, three then).
+
+`tests/` mostly ask `N`, `ROOM_SCALE` and the constants above, not 16.
+
 ## Layers
 
 | Layer | Code | Contents |

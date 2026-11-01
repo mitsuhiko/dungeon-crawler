@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, CHAR_R, CHAR_H } from '../src/core/constants.js';
+import { N, CHAR_R, CHAR_H, count16 } from '../src/core/constants.js';
 import { PROP_METADATA } from '../src/core/propmetadata.js';
 import { THEMES } from '../src/themes/index.js';
 import { World } from '../src/world/world.js';
@@ -45,7 +45,7 @@ test('the dark forest scatters its vignettes off the way, collidable, never cutt
   const kinds = new Set();
   for (const seed of [1, 2, 3]) for (const m of rooms(seed, ['darkforest'])) {
     const theme = THEMES.find(t => t.props === 'darkforest');
-    assert.ok(m.vignettes.length <= theme.vignettes[1], m.key);
+    assert.ok(m.vignettes.length <= count16(theme.vignettes[1]), m.key);   // (a bigger room holds more: cubegen/vignettes.js)
     total += m.vignettes.length;
     for (const v of m.vignettes) {
       kinds.add(v.name);

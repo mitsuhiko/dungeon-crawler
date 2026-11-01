@@ -13,6 +13,7 @@
 //           combines (a combiner: how many puzzles of the rotation it holds, world/trials.js
 //           combinerStages), mounts (a puzzle a combiner may hold: cubegen/trials/puzzles.js) }
 import { msg } from '../i18n/i18n.js';
+import { ROOM_SCALE } from './constants.js';
 
 export const TRIALS = {
   flood: { name: msg('Rising water'), family: 'event', sealed: true, timed: true, depths: [1, 19], themes: null, weight: 1, color: '#3fa8ff', built: true,
@@ -102,7 +103,7 @@ export const SLACK = 1.3;
 // learn: world.html#trial-check (see learn/README.md)
 export const REACT = 1.5;
 // learn: world.html#trial-check (see learn/README.md)
-export const CLOSE = 5;
+export const CLOSE = 5 * ROOM_SCALE;   // (a bigger room, a longer way: the slow player's margin grows with it)
 // when the slow player gets where a perfect runner is at t s (the trial's clock: from arming)
 export const slowTime = t => t * SLACK + REACT;
 export const DRAIN_TIME = 5;   // s for the water to drain back once resolved
