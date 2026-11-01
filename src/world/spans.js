@@ -66,6 +66,7 @@ export function planSpans(seed, d, cfg, spine, K, blocked, free, budget, taken =
       const hi = n > 1 ? ri(top - 4, top) : ri(top - 8, top - 2), lo = ri(4, 6);   // from the top tier down to the ground
       [a, b] = R() < 0.5 ? [hi, lo] : [lo, hi];
     }
+    span.width = spanWidth(span);
     span.levels = Array.from({ length: n + 1 }, (_, j) => Math.round(a + (b - a) * j / n));
     // a river runs under the bridge only where the deck is high enough for its banks below it
     span.river = R() < 0.8 && !sky ? ri(0, n - 1) : -1;
@@ -111,6 +112,13 @@ export function planSpans(seed, d, cfg, spine, K, blocked, free, budget, taken =
     if (options.length) add(options[0].line, true);
   }
   return { spans, cells, apart: lonely };
+}
+
+// Width is a separate seed decision: adding lanes never changes the span's route or heights.
+// Islands stay narrow; three lanes are rare, reserved for long route crossings.
+export function spanWidth(span) {
+  const r = hash32(span.seed ^ 0x519e) / 0x100000000;
+  return span.island ? (r < .8 ? 1 : 2) : r < .5 ? 1 : r < .9 || span.n < 2 ? 2 : 3;
 }
 
 // may gorge cube i of a span carry the river? (its banks come up a level over the water, and the
@@ -195,7 +203,7 @@ export function indexSpans(layout, spans, cells) {
 // no stone arches over the sky, their piers would stand on nothing; natural arches only where
 // the deck is level), the same in all its cubes
 export const spanStyle = (span, weights) => pickBridge(weights,
-  { span: true, sky: span.sky, level: span.levels.every(v => v === span.levels[0]) }, mulberry32(span.seed)());
+  { span: true, width: span.width ?? 1, sky: span.sky, level: span.levels.every(v => v === span.levels[0]) }, mulberry32(span.seed)());
 
 // what the generator needs to know about cube k's part in a span (cubegen/span.js), or null
 //   gorge:  { role, i, n, dir, pos, hi, lo, sky, room0, room1, style } (hi / lo: the deck's level
@@ -205,7 +213,7 @@ export function spanSpec(layout, k, weights) {
   const s = layout.spanCells?.get(k);
   if (!s) return null;
   const { span, i, role } = s;
-  if (role === 'island') return { role, dir: span.dir, pos: span.pos, level: span.levels[span.n], sky: span.sky };
-  return { role, i, n: span.n, dir: span.dir, pos: span.pos, hi: span.levels[i], lo: span.levels[i + 1], sky: span.sky,
+  if (role === 'island') return { role, dir: span.dir, pos: span.pos, width: span.width ?? 1, level: span.levels[span.n], sky: span.sky };
+  return { role, i, n: span.n, dir: span.dir, pos: span.pos, width: span.width ?? 1, hi: span.levels[i], lo: span.levels[i + 1], sky: span.sky,
     room0: i === 0, room1: i === span.n - 1 && !span.island, style: spanStyle(span, weights) };
 }

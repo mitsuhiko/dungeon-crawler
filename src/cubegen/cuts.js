@@ -17,6 +17,7 @@
 import { N, LH, DIRS, OPP, EDGE_CORNERS, WATER } from '../core/constants.js';
 import { idx, inb, hash32, edgeKey } from '../core/util.js';
 import { cornersY, floorY, partAt } from '../core/surfaces.js';
+import { laneEnds, runPieces } from '../core/runs.js';
 import { clipPoly, cutLine, cutPoints, sidePoint, sideT, onSide } from '../core/cuts.js';
 
 // The directions each style's lines may take (unit [x, z]): `grid` none (the staircase stays),
@@ -72,7 +73,11 @@ export function cutCliffs(ctx, styleOf = null) {
   // the faces (but at their corners: `faceSafe`), so they still match the neighbours'.
   const pinned = new Set();
   for (const l of ctx.ladders || []) { pinned.add(l.lo.c); pinned.add(l.hi.c); }
-  for (const r of ctx.runs || []) { pinned.add(r.from.c); pinned.add(r.to.c); for (const p of r.pieces) pinned.add(p.c); }
+  for (const r of ctx.runs || []) {
+    pinned.add(r.from.c); pinned.add(r.to.c);
+    for (const p of runPieces(r)) pinned.add(p.c);
+    if (r.kind !== 'landing') for (const f of laneEnds(cols, r).flat()) if (f) pinned.add(f.c);
+  }
   for (const m of ctx.moves || []) if (m.kind !== 'walk') { pinned.add(m.from.c); pinned.add(m.to.c); }
   // (a fall and where it lands, and round them: their splashes and streams, render/falls.js)
   for (const fl of ctx.falls || []) for (const [ox, oz] of [[0, 0], DIRS[fl.d] || [0, 0]])

@@ -32,7 +32,7 @@ export const isCramped = (ctx, f) => {
 // the body does not fit under the deck)
 function bridgeDecks(moves) {
   const decks = new Map();
-  for (const m of moves) if (m.kind === 'bridge') for (const c of m.cells) {
+  for (const m of moves) if (m.kind === 'bridge') for (const c of (m.lanes ? m.lanes.flat() : m.cells)) {
     const h = Math.min(m.from.top, m.to.top);
     if (!(decks.get(c) <= h)) decks.set(c, h);
   }

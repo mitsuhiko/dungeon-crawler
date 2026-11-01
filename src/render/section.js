@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { N, LH, CUBE_H } from '../core/constants.js';
 import { floorY, runY } from '../core/surfaces.js';
+import { runPieces } from '../core/runs.js';
 import { GeoBuilder } from './builder.js';
 import { C, gradient } from './palette.js';
 import { paletteOf } from './fluidpal.js';
@@ -187,7 +188,7 @@ function wallFloors(map) {
   if (!(map?.walled || map?.walls?.some(Boolean)) || map.interior) return;
   // (in Flip's box only the fight's floors: what stands out of its walls overhead is wall)
   const tops = map.cols.map(col => Math.max(0, ...col.filter(f => !map.flip || f.encounter).map(f => f.fluid ? f.surf * LH : Math.min(...f.cs))));
-  for (const r of map.runs) for (const p of r.pieces) tops[p.z * N + p.x] = Math.max(tops[p.z * N + p.x], Math.min(p.y0, p.y1));
+  for (const r of map.runs) for (const p of runPieces(r)) tops[p.c] = Math.max(tops[p.c], Math.min(p.y0, p.y1));
   const top = (x, z) => tops[Math.min(N - 3, Math.max(2, z)) * N + Math.min(N - 3, Math.max(2, x))] + OVER_LAND;
   for (let t = 0; t < N; t++) { a[4 * t] = top(N - 3, t); a[4 * t + 1] = top(2, t); a[4 * t + 2] = top(t, N - 3); a[4 * t + 3] = top(t, 2); }
 }

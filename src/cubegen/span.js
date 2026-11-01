@@ -32,7 +32,7 @@ export function shapeGorge(ctx) {
     else if (u === 2 && s.room0 && P0[w] < 8 && !s.sky) v = Math.max(v, P0[w] - 2);
     else if (u === N - 3 && s.room1 && P1[w] < 8 && !s.sky) v = Math.max(v, P1[w] - 2);
     // under the deck: room to walk beneath it
-    if (v !== VOID && w === s.pos && u >= 2 && u <= N - 3) v = Math.min(v, Math.floor(deck(u) - 1 - SHEAD));
+    if (v !== VOID && w >= s.pos - (s.width === 3 ? 1 : 0) && w <= s.pos + (s.width > 1 ? 1 : 0) && u >= 2 && u <= N - 3) v = Math.min(v, Math.floor(deck(u) - 1 - SHEAD));
     put(ctx, i, v, (u < N / 2 ? P0 : P1)[s.pos] - 4);
   }
   ctx.stats.mode = spec.kind + (s.sky ? ' / sky gorge' : ' / gorge');
@@ -71,15 +71,17 @@ export function spanBridge(ctx) {
   // the ground right under the deck is kept low, but a river's bank may come up to hold the
   // water: under a low deck that leaves no head room, so no way leads onto or off it (the way
   // goes round it; placeStructures' test, cell by cell along the deck)
-  const k = cells.length, under = new Map(cells.map((c, j) => {
+  const offsets = s.width === 3 ? [-1, 0, 1] : s.width === 2 ? [0, 1] : [0];
+  const lanes = offsets.map(o => cells.map(c => c + (s.dir < 2 ? o * N : o)));
+  const k = cells.length, under = new Map(lanes.flatMap(lane => lane.map((c, j) => {
     const y0 = a.top + (b.top - a.top) * j / k, y1 = a.top + (b.top - a.top) * (j + 1) / k;
     return [c, [Math.min(y0, y1) - 1, Math.max(y0, y1)]];
-  }));
+  })));
   const cramped = g => { const u = under.get(g.c); return !!u && g.top > u[0] - SHEAD && g.top <= u[1] + 1; };
   const movesFrom = ctx.movesFrom;
   ctx.movesFrom = (f, ...rest) => movesFrom(f, ...rest).filter(m => m.span || !cramped(m.from) && !cramped(m.to));
   ctx.extraMoves = new Map([
-    [a.id, [{ kind: 'bridge', from: a, to: b, d: s.dir, dx, dz, cells, cost: 1, span: true }]],
-    [b.id, [{ kind: 'bridge', from: b, to: a, d: back, dx: -dx, dz: -dz, cells: [...cells].reverse(), cost: 1, span: true }]],
+    [a.id, [{ kind: 'bridge', from: a, to: b, d: s.dir, dx, dz, cells, lanes, width: s.width, cost: 1, span: true }]],
+    [b.id, [{ kind: 'bridge', from: b, to: a, d: back, dx: -dx, dz: -dz, cells: [...cells].reverse(), lanes: lanes.map(lane => [...lane].reverse()), width: s.width, cost: 1, span: true }]],
   ]);
 }

@@ -2,13 +2,14 @@
 // floor four corner heights averaged over the linked floors around each corner.
 import { N, LH, DIRS, OPP, WATER, edgePts } from '../core/constants.js';
 import { idx, inb, hash32 } from '../core/util.js';
+import { laneEnds } from '../core/runs.js';
 
 function makeLinks(ctx) {
   const { R, cols, floors, slopeNoise, headOK, pathWalks } = ctx;
   const setLink = (f, d, g) => { f.link[d] = g; g.link[OPP[d]] = f; };
   // the ground under a gorge's deck is kept low (cubegen/span.js): no slope climbs out of it,
   // or its corners could join a pad's at the deck's height
-  const deck = new Set(ctx.runs.filter(r => r.span).flatMap(r => r.pieces.map(p => p.c)));
+  const deck = new Set(ctx.runs.filter(r => r.span).flatMap(r => (r.lanes ? r.lanes.flat() : r.pieces).map(p => p.c)));
   // a spiral's railed ramp stands over its foot (cubegen/areas.js): no slope joins them, or it
   // could pull a pad's corner down with it
   const edge = (f, g) => ctx.railed?.has(f.c) && ctx.foot?.has(g.c);
@@ -60,8 +61,8 @@ export function smooth(ctx) {
   });
   for (const f of floors) if (f.siteAnchor || f.siteAccess || f.siteDressing || f.spot)
     for (const [ox, oz] of [[0, 0], [1, 0], [0, 1], [1, 1]]) pins.set(f.id + ':' + (f.x + ox) + ',' + (f.z + oz), f.top * LH);
-  for (const r of runs) if (r.kind !== 'landing') for (const [f, side] of [[r.from, r.d], [r.to, OPP[r.d]]])
-    if (!f.landing) for (const [X, Z] of edgePts(f.x, f.z, side)) pins.set(f.id + ':' + X + ',' + Z, f.top * LH);
+  for (const r of runs) if (r.kind !== 'landing') for (const ends of laneEnds(ctx.cols, r)) for (const [f, side] of [[ends[0], r.d], [ends[1], OPP[r.d]]])
+    if (f && !f.landing) for (const [X, Z] of edgePts(f.x, f.z, side)) pins.set(f.id + ':' + X + ',' + Z, f.top * LH);
   // ladders: the foot and the top edge stay flat, so the ladder meets both exactly
   for (const l of ctx.ladders) for (const [f, side] of [[l.lo, l.d], [l.hi, OPP[l.d]]])
     for (const [X, Z] of edgePts(f.x, f.z, side)) pins.set(f.id + ':' + X + ',' + Z, f.top * LH);

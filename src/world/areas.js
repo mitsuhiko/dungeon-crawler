@@ -111,7 +111,7 @@ function hairpinPiece(seed, d, theme, spine, at, K, R, free) {
   // no river along the canyon floor: the low bridge starts too low for its banks (spans.js riverFits)
   const sky = R() < (cfg.sky || 0) && beside.every(free), river = -1;
   const span = (line, dir, levels, i) => ({ id: `${seed}:${K(line[0])}:span`, keys: line.map(K), dir, n: 1, island: false,
-    twin: true, pos: ri(4, N - 5), seed: hash32(seed ^ (0x7a110 + i) ^ d), levels, river, sky });
+    twin: true, pos: ri(4, N - 5), seed: hash32(seed ^ (0x7a110 + i) ^ d), width: hash32(hash32(seed ^ (0x7a110 + i) ^ d) ^ 0x519e) < 0x80000000 ? 1 : 2, levels, river, sky });
   const spans = [span([a, b, c], F, [lo, at1], 0), span([dd, e, f], F ^ 1, [at2, hi], 1)];
   return { id: `${seed}:${K(a)}:hairpin`, kind: 'hairpin', keys: cells.map(K), spans, top: hi, mid, sky, beside: sky ? beside : [],
     turn: { fk: faceKey(K(c), direction(c, dd)), pos: ri(4, N - 5) }, exit: { dir: direction(f, spine[at + 6]), pos: ri(4, N - 5) },

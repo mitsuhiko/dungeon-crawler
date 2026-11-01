@@ -71,19 +71,20 @@ export const ICE = '#b4dcee', VINE = '#4e7a34';
 //   sky       may cross the open sky (a sky span: nothing to stand on below)
 //   span      may carry a gorge span's long bridge (12 cells); level: only a level one
 //   k         [shortest, longest] ordinary bridge (cells; they are 1-7)
+//   width     widest deck in cells (1..3); a log stays narrow, rope and flags at most two
 //   towers    how high its towers or poles stand over both ends (units): only where nothing
 //             is overhead (a span's cubes have one layer, nothing is)
 const sagBy = (route, routeMax, span, spanMax) => (k, isSpan) =>
   isSpan ? Math.min(spanMax, span * k) : k >= 2 ? Math.min(routeMax, route * k) : 0;
 const flat = () => 0;
-const ANY = { supports: 'none', ground: false, sky: true, span: true, level: false, k: [1, 7], towers: 0 };
+const ANY = { supports: 'none', ground: false, sky: true, span: true, level: false, k: [1, 7], width: 3, towers: 0 };
 export const BRIDGE_STYLES = {
   stone: { ...ANY, surface: 'stone', sag: flat, supports: 'piers', ground: true, sky: false },
   plank: { ...ANY, surface: 'wood', sag: sagBy(0.05, 0.22, 0.03, 0.3), supports: 'legs' },
-  rope: { ...ANY, surface: 'rope', sag: sagBy(0.09, 0.4, 0.07, 0.9) },
+  rope: { ...ANY, width: 2, surface: 'rope', sag: sagBy(0.09, 0.4, 0.07, 0.9) },
   iron: { ...ANY, surface: 'iron', sag: flat, supports: 'legs' },
   // a few logs side by side: short ones only, never a span
-  log: { ...ANY, surface: 'wood', sag: flat, span: false, k: [1, 4] },
+  log: { ...ANY, width: 1, surface: 'wood', sag: flat, span: false, k: [1, 4] },
   // a plank deck hung from chains between iron towers
   chain: { ...ANY, surface: 'wood', sag: sagBy(0.07, 0.3, 0.04, 0.5), k: [2, 7], towers: 1.45 },
   // a slab of ice with icicles under it
@@ -91,14 +92,14 @@ export const BRIDGE_STYLES = {
   // a natural rock arch, like the stone arches only over ground; on a span only a level one
   rockarch: { ...ANY, surface: 'stone', sag: flat, ground: true, sky: false, level: true },
   // a rope bridge with strings of prayer flags between tall poles
-  flags: { ...ANY, surface: 'rope', sag: sagBy(0.09, 0.4, 0.07, 0.9), towers: 1.3 },
+  flags: { ...ANY, width: 2, surface: 'rope', sag: sagBy(0.09, 0.4, 0.07, 0.9), towers: 1.3 },
 };
 
 // may `style` carry this bridge? where: { solid (ground or fluid close below, nothing underneath), k
-// (cells), room (units free over both ends), or for a gorge span's bridge: span, sky, level }
+// (cells), width (deck cells), room (units free over both ends), or for a gorge span's bridge: span, sky, level }
 export function bridgeFits(style, where) {
   const s = BRIDGE_STYLES[style];
-  if (!s) return false;
+  if (!s || (where.width ?? 1) > s.width) return false;
   if (where.span) return s.span && !(s.level && !where.level) && !(where.sky && (!s.sky || s.ground));
   if (s.ground && !where.solid) return false;
   if (where.k !== undefined && (where.k < s.k[0] || where.k > s.k[1])) return false;

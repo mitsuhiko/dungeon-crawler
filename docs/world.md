@@ -571,6 +571,15 @@ often on the sky islands, the peaks and the badlands, now and then in the caves.
   line: a ledge along the room it starts from, a sheer drop to a floor just over the river,
   the far bank. The bridge leaves from a pad at the face and lands on a pad at the far face.
   Between two gorge cubes it rests on a rock pinnacle standing at the shared face.
+- **Width:** a crossing has one, two or occasionally three deck cells across, chosen once from
+  its seed and shared by every gorge cube. Main-route crossings may be broader; island branches
+  stay mostly narrow and never three cells wide. Three-cell decks are centred on the crossing
+  position; two-cell decks use it and its positive-coordinate neighbour. The existing three-cell
+  face pads carry all widths. Logs stay one cell wide, rope and flag bridges at most two; other
+  styles support three. Each deck is one surface, with lateral navigation links and rails only
+  on the outside, not between lanes. Terrain clearance and placement reservations cover every
+  lane. `run.pieces` remains the longitudinal centreline for route sampling; `run.lanes` holds
+  all longitudinal rows, and each piece's `j` remains its distance along the run.
 - **Levels:** every crossing face has a deck level. A span either stays level over the valley
   (headland to headland, levels 10–15) or comes down from the top tier to the ground: a
   headland at level 14–20 (18–22 over two gorge cubes) to a bank at level 4–6. Over two
@@ -610,6 +619,13 @@ often on the sky islands, the peaks and the badlands, now and then in the caves.
   12 cells long and as steep as the levels say. It is placed like any bridge, in one style for
   the whole span (from the theme's weights), with a deeper sag for rope and tall trestles
   under plank and iron. Invisible side rails keep you on it like on every bridge.
+- **Other bridges:** short route bridges may widen after their route is found, but only where
+  the added lanes have matching, clear banks at both ends and enough room over and under the
+  deck. Widening falls back to a smaller footprint, never invalidating the original route.
+  Decorative bridges, puzzle rooms and authored height/area pieces keep their intended footprint.
+  Town crossings are fitted against the town's landscape and obstacles before cube generation;
+  its sloping lake spans and narrow pillars retain their original width. The town's existing
+  landscape flag `wide` describes a long lake crossing, not deck width.
 - **Discovery as usual** ("Only where you have been"): a span's cubes show only once visited,
   like every other cube. Each crossing is a portal, so the gorge, the far bank and the island
   come into view one cube at a time as you cross.

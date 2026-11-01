@@ -47,7 +47,7 @@ function place(ctx, t) {
   if (kind === 'clear') return t;
   const portalCells = ctx.portals.flatMap(p => p.cells);
   const nearPortal = (f, r) => portalCells.some(c => Math.abs(c % N - f.x) <= r && Math.abs(((c / N) | 0) - f.z) <= r);
-  const runCells = new Set(ctx.moves.flatMap(m => m.cells));
+  const runCells = new Set(ctx.moves.flatMap(m => m.lanes ? m.lanes.flat() : m.cells));
   const routeFloors = [...new Set(ctx.moves.flatMap(m => [m.from, m.to]))];
   const taken = new Set((ctx.spots || []).flatMap(s => s.cells.map(g => g.c)));
   const stand = f => !!f && !f.fluid && !f.prot && !f.landing && !f.roof && !f.site && !f.siteBlocked && !f.hordeReserved && !f.spot
@@ -77,9 +77,9 @@ function place(ctx, t) {
   const reach = f => {
     if (fromEntry.has(f.id) && toExit.has(f.id)) return true;
     const there = search(ctx, entry, f, ctx.jitter, ctx.have), back = there && search(ctx, f, exit, ctx.jitter, ctx.have);
-    if (!back || [...there, ...back].some(m => m.cells.includes(f.c))) return false;
+    if (!back || [...there, ...back].some(m => (m.lanes ? m.lanes.flat() : m.cells).includes(f.c))) return false;
     take(ctx, there); take(ctx, back);
-    for (const m of ctx.moves) for (const c of m.cells) runCells.add(c);
+    for (const m of ctx.moves) for (const c of (m.lanes ? m.lanes.flat() : m.cells)) runCells.add(c);
     return true;
   };
   const claim = cells => { for (const g of cells) { taken.add(g.c); g.spot = g.spot ?? `task:${t.spec.key}`; g.siteClaimTop = Math.max(g.siteClaimTop ?? 0, g.top + HEAD); } };

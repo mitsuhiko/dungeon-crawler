@@ -258,16 +258,19 @@ function tileGround(land, i, j, yaw, seed) {
   const built = new Set();
   for (const r of land.runs) {
     const from = toCube(r.from), to = toCube(r.to), cells = r.cells.map(toCube);
-    if (from < 0 || to < 0 || cells.some(c => c < 0)) continue;
+    // Turn the planned cells, not just the heading: a two-lane deck is asymmetric.
+    const lanes = (r.lanes ?? [r.cells]).map(lane => lane.map(toCube));
+    if (from < 0 || to < 0 || lanes.flat().some(c => c < 0)) continue;
     const d = turnDir(r.d), [dx, dz] = DIRS[d];
     const run = { kind: r.kind, from: ctx.cols[from][0], to: ctx.cols[to][0], d, dx, dz, cells, k: cells.length, sag: 0, span: !!r.span,
-      layerLo: 0, layerHi: 0, layer: 0 };
-    run.pieces = cells.map((c, j) => { const p = { kind: r.kind, c, j, dx, dz, run, y0: 0, y1: 0, base: 0 }; ctx.pieces[c].push(p); return p; });
+      width: r.width ?? 1, layerLo: 0, layerHi: 0, layer: 0 };
+    run.lanes = lanes.map(lane => lane.map((c, j) => { const p = { kind: r.kind, c, j, dx, dz, run, y0: 0, y1: 0, base: 0 }; ctx.pieces[c].push(p); return p; }));
+    run.pieces = run.lanes.find(lane => lane[0]?.c === cells[0]);
     if (r.kind === 'stair') for (const c of cells) { ctx.cols[c][0].covered = true; ctx.cols[c][0].underStair = true; }
     ctx.runs.push(run);
     ctx.stats[r.kind === 'stair' ? 'stairs' : 'bridges']++;
     if (r.span) { ctx.spec.span.style = r.style; run.spanStyle = r.style; }
-    for (const c of [from, to, ...cells]) built.add(c);
+    for (const c of (r.footprint ?? [r.from, r.to, ...r.cells]).map(toCube)) if (c >= 0) built.add(c);
   }
   smooth(ctx);
   // (beside a seam exactly level, and the corners round it that slope into it with it: a pinned

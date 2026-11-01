@@ -5,9 +5,13 @@ import { N } from '../core/constants.js';
 export function runFrame(r) {
   const first = r.cells[0];
   const ox = first % N + 0.5 - r.dx * 0.5, oz = ((first / N) | 0) + 0.5 - r.dz * 0.5;
-  const lx = -r.dz, lz = r.dx;
+  const lx = -r.dz, lz = r.dx, width = r.width || 1;
+  // The logical path need not be the middle lane (even widths, rotated town spans).
+  const starts = r.lanes?.map(lane => lane[0].c) || [first];
+  const shiftX = starts.reduce((v, c) => v + c % N - first % N, 0) / starts.length;
+  const shiftZ = starts.reduce((v, c) => v + Math.floor(c / N) - Math.floor(first / N), 0) / starts.length;
   return {
-    P: (s, w, y) => [ox + r.dx * s + lx * w, y, oz + r.dz * s + lz * w],
+    P: (s, w, y) => [ox + shiftX + r.dx * s + lx * w * width, y, oz + shiftZ + r.dz * s + lz * w * width],
     Y: s => { const T = s / r.k; return r.y0 + (r.y1 - r.y0) * T - r.sag * Math.sin(Math.PI * T); },
     D: [r.dx, 0, r.dz], Lt: [lx, 0, lz],
   };

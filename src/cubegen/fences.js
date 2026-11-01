@@ -30,8 +30,9 @@ export function runRails(runs) {
         addFence(r.c, d, () => r.y0, r.layer, false);
       continue;
     }
-    for (const p of r.pieces) for (const ld of (r.dx !== 0 ? [2, 3] : [0, 1]))
-      if (inb(p.c % N + DIRS[ld][0], ((p.c / N) | 0) + DIRS[ld][1])) addFence(p.c, ld, (fx, fz) => runY(p, fx, fz), r.layer, false);
+    const all = r.lanes ? r.lanes.flat() : r.pieces, occupied = new Set(all.map(p => p.c));
+    for (const p of all) for (const ld of (r.dx !== 0 ? [2, 3] : [0, 1]))
+      if (inb(p.c % N + DIRS[ld][0], ((p.c / N) | 0) + DIRS[ld][1]) && !occupied.has(p.c + DIRS[ld][0] + DIRS[ld][1] * N)) addFence(p.c, ld, (fx, fz) => runY(p, fx, fz), r.layer, false);
   }
   return { fences, fenceList, addFence };
 }

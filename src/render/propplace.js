@@ -3,6 +3,7 @@
 import { N, LH, BASE, DIRS, EDGE_CORNERS, FLUID_NAME, CHAR_H, ROOM_AREA, drawnFluid } from '../core/constants.js';
 import { mulberry32, hash32, idx, inb, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
+import { laneEnds, runPieces } from '../core/runs.js';
 import { cutLine } from '../core/cuts.js';
 import { restY } from './surface.js';
 import { props, propMetadata, signatureProp, CLUTTER } from '../core/propcatalog.js';
@@ -69,8 +70,11 @@ export function placeProps(m, theme) {
   if (m.authoredProps) return { out: m.authoredProps, blockers };
   if (!theme.props) return { out, blockers };
   const R = mulberry32(hash32(m.seed ^ 0x9a0b5)), pick = picker(theme, R);
-  const walkCols = new Set((m.moves || []).flatMap(mv => [mv.from.c, mv.to.c, ...mv.cells]));
-  for (const r of m.runs || []) for (const c of [...r.cells, r.from.c, r.to.c]) walkCols.add(c);
+  const walkCols = new Set((m.moves || []).flatMap(mv => [mv.from.c, mv.to.c, ...(mv.lanes ? mv.lanes.flat() : mv.cells)]));
+  for (const r of m.runs || []) {
+    for (const c of [...runPieces(r).map(p => p.c), r.from.c, r.to.c]) walkCols.add(c);
+    if (r.lanes?.length > 1) for (const f of laneEnds(m.cols, r).flat()) if (f) walkCols.add(f.c);
+  }
   const reservations = new Set([...(m.siteReservations || []).map(q => q.c + ':' + q.layer),
     ...m.floors.filter(f => f.hordeReserved).map(f => f.c + ':' + f.layer)]);
   const reserved = f => reservations.has(f.c + ':' + f.layer);

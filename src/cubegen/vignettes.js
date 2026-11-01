@@ -83,7 +83,7 @@ export function placeVignettes(ctx) {
   const count = count16(range[0] + Math.floor(R() * (range[1] - range[0] + 1)));
   if (!count) return;
   // the way: its structures' cells and its floors, and how far every cell is from it
-  const runCells = new Set(ctx.moves.flatMap(m => m.cells));
+  const runCells = new Set(ctx.moves.flatMap(m => m.lanes ? m.lanes.flat() : m.cells));
   const routeFloors = new Set(ctx.moves.flatMap(m => [m.from.id, m.to.id]));
   const away = new Array(N * N).fill(Infinity), queue = [];
   for (const c of new Set([...runCells, ...ctx.moves.flatMap(m => [m.from.c, m.to.c])])) { away[c] = 0; queue.push(c); }

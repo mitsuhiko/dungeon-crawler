@@ -35,6 +35,7 @@
 // Seams: the cells either side of one (s - 1 and s) stand alike and level (the physics reads a cell
 // past a seam as the edge's, physics/collide.js cellAt): nothing steps, flows down or is built there.
 import { N, at16, count16, ROOM_SCALE } from '../core/constants.js';
+import { BRIDGE_STYLES } from '../themes/builds.js';
 
 // a place in a tile laid out at 16 cells, in this world's tiles (world/town.js u16)
 const u16 = at16, cell16 = v => Math.round(at16(v));
@@ -974,9 +975,51 @@ export function makeLand(seed, opts, { stages = true, flip = false, again = 0 } 
       t = e + 1;
     }
   }
+  // Widen only where the whole deck and both approaches fit the finished town. The lake's
+  // sloping spans and narrow pillars keep their authored footprint; level gorge spans and short
+  // water crossings can use more lanes. Separate dice leave the town's layout unchanged.
+  const occupied = new Map();
+  for (const r of runs) for (const c of [r.from, r.to, ...r.cells]) {
+    if (!occupied.has(c)) occupied.set(c, new Set());
+    occupied.get(c).add(r);
+  }
+  const sameTile = (a, b) => Math.floor(a % W / N) === Math.floor(b % W / N) && Math.floor(a / W / N) === Math.floor(b / W / N);
+  for (const r of runs) {
+    r.width = 1; r.lanes = [r.cells];
+    if (r.kind !== 'bridge' || crossings.some(b => b.from === r.from) || (r.span && !spans.some(s => s.kind === 'gorge' && s.top === r.from))) continue;
+    const transverse = r.d < 2 ? W : 1, forward = [1, -1, W, -W][r.d];
+    const centre = [r.from, ...r.cells, r.to];
+    const buffer = new Set(r.span ? centre.flatMap(c => [-transverse, 0, transverse].map(o => c + o)) : centre);
+    // Fit in town-local coordinates; tileGround rotates the entire footprint together.
+    const dice = mulberry32(hash32(seed ^ r.from ^ 0x62726964));
+    const maxWidth = r.span ? BRIDGE_STYLES[r.style].width : 3;
+    const choices = (dice() < .5 ? [[-1, 0, 1], [0, 1], [-1, 0]] : [[0, 1], [-1, 0]]).filter(offsets => offsets.length <= maxWidth);
+    for (const offsets of choices) {
+      const lanes = offsets.map(o => r.cells.map(c => c + o * transverse));
+      const ends = offsets.flatMap(o => [r.from + o * transverse, r.to + o * transverse]);
+      const approaches = offsets.flatMap(o => [r.from - forward + o * transverse, r.to + forward + o * transverse]);
+      const footprint = [...lanes.flat(), ...ends, ...approaches];
+      const clear = c => {
+        const [x, z] = xz(c);
+        if (x <= WALL || z <= WALL || x >= W - WALL - 1 || z >= D - WALL - 1 || side(x, z) !== 0) return false;
+        if (occupied.get(c) && [...occupied.get(c)].some(other => other !== r)) return false;
+        if (used.has(c) && !buffer.has(c)) return false;
+        return !(layout.bodies ?? []).some(b => x < b.x1 + .1 && x + 1 > b.x0 - .1 && z < b.z1 + .1 && z + 1 > b.z0 - .1);
+      };
+      if (!footprint.every(clear) || ![...lanes.flat(), ...ends].every(c => sameTile(c, r.from))) continue;
+      if (!lanes.flat().every(c => water.has(c)) || !ends.every((c, k) => !water.has(c) && L[c] === L[k % 2 ? r.to : r.from])
+        || !approaches.every((c, k) => !water.has(c) && L[c] === L[k % 2 ? r.to : r.from])) continue;
+      r.width = offsets.length; r.lanes = lanes; r.footprint = footprint;
+      for (const c of footprint) {
+        if (!occupied.has(c)) occupied.set(c, new Set());
+        occupied.get(c).add(r);
+      }
+      break;
+    }
+  }
   // the floors at a run's ends and under it level with what they are kept at, under a span no higher
   // than a level under its deck there (a wide one's passes high over the ground)
-  for (const r of runs) r.cells.forEach((c, j) => {
+  for (const r of runs) for (const lane of r.lanes) lane.forEach((c, j) => {
     if (water.has(c)) return;
     const deck = L[r.from] + (L[r.to] - L[r.from]) * (j + 1) / (r.cells.length + 1);
     L[c] = r.span ? Math.min(L[c], Math.floor(deck) - 1) : Math.min(L[c], L[r.from], L[r.to]);
@@ -1051,7 +1094,7 @@ export function makeLand(seed, opts, { stages = true, flip = false, again = 0 } 
     return d;
   };
   // (on or beside a stair, a bridge or the span: kept free of what stands in the way)
-  const built = new Set([...used, ...platforms.keys(), ...ledge, ...runs.flatMap(r => [r.from, r.to, ...r.cells])]);
+  const built = new Set([...used, ...platforms.keys(), ...ledge, ...runs.flatMap(r => r.footprint ?? [r.from, r.to, ...r.cells])]);
   const structureAt = (x, z, r = 0) => {
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
       const cx = Math.floor(x) + dx, cz = Math.floor(z) + dz;

@@ -37,7 +37,7 @@ export function placeSpots(ctx) {
   const portalCells = ctx.portals.flatMap(p => p.cells);
   const nearPortal = (f, r) => portalCells.some(c => Math.abs(c % N - f.x) <= r && Math.abs(((c / N) | 0) - f.z) <= r);
   // cells on the way's structures (stairs, bridges) and those of the route's floors
-  const runCells = new Set(ctx.moves.flatMap(m => m.cells));
+  const runCells = new Set(ctx.moves.flatMap(m => m.lanes ? m.lanes.flat() : m.cells));
   const onRoute = new Set(ctx.moves.flatMap(m => [m.from.id, m.to.id]));
   const routeCells = new Set(ctx.moves.flatMap(m => [m.from.c, m.to.c]));
   const byRoute = cells => cells.some(g => AXES.some(([dx, dz]) => inb(g.x + dx, g.z + dz) && routeCells.has(idx(g.x + dx, g.z + dz))));
@@ -117,7 +117,7 @@ export function placeSpots(ctx) {
       if (o.cells.some(g => taken.has(g.c))) continue;
       const there = search(ctx, entry, o.access, ctx.jitter, ctx.have), back = there && search(ctx, o.access, exit, ctx.jitter, ctx.have);
       // the ways there must not run over the spot's own cells with a structure
-      if (!back || [...there, ...back].some(m => m.cells.some(c => o.cells.some(g => g.c === c)))) continue;
+      if (!back || [...there, ...back].some(m => (m.lanes ? m.lanes.flat() : m.cells).some(c => o.cells.some(g => g.c === c)))) continue;
       take(ctx, there); take(ctx, back);
       placed = o; break;
     }
@@ -127,7 +127,7 @@ export function placeSpots(ctx) {
       // flat, nothing built over it up to a head's room, nothing put on it
       g.spot = plan.id; g.siteClaimTop = Math.max(g.siteClaimTop ?? 0, g.top + HEAD);
     }
-    for (const m of ctx.moves) for (const c of m.cells) runCells.add(c);
+    for (const m of ctx.moves) for (const c of (m.lanes ? m.lanes.flat() : m.cells)) runCells.add(c);
     ctx.spots.push({ plan, ...placed, entry, exit });
   }
   // (the ways that need building are not required of the structures: one that does not fit
@@ -154,7 +154,7 @@ export function finishSpots(ctx) {
       && (plan.kind === 'hide' || plan.kind === 'glass' || safe?.has(access.id) && reachTo(ctx, access, true)?.has(s.entry.id));
     stood.forEach((g, i) => { g.siteBlocked = was[i]; });
     // (an outpost's cart, a rune stone stands on its cell: not on one the route's ways go over either)
-    const onRoute = (plan.kind === 'outpost' || plan.kind === 'runestone') && (ctx.segments || []).some(sg => sg.some(m => m.from === f || m.to === f || m.cells.includes(f.c)));
+    const onRoute = (plan.kind === 'outpost' || plan.kind === 'runestone') && (ctx.segments || []).some(sg => sg.some(m => m.from === f || m.to === f || (m.lanes ? m.lanes.flat() : m.cells).includes(f.c)));
     if (!around || onRoute) { ctx.spotFailures.push({ id: plan.id, kind: plan.kind, reason: 'in the way' }); continue; }
     // facing the one who comes to talk (a seat), the fire (a camp's places)
     const face = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);

@@ -487,7 +487,7 @@ test('the town\'s stairs, bridges and span hold a walking hero on them: their si
     let runs = 0;
     for (const { m } of tilesOf(w)) {
       state.map = m;
-      for (const r of m.runs) for (const p of r.pieces) for (const d of r.dx !== 0 ? [2, 3] : [0, 1]) {
+      for (const r of m.runs) for (const p of (r.lanes ? r.lanes.flat() : r.pieces)) for (const d of r.dx !== 0 ? [2, 3] : [0, 1]) {
         const x = p.c % N, z = Math.floor(p.c / N), [dx, dz] = DIRS[d];
         if (x + dx < 0 || z + dz < 0 || x + dx >= N || z + dz >= N) continue;   // (the cube's bound holds it there)
         const y = runY(p, .5, .5);
@@ -497,7 +497,9 @@ test('the town\'s stairs, bridges and span hold a walking hero on them: their si
           if (!canMove(nx, nz, dx ? 'x' : 'z', dx || dz)) break;
           player.x = nx; player.z = nz;
         }
-        assert.ok(Math.floor(player.x) === x && Math.floor(player.z) === z, `${m.key}: off the side ${d} of a ${r.kind} at ${x}, ${z}`);
+        const inside = (r.lanes || [r.pieces]).some(lane => lane.some(q => q.c === p.c + dx + dz * N));
+        assert.ok(Math.floor(player.x) === x + (inside ? dx : 0) && Math.floor(player.z) === z + (inside ? dz : 0),
+          `${m.key}: ${inside ? 'blocked between lanes' : 'off the outer side'} ${d} of a ${r.kind} at ${x}, ${z}`);
       }
       runs += m.runs.length;
     }

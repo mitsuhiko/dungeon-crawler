@@ -6,6 +6,7 @@ import { fallCells } from '../core/falls.js';
 import { placeClimb } from './climbs.js';
 import { moveKey } from './route.js';
 import { addDecor } from './decor.js';
+import { widenBridge } from './bridgewidth.js';
 
 export function placeStructures(ctx) {
   const { cols, falls, moves, pathFloors, stats } = ctx;
@@ -21,11 +22,11 @@ export function placeStructures(ctx) {
   const runs = [], landings = new Map();
 
   const runClaims = m => {
-    const out = m.cells.map((c, j) => {
+    const out = (m.lanes || [m.cells]).flatMap(lane => lane.map((c, j) => {
       const k = m.cells.length, h = m.from.top, rise = m.to.top - h;
       const a = h + rise * j / k, b = h + rise * (j + 1) / k;
       return { c, lo: Math.min(a, b) - 1, hi: Math.max(a, b) };
-    });
+    }));
     if (m.to.landing && !landings.has(m.to.id)) out.push({ c: m.to.c, lo: m.to.top - 1, hi: m.to.top });
     return out;
   };
@@ -36,7 +37,7 @@ export function placeStructures(ctx) {
     return DIRS.some(([dx, dz]) => inb(x + dx, z + dz) && runCells[idx(x + dx, z + dz)].some(o => o.kind !== m.kind && !apart(o, cl)));
   };
   const canPlace = m => runClaims(m).every((cl, j) =>
-    claims[cl.c].every(o => apart(o, cl)) && !(j < m.cells.length && besideOther(m, cl)) &&
+    claims[cl.c].every(o => apart(o, cl)) && !(j < m.cells.length * (m.lanes?.length || 1) && besideOther(m, cl)) &&
     walkedIn[cl.c].every(g => !(g.top > cl.lo - SHEAD && g.top <= cl.hi + 1)) &&   // room for the character's head
     sweeps[cl.c].every(([a, b]) => !(cl.lo <= b && cl.hi >= a)));
   // floors right under a stair / landing are covered by it: they must not be smoothed up through it
@@ -54,7 +55,7 @@ export function placeStructures(ctx) {
     runs.push(run);
   }
   function place(m) {
-    runClaims(m).forEach((cl, j) => { claims[cl.c].push(cl); if (j < m.cells.length) runCells[cl.c].push({ kind: m.kind, lo: cl.lo, hi: cl.hi }); });
+    runClaims(m).forEach((cl, j) => { claims[cl.c].push(cl); if (j < m.cells.length * (m.lanes?.length || 1)) runCells[cl.c].push({ kind: m.kind, lo: cl.lo, hi: cl.hi }); });
     if (m.to.landing && !landings.has(m.to.id)) placeLanding(m.to);
     if (m.kind === 'walkway') {
       landings.get(m.from.id).conn.add(m.d); landings.get(m.to.id).conn.add(OPP[m.d]);
@@ -62,9 +63,10 @@ export function placeStructures(ctx) {
     }
     const lo = m.from.top <= m.to.top ? m.from : m.to, hi = lo === m.from ? m.to : m.from;
     const run = { kind: m.kind, from: m.from, to: m.to, d: m.d, dx: m.dx, dz: m.dz, cells: m.cells, k: m.cells.length, sag: 0, span: !!m.span,
-      layerLo: lo.layer, layerHi: hi.layer, layer: Math.min(lo.layer, hi.layer) };
+      width: m.width || 1, layerLo: lo.layer, layerHi: hi.layer, layer: Math.min(lo.layer, hi.layer) };
     if (m.kind === 'stair') for (const cl of runClaims(m).slice(0, m.cells.length)) coverBelow(cl.c, cl.lo + 1, true);
-    run.pieces = m.cells.map((c, j) => { const p = { kind: m.kind, c, j, dx: m.dx, dz: m.dz, run, y0: 0, y1: 0, base: 0 }; pieces[c].push(p); return p; });
+    run.lanes = (m.lanes || [m.cells]).map(lane => lane.map((c, j) => { const p = { kind: m.kind, c, j, dx: m.dx, dz: m.dz, run, y0: 0, y1: 0, base: 0 }; pieces[c].push(p); return p; }));
+    run.pieces = run.lanes.find(lane => lane[0].c === m.cells[0]);
     if (m.from.landing) landings.get(m.from.id).conn.add(m.d);
     if (m.to.landing) landings.get(m.to.id).conn.add(OPP[m.d]);
     runs.push(run);
@@ -76,7 +78,7 @@ export function placeStructures(ctx) {
   const skipped = new Set();
   for (const [i, m] of moves.entries()) {
     const fits = m.from.landing && !landings.has(m.from.id) ? false   // its landing was dropped
-      : m.cells.length || m.to.landing ? canPlace(m) && (place(m), true)
+      : m.cells.length || m.to.landing ? canPlace(m) && (place(widenBridge(ctx, m, canPlace)), true)
       : m.kind === 'ladder' || m.kind === 'jump' ? placeClimb(m, claims, pathEdges, ladders) : null;
     if (fits === false) { if (i < ctx.reqMoves) return false; skipped.add(moveKey(m)); continue; }
     if (fits === null) {

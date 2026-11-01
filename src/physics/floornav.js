@@ -2,6 +2,7 @@
 import { LH, N, DIRS, OPP } from '../core/constants.js';
 import { edgeKey, idx, inb } from '../core/util.js';
 import { floorY, runY, topOf } from '../core/surfaces.js';
+import { laneEnds, runPieces } from '../core/runs.js';
 
 const free = new WeakMap();
 // what stands in column c between lo and hi, other than `self`: floors, structures, pillars
@@ -53,7 +54,7 @@ export function structureLinks(map) {
   const runs = map.runs || [], landings = new Map();
   const slot = n => { let l = links.get(n); if (!l) { l = [[], [], [], []]; links.set(n, l); } return l; };
   const join = (a, d, b) => { if (a && b) { slot(a)[d].push(b); slot(b)[OPP[d]].push(a); } };
-  for (const r of runs) for (const p of r.pieces) { p.x = p.c % N; p.z = (p.c / N) | 0; }
+  for (const r of runs) for (const p of runPieces(r)) { p.x = p.c % N; p.z = (p.c / N) | 0; }
   for (const r of runs) if (r.kind === 'landing') landings.set(r.from, r.pieces[0]);
   const node = n => n?.landing ? landings.get(n) : n;
   for (const r of runs) {
@@ -66,10 +67,18 @@ export function structureLinks(map) {
       }
       continue;
     }
-    const ps = r.pieces;
-    join(node(r.from), r.d, ps[0]);
-    for (let j = 1; j < ps.length; j++) join(ps[j - 1], r.d, ps[j]);
-    join(ps[ps.length - 1], r.d, node(r.to));
+    const lanes = r.lanes || [r.pieces], ends = laneEnds(map.cols, r);
+    const byCell = new Map(runPieces(r).map(p => [p.c, p]));
+    for (const [i, lane] of lanes.entries()) {
+      join(node(ends[i][0]), r.d, lane[0]);
+      for (let j = 1; j < lane.length; j++) join(lane[j - 1], r.d, lane[j]);
+      join(lane.at(-1), r.d, node(ends[i][1]));
+      // Interior lane boundaries are open, with links at every longitudinal cell.
+      for (const p of lane) for (const d of (r.dx ? [2] : [0])) {
+        const q = byCell.get(idx(p.x + DIRS[d][0], p.z + DIRS[d][1]));
+        if (q) join(p, d, q);
+      }
+    }
   }
   return links;
 }
