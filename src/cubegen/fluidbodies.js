@@ -42,6 +42,8 @@ export function fluidRows(m) {
 export function stampFluidBodies(m) {
   const depth = m.depth ?? depthOf(m.key ?? '0,0,0'), rows = m.fluidRows = fluidRows(m);
   for (const f of m.floors || []) if (f.fluid && !f.crust) f.pal = f.look === MUD ? MUD_ROW : rows[f.fluid];
+  // (a cut cell's fluid: its donor's, core/cuts.js)
+  for (const f of m.floors || []) if (f.cut?.part.fluid) f.cut.part.pal = f.cut.part.look === MUD ? MUD_ROW : rows[f.cut.part.fluid];
   for (const fl of m.falls || []) fl.pal = [fl.in ? palRow(depth - 1, fl.type, 0) : rows[fl.type], rows[fl.type]];
   return m;
 }

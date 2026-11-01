@@ -18,6 +18,7 @@ import { BOXES, waterBoxes } from './shore.js';
 import { restY, FLUID_MOTION } from './surface.js';
 import { PAL_TEX, PAL_GLSL } from './fluidpal.js';
 import { palRow } from '../themes/fluids.js';
+import { fluidsOf } from '../core/cuts.js';
 import { WIND, FIXED_TIDE, FIXED_WET } from './materials.js';
 
 const texture = (w, h, data) => {
@@ -31,7 +32,7 @@ export function waterUniforms(m) {
   waterBoxes(m).forEach((list, c) => list.forEach((b, k) => boxes.set(b, ((c / N | 0) * BOXES * 2 * N + (c % N) * BOXES * 2 + k * 2) * 4)));
   const fixed = new Float32Array(N * N * 4);
   for (let c = 0; c < N * N; c++) {
-    const f = m.cols[c].filter(g => g.fluid && !g.crust).at(-1);
+    const f = fluidsOf(m.cols[c].filter(g => !g.crust)).at(-1);   // (a cut cell's fluid too: core/cuts.js)
     fixed.set(f ? [restY(f.surf * LH), Math.min(...f.cs), drawnFluid(f), f.pal ?? m.fluidRows?.[f.fluid] ?? palRow(m.depth ?? 0, drawnFluid(f), 0)] : [-1e4, 0, 0, 0], c * 4);
   }
   return {

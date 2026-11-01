@@ -101,3 +101,5 @@ export function crosses(ax, az, bx, bz, cx, cz, dx, dz) {
 // the node of the floor graph a surface belongs to: a cut's part is the ground it carries on
 // (its donor's), anything else itself
 export const nodeOf = s => s?.donor ?? s;
+// The fluids in a column: its fluid floors, and the fluids in the parts of its cut floors
+export const fluidsOf = col => col.flatMap(g => g.fluid ? [g] : g.cut?.part.fluid ? [g.cut.part] : []);

@@ -13,7 +13,7 @@
 //    it goes out; the part beyond takes the ground of the cells beyond. A cell that would lose its
 //    middle or a linked side's middle (or come too close to them) keeps its square.
 // 4. Fences: a fenced riser's fence moves onto the line, or stays on what is left of its edge.
-import { N, LH, DIRS, OPP, EDGE_CORNERS } from '../core/constants.js';
+import { N, LH, DIRS, OPP, EDGE_CORNERS, WATER } from '../core/constants.js';
 import { idx, inb, hash32, edgeKey } from '../core/util.js';
 import { cornersY, floorY, partAt } from '../core/surfaces.js';
 import { clipPoly, cutLine, cutPoints, sidePoint } from '../core/cuts.js';
@@ -24,7 +24,7 @@ import { clipPoly, cutLine, cutPoints, sidePoint } from '../core/cuts.js';
 // 22.5° itself every other cell's middle would come too close to the line to be cut)
 const turn = list => list.flatMap(([x, z]) => [[x, z], [-z, x], [-x, -z], [z, -x]]).map(([x, z]) => { const l = Math.hypot(x, z); return [x / l, z / l]; });
 export const CUT_STYLES = { grid: [], octo: turn([[1, 0], [1, 1]]), sixteen: turn([[1, 0], [2, 1], [1, 1], [1, 2]]) };
-export const CUT_WATER = false;   // (shores too)
+export const CUT_WATER = true;    // (shores too: a fluid's bank is a step down to it)
 // how a room's cliffs are cut, by default: weights of the styles (a chain draws one; a room's
 // spec.cuts overrides)
 export const DEFAULT_CUTS = { grid: 0.2, octo: 0.35, sixteen: 0.45 };
@@ -66,9 +66,12 @@ export function cutCliffs(ctx, styleOf = null) {
   for (const l of ctx.ladders || []) { pinned.add(l.lo.c); pinned.add(l.hi.c); }
   for (const r of ctx.runs || []) { pinned.add(r.from.c); pinned.add(r.to.c); for (const p of r.pieces) pinned.add(p.c); }
   for (const m of ctx.moves || []) if (m.kind !== 'walk') { pinned.add(m.from.c); pinned.add(m.to.c); }
-  for (const f of ctx.falls || []) for (const c of [f.c, f.pool?.c, ...(f.cells || [])]) if (c !== undefined) pinned.add(c);
+  // (a fall and where it lands, and round them: their splashes and streams, render/falls.js)
+  for (const fl of ctx.falls || []) for (const [ox, oz] of [[0, 0], DIRS[fl.d] || [0, 0]])
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const x = fl.c % N + ox + dx, z = ((fl.c / N) | 0) + oz + dz; if (inb(x, z)) pinned.add(idx(x, z)); }
+  for (const c of ctx.noCut || []) pinned.add(c);
   const fixed = f => pinned.has(f.c) || f.prot || f.ramp || f.landing || f.site || f.siteAnchor || f.siteAccess || f.siteDressing
-    || f.spot || f.underStair || f.covered || f.crust || (f.fluid && !water) || f.surface || f.noCut || ctx.border(f)
+    || f.spot || f.hordeReserved || f.underStair || f.covered || f.crust || (f.fluid && !water) || f.surface || f.noCut || ctx.border(f)
     || ctx.pieces[f.c]?.length || ctx.noFence?.has(f.c);
   // a floor's heights along its side d (a fluid's: its surface)
   const edgeYs = (f, d) => f.fluid ? [f.surf * LH, f.surf * LH] : EDGE_CORNERS[d].map(k => f.cs[k]);
@@ -167,6 +170,15 @@ export function cutCliffs(ctx, styleOf = null) {
   ctx.stats.cuts = (ctx.stats.cuts || 0) + made;
   if (made) moveFences(ctx, cutCells);
 
+  // is side d of floor f one a way crosses that its part (corners cs) would stand in the way of: a
+  // link, or out of a water onto a bank up to a level over it (physics/playernav.js waterEdges),
+  // where its part would rise higher than a swimmer climbs out (a part the bank's height, or one of
+  // water, it crosses as well as the side)
+  function crossed(f, d, cs) {
+    if (f.link[d]) return true;
+    const g = topAt(f.x + DIRS[d][0], f.z + DIRS[d][1]);
+    return !!g && f.fluid === WATER && !g.fluid && g.top >= f.surf && g.top <= f.surf + 1 && Math.max(...cs) > (f.surf + 1) * LH + 0.01;
+  }
   // the cut of floor f along A -> B (the cube's coordinates), the part beyond taking the ground of
   // the cells round it on the other side (other(g))
   function makeCut(f, A, B, other, drop) {
@@ -201,7 +213,7 @@ export function cutCliffs(ctx, styleOf = null) {
     // its middle and linked sides' middles off the line: further off a wall up than a drop
     const up = cs.reduce((s, v) => s + v) > (f.fluid ? 4 * f.surf * LH : f.cs.reduce((s, v) => s + v)), room = up ? WALL : drop;
     if (-side(0.5, 0.5) < room) return null;
-    for (let d = 0; d < 4; d++) if (f.link[d]) { const [x, z] = [[1, .5], [0, .5], [.5, 1], [.5, 0]][d]; if (side(x, z) > -room) return null; }
+    for (let d = 0; d < 4; d++) if (crossed(f, d, cs)) { const [x, z] = [[1, .5], [0, .5], [.5, 1], [.5, 0]][d]; if (side(x, z) > -room) return null; }
     const lowest = Math.min(...poly.map(([x, z]) => cornersY(cs, splitOf(cs), x, z)));
     if (lowest < f.bottom * LH + 0.25) return null;   // (the part's solid is the floor's, from its bottom up)
     if (up && donor.bottom * LH > Math.min(...f.cs) + 0.01) return null;   // (a raised part: the donor's solid reaches down to us)

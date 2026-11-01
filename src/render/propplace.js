@@ -19,6 +19,10 @@ const ambientSets = theme => [theme.props, 'any', ...(theme.cave ? ['relics'] : 
 // lights stay as they are, so a small device's cube is the same as anyone's to play in (playing
 // together). The same things go every time (by where they stand).
 const THIN = small ? 1 / ROOM_AREA : 1;
+// is the point (fx, fz) of floor f at least r inside its own side of a cut (core/cuts.js)? (a prop
+// standing across the line would hang over the cliff, or stand in it)
+const clearOfCut = (f, fx, fz, r) => !f.cut || f.cut.c - f.cut.n[0] * fx - f.cut.n[1] * fz >= r;
+
 export function thinDressing(out) {
   if (THIN >= 1) return out;
   return out.filter(q => {
@@ -100,7 +104,7 @@ export function placeProps(m, theme) {
       if (p) {
         const room = Math.max(0, 0.9 - 2 * p.radius * s), fx = 0.5 + (R() - 0.5) * room, fz = 0.5 + (R() - 0.5) * room;
         const y = floorY(f, fx, fz) - 0.02;
-        if (y + p.maxY * s + 0.2 < ceiling) {
+        if (y + p.maxY * s + 0.2 < ceiling && clearOfCut(f, fx, fz, p.radius * s)) {
           add(p, f.x + fx, y, f.z + fz, R() * Math.PI * 2, s);
           if (p.blocking) blockers[f.c].push({ x: f.x + fx, z: f.z + fz, r: p.radius * s * 0.8, bottom: y, top: y + p.height * s });
         }
@@ -117,7 +121,7 @@ export function placeProps(m, theme) {
       const y = floorY(f, fx, fz) + 0.008, e = 0.01;
       const dx = (floorY(f, fx + e, fz) - floorY(f, fx - e, fz)) / (2 * e);
       const dz = (floorY(f, fx, fz + e) - floorY(f, fx, fz - e)) / (2 * e);
-      if (top + p.maxY * cs + 0.2 < ceiling) add(p, f.x + fx, y, f.z + fz, R() * Math.PI * 2, cs, [-dx, 1, -dz]);
+      if (top + p.maxY * cs + 0.2 < ceiling && clearOfCut(f, fx, fz, p.radius * cs)) add(p, f.x + fx, y, f.z + fz, R() * Math.PI * 2, cs, [-dx, 1, -dz]);
     }
 
     if (f.fluid && !pieces.length && !focal && R() < 0.12 * CLUTTER) {
@@ -129,13 +133,14 @@ export function placeProps(m, theme) {
     // No ceiling props: undersides of slabs are never visible from the camera.
     // Hanging decoration is limited to lip props draped over visible ledges.
 
-    if (f.fluid || focal || nearPortal(f)) continue;
+    // (no lips on a cut cell's sides, nor on those facing one: its cliff runs along the line)
+    if (f.fluid || focal || nearPortal(f) || f.cut) continue;
     for (let d = 0; d < 4; d++) {
       const nx = f.x + DIRS[d][0], nz = f.z + DIRS[d][1];
       if (!inb(nx, nz) || f.link[d]) continue;
       const [a, b] = EDGE_CORNERS[d], edgeTop = Math.min(f.cs[a], f.cs[b]);
       const other = m.cols[idx(nx, nz)];
-      if (other.some(g => g.bottom * LH < edgeTop + 0.1
+      if (other.some(g => g.cut) || other.some(g => g.bottom * LH < edgeTop + 0.1
         && (g.fluid ? g.surf * LH : Math.max(...g.cs)) >= edgeTop - 0.1)) continue;
       const low = Math.max(-BASE, ...other.filter(g => g.top * LH < edgeTop - 0.1)
         .map(g => g.fluid ? g.surf * LH : Math.max(...g.cs)));
@@ -192,7 +197,7 @@ function grove(m, theme, add, out, blockers, { walkCols, reserved, nearSite, nea
       const [fx, fz] = beside.length ? (bl ? [0.5 + back[0] / bl * 0.3, 0.5 + back[1] / bl * 0.3] : [0.5, 0.5])
         : [0.5 + (R() - 0.5) * 0.5, 0.5 + (R() - 0.5) * 0.5];
       const y = floorY(f, fx, fz) - 0.02;
-      if (y + p.maxY * s + 0.2 >= above(f) || beside.length && !bl) continue;
+      if (y + p.maxY * s + 0.2 >= above(f) || beside.length && !bl || !clearOfCut(f, fx, fz, 0.3)) continue;
       const yaw = R() * Math.PI * 2, c = Math.cos(yaw), sn = Math.sin(yaw);
       add(p, f.x + fx, y, f.z + fz, yaw, s);
       blockers[f.c].push({ x: f.x + fx, z: f.z + fz, r: 0.16 * s, bottom: y, top: y + p.height * s });
@@ -228,7 +233,7 @@ function waylights(m, theme, add, out, blockers, { walkCols, reserved, nearSite,
     const p = list[Math.floor(R() * list.length)], [dx, dz] = beside[0];
     const x = f.x + 0.5 - dx * back, z = f.z + 0.5 - dz * back, y = floorY(f, 0.5 - dx * back, 0.5 - dz * back) - 0.02;
     const col = m.cols[f.c], above = col[col.indexOf(f) + 1];
-    if (above && y + p.maxY + 0.2 >= above.bottom * LH) continue;
+    if (above && y + p.maxY + 0.2 >= above.bottom * LH || !clearOfCut(f, 0.5 - dx * back, 0.5 - dz * back, 0.15)) continue;
     add(p, x, y, z, Math.atan2(-dz, dx), 1);
     out[out.length - 1].way = true;
     if (p.blocking) blockers[f.c].push({ x, z, r: foot, bottom: y, top: y + p.height });

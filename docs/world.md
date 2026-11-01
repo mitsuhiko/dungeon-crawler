@@ -1162,6 +1162,16 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   drop (the fence stands in from the line: the hero gets round its posts to the middle). So a
   line of one cell across for two along (26.6°) runs straight through an unfenced staircase, and
   a fenced one goes at 45° and straight.
+- **Shores:** a bank is a step down to its water (the bank at the water's level or over it), so
+  shores are cut the same way: the water's cells give a corner to the bank, the bank's take one of
+  the water. A part that is water is the water's (`fluid`, `surf`, its bed's heights): physics
+  wades and swims in it (`physics/fluid.js` goes by the surface underfoot), it is drawn clipped to
+  its side (`render/floors.js fluidVolume`: its quads, its sides where it reaches the cell's sides,
+  the wet band on the bank along the line) with its foam along the line (its vertices' `shore`
+  says the ground rises steeply up to the line: `LINE_SLOPE`), and the cell counts it as its
+  fluid (`fluidsOf`: the waves under it, the wet banks). The sides a way crosses into or out of the
+  water (`playernav.js waterEdges`) keep their middles like linked ones. Not where a fall comes
+  down or lands, nor where a mud pool's pockets lie.
 - **Styles:** `grid` (no cuts: square steps), `octo` (multiples of 45°) or `sixteen` (those and
   one across for two along, 26.6°, 63.4° and round: the nearest to 22.5° that a grid carries
   straight; a line at 22.5° itself comes too close to every other cell's middle), drawn per chain from the room's weights (`DEFAULT_CUTS`, a theme's `cuts`, a room's
@@ -1184,7 +1194,8 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   one, and a cut cell's line takes one where most of the risers near it were fenced. These stand
   along a line (`map.lineFences`, per cell; `canmove.js lineFenced`); the edge keeps its old fence,
   `navOnly`, for the jumps and the water's ways.
-- **Checks:** `tests/cuts.test.js` (the geometry, walking against and along a cut, its fences),
+- **Checks:** `tests/cuts.test.js` (the geometry, walking against and along a cut, its fences, a
+  shore's water in a bank's cell),
   the sweep (`tests/sweeps/cuts.js`: every cut keeps its cell's middle, linked sides and body
   room, its part meets its donor's ground at the shared corners, and the cuts of two cells meet on
   their shared side).

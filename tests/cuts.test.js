@@ -2,7 +2,8 @@
 // at an angle through them. The geometry, the fit on a staircase, and walking at a cut.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { N, LH, CHAR_R, CHAR_H, DIRS } from '../src/core/constants.js';
+import { N, LH, CHAR_R, CHAR_H, DIRS, WATER } from '../src/core/constants.js';
+import { wading } from '../src/physics/fluid.js';
 import { flatMap } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { movePlayer } from '../src/physics/move.js';
@@ -123,4 +124,21 @@ test('a generated room: its staircase cliffs are cut, and every cut keeps its ce
     assert.equal(partAt(f, 0.5, 0.5), f);
     assert.ok(f.cut.part.donor && f.cut.part.donor !== f);
   }
+});
+
+test('a shore at 45°: the bank takes a corner of the water, the water one of the bank, and it is waded in', () => {
+  const m = flatMap();
+  // water (surface 2 levels, its bed at 0) over the cells x <= z, a bank at its level elsewhere
+  for (const f of m.floors) Object.assign(f, f.x <= f.z ? { top: 0, fluid: WATER, surf: 2, cs: [0, 0, 0, 0] } : { top: 2, cs: Array(4).fill(2 * LH) }, { bottom: -2 });
+  for (const f of m.floors) f.link = f.link.map(g => g && !!g.fluid === !!f.fluid ? g : null);
+  const ctx = { ...m, fenceList: [], seed: 1, stats: {}, ladders: [], runs: [], moves: [], spec: {}, border: f => !f.x || !f.z || f.x === N - 1 || f.z === N - 1 };
+  cutCliffs(ctx, () => 'octo');
+  const wet = m.floors.filter(f => f.cut && !f.fluid), dry = m.floors.filter(f => f.cut && f.fluid);
+  assert.ok(wet.length > 10 && dry.length > 10, `cut: ${wet.length} banks, ${dry.length} waters`);
+  for (const f of wet) assert.ok(f.cut.part.fluid === WATER && f.cut.part.surf === 2 && Math.max(...f.cut.part.cs) <= 0.001, 'a bank\'s part is the water');
+  for (const f of dry) assert.ok(!f.cut.part.fluid && Math.min(...f.cut.part.cs) >= 2 * LH - 0.001, 'a water\'s part is the bank');
+  // in a bank's cell, on the water's side of its line: the water's bed underfoot, in the water
+  const f = m.floors[8 * N + 9], gr = groundAt(9.1, 8.9, 100, 0);
+  assert.ok(f.cut && gr.s === f.cut.part && gr.s.fluid === WATER, 'the water is underfoot');
+  assert.ok(wading(gr, gr.h) > 0.5, 'deep enough to wade: ' + wading(gr, gr.h));
 });

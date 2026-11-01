@@ -14,6 +14,7 @@
 //
 // Pure (no three.js): the world worker builds the cube's fluids with it.
 import { N, LH, WATER, LAVA, ACID, MUD, drawnFluid } from '../core/constants.js';
+import { fluidsOf } from '../core/cuts.js';
 
 // How each fluid's surface moves: the whole of it rises and falls with the tide, `tide` from high
 // to low water (world units) every `period` seconds, a minor pattern of waves `ripple` high
@@ -77,7 +78,7 @@ export const surfaceRange = (t, level) => {
 export const CLEAR = [WATER, ACID], BELOW = 0.15;
 export function lowWaterLines(m) {
   return m.cols.slice(0, N * N).map(col => {
-    const f = col.filter(g => g.fluid && !g.crust).at(-1);
+    const f = fluidsOf(col.filter(g => !g.crust)).at(-1);   // (a cut cell's fluid too: core/cuts.js)
     return f && CLEAR.includes(drawnFluid(f)) ? { low: surfaceRange(f.fluid, f.surf * LH)[0], bed: Math.min(...f.cs) } : null;
   });
 }

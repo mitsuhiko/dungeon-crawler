@@ -7,7 +7,7 @@ import { palRow } from '../themes/fluids.js';
 import { buildInteriorFloors } from './interior.js';
 import { restY } from './surface.js';
 import { floorY, partAt, cornersY } from '../core/surfaces.js';
-import { cutPoints, sidePoint, topTriangles, cutLine } from '../core/cuts.js';
+import { cutPoints, sidePoint, sideT, onSide, topTriangles, cutLine, clipPoly } from '../core/cuts.js';
 import { townShade } from '../core/footing.js';
 import { groundAt, slopeAt, triangleSlope, waterSolids, WET_LIFT } from './shore.js';
 
@@ -65,7 +65,7 @@ export function wallPieces(m, f, d) {
       gl = [line(gs, OPP[d], t0), line(gs, OPP[d], t1)];
     }
     pieces.push({ lows: [[fb, fb], gl], ups: [topLine, [1e9, 1e9]] });
-    out.push({ d, P0: at(t0), P1: at(t1), topLine, pieces, own });
+    out.push({ d, P0: at(t0), P1: at(t1), t0, t1, topLine, pieces, own });
   }
   return out;
 }
@@ -147,64 +147,130 @@ export function wetSlope(b, f) {
 //        out of it (wetWall, wetSlope), darkened where the water has just been
 // and the top's `shore` the bed under it (render/shore.js: its height, its slope), so the foam
 // also follows a shore that slopes down into the water inside the cell.
-const SUB = 4, DIAG = [[1, 1], [-1, 1], [1, -1], [-1, -1]], BAND = 0.4;
-function fluidVolume(m, f, b) {
-  const x = f.x, z = f.z, sy = restY(f.surf * LH), by = f.top * LH;
+// A cut cell's fluid (core/cuts.js: a fluid floor with dry ground in its part, or a dry floor
+// with a fluid in its part) fills its side of the line only (host: the cut floor, side: which
+// side; w: the fluid's surface, the floor or its part): its quads clipped to it, its sides only
+// where it reaches a side of the cell, and its shore along the line, where the bank stands, by
+// the `shore` of the vertices: as if the ground under them sloped up steeply to the line
+// (LINE_SLOPE), so the shader's foam follows it (materials.js shoreDist).
+const SUB = 4, DIAG = [[1, 1], [-1, 1], [1, -1], [-1, -1]], BAND = 0.4, LINE_SLOPE = 4, LINE_DROP = 0.3;
+const SQUARE = [[0, 0], [1, 0], [1, 1], [0, 1]];
+function fluidVolume(m, w, b, host = w, side = 0) {
+  const x = host.x, z = host.z, sy = restY(w.surf * LH), by = w.top * LH, cut = host.cut;
+  const region = cut ? clipPoly(SQUARE, cut.n, cut.c, side) : SQUARE;
+  // where along side d of the cell the fluid reaches: [t0, t1], or null
+  const span = d => {
+    const ts = region.filter(p => onSide(d, p)).map(p => sideT(d, ...p));
+    return ts.length >= 2 && Math.max(...ts) - Math.min(...ts) > 1e-6 ? [Math.min(...ts), Math.max(...ts)] : null;
+  };
+  // what of a solid g in the neighbouring column faces us along side d at t (a cut cell: its side there)
+  const facing = (g, d, t) => g.cut ? partAt(g, ...sidePoint(OPP[d], t)) : g;
   // a bank: a solid in the neighbouring column (a floor, or a stair or landing standing in it:
-  // render/shore.js waterSolids) reaching down under the surface and up over it at the corners of
-  // it next to us; down to our bed it hides our side there
-  const bank = (nx, nz, corners, low = sy) => inb(nx, nz) && waterSolids(m, idx(nx, nz)).find(g => !g.fluid
-    && g.bottom * LH < low && Math.min(...corners.map(k => g.cs[k])) >= sy);
+  // render/shore.js waterSolids) reaching down under the surface and up over it along our side d
+  // (as far as the fluid reaches it); down to our bed it hides our side there
+  const bank = (d, low = sy) => {
+    const sp = span(d), nx = x + DIRS[d][0], nz = z + DIRS[d][1];
+    if (!sp || !inb(nx, nz)) return null;
+    const tm = (sp[0] + sp[1]) / 2;
+    return waterSolids(m, idx(nx, nz)).find(g => {
+      const s = facing(g, d, tm);
+      return !g.fluid && !s.fluid && g.bottom * LH < low && Math.min(...sp.map(t => cornersY(s.cs, s.split, ...sidePoint(OPP[d], t)))) >= sy;
+    }) || null;
+  };
   const hidden = d => {
     const nx = x + DIRS[d][0], nz = z + DIRS[d][1];
     // (past a town's seam the water goes on as it is here: world/townland.js)
     if (!inb(nx, nz)) return !!m.seams?.[d];
-    return !!bank(nx, nz, EDGE_CORNERS[OPP[d]], by + 0.02) || m.cols[idx(nx, nz)].some(g => !g.crust && g.fluid && g.surf >= f.surf && g.top * LH <= sy);
+    const sp = span(d), tm = sp ? (sp[0] + sp[1]) / 2 : 0.5;
+    return !!bank(d, by + 0.02) || m.cols[idx(nx, nz)].some(g => { const s = facing(g, d, tm); return !g.crust && s.fluid && s.surf >= w.surf && s.top * LH <= sy; });
   };
   let shores = 0;
-  for (let d = 0; d < 4; d++) if (bank(x + DIRS[d][0], z + DIRS[d][1], EDGE_CORNERS[OPP[d]])) shores |= 1 << d;
-  DIAG.forEach(([dx, dz], i) => { if (bank(x + dx, z + dz, [(dx > 0 ? 0 : 1) + (dz > 0 ? 0 : 2)])) shores |= 16 << i; });
+  for (let d = 0; d < 4; d++) if (bank(d)) shores |= 1 << d;
+  DIAG.forEach(([dx, dz], i) => {
+    const k = [dx > 0 ? 1 : 0, dz > 0 ? 1 : 0], nx = x + dx, nz = z + dz;
+    if (!inb(nx, nz) || !region.some(p => p[0] === k[0] && p[1] === k[1])) return;
+    const corner = (dx > 0 ? 0 : 1) + (dz > 0 ? 0 : 2), at = [corner & 1, corner >> 1];
+    const g = waterSolids(m, idx(nx, nz)).find(g => {
+      const s = g.cut ? partAt(g, at[0] ? 0.999 : 0.001, at[1] ? 0.999 : 0.001) : g;
+      return !g.fluid && !s.fluid && g.bottom * LH < sy && s.cs[corner] >= sy;
+    });
+    if (g) shores |= 16 << i;
+  });
   const white = C('#ffffff');
-  b.palNow = f.pal ?? m.fluidRows?.[f.fluid] ?? palRow(m.depth ?? 0, drawnFluid(f), 0);   // its colours (cubegen/fluidbodies.js)
+  b.palNow = w.pal ?? m.fluidRows?.[w.fluid] ?? palRow(m.depth ?? 0, drawnFluid(w), 0);   // its colours (cubegen/fluidbodies.js)
   b.uvNow = [(z * N + x) * 256 + shores, sy];
   // the ground under every corner (render/shore.js): the bed, or a stair or landing standing in
   // the water over it; its quads split along the bed's own diagonal, so that the bed's height
   // between them is what it is
-  const memo = new Map(), grounds = waterSolids(m, f.c).filter(g => g === f || !g.fluid && g.bottom * LH < sy && g.top * LH > by);
+  const memo = new Map(), grounds = waterSolids(m, host.c).filter(g => g === host || !g.fluid && g.bottom * LH < sy && g.top * LH > by);
+  const toward = side ? 1 : -1;
   b.shoreAt = v => {
     const k = v[0] + ',' + v[2];
     if (!memo.has(k)) {
-      const g = grounds.reduce((a, g) => groundAt(g, v[0], v[2]) > groundAt(a, v[0], v[2]) ? g : a, f);
-      memo.set(k, [groundAt(g, v[0], v[2]), slopeAt(m, g, v[0], v[2]), 0, 0]);
+      // (a point on a cut's line: the ground on our side of it)
+      const px = cut ? v[0] + cut.n[0] * 1e-4 * toward : v[0], pz = cut ? v[2] + cut.n[1] * 1e-4 * toward : v[2];
+      const g = grounds.reduce((a, g) => groundAt(g, px, pz) > groundAt(a, px, pz) ? g : a, host);
+      let s = [groundAt(g, px, pz), slopeAt(m, g, px, pz), 0, 0];
+      if (cut) {
+        // the bank along the line: steeply up to it, if that is the nearer shore
+        const r = Math.abs(cut.n[0] * (v[0] - x) + cut.n[1] * (v[2] - z) - cut.c), dg = s[1] > 0.02 ? (sy - s[0]) / s[1] : Infinity;
+        if (r + LINE_DROP / LINE_SLOPE < dg) s = [sy - LINE_DROP - r * LINE_SLOPE, LINE_SLOPE, 0, 0];
+      }
+      memo.set(k, s);
     }
     return memo.get(k);
   };
   for (let i = 0; i < SUB; i++) for (let j = 0; j < SUB; j++) {
-    const x0 = x + i / SUB, x1 = x + (i + 1) / SUB, z0 = z + j / SUB, z1 = z + (j + 1) / SUB;
-    if (f.split) b.quad([x0, sy, z1], [x1, sy, z1], [x1, sy, z0], [x0, sy, z0], [0, 1, 0], white);
-    else b.quad([x0, sy, z0], [x0, sy, z1], [x1, sy, z1], [x1, sy, z0], [0, 1, 0], white);
+    const x0 = i / SUB, x1 = (i + 1) / SUB, z0 = j / SUB, z1 = (j + 1) / SUB;
+    if (cut) {
+      const poly = clipPoly([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], cut.n, cut.c, side);
+      for (let k = 1; k + 1 < poly.length; k++) b.tri(...[poly[0], poly[k], poly[k + 1]].map(([px, pz]) => [x + px, sy, z + pz]), white, [0, 1, 0]);
+    } else if (w.split) b.quad([x + x0, sy, z + z1], [x + x1, sy, z + z1], [x + x1, sy, z + z0], [x + x0, sy, z + z0], [0, 1, 0], white);
+    else b.quad([x + x0, sy, z + z0], [x + x0, sy, z + z1], [x + x1, sy, z + z1], [x + x1, sy, z + z0], [0, 1, 0], white);
   }
   b.shoreAt = null;
   // the wet band where the bed slopes up out of the water
   b.uvNow = [-1, sy];
-  if (Math.max(...f.cs) > sy - BAND) wetSlope(b, f);
+  if (Math.max(...w.cs) > sy - BAND) {
+    if (cut) wetTriangles(b, topTriangles(host, side), x, z);
+    else wetSlope(b, w);
+  }
+  // ... and on the bank along a cut's line, facing the fluid
+  if (cut) for (const s of cutLine(host)) {
+    const ours = side ? s.part : s.own, theirs = side ? s.own : s.part, nrm = [cut.n[0] * toward, cut.n[1] * toward];
+    const P0 = [x + s.p[0] + nrm[0] * 0.005, z + s.p[1] + nrm[1] * 0.005], P1 = [x + s.q[0] + nrm[0] * 0.005, z + s.q[1] + nrm[1] * 0.005];
+    wallRegion(b, P0, P1, [ours, [sy - BAND, sy - BAND]], [theirs, [sy + BAND, sy + BAND]], [nrm[0], 0, nrm[1]], WHITE);
+  }
   for (let d = 0; d < 4; d++) {
+    const sp = span(d);
+    if (!sp) continue;
     const [[ax, az], [bx, bz]] = edgePts(x, z, d);
-    const at = k => [ax + (bx - ax) * k / SUB, az + (bz - az) * k / SUB];
-    const g = bank(x + DIRS[d][0], z + DIRS[d][1], EDGE_CORNERS[OPP[d]]);
+    const at = t => [ax + (bx - ax) * t, az + (bz - az) * t];
+    const g = bank(d);
     if (g) {
       // the wet band on the bank's wall facing us, round the surface (a structure is wet by its
       // own material: render/wet.js)
       b.uvNow = [-1, sy];
-      if (!g.piece) wetWall(b, wallPieces(m, g, OPP[d]), sy - BAND, sy + BAND);
+      if (!g.piece) wetWall(b, wallPieces(m, g, OPP[d]).filter(p => (p.t0 + p.t1) / 2 > sp[0] && (p.t0 + p.t1) / 2 < sp[1]), sy - BAND, sy + BAND);
     } else if (!hidden(d)) {
       b.uvNow = [-2, sy];
       for (let k = 0; k < SUB; k++) {
-        const [px, pz] = at(k), [qx, qz] = at(k + 1);
+        const [px, pz] = at(sp[0] + (sp[1] - sp[0]) * k / SUB), [qx, qz] = at(sp[0] + (sp[1] - sp[0]) * (k + 1) / SUB);
         b.quad([px, by, pz], [qx, by, qz], [qx, sy, qz], [px, sy, pz], DIRV[d], white);
       }
     }
   }
+}
+// the wet band on the sloping ones of these triangles (local, with their heights) of cell (x, z)
+function wetTriangles(b, tris, x, z) {
+  const was = b.shoreAt;
+  b.shoreAt = () => ON_SLOPE;
+  for (const t of tris) {
+    const [p, q, r] = t, ux = q[0] - p[0], uy = q[1] - p[1], uz = q[2] - p[2], vx = r[0] - p[0], vy = r[1] - p[1], vz = r[2] - p[2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    if (Math.hypot(nx, nz) / Math.abs(ny || 1e-9) > SLOPED) b.tri(...t.map(([px, py, pz]) => [x + px, py + WET_LIFT, z + pz]), WHITE, [0, 1, 0]);
+  }
+  b.shoreAt = was;
 }
 
 export function buildFloors(m, layers) {
@@ -227,6 +293,7 @@ export function buildFloors(m, layers) {
     const fb = f.bottom * LH;
     if (Math.min(...cs, ...(f.cut ? f.cut.part.cs : [])) - fb > 0.01) B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
     if (f.fluid) fluidVolume(m, f, L.fluids[drawnFluid(f)]);   // (a mud pool: its own part, render/parts.js)
+    if (f.cut?.part.fluid) fluidVolume(m, f.cut.part, L.fluids[drawnFluid(f.cut.part)], f, 1);   // (its side of a cut: core/cuts.js)
   }
   if (m.town) buildClearingPaths(m, m.town.paths, layers[0].terrain);
 }

@@ -155,6 +155,9 @@ function tryGenerate(seed, spec) {
   // some pools are mud, with pockets of it round them (cubegen/mudpools.js; on their own random stream)
   const mudPockets = muddyWater(ctx, new Set(sites.siteReservations.map(r => r.c)));
   sites.siteReservations.push(...mudPockets.map(p => ({ c: p.c, layer: p.layer })));   // (no props in them)
+  // (what was placed on the ground keeps its cells square: the sites, spots, vignettes, a trial's
+  // and a task's things, mud pockets, and what stands in the way)
+  ctx.noCut = [...sites.siteReservations.map(r => r.c), ...sites.staticBlockers.flatMap((list, c) => list.length ? [c] : [])];
   cutCliffs(ctx);   // cliffs at an angle through the cells of a staircase (cubegen/cuts.js), last: the ways stay as they are
   const { K, B, cols, floors, pieces, runs, falls, fences, fenceList, lineFences, stats, moves } = ctx;
   const portals = ctx.portals.map(p => ({ id: p.id, kind: p.kind, dir: p.dir, layer: p.layer, cells: p.cells,

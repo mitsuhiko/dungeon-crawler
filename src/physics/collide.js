@@ -1,7 +1,7 @@
 // World queries against floors, structure pieces and pillars.
 import { LH, N, DIRS } from '../core/constants.js';
 import { idx, inb, clamp } from '../core/util.js';
-import { floorY, runY, topOf, partAt } from '../core/surfaces.js';
+import { floorY, runY, partAt, cornersY } from '../core/surfaces.js';
 import { player, state } from '../game/state.js';
 import { containsXZ } from '../core/blockers.js';
 
@@ -185,7 +185,9 @@ export function slopeAt(s, x, z) {
   if (!s) return [0, 0];
   const e = 0.04;
   const fx = clamp(x - Math.floor(x), e, 1 - e), fz = clamp(z - Math.floor(z), e, 1 - e);
-  const gx = (topOf(s, fx + e, fz) - topOf(s, fx - e, fz)) / (2 * e);
-  const gz = (topOf(s, fx, fz + e) - topOf(s, fx, fz - e)) / (2 * e);
+  // (the surface's own heights: a cut cell's floor goes on past its line, core/cuts.js)
+  const y = (x, z) => s.kind ? runY(s, x, z) : cornersY(s.cs, s.split, x, z);
+  const gx = (y(fx + e, fz) - y(fx - e, fz)) / (2 * e);
+  const gz = (y(fx, fz + e) - y(fx, fz - e)) / (2 * e);
   return [gx || 0, gz || 0];
 }
