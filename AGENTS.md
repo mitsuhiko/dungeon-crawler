@@ -2,6 +2,11 @@
 
 See `CONTRIBUTING.md` for the layout and how to run things.
 
+## Worktrees
+
+Put Git worktrees in `worktrees/<name>` inside the repository (ignored by Git), never next to it:
+`git worktree add -b <branch> worktrees/<name> main`.
+
 ## Tests
 
 The whole suite takes a while: while working, run the test files your change touches
