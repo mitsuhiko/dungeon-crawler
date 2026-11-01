@@ -10,9 +10,9 @@ import { cubesOf } from './cubes.js';
 const MID = [[1, .5], [0, .5], [.5, 1], [.5, 0]];
 
 export default [{
-  name: 'cut cells: the middle and linked sides kept, nothing pinned cut, the part on its donor\'s ground (or nothing, over a void or a gap), cuts meeting on their sides',
+  name: 'cut cells: the middle and linked sides kept, nothing pinned cut, the faces kept, the part on its donor\'s ground (or nothing, over a void or a gap), cuts meeting on their sides',
   run(w) {
-    let cut = 0, cubes = 0, met = 0, empty = 0;
+    let cut = 0, cubes = 0, met = 0, empty = 0, ring = 0;
     for (const { k, m } of cubesOf(w)) {
       if (!m.floors) continue;
       let here = 0;
@@ -22,7 +22,12 @@ export default [{
         assert.equal(partAt(f, 0.5, 0.5), f, `${where}: its middle cut off`);
         for (let d = 0; d < 4; d++) if (f.link[d]) assert.equal(partAt(f, ...MID[d]), f, `${where}: a linked side's middle cut off`);
         assert.ok(!f.prot && f.ramp !== true && !f.landing && !f.site && !f.spot && (!f.surface || m.arena?.type === 'tower') && !f.underStair, `${where}: a pinned floor cut`);   // (Foggery's tower is cut, built as it is)
-        assert.ok(f.x && f.z && f.x < N - 1 && f.z < N - 1 && !m.pieces[f.c].length, `${where}: on the outer ring, or under a structure`);
+        assert.ok(!m.pieces[f.c].length, `${where}: under a structure`);
+        // (on the outer ring: its line keeps off the face, but for its corners: the faces match)
+        for (let d = 0; d < 4; d++) {
+          const x = f.x + DIRS[d][0], z = f.z + DIRS[d][1];
+          if (x < 0 || z < 0 || x >= N || z >= N) { ring++; assert.ok(!cutPoints(f, d).length && partAt(f, ...MID[d]) === f, `${where}: its line meets the face, or its part takes it`); }
+        }
         assert.ok(f === m.cols[f.c][m.cols[f.c].length - 1], `${where}: not the top floor`);
         assert.ok(Math.min(...part.cs) >= f.bottom * LH, `${where}: the part under the floor's bottom`);
         // an empty part: on a dry floor's edge over the void or a gap under it
@@ -53,6 +58,6 @@ export default [{
       if (here) cubes++;
       cut += here;
     }
-    assert.ok(cut > 300 && cubes > 60 && met > 50 && empty > 30, `cuts: ${cut} in ${cubes} cubes, ${met} meeting, ${empty} over nothing`);
+    assert.ok(cut > 300 && cubes > 60 && met > 50 && empty > 30 && ring > 10, `cuts: ${cut} in ${cubes} cubes, ${met} meeting, ${empty} over nothing, ${ring} on the outer ring`);
   },
 }];

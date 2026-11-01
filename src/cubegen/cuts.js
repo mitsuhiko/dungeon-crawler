@@ -17,7 +17,7 @@
 import { N, LH, DIRS, OPP, EDGE_CORNERS, WATER } from '../core/constants.js';
 import { idx, inb, hash32, edgeKey } from '../core/util.js';
 import { cornersY, floorY, partAt } from '../core/surfaces.js';
-import { clipPoly, cutLine, cutPoints, sidePoint } from '../core/cuts.js';
+import { clipPoly, cutLine, cutPoints, sidePoint, sideT, onSide } from '../core/cuts.js';
 
 // The directions each style's lines may take (unit [x, z]): `grid` none (the staircase stays),
 // `octo` the multiples of 45°, `sixteen` those and the slopes of one cell across for two along
@@ -63,7 +63,8 @@ export function cutCliffs(ctx, styleOf = null) {
 
   // what may not be cut: what the generator pinned (portals, ramps, landings, sites, spots,
   // structures' ends, ladders, a jump's or drop's ends, the ground under a stair), built floors,
-  // the cube's outer ring (the faces), a crumbling crust, a fall's pool
+  // a crumbling crust, a fall's pool. The cube's outer ring is cut only where its line keeps off
+  // the faces (but at their corners: `faceSafe`), so they still match the neighbours'.
   const pinned = new Set();
   for (const l of ctx.ladders || []) { pinned.add(l.lo.c); pinned.add(l.hi.c); }
   for (const r of ctx.runs || []) { pinned.add(r.from.c); pinned.add(r.to.c); for (const p of r.pieces) pinned.add(p.c); }
@@ -73,7 +74,7 @@ export function cutCliffs(ctx, styleOf = null) {
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const x = fl.c % N + ox + dx, z = ((fl.c / N) | 0) + oz + dz; if (inb(x, z)) pinned.add(idx(x, z)); }
   for (const c of ctx.noCut || []) pinned.add(c);
   const fixed = f => pinned.has(f.c) || f.prot || f.ramp === true || f.landing || f.site || f.siteAnchor || f.siteAccess || f.siteDressing
-    || f.spot || f.hordeReserved || f.underStair || f.covered || f.crust || (f.fluid && !water) || (f.surface && !ctx.cutBuilt) || f.noCut || ctx.border(f)
+    || f.spot || f.hordeReserved || f.underStair || f.covered || f.crust || (f.fluid && !water) || (f.surface && !ctx.cutBuilt) || f.noCut
     || ctx.pieces[f.c]?.length || ctx.noFence?.has(f.c);
   // a floor's heights along its side d (a fluid's: its surface)
   const edgeYs = (f, d) => f.fluid ? [f.surf * LH, f.surf * LH] : EDGE_CORNERS[d].map(k => f.cs[k]);
@@ -179,7 +180,7 @@ export function cutCliffs(ctx, styleOf = null) {
   const cutCells = [];
   for (const [c, v] of visits) {
     const f = top(c), s = f && v.pl.sideOf(f);
-    if (clash.has(c) || !s || fixed(f) || (v.pl.hole && (s < 0 || f.fluid))) continue;
+    if (clash.has(c) || !s || fixed(f) || (v.pl.hole && (s < 0 || f.fluid)) || !faceSafe(f, v.a, v.b)) continue;
     const cut = v.pl.hole ? makeHole(f, v.a, v.b, v.pl.drop) : makeCut(f, v.a, v.b, g => v.pl.sideOf(g) === -s, v.pl.drop);
     if (cut) { f.cut = cut; made++; cutCells.push({ f, pl: v.pl }); }
   }
@@ -194,6 +195,23 @@ export function cutCliffs(ctx, styleOf = null) {
     if (f.link[d]) return true;
     const g = topAt(f.x + DIRS[d][0], f.z + DIRS[d][1]);
     return !!g && f.fluid === WATER && !g.fluid && g.top >= f.surf && g.top <= f.surf + 1 && Math.max(...cs) > (f.surf + 1) * LH + 0.01;
+  }
+  // does the line A -> B (the cube's coordinates) through floor f keep off the cube's faces (it
+  // may end in a corner on one)? Where a staircase runs into a face, its line ends in the corner
+  // where the step meets the face, the face's profile as it was (world/faces.js)
+  // (and leave the face side to the floor's own side: the side of the line its middle is on)
+  function faceSafe(f, A, B) {
+    if (!ctx.border(f)) return true;
+    const side = ([x, z]) => (B[0] - A[0]) * (f.z + z - A[1]) - (B[1] - A[1]) * (f.x + x - A[0]);
+    for (let d = 0; d < 4; d++) {
+      if (inb(f.x + DIRS[d][0], f.z + DIRS[d][1])) continue;
+      for (const [X, Z] of [A, B]) {
+        const p = [X - f.x, Z - f.z], t = sideT(d, ...p);
+        if (onSide(d, p) && t > 1e-6 && t < 1 - 1e-6) return false;
+      }
+      if (side(MID[d]) * side([0.5, 0.5]) <= 0) return false;
+    }
+    return true;
   }
   // the cut of floor f along A -> B over a hole (the cube's coordinates): its part is nothing, its
   // edge over the void or a gap; every side of it that something lies beyond on its level or over

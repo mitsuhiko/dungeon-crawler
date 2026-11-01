@@ -1198,9 +1198,8 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   its ramp's turns, drawn in courses of blocks along the lines), and Flip's box never.
 - **What keeps its square:** what the generator pinned (portals, ramps, landings, reward sites
   and spots, the ends of stairs and bridges, ladders, the cells a jump or drop of the route starts
-  or ends in, the ground under a stair), built floors (`surface`), the crumbling crust, the cube's
-  outer ring (its faces must match the neighbours'), the cells of a fall, a cell crossed twice,
-  and a cut that would come too close to its middle or a linked side's middle, or leave a part
+  or ends in, the ground under a stair), built floors (`surface`), the crumbling crust, the
+  cells of a fall, a cell crossed twice, and a cut that would come too close to its middle or a linked side's middle, or leave a part
   smaller than `MIN_PART`, a part under the floor's bottom or over a gap under a slab (that edge
   is cut over nothing instead). Monteur's mountains never rise from a cut cell, nor from the
   donor of a part (`core/mountains.js freeCells`: the two would part).
@@ -1215,15 +1214,20 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   one, and a cut cell's line takes one where most of the risers near it were fenced. These stand
   along a line (`map.lineFences`, per cell; `canmove.js lineFenced`); the edge keeps its old fence,
   `navOnly`, for the jumps and the water's ways.
-- **Not (yet):** the cube's outer ring (a staircase that runs into a face keeps its last cells
-  square on both sides of it), and a straight line over nothing at an angle other than 45° (the
+- **The outer ring:** its faces must match the neighbours' (`world/faces.js`: the ground's
+  profile along each), so a cell on it is cut only where its line keeps off the face but for its
+  corners and leaves the face's side to the floor's own side (`faceSafe`). A staircase that runs
+  into a face ends in the corner where its last step meets it, as before: the face is what it
+  was, each cube's line comes to it at its own angle.
+- **Not (yet):** a straight line over nothing at an angle other than 45° (the
   26.6° one would cross the sides between the higher cells at their middles: only the corners are
   cut there).
 - **Checks:** `tests/cuts.test.js` (the geometry, walking against and along a cut, its fences, a
-  shore's water in a bank's cell),
+  shore's water in a bank's cell, an island's rim over the void),
   the sweep (`tests/sweeps/cuts.js`: every cut keeps its cell's middle, linked sides and body
-  room, its part meets its donor's ground at the shared corners, and the cuts of two cells meet on
-  their shared side).
+  room, its part meets its donor's ground at the shared corners (an empty one lies by a void or a
+  gap), the cuts of two cells meet on their shared side, and a cut on the outer ring keeps off
+  its face).
 
 ## Ladders and jumps (`cubegen/climbs.js`, `physics/climb.js`)
 

@@ -9,7 +9,7 @@ import { player } from '../src/game/state.js';
 import { movePlayer } from '../src/physics/move.js';
 import { groundAt } from '../src/physics/collide.js';
 import { floorY, partAt } from '../src/core/surfaces.js';
-import { topTriangles, cutLine, clipPoly } from '../src/core/cuts.js';
+import { topTriangles, cutLine, clipPoly, cutPoints } from '../src/core/cuts.js';
 import { cutCliffs } from '../src/cubegen/cuts.js';
 import { edgeKey } from '../src/core/util.js';
 import { worldOf } from './worlds.js';
@@ -54,7 +54,7 @@ function staircase(style = 'octo') {
   return { m, ctx };
 }
 
-test('a 45° staircase is cut along one straight line through the middles of its risers', () => {
+test('a 45° staircase is cut along one straight line through the middles of its risers, up to the faces', () => {
   const { m, ctx } = staircase();
   const cut = m.floors.filter(f => f.cut);
   assert.ok(ctx.stats.cuts > 2 * (N - 6), 'cut all along: ' + ctx.stats.cuts);
@@ -70,6 +70,13 @@ test('a 45° staircase is cut along one straight line through the middles of its
   // the fences moved onto the line
   assert.ok(m.fenceList.some(e => e.line && Math.abs(Math.abs(e.line[1][0] - e.line[0][0]) - Math.abs(e.line[1][1] - e.line[0][1])) < 1e-6),
     'a fence along the 45° line');
+  // where it runs into a face: the cells on the outer ring cut too, their line off the face
+  const ring = cut.filter(f => !f.x || !f.z || f.x === N - 1 || f.z === N - 1);
+  assert.ok(ring.length >= 2, 'on the outer ring: ' + ring.map(f => [f.x, f.z]));
+  for (const f of ring) for (const [d, out] of [[0, f.x === N - 1], [1, !f.x], [2, f.z === N - 1], [3, !f.z]]) if (out) {
+    assert.equal(cutPoints(f, d).length, 0, 'the line off the face');
+    assert.equal(partAt(f, ...[[1, .5], [0, .5], [.5, 1], [.5, 0]][d]), f, 'the face the floor\'s own');
+  }
 });
 
 test('a gentler staircase (two along, one across: 26.6°, the nearest to 22.5° a grid keeps straight) is cut along its slope in the sixteen style, never in the octo one', () => {
