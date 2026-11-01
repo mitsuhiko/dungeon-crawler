@@ -1174,9 +1174,16 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   down or lands, nor where a mud pool's pockets lie.
 - **Styles:** `grid` (no cuts: square steps), `octo` (multiples of 45°) or `sixteen` (those and
   one across for two along, 26.6°, 63.4° and round: the nearest to 22.5° that a grid carries
-  straight; a line at 22.5° itself comes too close to every other cell's middle), drawn per chain from the room's weights (`DEFAULT_CUTS`, a theme's `cuts`, a room's
-  `spec.cuts`); now and then a whole room keeps its square steps. A feature with a shape of its own
-  says how it is cut (the spiral's ramp, Foggery's tower).
+  straight; a line at 22.5° itself comes too close to every other cell's middle), drawn per chain
+  from the room's weights: `DEFAULT_CUTS`, or its theme's `cuts` (the karst's terraces and the
+  canyon's walls keep more of their square steps, the badlands' worn rock fewer), or what its
+  feature asks for (`spec.cuts`, `ctx.cuts`). Now and then a whole room keeps its square steps
+  (half as often as a chain draws `grid`), so rooms read as built or as worn.
+- **Features:** a spiral's cubes are all `sixteen` (its ramp and ridge go round the mountain as
+  round as straight lines take them). The guardian arenas are cut too, in their theme's styles
+  (`cubegen/arenamap.js finishArena`: what blocks keeps its square, a prop that would stand across
+  a line is left out); Foggery's is all `sixteen`, its built floors too (`built`: the round tower,
+  its ramp's turns, drawn in courses of blocks along the lines), and Flip's box never.
 - **What keeps its square:** what the generator pinned (portals, ramps, landings, reward sites
   and spots, the ends of stairs and bridges, ladders, the cells a jump or drop of the route starts
   or ends in, the ground under a stair), built floors (`surface`), the crumbling crust, the cube's

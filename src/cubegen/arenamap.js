@@ -6,6 +6,7 @@
 import { N, DIRS } from '../core/constants.js';
 import { floorY } from '../core/surfaces.js';
 import { indexBlockers } from '../core/blockers.js';
+import { cutCliffs } from './cuts.js';
 
 // the floors reached on foot from `start` (but those on the cells `blocked`): floor -> the floor
 // it was reached from (start -> null)
@@ -22,9 +23,26 @@ export function reachFrom(start, blocked = null) {
 // entrance's floor, what blocks), which must reach the way on; arena: { type,
 // requested }; tide: standing water or lava (game/tide.js); fences, fenceList; placements: the
 // arena's props (arenaPlacements); blockers: the colliders of those that block; walled; more:
-// whatever else the arena has (Flip's `flip`, Foggery's `tower` and `movers`).
+// whatever else the arena has (Flip's `flip`, Foggery's `tower` and `movers`); cuts: how its
+// cliffs are cut at an angle (cubegen/cuts.js: the styles' weights; null: not at all), built: its
+// built floors too (Foggery's tower). What blocks keeps its cells square; a prop that would stand
+// across a cut's line is left out.
 export function finishArena({ spec, ctx, role, cols, floors, portals, exit, guardian, reached, arena, tide = null,
-  fences = new Map(), fenceList = [], placements = [], blockers = [], walled = !!spec.walled, more = {} }) {
+  fences = new Map(), fenceList = [], placements = [], blockers = [], walled = !!spec.walled, more = {}, cuts = null, built = false }) {
+  let lineFences = null;
+  if (cuts) {
+    const noCut = new Set();
+    for (const b of blockers) for (let z = Math.floor(b.z - b.r); z <= Math.floor(b.z + b.r); z++)
+      for (let x = Math.floor(b.x - b.r); x <= Math.floor(b.x + b.r); x++) if (x >= 0 && z >= 0 && x < N && z < N) noCut.add(z * N + x);
+    const at = { ...ctx, spec, cols, floors, pieces: Array.from({ length: N * N }, () => []), fences, fenceList,
+      ladders: [], runs: [], moves: [], falls: [], cuts, cutBuilt: built, noCut };
+    cutCliffs(at);
+    ({ fenceList, lineFences = null } = at);
+    placements = placements.filter(p => {
+      const x = Math.floor(p.x), z = Math.floor(p.z), f = cols[z * N + x]?.at(-1);
+      return !f?.cut || f.cut.c - f.cut.n[0] * (p.x - x) - f.cut.n[1] * (p.z - z) >= 0.3;
+    });
+  }
   // the way from the entrance to the way on (or the boss), walked
   const path = [];
   for (let f = portals[1]?.floor ?? guardian.floor; f; f = reached.get(f)) path.unshift(f);
@@ -33,7 +51,7 @@ export function finishArena({ spec, ctx, role, cols, floors, portals, exit, guar
   const staticBlockers = indexBlockers(blockers);
   return { seed: spec.seed, attempts: 1, K: 1, B: [0], cols, floors,
     pieces: Array.from({ length: N * N }, () => []), runs: [], falls: [], ladders: [],
-    fences, fenceList, stats: ctx.stats, moves, portals, exit, guardian, arena, tide, ...more,
+    fences, fenceList, lineFences, stats: ctx.stats, moves, portals, exit, guardian, arena, tide, ...more,
     routeIndex: spec.routeIndex, route: spec.route, gateKeys: spec.gateKeys,
     safe: Uint8Array.from(floors, f => reached.has(f) ? 1 : 0),
     kind: spec.kind, archetype: 'arena', roomRole: `${role}-guardian`, biome: spec.biome,

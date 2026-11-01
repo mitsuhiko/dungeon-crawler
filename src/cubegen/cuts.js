@@ -43,7 +43,7 @@ const key = (X, Z) => X * 1024 + Z;
 export function cutCliffs(ctx, styleOf = null) {
   const { cols, floors } = ctx;
   if (!floors?.length) return;
-  const weights = ctx.spec.cuts ?? DEFAULT_CUTS;
+  const weights = ctx.cuts ?? ctx.spec?.cuts ?? DEFAULT_CUTS;
   // a room all straight now and then: its cliffs keep their squares (the style drawn per room, so
   // whole rooms read as built or as worn)
   const roomR = hash32(ctx.seed ^ 0x6c75a) / 2 ** 32;
@@ -70,8 +70,8 @@ export function cutCliffs(ctx, styleOf = null) {
   for (const fl of ctx.falls || []) for (const [ox, oz] of [[0, 0], DIRS[fl.d] || [0, 0]])
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const x = fl.c % N + ox + dx, z = ((fl.c / N) | 0) + oz + dz; if (inb(x, z)) pinned.add(idx(x, z)); }
   for (const c of ctx.noCut || []) pinned.add(c);
-  const fixed = f => pinned.has(f.c) || f.prot || f.ramp || f.landing || f.site || f.siteAnchor || f.siteAccess || f.siteDressing
-    || f.spot || f.hordeReserved || f.underStair || f.covered || f.crust || (f.fluid && !water) || f.surface || f.noCut || ctx.border(f)
+  const fixed = f => pinned.has(f.c) || f.prot || f.ramp === true || f.landing || f.site || f.siteAnchor || f.siteAccess || f.siteDressing
+    || f.spot || f.hordeReserved || f.underStair || f.covered || f.crust || (f.fluid && !water) || (f.surface && !ctx.cutBuilt) || f.noCut || ctx.border(f)
     || ctx.pieces[f.c]?.length || ctx.noFence?.has(f.c);
   // a floor's heights along its side d (a fluid's: its surface)
   const edgeYs = (f, d) => f.fluid ? [f.surf * LH, f.surf * LH] : EDGE_CORNERS[d].map(k => f.cs[k]);
@@ -219,7 +219,8 @@ export function cutCliffs(ctx, styleOf = null) {
     if (up && donor.bottom * LH > Math.min(...f.cs) + 0.01) return null;   // (a raised part: the donor's solid reaches down to us)
     const part = { id: donor.id, c: f.c, x: f.x, z: f.z, cs, split: splitOf(cs), top: donor.top, bottom: f.bottom, layer: f.layer,
       merged: f.merged, fluid: donor.fluid || 0, surf: donor.surf || 0, link: [null, null, null, null], part: true, cutOf: f, donor,
-      ...(donor.look !== undefined && { look: donor.look }), ...(donor.soft && { soft: true }), ...(donor.ice && { ice: true }) };
+      ...(donor.look !== undefined && { look: donor.look }), ...(donor.soft && { soft: true }), ...(donor.ice && { ice: true }),
+      ...(donor.surface && { surface: donor.surface }) };
     const cut = { n: nrm, c, a, b, part };
     // a real step along it, or no cut
     if (Math.max(...cutLine({ ...f, cut }).flatMap(s => [Math.abs(s.own[0] - s.part[0]), Math.abs(s.own[1] - s.part[1])])) < 0.15) return null;

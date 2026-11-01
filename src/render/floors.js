@@ -71,20 +71,22 @@ export function wallPieces(m, f, d) {
 }
 // our side faces minus whatever the neighbouring columns cover (none on a seam of the town: the
 // ground goes on in the next tile, docs/town.md; its edge would show as a line)
-function walls(m, f, b) {
+const builderOf = (L, f) => f.surface === 'masonry' ? L.stone : L.terrain;
+function walls(m, f, b, L) {
   for (let d = 0; d < 4; d++) {
     if (m.seams?.[d] && !inb(f.x + DIRS[d][0], f.z + DIRS[d][1])) continue;
     for (const w of wallPieces(m, f, d)) for (const p of w.pieces) {
-      if (f.surface) builtWall(b, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], SURFACE[f.surface].side, f.c + d);
-      else cliffWall(b, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], !w.own.fluid);
+      const s = w.own, sb = L ? builderOf(L, s) : b;   // (the floor's, or its cut's part's: core/cuts.js)
+      if (s.surface) builtWall(sb, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], SURFACE[s.surface].side, f.c + d);
+      else cliffWall(sb, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], !s.fluid);
     }
   }
-  if (f.cut) cutWalls(f, b);
+  if (f.cut) cutWalls(f, L ? side => builderOf(L, side) : () => b);
 }
 // The wall along a cut cell's line (core/cuts.js): from the lower side's ground up to the higher
 // side's, facing the lower side, in pieces where its heights run straight (and where the sides
 // swap which is higher)
-function cutWalls(f, b) {
+function cutWalls(f, builder) {
   const [nx, nz] = f.cut.n;
   for (const s of cutLine(f)) {
     const d0 = s.own[0] - s.part[0], d1 = s.own[1] - s.part[1], pieces = [];
@@ -97,7 +99,10 @@ function cutWalls(f, b) {
       const high = q.own[0] + q.own[1] > q.part[0] + q.part[1], top = high ? q.own : q.part, low = high ? q.part : q.own;
       if (Math.max(top[0] - low[0], top[1] - low[1]) < 1e-4) continue;
       const P0 = [f.x + q.p[0], f.z + q.p[1]], P1 = [f.x + q.q[0], f.z + q.q[1]], nrm = high ? [nx, 0, nz] : [-nx, 0, -nz];
-      cliffWall(b, P0, P1, [low], [top], top, nrm, !(high ? f : f.cut.part).fluid);
+      const s = high ? f : f.cut.part, b = builder(s);
+      // (a built floor's side: its courses of blocks)
+      if (s.surface) builtWall(b, P0, P1, [low], [top], top, nrm, SURFACE[s.surface].side, f.c + 7);
+      else cliffWall(b, P0, P1, [low], [top], top, nrm, !s.fluid);
     }
   }
 }
@@ -277,17 +282,17 @@ export function buildFloors(m, layers) {
   if (m.interior) return buildInteriorFloors(m, layers);
   for (const f of m.floors) {
     if (f.crust) continue;   // the crumbling crust: drawn on its own, it falls (render/trials.js)
-    const L = layers[f.layer], x = f.x, z = f.z, cs = f.cs, B = f.surface === 'masonry' ? L.stone : L.terrain;
+    const L = layers[f.layer], x = f.x, z = f.z, cs = f.cs, B = builderOf(L, f);
     // smooth top surface: 2 triangles, shared normals for soft shading (a cut cell: each side's
     // triangles clipped to its side of the line, core/cuts.js)
     for (const side of f.cut ? [0, 1] : [0]) {
-      const top = topColor(m, side ? f.cut.part : f);
+      const s = side ? f.cut.part : f, top = topColor(m, s), SB = side ? builderOf(L, s) : B;
       topTriangles(f, side).forEach((t, ti) => {
         const col = top.clone().multiplyScalar(0.95 + (hash32(f.c * 2 + (ti > 1 ? 1 : ti) + f.layer * 977) % 100) / 1000);
-        B.tri(...t.map(([px, py, pz]) => [x + px, py, z + pz]), col, [0, 1, 0], true);
+        SB.tri(...t.map(([px, py, pz]) => [x + px, py, z + pz]), col, [0, 1, 0], true);
       });
     }
-    walls(m, f, B);
+    walls(m, f, B, L);
     // its underside (none where its top comes down onto it: the town's ground at level 0, its
     // quarry's floor, its pool's bed; drawn both sides, it would fight with the top)
     const fb = f.bottom * LH;

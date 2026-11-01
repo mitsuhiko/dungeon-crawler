@@ -109,7 +109,9 @@ export class World {
       annexRoom: L.annex?.key === k,   // a quest's room behind a sealed portal (world/layout.js)
       fluid, fluidMix: theme.fluids, mud: theme.mud ?? 0, voidOK: !annex && voidAllowed(this, k), fallIn: fallMask(this, k),
       outflow, inflow, relief: theme.relief, height, pinnacle, tunnel, shaftBottom: special ? null : shaftAbove(this, k),
-      area, peak, lake, sparse: !!(peak || lake),   // sparse: mostly empty (few props, render/propplace.js)
+      area, peak, lake, sparse: !!(peak || lake),
+      // how its cliffs are cut at an angle (cubegen/cuts.js): a spiral's ramp as round as it goes
+      cuts: area?.kind === 'spiral' ? { sixteen: 1 } : theme.cuts ?? null,   // sparse: mostly empty (few props, render/propplace.js)
       firstGlass,   // the beginning's third room: his first glass on the peak (core/intro.js)
       // islands without pillars: lakes, the sky islands near the top and the abyss
       // the town's tile (world/town.js): its place in the town, the way the town turns, which sides

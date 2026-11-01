@@ -4,6 +4,7 @@
 // guardian's spot stay flat. Every free zone floor connects without jumps, and the zone
 // holds the doubled population; an arena that cannot falls back to a plainer one. Its fluid
 // dwellers (the Squirtles, physics/dwell.js) get a pond of their fluid dug into it (`digPonds`).
+import { DEFAULT_CUTS } from './cuts.js';
 import { N, LH, DIRS, OPP, MAX_L, WATER, ACID, MUD, FLUID_NAME } from '../core/constants.js';
 import { idx, edgeKey, clamp, mulberry32, hash32, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
@@ -286,7 +287,7 @@ export function generateGuardian(spec) {
       const fx = d === 0 ? .93 : d === 1 ? .07 : t, fz = d === 2 ? .93 : d === 3 ? .07 : t;
       return [f.x + fx, floorY(f, fx, fz), f.z + fz];
     });
-    const ys = pts.map(p => p[1]), rail = { pts, ymin: Math.min(...ys), ymax: Math.max(...ys), layer: 0, show: true };
+    const ys = pts.map(p => p[1]), rail = { pts, ymin: Math.min(...ys), ymax: Math.max(...ys), layer: 0, show: true, cliff: f.id };
     fenceList.push(rail); fences.set(edgeKey(f.x, f.z, other.x, other.z), [rail]);
   });
   ctx.stats.layers = 1; ctx.stats.mode = `guardian arena (${arena.type})`; ctx.stats.fences = fenceList.length;
@@ -313,7 +314,8 @@ export function generateGuardian(spec) {
     // swimSpots: their tops in world units); the diving suit's stand beside the entrance and the
     // entrance (where the robot waits while the water is in)
     more: arena.type === 'reef' ? { dive: reefDive(arena.shape, floors, level, entrance, entry.dir, guardFloor, dress.blocked) } : {},
-    fences, fenceList, placements: dress.placements, blockers: dress.blockers });
+    fences, fenceList, placements: dress.placements, blockers: dress.blockers,
+    cuts: spec.cuts ?? DEFAULT_CUTS });   // (its cliffs at an angle too, cubegen/cuts.js)
 }
 
 // Umbra's reef, as his fight wants it (map.dive; game/dive.js): the lowest floor of its fight and its

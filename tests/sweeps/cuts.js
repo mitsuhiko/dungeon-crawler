@@ -21,7 +21,7 @@ export default [{
         const where = `${k} (${f.x}, ${f.z})`, { part } = f.cut;
         assert.equal(partAt(f, 0.5, 0.5), f, `${where}: its middle cut off`);
         for (let d = 0; d < 4; d++) if (f.link[d]) assert.equal(partAt(f, ...MID[d]), f, `${where}: a linked side's middle cut off`);
-        assert.ok(!f.prot && !f.ramp && !f.landing && !f.site && !f.spot && !f.surface && !f.underStair, `${where}: a pinned floor cut`);
+        assert.ok(!f.prot && f.ramp !== true && !f.landing && !f.site && !f.spot && (!f.surface || m.arena?.type === 'tower') && !f.underStair, `${where}: a pinned floor cut`);   // (Foggery's tower is cut, built as it is)
         assert.ok(f.x && f.z && f.x < N - 1 && f.z < N - 1 && !m.pieces[f.c].length, `${where}: on the outer ring, or under a structure`);
         assert.ok(f === m.cols[f.c][m.cols[f.c].length - 1], `${where}: not the top floor`);
         assert.ok(Math.min(...part.cs) >= f.bottom * LH, `${where}: the part under the floor's bottom`);

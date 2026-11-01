@@ -186,5 +186,7 @@ export function towerArena({ spec, ctx, entry, role, own }) {
     // his lava (game/tide.js): at rest it fills the caldera's floor, he raises it (core/foggery.js
     // LAVA); beaten, it is gone (`gone`, the level it drains to)
     tide: { rest: L.rest, high: L.high, gone: L.gone, fluid: LAVA, box: [T.pit[0], T.pit[0], T.pit[1], T.pit[1]], follow: 2.6, defeat: 'drain' },
-    fences, fenceList, placements, walled: false, more: { tower, movers } });
+    fences, fenceList, placements, walled: false, more: { tower, movers },
+    // (the round tower and its ramp's turns: as round as straight lines take them, cubegen/cuts.js)
+    cuts: { sixteen: 1 }, built: true });
 }

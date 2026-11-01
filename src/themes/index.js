@@ -62,6 +62,9 @@
 //   nightMotes: what drifts in the air at night instead of `motes` (render/motes.js)
 //   waylights: lamps beside the way (render/propplace.js waylights): { props, share (of the
 //     floors beside it), back (from the floor's middle, 0.36), foot (its collider, 0.06) }
+//   cuts: how its cliffs and shores are cut at an angle (cubegen/cuts.js: the weights of the
+//     styles `grid` (square steps), `octo` (45°) and `sixteen` (and 26.6°); DEFAULT_CUTS unless
+//     given): terraces and canyon walls keep more of their square steps, worn rock fewer
 import { WATER, ACID } from '../core/constants.js';
 import { SUNLIT_THEMES, DEEP_THEMES, CORE } from './caves.js';
 import { BOSS_MUSIC } from '../core/bossmusic.js';
@@ -110,6 +113,7 @@ const LAGOON = T('Lagoon isles', {
 });
 // karst and rice terraces: limestone needles, flooded steps, bamboo, mist
 const KARST = T('Karst terraces', {
+  cuts: { grid: 0.6, octo: 0.3, sixteen: 0.1 },
   music: 'overworld',
   props: 'karst', propDensity: 0.18,
   act: 1, spans: { chance: 0.9, max: 2, route: 0.8, island: 0.6, sky: 0.5 },
@@ -147,6 +151,7 @@ const HIGHLANDS = T('Prayer highlands', {
   light: { sky: ['#10285a', '#060c20', '#3a5a8a', '#3a3a6a'], stars: 1, hemi: ['#e8f0ff', '#4a4a3a', 1.15], sun: ['#fff6e6', 2.3], fog: 0.05 },
 });
 const BADLANDS = T('Badlands', {
+  cuts: { grid: 0.1, octo: 0.35, sixteen: 0.55 },
   music: 'badlands',
   props: 'badlands',
   act: 1, spans: { chance: 0.7, max: 2, route: 0.8, island: 0.4, sky: 0 },
@@ -198,6 +203,7 @@ const SLIME = T('Slime marsh', {
 // the deep canyon: the last of the sky, far down between sheer sandstone walls (red, salmon and
 // cream strata), a green river floor with cottonwoods, hanging gardens at the springs
 const CANYON = T('Deep canyon', {
+  cuts: { grid: 0.45, octo: 0.4, sixteen: 0.15 },
   music: 'badlands',
   props: 'canyon', propDensity: 0.3,
   act: 1, spans: { chance: 0.85, max: 2, route: 0.8, island: 0.5, sky: 0, deck: 15 },
