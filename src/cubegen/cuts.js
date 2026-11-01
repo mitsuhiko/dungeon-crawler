@@ -271,8 +271,15 @@ function fit({ V, R, sigma }, dirs, topAt, sideOf, drop) {
   };
   // the directions nearest the one from S to T
   const candidates = (S, T) => {
-    const dx = T[0] - S[0], dz = T[1] - S[1], l = Math.hypot(dx, dz) || 1;
-    return dirs.map(u => [u, (u[0] * dx + u[1] * dz) / l]).filter(([, c]) => c > 0.5).sort((p, q) => q[1] - p[1]).slice(0, 3).map(([u]) => u);
+    const dx = T[0] - S[0], dz = T[1] - S[1], l = Math.hypot(dx, dz) || 1, top = [];
+    for (const u of dirs) {
+      const c = (u[0] * dx + u[1] * dz) / l;
+      if (c <= 0.5) continue;
+      let i = top.length;
+      while (i > 0 && top[i - 1][1] < c) i--;
+      if (i < 3) { top.splice(i, 0, [u, c]); if (top.length > 3) top.pop(); }
+    }
+    return top.map(([u]) => u);
   };
   const run = S0 => {
     const pts = [V[0], S0];

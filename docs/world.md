@@ -1169,8 +1169,9 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   its side (`render/floors.js fluidVolume`: its quads, its sides where it reaches the cell's sides,
   the wet band on the bank along the line) with its foam along the line (its vertices' `shore`
   says the ground rises steeply up to the line: `LINE_SLOPE`), and the cell counts it as its
-  fluid (`fluidsOf`: the waves under it, the wet banks). The sides a way crosses into or out of the
-  water (`playernav.js waterEdges`) keep their middles like linked ones. Not where a fall comes
+  fluid (`fluidsOf`: the waves under it, the wet banks). A side a swimmer climbs out over
+  (`playernav.js waterEdges`) keeps its middle like a linked one where the part would rise higher
+  than a swimmer climbs. Not where a fall comes
   down or lands, nor where a mud pool's pockets lie.
 - **Styles:** `grid` (no cuts: square steps), `octo` (multiples of 45°) or `sixteen` (those and
   one across for two along, 26.6°, 63.4° and round: the nearest to 22.5° that a grid carries
@@ -1201,6 +1202,10 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   one, and a cut cell's line takes one where most of the risers near it were fenced. These stand
   along a line (`map.lineFences`, per cell; `canmove.js lineFenced`); the edge keeps its old fence,
   `navOnly`, for the jumps and the water's ways.
+- **Not (yet):** the cube's outer ring (a staircase that runs into a face keeps its last cells
+  square on both sides of it), and edges with nothing under the lower side: a slab over a gap, an
+  island's rim over the void (a part there would be a hole, and the void's cells have no floor to
+  take a corner of the island).
 - **Checks:** `tests/cuts.test.js` (the geometry, walking against and along a cut, its fences, a
   shore's water in a bank's cell),
   the sweep (`tests/sweeps/cuts.js`: every cut keeps its cell's middle, linked sides and body
