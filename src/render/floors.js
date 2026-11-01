@@ -285,7 +285,7 @@ export function buildFloors(m, layers) {
     const L = layers[f.layer], x = f.x, z = f.z, cs = f.cs, B = builderOf(L, f);
     // smooth top surface: 2 triangles, shared normals for soft shading (a cut cell: each side's
     // triangles clipped to its side of the line, core/cuts.js)
-    for (const side of f.cut ? [0, 1] : [0]) {
+    for (const side of f.cut && !f.cut.part.empty ? [0, 1] : [0]) {
       const s = side ? f.cut.part : f, top = topColor(m, s), SB = side ? builderOf(L, s) : B;
       topTriangles(f, side).forEach((t, ti) => {
         const col = top.clone().multiplyScalar(0.95 + (hash32(f.c * 2 + (ti > 1 ? 1 : ti) + f.layer * 977) % 100) / 1000);
@@ -295,8 +295,12 @@ export function buildFloors(m, layers) {
     walls(m, f, B, L);
     // its underside (none where its top comes down onto it: the town's ground at level 0, its
     // quarry's floor, its pool's bed; drawn both sides, it would fight with the top)
-    const fb = f.bottom * LH;
-    if (Math.min(...cs, ...(f.cut ? f.cut.part.cs : [])) - fb > 0.01) B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
+    // (a cut whose part is empty, over the void or a gap: under its own side only, core/cuts.js)
+    const fb = f.bottom * LH, empty = f.cut?.part.empty, under = f.surface ? SURFACE[f.surface].under : UNDERSIDE;
+    if (Math.min(...cs, ...(f.cut && !empty ? f.cut.part.cs : [])) - fb > 0.01) {
+      if (!empty) B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], under);
+      else { const r = clipPoly(SQUARE, f.cut.n, f.cut.c, 0); for (let i = 1; i + 1 < r.length; i++) B.tri(...[r[0], r[i], r[i + 1]].map(([px, pz]) => [x + px, fb, z + pz]), under, [0, -1, 0]); }
+    }
     if (f.fluid) fluidVolume(m, f, L.fluids[drawnFluid(f)]);   // (a mud pool: its own part, render/parts.js)
     if (f.cut?.part.fluid) fluidVolume(m, f.cut.part, L.fluids[drawnFluid(f.cut.part)], f, 1);   // (its side of a cut: core/cuts.js)
   }

@@ -122,7 +122,7 @@ test('a generated room: its staircase cliffs are cut, and every cut keeps its ce
   assert.ok(cut.length >= 15, 'cut: ' + cut.length);
   for (const f of cut) {
     assert.equal(partAt(f, 0.5, 0.5), f);
-    assert.ok(f.cut.part.donor && f.cut.part.donor !== f);
+    assert.ok(f.cut.part.empty || (f.cut.part.donor && f.cut.part.donor !== f));
   }
 });
 
@@ -141,4 +141,33 @@ test('a shore at 45°: the bank takes a corner of the water, the water one of th
   const f = m.floors[8 * N + 9], gr = groundAt(9.1, 8.9, 100, 0);
   assert.ok(f.cut && gr.s === f.cut.part && gr.s.fluid === WATER, 'the water is underfoot');
   assert.ok(wading(gr, gr.h) > 0.5, 'deep enough to wade: ' + wading(gr, gr.h));
+});
+
+// an island over the void: ground at 2 levels over the cells x <= z, nothing elsewhere
+function island(style = 'octo') {
+  const m = flatMap();
+  for (const f of m.floors) Object.assign(f, { top: 2, bottom: 0, layer: 0, cs: Array(4).fill(2 * LH) });
+  for (const f of m.floors) if (f.x > f.z) m.cols[f.c] = [];
+  m.floors = m.floors.filter(f => m.cols[f.c].length);
+  for (const f of m.floors) f.link = f.link.map(g => g && m.cols[g.c].length ? g : null);
+  const ctx = { ...m, fenceList: [], seed: 1, stats: {}, ladders: [], runs: [], moves: [], spec: {}, border: f => !f.x || !f.z || f.x === N - 1 || f.z === N - 1 };
+  cutCliffs(ctx, () => style);
+  return { m, ctx };
+}
+
+test('an island\'s rim over the void: the corners of its staircase cut off, nothing there, a brink at the line', () => {
+  const { m, ctx } = island();
+  const cut = m.floors.filter(f => f.cut);
+  assert.ok(ctx.stats.cuts > N - 6 && cut.every(f => f.cut.part.empty && f.x === f.z), 'the rim\'s corners cut: ' + ctx.stats.cuts);
+  // (8, 8): its corner towards (9, 8) is gone, along x - z = 0.5
+  const f = m.floors.find(f => f.x === 8 && f.z === 8);
+  assert.equal(floorY(f, 0.5, 0.5), 2 * LH);
+  assert.equal(floorY(f, 0.9, 0.1), -Infinity, 'nothing there');
+  assert.equal(groundAt(8.9, 8.1, 100, 0).s, null);
+  assert.ok(cutLine(f).every(s => s.own.every(y => y === 2 * LH) && s.part.every(y => y === 0)), 'the wall along the line down to its bottom');
+  assert.equal(topTriangles(f, 0).reduce((s, t) => s + area(t), 0), 7 / 8);
+  // walking at the line, the hero stops at its brink
+  stand(m, 8.3, 8.6);
+  push(1, -1, 1.5);
+  assert.ok(player.grounded && player.y === 2 * LH && player.x - player.z < 0.5, 'at the brink: ' + [player.x, player.y, player.z]);
 });

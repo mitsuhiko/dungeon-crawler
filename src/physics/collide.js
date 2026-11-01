@@ -138,7 +138,8 @@ export function ceilingAt(x, z, y) {
   const { m, i } = at, [fx, fz] = local(x, z);
   let c = Infinity;
   for (const b of blockersAt(i, m)) if (b.bottom > y && containsXZ(b, at.x, at.z)) c = Math.min(c, b.bottom);
-  for (const f of m.cols[i]) if (here(f, m) && f.bottom * LH > y) c = Math.min(c, f.bottom * LH);
+  // (no underside over a cut's empty part: core/cuts.js)
+  for (const f of m.cols[i]) if (here(f, m) && f.bottom * LH > y && !partAt(f, fx, fz).empty) c = Math.min(c, f.bottom * LH);
   for (const p of m.pieces[i]) {
     const b = p.kind === 'pillar' ? (inPillar(p, fx, fz) ? p.bottom : Infinity) : pieceBottom(p, runY(p, fx, fz));
     if (b > y) c = Math.min(c, b);

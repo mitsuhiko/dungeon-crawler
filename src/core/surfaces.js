@@ -5,7 +5,9 @@
 // exact same triangles. (fx, fz) are local coordinates in [0,1].
 // A cut cell (`cut`, cubegen/cuts.js, core/cuts.js): a straight line through the cell parts off
 // a piece of it, `cut.part`, the ground beyond the line (its own corners `cs` and diagonal), so
-// that a cliff or a shore runs at an angle through cells instead of round them.
+// that a cliff or a shore runs at an angle through cells instead of round them. A part that is
+// `empty` is nothing: the floor's edge over a void or a gap under it (no ground there: -Infinity;
+// its corners are the floor's bottom, where the wall along the line ends).
 export const inCut = (f, fx, fz) => !!f.cut && f.cut.n[0] * fx + f.cut.n[1] * fz > f.cut.c;
 // the height of corners cs (diagonal `split`) at (fx, fz)
 export function cornersY(cs, split, fx, fz) {
@@ -18,7 +20,7 @@ export function cornersY(cs, split, fx, fz) {
   return c11 + (c01 - c11) * (1 - fx) + (c10 - c11) * (1 - fz);
 }
 export function floorY(f, fx, fz) {
-  if (f.cut && inCut(f, fx, fz)) f = f.cut.part;
+  if (f.cut && inCut(f, fx, fz)) { f = f.cut.part; if (f.empty) return -Infinity; }
   return cornersY(f.cs, f.split, fx, fz);
 }
 // what of floor f lies at (fx, fz): f, or its cut part

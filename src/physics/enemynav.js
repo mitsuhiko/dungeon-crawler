@@ -47,8 +47,11 @@ export function stepEnemy(s, mx, mz, radius = s.profile.radius, height = walkerO
   const go = (x, z) => {
     const g = floorAt(s.f, x, z, height);
     if (!g) return false;
-    for (const [ox, oz] of [[radius, 0], [-radius, 0], [0, radius], [0, -radius]])
-      if (!floorThere(g, x + ox, z + oz, height)) return false;   // (a body may lean over a cut's line: core/cuts.js)
+    for (const [ox, oz] of [[radius, 0], [-radius, 0], [0, radius], [0, -radius]]) {
+      // (a body may lean over a cut's line, core/cuts.js, but not out over nothing: an empty part)
+      const h = floorThere(g, x + ox, z + oz, height);
+      if (!h || h.cut?.part.empty && inCut(h, x + ox - h.x, z + oz - h.z)) return false;
+    }
     s.x = x; s.z = z; s.f = g; s.y = standY(s.profile, g, x, z);
     return true;
   };

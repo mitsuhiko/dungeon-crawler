@@ -2,7 +2,9 @@
 // layer, and packed into the parts it is drawn from (render/parts.js). Runs in the world worker;
 // the main thread only wraps the parts into meshes, for the active cube as well as for the
 // low-detail neighbours.
-import { N, BASE, DRAWN_FLUIDS } from '../core/constants.js';
+import { N, BASE, DRAWN_FLUIDS, DIRS, DIRV, OPP, edgePts } from '../core/constants.js';
+import { inCut } from '../core/surfaces.js';
+import { clipPoly, cutPoints, sidePoint } from '../core/cuts.js';
 import { packParts } from './parts.js';
 import { GeoBuilder } from './builder.js';
 import { BEDROCK, usePalette } from './palette.js';
@@ -46,9 +48,13 @@ export function buildCubeGeometry(m) {
   if (m.flip) { buildFlipGeometry(m, layers); return layers.map(L => ({ terrain: L.terrain.pos.length ? L.terrain.arrays() : null,
     stone: L.stone.pos.length ? L.stone.arrays() : null, wood: L.wood.pos.length ? L.wood.arrays() : null, flags: null, fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, null])) })); }
   const solid = (x, z) => !m.interior && x >= 0 && z >= 0 && x < N && z < N && m.cols[z * N + x].some(f => f.layer === 0 || f.merged && f.bottom === 0);
-  for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) if (solid(x, z))
-    layers[0].terrain.box(x, -BASE, z, x + 1, 0, z + 1, BEDROCK[0], BEDROCK[1],
+  // (a floor on it cut over the void, cubegen/cuts.js: under its own side only)
+  const hole = (x, z) => { const f = solid(x, z) && m.cols[z * N + x].at(-1); return f?.cut?.part.empty && (f.layer === 0 || f.merged && f.bottom === 0) ? f : null; };
+  for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) if (solid(x, z)) {
+    if (hole(x, z) || DIRS.some(([dx, dz]) => hole(x + dx, z + dz))) bedrockCut(layers[0].terrain, x, z, solid, hole);
+    else layers[0].terrain.box(x, -BASE, z, x + 1, 0, z + 1, BEDROCK[0], BEDROCK[1],
       { py: true, px: solid(x + 1, z), nx: solid(x - 1, z), pz: solid(x, z + 1), nz: solid(x, z - 1) });
+  }
   buildFloors(m, layers);
   buildStructures(m, layers);
   buildMudPockets(m, layers[0].pockets);
@@ -59,6 +65,32 @@ export function buildCubeGeometry(m) {
     fluids: Object.fromEntries(DRAWN_FLUIDS.map(t => [t, arr(L.fluids[t])])),
   }));
 }
+
+// The bedrock of a cell next to an empty cut (core/cuts.js; its cell's, or a neighbour's): under
+// its own side of the line only, its sides where the neighbour's bedrock does not cover them, in
+// pieces where a cut meets them, and a side along its line.
+function bedrockCut(b, x, z, solid, hole) {
+  const f = hole(x, z), region = f ? clipPoly(SQUARE, f.cut.n, f.cut.c, 0) : SQUARE;
+  const there = (cx, cz, fx, fz) => solid(cx, cz) && !(hole(cx, cz) && inCut(hole(cx, cz), fx, fz));
+  const side = BEDROCK[1], under = side.clone().multiplyScalar(0.82);
+  for (let i = 1; i + 1 < region.length; i++) b.tri(...[region[0], region[i], region[i + 1]].map(([px, pz]) => [x + px, -BASE, z + pz]), under, [0, -1, 0]);
+  for (let d = 0; d < 4; d++) {
+    const nx = x + DIRS[d][0], nz = z + DIRS[d][1], g = hole(nx, nz);
+    const ts = [0, 1, ...(f ? cutPoints(f, d) : []), ...(g ? cutPoints(g, OPP[d]) : [])].sort((a, b) => a - b);
+    const [E0, E1] = edgePts(x, z, d), at = t => [E0[0] + (E1[0] - E0[0]) * t, E0[1] + (E1[1] - E0[1]) * t];
+    for (let i = 0; i + 1 < ts.length; i++) {
+      const t0 = ts[i], t1 = ts[i + 1], tm = (t0 + t1) / 2;
+      if (t1 - t0 < 1e-6 || (f && inCut(f, ...sidePoint(d, tm))) || there(nx, nz, ...sidePoint(OPP[d], tm))) continue;
+      const P = at(t0), Q = at(t1);
+      b.quad([P[0], -BASE, P[1]], [Q[0], -BASE, Q[1]], [Q[0], 0, Q[1]], [P[0], 0, P[1]], DIRV[d], d < 2 ? side : under);
+    }
+  }
+  if (f) {
+    const P = [x + f.cut.a[0], z + f.cut.a[1]], Q = [x + f.cut.b[0], z + f.cut.b[1]];
+    b.quad([P[0], -BASE, P[1]], [Q[0], -BASE, Q[1]], [Q[0], 0, Q[1]], [P[0], 0, P[1]], [f.cut.n[0], 0, f.cut.n[1]], side);
+  }
+}
+const SQUARE = [[0, 0], [1, 0], [1, 1], [0, 1]];
 
 // what the main thread gets: the cube's parts (render/parts.js packParts)
 export const buildCubeParts = m => packParts(buildCubeGeometry(m), m);

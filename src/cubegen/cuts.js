@@ -4,14 +4,15 @@
 // were; the cut only moves where a cliff stands within the cells along it, and its fences with it.
 //
 // 1. Risers: the cell edges where the top floors of two cells meet in a step, unlinked (a cliff;
-//    a bank down to a fluid), in chains from grid corner to grid corner, on through a corner where
+//    a bank down to a fluid; an edge over nothing), in chains from grid corner to grid corner, on through a corner where
 //    the ground on each side goes on round it, broken where a third ground comes in.
 // 2. Each chain is fitted with a polyline in its style: `grid` (none: the staircase stays),
 //    `octo` (lines at multiples of 45°) or `sixteen` (also one across for two along: 26.6°),
 //    every cell round it far enough off it on its own side.
 // 3. The polyline parts each cell it crosses once along the chord from where it comes in to where
 //    it goes out; the part beyond takes the ground of the cells beyond. A cell that would lose its
-//    middle or a linked side's middle (or come too close to them) keeps its square.
+//    middle or a linked side's middle (or come too close to them) keeps its square. Over nothing
+//    (a void, a gap under a slab) the line keeps to the higher ground's cells, its part `empty`.
 // 4. Fences: a fenced riser's fence moves onto the line, or stays on what is left of its edge.
 import { N, LH, DIRS, OPP, EDGE_CORNERS, WATER } from '../core/constants.js';
 import { idx, inb, hash32, edgeKey } from '../core/util.js';
@@ -37,6 +38,7 @@ const WALL = 0.25, DROP = 0.1, FENCED = 0.33;
 const MIN_PART = 0.03;  // the least of a cell a part may be
 const FENCE_DROP = 0.9; // a fence stands over a drop this deep (cubegen/fences.js)
 const SNAP = 0.04;      // where a line meets a side this close to a corner, it meets the corner
+const OUT = -1;         // (a cell's margin: all of it off the line)
 
 const key = (X, Z) => X * 1024 + Z;
 
@@ -77,43 +79,55 @@ export function cutCliffs(ctx, styleOf = null) {
   const edgeYs = (f, d) => f.fluid ? [f.surf * LH, f.surf * LH] : EDGE_CORNERS[d].map(k => f.cs[k]);
 
   // 2. risers: the edges where the top floors of two cells meet in a step, unlinked: { v0, v1
-  // (grid corners), hi, lo (the floors), m (its middle) }. A fluid's bank is a step down to it.
+  // (grid corners), hi, lo (the floors; lo null over a void), lc (the lower cell [x, z]), hole
+  // (nothing under the higher floor's edge: a void, or a gap under a slab), m (its middle) }. A
+  // fluid's bank is a step down to it.
   const risers = [];
+  const EDGE = [[[1, 0], [1, 1]], [[0, 0], [0, 1]], [[0, 1], [1, 1]], [[0, 0], [1, 0]]];
   for (const f of floors) {
     if (f !== top(f.c) || (f.fluid && !water)) continue;
-    for (const d of [0, 2]) {
-      const g = topAt(f.x + DIRS[d][0], f.z + DIRS[d][1]);
-      if (!g || f.link[d] === g || (g.fluid && !water) || (f.fluid && g.fluid)) continue;
-      const ef = edgeYs(f, d), eg = edgeYs(g, OPP[d]), d0 = ef[0] - eg[0], d1 = ef[1] - eg[1];
+    for (let d = 0; d < 4; d++) {
+      const x = f.x + DIRS[d][0], z = f.z + DIRS[d][1];
+      if (!inb(x, z)) continue;
+      const g = topAt(x, z) ?? null;
+      if (g ? d & 1 : f.fluid) continue;   // (each edge once; over a void, a dry floor's)
+      if (g && (f.link[d] === g || (g.fluid && !water) || (f.fluid && g.fluid))) continue;
       let hi, lo;
-      if (f.fluid || g.fluid) {
+      if (!g) [hi, lo] = [f, null];
+      else if (f.fluid || g.fluid) {
         [hi, lo] = f.fluid ? [g, f] : [f, g];
         if (Math.min(...edgeYs(hi, hi === f ? d : OPP[d])) < lo.surf * LH - 0.01) continue;   // (no bank: never so)
       } else {
+        const ef = edgeYs(f, d), eg = edgeYs(g, OPP[d]), d0 = ef[0] - eg[0], d1 = ef[1] - eg[1];
         if (Math.sign(d0) !== Math.sign(d1) || Math.min(Math.abs(d0), Math.abs(d1)) < 0.25) continue;
         [hi, lo] = d0 > 0 ? [f, g] : [g, f];
       }
-      if (lo.top < hi.bottom) continue;   // (the lower one's solid reaches up to the higher one: no gap under a slab)
-      const v0 = d === 0 ? [f.x + 1, f.z] : [f.x, f.z + 1], v1 = [f.x + 1, f.z + 1];
-      const fenced = !!ctx.fences?.get(edgeKey(f.x, f.z, g.x, g.z))?.some(e => e.cliff === hi.id && e.show !== false);
-      risers.push({ v0, v1, hi, lo, fenced, m: [(v0[0] + v1[0]) / 2, (v0[1] + v1[1]) / 2] });
+      // (the lower one's solid reaching up to the higher one, or a gap under the higher one's slab)
+      const hole = !lo || lo.top < hi.bottom;
+      if (hole && hi.fluid) continue;
+      const [v0, v1] = EDGE[d].map(([a, b]) => [f.x + a, f.z + b]);
+      const fenced = !!ctx.fences?.get(edgeKey(f.x, f.z, x, z))?.some(e => e.cliff === hi.id && e.show !== false);
+      risers.push({ v0, v1, hi, lo, lc: hi === f ? [x, z] : [f.x, f.z], hole, fenced, m: [(v0[0] + v1[0]) / 2, (v0[1] + v1[1]) / 2] });
     }
   }
   if (!risers.length) return;
 
   // chains from grid corner to grid corner: on through a corner with two risers, its other two
-  // edges links (the same ground on each side round it); broken anywhere else
+  // edges links (the same ground on each side round it; over a hole, the higher side's only: what
+  // lies under it is not cut); broken anywhere else
   const at = new Map(), corner = new Map();
   for (const r of risers) for (const v of [r.v0, r.v1]) { const k = key(...v); if (!at.has(k)) { at.set(k, []); corner.set(k, v); } at.get(k).push(r); }
   const linked = (a, b) => !!a && !!b && a.link.includes(b);
   const through = v => {
     const rs = at.get(key(...v));
-    if (rs.length !== 2) return null;
+    if (rs.length !== 2 || rs[0].hole !== rs[1].hole) return null;
     const [X, Z] = v, c = [[X - 1, Z - 1], [X, Z - 1], [X - 1, Z], [X, Z]].map(([x, z]) => topAt(x, z));
+    const his = rs[0].hole && rs.map(r => r.hi);
     // the four edges round the corner: c0|c1 (x = X, above it), c2|c3 (below), c0|c2 (z = Z, left), c1|c3 (right)
     const edges = [[0, 1, [X, Z - 1]], [2, 3, [X, Z + 1]], [0, 2, [X - 1, Z]], [1, 3, [X + 1, Z]]];
     for (const [i, j, far] of edges) {
       if (rs.some(r => key(...(key(...r.v0) === key(...v) ? r.v1 : r.v0)) === key(...far))) continue;
+      if (his && !his.includes(c[i]) && !his.includes(c[j])) continue;
       if (!linked(c[i], c[j])) return null;
     }
     return rs;
@@ -138,13 +152,15 @@ export function cutCliffs(ctx, styleOf = null) {
   // higher floors and what is linked to them (+1), the lower ones' (-1)
   const polylines = [];
   for (const ch of chains) for (const part of orient(ch)) {
-    const H = new Set(part.R.map(r => r.hi)), L = new Set(part.R.map(r => r.lo));
-    const sideOf = g => !g ? 0 : H.has(g) ? 1 : L.has(g) ? -1 : g.link.some(h => H.has(h)) ? 1 : g.link.some(h => L.has(h)) ? -1 : 0;
-    const r0 = part.R[0], st = style(r0.m[0], r0.m[1], hash32(ctx.seed ^ (key(...part.V[0]) * 7919) ^ r0.hi.id * 31 ^ r0.lo.id));
+    const H = new Set(part.R.map(r => r.hi)), L = new Set(part.R.map(r => r.lo)), hole = part.R[0].hole;
+    // (over a hole, everything but the higher ground is the other side: no line goes into it)
+    const sideOf = hole ? g => g && (H.has(g) || g.link.some(h => H.has(h))) ? 1 : -1
+      : g => !g ? 0 : H.has(g) ? 1 : L.has(g) ? -1 : g.link.some(h => H.has(h)) ? 1 : g.link.some(h => L.has(h)) ? -1 : 0;
+    const r0 = part.R[0], st = style(r0.m[0], r0.m[1], hash32(ctx.seed ^ (key(...part.V[0]) * 7919) ^ r0.hi.id * 31 ^ (r0.lo?.id ?? 0)));
     const dirs = CUT_STYLES[st] ?? [];
     if (!dirs.length || part.R.length < 2) continue;
-    const drop = part.R.some(r => r.fenced) ? FENCED : DROP, pts = fit(part, dirs, topAt, sideOf, drop);
-    if (pts.length > 2 || (pts.length === 2 && notGrid(pts[0], pts[1]))) polylines.push({ pts, R: part.R, sideOf, drop });
+    const drop = part.R.some(r => r.fenced) ? FENCED : DROP, pts = fit(part, dirs, topAt, sideOf, drop, hole);
+    if (pts.length > 2 || (pts.length === 2 && notGrid(pts[0], pts[1]))) polylines.push({ pts, R: part.R, sideOf, drop, hole });
   }
 
   // 4. rasterize: each cell crossed once, by one polyline
@@ -163,8 +179,8 @@ export function cutCliffs(ctx, styleOf = null) {
   const cutCells = [];
   for (const [c, v] of visits) {
     const f = top(c), s = f && v.pl.sideOf(f);
-    if (clash.has(c) || !s || fixed(f)) continue;
-    const cut = makeCut(f, v.a, v.b, g => v.pl.sideOf(g) === -s, v.pl.drop);
+    if (clash.has(c) || !s || fixed(f) || (v.pl.hole && (s < 0 || f.fluid))) continue;
+    const cut = v.pl.hole ? makeHole(f, v.a, v.b, v.pl.drop) : makeCut(f, v.a, v.b, g => v.pl.sideOf(g) === -s, v.pl.drop);
     if (cut) { f.cut = cut; made++; cutCells.push({ f, pl: v.pl }); }
   }
   ctx.stats.cuts = (ctx.stats.cuts || 0) + made;
@@ -179,6 +195,26 @@ export function cutCliffs(ctx, styleOf = null) {
     const g = topAt(f.x + DIRS[d][0], f.z + DIRS[d][1]);
     return !!g && f.fluid === WATER && !g.fluid && g.top >= f.surf && g.top <= f.surf + 1 && Math.max(...cs) > (f.surf + 1) * LH + 0.01;
   }
+  // the cut of floor f along A -> B over a hole (the cube's coordinates): its part is nothing, its
+  // edge over the void or a gap; every side of it that something lies beyond on its level or over
+  // it (a way may cross) keeps its middle
+  function makeHole(f, A, B, drop) {
+    const a = [A[0] - f.x, A[1] - f.z], b = [B[0] - f.x, B[1] - f.z];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (len < 0.05) return null;
+    let nrm = [-(b[1] - a[1]) / len, (b[0] - a[0]) / len], c = nrm[0] * a[0] + nrm[1] * a[1];
+    if (nrm[0] * 0.5 + nrm[1] * 0.5 > c) { nrm = [-nrm[0], -nrm[1]]; c = -c; }
+    const side = (x, z) => nrm[0] * x + nrm[1] * z - c;
+    if (Math.abs(area(clipPoly(SQUARE, nrm, c, 1))) < MIN_PART || -side(0.5, 0.5) < drop) return null;
+    for (let d = 0; d < 4; d++) {
+      const g = topAt(f.x + DIRS[d][0], f.z + DIRS[d][1]);
+      if ((f.link[d] || (g && g.top >= f.bottom)) && side(...MID[d]) > -drop) return null;
+    }
+    const fb = f.bottom * LH;
+    const part = { id: f.id, c: f.c, x: f.x, z: f.z, cs: [fb, fb, fb, fb], split: 0, top: f.bottom, bottom: f.bottom, layer: f.layer,
+      merged: f.merged, fluid: 0, surf: 0, link: [null, null, null, null], part: true, empty: true, cutOf: f, donor: null };
+    return { n: nrm, c, a, b, part };
+  }
   // the cut of floor f along A -> B (the cube's coordinates), the part beyond taking the ground of
   // the cells round it on the other side (other(g))
   function makeCut(f, A, B, other, drop) {
@@ -188,10 +224,8 @@ export function cutCliffs(ctx, styleOf = null) {
     let nrm = [-(b[1] - a[1]) / len, (b[0] - a[0]) / len], c = nrm[0] * a[0] + nrm[1] * a[1];
     if (nrm[0] * 0.5 + nrm[1] * 0.5 > c) { nrm = [-nrm[0], -nrm[1]]; c = -c; }
     const side = (x, z) => nrm[0] * x + nrm[1] * z - c;   // < 0: the floor's own
-    const poly = clipPoly([[0, 0], [1, 0], [1, 1], [0, 1]], nrm, c, 1);
-    let area = 0;
-    for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length]; area += p[0] * q[1] - q[0] * p[1]; }
-    if (Math.abs(area) / 2 < MIN_PART) return null;
+    const poly = clipPoly(SQUARE, nrm, c, 1);
+    if (Math.abs(area(poly)) < MIN_PART) return null;
     // the ground beyond, carried on: the corners of the floors round f on the other side (a
     // fluid's: its bed), the donor the one nearest the part
     const near = [];
@@ -213,7 +247,7 @@ export function cutCliffs(ctx, styleOf = null) {
     // its middle and linked sides' middles off the line: further off a wall up than a drop
     const up = cs.reduce((s, v) => s + v) > (f.fluid ? 4 * f.surf * LH : f.cs.reduce((s, v) => s + v)), room = up ? WALL : drop;
     if (-side(0.5, 0.5) < room) return null;
-    for (let d = 0; d < 4; d++) if (crossed(f, d, cs)) { const [x, z] = [[1, .5], [0, .5], [.5, 1], [.5, 0]][d]; if (side(x, z) > -room) return null; }
+    for (let d = 0; d < 4; d++) if (crossed(f, d, cs) && side(...MID[d]) > -room) return null;
     const lowest = Math.min(...poly.map(([x, z]) => cornersY(cs, splitOf(cs), x, z)));
     if (lowest < f.bottom * LH + 0.25) return null;   // (the part's solid is the floor's, from its bottom up)
     if (up && donor.bottom * LH > Math.min(...f.cs) + 0.01) return null;   // (a raised part: the donor's solid reaches down to us)
@@ -227,6 +261,8 @@ export function cutCliffs(ctx, styleOf = null) {
     return cut;
   }
 }
+const SQUARE = [[0, 0], [1, 0], [1, 1], [0, 1]], MID = [[1, .5], [0, .5], [.5, 1], [.5, 0]];
+const area = poly => poly.reduce((s, p, i) => { const q = poly[(i + 1) % poly.length]; return s + (p[0] * q[1] - q[0] * p[1]) / 2; }, 0);
 const splitOf = cs => Math.abs(cs[0] - cs[3]) <= Math.abs(cs[1] - cs[2]) ? 0 : 1;
 const notGrid = (p, q) => Math.abs(p[0] - q[0]) > 1e-9 && Math.abs(p[1] - q[1]) > 1e-9;
 
@@ -240,8 +276,8 @@ function orient({ V, R }) {
     const ca = [r.hi.x + 0.5, r.hi.z + 0.5];
     const s = Math.sign((q[0] - p[0]) * (ca[1] - p[1]) - (q[1] - p[1]) * (ca[0] - p[0]));
     const on = (set, f) => set.has(f) || f.link.some(g => set.has(g));
-    if (!cur || cur.sigma !== s || on(L, r.hi) || on(H, r.lo)) { cur = { V: [p], R: [], sigma: s }; out.push(cur); H = new Set(); L = new Set(); }
-    cur.R.push(r); cur.V.push(q); H.add(r.hi); L.add(r.lo);
+    if (!cur || cur.sigma !== s || on(L, r.hi) || (r.lo && on(H, r.lo))) { cur = { V: [p], R: [], sigma: s }; out.push(cur); H = new Set(); L = new Set(); }
+    cur.R.push(r); cur.V.push(q); H.add(r.hi); if (r.lo) L.add(r.lo);
   }
   return out;
 }
@@ -250,24 +286,27 @@ function orient({ V, R }) {
 // long as it goes with every cell round the corners it passes on its own side (the higher
 // ground's `drop` off it, the lower one's WALL); where nothing fits, along the risers round the
 // corner. It starts from the middle of the first riser, or a little to either side of it,
-// whichever takes the fewest pieces.
-function fit({ V, R, sigma }, dirs, topAt, sideOf, drop) {
+// whichever takes the fewest pieces. Over a hole (`hole`) it never goes into a cell of the other
+// side (nothing there takes a corner of the higher ground), and where nothing fits round a corner
+// of the higher ground it cuts that corner off.
+function fit({ V, R, sigma }, dirs, topAt, sideOf, drop, hole = false) {
   const n = R.length;
   // the cells round each corner of the chain: [x, z, side (+1: the higher one's), margin]
   const cellsAt = V.map(([X, Z]) => {
     const out = [];
     for (const [x, z] of [[X - 1, Z - 1], [X, Z - 1], [X - 1, Z], [X, Z]]) {
       const s = sideOf(topAt(x, z));
-      if (s) out.push([x + 0.5, z + 0.5, s * sigma, s > 0 ? drop : WALL]);
+      if (s) out.push([x + 0.5, z + 0.5, s * sigma, s > 0 ? drop : hole ? OUT : WALL, s > 0]);
     }
     return out;
   });
   // the cells round the corners passed (from riser i's start to riser j's), and riser j's own two
+  // (OUT: the whole cell off the line, its corners at most on it)
   const ok = (S, u, i, j) => {
-    const side = ([x, z, sg, m]) => sg * (u[0] * (z - S[1]) - u[1] * (x - S[0])) >= m;
+    const side = ([x, z, sg, m]) => sg * (u[0] * (z - S[1]) - u[1] * (x - S[0])) >= (m === OUT ? (Math.abs(u[0]) + Math.abs(u[1])) / 2 - 1e-9 : m);
     for (let k = i; k <= j; k++) if (!cellsAt[k].every(side)) return false;
     const r = R[j];
-    return side([r.hi.x + 0.5, r.hi.z + 0.5, sigma, drop]) && side([r.lo.x + 0.5, r.lo.z + 0.5, -sigma, WALL]);
+    return side([r.hi.x + 0.5, r.hi.z + 0.5, sigma, drop]) && side([r.lc[0] + 0.5, r.lc[1] + 0.5, -sigma, hole ? OUT : WALL]);
   };
   // the directions nearest the one from S to T
   const candidates = (S, T) => {
@@ -297,15 +336,19 @@ function fit({ V, R, sigma }, dirs, topAt, sideOf, drop) {
       }
       cost++;
       if (got) { pts.push(got.E); S = got.E; i = got.j + 1; continue; }
-      // (nothing fits: round the corner along the risers)
+      // (nothing fits: round the corner along the risers; over a hole, across a corner of the
+      // higher ground)
+      if (hole && cellsAt[i].filter(c => c[4]).length === 1) { pts.push(R[i].m); S = R[i].m; i++; cost += 2; continue; }
       pts.push(V[i], R[i].m); S = R[i].m; i++; cost += 2;
     }
     pts.push(V[n]);
     return { pts: dedupe(pts), cost };
   };
   const r0 = R[0], w = r0.v0[0] === r0.v1[0] ? [1, 0] : [0, 1];
+  const up = Math.sign(w[0] * (r0.hi.x + 0.5 - r0.m[0]) + w[1] * (r0.hi.z + 0.5 - r0.m[1]));
   let best = null;
   for (const s of [0, 0.05, -0.05, 0.1, -0.1, 0.15, -0.15, 0.2, -0.2, 0.25, -0.25, 0.3, -0.3, 0.35, -0.35, 0.4, -0.4]) {
+    if (hole && s * up < 0) continue;   // (over a hole: from the higher side)
     const got = run([r0.m[0] + w[0] * s, r0.m[1] + w[1] * s]);
     if (!best || got.cost < best.cost) best = got;
   }
@@ -361,8 +404,8 @@ function moveFences(ctx, cutCells) {
   const cutAt = new Set(cutCells.map(({ f }) => f.c));
   const fenced = new Map();   // riser -> its fence (a cliff fence on its edge)
   for (const r of new Set(cutCells.flatMap(({ pl }) => pl.R))) {
-    if (!cutAt.has(r.hi.c) && !cutAt.has(r.lo.c)) continue;
-    const k = edgeKey(r.hi.x, r.hi.z, r.lo.x, r.lo.z), list = fences.get(k);
+    if (!cutAt.has(r.hi.c) && !cutAt.has(idx(...r.lc))) continue;
+    const k = edgeKey(r.hi.x, r.hi.z, ...r.lc), list = fences.get(k);
     const e = list?.find(e => e.cliff === r.hi.id && !e.line);
     if (!e) continue;
     fenced.set(r, e);
@@ -390,25 +433,29 @@ function moveFences(ctx, cutCells) {
   };
   const ground = (x, z) => {
     const cx = Math.min(N - 1, Math.max(0, Math.floor(x))), cz = Math.min(N - 1, Math.max(0, Math.floor(z)));
-    const col = ctx.cols[idx(cx, cz)], f = col[col.length - 1];
-    return floorY(f, Math.min(1, Math.max(0, x - cx)), Math.min(1, Math.max(0, z - cz)));
+    const col = ctx.cols[idx(cx, cz)], f = col[col.length - 1], fx = Math.min(1, Math.max(0, x - cx)), fz = Math.min(1, Math.max(0, z - cz));
+    if (!f) return 0;
+    const y = floorY(f, fx, fz);
+    return Number.isFinite(y) ? y : cornersY(f.cs, f.split, fx, fz);   // (a post just over an empty part: on the floor's plane)
   };
   // what is left of each fenced riser's edge
   for (const [r, e] of fenced) {
-    const { hi, lo } = r;
-    const d = DIRS.findIndex(([dx, dz]) => dx === lo.x - hi.x && dz === lo.z - hi.z);
-    const ts = [0, 1, ...cutPoints(hi, d), ...cutPoints(lo, OPP[d])].sort((a, b) => a - b);
+    const { hi, lo, lc } = r;
+    const d = DIRS.findIndex(([dx, dz]) => dx === lc[0] - hi.x && dz === lc[1] - hi.z);
+    const ts = [0, 1, ...cutPoints(hi, d), ...(lo ? cutPoints(lo, OPP[d]) : [])].sort((a, b) => a - b);
     for (let i = 0; i + 1 < ts.length; i++) {
       const t0 = ts[i], t1 = ts[i + 1];
       if (t1 - t0 < 1e-6) continue;
       const m = sidePoint(d, (t0 + t1) / 2), mo = sidePoint(OPP[d], (t0 + t1) / 2);
-      const own = partAt(hi, ...m), there = partAt(lo, ...mo);
+      const own = partAt(hi, ...m), there = lo && partAt(lo, ...mo);
       if (own !== hi) continue;
       const y0 = cornersY(own.cs, own.split, ...sidePoint(d, t0)), y1 = cornersY(own.cs, own.split, ...sidePoint(d, t1));
-      const z0 = cornersY(there.cs, there.split, ...sidePoint(OPP[d], t0)), z1 = cornersY(there.cs, there.split, ...sidePoint(OPP[d], t1));
+      // (over nothing: a void, or a hole in the floor there)
+      const deep = !there || there.empty;
+      const z0 = deep ? -Infinity : cornersY(there.cs, there.split, ...sidePoint(OPP[d], t0)), z1 = deep ? -Infinity : cornersY(there.cs, there.split, ...sidePoint(OPP[d], t1));
       if (Math.min(y0 - z0, y1 - z1) < FENCE_DROP) continue;
       const p = sidePoint(d, t0), q = sidePoint(d, t1), [dx, dz] = DIRS[d];
-      fenceAlong([hi.x + p[0], hi.z + p[1]], [hi.x + q[0], hi.z + q[1]], [-dx * 0.07, -dz * 0.07], ground, hi.layer, hi.id, [hi.c, lo.c]);
+      fenceAlong([hi.x + p[0], hi.z + p[1]], [hi.x + q[0], hi.z + q[1]], [-dx * 0.07, -dz * 0.07], ground, hi.layer, hi.id, [hi.c, idx(...lc)]);
     }
   }
   // the cut cells' lines, where the risers near them were fenced
@@ -416,9 +463,11 @@ function moveFences(ctx, cutCells) {
     const near = pl.R.filter(r => Math.hypot(r.m[0] - f.x - 0.5, r.m[1] - f.z - 0.5) < 1.2);
     const on = near.filter(r => fenced.has(r)).length;
     if (!on || on * 2 < near.length) continue;
+    // (an empty part: down to what lies under the floor, if anything)
+    const col = ctx.cols[f.c], under = col.indexOf(f) > 0 ? Math.max(...col[col.indexOf(f) - 1].cs) : -Infinity;
     for (const s of cutLine(f)) {
-      const hiOwn = s.own[0] + s.own[1] > s.part[0] + s.part[1];
-      if (Math.min(Math.abs(s.own[0] - s.part[0]), Math.abs(s.own[1] - s.part[1])) < FENCE_DROP) continue;
+      const hiOwn = s.own[0] + s.own[1] > s.part[0] + s.part[1], low = f.cut.part.empty ? [under, under] : s.part;
+      if (Math.min(Math.abs(s.own[0] - low[0]), Math.abs(s.own[1] - low[1])) < FENCE_DROP) continue;
       const k = hiOwn ? -1 : 1, inset = [f.cut.n[0] * 0.07 * k, f.cut.n[1] * 0.07 * k];
       fenceAlong([f.x + s.p[0], f.z + s.p[1]], [f.x + s.q[0], f.z + s.q[1]], inset, ground, f.layer, f.id, [f.c]);
     }

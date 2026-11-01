@@ -1173,6 +1173,17 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   (`playernav.js waterEdges`) keeps its middle like a linked one where the part would rise higher
   than a swimmer climbs. Not where a fall comes
   down or lands, nor where a mud pool's pockets lie.
+- **Over nothing:** where the lower side of a riser is nothing (a void's cell, or a floor under a
+  gap below the higher floor's slab: a floating slab's edge, an island's rim), the line stays in
+  the higher ground's cells (no cell of the other side takes a corner: the void's have no floor to
+  take one), and its part is `empty`: no ground (`floorY` -Infinity, physics finds nothing there,
+  no underside over it), its corners at the floor's bottom, where the wall along the line ends.
+  A 45° staircase of such cells has a corner cut off each step (where no straight line keeps out
+  of the cells beyond, the fit cuts each corner of the higher ground it goes round); every side
+  of the cell with ground beyond it on its level keeps its middle. Drawn: the top and the
+  underside clipped to the floor's side, the wall along the line from its bottom up, the bedrock
+  under a ground floor clipped too (`render/cubegeo.js bedrockCut`). A body stops at its brink
+  as at any edge over a drop; an enemy's body never leans out over it (`enemynav.js`).
 - **Styles:** `grid` (no cuts: square steps), `octo` (multiples of 45°) or `sixteen` (those and
   one across for two along, 26.6°, 63.4° and round: the nearest to 22.5° that a grid carries
   straight; a line at 22.5° itself comes too close to every other cell's middle), drawn per chain
@@ -1190,7 +1201,9 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   or ends in, the ground under a stair), built floors (`surface`), the crumbling crust, the cube's
   outer ring (its faces must match the neighbours'), the cells of a fall, a cell crossed twice,
   and a cut that would come too close to its middle or a linked side's middle, or leave a part
-  smaller than `MIN_PART`, a part under the floor's bottom or over a gap under a slab.
+  smaller than `MIN_PART`, a part under the floor's bottom or over a gap under a slab (that edge
+  is cut over nothing instead). Monteur's mountains never rise from a cut cell, nor from the
+  donor of a part (`core/mountains.js freeCells`: the two would part).
 - **Drawn** (`render/floors.js`): each side's top triangles clipped to its side, the wall along the
   line from the lower side up to the higher (`cutWalls`), the sides' walls in pieces where a cut
   meets them (`wallPieces`).
@@ -1203,9 +1216,9 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   along a line (`map.lineFences`, per cell; `canmove.js lineFenced`); the edge keeps its old fence,
   `navOnly`, for the jumps and the water's ways.
 - **Not (yet):** the cube's outer ring (a staircase that runs into a face keeps its last cells
-  square on both sides of it), and edges with nothing under the lower side: a slab over a gap, an
-  island's rim over the void (a part there would be a hole, and the void's cells have no floor to
-  take a corner of the island).
+  square on both sides of it), and a straight line over nothing at an angle other than 45° (the
+  26.6° one would cross the sides between the higher cells at their middles: only the corners are
+  cut there).
 - **Checks:** `tests/cuts.test.js` (the geometry, walking against and along a cut, its fences, a
   shore's water in a bank's cell),
   the sweep (`tests/sweeps/cuts.js`: every cut keeps its cell's middle, linked sides and body

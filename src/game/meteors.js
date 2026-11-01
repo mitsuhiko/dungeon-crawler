@@ -58,8 +58,8 @@ function place(m, map) {
   const list = spotsOf(map);
   if (!list.length) return null;
   const f = list[Math.floor(m.u * list.length) % list.length], fx = 0.25 + m.v * 0.5, fz = 0.75 - m.v * 0.5;
-  const y = floorY(f, fx, fz);
-  return open(f.x + fx, y, f.z + fz) ? { x: f.x + fx, y, z: f.z + fz } : null;
+  const y = floorY(f, fx, fz);   // (-Infinity: on a cut's empty part, core/cuts.js)
+  return Number.isFinite(y) && open(f.x + fx, y, f.z + fz) ? { x: f.x + fx, y, z: f.z + fz } : null;
 }
 
 // every step (game/enemies.js, after the enemies moved)

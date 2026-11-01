@@ -46,10 +46,12 @@ export function freeCells(map, any = false) {
   }
   for (const l of map.ladders ?? []) { const [dx, dz] = DIRS[l.d]; busy.add(l.c); if (inb(l.x + dx, l.z + dz)) busy.add(idx(l.x + dx, l.z + dz)); }
   for (const p of map.portals ?? []) for (const c of p.cells ?? []) busy.add(c);
+  // (no cut cell, nor one whose ground a cut's part carries on: core/cuts.js, they would part)
+  const donors = new Set((map.floors ?? []).map(f => f.cut?.part.donor).filter(Boolean));
   const ok = new Uint8Array(N * N);
   for (let c = 0; c < N * N; c++) {
     const col = map.cols[c], f = col?.[0], x = c % N, z = (c / N) | 0;
-    ok[c] = col?.length === 1 && (any || f.encounter) && !f.fluid && !f.open && !f.covered && !f.crust && !f.hole && !f.landing
+    ok[c] = col?.length === 1 && (any || f.encounter) && !f.fluid && !f.open && !f.covered && !f.crust && !f.hole && !f.landing && !f.cut && !donors.has(f)
       && !map.pieces?.[c]?.length && !map.blockers?.[c]?.length && !busy.has(c) && x > 0 && z > 0 && x < N - 1 && z < N - 1 ? 1 : 0;
   }
   return ok;
