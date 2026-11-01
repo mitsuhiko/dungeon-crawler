@@ -15,6 +15,7 @@
 // media queries, the window's size divided by the scale against the same widths.
 //   ui-w1000, ui-w640, ui-w540, ui-w400   at most this wide
 //   ui-roomy                     at least 700 wide and 600 high (a tablet: the quick bar at the bottom)
+//   ui-h540                      at most 540 high (a phone held sideways: the map lower, game/mappanel.js)
 import { uiScale, onSettingsChange } from './settings.js';
 
 const root = document.documentElement, body = document.body;
@@ -25,6 +26,7 @@ function apply() {
   root.style.setProperty('--ui', String(s));
   for (const n of [1000, 640, 540, 400]) body.classList.toggle(`ui-w${n}`, w <= n);
   body.classList.toggle('ui-roomy', w >= 700 && h >= 600);
+  body.classList.toggle('ui-h540', h <= 540);
 }
 apply();
 onSettingsChange(apply);

@@ -98,8 +98,10 @@ export function orderTrade(v) {
 // p: a part from game/trials.js usableParts; walk up to it and use it
 export function orderPart(p) {
   begin('part');
-  Object.assign(order, { x: p.x, z: p.z, floor: floorOf(groundAt(p.x, p.z, p.y + 0.3, 0).s), enemy: null, pickup: null, chest: null, villager: null, part: p, repath: 1e9 });
-  plan(order.floor, p.y);
+  // (to where one stands to use it, if it says: a rune stone stands in the way itself, game/runestones.js)
+  const at = p.walk ?? p;
+  Object.assign(order, { x: at.x, z: at.z, floor: floorOf(groundAt(at.x, at.z, at.y + 0.3, 0).s), enemy: null, pickup: null, chest: null, villager: null, part: p, repath: 1e9 });
+  plan(order.floor, at.y);
   if (canReachPart(p)) { clearOrder(); usePart(p); }
 }
 

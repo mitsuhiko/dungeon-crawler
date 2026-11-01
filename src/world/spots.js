@@ -13,6 +13,12 @@
 //         `glass` its number (0, 1), which says its recording (core/glass.js glassAt). Never a
 //         quest's: nobody stands there and nothing else lies there. Depth 0 has a third, on the
 //         way past the beginning's rock: `part` 'camp', the recording that came up with his sword.
+//   runestone  on every depth but the town's, RUNESTONES (three) where there are rooms enough: a
+//         rune stone the hero wakes to travel back to it from the map (game/runestones.js,
+//         docs/map.md), in rooms spread over the depth, each in a room of its own, never the
+//         horde's, an outpost's or a camp's room, nor the beginning's rock. Never a quest's: they
+//         are kept apart in `runestones` (not in `list`, which the quests choose from), but they
+//         are in `spots`, the rooms' spots the generator places.
 // A spot names its cube; where in the cube it lies is up to the cube's generator
 // (cubegen/spots.js), which keeps it clear and reachable both ways like a reward site.
 //
@@ -25,7 +31,8 @@ import { isTown } from './town.js';
 import { key, hashKey } from './coords.js';
 import { glassAt } from '../core/glass.js';
 
-export const SPOT_KINDS = ['hide', 'seat', 'camp', 'outpost', 'glass'];
+export const SPOT_KINDS = ['hide', 'seat', 'camp', 'outpost', 'glass', 'runestone'];
+export const RUNESTONES = 3;
 export const OUTPOST_BANDS = [[1, 3], [4, 6], [7, 9], [10, 12], [13, 15], [16, 19]];
 // the depth of a stretch that has its outpost, from the seed
 export const outpostDepth = (seed, band) => { const [a, b] = OUTPOST_BANDS[band]; return a + hash32(seed ^ Math.imul(band + 1, 0x0f7905)) % (b - a + 1); };
@@ -36,7 +43,8 @@ export const HIDES = [6, 8];
 export const campDepth = d => d % 3 === 1;
 
 // the spots of one depth: a map cube key -> [spot], in the order the generator places them
-// (camps first, then seats, then hiding places)
+// (camps first, then seats, then hiding places); list: those the quests may use; runestones: the
+// rune stones' (in `spots` too, not in `list`)
 export function planSpots(seed, layout) {
   const d = layout.depth, R = mulberry32(hash32(seed ^ Math.imul(d + 1, 0x5b07c3) ^ 0x5b075));
   const route = layout.route, obstacles = [...layout.guardians].filter(([, g]) => g.role === 'side').map(([k]) => k)
@@ -58,7 +66,7 @@ export function planSpots(seed, layout) {
     return { key: k, at, branch, tier, spots: [] };
   });
   const plans = new Map();
-  if (!info.length) return { spots: plans, list: [] };
+  if (!info.length) return { spots: plans, list: [], runestones: [] };
   const add = (room, kind) => {
     const n = room.spots.length;
     const spot = { id: `${seed}:${room.key}:spot:${n}`, kind, key: room.key, depth: d, tier: room.tier,
@@ -127,6 +135,29 @@ export function planSpots(seed, layout) {
     });
   }
   if (swordRoom) Object.assign(add(swordRoom, 'glass'), { part: 'camp', way: true });
+  const list = info.flatMap(r => r.spots);
+  // the rune stones (on a stream of their own, after all the rest: those stay as they were): the
+  // first on the way, a little into the depth; each next one in the room farthest from those
+  // chosen (spread over the depth, not all along its way), a room on the way a little before a
+  // branch, an easier one a little before a harder one
+  const runestones = [];
+  if (d > 0) {
+    const R4 = mulberry32(hash32(seed ^ Math.imul(d + 1, 0x2a7e5) ^ 0x2a75));
+    const last = Math.max(1, route.length - 1);
+    const free = info.filter(r => r.key !== layout.annex?.key && r.key !== layout.firstGlass && !layout.hordes.has(r.key)
+      && !r.spots.some(s => s.kind === 'outpost' || s.kind === 'camp'));
+    const at = r => { const [x, , z] = r.key.split(',').map(Number); return [x, z]; };
+    const apart = (a, b) => { const [ax, az] = at(a), [bx, bz] = at(b); return Math.hypot(ax - bx, az - bz); };
+    const chosen = [];
+    for (let i = 0; i < RUNESTONES; i++) {
+      const left = free.filter(r => !chosen.includes(r));
+      if (!left.length) break;
+      const fit = i === 0 ? r => -Math.abs(r.at / last - 0.25) * 6 - (r.branch ? 4 : 0) - r.tier
+        : r => Math.min(...chosen.map(c => apart(r, c))) * 2 - (r.branch ? 0.6 : 0) - r.tier * 0.3;
+      chosen.push(left.map(r => ({ r, s: fit(r) + R4() })).sort((a, b) => b.s - a.s)[0].r);
+    }
+    for (const room of chosen) runestones.push(add(room, 'runestone'));
+  }
   for (const r of info) if (r.spots.length) plans.set(r.key, r.spots);
-  return { spots: plans, list: info.flatMap(r => r.spots) };
+  return { spots: plans, list, runestones };
 }

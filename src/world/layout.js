@@ -288,7 +288,7 @@ function build(seed, d, above, theme, opts = {}) {
   for (const [k, s] of spanPlan.cells) if (s.role === 'gorge') { layout.roles.set(k, 'span'); layout.populationScale.set(k, .5); }
   // places kept free for whoever or whatever the quests put there (world/spots.js)
   const spots = planSpots(seed, layout);
-  layout.spots = spots.spots; layout.spotList = spots.list;
+  layout.spots = spots.spots; layout.spotList = spots.list; layout.runestones = spots.runestones;
   // the town's other tiles exist too (World.prepare), but are no rooms of the road: nothing above
   // planned anything in them
   if (town) { layout.town = town; for (const k of town.keys) layout.exists.add(k); }

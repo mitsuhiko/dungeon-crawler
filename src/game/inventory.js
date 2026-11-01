@@ -16,9 +16,10 @@
 // sells (core/shops.js smithStock): Buy, Enter or a double-click buys it.
 // Armor is worn from the bag (Wear / Take off, Enter, a double-click); what is worn shows under
 // the hero, a slot each, with what it all adds up to (game/armor.js wornDefense).
-// Three tabs: the bag, the quests (game/questpanel.js; U opens the panel there) and, once the
-// glassmaker's first glass is found, the memories (game/memorypanel.js: his recordings heard, to
-// hear again; playing one stops when the panel closes or the tab changes). Talking to a
+// Four tabs: the bag, the quests (game/questpanel.js; U opens the panel there), once the
+// glassmaker's first glass is found the memories (game/memorypanel.js: his recordings heard, to
+// hear again; playing one stops when the panel closes or the tab changes), and the map
+// (game/mappanel.js: the depths explored, the rune stones to travel to; M, or the minimap). Talking to a
 // villager (talkTo) opens the quests when they have something new for you (an offer, a quest to
 // hand in) or nothing to sell, else the bag with their wares; the other tab is a click away.
 // The layout keeps its size whatever is selected: the hero with what it holds on the left
@@ -56,6 +57,8 @@ import { GIVERS, giverQuests, giverOf } from '../core/quests.js';
 import { talkQuests, questLog, rescue, questTalk } from './quests.js';
 import { openQuests, closeQuests, drawQuests, onQuestChange } from './questpanel.js';
 import { drawMemories, memoriesOpen, stopMemories } from './memorypanel.js';
+import { drawMap, openMap, closeMap, showMapDepth, hooks as mapHooks } from './mappanel.js';
+import { hooks as runeHooks } from './runestones.js';
 import { tr, msg, num, say, noun, onLanguageChange } from '../i18n/i18n.js';
 
 const $ = id => document.getElementById(id);
@@ -64,9 +67,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // { from: 'shop', id: item id (an enchantment's at the Enchanter) } | null; trader: the villager
 // whose wares are shown (or null); work: the weapon (instanceId) the Enchanter or the Smith works on
 let selected = null, signature = '', shown = null, previousFocus = null, floorMode = false, trader = null, work = null;
-// tab: 'bag', 'quests' or 'memories'
+// tab: 'bag', 'quests', 'memories' or 'map'
 let tab = 'bag';
-const title = () => tr({ bag: msg('Inventory'), quests: msg('Quests'), memories: msg('Memories') }[tab]);
+const title = () => tr({ bag: msg('Inventory'), quests: msg('Quests'), memories: msg('Memories'), map: msg('Map') }[tab]);
 
 // the details' Quick bar row: one button per slot
 $('inventory-bar-keys').innerHTML = Array.from({ length: BAR_SIZE }, (_, i) => `<button data-bar-key="${i}" aria-pressed="false">${i + 1}</button>`).join('');
@@ -91,23 +94,26 @@ export function setInventoryOpen(open, villager = null, view = 'bag') {
       : player.inventory.equipped ? { from: 'bag', id: player.inventory.equipped } : null;
     openQuests(villager);
     showTab(view);
-  } else { trader = null; work = null; closeQuests(); stopMemories(); previousFocus?.focus(); }
+  } else { trader = null; work = null; closeQuests(); stopMemories(); closeMap(); previousFocus?.focus(); }
 }
 // show tab `view` ('bag', 'quests' or 'memories'), with the focus on its first thing
 function showTab(view) {
-  tab = view === 'quests' || view === 'memories' && memoriesOpen() ? view : 'bag';
+  tab = view === 'quests' || view === 'map' || view === 'memories' && memoriesOpen() ? view : 'bag';
   if (tab !== 'memories') stopMemories();
+  if (tab === 'map') openMap(); else closeMap();
   for (const b of $('inventory-tabs').querySelectorAll('[data-tab]')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
   $('inventory-title').textContent = title();
   // all stay laid out, one over the other, so the panel keeps its size between the tabs (style.css)
   document.querySelector('#inventory-panel .inventory-body').classList.toggle('away', tab !== 'bag');
   $('quests-body').classList.toggle('away', tab !== 'quests');
   $('memories-body').classList.toggle('away', tab !== 'memories');
+  $('map-body').classList.toggle('away', tab !== 'map');
   showKeys();
   signature = ''; updateInventory();
   const ware = trader && $('inventory-shop').querySelector('[data-ware]'), first = floorMode && $('inventory-floor').querySelector('[data-floor]');
-  const away = tab === 'bag' ? null : $(`${tab}-body`).querySelector('.quest-entry.selected') ?? $('inventory-tabs').querySelector(`[data-tab="${tab}"]`);
-  (away ?? (ware || first || $('inventory-close'))).focus();
+  const away = tab === 'bag' ? null : tab === 'map' ? $('map-canvas')
+    : $(`${tab}-body`).querySelector('.quest-entry.selected') ?? $('inventory-tabs').querySelector(`[data-tab="${tab}"]`);
+  (away ?? (ware || first || $('inventory-close'))).focus({ preventScroll: tab === 'map' });   // (the map: the panel not scrolled down to it)
 }
 // talk to villager v: their quests (when they have news for you: a quest to hand in, an offer not
 // seen yet; or nothing to sell), else their wares (core/shops.js, core/quests.js)
@@ -132,6 +138,15 @@ export const openShop = talkTo;
 export const toggleInventory = () => state.inventoryOpen && tab !== 'bag' ? showTab('bag') : setInventoryOpen(!state.inventoryOpen);
 // U: the quests, open or closed (from the bag: over to the quests)
 export const toggleQuests = () => state.inventoryOpen && tab !== 'quests' ? showTab('quests') : setInventoryOpen(!state.inventoryOpen, null, 'quests');
+// M (or the minimap): the map, open or closed (from another tab: over to the map)
+export const toggleMap = () => state.inventoryOpen && tab !== 'map' ? showTab('map') : setInventoryOpen(!state.inventoryOpen, null, 'map');
+// the map open on depth d, a woken rune stone chosen on it (game/runestones.js: one pressed awake)
+export function openMapAt(d, stone = null) {
+  if (!state.inventoryOpen) setInventoryOpen(true, null, 'map'); else if (tab !== 'map') showTab('map');
+  if (state.inventoryOpen && tab === 'map') showMapDepth(d, stone);
+}
+runeHooks.openMap = openMapAt;
+mapHooks.close = () => setInventoryOpen(false);
 onQuestChange(() => updateInventory());
 
 // 1-6 with the bag open: the selected bag item onto that quick bar slot (or off it again)
@@ -354,6 +369,7 @@ export function updateInventory() {
   if (!state.inventoryOpen) return;
   if (tab === 'quests') drawQuests();
   if (tab === 'memories') drawMemories();
+  if (tab === 'map') drawMap();
   $('inventory-tabs').querySelector('[data-tab="memories"]').hidden = !memoriesOpen();
   if (!floorMode && !trader && floorItems().length) floorMode = true;   // something was put down
   const inv = player.inventory, equipped = equippedItem(inv), allowed = equipmentAllowed(), floor = floorMode ? floorItems() : [];
@@ -612,7 +628,7 @@ $('inventory-tabs').addEventListener('click', e => { const b = e.target.closest(
 function showKeys() {
   $('inventory-close').textContent = tr('Close · Esc');
   for (const b of $('inventory-tabs').querySelectorAll('[data-tab]')) {
-    const action = { bag: 'inventory', quests: 'quests' }[b.dataset.tab], key = action && keyLabel(action);
+    const action = { bag: 'inventory', quests: 'quests', map: 'map' }[b.dataset.tab], key = action && keyLabel(action);
     b.title = key ? `${b.textContent} · ${key}` : b.textContent;
   }
 }

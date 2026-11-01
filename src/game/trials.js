@@ -31,6 +31,7 @@ import { HIDDEN, lanternLit } from '../core/tasks.js';
 import { path as teachPath, label as teachLabel } from './teach.js';
 import { tr, msg } from '../i18n/i18n.js';
 import { narrate } from './narrator.js';
+import { runestoneParts, canReachStone, runestoneLabel, pressRunestone } from './runestones.js';
 
 const $ = id => document.getElementById(id);
 const SD = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -351,7 +352,8 @@ const tablets = new WeakMap();   // clue -> its tablet (the same one every time)
 const tabletOf = c => tablets.get(c) ?? tablets.set(c, { id: 'tablet', type: 'tablet', key: c.key, x: c.x, y: c.y, z: c.z }).get(c);
 export function usableParts() {
   const m = mapTrial(), s = state.trial;
-  const out = (state.map?.clues || []).map(tabletOf);
+  // (and the rune stones, game/runestones.js: anywhere, not a trial's)
+  const out = [...(state.map?.clues || []).map(tabletOf), ...runestoneParts()];
   if (!m?.parts || !s || s.phase === 'resolved' || s.phase === 'spent') return out;   // (spent: nothing wins it now)
   for (const p of m.parts) {
     if (!PART_LABELS[p.type] || (p.puzzle != null && puzzleSolved(s, p.puzzle)) || (p.type === 'warm' && s.bits[p.id])) continue;
@@ -369,7 +371,7 @@ export function usableParts() {
 export const partUsable = p => usableParts().includes(p);
 const partDist = p => Math.hypot(p.x - player.x, p.z - player.z);
 // is the player close enough to use part p?
-export const canReachPart = p => partDist(p) < PART_REACH + (p.type === 'tablet' ? 0.3 : 0) && Math.abs(p.y - player.y) < 1.2;
+export const canReachPart = p => p.type === 'waystone' ? canReachStone(p) : partDist(p) < PART_REACH + (p.type === 'tablet' ? 0.3 : 0) && Math.abs(p.y - player.y) < 1.2;
 
 // the part the player stands at, if any (a tablet first, else the nearest): { id, type, label, x, y, z }
 export function partInReach() {
@@ -378,7 +380,7 @@ export function partInReach() {
   return best && { ...best, label: partLabel(best) };
 }
 // in the language of the moment
-export const partLabel = p => p.type === 'runestone' ? tr('Press the runestone {glyph}', { glyph: p.glyph })
+export const partLabel = p => p.type === 'waystone' ? runestoneLabel(p) : p.type === 'runestone' ? tr('Press the runestone {glyph}', { glyph: p.glyph })
   : p.type === 'brazier' ? (state.trial?.bits[p.id] ? tr('Put out the brazier (and its links)') : tr('Light the brazier (and its links)'))
   : PART_LABELS[p.type] ? tr(PART_LABELS[p.type]) : tr('Use it');
 
@@ -387,6 +389,7 @@ export const partLabel = p => p.type === 'runestone' ? tr('Press the runestone {
 export function usePart(p, fromOther = false) {
   const s = state.trial, m = mapTrial();
   if (p.type === 'tablet') { readTablet(p.key); return true; }
+  if (p.type === 'waystone') return pressRunestone(p);   // a rune stone (game/runestones.js)
   if (!s || !m || s.phase === 'spent') return false;
   if (!fromOther && mirroring()) { sfx('clink'); relay.trialAct?.({ key: s.key, act: 'part', id: p.id }); return true; }
   if (p.type === 'button' && m.kind === 'flood') { if (!fromOther) sfx('clink'); resolve(); return true; }

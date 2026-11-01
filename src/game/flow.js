@@ -431,7 +431,7 @@ onPropSet(set => {
 export function buildCube(c, open = openedSides(state.openedFaces, c.key)) {
   const k = c.key, m = c.map;
   questWorld(m);
-  return buildWorld(m, state.showPath, portalSeen(k, m), c.geo, open, gateLocked(m, state.run), townPadIn(m, state.run), state.run.chests);
+  return buildWorld(m, state.showPath, portalSeen(k, m), c.geo, open, gateLocked(m, state.run), townPadIn(m, state.run), state.run.chests, state.run.runes);
 }
 
 // the cube we are in, built again as it is now (its props, the quests' part: game/questworld.js)
@@ -513,6 +513,7 @@ function restoreRun({ run, faces, visited, deepest = 0 }) {
   r.smith = checkSmith(run.smith);
   for (const id of run.told ?? []) r.told.add(id);
   for (const id of run.met ?? []) r.met.add(id);
+  for (const id of run.runes ?? []) r.runes.add(id);   // the rune stones woken (game/runestones.js)
   r.quests = checkQuestLog(run.quests);
   r.quests.deepest = Math.max(r.quests.deepest, deepest);
   takeLoot(run.loot);
@@ -537,7 +538,7 @@ export function nextCube() {
   if (online.role === 'guest') { setStatus(tr('Only the host starts a new world')); return; }
   state.transitioning = true;
   fadeOut();
-  const level = worldLevel();   // (the dev tool's N: a new world of the same level)
+  const level = worldLevel();   // (the dev tool's Shift+N: a new world of the same level)
   setTimeout(() => newWorld(undefined, { level }).then(() => setStatus(tr('A new world'))), 380);
 }
 export const loadCube = () => newWorld(state.baseSeed);

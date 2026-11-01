@@ -39,7 +39,7 @@ being helped up and getting back in. Up to four players, co-op.
   its character (level, bag, gear); the floor loot and opened chests come in the `welcome`
   too (a guest getting back in takes the host's instead of its own). Every world is the
   same for the same seed, whatever the order cubes are visited in (`world/wfc.js`), so no
-  map goes over the wire. Only the host starts new worlds (with the dev tools, N); the guests follow
+  map goes over the wire. Only the host starts new worlds (with the dev tools, Shift+N); the guests follow
   (`world` brings the seed and the progress there, like the `welcome`).
 - **One clock:** the world's play time (`run.clock`: enemies coming back, the slime marsh's days,
   nights and meteorites) must be the same in every game. Counting frames it would drift (a slow
@@ -74,6 +74,8 @@ being helped up and getting back in. Up to four players, co-op.
 - Each explores where they like. Each player is an arrow in their colour on the minimap, pointing
   where they face (a friend off the map is a line under it: another depth, in a house, far
   away). The map is an octagon of glass, follows you and turns with the camera (`game/minimap.js`).
+  The large map (M, [map.md](map.md)) shows them too, on the depth they are on, and says who is
+  in a cube.
 - **The teleport scroll**: playing together, the room portal scroll goes by that name (the
   same item, `core/items.js` `together`, `game/itemnames.js`). Using it first asks where to
   (`game/teleportmenu.js`, on the quick bar keys or a click): where you came into the room, or
@@ -134,6 +136,11 @@ being helped up and getting back in. Up to four players, co-op.
   empty-handed). The beginning's scenes (the robot waking, the glass shown) play whole only for a
   player alone in their cube, else what they do happens at once; the tutorial's card is each
   player's own, and a guest gets none.
+- The rune stones ([map.md](map.md)) are the world's: whoever wakes one wakes it for everyone
+  (`rune`: its id and the world's seed), it glows in every game and the chronicle says who did
+  it (`news`, kind `rune`); the `welcome` and `world` bring the ones woken so far (`runes`).
+  Travelling to one is each player's own, like the town portal: allowed together, nobody is taken
+  along, and not out of a guardian's fight, a sealed trial room or Umbra's flooded reef.
 - The robot ([story.md](story.md#the-robot)): every player has their own, which lies asleep at
   the crash in town until they come by (a guest's too, in a world where the host's woke long ago:
   what the narrator said is not sent), says hello only to them and follows only them. Everyone sees everyone's: each game flies its own

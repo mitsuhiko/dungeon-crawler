@@ -9,7 +9,8 @@
 // instead, whatever is there. F or right Ctrl: the action key (game/action.js): open the chest
 // beside the player, else talk to the villager beside them, else collect what lies around
 // (Enter is the chat, game/console.js). I (or V): the inventory, with the floor in reach beside the bag
-// when something lies there (game/inventory.js); U: the inventory's quests tab; X: item labels.
+// when something lies there (game/inventory.js); U: the inventory's quests tab; M: its map
+// (game/mappanel.js; a click on the minimap too); N: the music on or off; X: item labels.
 // Tab or C: the camera key (game/camerakey.js): a tap switches the overview and the close view,
 // held it lets the mouse turn the overview. In the close view the mouse looks around (captured,
 // game/mouselook.js) and there is no walking by mouse: a click attacks where the crosshair is
@@ -22,7 +23,7 @@ import { stepZoom } from '../core/zoom.js';
 import { player, state, view, setStatus } from './state.js';
 import { spawnEntry, nextCube } from './flow.js';
 import { knockDown } from './ragdoll.js';
-import { toggleInventory, toggleQuests, setInventoryOpen, talkTo } from './inventory.js';
+import { toggleInventory, toggleQuests, toggleMap, setInventoryOpen, talkTo } from './inventory.js';
 import { controls, clearInput } from './inputstate.js';
 import { pointer, pickFloor, aimPoint, hoveredEnemy, pointAt, updatePointer } from './pointer.js';
 import { orderMove, orderAttack, orderPickup, orderChest, clearOrder, orderTrade, orderWalk, orderPart, orderWay, orderRobot, canTrade } from './orders.js';
@@ -129,6 +130,7 @@ addEventListener('keydown', e => {
   }
   if (is('inventory')) { if (!e.repeat) toggleInventory(); e.preventDefault(); return; }
   if (is('quests')) { if (!e.repeat) toggleQuests(); e.preventDefault(); return; }
+  if (is('map')) { if (!e.repeat) toggleMap(); e.preventDefault(); return; }
   if (e.code === 'Escape' && state.inventoryOpen) { setInventoryOpen(false); e.preventDefault(); return; }
   // the quick bar (with the inventory open: put the selected item there); not while typing
   // (the teleport scroll asking where to, game/teleportmenu.js: the keys pick there; Esc closes it)
@@ -146,8 +148,8 @@ addEventListener('keydown', e => {
   keys.add(e.code); typed.set(e.code, e.key);
   if (acts.length || e.code.startsWith('Arrow')) e.preventDefault();
   if (e.repeat) return;
+  if (e.code === 'KeyN' && e.shiftKey && state.dev) { nextCube(); return; }   // (dev: Shift+N; new worlds come from the main menu)
   for (const id of acts) PRESS[id]?.();
-  if (e.code === 'KeyN' && state.dev) nextCube();   // (new worlds come from the main menu)
 });
 addEventListener('keyup', e => { keys.delete(e.code); cameraKeyUp(e.code); });
 addEventListener('blur', () => { clearInput(); cancelCameraKey(); });
@@ -185,7 +187,7 @@ export const autoAttackHeld = () => !state.inventoryOpen && !state.transitioning
 export const wantsWalk = () => held('walk') || (controls.stick.m > 0 && controls.stick.m < WALK_BELOW);
 addEventListener('pointerdown', e => {
   // touches are game/touch.js's (a tap comes back through tapGame)
-  if (e.pointerType === 'touch' || e.target.tagName !== 'CANVAS') return;
+  if (e.pointerType === 'touch' || e.target.tagName !== 'CANVAS' || e.target.id === 'minimap') return;   // (the minimap opens the map: game/minimap.js)
   // mouse look: a click while the mouse is free only captures it
   if (mouseLook()) { e.preventDefault(); if (!looking()) capture(); else lookClick(e.button); return; }
   if (e.button !== 0 || state.transitioning || state.inventoryOpen) return;

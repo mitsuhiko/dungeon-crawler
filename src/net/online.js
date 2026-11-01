@@ -58,6 +58,8 @@ export const playerColor = slot => PLAYER_COLORS[slot] ?? PLAYER_COLORS[0];
 //                                             the gate opens and the recording plays for everyone
 // and Umbra's reef (game/dive.js):
 //   suit()                                    shown another's Umbra: we took the diving suit (the water rises)
+// and the rune stones (game/runestones.js):
+//   runestone(id)                             we woke rune stone id: it is awake for everyone
 export const relay = { hit: null, afflict: null, launch: null, landed: null, shoot: null, toss: null, defeated: null, visited: null,
   drop: null, take: null, forget: null, chat: null, news: null, quests: null, questAct: null, questReward: null,
-  trialAct: null, trialDone: null, trialStage: null, story: null, suit: null };
+  trialAct: null, trialDone: null, trialStage: null, story: null, suit: null, runestone: null };

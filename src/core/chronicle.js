@@ -40,6 +40,7 @@ export const KINDS = {
   kill: { group: 'events' },     // { count, xp }: enemies defeated (merged, MERGE_TIME)
   horde: { group: 'events' },    // {}: a horde woke up
   trial: { group: 'events' },    // { name, depth, what: 'resolved' | 'failed' }: a trial room (core/trials.js) met or failed
+  rune: { group: 'events' },     // { depth }: a rune stone woken (game/runestones.js): travel to it from the map
   trade: { group: 'events' },    // { item, copper }: bought something
   craft: { group: 'events' },    // { what: 'enchant' | 'reroll', item, enchant | affix, into?, copper }: the Enchanter
                                  // or the Smith worked on a weapon (core/crafting.js): enchanted it (an
@@ -54,7 +55,7 @@ export const KINDS = {
 };
 // what a friend is told about (net/session.js `news`)
 // learn: memory.html#diary (see learn/README.md)
-export const NEWS = new Set(['death', 'down', 'up', 'level', 'guardian', 'depth', 'loot', 'trial']);
+export const NEWS = new Set(['death', 'down', 'up', 'level', 'guardian', 'depth', 'loot', 'trial', 'rune']);
 
 export const createLog = () => ({ entries: [], next: 1, version: 0 });
 export function clearLog(log) { log.entries.length = 0; log.version++; }
@@ -145,6 +146,8 @@ export function describe({ kind, data: d = {}, who }) {
     }
     case 'kill': return tr('{count, plural, one {Defeated # enemy} other {Defeated # enemies}} · +{xp} XP', { count: d.count, xp: d.xp });
     case 'horde': return tr('A horde woke up!');
+    case 'rune': return you ? tr('You woke a rune stone on depth {depth}: travel to it from the map', { depth: d.depth })
+      : tr('{name} woke a rune stone on depth {depth}', { name, depth: d.depth });
     case 'trial': {
       const p = { name, trial: w(d.name), depth: d.depth };
       if (d.what === 'failed') return you ? tr('You failed {trial} on depth {depth}', p) : tr('{name} failed {trial} on depth {depth}', p);
@@ -222,6 +225,7 @@ export function cleanNews(kind, d) {
       return depth === null || !label ? null : { label, level: int(d.level, 1, 999), depth, boss: !!d.boss };
     }
     case 'depth': { const depth = int(d.depth, 1, 999); return depth === null ? null : { depth, place: words(d.place) }; }
+    case 'rune': { const depth = int(d.depth, 1, 999); return depth === null ? null : { depth }; }
     case 'loot': { const item = words(d.item, null); return item && Object.hasOwn(RARITY, d.rarity) ? { item, rarity: d.rarity } : null; }
     case 'trial': {
       const depth = int(d.depth, 0, 999), name = words(d.name, null);

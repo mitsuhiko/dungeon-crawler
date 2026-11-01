@@ -100,6 +100,11 @@ function checkSpots(world, map, plans) {
       assert.ok(props.out.some(q => q.spot === s.id && q.name.includes('ore_cart')), 'the supply cart');
       assert.ok(map.staticBlockers[s.cells[0]].some(b => b.spot === s.id), 'the cart is in the way');
     }
+    if (s.kind === 'runestone') {   // (game/runestones.js)
+      assert.equal(s.cells.length, 5, 'the stone and room on its four sides');
+      assert.ok(map.staticBlockers[s.cells[0]].some(b => b.spot === s.id), 'the stone is in the way');
+      assert.equal(Math.hypot(s.anchor.x - s.approach.x, s.anchor.z - s.approach.z), 1, 'pressed from beside it');
+    }
   }
 }
 

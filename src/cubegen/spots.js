@@ -11,6 +11,10 @@
 //         keeper on one side (`places`), the approach on another, and room to fight round it
 //   glass one cell, like a hiding place: where a bubble of the glassmaker's glass floats
 //         (game/intro.js); the one on the way (`way`) close by it, the other hidden like a hide
+//   runestone  a rune stone (`anchor`, it blocks its cell: render/runestones.js) and the four
+//         cells beside it level with it: one is where you stand to press it (`approach`), the
+//         others leave room round it for its guards to stand and the fight (game/enemyspawn.js);
+//         a little way in from the portals, not on the way itself (it stands in the way)
 // A spot's floors are flat, dry, under open sky or enough headroom, off portal pads, reward
 // sites and the horde's patch, and nothing is built on them (they claim their space against
 // structures, smoothing keeps them flat, props and enemies keep off them). One that does not
@@ -21,7 +25,7 @@ import { floorY } from '../core/surfaces.js';
 import { search, take } from './route.js';
 import { reachTo, reachFrom, isCramped } from './reach.js';
 
-const ORDER = { outpost: 0, camp: 1, seat: 2, hide: 3, glass: 4 };   // (the glass last: the others lie where they did before it)
+const ORDER = { outpost: 0, camp: 1, seat: 2, hide: 3, glass: 4, runestone: 5 };   // (the glass, then the rune stones last: the others lie where they did before them)
 const ROOM = 10;   // level floors (a level up or down) within 4 cells an outpost needs to fight on (more is better)
 const TRIES = 10;   // footprints tried (both ways searched) per spot
 const AXES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -61,6 +65,12 @@ export function placeSpots(ctx) {
         const d = Math.floor(R() * 4), [dx, dz] = AXES[d], g = beside(f, dx, dz);
         if (!g) continue;
         cells = [f, g]; access = g;
+      } else if (plan.kind === 'runestone') {
+        if (onRoute.has(f.id)) continue;   // (the stone stands there: not on the way itself)
+        const sides = AXES.map(([dx, dz]) => beside(f, dx, dz));
+        if (sides.some(g => !g)) continue;
+        cells = [f, ...sides];
+        access = sides[Math.floor(R() * 4)];
       } else if (plan.kind === 'outpost') {
         if (onRoute.has(f.id)) continue;   // (the cart stands there: not on the way itself)
         const ring = [];
@@ -88,6 +98,7 @@ export function placeSpots(ctx) {
         : plan.kind === 'hide' || plan.kind === 'glass' ? (onRoute.has(f.id) ? -4 : 0) + Math.min(portal, 8) * 0.5 + (plan.tier >= 3 ? f.top * 0.6 : 0)
         : plan.kind === 'seat' ? -Math.abs(portal - 5) + (cells.some(g => onRoute.has(g.id)) ? -1 : 0) + (byRoute(cells) ? 2 : 0)
         : plan.kind === 'outpost' ? -Math.abs(portal - 5) + (byRoute(cells) ? 2 : 0) + Math.min(cells.room, 30) * 0.25
+        : plan.kind === 'runestone' ? -Math.abs(portal - 6) * 0.6 + (byRoute(cells) ? 2 : 0)
         : -Math.abs(Math.hypot(entry.x - f.x, entry.z - f.z) - 4);
       // level ground all round stays level when smoothed
       let flat = 0;
@@ -137,17 +148,17 @@ export function finishSpots(ctx) {
     if (!reachable || !clear) { ctx.spotFailures.push({ id: plan.id, kind: plan.kind, reason: reachable ? 'not clear' : 'approach or return blocked' }); continue; }
     // somebody standing there (where a seat's NPC or a hidden person stands, a camp's places)
     // must not block the way: every portal still leads to the exit around them
-    const stood = plan.kind === 'camp' ? places : plan.kind === 'outpost' ? [f, ...places] : [f], was = stood.map(g => g.siteBlocked);
+    const stood = plan.kind === 'camp' ? places : plan.kind === 'outpost' ? [f, ...places] : [f], was = stood.map(g => g.siteBlocked);   // (a rune stone: itself)
     for (const g of stood) g.siteBlocked = true;
     const safe = reachTo(ctx, s.exit, true), around = ctx.portalFloors.every(p => safe?.has(p.id))
       && (plan.kind === 'hide' || plan.kind === 'glass' || safe?.has(access.id) && reachTo(ctx, access, true)?.has(s.entry.id));
     stood.forEach((g, i) => { g.siteBlocked = was[i]; });
-    // (an outpost's cart stands on its cell: not on one the route's ways go over either)
-    const onRoute = plan.kind === 'outpost' && (ctx.segments || []).some(sg => sg.some(m => m.from === f || m.to === f || m.cells.includes(f.c)));
+    // (an outpost's cart, a rune stone stands on its cell: not on one the route's ways go over either)
+    const onRoute = (plan.kind === 'outpost' || plan.kind === 'runestone') && (ctx.segments || []).some(sg => sg.some(m => m.from === f || m.to === f || m.cells.includes(f.c)));
     if (!around || onRoute) { ctx.spotFailures.push({ id: plan.id, kind: plan.kind, reason: 'in the way' }); continue; }
     // facing the one who comes to talk (a seat), the fire (a camp's places)
     const face = (from, to) => Math.atan2(to.x - from.x, to.z - from.z);
-    const anchor = at(f, plan.kind === 'seat' ? face(f, access) : 0), approach = at(access, face(access, f));
+    const anchor = at(f, plan.kind === 'seat' || plan.kind === 'runestone' ? face(f, access) : 0), approach = at(access, face(access, f));
     spots.push({ id: plan.id, kind: plan.kind, tier: plan.tier, depth: plan.depth, seed: plan.seed, layer: f.layer,
       ...plan.kind === 'glass' ? { glass: plan.glass, way: plan.way, ...plan.part ? { part: plan.part } : {} } : {},
       cells: cells.map(g => g.c), floor: f.id, accessFloor: access.id, anchor, approach,
@@ -160,6 +171,11 @@ export function finishSpots(ctx) {
       blockers.push({ x: cart.x, z: cart.z, r: 0.42, bottom: cart.y, top: cart.y + 0.9, spot: plan.id });
       f.siteBlocked = true; f.siteBlockTop = f.top + 2;
       if (corner) placements.push({ name: 'relics_abandoned_pack_a', ...at(corner, face(corner, f)), s: 1, spot: plan.id });
+    }
+    if (plan.kind === 'runestone') {
+      // the stone blocks its cell (the way round it was checked with it there)
+      blockers.push({ x: anchor.x, z: anchor.z, r: 0.34, bottom: anchor.y, top: anchor.y + 1.5, spot: plan.id });
+      f.siteBlocked = true; f.siteBlockTop = f.top + 3;
     }
     if (plan.kind === 'camp') {
       const R = mulberry32(plan.seed), corner = cells.slice(1).find(g => g.x !== f.x && g.z !== f.z && g !== access);

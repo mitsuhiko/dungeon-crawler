@@ -33,7 +33,10 @@ On, the body has the `touch` class and the layout changes with it (`style.css`).
   a menu button for the Esc menu. With the inventory open, a bag item goes on the bar with
   the Quick bar buttons (1-6) beside it, or a tap on a slot of the bar (which pulses while such
   an item is selected); the same slot again takes it off.
-  The potions at work show below it; the minimap gets smaller.
+  The potions at work show below it; the minimap gets smaller. A tap on the minimap opens the
+  large map (the inventory's Map tab, [map.md](map.md)): one finger pans it, two pinch to zoom,
+  a tap on a cube says what is there, a tap on a woken rune stone chooses it and a second tap
+  (or its Travel button) goes there; on a phone its depths are a row along its top.
 - The stick and buttons hide while the inventory is open.
 
 ### Phones

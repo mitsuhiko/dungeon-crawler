@@ -37,7 +37,9 @@ import { devNarrate } from './narrator.js';
 import { playFilm } from '../film/player.js';
 import { FILMS } from '../film/films.js';
 import { LINES } from '../core/narration.js';
-import { nextCube, newWorld } from './flow.js';
+import { nextCube, newWorld, shareVisit } from './flow.js';
+import { wakeAll } from './runestones.js';
+import { RUNESTONES } from '../core/runestones.js';
 import { pickFloor, pointer } from './pointer.js';
 import { heroLevel, MAX_WORLDS } from '../core/save.js';
 import { store, play, saveAs, newSavedWorld, savedHero, savedWorld, forget } from './save.js';
@@ -278,6 +280,25 @@ dev({
   args: [{ name: 'kind', type: 'spotkind', optional: true }, { name: 'depth', type: 'depth', optional: true }],
   async run({ kind, depth }) { await goSpot(kind, depth === undefined ? undefined : Number(depth)); },
 });
+dev({
+  name: 'runes', help: `wake the rune stones (${RUNESTONES} a depth, world/spots.js) of this depth (in town: of every one), or of that one (0: every one; docs/map.md); /spot runestone goes to them`,
+  args: [{ name: 'depth', type: 'depth', optional: true }],
+  run({ depth }) {
+    if (!state.cubes) return 'No world';
+    const d = depth === undefined ? state.map?.depth ?? 0 : Number(depth), n = wakeAll(d || null);
+    return `${n} rune stone${n === 1 ? '' : 's'} woken${d ? ` on depth ${d}` : ' on every depth'}`;
+  },
+});
+dev({
+  name: 'reveal', help: 'the map (M) of this depth, or of that one, as if every cube of it was explored (they are made in the background)',
+  args: [{ name: 'depth', type: 'depth', optional: true }],
+  run({ depth }) {
+    if (!state.cubes) return 'No world';
+    const d = depth === undefined ? state.map?.depth ?? 0 : Number(depth), keys = [...state.cubes.layout(d).exists];
+    for (const k of keys) shareVisit(k);
+    return `${keys.length} cubes of depth ${d} explored`;
+  },
+});
 addType(commands, { name: 'trialdo', values: () => [
   ...TRIAL_KINDS.map(k => ({ value: k, label: k, hint: `${TRIALS[k].name} (${TRIALS[k].family})`, color: TRIALS[k].color })),
   { value: 'win', label: 'win', hint: 'resolve the trial of this room' }, { value: 'fail', label: 'fail', hint: 'fail it' },
@@ -336,7 +357,7 @@ dev({
   },
 });
 dev({
-  name: 'newworld', help: 'start a new world (N), with this seed, of this world level (else the one played now)',
+  name: 'newworld', help: 'start a new world (Shift+N), with this seed, of this world level (else the one played now)',
   args: [{ name: 'seed', type: 'int', optional: true, min: 0, max: 2 ** 32 - 1 }, { name: 'level', type: 'int', optional: true, min: 1, max: MAX_WORLD_LEVEL }],
   run({ seed, level }) {
     if (online.role === 'guest') return 'Only the host starts a new world';

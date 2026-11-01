@@ -43,7 +43,8 @@ export function addAccess(ctx) {
     for (const f of floors) {
       if (!stand(f) || seen.has(f.id) || done.has(f.id) || failed.has(f.id)) continue;
       const comp = [f], set = new Set([f.id]);
-      const grow = g => { if (!set.has(g.id) && stand(g) && !seen.has(g.id)) { set.add(g.id); comp.push(g); } };
+      // (g undefined: a landing of a climb, a node of the graph but no floor)
+      const grow = g => { if (g && !set.has(g.id) && stand(g) && !seen.has(g.id)) { set.add(g.id); comp.push(g); } };
       for (let i = 0; i < comp.length; i++) {
         const g = comp[i];
         for (const id of und.get(g.id) || []) grow(floors[id]);

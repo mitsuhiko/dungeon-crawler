@@ -6,7 +6,7 @@
 // (named in gold, with their trade, core/shops.js), clicked to go and talk to them. A villager
 // with a quest for you (!) or one to hand in (?, core/quests.js giverMark) is always labelled.
 // A trial's parts the action key uses (levers, runestones, braziers, a rune room's tablet ...;
-// game/trials.js usableParts) are hovered too, labelled with what using them does, and clicked to
+// game/trials.js usableParts; and the rune stones to travel by, game/runestones.js) are hovered too, labelled with what using them does, and clicked to
 // go and use them. The ways out of the cube (portals, the town portal, house doors: game/ways.js)
 // too, labelled with where they go, and clicked to walk up to them and through. The robot asleep at
 // the crash in town (game/robot.js sleepingRobot) too, clicked to walk up to it and wake it. The
@@ -115,7 +115,7 @@ const v = new THREE.Vector3();
 function screen(p, off) {
   if (isVillager(p)) v.set(p.x + off.x, p.y + off.y + 1.05, p.z + off.z).project(camera);
   else if (p.prestige) v.set(p.anchor.x + off.x, p.anchor.y + off.y + 0.75, p.anchor.z + off.z).project(camera);
-  else if (isPart(p)) v.set(p.x + off.x, p.y + off.y + 0.9, p.z + off.z).project(camera);
+  else if (isPart(p)) v.set(p.x + off.x, p.y + off.y + (p.type === 'waystone' ? 2.15 : 0.9), p.z + off.z).project(camera);
   else if (isWay(p)) v.set(p.x + off.x, p.y + off.y, p.z + off.z).project(camera);
   else v.set(p.x + off.x, p.y + off.y + (p.labelY ?? (p.gen ? 0.12 : 0.35)), p.z + off.z).project(camera);
   if (v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) return null;
@@ -148,6 +148,7 @@ function wayBody(p, off) {
 export function bodyOf(p, off) {
   if (isVillager(p)) return body(p.x, p.y, p.z, NPC_H + 0.1, 0.32, off);
   if (p.prestige) return body(p.anchor.x, p.anchor.y, p.anchor.z, 0.8, 0.5, off);
+  if (isPart(p) && p.type === 'waystone') return body(p.x, p.y, p.z, 2.05, 0.45, off);   // (a rune stone, its crystal over it: render/runestones.js)
   if (isPart(p)) return body(p.x, p.y, p.z, 0.9, 0.4, off);
   if (isWay(p)) return wayBody(p, off);
   if (isRobot(p)) return body(p.x, p.y, p.z, 0.5, 0.45, off);   // (lying on its back: render/robot.js RobotDormant)

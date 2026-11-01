@@ -54,6 +54,12 @@ The game is plain ES modules and a vendored three.js; there is no build step.
   - Quests (`src/core/quests.js`, `src/game/quests.js`, the inventory's Quests tab in
     `src/game/questpanel.js`, U): the villagers give quests, shared by everyone in the world and
     saved with it (`docs/quests.md`).
+  - The map (the inventory's Map tab, `src/game/mappanel.js`, its pictures `src/game/mapdraw.js`;
+    M, or a click on the minimap) and the rune stones (`src/game/runestones.js`, their rules
+    `src/core/runestones.js`, their look `src/render/runestones.js`; planned with the spots,
+    `src/world/spots.js`, placed by `src/cubegen/spots.js`): each depth from above, the depths
+    reached down its side; three rune stones a depth, guarded, woken once for everyone in the
+    world and saved with it, and the map travels to any woken one (`docs/map.md`).
   - The beginning (`src/core/intro.js`, `src/game/intro.js`, `docs/story.md` "The beginning"), the
     game's tutorial too: a new world comes up at noon; the hero, empty-handed and remembering
     nothing, comes out of the inn; down the street, the shards of a big glass that crashed on the

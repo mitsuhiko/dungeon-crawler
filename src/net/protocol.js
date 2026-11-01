@@ -13,15 +13,16 @@
 //                                      page's player; the same pid again is the friend getting
 //                                      back in after a lost connection)
 //   welcome { v, slot, players, seed, level, defeated, gates, visited, faces, loot, dropped, chests,
-//             quests, clock, kills }
+//             quests, clock, kills, runes }
 //                                      host -> guest: you are player `slot`, with players
 //                                      ([{ slot, name }], the host too); play in this world (of
 //                                      this level: core/enemies.js depthLevel)
 //                                      (and what was defeated, opened and discovered in it so
 //                                      far, the loot on its floors: [[cube, pickups]], the
 //                                      sources that dropped, the chests open, the quest log, its
-//                                      play time (game/worldclock.js) and the kills that come
-//                                      back: core/respawn.js)
+//                                      play time (game/worldclock.js), the kills that come
+//                                      back: core/respawn.js, and the rune stones woken:
+//                                      game/runestones.js)
 //   joined  { slot, name }             host -> guests: someone came (or got back in)
 //   left    { slot }                   host -> guests: someone went
 //   visited { keys }                   to all: I discovered these cubes (yours too now)
@@ -94,6 +95,9 @@
 //                                      recording plays for everyone at once; found his glass on
 //                                      the road past the rock ('camp'): its recording plays for
 //                                      everyone
+// The rune stones (game/runestones.js, docs/map.md):
+//   rune    { id, seed }               to all: in world `seed` I woke rune stone `id` (a spot id): it is
+//                                      awake for you too, the map travels to it
 // and between a guest and the host only:
 //   ping    { clock? }                 both ways, every second, also from a background tab (the
 //                                      host's: its play time now, game/worldclock.js)
@@ -107,13 +111,13 @@ import { parseLook } from '../core/looks.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
-export const PROTOCOL = 20;   // (20: cubes of 24 cells, core/constants.js N)
+export const PROTOCOL = 21;   // (20: cubes of 24 cells, core/constants.js N; 21: the rune stones, in the cubes and `rune`)
 
 export const MAX_PLAYERS = 4;
 // what the host passes on from one guest to the others
 export const RELAYED = new Set(['me', 'visited', 'faces', 'defeated', 'roster', 'foes', 'want', 'handover',
   'hit', 'afflict', 'hurt', 'shot', 'landed', 'arrow', 'flask', 'drop', 'take', 'forget', 'chat', 'news', 'quest', 'skinWant', 'skin',
-  'trial', 'trialAct', 'story', 'suit']);
+  'trial', 'trialAct', 'story', 'suit', 'rune']);
 // is a message addressed `to` (undefined: everyone) for player `slot`?
 export const isFor = (to, slot) => to === undefined || to === slot || Array.isArray(to) && to.includes(slot);
 // a valid `to` from a guest: a slot, a list of slots, or none (everyone)

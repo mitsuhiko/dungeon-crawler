@@ -15,7 +15,7 @@ export const guardianTitle = (role, kind) => `${role === 'descent' ? 'â™›' : 'â—
 const bossName = boss => boss ? boss[0].toUpperCase() + boss.slice(1) : null;
 // The guardian of map, as words a message says (src/i18n/i18n.js): a boss by his name, any other by
 // its kind (game/enemyspawn.js guardianKind), else by its tier. kind: the guardian's, if known.
-function guardianCalled(map, kind) {
+export function guardianCalled(map, kind) {
   if (map.guardian?.boss) return noun(bossName(map.guardian.boss), { proper: true });
   if (kind) return enemyWords(kind);
   return map.guardian?.role === 'descent' ? noun('Temp Boss', { caps: true }) : noun('guardian');

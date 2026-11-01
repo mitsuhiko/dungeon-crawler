@@ -249,7 +249,8 @@ const lastSpot = {};
 export async function goSpot(kind, from) {
   if (state.transitioning || state.inventoryOpen) return;
   const cubes = state.cubes, here = from ?? state.map?.depth ?? 0, all = [];
-  for (let d = here; d <= 20; d++) all.push(...cubes.layout(d).spotList.filter(s => !kind || s.kind === kind).sort((a, b) => a.tier - b.tier));
+  // (the rune stones are no quest's: kept apart, world/spots.js)
+  for (let d = here; d <= 20; d++) all.push(...[...cubes.layout(d).spotList, ...cubes.layout(d).runestones ?? []].filter(s => !kind || s.kind === kind).sort((a, b) => a.tier - b.tier));
   if (!all.length) { setStatus(`No ${kind ?? ''} spot from here down`); return; }
   const plan = all[(all.findIndex(s => s.id === lastSpot[kind]) + 1) % all.length];
   lastSpot[kind] = plan.id;

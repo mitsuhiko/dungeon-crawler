@@ -43,6 +43,8 @@ import { cancelSword } from '../game/sword.js';
 import { cancelCast } from '../game/townportal.js';
 import { clearMouseInput } from '../game/orders.js';
 import { setInventoryOpen } from '../game/inventory.js';
+import { shareRunestone } from '../game/runestones.js';
+import { checkRunes } from '../core/save.js';
 import { lockPortalsHere } from '../game/portals.js';
 import { truePosition } from '../game/travel.js';
 import { equippedWeapon, readiedFlask } from '../core/combat.js';
@@ -302,7 +304,7 @@ function apart() {
   foes = null;
   relay.hit = relay.afflict = relay.launch = relay.landed = relay.shoot = relay.toss = relay.defeated = relay.visited = null;
   relay.drop = relay.take = relay.forget = relay.chat = relay.news = relay.story = null;
-  relay.trialAct = relay.trialDone = relay.trialStage = relay.suit = null;
+  relay.trialAct = relay.trialDone = relay.trialStage = relay.suit = relay.runestone = null;
   relay.quests = relay.questAct = relay.questReward = null;
   settleClaims();   // what we reached for is ours: nobody else is left to have it
   setOthers([]);
@@ -354,7 +356,7 @@ function welcome(l, slot, name, id, again) {
 const worldOf = () => state.cubes ? `${state.cubes.seed}:${state.cubes.level}` : null;
 const runOf = () => ({ level: state.cubes?.level ?? 1, defeated: [...state.run.defeated], gates: [...state.run.unlockedGates], visited: visitedKeys(), faces: [...state.openedFaces],
   trials: [...state.run.trials], loot: allLoot(), dropped: [...state.run.dropped], chests: [...state.run.chests], quests: questLogPacked(),
-  clock: worldClock(), kills: packKills(state.run.kills) });
+  clock: worldClock(), kills: packKills(state.run.kills), runes: [...state.run.runes] });
 
 function fromGuest(p, l, m) {
   p.lastHeard = performance.now();
@@ -442,7 +444,7 @@ function readRun(m) {
     .map(([k, items]) => [k, items.filter(p => typeof p?.source === 'string' && validPickup(p))]);
   return { level: cleanWorldLevel(m.level), defeated: list(m.defeated), gates: list(m.gates), visited: list(m.visited), faces: list(m.faces), trials: checkTrials(m.trials),
     loot, dropped: list(m.dropped), chests: list(m.chests), quests: m.quests ?? null,
-    clock: Number.isFinite(m.clock) && m.clock >= 0 ? m.clock : null, kills: unpackKills(m.kills) };
+    clock: Number.isFinite(m.clock) && m.clock >= 0 ? m.clock : null, kills: unpackKills(m.kills), runes: checkRunes(m.runes) };
 }
 
 // we (a guest) lost the host: it said goodbye (bye), or the connection broke (then we try to
@@ -490,6 +492,7 @@ function together() {
   // the chat box: what we say, and what happens to us (game/log.js)
   relay.chat = text => post({ t: 'chat', text });
   relay.story = what => post({ t: 'story', what, seed: state.cubes?.seed });
+  relay.runestone = id => post({ t: 'rune', id, seed: state.cubes?.seed });   // a rune stone woken (game/runestones.js)
   relay.news = (kind, data) => post({ t: 'news', kind, data });
   relay.visited = key => post({ t: 'visited', keys: [key] });
   // the world's quests: the host decides and tells, a guest asks (game/quests.js)
@@ -581,6 +584,8 @@ function shared(m, p) {
   }
   // the beginning (game/intro.js): a gate opened, a recording set off, for everyone (in this world)
   else if (m.t === 'story') { if (isStoryNews(m.what) && m.seed === state.cubes?.seed) heardStory(m.what); }
+  // a rune stone woken (game/runestones.js): for everyone (in this world)
+  else if (m.t === 'rune') { if (m.seed === state.cubes?.seed && checkRunes([m.id]).length) shareRunestone(m.id); }
   else if (m.t === 'visited' && Array.isArray(m.keys)) { for (const k of m.keys) if (typeof k === 'string') shareVisit(k); }
   // the quests: the host hears what a guest did, a guest what the host decided
   else if (m.t === 'quest') { if (online.role === 'host') guestQuestAct(m); }
@@ -770,6 +775,7 @@ function takeRun(run) {
   shareFaces(visitedFaces(run.faces, new Set(run.visited)));
   facesSent = state.openedFaces.size;
   if (run.quests) takeQuestLog(run.quests, true);
+  for (const id of run.runes) shareRunestone(id);   // (the rune stones woken: ours too)
 }
 
 // --- every frame -----------------------------------------------------------------------------

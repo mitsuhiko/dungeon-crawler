@@ -10,6 +10,7 @@
 // leads towards it: out through a portal or an open face, or on the way down or up. Inside a house it shows the cube outside, centred on the house's door. Below:
 // the cube we are in and its depth. Asked for every frame (main.js), drawn when the camera or a
 // player moved, else REFRESH times a second (for the rest: faces opening, portals, friends' lines).
+// A click or a tap on it opens the large map (the inventory's Map tab, game/mappanel.js).
 import { KIND_COLOR } from '../world/tiles.js';
 import { key, parse, step } from '../world/coords.js';
 import { state, player, view } from './state.js';
@@ -22,9 +23,10 @@ import { truePosition } from './travel.js';
 import { followedQuest } from './questpanel.js';
 import { questTarget, questWay } from './questworld.js';
 import { DISPLAY, BODY } from '../render/fonts.js';
-import { tr } from '../i18n/i18n.js';
+import { tr, onLanguageChange } from '../i18n/i18n.js';
+import { toggleMap } from './inventory.js';
 import { uiScale } from './uiscale.js';
-import { minimapSize } from './settings.js';
+import { minimapSize, keyLabel, onSettingsChange } from './settings.js';
 
 // R: the map's radius in cubes; REACH: the cubes around ours that can show inside it
 const R = 3.5, CELL = 24, PAD = 6, SIZE = 2 * R * CELL + PAD * 2, C = SIZE / 2, REACH = Math.ceil(R + 0.5);
@@ -32,6 +34,12 @@ const R = 3.5, CELL = 24, PAD = 6, SIZE = 2 * R * CELL + PAD * 2, C = SIZE / 2, 
 // UI scale); the stylesheet gives its width, the height follows the canvas's proportions
 const canvas = Object.assign(document.createElement('canvas'), { id: 'minimap', width: SIZE, height: SIZE + 42 });
 document.body.appendChild(canvas);
+const tellKey = () => { const k = keyLabel('map', { both: false }); canvas.title = k ? tr('The map ({key})', { key: k }) : tr('The map'); };
+tellKey();
+onSettingsChange(tellKey);
+canvas.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); });
+canvas.addEventListener('click', e => { e.stopPropagation(); if (state.mode === 'play' && !state.transitioning) toggleMap(); });
+onLanguageChange(tellKey);
 const g = canvas.getContext('2d');
 const OUTLINE = '#0b0c0d', QUEST = '#ffd34a', TEXT = '#98aaa5';
 // the octagon: its corners RIM from the centre, its sides APO (the map's edge, for what is on it)

@@ -4,7 +4,7 @@ The menus borrow the look of the glass bird on the splash screen (`src/game/spla
 `blender/glassbird.py`): faceted teal glass in the dark, lit from above, with an amber core
 glowing inside. The world is low-poly and flat-shaded too, so the menus now match it. The main
 menu, the settings, the Esc menu, the "Leave the fight?" and "You died" questions, the teleport
-scroll's list, the skin painter, the inventory (with its quests) and the HUD have it: the quick
+scroll's list, the skin painter, the inventory (with its quests, memories and map) and the HUD have it: the quick
 bar, the chat (open), the minimap, the potions at work, the quest followed and the boss bar (`style.css`, the
 block "the glass" near the top).
 
@@ -30,7 +30,7 @@ block "the glass" near the top).
 - **The dark stage.** The main menu darkens towards its left edge, the other menus with a
   vignette, in the near-black the bird waits in (`--void`), not in blue; dying, in a red dark.
 - **A panel keeps its size.** Switching its tabs or pages never makes it larger or smaller: the
-  settings' pages and the inventory's bag and quests lie in one place, the ones not shown only
+  settings' pages and the inventory's bag, quests, memories and map lie in one place, the ones not shown only
   unseen, so the panel is as large as the largest. Nothing in a header changes its width with the
   tab either (the inventory's close button names only Esc).
 
@@ -62,7 +62,15 @@ game.
 
 The minimap is drawn on a canvas (`game/minimap.js`), so it repeats the look there: an upright
 octagon (a cut stone) of the same glass, lit from the top left, with the spark at its upper left
-corner, the N on a little cut stone, and a plate under it for its lines.
+corner, the N on a little cut stone, and a plate under it for its lines. A click or a tap on it opens the large map.
+
+The large map (the inventory's Map tab, `game/mappanel.js`, [map.md](map.md)) is a canvas too,
+sunk into the panel as a well (`#map-view`, like the details beside it): each explored cube a
+picture of its ground cut like a stone, lit on its top left edge, on a faint teal lattice; its
+marks in the minimap's colours; what is chosen or under the pointer edged in amber with a glow;
+the woken rune stones amber gems glowing (they are alive), the sleeping ones hollow teal glass. The
+depths down its side are buttons like the quests' list, the one shown glowing amber from inside
+(a tab), its rune stones as small amber diamonds.
 
 The sliders in the settings are a thin line of glass, amber as far as they are filled
 (`--fill`, set by `src/game/settingsmenu.js`), with a cut gem to hold.

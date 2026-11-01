@@ -13,7 +13,7 @@ import { checkSkin } from './skin.js';
 // Its level (core/enemies.js depthLevel, worldLevelFor) is fixed when it is made: worlds saved
 // before there were levels are level 1.
 //   { v, id, seed, copy, name, level, created, updated, deepest,
-//     run: { defeated, gates, chests, dropped, loot, townPortal, quests, clock, kills, trials, smith, told, met }, faces, visited,
+//     run: { defeated, gates, chests, dropped, loot, townPortal, quests, clock, kills, trials, smith, told, met, runes }, faces, visited,
 //     spots: { [heroId]: { cube, arrival: { x, y, z } } } }
 // The map itself is never saved: the same seed makes the same cubes (world/). The name is
 // written along (to read the file) but never read back.
@@ -134,7 +134,7 @@ export function createWorld(seed, { copy = 1, level = 1, id = newId('w'), now = 
   seed >>>= 0;
   return { v: SAVE_VERSION, id, seed, copy, name: savedWorldName(seed, copy), level: cleanWorldLevel(level), created: now, updated: now, deepest: 0,
     run: { defeated: [], gates: [], chests: [], dropped: [], loot: [], townPortal: null, quests: createQuestLog(), clock: START_CLOCK, kills: [], trials: [],
-      smith: { visit: 0, sold: [] }, told: [], met: [] },
+      smith: { visit: 0, sold: [] }, told: [], met: [], runes: [] },
     faces: [], visited: [], spots: {} };
 }
 
@@ -166,9 +166,12 @@ export function checkWorld(w) {
     run: { defeated: strings(run.defeated), gates: strings(run.gates), chests: strings(run.chests), dropped: strings(run.dropped),
       loot: checkLoot(run.loot), townPortal: checkTownPortal(run.townPortal), quests: checkQuestLog(run.quests),
       clock: time(run.clock), kills: packKills(unpackKills(run.kills)), trials: checkTrials(run.trials), smith: checkSmith(run.smith),
-      told: strings(run.told), met: strings(run.met) },
+      told: strings(run.told), met: strings(run.met), runes: checkRunes(run.runes) },
     faces: strings(w.faces), visited: strings(w.visited), spots };
 }
+// the rune stones woken (game/runestones.js): their spot ids (world/spots.js '<seed>:<cube>:spot:<n>'), each once
+const RUNE_ID = /^\d+:-?\d+,-?\d+,-?\d+:spot:\d+$/;
+export const checkRunes = r => [...new Set(strings(r).filter(id => RUNE_ID.test(id)))];
 // the Smith's stock (core/progression.js createRun smith): which visit, what of it was bought
 export const checkSmith = s => ({ visit: Number.isSafeInteger(s?.visit) && s.visit >= 0 ? s.visit : 0,
   sold: Array.isArray(s?.sold) ? [...new Set(s.sold.filter(i => Number.isInteger(i) && i >= 0 && i < 32))] : [] });

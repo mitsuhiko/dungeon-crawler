@@ -25,7 +25,7 @@
    sunk into them, the dropdown's list. */
 :where(.glass:not(.glass-back), .glass :is(button, input:not([type=range], [type=color]), select, .title-link):not(.plain), .dropdown-list,
   #inventory-hero, #inventory-details, #inventory-act, #quests-details, #quests-talk, .coin-slot, #menu-room, #skin-view, #effects .fx, #chat-popup, #quest-track,
-  #tutorial),
+  #tutorial, #map-view, #map-details),
   .glass.glass-back::before {
   --c1: 5px; --c2: 5px; --c3: 5px; --c4: 5px; --glow-at: 50% 115%; --glint-color: var(--glass-hi);
   --face: #18201f; --edge-hi: #4d6a64; --edge-lo: #263231;
@@ -55,7 +55,7 @@
 .glass.glass-back { isolation: isolate; }
 .glass.glass-back::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 /* a well sunk into a panel (the hero's picture, the details, ...): darker, its lower edge the lit one */
-:where(#inventory-hero, #inventory-details, #inventory-act, #quests-details, #quests-talk, .coin-slot, #menu-room, #skin-view) {
+:where(#inventory-hero, #inventory-details, #inventory-act, #quests-details, #quests-talk, .coin-slot, #menu-room, #skin-view, #map-view, #map-details) {
   --c1: 8px; --c2: 0px; --c3: 8px; --c4: 0px; --face: #090c0cb3; --edge-hi: #1a2321; --edge-lo: #34463f; }
 /* pressed things: the glint crosses them on hover (the way back is instant, not swept) */
 :where(.glass :is(button, .title-link):not(.plain)) { cursor: pointer; }
@@ -120,7 +120,8 @@ body.rewinding #rewind { opacity: 1; animation: rewind-lines .6s linear infinite
   color: #eafcff; text-shadow: 0 0 18px #7fd8ff, 0 0 4px #ffffff; letter-spacing: -8px; animation: rewind-blink 1s steps(2) infinite; }
 @keyframes rewind-lines { to { background-position: 0 12px, 0 0; } }
 @keyframes rewind-blink { 50% { opacity: .3; } }
-#minimap { position: absolute; z-index: 5; top: calc(14px + var(--safe-t)); right: calc(16px + var(--safe-r)); pointer-events: none; width: calc(180px * var(--map, 1)); height: auto; }
+/* (a click or a tap on it opens the large map: game/minimap.js) */
+#minimap { position: absolute; z-index: 5; top: calc(14px + var(--safe-t)); right: calc(16px + var(--safe-r)); width: calc(180px * var(--map, 1)); height: auto; cursor: pointer; }
 /* the minimap's size (the settings, game/display.js): --map times its width, the quest under it follows; 0 hides it */
 body.no-map #minimap { display: none; }
 #loading { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
@@ -338,8 +339,8 @@ body.orbiting, body.orbiting * { cursor: none !important; }
   display: grid; grid-template-columns: minmax(0, 1fr); }
 /* the bag and the quests in one place, the one not shown only unseen: the panel is as large as the larger, whichever is in front */
 #inventory-panel header { grid-area: 1 / 1; } #inventory-feedback { grid-area: 3 / 1; }
-#inventory-panel :is(.inventory-body, #quests-body, #memories-body) { grid-area: 2 / 1; }
-#inventory-panel :is(.inventory-body, #quests-body, #memories-body).away { visibility: hidden; }
+#inventory-panel :is(.inventory-body, #quests-body, #memories-body, #map-body) { grid-area: 2 / 1; }
+#inventory-panel :is(.inventory-body, #quests-body, #memories-body, #map-body).away { visibility: hidden; }
 #inventory-panel.with-floor { width: min(1200px, 100%); }
 #inventory-panel header { display: flex; align-items: center; gap: 18px; }
 #inventory-panel header > div:first-child { flex: none; }
@@ -514,6 +515,32 @@ body.calm :is(.rainbow, #rewind, #rewind *, #quickbar.assigning.ready, #effects 
 .quest-rewards li img { width: 1.6em; height: 1.6em; object-fit: contain; vertical-align: middle; margin-right: 0.35em; }
 .quest-hint { color: var(--ember-hi); font-size: 15px; margin: 12px 0 0; }
 .quest-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 10px; }
+/* the map (game/mappanel.js, docs/map.md): the depths reached | the depth from above, sunk into the panel | what a cube is */
+#map-body { display: grid; gap: 14px; grid-template-columns: 150px minmax(0, 1fr) 250px; padding-top: 12px; min-height: 0; }
+#map-depths { display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow-y: auto; scrollbar-width: thin; padding: 2px; margin: -2px; max-height: 540px; }
+#inventory-panel #map-depths button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 0 6px; text-align: left; padding: 6px 10px; }
+#map-depths b { font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#map-depths small { grid-column: 1 / -1; font-size: 13px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#map-depths .map-runes { grid-area: 1 / 2; font-size: 10px; letter-spacing: 1px; color: var(--ember); }
+/* the depth the hero is on: a white diamond before it */
+#map-depths .here b::before { content: '◆ '; color: #fff; font-size: 10px; vertical-align: 1px; }
+#map-view { position: relative; min-height: 500px; overflow: hidden; touch-action: none; }
+#map-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; outline: none; }
+#map-canvas.dragging { cursor: grabbing; }
+#map-canvas:focus-visible { box-shadow: inset 0 0 0 1px var(--ember-hi); }
+#map-tip { position: absolute; z-index: 1; pointer-events: none; padding: 2px 8px; font: 14px/1.3 var(--font-body); color: var(--ember-text); white-space: nowrap;
+  background: #0b0e14e0; border: 1px solid #6b968d55; }
+#map-tip[hidden] { display: none; }
+#map-zoom { position: absolute; left: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+#inventory-panel #map-zoom button { --c1: 4px; --c2: 1px; --c3: 4px; --c4: 1px; width: 34px; height: 34px; padding: 0; font-size: 18px; line-height: 1; }
+#map-details { position: relative; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+#map-details-inner { padding: 6px 14px; }
+#inventory-panel #map-details-inner h2 { font-size: 16px; color: var(--ember-text); white-space: normal; margin: 12px 0 6px; }
+#map-details-inner h3 { font-size: 12px; color: #9cc9bf; margin: 14px 0 6px; font-weight: normal; letter-spacing: 1px; text-transform: uppercase; }
+.map-line { margin: 0 0 5px; font-size: 15px; color: #b3c2be; }
+.map-help { color: var(--ink-faint); font-size: 14px; }
+.map-stone { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; font-size: 15px; color: var(--ink); }
+#inventory-panel .map-go { flex: none; padding: 6px 10px; }
 #inventory-feedback { height: 22px; margin: 10px 0 6px; color: var(--ember-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* smaller screens: the details under the bag, the hero beside both (with a floor or shop: under it). Not media queries: the
    width at the UI scale (game/uiscale.js) */
@@ -521,6 +548,9 @@ body.ui-w1000 .inventory-body { grid-template-columns: 170px minmax(0, 1fr); gri
 body.ui-w1000 #inventory-panel.with-floor .inventory-body { grid-template-columns: 170px 80px minmax(0, 1fr); grid-template-areas: "hero floor bag" "hero details details"; }
 body.ui-w1000 #inventory-details { height: 240px; min-height: 0; }
 body.ui-w1000 :is(#quests-details, #memories-details) { min-height: 380px; }
+body.ui-w1000 #map-body { grid-template-columns: 130px minmax(0, 1fr); }
+body.ui-w1000 #map-details { grid-column: 1 / -1; height: 200px; }
+body.ui-w1000 #map-view { min-height: 380px; }
 /* the tabs need the room: the coins go to a row of their own */
 body.ui-w1000 #inventory-panel header { flex-wrap: wrap; gap: 8px 18px; }
 body.ui-w1000 #inventory-panel header > div:first-child { flex: 1; }
@@ -543,6 +573,18 @@ body.ui-w540 :is(#quests-body, #memories-body) { grid-template-columns: minmax(0
 body.ui-w540 #memories-details { min-height: 0; }
 body.ui-w540 #quests-list { flex: none; max-height: 220px; }
 body.ui-w540 #quests-details { min-height: 0; }
+/* the map on a phone: the depths in a row along the top, the map, what a cube is under it */
+body.ui-w540 #map-body { grid-template-columns: minmax(0, 1fr); align-self: start; gap: 10px; }
+body.ui-w540 #map-depths { flex-direction: row; overflow-x: auto; overflow-y: hidden; max-height: none; }
+body.ui-w540 #inventory-panel #map-depths button { flex: none; min-width: 104px; }
+body.ui-w540 #map-view { min-height: 0; height: 340px; }
+body.ui-w540 #map-details { grid-column: auto; max-height: none; }
+body.ui-w540 #map-details-inner { position: static; }
+/* held sideways: little height, the three side by side again, the map lower */
+body.ui-h540:not(.ui-w540) #map-body { grid-template-columns: 130px minmax(0, 1fr) 210px; }
+body.ui-h540:not(.ui-w540) #map-details { grid-column: auto; height: auto; }
+body.ui-h540:not(.ui-w540) #map-view { min-height: 0; height: 250px; }
+body.ui-h540:not(.ui-w540) #map-depths { max-height: 250px; }
 body.ui-w540 #quests-details-inner { position: static; }
 
 /* quick bar (game/quickbar.js): above the inventory's dimmed backdrop, so items can be assigned; a strip of glass with a cut

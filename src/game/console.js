@@ -34,7 +34,7 @@ const box = $('chat'), list = $('chat-log'), input = $('chat-input'), popup = $(
   ghost = $('chat-ghost'), status = $('chat-status');
 
 export const SHOW_FOR = 12;   // s a new line shows while the box is closed
-const SUGGEST = 50;           // suggestions at most (the list scrolls)
+const SUGGEST = 64;           // suggestions at most (the list scrolls)
 const HISTORY_KEY = 'cube-crawler-history', HISTORY_MAX = 50;
 
 let open = false, filter = 'all', shown = -1, expanded = new Set();

@@ -41,9 +41,9 @@ export function enemySpots(map, profile) {
   if (map.guardian) return ofSpecies(placedOnce(map, 'guardian', guardianSpots), profile);
   if (map.horde) return ofSpecies(placedOnce(map, 'horde', hordeSpots), profile);
   if (map.firstGlass) return ofSpecies(placedOnce(map, 'firstGlass', firstGlassSpots), profile);
-  const spec = population(map).get(profile.type);
-  if (!spec?.count) return [];
-  if (profile.dwells) return dwellerSpots(map, profile, spec);
+  const spec = population(map).get(profile.type), guards = runestoneGuards(map, profile);
+  if (!spec?.count) return guards;
+  if (profile.dwells) return [...dwellerSpots(map, profile, spec), ...guards];
   const R = mulberry32(hash32(map.seed ^ profile.seedSalt)), { count, pack } = spec;
   const K = mulberry32(hash32(map.seed ^ profile.seedSalt ^ 0x6b1d5)), kinds = [];
   // room for the biggest kind the pack could draw
@@ -77,7 +77,43 @@ export function enemySpots(map, profile) {
     const kind = pickKind(spec.kinds, K()) ?? profile;
     for (const f of members) { spots.push(f); used.add(f); kinds.push(kind); }
   }
-  return spots.map((f, i) => ({ ...enemyRoll(map, kinds[i], f.id), respawn: map.key, kind: kinds[i], f, x: f.x + 0.5, z: f.z + 0.5, y: groundY(f, f.x + 0.5, f.z + 0.5), yaw: R() * Math.PI * 2 }));
+  return [...spots.map((f, i) => ({ ...enemyRoll(map, kinds[i], f.id), respawn: map.key, kind: kinds[i], f, x: f.x + 0.5, z: f.z + 0.5, y: groundY(f, f.x + 0.5, f.z + 0.5), yaw: R() * Math.PI * 2 })),
+    ...guards.filter(g => spots.every(f => Math.hypot(f.x + 0.5 - g.x, f.z + 0.5 - g.z) >= CLOSE))];
+}
+
+// A rune stone's guards (world/spots.js, game/runestones.js): a few of one of the room's own kinds
+// (one that walks: not a fluid dweller) standing round it, facing out, ordinary enemies that come
+// back like the rest (`respawn`). Which kind, how many and where come from the stone's seed. Only
+// the species that kind is of gets them (each species asks for its own: enemySpots).
+export const GUARDS = depth => depth < 5 ? 2 : depth < 12 ? 3 : 4;
+const GUARD_RING = [1.4, 4];   // cells from the stone
+export function runestoneGuards(map, profile) {
+  const stones = (map.spots ?? []).filter(s => s.kind === 'runestone');
+  if (!stones.length) return [];
+  const walkers = [...population(map)].filter(([type]) => ENEMY_KINDS[type] && !ENEMY_KINDS[type].dwells && !ENEMY_KINDS[type].troop);
+  const out = [];
+  for (const s of stones) {
+    const R = mulberry32(hash32(s.seed ^ 0x6a4d5));
+    if (!walkers.length) break;
+    const [type, spec] = walkers[Math.floor(R() * walkers.length)];
+    if (ENEMY_KINDS[type].species !== profile.species) continue;
+    const a = s.anchor, mine = new Set(s.cells);
+    const cand = map.floors.filter(f => !f.spot && !f.siteAnchor && !f.siteAccess && !mine.has(f.z * N + f.x) && walkable(f, ENEMY_KINDS[type].height)
+      && Math.hypot(f.x + 0.5 - a.x, f.z + 0.5 - a.z) >= GUARD_RING[0] && Math.hypot(f.x + 0.5 - a.x, f.z + 0.5 - a.z) <= GUARD_RING[1]
+      && Math.abs(groundY(f, f.x + 0.5, f.z + 0.5) - a.y) < 1.6 && map.portals.every(p => Math.hypot(f.x - p.x, f.z - p.z) >= 3))
+      .map(f => ({ f, d: Math.hypot(f.x + 0.5 - a.x, f.z + 0.5 - a.z) + R() * 1.5 })).sort((x, y) => x.d - y.d).map(c => c.f);
+    const floors = [];
+    for (const f of cand) {
+      if (floors.length >= GUARDS(map.depth || 0)) break;
+      if (floors.every(g => Math.hypot(g.x - f.x, g.z - f.z) >= 1.5)) floors.push(f);
+    }
+    floors.forEach((f, i) => {
+      const kind = pickKind(spec.kinds, R()) ?? ENEMY_KINDS[type], x = f.x + 0.5, z = f.z + 0.5;
+      out.push({ ...enemyRoll(map, kind, f.id), id: `${s.id}:guard:${i}`, respawn: map.key, runestone: s.id, kind, f, x, z,
+        y: groundY(f, x, z), yaw: Math.atan2(x - a.x, z - a.z) });
+    });
+  }
+  return out;
 }
 
 // A fluid dweller's spots: on fluid floors of its kind's (a pool, a river, a lake), with room for it

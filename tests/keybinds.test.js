@@ -13,6 +13,11 @@ test('the defaults are the keys the game always had, each key on one action', ()
   assert.deepEqual(b.walk, ['ControlLeft', null]);
   assert.deepEqual(b.action, ['KeyF', 'ControlRight']);
   assert.deepEqual(b.attack, ['ShiftLeft', 'ShiftRight']);
+  // M the map (the inventory's Map tab), N the music
+  assert.deepEqual(b.map, ['KeyM', null]);
+  assert.deepEqual(b.music, ['KeyN', null]);
+  assert.deepEqual(actionsFor(b, 'KeyM', 'm'), ['map']);
+  assert.deepEqual(actionsFor(b, 'KeyN', 'n'), ['music']);
   for (const a of ACTIONS) {
     assert.ok(GROUPS.includes(a.group), a.id);
     assert.equal(a.keys.length, 2, a.id);
@@ -46,7 +51,8 @@ test('only changes are stored, and stored keys win over the defaults', () => {
   assert.deepEqual(resolveBindings(JSON.parse(JSON.stringify(stored))), bindings);
   // a stored key some default has too (a default added later): the default loses it
   const later = resolveBindings({ jump: ['KeyM', null] });
-  assert.deepEqual(later.music, [null, null]);
+  assert.deepEqual(later.map, [null, null]);
+  assert.deepEqual(later.music, ['KeyN', null]);
   // nonsense is dropped, a key twice kept once, unknown actions ignored
   const odd = resolveBindings({ jump: [42, 'Escape'], walk: ['KeyZ', 'KeyZ'], nope: ['KeyY'], menu: 'KeyO' });
   assert.deepEqual(odd.jump, [null, null]);

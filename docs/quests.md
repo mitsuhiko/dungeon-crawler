@@ -322,6 +322,10 @@ nothing else in the world changes:
   way about halfway along (`way`), one in the hardest room to get to, a branch rather than the way.
   No quest uses them: a bubble of his star-glass floats there until its recording is heard
   ([story.md](story.md#how-the-story-is-told)).
+- on every depth but the town's, three **rune stones**, last of all on a random stream of their own,
+  in rooms spread over the depth ([map.md](map.md#rune-stones)). No quest uses them either: they
+  are in `layout.spots` (the generator places them) but not in `layout.spotList` (what the quests
+  choose from), `layout.runestones` instead.
 - each has a `tier`, how hard it is to get to, 0 to 4: one for every side guardian or the horde
   the way to it leads past, one for a branch room, one for a room with a reward site, two for the
   high places (a tableland, a pinnacle, a lone peak, a great lake, a large area's foot or summit, a

@@ -27,6 +27,7 @@ export const ACTIONS = [
   { id: 'action', label: 'Action: open, talk, collect', group: 'Items', keys: ['KeyF', 'ControlRight'] },
   { id: 'inventory', label: 'Inventory', group: 'Items', keys: ['KeyI', 'KeyV'] },
   { id: 'quests', label: 'Quests', group: 'Items', keys: ['KeyU', null] },
+  { id: 'map', label: 'Map', group: 'Items', keys: ['KeyM', null] },
   { id: 'labels', label: 'Names of items on the floor', group: 'Items', keys: ['KeyX', null] },
   ...[1, 2, 3, 4, 5, 6].map(n => ({ id: `bar${n}`, label: `Quick bar ${n}`, group: 'Items', keys: [`Digit${n}`, null] })),
   { id: 'turnLeft', label: 'Turn the view left', group: 'View', keys: ['KeyQ', null] },
@@ -38,7 +39,7 @@ export const ACTIONS = [
   { id: 'menu', label: 'Menu (Esc too)', group: 'Game', keys: ['KeyO', null] },
   { id: 'chat', label: 'Chat', group: 'Game', keys: ['KeyT', 'Enter'] },
   { id: 'command', label: 'Type a command', group: 'Game', keys: ['Backquote', null] },
-  { id: 'music', label: 'Music on / off', group: 'Game', keys: ['KeyM', null] },
+  { id: 'music', label: 'Music on / off', group: 'Game', keys: ['KeyN', null] },
 ];
 export const ACTION = Object.fromEntries(ACTIONS.map(a => [a.id, a]));
 export const BAR_ACTIONS = ACTIONS.filter(a => a.id.startsWith('bar')).map(a => a.id);

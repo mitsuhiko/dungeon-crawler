@@ -56,7 +56,7 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   and the picture moved right (`camera.setViewOffset`), a phone held upright has it at the bottom
   and the picture moved up. Starting a game or a friend's world coming in takes its place (it is
   the game's own world machinery: `state.cubes`, `state.map`, the enemies).
-- N (a new world) is a dev tool now: new worlds come from the menu.
+- Shift+N (a new world) is a dev tool now (N is the music): new worlds come from the menu.
 
 ## Heroes and worlds, apart
 
@@ -77,7 +77,9 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   It also keeps its play time (`run.clock`) and the ordinary kills, for them to come back
   (`run.kills`, [progression.md](progression.md#enemies-come-back)), and what the narrator
   has said in it (`run.told`, [narration.md](narration.md#in-the-game): nothing is said twice,
-  and the Memories tab lists the glassmaker's recordings heard from it). A new world's clock starts
+  and the Memories tab lists the glassmaker's recordings heard from it), and the rune stones
+  woken in it (`run.runes`, their spot ids: [map.md](map.md); the map travels to them; a world
+  saved before them has none). A new world's clock starts
   at noon (`START_CLOCK`, `core/daycycle.js`); the beginning's two gates (`intro:glass`,
   `intro:sword`, [story.md](story.md#the-beginning)) are kept with the guardians' in `gates`. A
   world saved before the beginning existed, somebody already out past the rock, gets both
@@ -86,7 +88,7 @@ Status: implemented (`src/core/save.js`, `src/game/save.js`), with the main menu
   every depth of its seed came out different) starts again as new,
   keeping its seed, name and level; the heroes keep all they carry. A hero's Old Sword saved before it was the glassmaker's is renamed so.
   `{ v, id, seed, copy, name, level, created, updated, deepest, run: { defeated, gates, chests, dropped,
-  loot, townPortal, quests, clock, kills, told }, faces, visited, spots }`
+  loot, townPortal, quests, clock, kills, told, runes }, faces, visited, spots }`
 - Coming into a world a hero has its level and bag, full health, no potions at work
   (`heroStats`). It comes in at the entry of the cube it left that world in (or the cube a fall
   started in), else in town. What it defeated there stays defeated, until its time to come back
@@ -126,7 +128,7 @@ saves last as long as the page.
 ## When it saves (`game/save.js`)
 
 - Once a second it looks whether something changed (XP, the bag, the cube, kills, gates, chests,
-  drops, the floor loot, open faces, the town portal, discovered cubes) and then writes the hero
+  drops, the floor loot, open faces, the town portal, discovered cubes, rune stones woken) and then writes the hero
   and the world. Every 30 s anyway (the time played), and when the page is hidden or closed.
 - Not while on the way between cubes. Where the hero is, is only taken when it stands in a cube.
 - Only what came from the store (`play`, `playAsGuest`) or went into it (`saveAs`) is saved:

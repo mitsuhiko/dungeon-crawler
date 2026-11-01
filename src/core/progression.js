@@ -104,7 +104,8 @@ export function createPlayerStats(dev = false, { armed = true } = {}) {
 export const createRun = () => ({ defeated: new Set(), unlockedGates: new Set(), loot: new Map(), dropped: new Set(), chests: new Set(), townPortal: null, trials: new Map(),
   quests: createQuestLog(), clock: START_CLOCK, kills: new Map(), smith: { visit: 0, sold: [] },
   told: new Set(),   // the narrator's lines said in this world (core/narration.js ids, game/narrator.js)
-  met: new Set() });   // the bosses (guardian ids) whose intro played in this world (game/bossintro.js)
+  met: new Set(),   // the bosses (guardian ids) whose intro played in this world (game/bossintro.js)
+  runes: new Set() });   // the rune stones woken in this world (their spot ids: game/runestones.js, docs/map.md)
 // learn: stronger.html#xp-code (see learn/README.md)
 export function awardXP(p, amount) {
   whole(amount);

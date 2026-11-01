@@ -25,6 +25,7 @@ import { buildTrialView, tickTrialView } from './trials.js';
 import { flipPivot, tickFlipView } from './flipview.js';
 import { buildMoverView, tickMoverView } from './movers.js';
 import { newBake, disposeBake, keepFixedOutOfSun, bakeMaterials } from './bake.js';
+import { buildRunestones, tickRunestones } from './runestones.js';
 
 export function disposeWorld(world) {
   if (!world) return;
@@ -36,8 +37,9 @@ export function disposeWorld(world) {
 
 // geo: the cube's parts (from the worker, cubegeo.js buildCubeParts); built here if missing; townPad: the end
 // of the open town portal standing in this cube (core/townportal.js townPadIn); opened: the ids
-// of the reward sites whose chests are open (run.chests)
-export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = [], locked = !!m.guardian, townPad = null, opened = null) {
+// of the reward sites whose chests are open (run.chests); awake: the ids of the rune stones woken
+// (run.runes, game/runestones.js)
+export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = [], locked = !!m.guardian, townPad = null, opened = null, awake = null) {
   const group = new THREE.Group();
   // Flip's box turns about its middle: its meshes and markers hang in a pivot (render/flipview.js)
   const flip = m.flip ? flipPivot(group, m) : null, host = flip ? flip.inner : group;
@@ -73,6 +75,8 @@ export function buildWorld(m, showPath, seen, geo = buildCubeParts(m), open = []
   scene.add(group);
   const world = { key: m.key, group, glass, fluidMeshes, splashes, crowns, lights, villagers, missingSets, trialView, flip, movers, bake, ...markers };
   setTownPortal(world, townPad);
+  // its rune stones (render/runestones.js): their lights shine as they wake, not baked
+  world.runestones = buildRunestones(m, host, awake);
   return world;
 }
 
@@ -134,6 +138,7 @@ export function animateWorld(world, dt, time) {
   for (const l of world.lights) l.intensity = 5 + Math.sin(time * 4 + l.position.x) * 1.5;
   for (const p of world.portalFx) p.tick(time);
   tickTrialView(world, time);
+  tickRunestones(world, dt, time);
   tickFlipView(world, time);
   tickMoverView(world.movers, time);
   tickChests(dt);
