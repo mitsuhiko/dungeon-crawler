@@ -5,6 +5,7 @@
 // a dotted line from the hand to where it comes down, and a ring as wide as its burst there.
 import * as THREE from 'three';
 import { loadGLB } from './gltf.js';
+import { dressLook } from './looks.js';
 import { CHAR_SCALE } from '../core/constants.js';
 import { ITEMS } from '../core/items.js';
 import { scene } from './scene.js';
@@ -31,7 +32,7 @@ function flaskView(f) {
   const group = new THREE.Group(), inner = new THREE.Group(), m = flaskModel(f.stats.flask);
   group.add(inner);
   if (m) {
-    const o = m.scene.clone();
+    const o = dressLook(m.scene.clone(), f.stats.flask);   // (in its look, core/looks.js)
     o.position.y = -m.lift;
     inner.add(o);
     inner.scale.setScalar(m.scale);

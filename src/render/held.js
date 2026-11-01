@@ -55,16 +55,10 @@ export function prepareHeld(weapon, item) {
   if (h.kind === 'staff' || h.kind === 'trident') {
     h.color = new THREE.Color(ITEMS[item.name]?.weapon?.color ?? '#c48cff');
     h.head = vec(d.head_gltf ?? [0, 1.2, 0]);
+    // the meshes with a stone: its material glows, whichever look it wears now (render/looks.js
+    // swaps the materials of the hand's own model, character.js equipSword)
     h.stones = [];
-    item?.traverse(o => {
-      if (!o.isMesh) return;
-      o.material = [].concat(o.material).map(m => {
-        if (!/Facets/.test(m.name)) return m;
-        m = m.clone(); h.stones.push(m);
-        return m;
-      });
-      if (o.material.length === 1) o.material = o.material[0];
-    });
+    item?.traverse(o => { if (o.isMesh && [].concat(o.material).some(m => /Facets/.test(m.name))) h.stones.push(o); });
   }
   if (h.kind === 'flail') {
     // (each ball, and each copy of the first link, turns about a pivot of its own: the end of its
@@ -122,7 +116,9 @@ export function updateHeld(h, p, hands, dt) {
     const casting = h.kind === 'staff' || s.stats?.kind === 'zap';
     const gather = mine && s.active && !s.fired && casting ? clamp(s.t / s.stats.activeStart, 0, 1) : 0;
     h.glow = gather > h.glow ? gather : Math.max(gather, h.glow - dt * 4);
-    for (const m of h.stones) { m.emissive?.copy(h.color); m.emissiveIntensity = 0.25 + 1.6 * h.glow; }
+    for (const o of h.stones) for (const m of [].concat(o.material)) {
+      if (/Facets/.test(m.name)) { m.emissive?.copy(h.color); m.emissiveIntensity = 0.25 + 1.6 * h.glow; }
+    }
     if (gather > 0.3 && Math.random() < dt * 40) {
       h.item.localToWorld(_b.copy(h.head));
       emit(glow, _b.x + rand(-0.04, 0.04), _b.y + rand(-0.04, 0.04), _b.z + rand(-0.04, 0.04), {

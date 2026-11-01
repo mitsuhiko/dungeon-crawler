@@ -8,6 +8,8 @@ import { scene, camera } from './scene.js';
 import { state } from '../game/state.js';
 import { ceilingAt, insideSolid, cellAt } from '../physics/collide.js';
 import { prepareHeld } from './held.js';
+import { dressLook } from './looks.js';
+import { lookKey, parseLook } from '../core/looks.js';
 import { rigReady, overGhost, ghostMaterial } from './figure.js';
 import { ownShadowDepth } from './skinned.js';
 import { setSkinMap, skinTexture } from './skin.js';
@@ -100,13 +102,26 @@ const itemNode = weapon => { let n = null; weapon.traverse(o => { if (!n && o.us
 // weapon says in its extras which socket it goes in and how it sits there (mount_quat_gltf;
 // a flask readied to throw also mount_offset_gltf and mount_scale, as it is modelled to stand
 // on the floor); the Old Sword (assets/sword.glb) predates that and sits like the other swords.
-export function equipSword(weapon) {
+// look: what it looks like (core/looks.js: its bag slot, or an id), worn by the hand's own copy
+// of the model (render/looks.js dressLook)
+export function equipSword(weapon, look = null) {
   loadRequest++;
   if (character.sword) character.sword.removeFromParent();
   character.sword = weapon;
   character.held = null;
   if (!weapon) return;
+  character.look = lookKey(look ?? '');
+  dressLook(weapon, character.look);
   character.held = prepareHeld(weapon, mountWeapon(character.bones, weapon));
+}
+// the weapon in hand changed its look (enchanted, re-rolled: game/armor.js updateArmor): the same
+// model in its new one
+export function dressHand(look) {
+  const key = lookKey(look ?? ''), was = parseLook(character.look ?? '');
+  if (!character.sword || key === character.look || !was || parseLook(key)?.itemId !== was.itemId) return;
+  character.look = key;
+  dressLook(character.sword, key);
+  character.sword.traverse(o => { if (o.isMesh) overGhost(o); });
 }
 
 // put a weapon model in its socket among `bones` (the player's or another figure's), sitting

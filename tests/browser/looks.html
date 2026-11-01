@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- Items' looks (core/looks.js, docs/looks.md): many of them at once, each as the bag's picture
+     (render/itempictures.js) with its texture beside it (the four tiles: clay, metal, trim, facets).
+       ?item=<id or part of one> (default weapon_sword_long): every rarity, a row each, n rolls each
+       ?item=stack: every item that has a look of its kind only (potions, coins, crystals, quest things)
+       ?n=<rolls> (default 6), ?level=<item level> (default 20), ?seed=<n> (default 1),
+       ?enchant=<id>|mix|none (default mix: every other roll enchanted)
+       ?size=<px> (default: the bag's pictures, 132): bigger, drawn live (render/itempictures.js
+       paintItem), turned by ?yaw=<rad>
+     Served by tools/serve.py: /tests/browser/looks.html -->
+<meta charset="utf-8">
+<title>Item looks</title>
+<style>
+  body { background: #1b1d22; color: #ccc; font: 12px ui-monospace, monospace; margin: 16px; }
+  .row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+  .head { width: 110px; padding-top: 30px; }
+  .it { width: 132px; text-align: center; }
+  .it img { width: 132px; height: 132px; background: #2a2d34; border-radius: 6px; display: block; }
+  .it canvas { width: 128px; height: 32px; image-rendering: pixelated; margin-top: 3px; }
+  .it small { display: block; color: #999; font-size: 10px; height: 26px; overflow: hidden; }
+</style>
+<p id="head"></p>
+<div id="out"></div>
+<script type="importmap">{ "imports": { "three": "../../vendor/three/three.module.js", "three/addons/": "../../vendor/three/addons/" } }</script>
+<script type="module">
+import { ITEMS, WEAPONS, ARMORS } from '../../src/core/items.js';
+import { RARITIES } from '../../src/core/gear/rarities.js';
+import { ENCHANTS } from '../../src/core/gear/enchants.js';
+import { rollWeapon, rollArmor } from '../../src/core/gear/generate.js';
+import { mulberry32 } from '../../src/core/util.js';
+import { lookOf, lookKey, paintLook, LOOK_W, LOOK_H } from '../../src/core/looks.js';
+import { pictureImg, itemModel, paintItem } from '../../src/render/itempictures.js';
+
+const q = new URLSearchParams(location.search), n = +(q.get('n') ?? 6), level = +(q.get('level') ?? 20), seed = +(q.get('seed') ?? 1);
+const want = q.get('item') ?? 'weapon_sword_long', enchant = q.get('enchant') ?? 'mix';
+const size = +(q.get('size') ?? 0), yaw = +(q.get('yaw') ?? 0);
+if (size) document.head.insertAdjacentHTML('beforeend', `<style>.it { width: ${size}px } .it img, .it > canvas:first-child { width: ${size}px; height: ${size}px; }</style>`);
+const out = document.getElementById('out');
+const texture = look => {
+  const c = document.createElement('canvas');
+  c.width = LOOK_W; c.height = LOOK_H;
+  const px = paintLook(look);
+  for (let i = 3; i < px.length; i += 4) px[i] = 255;   // (what shades shows too)
+  c.getContext('2d').putImageData(new ImageData(px, LOOK_W, LOOK_H), 0, 0);
+  return c;
+};
+const cell = (item, label) => {
+  const d = document.createElement('div');
+  d.className = 'it';
+  d.innerHTML = `${pictureImg(item)}<small>${label}</small>`;
+  if (size) {   // drawn live, as big as asked, once the model is in
+    const c = document.createElement('canvas');
+    c.width = c.height = size * devicePixelRatio;
+    c.style.background = '#2a2d34';
+    d.querySelector('img').replaceWith(c);
+    const draw = () => { const m = itemModel(item); if (m) paintItem(c, m, yaw); else setTimeout(draw, 100); };
+    draw();
+  }
+  d.append(texture(lookOf(item)));
+  d.title = lookKey(item);
+  return d;
+};
+const row = (head, items) => {
+  const r = document.createElement('div');
+  r.className = 'row';
+  r.innerHTML = `<div class="head">${head}</div>`;
+  for (const [item, label] of items) r.append(cell(item, label));
+  out.append(r);
+};
+if (want === 'stack') {
+  const all = Object.values(ITEMS).filter(d => !d.weapon && !d.armor && (d.model || d.picture));
+  for (let i = 0; i < all.length; i += 8) row('', all.slice(i, i + 8).map(d => [d.id, d.name]));
+} else {
+  const ids = Object.keys(ITEMS).filter(id => id === want || (id.includes(want) && (ITEMS[id].weapon || ITEMS[id].armor)));
+  for (const itemId of ids.slice(0, 4)) {
+    const def = ITEMS[itemId], roll = def.weapon ? rollWeapon : rollArmor;
+    document.getElementById('head').textContent = `${ids.slice(0, 4).join(', ')} · item level ${level} · seed ${seed}`;
+    for (const r of RARITIES) {
+      if (r.guardianOnly && !def.weapon) continue;
+      const R = mulberry32(seed * 7919 + r.rank);
+      row(`${def.name}<br>${r.name}`, Array.from({ length: n }, (_, i) => {
+        const item = roll(R, level, { itemId, rarity: r.id });
+        const e = enchant === 'none' || !def.weapon ? null : enchant === 'mix' ? (i % 2 ? ENCHANTS[(i >> 1) % ENCHANTS.length].id : null) : enchant;
+        if (e) item.gen.enchant = e;
+        return [item, `${item.gen.name}${e ? ` (${e})` : ''}<br>${item.gen.affixes.map(a => a.id).join(' ')}`];
+      }));
+    }
+  }
+}
+</script>

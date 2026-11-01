@@ -20,6 +20,7 @@ import { smithStock, buyStock, armorPrice, STOCK_SIZE, STOCK_BEST, SHOPS } from 
 import { canReroll, rerollWeapon, rerollCost } from '../src/core/crafting.js';
 import { validGen, walkTakes } from '../src/core/loot.js';
 import { wornOf, PROTOCOL } from '../src/net/protocol.js';
+import { lookKey } from '../src/core/looks.js';
 import { SPIDER, STUNDER } from '../src/core/enemies.js';
 
 const many = (n, f) => Array.from({ length: n }, (_, i) => f(i));
@@ -271,15 +272,20 @@ test('the Smith re-rolls armor like weapons', () => {
   for (const x of after) assert.ok(AFFIX[x.id].tags.includes('armor') || AFFIX[x.id].tags.includes('shield'), x.id);
 });
 
-test('a friend sees what we wear: id, rarity and whether the shield is on the back', () => {
+test('a friend sees what we wear: id, rarity, whether the shield is on the back, and its look', () => {
   assert.ok(PROTOCOL >= 13);
   assert.deepEqual(wornOf(['armor_head_cap@fabled@0', 'armor_shield_kite@decent@1', 'wear_wizard_hat']), [
-    { id: 'armor_head_cap', slot: 'head', rarity: 'fabled', back: false }, { id: 'armor_shield_kite', slot: 'shield', rarity: 'decent', back: true }]);
-  assert.deepEqual(wornOf(['wear_wizard_hat']), [{ id: 'wear_wizard_hat', slot: 'head', rarity: null, back: false }]);
-  assert.deepEqual(wornOf(['held_hammer@unusual@0']), [{ id: 'held_hammer', slot: 'shield', rarity: 'unusual', back: false }], 'carried: in the off hand');
-  assert.deepEqual(wornOf(['nope@omg@1', 3, null, 'armor_head_cap@bogus@x']), [{ id: 'armor_head_cap', slot: 'head', rarity: null, back: false }]);
+    { id: 'armor_head_cap', slot: 'head', rarity: 'fabled', back: false, look: '' }, { id: 'armor_shield_kite', slot: 'shield', rarity: 'decent', back: true, look: '' }]);
+  assert.deepEqual(wornOf(['wear_wizard_hat']), [{ id: 'wear_wizard_hat', slot: 'head', rarity: null, back: false, look: '' }]);
+  assert.deepEqual(wornOf(['held_hammer@unusual@0']), [{ id: 'held_hammer', slot: 'shield', rarity: 'unusual', back: false, look: '' }], 'carried: in the off hand');
+  assert.deepEqual(wornOf(['nope@omg@1', 3, null, 'armor_head_cap@bogus@x']), [{ id: 'armor_head_cap', slot: 'head', rarity: null, back: false, look: '' }]);
   assert.deepEqual(wornOf('armor_head_cap'), []);
   assert.equal(wornOf(Array(20).fill('armor_feet_boots@vanilla@0')).length, 1, 'one per slot');
+  // the look (core/looks.js): its key, only one of the same item's
+  const cap = rollArmor(mulberry32(5), 8, { itemId: 'armor_head_cap', rarity: 'fabled' }), key = lookKey(cap);
+  assert.equal(wornOf([`armor_head_cap@fabled@0@${key}`])[0].look, key);
+  assert.equal(wornOf([`armor_feet_boots@fabled@0@${key}`])[0].look, '', 'another item\'s look is not taken');
+  assert.equal(wornOf(['armor_head_cap@fabled@0@armor_head_cap:zz::']).at(0).look, '', 'nor what is not a look');
 });
 
 await decoderReady;

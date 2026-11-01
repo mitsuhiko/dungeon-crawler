@@ -31,7 +31,7 @@ import { devQuest } from './quests.js';
 import { BRIDGE_STYLES, LADDER_STYLES } from '../themes/builds.js';
 import { ARENA_WEIGHTS } from '../world/arenas.js';
 import { BOSS_SHAPES } from '../cubegen/arenashapes.js';
-import { devSwapWeapon, devDropWeapon, devWear, devWearArmor, devDropArmor } from './equipment.js';
+import { devSwapWeapon, devDropWeapon, devWear, devWearArmor, devDropArmor, devDropLooks } from './equipment.js';
 import { forceMood } from './music.js';
 import { devNarrate } from './narrator.js';
 import { playFilm } from '../film/player.js';
@@ -402,6 +402,15 @@ dev({
     const name = `${ITEMS[armor].name} (${RARITY[rarity].name}, item level ${level})`;
     if (drop) return devDropArmor(armor, rarity, level) ? `Dropped: ${name}` : 'Could not drop it here';
     return devWearArmor(armor, rarity, level) ? `Wearing: ${name}` : 'Could not put it on (bag full)';
+  },
+});
+dev({
+  name: 'looks', help: 'drop rolls of a weapon or a piece of armor at your feet, every rarity, to see their looks',
+  args: [{ name: 'item', type: 'item' }, { name: 'count', type: 'int', optional: true, min: 1, max: 30 },
+    { name: 'level', type: 'int', optional: true, min: 1, max: MAX_ILVL }],
+  run({ item, count = 10, level = 20 }) {
+    if (!devDropLooks(item, count, level)) return 'Only weapons and armor roll looks of their own';
+    return `Dropped ${count} × ${ITEMS[item].name}; many more at once: /tests/browser/looks.html?item=${item}`;
   },
 });
 addType(commands, { name: 'enchant', values: () => [...ENCHANTS.map(e => ({ value: e.id, label: e.name })), { value: 'off', label: 'off' }] });

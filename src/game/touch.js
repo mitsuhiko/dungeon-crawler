@@ -17,7 +17,7 @@ import { readiedFlask } from '../core/combat.js';
 import { equippedItem } from '../core/inventory.js';
 import { ITEMS } from '../core/items.js';
 import { renderer } from '../render/scene.js';
-import { itemPicture } from '../render/itemviews.js';
+import { itemPicture, pictureKey } from '../render/itemviews.js';
 import { player, state, view } from './state.js';
 import { controls } from './inputstate.js';
 import { tapGame, quickThrow, autoAttack } from './input.js';
@@ -268,7 +268,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) dropA
 
 let shown = '', useShown = '';
 // an <img> showing item `id`'s picture (render/itemviews.js fills it in once it is rendered)
-const showPicture = (img, id) => { img.dataset.itemPicture = id; img.src = itemPicture(id); };
+// item: an id or a slot (in its look, core/looks.js)
+const showPicture = (img, item) => { img.dataset.itemPicture = pictureKey(item); img.src = itemPicture(item); };
 // hidden while the inventory is open; the action button shows the weapon, or the flask in hand;
 // the use button what the action key would do, or nothing
 export function updateTouch() {
@@ -280,11 +281,11 @@ export function updateTouch() {
   root.hidden = state.inventoryOpen;
   updateUse();
   const flask = readiedFlask(player), weapon = equippedItem(player.inventory), def = flask || (weapon && ITEMS[weapon.itemId]);
-  const next = `${def?.id}:${!!flask}`;
+  const next = `${flask ? def.id : pictureKey(weapon ?? '')}:${!!flask}`;
   if (next === shown) return;
   shown = next;
   icon.hidden = !def;
-  if (def) showPicture(icon, def.id);
+  if (def) showPicture(icon, flask ? def.id : weapon);
   action.classList.toggle('flask', !!flask);
   action.classList.toggle('empty', !def);
   action.setAttribute('aria-label', flask ? tr('Aim and throw {item}', { item: defName(flask) }) : tr('Attack'));

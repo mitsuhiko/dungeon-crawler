@@ -16,7 +16,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // a weapon's card, like the detail panel of the game's inventory
 function weaponCard(item) {
   const r = RARITY[item.gen.rarity], s = itemStats(item);
-  return `<div class="weapon" style="--rarity:${r.css}">${pictureImg(item.itemId)}
+  return `<div class="weapon" style="--rarity:${r.css}">${pictureImg(item)}
       <div><h4>${esc(displayName(item))}</h4><div class="base">${gameName(r.name)} \u00B7 ${tr('item level', 'Gegenstandslevel')} ${item.gen.ilvl}${baseLine(item) ? ' \u00B7 ' + baseLine(item) : ''}</div>
       <div class="stats">${tr(`${s.damage} damage \u00B7 ${(1 / s.interval).toFixed(2)} attacks per second \u00B7 ${Math.round(weaponDps(s))} damage per second
 ${s.ranged ? 'range' : 'reach'} ${s.range.toFixed(2)} cells \u00B7 ${Math.round(s.crit * 100)}% critical hits`, `${s.damage} Schaden \u00B7 ${(1 / s.interval).toFixed(2)} Angriffe pro Sekunde \u00B7 ${Math.round(weaponDps(s))} Schaden pro Sekunde
@@ -75,7 +75,7 @@ export default function mount(el) {
     const dps = it => weaponDps(itemStats(it));
     items.sort((a, b) => RARITY[b.gen.rarity].rank - RARITY[a.gen.rarity].rank || dps(b) - dps(a));
     card.innerHTML = `<div>${RARITIES.filter(r => n[r.id]).map(r => `<span class="chip" style="border-color:${r.css};color:${r.css}">${gameName(r.name)}: ${n[r.id]}</span>`).join('')}</div>
-      <div class="loots">${items.map((it, i) => `<button class="it" data-i="${i}" style="--rarity:${RARITY[it.gen.rarity].css}" aria-label="${esc(displayName(it))}">${pictureImg(it.itemId)}</button>`).join('')}</div>
+      <div class="loots">${items.map((it, i) => `<button class="it" data-i="${i}" style="--rarity:${RARITY[it.gen.rarity].css}" aria-label="${esc(displayName(it))}">${pictureImg(it)}</button>`).join('')}</div>
       <div class="pinned"></div>`;
     const tiles = [...card.querySelectorAll('.it')], pinned = card.querySelector('.pinned');
     tiles.forEach(b => {

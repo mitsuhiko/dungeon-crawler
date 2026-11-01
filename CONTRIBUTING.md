@@ -13,7 +13,8 @@ The game is plain ES modules and a vendored three.js; there is no build step.
     `src/core/gear/` is the weapon generator (rarities, affixes, names, drops, enchantments;
     `docs/loot.md`) and armor (`docs/armor.md`, its models `blender/armor.py`); `src/core/crafting.js`
     is the town's Enchanter and Smith working on weapons and armor (the Smith sells armor too,
-    `src/core/shops.js`).
+    `src/core/shops.js`). `src/core/looks.js` gives everything you can collect a small pixelated
+    texture of its own from its data (`render/looks.js` projects it onto the models; `docs/looks.md`).
   - `src/world/`: the world graph and everything shared between cubes (layout, WFC, faces,
     falls across faces, sites, town plan, the trial rooms' plan), plus the worker that owns it.
     Trial rooms (`docs/trials.md`): planned in `src/world/trials.js`, built in `src/cubegen/trials/`,

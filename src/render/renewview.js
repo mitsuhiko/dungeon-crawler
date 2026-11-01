@@ -28,6 +28,7 @@ import { attackOf, STAGE_PROFILES } from '../core/enemies.js';
 import { guardianColor, guardianTitle } from '../core/guardians.js';
 import { BONES, Q } from '../net/protocol.js';
 import { rig, rigReady, createFigure, loadThing, thingLoaded, wear, wearLike, takeOff } from './figure.js';
+import { lookOnto } from './looks.js';
 import { character, mountWeapon } from './character.js';
 import { prepareHeld, updateHeld } from './held.js';
 import { trackLight, untrackLight } from './lightpool.js';
@@ -129,7 +130,8 @@ function arm(v, e) {
   weaponFor(id).then(model => {
     if (!model || w.id !== id || !v.group.parent) return;
     const copy = model.clone(true);
-    copy.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(m => m.clone()) : o.material.clone(); });
+    // (his own materials, in the look of its kind: core/looks.js)
+    copy.traverse(o => { if (o.isMesh) o.material = Array.isArray(o.material) ? o.material.map(m => lookOnto(m.clone(), id, o)) : lookOnto(o.material.clone(), id, o); });
     const item = mountWeapon(v.f.bones, copy);
     w.object = copy; w.held = prepareHeld(copy, item);
   });

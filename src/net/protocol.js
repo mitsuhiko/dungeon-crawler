@@ -29,10 +29,11 @@
 //   world   { seed, level, defeated, ... } host -> guests: the host went into another world (and its
 //                                      progress there, as in the welcome)
 //   me      { ts, seed, cube, busy, pose, body, ground, swim, down, ko, hp, maxHp, level,
-//             weapon, armed, worn, skin, robot }  to all, about 20 times a second: where I am and how I
-//                                      look (`ts`: the sender's clock, ms; skin: the id of the
+//             weapon, look, armed, worn, skin, robot }  to all, about 20 times a second: where I am and how I
+//                                      look (`ts`: the sender's clock, ms; weapon: its model, look:
+//                                      its look's key, core/looks.js; skin: the id of the
 //                                      painted skin I wear, or null; worn: what I wear,
-//                                      'id@rarity@back' each, wornOf; body: [x, y, z, vx,
+//                                      'id@rarity@back@look' each, wornOf; body: [x, y, z, vx,
 //                                      vz], what enemies go after; ko: lying downed, [helped up
 //                                      %, s left], game/downed.js; robot: where my robot is and
 //                                      what it does, robotOf). The host passes it on less
@@ -102,6 +103,7 @@
 
 import { ITEMS } from '../core/items.js';
 import { RARITY } from '../core/gear/rarities.js';
+import { parseLook } from '../core/looks.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
@@ -222,20 +224,23 @@ export function packPose(position, yaw, hips, quats) {
   return { p: position.map(r3), yaw: r3(yaw), hips: hips.map(r3), q: quats.map(x => Math.round(x * Q)) };
 }
 
-// what a `me` says the player wears (render/partner.js capturedLook): 'id@rarity@back' each, or
-// a bare id (as before armor) -> [{ id, slot, rarity, back }], one per slot (an armor slot for what
-// is armor), only things we know
+// what a `me` says the player wears (render/partner.js capturedLook): 'id@rarity@back@look' each
+// (look: its look's key, core/looks.js; without it, as before looks, its kind's), or a bare id (as
+// before armor) -> [{ id, slot, rarity, back, look }], one per slot (an armor slot for what is
+// armor), only things we know
 export function wornOf(list) {
   const out = [], slots = new Set();
   for (const s of Array.isArray(list) ? list.slice(0, 8) : []) {
     if (typeof s !== 'string') continue;
-    const [id, rarity, back] = s.split('@'), def = ITEMS[id], slot = def?.armor?.slot ?? def?.slot;
+    const [id, rarity, back, look] = s.split('@'), def = ITEMS[id], slot = def?.armor?.slot ?? def?.slot;
     if (!slot || slots.has(slot)) continue;
     slots.add(slot);
-    out.push({ id, slot, rarity: Object.hasOwn(RARITY, rarity) ? rarity : null, back: back === '1' });
+    out.push({ id, slot, rarity: Object.hasOwn(RARITY, rarity) ? rarity : null, back: back === '1', look: lookFor(id, look) });
   }
   return out;
 }
+// a look's key that came over the network, if it is one of item `id`'s ('' if not)
+export const lookFor = (id, key) => parseLook(key)?.itemId === id ? key : '';
 
 // a well-formed pose (it came over the network)
 export function isPose(pose) {

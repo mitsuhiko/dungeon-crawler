@@ -15,9 +15,12 @@ import { BONES, Q, packPose, wornOf } from '../net/protocol.js';
 import { lerpAngle } from '../net/sync.js';
 import { scene, camera } from './scene.js';
 import { character, mountWeapon, wornSkin } from './character.js';
+import { dressLook } from './looks.js';
+import { parseLook } from '../core/looks.js';
+import { ITEMS } from '../core/items.js';
 import { prepareHeld, updateHeld } from './held.js';
 import { setSkinMap, skinTexture } from './skin.js';
-import { rig, createFigure, takeOff, wearLike, wornKey, animateWorn, ghostMaterial } from './figure.js';
+import { rig, createFigure, takeOff, wearLike, wornKey, animateWorn, ghostMaterial, overGhost } from './figure.js';
 import { waterlineAt, NONE } from './waterline.js';
 import { setFarLook } from './farlook.js';
 import { trackLight, untrackLight } from './lightpool.js';
@@ -42,14 +45,15 @@ export function capturePose() {
   return packPose(g.position.toArray(), g.rotation.y, b.hips.position.toArray(), quats);
 }
 
-// what our character holds and wears, for the other side to show: worn things as
-// 'id@rarity@back' (armor: its rarity, a shield on the back: 1; protocol.js wornOf reads them)
+// what our character holds and wears, for the other side to show: the weapon's look (core/looks.js),
+// worn things as 'id@rarity@back@look' (armor: its rarity, a shield on the back: 1, its look's key;
+// protocol.js wornOf reads them)
 export function capturedLook() {
-  return { armed: !!character.sword?.visible,
-    worn: Object.values(character.worn ?? {}).map(w => `${w.id}@${w.rarity ?? ''}@${w.back ? 1 : 0}`), skin: wornSkin()?.id ?? null };
+  return { armed: !!character.sword?.visible, look: character.sword ? character.look ?? '' : '',
+    worn: Object.values(character.worn ?? {}).map(w => `${w.id}@${w.rarity ?? ''}@${w.back ? 1 : 0}@${w.look ?? ''}`), skin: wornSkin()?.id ?? null };
 }
 
-// slot -> { f, group, ghost, light, tag, bars, hp, label, note, name, weapon: { url, object, want }, worn, clay }
+// slot -> { f, group, ghost, light, tag, bars, hp, label, note, name, weapon: { url, object, want, look }, worn, clay }
 const figs = new Map();
 // slot -> the texture of the skin player `slot` wears (setPartnerSkin); kept while their figure
 // is made again
@@ -112,9 +116,12 @@ function weaponModel(url) {
     .catch(e => { weapons.delete(url); console.error('partner weapon failed to load', e); return null; }));
   return weapons.get(url);
 }
-function setWeapon(fig, url) {
+// their weapon (its model's url) in its look (a key, core/looks.js; '': its kind's)
+function setWeapon(fig, url, look) {
   const w = fig.weapon;
+  if (w.want === url && w.object && w.look !== look) { w.look = look; dressLook(w.object, look); w.object.traverse(o => { if (o.isMesh) overGhost(o); }); }
   if (w.want === url) return;
+  w.look = look;
   w.want = url;
   if (w.object) { w.object.removeFromParent(); w.object = null; w.url = null; w.held = null; }
   if (!url) return;
@@ -122,6 +129,7 @@ function setWeapon(fig, url) {
   weaponModel(url).then(model => {
     if (figs.get(f.slot) !== f || w.want !== url || !model) return;
     model.removeFromParent();
+    dressLook(model, w.look);
     const item = mountWeapon(f.f.bones, model);
     w.object = model; w.url = url;
     w.held = item?.userData.weapon === 'flail' ? prepareHeld(model, item) : null;   // (its balls swing: render/held.js)
@@ -165,7 +173,8 @@ export function showPartner(slot, span, name, where = null) {
     q.fromArray(qa).normalize();
     if (k > 0) q.slerp(_q.fromArray(qb).normalize(), k);
   });
-  setWeapon(fig, typeof b.weapon === 'string' ? b.weapon : null);
+  const weapon = typeof b.weapon === 'string' ? b.weapon : null, look = parseLook(b.look);
+  setWeapon(fig, weapon, look && weapon && ITEMS[look.itemId]?.model === weapon ? b.look : '');
   if (fig.weapon.object) fig.weapon.object.visible = b.armed !== false;
   const now = performance.now() / 1000, dt = Math.min(0.1, now - (fig.at ?? now));
   fig.at = now;

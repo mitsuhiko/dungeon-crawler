@@ -94,7 +94,8 @@ function playTime(s) {
   return m < 60 ? tr('{m} min played', { m }) : tr('{h} h {m} min played', { h: Math.floor(m / 60), m: m % 60 });
 }
 // the item a hero holds (its weapon), shown as its picture
-const heroWeapon = h => { const s = h.inventory.slots.find(x => x?.instanceId === h.inventory.equipped); return ITEMS[s?.itemId] ? s.itemId : null; };
+// (the slot: its picture in its look, core/looks.js)
+const heroWeapon = h => { const s = h.inventory.slots.find(x => x?.instanceId === h.inventory.equipped); return ITEMS[s?.itemId] ? s : null; };
 const depthText = w => w.deepest ? tr('depth {depth}', { depth: w.deepest }) : tr('town');
 const levelText = w => tr('world level {level}', { level: w.level ?? 1 });
 const chosen = () => { const id = store.selected(); return id ? store.hero(id) : null; };

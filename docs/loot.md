@@ -67,7 +67,10 @@ A bag slot or pickup holding a weapon carries its own `gen`:
 ```
 
 Items keep what they rolled (not a seed), so retuning the tables does not change weapons
-already found; `v` is the generator version. `enchant` (optional) is the Enchanter's: only which
+already found; `v` is the generator version. How an item looks follows from this too (no state
+of its own): its patterns from the base and `name`, how much is done to it from the rarity, an
+element from `enchant` and a mark from each affix, as a small pixelated texture on its model, the
+same everywhere it shows ([looks.md](looks.md)). `enchant` (optional) is the Enchanter's: only which
 enchantment, its strength follows from the weapon (see below). `core/gear/stats.js` `itemStats` turns an item
 into the stats combat reads; nothing else looks at base weapon stats. A weapon without `gen`
 (dev grants, tests) counts as Vanilla. The first weapon is a Vanilla **Glassmaker's Old Sword**,
@@ -93,6 +96,9 @@ the base lean towards that kind.
 | OMG | 0.014 | 17 | 5 (+2 tiers) | ×1.40 | + very tall beam, everything cycling through the rainbow, the weapon hopping (guardians only) |
 
 Unremarkable rolls no affixes on purpose: it is a slightly better plain weapon and nothing more.
+The rarity shows on the weapon itself too ([looks.md](looks.md)): rust on Crap and Shitty, an
+inlay in its colour from Decent, gems from Remarkable, gold filigree from Fabled, glowing runes on
+Impossible and OMG.
 OMG's rainbow (`glow.rainbow`) also shows in the UI: its label, name, chronicle line and slot
 backdrop cycle through every hue (`.rainbow` in `style.css`; a fixed colour with reduced motion).
 
@@ -292,7 +298,9 @@ for free.
 With `?dev=1` the console (`` ` ``, `docs/console.md`) rolls a weapon of any base, rarity and item
 level: `/weapon <weapon> [rarity] [level] [drop]` puts it in the bag and equips it, or with `drop`
 lays it on the floor (`/weapon grsw omg 20 drop`); `/armor` does the same for armor. `__game.devDropWeapon(itemId, rarity, ilvl)`
-does the same from the browser's devtools.
+does the same from the browser's devtools. `/looks <item> [count] [level]` drops rolls of every
+rarity at your feet to compare their looks; `/tests/browser/looks.html` shows many more at once
+([looks.md](looks.md)).
 
 ## Tests
 

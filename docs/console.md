@@ -126,6 +126,7 @@ Developer (`?dev=1`):
 | `/weapon <weapon> [rarity] [level] [drop]` | roll a weapon and equip it, or drop it at your feet (default unusual, item level 8) |
 | `/enchant <enchantment\|off>` | enchant the equipped weapon for free (Toasty, Icky, Nippy, Zappy, Shiny: `core/gear/enchants.js`), or take it off |
 | `/armor <armor> [rarity] [level] [drop]` | roll a piece of armor and put it on, or drop it at your feet (default unusual, item level 8; `docs/armor.md`) |
+| `/looks <item> [count] [level]` | drop rolls of a weapon or a piece of armor at your feet (default 10, item level 20), a rarity each from Crap up, every other weapon enchanted, to compare their looks (`docs/looks.md`; many more at once: `/tests/browser/looks.html`) |
 | `/wear <thing\|off>` | a hat on (a Vanilla one into the bag: hats are head armor, `docs/armor.md`), or off what is on the head |
 | `/gold <amount>`, `/heal`, `/level <n>` | the hero |
 | `/music <mood\|auto>` | hold one mood of the music |

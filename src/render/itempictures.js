@@ -3,13 +3,17 @@
 // shows in the DOM (through render/itemviews.js, which adds the live views of the inventory),
 // and by the kids' guide (learn/demos/), which is why this needs nothing of the game but the
 // item table.
-//   itemPicture(id)   a picture of the item's model, seen as in blender/items.py's previews,
-//                     rendered once when first asked for and kept (until then: an empty image)
-//   pictureImg(id)    an <img> of it for HTML, which shows the picture as soon as it is there
+//   itemPicture(item) a picture of the item's model in its look (core/looks.js: a bag slot or a
+//                     pickup in its own, a bare item id in its kind's), seen as in blender/items.py's
+//                     previews, rendered once when first asked for and kept (until then: an empty
+//                     image); pictures are kept by their look's key (pictureKey)
+//   pictureImg(item)  an <img> of it for HTML, which shows the picture as soon as it is there
 // The WebGL canvas is never shown: each picture is copied out of it right after it is drawn.
 import * as THREE from 'three';
 import { loadGLB } from './gltf.js';
 import { ITEMS } from '../core/items.js';
+import { lookKey, parseLook } from '../core/looks.js';
+import { dressLook } from './looks.js';
 
 const PICTURE = 192;         // px, square: a bag slot (~80 CSS px) on a screen of pixel ratio 2
 const VIEW = new THREE.Vector3(2, 3, 5).normalize();   // the camera direction of blender/items.py render_previews
@@ -62,28 +66,32 @@ export function layFlat(model) {
   return model;
 }
 
-// itemId -> { group (centred on its box), half (half the height of a square view that fits it,
+// what a picture is kept by: the look's key (an item, an id or a key), or what else it shows
+export const pictureKey = item => lookKey(item) || (typeof item === 'string' ? item : '');
+const itemOf = key => parseLook(key)?.itemId ?? key;
+
+// picture key -> { group (centred on its box), half (half the height of a square view that fits it,
 // turning too) }; null while loading, false when it cannot be shown
 const protos = new Map(), pictures = new Map(), listeners = [];
 // an item's model, ready to paint (null while loading, false when it cannot be shown)
-export const itemModel = itemId => protos.get(itemId);
-function proto(itemId) {
-  if (protos.has(itemId)) return protos.get(itemId);
-  const url = modelUrl(itemId);
-  protos.set(itemId, url ? null : false);
+export const itemModel = item => protos.get(pictureKey(item));
+function proto(key) {
+  if (protos.has(key)) return protos.get(key);
+  const url = modelUrl(itemOf(key));
+  protos.set(key, url ? null : false);
   if (url) load(url).then(root => {
-    if (!root) { protos.set(itemId, false); return; }
-    const model = root.clone(true);
+    if (!root) { protos.set(key, false); return; }
+    const model = dressLook(root.clone(true), parseLook(key) ? key : null);
     layFlat(model);
     model.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3());
     model.position.sub(box.getCenter(new THREE.Vector3()));
     const group = new THREE.Group();
     group.add(model);
-    protos.set(itemId, { group, half: 0.6 * Math.max(size.y, Math.hypot(size.x, size.z)) });
-    snapshot(itemId);
+    protos.set(key, { group, half: 0.6 * Math.max(size.y, Math.hypot(size.x, size.z)) });
+    snapshot(key);
   });
-  return protos.get(itemId);
+  return protos.get(key);
 }
 
 // the items' stage: lit like blender/items.py's previews, from the front left, the right and behind
@@ -107,26 +115,27 @@ export function paintItem(out, m, yaw) {
   stage.remove(m.group);
 }
 
-function snapshot(itemId) {
-  const m = protos.get(itemId), out = document.createElement('canvas');
+function snapshot(key) {
+  const m = protos.get(key), out = document.createElement('canvas');
   out.width = out.height = PICTURE;
   paintItem(out, m, 0);
-  pictures.set(itemId, out.toDataURL('image/png'));
-  for (const fn of listeners) fn(itemId);
+  pictures.set(key, out.toDataURL('image/png'));
+  for (const fn of listeners) fn(key);
 }
 const EMPTY = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-// the picture of item `itemId` (a URL): its model's once rendered, an empty image until then
-export function itemPicture(itemId) {
-  if (!pictures.has(itemId)) proto(itemId);
-  return pictures.get(itemId) ?? EMPTY;
+// the picture of `item` (a URL): its model's once rendered, an empty image until then
+export function itemPicture(item) {
+  const key = pictureKey(item);
+  if (!pictures.has(key)) proto(key);
+  return pictures.get(key) ?? EMPTY;
 }
-// the model of itemId can be drawn (live too)
-export const itemModelReady = itemId => pictures.has(itemId);
-// fn(itemId) whenever another item's picture is ready (to show it instead of the empty image)
+// the model of item can be drawn (live too)
+export const itemModelReady = item => pictures.has(pictureKey(item));
+// fn(key) whenever another picture is ready (to show it instead of the empty image)
 export const onItemPictures = fn => { listeners.push(fn); };
-// an <img> showing item `itemId`'s picture, now or once it is rendered (an img given the
-// attribute data-item-picture by other means gets it too)
-export const pictureImg = (itemId, alt = '') => `<img data-item-picture="${itemId}" src="${itemPicture(itemId)}" alt="${alt}">`;
-onItemPictures(id => {
-  for (const img of document.querySelectorAll(`img[data-item-picture="${id}"]`)) img.src = pictures.get(id);
+// an <img> showing item's picture, now or once it is rendered (an img given the attribute
+// data-item-picture (a picture key) by other means gets it too)
+export const pictureImg = (item, alt = '') => `<img data-item-picture="${pictureKey(item)}" src="${itemPicture(item)}" alt="${alt}">`;
+onItemPictures(key => {
+  for (const img of document.querySelectorAll(`img[data-item-picture="${key}"]`)) img.src = pictures.get(key);
 });

@@ -159,9 +159,15 @@ The resistances add up to at most 75%. Names come from `core/gear/names.js` with
   Remarkable up, and runs through the rainbow on OMG; gems glow in the rarity's colour from Decent
   up (`render/figure.js shine`, `animateWorn`). On the floor armor glows by rarity like weapons
   (`render/loot.js`).
+- Look: every piece wears a small pixelated texture from its own data like a weapon
+  ([looks.md](looks.md)): cloth or leather on its clay, plates, scales, rings or dents on its
+  metal, a rope, beads, a zigzag or a meander on its trim (shaded by the trim's rarity colour
+  above), rust on Crap, inlays, gems, filigree and runes further up, and a mark for each affix (a
+  heart for of the Big Breakfast, a frame for Sturdy ...). The hero wears it (`game/armor.js` passes
+  each piece's look to `render/figure.js wear`), and so do the villagers (their kind's look).
 - Playing together the others see it ([online.md](online.md)): `me.worn` carries
-  `id@rarity@back` for everything worn (`render/partner.js capturedLook`, `net/protocol.js
-  wornOf`).
+  `id@rarity@back@look` for everything worn (`render/partner.js capturedLook`, `net/protocol.js
+  wornOf`; look: its look's key, [looks.md](looks.md)).
 
 ## Dev tools
 

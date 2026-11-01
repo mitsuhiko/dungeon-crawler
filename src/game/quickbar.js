@@ -119,7 +119,7 @@ function draw() {
   buttons.forEach((b, i) => {
     const e = barEntry(inv, i), def = e && ITEMS[e.itemId], img = b.querySelector('img');
     img.hidden = !def;
-    const src = def && itemPicture(def.id);   // its model's picture (render/itemviews.js), made once
+    const src = def && itemPicture(e.slot ?? def.id);   // its model's picture in its look (render/itemviews.js), made once
     if (def && img.getAttribute('src') !== src) img.src = src;
     const glow = e?.slot?.gen && rarityOf(e.slot).glow;
     b.style.setProperty('--rarity', glow ? rarityOf(e.slot).css : 'transparent');

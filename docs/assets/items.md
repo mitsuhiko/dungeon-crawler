@@ -5,7 +5,9 @@
 Built and inspected through Blender MCP. Matches the existing flat-faceted,
 texture-free clay style: warm timber, leather wraps, muted brass and steel,
 soft gemstone colours and opaque stylised potion glass. The treasure chest is the
-one animated asset.
+one animated asset. The models stay texture-free and without UVs: the game puts a small
+pixelated texture on them at runtime, by their materials' names (`Items_Clay`, `Items_Metal`,
+`Items_Trim`, `Items_Facets`), projected in the shader ([looks.md](../looks.md)).
 
 ## Assets
 

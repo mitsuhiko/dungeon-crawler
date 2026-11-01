@@ -186,7 +186,7 @@
     "src/net/peerjs.js#header": "23788d9d",
     "src/net/protocol.js#CODE_LENGTH": "7525b64a",
     "src/net/protocol.js#CODE_LETTERS": "3cbb915d",
-    "src/net/protocol.js#header": "7c5e11d4",
+    "src/net/protocol.js#header": "1e8b14d4",
     "src/net/protocol.js#LOST": "38fa7811",
     "src/net/protocol.js#packPose": "7cb12031",
     "src/net/protocol.js#peerId": "c175ae3f",

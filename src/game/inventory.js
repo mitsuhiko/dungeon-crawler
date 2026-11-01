@@ -50,8 +50,8 @@ import { cancelCast } from './townportal.js';
 import { useItem } from './quickbar.js';
 import { log } from './log.js';
 import { keyLabel, onSettingsChange } from './settings.js';
-import { itemPicture, itemModelReady, onItemPictures, drawLiveViews } from '../render/itemviews.js';
-import { readiedFlask, equippedWeapon } from '../core/combat.js';
+import { itemPicture, itemModelReady, onItemPictures, drawLiveViews, pictureKey } from '../render/itemviews.js';
+import { readiedFlask } from '../core/combat.js';
 import { GIVERS, giverQuests, giverOf } from '../core/quests.js';
 import { talkQuests, questLog, rescue, questTalk } from './quests.js';
 import { openQuests, closeQuests, drawQuests, onQuestChange } from './questpanel.js';
@@ -363,12 +363,13 @@ export function updateInventory() {
   if (next !== signature || inv !== shown) draw(next, inv, equipped, allowed, floor, item);
   // the hero and the selected item turning (render/itemviews.js; real time: the game is paused)
   // (not while the quests are in front: the bag's views are there, unseen)
-  if (tab === 'bag') drawLiveViews($('inventory-panel'), (readiedFlask(player) ?? equippedWeapon(player))?.id ?? null, performance.now() / 1000);
+  if (tab === 'bag') drawLiveViews($('inventory-panel'), readiedFlask(player)?.id ?? equipped ?? null, performance.now() / 1000);
 }
 function draw(next, inv, equipped, allowed, floor, item) {
   signature = next; shown = inv;
   const xp = xpProgress(player), shop = shopOf(trader);
-  const picture = (itemId, on) => on && itemModelReady(itemId) ? `<canvas data-live-item="${itemId}"></canvas>` : `<img src="${itemPicture(itemId)}" alt="">`;
+  // an item (a slot, a pickup, a ware, an id) in its look (core/looks.js), turning when selected
+  const picture = (item, on) => on && itemModelReady(item) ? `<canvas data-live-item="${pictureKey(item)}"></canvas>` : `<img src="${itemPicture(item)}" alt="">`;
 
   const column = !!shop?.wares.length || !!shop?.stock, w = workItem();
   $('inventory-panel').classList.toggle('with-floor', floorMode || column);
@@ -390,7 +391,7 @@ function draw(next, inv, equipped, allowed, floor, item) {
     const s = wornItem(inv, slot), on = !!s && selected?.from === 'bag' && selected.id === s.instanceId;
     const rarity = s?.gen && rarityOf(s).glow ? ` style="--rarity:${rarityOf(s).css}"` : '';
     const name = esc(tr(ARMOR_SLOT_NAMES[slot]));
-    return `<button class="inventory-slot worn-slot${on ? ' selected' : ''}${rainbow(s) ? ' rainbow' : ''}"${rarity} data-worn="${slot}" aria-label="${name}: ${s ? esc(itemName(s)) : esc(tr('nothing'))}" title="${name}: ${s ? esc(itemName(s)) : esc(tr('nothing worn'))}">${s ? picture(s.itemId, false) : `<span class="slot-name">${name}</span>`}</button>`;
+    return `<button class="inventory-slot worn-slot${on ? ' selected' : ''}${rainbow(s) ? ' rainbow' : ''}"${rarity} data-worn="${slot}" aria-label="${name}: ${s ? esc(itemName(s)) : esc(tr('nothing'))}" title="${name}: ${s ? esc(itemName(s)) : esc(tr('nothing worn'))}">${s ? picture(s, false) : `<span class="slot-name">${name}</span>`}</button>`;
   }).join('');
   $('inventory-currency').innerHTML = COINS.map((c, i) => `<div class="coin-slot" title="${esc(defName(c))}"><img src="${itemPicture(c.id)}" alt=""><div><small>${esc(defName(c))}</small><b>${inv.currency[i].count}</b></div></div>`).join('');
   const focus = document.activeElement?.dataset;
@@ -403,7 +404,7 @@ function draw(next, inv, equipped, allowed, floor, item) {
     // the Smith's: his armor, each one of a kind, in its rarity's colour, with its price
     if (shop.stock) $('inventory-shop').innerHTML = stock().map(({ item, price, i }) => {
       const id = `stock:${i}`, on = selected?.from === 'shop' && selected.id === id, r = rarityOf(item);
-      return `<button class="inventory-slot side-slot${on ? ' selected' : ''}${copper < price ? ' poor' : ''}${rainbow(item) ? ' rainbow' : ''}" role="option" aria-selected="${on}" data-ware="${id}"${r.glow ? ` style="--rarity:${r.css}"` : ''} aria-label="${esc(itemName(item))}, ${formatCoins(price)}" title="${esc(itemName(item))} · ${formatCoins(price)}">${picture(item.itemId, on)}<span class="price">${formatCoins(price)}</span></button>`;
+      return `<button class="inventory-slot side-slot${on ? ' selected' : ''}${copper < price ? ' poor' : ''}${rainbow(item) ? ' rainbow' : ''}" role="option" aria-selected="${on}" data-ware="${id}"${r.glow ? ` style="--rarity:${r.css}"` : ''} aria-label="${esc(itemName(item))}, ${formatCoins(price)}" title="${esc(itemName(item))} · ${formatCoins(price)}">${picture(item, on)}<span class="price">${formatCoins(price)}</span></button>`;
     }).join('') || `<div class="floor-empty">${esc(tr('Sold out'))}</div>`;
     // the Enchanter's: each enchantment as its crystal, dimmed when it cannot be had now, ringed
     // when the weapon has it
@@ -421,7 +422,7 @@ function draw(next, inv, equipped, allowed, floor, item) {
   }
   if (floorMode) $('inventory-floor').innerHTML = floor.length ? floor.map(p => {
     const on = selected?.from === 'floor' && selected.id === p.id, color = p.gen && rarityOf(p).glow ? rarityOf(p).css : '';
-    return `<button class="inventory-slot side-slot${on ? ' selected' : ''}${rainbow(p) ? ' rainbow' : ''}" role="option" aria-selected="${on}" data-floor="${p.id}"${color ? ` style="--rarity:${color}"` : ''} aria-label="${esc(itemName(p))}${p.count > 1 ? `, ${p.count}` : ''}" title="${esc(itemName(p))}">${picture(p.itemId, on)}${p.count > 1 ? `<span class="count">${p.count}</span>` : ''}</button>`;
+    return `<button class="inventory-slot side-slot${on ? ' selected' : ''}${rainbow(p) ? ' rainbow' : ''}" role="option" aria-selected="${on}" data-floor="${p.id}"${color ? ` style="--rarity:${color}"` : ''} aria-label="${esc(itemName(p))}${p.count > 1 ? `, ${p.count}` : ''}" title="${esc(itemName(p))}">${picture(p, on)}${p.count > 1 ? `<span class="count">${p.count}</span>` : ''}</button>`;
   }).join('') : `<div class="floor-empty">${esc(tr('Nothing here'))}</div>`;
   $('inventory-grid').innerHTML = inv.slots.map((s, i) => {
     const def = s && ITEMS[s.itemId], on = !!s && selected?.from === 'bag' && s.instanceId === selected.id;
@@ -432,16 +433,16 @@ function draw(next, inv, equipped, allowed, floor, item) {
     // blue), the backdrop its rarity
     const worked = !!s && !on && !!w && s.instanceId === w.instanceId && !!shop?.service;   // what the Enchanter or the Smith works on
     return `<button class="inventory-slot${on ? ' selected' : ''}${worked ? ' work' : ''}${rainbow(s) ? ' rainbow' : ''}${worn ? ' worn' : key >= 0 ? ' on-bar' : ''}"${rarity} data-slot="${i}" aria-pressed="${on}" aria-label="${esc(def ? [`${itemName(s)}, ${s.count}`, ...s.instanceId === inv.equipped ? [tr('equipped')] : [], ...isWorn(inv, s.instanceId) ? [tr('worn')] : [],
-      ...s.itemId === inv.readied ? [tr('in hand')] : [], ...key >= 0 ? [tr('quick bar {n}', { n: key + 1 })] : []].join(', ') : tr('Empty slot {n}', { n: i + 1 }))}" title="${esc(def ? itemName(s) : tr('Empty'))}">${s ? `${picture(s.itemId, on)}${s.count > 1 ? `<span class="count">${s.count}</span>` : ''}${worn ? '<span class="equipped">E</span>' : ''}${key >= 0 ? `<span class="bar-key">${key + 1}</span>` : ''}` : ''}</button>`;
+      ...s.itemId === inv.readied ? [tr('in hand')] : [], ...key >= 0 ? [tr('quick bar {n}', { n: key + 1 })] : []].join(', ') : tr('Empty slot {n}', { n: i + 1 }))}" title="${esc(def ? itemName(s) : tr('Empty'))}">${s ? `${picture(s, on)}${s.count > 1 ? `<span class="count">${s.count}</span>` : ''}${worn ? '<span class="equipped">E</span>' : ''}${key >= 0 ? `<span class="bar-key">${key + 1}</span>` : ''}` : ''}</button>`;
   }).join('');
   if (focusSlot !== undefined) $('inventory-grid').querySelector(`[data-slot="${focusSlot}"]`)?.focus();
   if (focusFloor !== undefined) ($('inventory-floor').querySelector(`[data-floor="${focusFloor}"]`)
     || $('inventory-floor').querySelector('[data-floor]') || $('inventory-grid').querySelector('[data-slot]'))?.focus();
   const def = item && ITEMS[item.itemId], view = $('inventory-item-view');
   // the selected item turning (render/itemviews.js), once its model is in
-  if (def) itemPicture(def.id);
-  view.style.visibility = def && itemModelReady(def.id) ? '' : 'hidden';
-  if (def) view.dataset.liveItem = def.id; else delete view.dataset.liveItem;
+  if (def) itemPicture(item);
+  view.style.visibility = def && itemModelReady(item) ? '' : 'hidden';
+  if (def) view.dataset.liveItem = pictureKey(item); else delete view.dataset.liveItem;
   const ench = item?.enchant ?? null;   // an enchantment at the Enchanter
   $('inventory-item-name').textContent = ench ? tr(ENCHANT[ench].name) : item ? itemName(item) : tr('Select an item');
   $('inventory-item-name').style.color = ench ? ENCHANT_CSS : item?.gen ? rarityOf(item).css : '';

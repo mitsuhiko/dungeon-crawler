@@ -3,7 +3,7 @@
 // how well (its score), and why. Then which one Enter would take.
 import { match, pick } from '../../src/core/commands.js';
 import { ITEMS } from '../../src/core/items.js';
-import { itemPicture } from '../../src/render/itempictures.js';
+import { itemPicture, pictureKey } from '../../src/render/itempictures.js';
 import { html, t as tr } from '../deck.js';
 
 const items = Object.values(ITEMS).map(d => ({ value: d.id, label: d.name }));
@@ -24,7 +24,7 @@ export default function mount(el) {
   function draw() {
     const q = input.value, list = match(q, items), p = pick(q, items);
     const rows = list.slice(0, 8).map((it, i) => `<div style="display:flex;align-items:center;gap:8px;${i ? '' : 'color:#fff'}">`
-      + `<img data-item-picture="${it.value}" src="${itemPicture(it.value)}" alt="" style="width:22px;height:22px;object-fit:contain">`
+      + `<img data-item-picture="${pictureKey(it.value)}" src="${itemPicture(it.value)}" alt="" style="width:22px;height:22px;object-fit:contain">`
       + `<span style="display:inline-block;width:${it.score * 0.9}px;height:8px;background:#ffcf7a;border-radius:2px;opacity:${0.4 + it.score / 170}"></span>`
       + `<b>${it.score}</b> ${esc(it.label)} <span class="muted">${esc(it.value)} · ${why(it.score)}</span></div>`).join('');
     const enter = p.item ? tr(`Enter takes <b>${esc(p.item.label)}</b>: it fits best, clearly.`, `Enter nimmt <b>${esc(p.item.label)}</b>: Es passt am besten, eindeutig.`)

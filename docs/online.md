@@ -51,9 +51,10 @@ being helped up and getting back in. Up to four players, co-op.
   behind it goes back (`game/worldclock.js`, `core/worldclock.js`). Alone it counts the frames
   played again, from where it was.
 - Everyone sends `me` 20 times a second: cube, position, the character's 14 bone rotations
-  (`render/partner.js capturePose`), weapon model, worn things (armor with its rarity, so it
-  shines the same, and whether the shield is on the back: `id@rarity@back`, `net/protocol.js
-  wornOf`; [armor.md](armor.md)), skin id, health and level. The
+  (`render/partner.js capturePose`), weapon model and its look (`look`, [looks.md](looks.md)),
+  worn things (armor with its rarity, so it shines the same, whether the shield is on the back
+  and its look: `id@rarity@back@look`, `net/protocol.js wornOf`; [armor.md](armor.md)), skin id,
+  health and level. The
   others draw them as a figure in the player's colour, ~110 ms in the past, blending the two
   messages around that moment (`src/net/sync.js Timeline`). Animation, attacks, ragdolls and
   get-ups all come along with the bones; nothing is animated twice. A player in another cube

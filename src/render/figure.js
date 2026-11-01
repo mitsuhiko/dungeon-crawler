@@ -18,13 +18,15 @@
 // the back too (`back_bone`, `back_gltf`: a matrix, column-major, in the character's space),
 // for when a bow needs the hand (game/armor.js). Worn armor shows its rarity: the trim (the glTF
 // material Items_Trim) takes the rarity's colour from Decent up, glows from Remarkable up and runs
-// through the rainbow on OMG; Crap and Shitty trim is dull and rusty.
+// through the rainbow on OMG; Crap and Shitty trim is dull and rusty. Everything worn or carried
+// wears its look (core/looks.js, render/looks.js: `look`, a piece's own; else its kind's).
 import * as THREE from 'three';
 import { loadGLB } from './gltf.js';
 import { CHAR_SCALE } from '../core/constants.js';
 import { ITEMS, outfitOf } from '../core/items.js';
 import { RARITY } from '../core/gear/rarities.js';
 import { cloneSkinned, cullBySphere, ownShadowDepth } from './skinned.js';
+import { lookOnto } from './looks.js';
 
 const URL = 'assets/character.glb';
 const sanitize = name => THREE.PropertyBinding.sanitizeNodeName(name);
@@ -128,7 +130,8 @@ export const thingLoaded = id => things.has(id);
 // Put item `id` on figure f (in its slot, replacing what was there). false: not loaded yet.
 // Each copy has its own materials (a cube's fade changes them, render/fade.js). opts (worn as
 // armor: game/armor.js): slot (the armor slot it goes in, not its own), rarity (an id: how its
-// trim shines), back (a shield slung on the back; a thing carried in the off hand put away). Armor
+// trim shines), look (its look's key, core/looks.js; else the kind's), back (a shield slung on the
+// back; a thing carried in the off hand put away). Armor
 // in parts goes on its bones (wearArmor); a hat or a thing carried (armor too) sits on its socket
 // like on a villager, without the villager's hold pose; a right-hand thing carried in the off hand
 // goes into the left hand, mirrored (the hero's right one holds the weapon).
@@ -147,7 +150,7 @@ export function wear(f, id, opts = {}) {
   object.traverse(o => {
     if (!o.isMesh) return;
     o.material = [].concat(o.material).map(m => {
-      m = m.clone();
+      m = lookOnto(m.clone(), opts.look || id, o);
       materials.push(m);
       // the gem-like part (the glTF material Items_Facets) shines in the item's glow colour
       if (def.glow && /Facets/.test(m.name)) { m.emissive.set(def.glow); m.emissiveIntensity = .6; glowing.push(m); }
@@ -169,7 +172,7 @@ export function wear(f, id, opts = {}) {
   }
   object.visible = !(worn && opts.back);   // (the bow needs the hand)
   const rarity = def.armor ? opts.rarity ?? null : null;
-  f.worn[key] = { id, slot: key, object, objects: [object], hold: worn ? null : d.hold ?? null, float: d.float ?? 0, glowing, rarity,
+  f.worn[key] = { id, slot: key, object, objects: [object], hold: worn ? null : d.hold ?? null, float: d.float ?? 0, glowing, rarity, look: opts.look || '',
     back: worn && !!opts.back, shine: shine(materials.filter(m => !glowing.includes(m)), rarity),
     at: object.position.clone(), mount: object.quaternion.clone() };
   return true;
@@ -214,7 +217,7 @@ function ownCopy(node) {
   return copy;
 }
 const _m = new THREE.Matrix4();
-function wearArmor(f, id, template, { rarity = null, back = false } = {}) {
+function wearArmor(f, id, template, { rarity = null, back = false, look = '' } = {}) {
   const def = ITEMS[id];
   takeOff(f, def.slot);
   template.updateMatrixWorld(true);
@@ -231,7 +234,7 @@ function wearArmor(f, id, template, { rarity = null, back = false } = {}) {
     object.matrix.multiply(_m.multiplyMatrices(inv, node.matrixWorld));
     object.traverse(o => {
       if (!o.isMesh) return;
-      o.material = [].concat(o.material).map(m => { m = m.clone(); materials.push(m); return m; });
+      o.material = [].concat(o.material).map(m => { m = lookOnto(m.clone(), look || id, o); materials.push(m); return m; });
       if (o.material.length === 1) o.material = o.material[0];
       o.castShadow = true;
       overGhost(o);
@@ -240,7 +243,7 @@ function wearArmor(f, id, template, { rarity = null, back = false } = {}) {
     bone.add(object);
     objects.push(object);
   });
-  f.worn[def.slot] = { id, slot: def.slot, object: objects[0], objects, hold: null, float: 0, glowing: [], rarity, back: !!back,
+  f.worn[def.slot] = { id, slot: def.slot, object: objects[0], objects, hold: null, float: 0, glowing: [], rarity, look, back: !!back,
     shine: shine(materials, rarity) };
   return true;
 }
@@ -291,7 +294,7 @@ export function wearLike(f, from, load = false) {
   return all;
 }
 // what a worn thing is, as a key: the same key, the same look
-export const wornKey = worn => Object.values(worn ?? {}).map(w => `${w.id}@${w.rarity ?? ''}@${w.back ? 1 : 0}`).sort().join(',');
+export const wornKey = worn => Object.values(worn ?? {}).map(w => `${w.id}@${w.rarity ?? ''}@${w.back ? 1 : 0}@${w.look ?? ''}`).sort().join(',');
 
 // wear all of `ids` (one per slot, core/items.js outfitOf)
 export function dress(f, ids) {

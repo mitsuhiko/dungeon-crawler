@@ -7,6 +7,8 @@ import { ITEMS } from '../core/items.js';
 import { ownedItem, equipItem, addInstance, readyItem, wearItem, takeOffItem, wornItem } from '../core/inventory.js';
 import { rollWeapon, rollArmor } from '../core/gear/generate.js';
 import { displayName } from '../core/gear/stats.js';
+import { RARITIES } from '../core/gear/rarities.js';
+import { ENCHANTS } from '../core/gear/enchants.js';
 import { dropAtFeet } from './loot.js';
 import { equippedWeapon, canChangeWeapon, readiedFlask } from '../core/combat.js';
 import { prepareSword, equipSword } from '../render/character.js';
@@ -15,11 +17,12 @@ import { tr } from '../i18n/i18n.js';
 let request = 0;
 export const equipmentAllowed = () => !state.transitioning && !state.equipping && canChangeWeapon(player);
 export async function syncEquippedWeapon() {
-  const token = ++request, inventory = player.inventory, def = readiedFlask(player) ?? equippedWeapon(player);
+  const token = ++request, inventory = player.inventory, flask = readiedFlask(player), def = flask ?? equippedWeapon(player);
   state.equipping = true;
   try {
     const model = def ? await prepareSword(def.model) : null;
-    if (token === request && inventory === player.inventory) equipSword(model);
+    // (in its look, core/looks.js: the weapon's own, a flask's kind's)
+    if (token === request && inventory === player.inventory) equipSword(model, flask ? flask.id : ownedItem(inventory, inventory.equipped));
   } finally { if (token === request) state.equipping = false; }
 }
 export async function equipOwnedWeapon(instanceId) {
@@ -32,7 +35,7 @@ export async function equipOwnedWeapon(instanceId) {
     const model = await prepareSword(def.model);
     if (token !== request || inventory !== player.inventory || !canChangeWeapon(player) || state.transitioning
         || ownedItem(inventory, instanceId) !== slot) return false;
-    equipItem(inventory, instanceId); equipSword(model); sfx('equip');
+    equipItem(inventory, instanceId); equipSword(model, slot); sfx('equip');
     setStatus(tr('Equipped {item}', { item: displayName(slot) }));
     return true;
   } catch (error) {
@@ -95,6 +98,20 @@ export function devWearArmor(itemId, rarity = 'vanilla', ilvl = 1) {
 export function devDropArmor(itemId, rarity = 'unusual', ilvl = 8) {
   if (!state.dev || !ITEMS[itemId]?.armor) return null;
   return dropAtFeet(rollArmor(Math.random, ilvl, { itemId, rarity }));
+}
+// dev tools: n rolls of weapon or armor `itemId` at your feet, a rarity each from the worst to the
+// best (and round again), every other weapon enchanted: their looks side by side (core/looks.js;
+// many more at once: tests/browser/looks.html)
+export function devDropLooks(itemId, n = 10, ilvl = 20) {
+  const def = ITEMS[itemId];
+  if (!state.dev || !(def?.weapon || def?.armor)) return 0;
+  for (let i = 0; i < n; i++) {
+    const rarity = RARITIES[i % RARITIES.length].id;
+    const item = (def.weapon ? rollWeapon : rollArmor)(Math.random, ilvl, { itemId, rarity });
+    if (def.weapon && i % 2) item.gen.enchant = ENCHANTS[(i >> 1) % ENCHANTS.length].id;
+    dropAtFeet(item);
+  }
+  return n;
 }
 // dev tools: put headwear on the player (a Vanilla one, into the bag: hats are head armor), or
 // take off what is on the head (null). Only headwear: the player's hands carry the weapon.

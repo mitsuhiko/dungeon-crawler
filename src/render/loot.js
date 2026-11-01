@@ -7,10 +7,11 @@
 // hops on the floor. A quest's thing to find glows gold (QUEST_GLOW), so it
 // stands out from the clutter it may look like (core/items.js: made from the world's props); so do
 // the beginning's (core/intro.js): the glassmaker's glass floating over the plaza
-// (render/glassbubble.js) and his sword standing in the ground.
+// (render/glassbubble.js) and his sword standing in the ground. Each wears its look (core/looks.js,
+// render/looks.js): the same item looks the same here, in the bag and on a friend's screen.
 // Views hang in the cube's group, so they slide along with it during travel and go away with
-// it; their geometry and materials are shared between all copies (per item / per rarity), so
-// disposing a cube leaves them alone.
+// it; their geometry and materials are shared between all copies (per item / per look / per
+// rarity), so disposing a cube leaves them alone.
 import * as THREE from 'three';
 import { loadGLB } from './gltf.js';
 import { layFlat } from './itempictures.js';
@@ -21,6 +22,7 @@ import { partnerAt } from './partner.js';
 import { trackLight, untrackLight } from './lightpool.js';
 import { emit, glow as glowLayer, rand } from './particles.js';
 import { glassBubble, GLASS_VIEW } from './glassbubble.js';
+import { dressLook } from './looks.js';
 
 const protos = new Map();   // itemId -> prototype (null while loading)
 const loads = new Map();    // itemId -> Promise (resolves once loaded or failed)
@@ -88,11 +90,11 @@ function proto(itemId) {
 export const loadLoot = ids => Promise.all(ids.map(id => { proto(id); return loads.get(id); }));
 
 // What loot is drawn with, for its shaders (render/warmup.js): these items' models (once
-// loaded) and every rarity's glow; each once.
+// loaded, in their looks) and every rarity's glow; each once.
 const warmedLoot = new Set();
 export function lootWarmup(ids) {
   const out = [];
-  for (const id of ids) if (!warmedLoot.has(id) && protos.get(id)) { warmedLoot.add(id); out.push(protos.get(id)); }
+  for (const id of ids) if (!warmedLoot.has(id) && protos.get(id)) { warmedLoot.add(id); out.push(dressLook(protos.get(id).clone(), id)); }
   if (!warmedLoot.has('')) {
     warmedLoot.add('');
     for (const r of [...RARITIES, QUEST_GLOW, GLASS_GLOW]) {
@@ -267,7 +269,7 @@ export function drawLoot(list, world, time, dt = 0) {
     if (!view) {
       const pr = proto(p.itemId);
       if (!pr) continue;
-      const glow = glowOf(p), o = new THREE.Group(), model = pr.clone(), fx = glow?.glow ? makeFx(glow) : null;
+      const glow = glowOf(p), o = new THREE.Group(), model = dressLook(pr.clone(), p), fx = glow?.glow ? makeFx(glow) : null;
       model.rotation.order = 'YXZ';   // (a coin laid on its face in a chest, then turned)
       o.add(model); if (fx) o.add(fx);
       world.group.add(o);

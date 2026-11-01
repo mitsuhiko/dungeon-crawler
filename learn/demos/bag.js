@@ -29,7 +29,7 @@ export default function mount(el) {
   function cell(slot, count) {
     if (!slot) return '<div class="slot"></div>';
     const r = slot.gen ? rarityOf(slot) : null;
-    return `<div class="slot" style="${r ? `border-color:${r.css}` : ''}" title="${esc(slot.gen ? displayName(slot) : gameName(ITEMS[slot.itemId].name))}">${pictureImg(slot.itemId)}${count > 1 ? `<span>${count}</span>` : ''}</div>`;
+    return `<div class="slot" style="${r ? `border-color:${r.css}` : ''}" title="${esc(slot.gen ? displayName(slot) : gameName(ITEMS[slot.itemId].name))}">${pictureImg(slot)}${count > 1 ? `<span>${count}</span>` : ''}</div>`;
   }
   function draw() {
     view.querySelector('.slots').innerHTML = inv.slots.map(s => cell(s, s?.count)).join('');

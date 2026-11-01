@@ -1,6 +1,7 @@
 // The armor the player wears (core/inventory.js `worn`; core/gear/stats.js armorStats): on the
 // hero, in what a blow takes, and in the maximum health.
-//   updateArmor     every frame: the hero wears what the bag says (render/figure.js wear), the
+//   updateArmor     every frame: the hero wears what the bag says (render/figure.js wear), each
+//                   piece and the weapon in hand in its look (core/looks.js), the
 //                   shield on the back (a thing carried put away) while a bow needs the hand; the maximum health follows
 //                   the armor's health (core/progression.js refreshMaxHp); rare armor shines
 //   guardBlow       a blow on the player (game/enemycombat.js hitPlayer), through the shield and
@@ -18,7 +19,9 @@ import { equippedWeapon } from '../core/combat.js';
 import { refreshMaxHp } from '../core/progression.js';
 import { wornTotals, armorReduction, BLOCK_TAKES } from '../core/gear/stats.js';
 import { depthLevel } from '../core/enemies.js';
-import { character } from '../render/character.js';
+import { character, dressHand } from '../render/character.js';
+import { lookKey } from '../core/looks.js';
+import { ownedItem } from '../core/inventory.js';
 import { wear, takeOff, thingLoaded, loadThing, animateWorn } from '../render/figure.js';
 import { floatText } from '../render/floattext.js';
 import { emit, glow, rand } from '../render/particles.js';
@@ -29,16 +32,16 @@ import { damageNumbers } from './settings.js';
 export const shieldInHand = (p = player) => equippedWeapon(p)?.weapon?.kind !== 'bow';
 export const wornDefense = (p = player) => wornTotals(p.inventory, { shield: shieldInHand(p) });
 
-// what the hero should wear, by slot: { id, slot, rarity, back }
+// what the hero should wear, by slot: { id, slot, rarity, look, back }
 function wanted(inv) {
   const out = {};
   for (const slot of ARMOR_SLOTS) {
     const s = inv.slots.find(x => x?.instanceId === inv.worn?.[slot]);
-    if (s) out[slot] = { id: s.itemId, slot, rarity: s.gen?.rarity ?? null, back: slot === 'shield' && !shieldInHand() };
+    if (s) out[slot] = { id: s.itemId, slot, rarity: s.gen?.rarity ?? null, look: lookKey(s), back: slot === 'shield' && !shieldInHand() };
   }
   return out;
 }
-const same = (w, want) => !!w && w.id === want.id && (w.rarity ?? null) === want.rarity && !!w.back === want.back;
+const same = (w, want) => !!w && w.id === want.id && (w.rarity ?? null) === want.rarity && (w.look ?? '') === want.look && !!w.back === want.back;
 
 let seen = null, seenVersion = -1, seenBow = null, missing = false;
 export function updateArmor(time) {
@@ -47,6 +50,7 @@ export function updateArmor(time) {
     seen = inv; seenVersion = inv.version; seenBow = bow;
     refreshMaxHp(player);
     missing = !character.ready || dress(wanted(inv));   // (not loaded yet: dressed once it is)
+    if (!inv.readied) dressHand(ownedItem(inv, inv.equipped));
   }
   if (character.ready) animateWorn(character, time);
 }

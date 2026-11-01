@@ -3,16 +3,19 @@
 // the chat's suggestions, the heroes in the main menu). The pictures are render/itempictures.js's
 // (re-exported here); this adds the views that move:
 //   drawLiveViews     every frame the inventory is open, the views that move, each a <canvas>:
-//                     [data-live-item="id"] the item turning (the selected one),
+//                     [data-live-item="key"] the item turning (the selected one; its picture's
+//                     key, render/itempictures.js pictureKey),
 //                     [data-live-hero] the hero as it stands, with the weapon (or the flask) in
-//                     its hand and what it wears
+//                     its hand, in its look (render/looks.js), and what it wears
 import * as THREE from 'three';
 import { rig, createFigure, poseFigure, takeOff, wearLike, wornKey, animateWorn } from './figure.js';
 import { character, mountWeapon } from './character.js';
-import { paint, load, modelUrl, paintItem, itemModel } from './itempictures.js';
+import { paint, load, modelUrl, paintItem, itemModel, pictureKey } from './itempictures.js';
+import { parseLook } from '../core/looks.js';
+import { dressLook } from './looks.js';
 import { uiScale } from '../game/uiscale.js';
 
-export { itemPicture, itemModelReady, onItemPictures, pictureImg } from './itempictures.js';
+export { itemPicture, itemModelReady, onItemPictures, pictureImg, pictureKey } from './itempictures.js';
 
 const SPIN = 0.9;            // rad/s a live item turns
 const SWAY = 0.3, SWAY_SPEED = 0.35, FACING = -0.3;   // the hero turns a little to and fro (rad, rad/s) around a three-quarter view
@@ -27,7 +30,8 @@ const heroStage = new THREE.Scene(), heroCam = new THREE.PerspectiveCamera(24, 1
   key.position.set(2, 3, 3); rim.position.set(-2.5, 1.5, -3);
   heroStage.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a3326, 1.2), key, rim);
 }
-// { f (render/figure.js), tint, url (the weapon wanted), weapon (its model, mounted), kind, worn }
+// { f (render/figure.js), tint, url (the weapon wanted), look (its look's key), weapon (its model,
+// mounted), kind, worn }
 let hero = null;
 const weapons = new Map();   // url -> the hand's own copy (shares geometry and materials with the item's)
 function heroWeapon(url) {
@@ -35,23 +39,25 @@ function heroWeapon(url) {
   return weapons.get(url);
 }
 // the hero as the player's character looks (render/character.js): its colour, what it wears,
-// and itemId (a weapon, or a flask readied to throw) in its hand
-function dressHero(itemId) {
+// and `hand` (a weapon's bag slot, or a flask readied to throw) in its hand
+function dressHero(hand) {
   if (!rig.ready) return null;
   const tint = character.tint ?? null;
   if (hero && hero.tint !== tint) { hero.f.group.removeFromParent(); hero = null; }
   if (!hero) {
-    hero = { f: createFigure(tint), tint, url: null, weapon: null, kind: null, worn: '' };
+    hero = { f: createFigure(tint), tint, url: null, look: '', weapon: null, kind: null, worn: '' };
     heroStage.add(hero.f.group);
   }
-  const url = itemId ? modelUrl(itemId) : null;
+  const look = hand ? pictureKey(hand) : '', url = look ? modelUrl(parseLook(look)?.itemId ?? look) : null;
+  if (hero.look !== look && hero.url === url && hero.weapon) { hero.look = look; dressLook(hero.weapon, look); }
   if (hero.url !== url) {
     const h = hero;
-    h.url = url;
+    h.url = url; h.look = look;
     h.weapon?.removeFromParent(); h.weapon = null; h.kind = null;
     pose(h);
     if (url) heroWeapon(url).then(model => {
       if (hero !== h || h.url !== url || !model) return;
+      dressLook(model, h.look);
       h.kind = mountWeapon(h.f.bones, model)?.userData.weapon ?? null;
       h.weapon = model;
       pose(h);
@@ -81,8 +87,8 @@ function fit(c) {
   return c;
 }
 
-// main.js, every frame the inventory is open: the live views inside `root`; `hand`: the item id
-// in the hero's hand (or null); time: s, for the turning
+// main.js, every frame the inventory is open: the live views inside `root`; `hand`: what is in
+// the hero's hand (a bag slot, an item id, or null); time: s, for the turning
 export function drawLiveViews(root, hand, time) {
   for (const c of root.querySelectorAll('canvas[data-live-item]')) {
     const m = itemModel(c.dataset.liveItem);
