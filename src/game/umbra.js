@@ -19,7 +19,7 @@
 import { player, state, setStatus } from './state.js';
 import { UMBRA, UMBRA_BODY, STAGE_PROFILES, ENEMY_KINDS, makeEnemy, enemyProfile, attackOf, enemyName, blowOf } from '../core/enemies.js';
 import { UMBRA_FIGHT as G, phaseFloor, summonCount, barred, newTrail, pushTrail, settleTrail, bodyAt, bodyParts, steer, nextSpot, swimSpots,
-  ventSpots, ventPhase, inColumn, bombAt, jetVolley, jetWay, inJet, mudY as mudWorldY, nextMudStep, mudLevel } from '../core/umbra.js';
+  ventSpots, ventPhase, inColumn, bombAt, jetVolley, jetWay, inJet, jetRoll, jetSpan, jetReaches, mudY as mudWorldY, nextMudStep, mudLevel, holeSpot } from '../core/umbra.js';
 import { LH, N } from '../core/constants.js';
 import { launch } from '../core/projectiles.js';
 import { floorY } from '../core/surfaces.js';
@@ -32,7 +32,6 @@ import { hitBody, attacker } from './enemycombat.js';
 import { addProjectile } from './projectiles.js';
 import { summonFx, quake, tremor } from './juice.js';
 import { relay } from '../net/online.js';
-import { wallBurst } from '../render/dive.js';
 import { sfx } from '../audio/sfx.js';
 import { tr, msg } from '../i18n/i18n.js';
 
@@ -109,7 +108,7 @@ const groundOf = f => (x, z) => {
 const surfaceOf = f => f.reef ? f.reef.surface : f.h.y + 5;
 const boxOf = f => f.reef?.box ?? [1, 1, N - 1, N - 1];
 const swim = (f, goal, dt, speed, turn = G.swim.turn) => {
-  steer(f.h, goal, dt, { speed, turn, surface: surfaceOf(f), box: boxOf(f), ground: groundOf(f) });
+  steer(f.h, goal, dt, { speed, turn, surface: surfaceOf(f), box: boxOf(f), ground: groundOf(f), gates: f.gates ??= gatesOf() });
   f.speed = speed;
 };
 // him where his head is (his `y` its bottom), its heading; the trail and his body after it
@@ -153,11 +152,33 @@ function stepWater(f, dt) {
   } else if (d.phase === 'drain' && d.t >= G.drain) Object.assign(d, { phase: 'over', t: 0 });
 }
 
-// Out of the wall: the inner face of the bank nearest his spot, his head at it looking into the room
-// halfway up the bank, his body straight back into the wall; what of him is still in it is not drawn
-// (`clipWall`: [nx, nz, d], drawn where nx x + nz z >= d, render/umbraview.js) till all of him is out
-function wallOf(f) {
-  const e = f.e, p = e.post, [x0, z0, x1, z1] = boxOf(f), g = groundOf(f);
+// The gates of his reef he keeps clear of (core/umbra.js gateNear): the arch behind his well
+// (render/markers.js well: two pillars a cell either side, behind it, away from its approach) and the
+// frames of the side gates in the walls
+function gatesOf() {
+  const m = state.map, out = [];
+  for (const p of m?.portals ?? []) {
+    if (p.kind === 'down' && m.guardian && p.dir === m.exit) {
+      const [dx, dz] = m.guardian.approach, cx = p.x + 0.5 - dx * 0.8, cz = p.z + 0.5 - dz * 0.8;
+      out.push({ ax: cx - dz * 1.15, az: cz + dx * 1.15, bx: cx + dz * 1.15, bz: cz - dx * 1.15, top: p.y + 2.55 });
+    } else if (p.kind === 'side') {
+      const [dx, dz] = [[1, 0], [-1, 0], [0, 1], [0, -1]][p.dir], cx = dx > 0 ? N : dx < 0 ? 0 : p.x + 0.5, cz = dz > 0 ? N : dz < 0 ? 0 : p.z + 0.5;
+      out.push({ ax: cx - dz * 1.1 - dx * 2.2, az: cz + dx * 1.1 - dz * 2.2, bx: cx + dz * 1.1 - dx * 2.2, bz: cz - dx * 1.1 - dz * 2.2, top: p.y + 2.2 });
+      out.push({ ax: cx - dz * 1.1, az: cz + dx * 1.1, bx: cx + dz * 1.1, bz: cz - dx * 1.1, top: p.y + 2.2 });
+    }
+  }
+  return out;
+}
+// Out of the wall: a hole opening in the face of the bank behind his spot (core/umbra.js holeSpot),
+// clear of the gates, his head in it looking into the room, his body straight back into the wall; what
+// of him is still in it is not drawn (`clipWall`: [nx, nz, d, and the hole's middle x, y, z], drawn
+// where nx x + nz z >= d, render/umbraview.js, which opens the hole and closes it behind his tail)
+// till all of him is out. Without a hole that fits: the wall nearest his spot, as of old.
+function holeOf(f) {
+  const e = f.e, p = e.post, g = groundOf(f), to = { x: p.x, y: p.y + 0.6 + HEAD, z: p.z };
+  const hole = holeSpot({ box: boxOf(f), post: p, door: f.reef?.door, to, ground: g, gates: f.gates ??= gatesOf() });
+  if (hole) return hole;
+  const [x0, z0, x1, z1] = boxOf(f);
   const sides = [[x0 + 1, 1, 0, p.x - x0], [x1 - 1, -1, 0, x1 - p.x], [z0 + 1, 0, 1, p.z - z0], [z1 - 1, 0, -1, z1 - p.z]];
   const [at, nx, nz] = sides.sort((a, b) => a[3] - b[3])[0];
   const along = nx ? Math.min(z1 - 2.5, Math.max(z0 + 2.5, p.z)) : Math.min(x1 - 2.5, Math.max(x0 + 2.5, p.x));
@@ -167,14 +188,15 @@ function wallOf(f) {
   return { x, z, y: Math.max(floor + 0.75, Math.min(bank - 0.45, floor + 1.4)), nx, nz };
 }
 function emerge(f) {
-  const e = f.e, w = wallOf(f);
+  const e = f.e, w = holeOf(f);
+  e.hole = w;   // (where his intro brings him out, game/bossreveals.js)
   Object.assign(f.h, { x: w.x + w.nx * 0.05, y: w.y, z: w.z + w.nz * 0.05, dx: w.nx, dy: 0, dz: w.nz });
   f.trail = e.trail = newTrail(f.h, [w.nx, 0, w.nz]);
-  e.clipWall = [w.nx, w.nz, w.nx * w.x + w.nz * w.z];
-  f.spot = nextSpot(f.spots, null);
+  e.clipWall = [w.nx, w.nz, w.nx * w.x + w.nz * w.z, w.x, w.y, w.z];
+  // (without his intro: first to his spot, out of the hole the way his intro brings him)
+  f.spot = { x: e.post.x, y: e.post.y + 0.6 + HEAD, z: e.post.z };
   sync(f);
   sfx('rumble', { at: w, pitch: 0.4, volume: 1 }); quake(0.03);
-  wallBurst(w.x, w.y, w.z, w.nx, w.nz);
 }
 // all of him out of the wall: drawn whole
 function outOfWall(f) {
@@ -408,26 +430,28 @@ function bomb(f, v) {
 // --- the jets ----------------------------------------------------------------------------------------
 
 function stepJets(f, dt) {
-  const e = f.e, run = f.jetRun, J = G.jets;
+  const e = f.e, run = f.jetRun, J = G.jets, box = boxOf(f);
   if (!run) { e.jets = null; return; }
   if (e.mode === 'dead') { f.jetRun = null; e.jets = null; return; }
   run.t += dt;
-  const span = J.warn + J.blast + J.gap;
-  if (run.i < 0 || run.t >= span) {   // the next volley: at whom it is aimed, where it comes from
+  if (run.i < 0 || run.t >= jetSpan(box)) {   // the next volley: at whom it is aimed, where it comes from
     run.i++; run.t = 0; run.hit = new Set();
     if (run.i >= run.n) { f.jetRun = null; e.jets = null; f.jetsIn = between(J.every); return; }
     const list = players(), p = list[Math.floor(Math.random() * list.length)] ?? player;
-    run.list = jetVolley(run.seed + run.i * 17, p.x, p.z, boxOf(f)).map(j => j.kind === 'wall' ? { ...j, y: p.y + 0.55 } : { ...j, floor: groundOf(f)(j.x, j.z) });
+    // (the first wave through them from a wall whose wave reaches them: no hill in its way)
+    const g = groundOf(f), feet = { x: p.x, y: g(p.x, p.z), z: p.z };   // (where they stand: in a jump too)
+    run.list = jetVolley(run.seed + run.i * 17, p.x, p.z, box, jetReaches(feet, g, box))
+      .map(j => j.kind === 'wall' ? j : { ...j, floor: g(j.x, j.z) });
     sfx('gulp', { at: p, pitch: 0.5, volume: 0.6 });
   }
   e.jets = { i: run.i, t: run.t, list: run.list };
-  if (run.t < J.warn || run.t >= J.warn + J.blast) return;
-  if (!run.blasted) { run.blasted = run.i; sfx('spray', { at: e, pitch: 0.45, volume: 1 }); }
+  const tw = run.t - J.warn;
+  if (tw < 0 || tw >= jetRoll(box)) return;
   if (run.blasted !== run.i) { run.blasted = run.i; sfx('spray', { at: e, pitch: 0.45, volume: 1 }); }
   const g = groundOf(f);
   for (const p of players()) {
     if (run.hit.has(p) || p.ragdoll) continue;
-    const j = run.list.find(j => inJet(j, p, j.y ?? 0, g, boxOf(f)));
+    const j = run.list.find(j => inJet(j, p, g, box, tw));
     if (!j) continue;
     run.hit.add(p);
     const down = j.kind === 'down', D = down ? J.down : J, [wx, wz] = down ? [p.x - j.x, p.z - j.z] : jetWay(j.side), l = Math.hypot(wx, wz) || 1;

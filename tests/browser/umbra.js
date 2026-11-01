@@ -98,15 +98,18 @@ export async function runUmbraChecks() {
     damageEnemy(b, b.hp);
     check(b.hp === b.hpFloor, 'no blow takes him past two thirds');
     check(until(G.rage + 2, () => b.stage === 2, tough) < G.rage + 2, 'he rages into phase 2');
-    let jets = 0, shielded = false, blocked = false;
+    let jets = 0, shielded = false, blocked = false, caught = 0;
     run(40, () => {
       tough();
       if (b.jets) jets = Math.max(jets, b.jets.i + 1);
+      const r = umbraFight()?.jetRun;
+      if (r?.hit?.has(player) && r.caught !== r.i) { r.caught = r.i; caught++; }
       if (b.shield > 0 && b.mode !== 'split' && !shielded) { shielded = true; const h = b.hp; damageEnemy(b, 100); blocked = b.hp === h; }
     });
     check(jets >= G.jets.volleys[0], 'the jets come in volleys: ' + jets);
+    check(caught > 0, 'they catch the hero standing still');
     check(shielded && blocked, 'his shield holds blows off');
-    out.push(`phase 2: ${jets} volleys of jets, a shield`);
+    out.push(`phase 2: ${jets} volleys of jets (${caught} caught the hero), a shield`);
     // a third: his mud rises from the bottom, and slows the deeper it is
     damageEnemy(b, b.hp);
     check(until(G.rage + 2, () => b.stage === 3, tough) < G.rage + 2, 'he rages into phase 3');

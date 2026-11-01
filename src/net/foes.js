@@ -220,7 +220,7 @@ export class Viewer {
       // game/dive.js floods ours after them, render/dive.js draws them)
       if (Array.isArray(b[26])) {
         const [phase, t, fightT, shield, mud, vents, jets, wall] = b[26], fin = Number.isFinite;
-        e.clipWall = Array.isArray(wall) && wall.length === 3 && wall.every(fin) ? wall : null;
+        e.clipWall = Array.isArray(wall) && wall.length === 6 && wall.every(fin) ? wall : null;
         e.dive = { phase: DIVE_PHASES[phase] ?? 'wet', t: fin(t) ? Math.max(0, t) : 0 };
         e.fightT = fin(fightT) && fightT >= 0 ? fightT : NaN;
         e.shield = fin(shield) ? Math.max(0, Math.min(10, shield)) : 0;
@@ -229,7 +229,7 @@ export class Viewer {
           .map(([n, x, y, z, vt]) => ({ n, x, y, z, t: vt }));
         e.jets = Array.isArray(jets) && fin(jets[0]) && fin(jets[1]) && Array.isArray(jets[2]) ? { i: jets[0], t: jets[1], list: jets[2]
           .filter(j => Array.isArray(j) && j.length === 4 && j.every(fin)).slice(0, 6)
-          .map(j => j[0] === 1 ? { kind: 'down', x: j[1], z: j[2], floor: j[3] } : { kind: 'wall', side: j[1] & 3, u: j[2], y: j[3] }) } : null;
+          .map(j => j[0] === 1 ? { kind: 'down', x: j[1], z: j[2], floor: j[3] } : { kind: 'wall', side: j[1] & 3, u: j[2] }) } : null;
         e.holdIntro = e.dive.phase !== 'wet' && e.dive.phase !== 'drain' && e.dive.phase !== 'over';
       }
       if (e.mode === 'dead') { e.hp = 0; e.deadT = b[6]; e.dark = 0; (e.beam || e.bolts) && mirrorBeam(e, null); return; }

@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { state } from './fixtures.js';
 import { UMBRA_FIGHT as G, DIVE, phaseFloor, summonCount, airLeft, airText, barred, newTrail, pushTrail, settleTrail, bodyAt, bodyParts,
-  radiusAt, steer, swimSpots, nextSpot, ventSpots, ventPhase, inColumn, bombAt, jetVolley, jetWay, inJet, mudSlow, mudLevel, nextMudStep, mudY } from '../src/core/umbra.js';
+  radiusAt, steer, swimSpots, nextSpot, ventSpots, ventPhase, inColumn, bombAt, jetVolley, jetWay, inJet, jetWave, jetRoll, jetSpan, jetReaches, mudSlow, mudLevel, nextMudStep, mudY,
+  holeSpot, holePath, clearOfGates, HOLE } from '../src/core/umbra.js';
 import { N, LH, HEAD_Y, GRAV, JUMP_V } from '../src/core/constants.js';
 import { World } from '../src/world/world.js';
 import { BOSSES, bossAt, BOSS_ARENAS } from '../src/core/bosses.js';
@@ -164,18 +165,39 @@ test('the volcanoes: apart, round the hero, warning first; their columns burn up
   for (let k = 0; k < 10; k++) { const b = bombAt(v, k, 3), d = Math.hypot(b.dx, b.dz); assert.ok(d >= G.vents.spread[0] - 1e-9 && d <= G.vents.spread[1] + 1e-9); }
 });
 
-test('the jets: from the walls across the room, a hill in the way shelters you; from above onto a circle', () => {
-  const flat = () => 1, hill = (x, z) => x > 6 && x < 8 ? 3 : 1;
-  const j = { kind: 'wall', side: 0, u: 8 };
-  assert.ok(inJet(j, { x: 10, y: 1, z: 8 }, 1.55, flat));
-  assert.ok(!inJet(j, { x: 10, y: 1, z: 8 }, 1.55, hill), 'behind the hill');
-  assert.ok(!inJet(j, { x: 10, y: 1, z: 11 }, 1.55, flat), 'beside it');
-  assert.ok(!inJet(j, { x: 10, y: 3, z: 8 }, 1.55, flat), 'over it');
+test('the jets: waves rolling across from the walls along the bottom, a hill in the way breaks them; from above onto a circle', () => {
+  const flat = () => 1, hill = (x, z) => x > 6 && x < 8 ? 3 : 1, J = G.jets;
+  const j = { kind: 'wall', side: 0, u: 8 }, box = [1, 1, N - 1, N - 1], when = s => s / J.speed;   // (its front s from the bank's face, at x 2)
+  // the wave comes: not there before its front is, there as it rolls by, gone once its tail has passed
+  assert.ok(!inJet(j, { x: 10, y: 1, z: 8 }, flat, box, when(5)), 'not come yet');
+  assert.ok(inJet(j, { x: 10, y: 1, z: 8 }, flat, box, when(9)), 'rolling by');
+  assert.ok(!inJet(j, { x: 10, y: 1, z: 8 }, flat, box, when(9 + J.length + 1)), 'gone by');
+  assert.ok(!inJet(j, { x: 10, y: 1, z: 8 }, hill, box, when(9)), 'behind the hill');
+  assert.ok(!inJet(j, { x: 10, y: 1, z: 11 }, flat, box, when(9)), 'beside it');
+  assert.ok(!inJet(j, { x: 10, y: 2.2, z: 8 }, flat, box, when(9)), 'jumped over it');
+  const w = jetWave(j, when(12), hill, box);
+  assert.ok(w.broken && w.stop > 3 && w.stop < 4.6 && w.front === w.stop, `it breaks on the hill: ${JSON.stringify({ ...w, ys: 0 })}`);
+  // down a slope and over a rise in the ground it rolls on (catching who stands there), up a hill not
+  const rise = (x, z) => x > 6 && x < 8 ? 1.5 : 1, slope = (x, z) => Math.max(1, 4 - x * 0.5);
+  assert.ok(inJet(j, { x: 7, y: 1.5, z: 8 }, rise, box, when(5)), 'up the rise');
+  assert.ok(inJet(j, { x: 10, y: 1, z: 8 }, rise, box, when(8.5)), 'and down again');
+  assert.ok(inJet(j, { x: 3, y: 2.5, z: 8 }, slope, box, when(1.2)) && inJet(j, { x: 9, y: 1, z: 8 }, slope, box, when(7.2)), 'down the slope');
   assert.deepEqual(jetWay(0), [1, 0]); assert.deepEqual(jetWay(3), [0, -1]);
   // the other walls run the other ways, the right way round
-  assert.ok(inJet({ kind: 'wall', side: 1, u: 8 }, { x: 4, y: 1, z: 8 }, 1.55, (x, z) => x > 9 && x < 11 ? 0 : 1));
-  assert.ok(!inJet({ kind: 'wall', side: 1, u: 8 }, { x: 4, y: 1, z: 8 }, 1.55, hill));
-  assert.ok(inJet({ kind: 'down', x: 5, z: 5 }, { x: 5.6, y: 9, z: 5 }, 0)); assert.ok(!inJet({ kind: 'down', x: 5, z: 5 }, { x: 7, y: 1, z: 5 }, 0));
+  assert.ok(inJet({ kind: 'wall', side: 1, u: 8 }, { x: 4, y: 1, z: 8 }, (x, z) => x > 9 && x < 11 ? 0.8 : 1, box, when(N - 2 - 4)));
+  assert.ok(!inJet({ kind: 'wall', side: 1, u: 8 }, { x: 4, y: 1, z: 8 }, hill, box, when(N - 2 - 4)));
+  // (out of the bank round the reef, never stopped by it)
+  const banked = (x, z) => x < 2 || x > N - 2 ? 9 : 1;
+  assert.ok(inJet(j, { x: 10, y: 1, z: 8 }, banked, box, when(9)), 'out of the bank');
+  // across the whole room in its time, the volley a little longer
+  const all = jetWave(j, jetRoll(box), flat, box);
+  assert.ok(all.back >= all.len && !inJet(j, { x: N - 3, y: 1, z: 8 }, flat, box, jetRoll(box)));
+  assert.ok(jetSpan(box) > jetRoll(box) + J.warn);
+  assert.ok(inJet({ kind: 'down', x: 5, z: 5 }, { x: 5.6, y: 9, z: 5 }, flat, box, 0.1)); assert.ok(!inJet({ kind: 'down', x: 5, z: 5 }, { x: 7, y: 1, z: 5 }, flat, box, 0.1));
+  assert.ok(!inJet({ kind: 'down', x: 5, z: 5 }, { x: 5.6, y: 9, z: 5 }, flat, box, J.down.time + 0.1), 'over once it has crashed down');
+  // the first wave of a volley comes from a wall whose wave reaches the hero: not over the hill
+  assert.deepEqual(jetReaches({ x: 10, y: 1, z: 8 }, hill, box), [1, 2, 3]);
+  for (let seed = 0; seed < 10; seed++) assert.equal(jetVolley(seed, 10, 8, box, [1, 2, 3]).every((j, i) => i > 0 || j.side !== 0), true);
   // a volley: one at the hero for sure, the rest round about; the same seed, the same jets
   for (let seed = 0; seed < 20; seed++) {
     const v = jetVolley(seed, 6, 9);
@@ -184,6 +206,32 @@ test('the jets: from the walls across the room, a hill in the way shelters you; 
     const first = v[0];
     assert.ok(Math.abs(first.u - (first.side < 2 ? 9 : 6)) < 0.5, `aimed ${JSON.stringify(first)}`);
     for (const j of v) if (j.kind === 'wall') assert.ok(j.u >= 2 && j.u <= N - 2);
+  }
+});
+
+test('he comes out of a hole in the wall behind his spot, clear of the arch behind his well', () => {
+  for (const seed of [1, 2]) {
+    const map = reefOf(seed), d = map.dive, g = map.guardian, well = map.portals.find(p => p.kind === 'down');
+    const ground = (x, z) => Math.max(...(map.cols[Math.floor(z) * N + Math.floor(x)] ?? []).map(f => floorY(f, x % 1, z % 1)), -Infinity);
+    const [dx, dz] = g.approach, cx = well.x + 0.5 - dx * 0.8, cz = well.z + 0.5 - dz * 0.8;
+    const gates = [{ ax: cx - dz * 1.15, az: cz + dx * 1.15, bx: cx + dz * 1.15, bz: cz - dx * 1.15, top: well.y + 2.55 }];
+    const post = { x: g.x, y: g.y, z: g.z }, to = { x: post.x, y: post.y + 1.06, z: post.z };
+    const h = holeSpot({ box: d.box, post, door: d.door, to, ground, gates });
+    assert.ok(h, `a hole (seed ${seed})`);
+    // in the wall behind him, the wall standing over it all round
+    const bx = post.x - d.door.x, bz = post.z - d.door.z;
+    assert.ok(-(h.nx * bx + h.nz * bz) > 0, `behind him: ${JSON.stringify(h)}`);
+    assert.ok(ground(h.x - h.nx * 0.5, h.z - h.nz * 0.5) > h.y + HOLE.r, 'the wall over it');
+    assert.ok(ground(h.x + h.nx * 0.6, h.z + h.nz * 0.6) < h.y - HOLE.r + 0.1, 'the floor under it');
+    // the way out of it to his spot never through the arch, nor into the ground
+    const path = holePath(h, to, ground);
+    for (let i = 0; i <= 50; i++) {
+      const q = path(i / 50);
+      assert.ok(clearOfGates(gates, q.x, q.y, q.z, 0.9), `clear of the arch at ${i}: ${JSON.stringify(q)}`);
+      if (i > 8) assert.ok(q.y >= ground(q.x, q.z) + 0.5, `over the ground at ${i}`);
+    }
+    const end = path(1);
+    close(end.x, to.x, 1e-6); close(end.z, to.z, 1e-6);
   }
 });
 

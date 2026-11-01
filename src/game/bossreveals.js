@@ -13,6 +13,7 @@ import { showShadow, showEyes, showPool, showBeam, showSpotLight, burstConfetti,
 import { showCurtain, hideCurtain } from '../render/stagecurtain.js';
 import { MANSK_FIGHT, MANSK_DANCE, danceAt, curtainLine, curtainOpen } from '../core/mansk.js';
 import { muzzleAt } from '../core/beams.js';
+import { holePath } from '../core/umbra.js';
 import { mudAt } from './mud.js';
 import { sfx } from '../audio/sfx.js';
 import { quake, cameraKick } from './juice.js';
@@ -609,27 +610,28 @@ const slomo = {
   },
 };
 
-// --- Umbra: two pale eyes in the wall, him bursting straight out of it, the roar --------------------
+// --- Umbra: two pale eyes in the wall, a hole breaking open, him pouring out of it, the roar ---------
 
-const SEA_GLOW = ['#e8fbff', '#bfefff', '#7ae8ff'], RUBBLE = ['#5a544c', '#3e3a35', '#7a7268'];
-// where his head is at t: in the wall (his fight put him there, game/umbra.js emerge) till he bursts
-// out, then straight out of it towards his spot, rising to the height of a hero there, and on a
-// little, curving round to face the hero
+const SEA_GLOW = ['#e8fbff', '#bfefff', '#7ae8ff'];
+// where his head is at t (his `y` its bottom): in the wall behind the hole his fight opened for him
+// (game/umbra.js emerge, core/umbra.js holeSpot) till he bursts out, then out of it and round to his
+// spot, clear of the gates, rising to the height of a hero there (core/umbra.js holePath)
 function umbraAt(r, t) {
-  const { at } = r, D = r.data, w = D.from, k = smooth((t - at.out[0]) / (at.out[1] - at.out[0]));
-  const s = D.reach * k, bend = Math.sin(k * Math.PI) * 0.8;
-  return { x: w.x + w.nx * s - w.nz * bend, y: w.y + (D.top - w.y) * k, z: w.z + w.nz * s + w.nx * bend };
+  const { at } = r, D = r.data, k = smooth((t - at.out[0]) / (at.out[1] - at.out[0])), p = D.path(k);
+  return { x: p.x, y: p.y - UMBRA_HEAD, z: p.z };
 }
+const UMBRA_HEAD = 0.46;   // (his head's middle over his `y`: game/umbra.js HEAD)
 const umbra = {
   seen: r => r.e,
   where: (r, t) => umbraAt(r, t),
   start(r) {
-    const { e } = r;
+    const { e } = r, top = player.y + 4;
     // (the shots are framed round his spot, not the wall he comes out of)
     Object.assign(r.spot, e.post);
-    const nx = Math.sin(e.yaw), nz = Math.cos(e.yaw), reach = Math.max(2, Math.hypot(e.post.x - e.x, e.post.z - e.z) - 0.5);
-    r.data.from = { x: e.x, y: e.y, z: e.z, nx, nz };
-    r.data.reach = reach; r.data.top = e.post.y + 0.6;
+    const w = e.hole ?? { x: e.x, y: e.y + UMBRA_HEAD, z: e.z, nx: Math.sin(e.yaw), nz: Math.cos(e.yaw) };
+    const ground = (x, z) => { const h = groundAt(x, z, Math.max(top, w.y + 6), 0).h; return Number.isFinite(h) ? h : -Infinity; };
+    r.data.from = w;
+    r.data.path = holePath(w, { x: e.post.x, y: e.post.y + 0.6 + UMBRA_HEAD, z: e.post.z }, ground);
     Object.assign(e, { veil: undefined, ...umbraAt(r, 0) });
   },
   step(r, t, dt) {
@@ -638,24 +640,25 @@ const umbra = {
     e.yaw = t < at.out[1] - 0.3 ? Math.atan2(q.x - p.x || w.nx * 1e-3, q.z - p.z || w.nz * 1e-3)
       : e.yaw + Math.atan2(Math.sin(facing(e, player) - e.yaw), Math.cos(facing(e, player) - e.yaw)) * Math.min(1, dt * 3);
     e.speed = t >= at.out[0] && t < at.out[1] ? 3 : 0.3;
-    // the wall rumbling, two pale eyes looking out of it
+    // the wall rumbling, cracks of light in it, two pale eyes looking out through them
     const lit = clamp01((t - at.eyes) / 0.8) * (t < at.out[0] + 0.2 ? 1 : 0);
     if (lit > 0) {
       const sx = -w.nz * 0.3, sz = w.nx * 0.3;
-      showEyes([[w.x + w.nx * 0.08 + sx, w.y + 0.62, w.z + w.nz * 0.08 + sz], [w.x + w.nx * 0.08 - sx, w.y + 0.62, w.z + w.nz * 0.08 - sz]], 0.45,
+      showEyes([[w.x + w.nx * 0.08 + sx, w.y + 0.16, w.z + w.nz * 0.08 + sz], [w.x + w.nx * 0.08 - sx, w.y + 0.16, w.z + w.nz * 0.08 - sz]], 0.45,
         lit * (0.8 + 0.2 * Math.sin(t * 13)), '#d8fbff');
     } else showEyes([[0, 0, 0], [0, 0, 0]], 0, 0);
-    if (t >= at.eyes && t < at.out[0]) quake(0.004 + 0.012 * smooth((t - at.eyes) / (at.out[0] - at.eyes)));
-    if (once(D, 'eyes', t, at.eyes)) sfx('rumble', { at: w, pitch: 0.35, volume: 0.9 });
-    // bursting out of it: rock and bubbles flying, the wall shaking
-    if (once(D, 'out', t, at.out[0])) {
-      sfx('thud', { at: w, pitch: 0.4, volume: 1 }); sfx('gulp', { at: w, pitch: 0.35, volume: 0.8 }); quake(0.035);
-      for (let i = 0; i < 40; i++) {
-        const sp = rand(1, 3.5), u = rand(-0.7, 0.7);
-        emit(soft, w.x, w.y + rand(0.2, 0.9), w.z, { v: [w.nx * sp - w.nz * u * 2, rand(-0.5, 1.5), w.nz * sp + w.nx * u * 2], life: rand(0.5, 1.1),
-          size: rand(0.05, 0.12), color: (i % 2 ? RUBBLE : SEA_GLOW)[i % 3], alpha: 0.85, drag: 1.4, gravity: i % 2 ? 4 : -0.5 });
+    if (t >= at.eyes && t < at.out[0]) {
+      quake(0.004 + 0.012 * smooth((t - at.eyes) / (at.out[0] - at.eyes)));
+      // (grit trickling off the wall round where it will break)
+      if (Math.random() < dt * 14) {
+        const a = rand(0, Math.PI * 2), d = rand(0.3, 0.9);
+        emit(soft, w.x + w.nx * 0.1 - w.nz * Math.cos(a) * d, w.y + Math.sin(a) * d, w.z + w.nz * 0.1 + w.nx * Math.cos(a) * d,
+          { v: [w.nx * rand(0.1, 0.4), rand(-0.6, -0.2), w.nz * rand(0.1, 0.4)], life: rand(0.6, 1.1), size: rand(0.02, 0.05), color: '#6a6258', alpha: 0.8, drag: 1, gravity: 1.5 });
       }
     }
+    if (once(D, 'eyes', t, at.eyes)) sfx('rumble', { at: w, pitch: 0.35, volume: 0.9 });
+    // bursting out of it (the hole breaks open as his head comes through: render/umbrahole.js)
+    if (once(D, 'out', t, at.out[0] + 0.15)) { sfx('thud', { at: w, pitch: 0.4, volume: 1 }); sfx('gulp', { at: w, pitch: 0.35, volume: 0.8 }); quake(0.035); }
     if (t >= at.out[0] && t < at.out[1]) bubbleFx(e.x, e.y + 0.3, e.z, 0.5, dt, 25, SEA_GLOW);
     // and the roar: his jaw wide, the frills spread, a ring of bubbles bursting out
     e.pose = t >= at.roar && t < at.release ? { clip: 'wave', t: Math.min(1.6, 0.5 + t - at.roar) } : null;

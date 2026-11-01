@@ -147,12 +147,18 @@ anybody's head.
   spitting gloop into the sky (his meteorites' clip). The camera low by the pool, craning up.
 - **Umbra:** not on coming in: his reef is dry then, and he is not there (`holdIntro`). His intro
   waits for the water: once somebody has put on the diving suit and his reef is flooded, the light
-  goes, the wall of the reef nearest his spot rumbles, two pale eyes open in it, and he bursts
-  straight out of it in a spray of rock and bubbles, his body pouring out of the wall after him
-  (what of him is still in it is not drawn, `clipWall`), towards his spot, rising to the height of a
-  hero there, curving round to them, and roars (his shockwave's clip), a ring of bubbles bursting
-  out of his jaws, as the light comes back. The camera low and wide over his spot, closing in for the
-  roar. Without his intro (after the first time) he comes out of the wall the same way and swims in.
+  goes, the wall behind his spot rumbles, grit trickling off it, two pale eyes open in it, and a hole
+  breaks open in it in a spray of rock and bubbles as his head comes through (`render/umbrahole.js`:
+  a dark way back into the rock ringed with broken stone). He pours out of it, his body after him
+  (what of him is still in it is not drawn, `clipWall`), straight out and curving round to his spot
+  (`core/umbra.js holePath`), rising to the height of a hero there, turns to them and roars (his
+  shockwave's clip), a ring of bubbles bursting out of his jaws, as the light comes back; once the
+  tip of his tail is out the hole closes behind him, its stones grinding back. The hole (`holeSpot`)
+  is in the face of the bank behind his spot as seen from the entrance, where the wall stands high
+  enough for it, and off to the side of the arch behind his well: neither the hole nor his way out
+  of it to his spot comes near the gates (`gatesOf` in `game/umbra.js`: the arch, the side gates'
+  frames). The camera low and wide over his spot, closing in for the roar. Without his intro (after
+  the first time) he comes out of the same hole and swims to his spot first.
 - **Qualmos**, the last and the longest: the ground rumbles, more and more (the view shaking);
   bubbles come up in his lagoon (`lagoonSpot`: deep water 2½ to 9 cells from his spot), it
   starts to turn, a whirlpool, and two sea-green eyes light up under it. He rises up out of it,
@@ -1754,7 +1760,8 @@ gauge and a hose; heavy boots with brass toes and lead soles. It is a thing to c
 The shared enemy AI never moves him: his fight swims him (`core/umbra.js steer`): his head goes
 where he steers it, its heading turning at most 2.1 rad/s, never steeper than about 58°, keeping
 0.62 cells over the ground (a little ahead too: up over a hill as it comes) and under the surface,
-inside the box. His body follows the way it went: a trail of where his head was (`newTrail`,
+inside the box, and round and over the gates of his reef (the arch behind his well, the side gates'
+frames: `gates`), never through them. His body follows the way it went: a trail of where his head was (`newTrail`,
 `pushTrail`), his body that trail (`bodyAt`, `radiusAt`). Between his attacks he swims through his
 **swim spots** (`swimSpots`): over each hilltop **at the height of a hero standing on it** (a blade
 reaches his body there: the hills are how you meet him) and higher over the deep, out of reach; now
@@ -1795,16 +1802,21 @@ and never drive his (`core/bossbar.js`).
 At two thirds of his health he **rages** (mode `split`, `rage` 2.6 s, warded: his `UmbraRage` clip,
 swimming round in a slow loop), then fights on quicker, with:
 
-- **The jets** (`jets`, clip `UmbraJets`, 1.7 s; 4 s into the phase, then every 15 to 19 s, before
+- **The jets** (`jets`, clip `UmbraJets`, 1.7 s; 3 s into the phase, then every 9 to 12 s, before
   anything else when due): he rises up high, out of reach, and calls three or four volleys
-  (`jetVolley`), each `warn` 1.3 s of warning, 0.6 s of water and 0.55 s apart. A volley is one or two
-  jets from the walls (the first along the line through whom it is aimed at) and none to two from
-  above (the first on them). A wall's: its way bubbling and the pipe's mouth glowing first, then a
-  rush of white water straight across the room, 1.5 cells wide, at the height of whom it was aimed
-  at: **a hill in its way stops it** (`inJet`: the ground higher than it between the wall and you).
-  One from above: a ring of light on the floor and bubbles streaming down onto it, then a column of
-  water crashing down, 1.15 cells round. Who it catches is hurt, **dazed** (0.75 s, from above
-  0.9 s) and a wall's **pushes** them along it (8 cells/s for 0.45 s).
+  (`jetVolley`), each `warn` 1.1 s of warning, then the water. A volley is one or two waves from the
+  walls (the first along the line through whom it is aimed at, from a wall whose wave reaches them
+  where they stand: `jetReaches`, no hill in its way) and none to two from above (the first on them). A wall's (`jetWave`): its way bubbling and the water at the wall churning and swelling
+  first, then a wave rolls out of the face of the bank and across the room along the bottom, 1.5
+  cells wide and about two high (13 cells/s, 2.8 cells of it behind its front): a surge of churning
+  water, its crest leaning forward and curling over in foam, bubbles and silt in its wake. It rolls
+  down every slope in its way and up one only three levels: **a hill in its way breaks it** (where
+  it would climb more than `climb` over the lowest it has rolled), in a burst of spray. It catches
+  who is in its lane as it rolls by, at its height there (its middle a hero's chest over the ground):
+  step out of its lane, or jump it. One from above: a ring of light on the floor and bubbles
+  streaming down onto it, then the water plunges down in a churning funnel (0.8 s) and bursts out
+  over the floor in a ring. Who it catches is hurt, **dazed** (0.75 s, from above 0.9 s) and a wall's
+  **pushes** them along it (8 cells/s for 0.45 s). Drawn by `render/divejets.js`.
 - **His shield** (`shield`, clip `UmbraShield`, 1 s; 7 s into the phase, then every 12 to 16 s): a
   shimmering bubble of air and water round his head for **4 s** (his `shield`): nothing hurts him
   meanwhile.
@@ -1990,9 +2002,9 @@ fight is on, and a fourth: how far he has risen away at the end (2: gone). Every
 echoes and ghosts (from what it was shown), the echoes hurting only it (`game/rewind.js`); the fight's bodies are rewound by the runner and shown
 to the others as it moves them. Umbra's stage swaps his profile likewise, and his row carries eight more slots (the first
 seven unused): his reef's water (its phase and clock), the air's clock, his shield, his mud's level,
-his volcanoes and the volley of jets running (`net/protocol.js umbraRow`). Every game floods its own
-reef after it, runs its own hero's air and suit, slows its own hero in his mud and draws his
-volcanoes and jets; the runner's blows reach the others through `hitBody`. The bodies along his
+his volcanoes, the volley of jets running and the wall he is still coming out of with its hole
+(`net/protocol.js umbraRow`). Every game floods its own reef after it, runs its own hero's air and
+suit, slows its own hero in his mud and draws his volcanoes, jets and hole; the runner's blows reach the others through `hitBody`. The bodies along his
 body are sent like any enemy (hit there, the blow goes to the runner and is his); a friend's game
 makes his body's trail from where he is shown. A friend who takes the diving suit tells the runner
 (`suit`), and everyone in the reef puts theirs on.

@@ -331,11 +331,12 @@ const sollmeldonRow = e => [e.heads ?? 7, e.cutting ?? -1, r2(e.lift ?? 0), (e.t
 // Umbra's: [water (the reef's phase: its index in DIVE_PHASES), its clock (s into that phase), the air's
 // clock (s of air used since his fight started; -1: not yet), shield (s left of it), mud (its level,
 // world units; null: none), vents ([n, x, y, z, t] each), jets (the volley running: [i, t, list], each
-// jet [0, side, u, y] from a wall or [1, x, z, floor] from above; 0: none), the wall he is still coming
-// out of ([nx, nz, d]; 0: none)] (game/umbra.js; every game
-// floods its own reef after it and draws his volcanoes and jets, game/dive.js, render/dive.js)
+// jet [0, side, u, 0] from a wall or [1, x, z, floor] from above; 0: none), the wall he is still coming
+// out of ([nx, nz, d, and the hole's middle x, y, z]; 0: none)] (game/umbra.js; every game floods its
+// own reef after it and draws his volcanoes, jets and the hole, game/dive.js, render/dive.js,
+// render/umbrahole.js)
 export const DIVE_PHASES = ['dry', 'suit', 'flood', 'wet', 'drain', 'over'];
-const jetRow = j => j.kind === 'down' ? [1, r2(j.x), r2(j.z), r2(j.floor ?? 0)] : [0, j.side, r2(j.u), r2(j.y ?? 0)];
+const jetRow = j => j.kind === 'down' ? [1, r2(j.x), r2(j.z), r2(j.floor ?? 0)] : [0, j.side, r2(j.u), 0];
 const umbraRow = e => [Math.max(0, DIVE_PHASES.indexOf(e.dive.phase)), r2(e.dive.t), Number.isFinite(e.fightT) ? r2(e.fightT) : -1, r2(e.shield ?? 0),
   Number.isFinite(e.mudY) ? r2(e.mudY) : null, (e.vents ?? []).map(v => [v.n, r2(v.x), r2(v.y), r2(v.z), r2(v.t)]),
   e.jets ? [e.jets.i, r2(e.jets.t), e.jets.list.map(jetRow)] : 0, e.clipWall ? e.clipWall.map(r2) : 0];

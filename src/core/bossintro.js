@@ -199,11 +199,12 @@ export const INTROS = Object.freeze({
       { t: 6.0, cam: ['spot', -5.6, -0.4, 0.35], look: ['boss', 0, 0, 0.85], fov: 46, roll: 3, ease: 'out' },
       { t: 7.4, cam: ['spot', -5.8, -1.2, 0.5], look: ['boss', 0, 0, 0.75], fov: 40, roll: 0 }] },
   // Umbra: his reef has just flooded, the hero in the diving suit on its bottom. The light goes; the
-  // wall nearest his spot rumbles, two pale eyes open in it, and he bursts straight out of it in a
-  // spray of rock and bubbles, his body pouring out of the wall after him (what is still in it not
-  // drawn: game/umbra.js emerge), towards his spot, rising to the height of a hero there, curving
-  // round to them, and roars (his shockwave's clip), a ring of bubbles bursting out of his jaws, as the
-  // light comes back. The camera low and wide over his spot, closing in for the roar
+  // wall behind his spot rumbles, two pale eyes open in it, and a hole breaks open in it in a spray of
+  // rock and bubbles as he comes through, his body pouring out of it after him (what is still in it
+  // not drawn: game/umbra.js emerge), out and round to his spot, clear of the gates, rising to the
+  // height of a hero there, turning to them, and roars (his shockwave's clip), a ring of bubbles
+  // bursting out of his jaws, as the light comes back; the hole closes behind his tail. The camera low
+  // and wide over his spot, closing in for the roar
   umbra: { reveal: 'umbra', length: 8.4, hold: 8.1, walk: 1.0, letterbox: [0.3, 8.1], name: [5.9, 7.9], bar: 8.0,
     blend: [0.6, 2.0, 7.9], shake: 0.012, dim: { at: [0.3, 1.8, 6.0, 7.2], to: 0.6 }, fires: null,
     at: { eyes: 1.2, out: [2.6, 5.4], roar: 5.8, release: 7.3 },

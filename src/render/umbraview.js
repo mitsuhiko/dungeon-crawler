@@ -6,12 +6,14 @@
 // moves; his head bone at his neck, looking the way his head goes. Each bone keeps its own frame
 // from the rest pose (a frame along the body times the rest's), so nothing rolls over. His shield of
 // air and water (`shield`: game/umbra.js) is a shimmering bubble round his head; bubbles trail off
-// his body as he swims.
+// his body as he swims. Coming out of the wall, what of him is still in it is not drawn, and the hole
+// he comes out of opens and closes behind him (render/umbrahole.js).
 import * as THREE from 'three';
 import { UMBRA_FIGHT, newTrail, pushTrail, settleTrail, bodyAt } from '../core/umbra.js';
 import { groundAt } from '../physics/collide.js';
 import { soft, emit, rand } from './particles.js';
 import { player } from '../game/state.js';
+import { umbraHole, disposeUmbraHole } from './umbrahole.js';
 
 const HEAD = 0.46;   // cells from the middle of his head to his `y` (blender/umbra.py MID)
 const bone = (model, n) => model.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(n));
@@ -66,6 +68,7 @@ export function disposeUmbraLook(v) {
   const m = v.umbra;
   if (!m) return;
   m.shield.removeFromParent(); m.shield.geometry.dispose(); m.shield.material.dispose();
+  disposeUmbraHole(m);
 }
 
 // after his clips: his spine along his trail, his head at its front; his shield; bubbles
@@ -112,6 +115,8 @@ export function umbraLook(v, e, dt, off) {
     m.clipped = !!cw;
     for (const mat of [v.material, v.ghost]) { mat.clippingPlanes = cw ? [m.plane] : null; mat.needsUpdate = true; }
   }
+  // and the hole in the wall he comes out of (render/umbrahole.js)
+  if (v.group.parent) umbraHole(m, e, v.group.parent, dt, off, e);
   // the shield: in and out, shimmering round his head
   m.shieldK += ((e.shield > 0 && e.mode !== 'dead' && e.mode !== 'split' ? 1 : 0) - m.shieldK) * Math.min(1, dt * 6);
   m.shield.visible = m.shieldK > 0.01 && v.group.visible;

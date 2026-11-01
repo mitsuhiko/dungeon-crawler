@@ -182,7 +182,7 @@
     "src/game/update.js#updatePlayer": "cddca611",
     "src/main.js#frame": "c648eaf6",
     "src/net/foes.js#header": "6a75fdb3",
-    "src/net/foes.js#Viewer": "ab6fa1b4",
+    "src/net/foes.js#Viewer": "331a2f75",
     "src/net/peerjs.js#header": "23788d9d",
     "src/net/protocol.js#CODE_LENGTH": "7525b64a",
     "src/net/protocol.js#CODE_LETTERS": "3cbb915d",
