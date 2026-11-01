@@ -19,12 +19,25 @@ export function buildStructures(m, layers) {
     if (!f.show) continue;
     if (f.style === 'stone') { stoneParapet(f, layers[f.layer].stone); continue; }
     const W = layers[f.layer].wood;
-    for (const [px, py, pz] of f.pts) W.box(px - 0.045, py, pz - 0.045, px + 0.045, py + 0.5, pz + 0.045, POST, POST);
+    // (one along a cut's line, cubegen/cuts.js: its posts turned along it, on the brink)
+    if (f.line) for (const p of f.pts) turnedPost(W, p, f.line);
+    else for (const [px, py, pz] of f.pts) W.box(px - 0.045, py, pz - 0.045, px + 0.045, py + 0.5, pz + 0.045, POST, POST);
     for (let s = 0; s + 1 < f.pts.length; s++) {
       const p = f.pts[s], q = f.pts[s + 1];
       for (const ry of [0.2, 0.4]) W.beam([p[0], p[1] + ry, p[2]], [q[0], q[1] + ry, q[2]], 0.05, 0.06, RAIL);
     }
   }
+}
+
+// a fence's post at p turned along its line [[x, z], [x, z]]: its sides and its top
+function turnedPost(W, [px, py, pz], [[ax, az], [bx, bz]]) {
+  const l = Math.hypot(bx - ax, bz - az) || 1, ux = (bx - ax) / l * 0.045, uz = (bz - az) / l * 0.045;
+  const c = [[ux - uz, uz + ux], [-ux - uz, -uz + ux], [-ux + uz, -uz - ux], [ux + uz, uz - ux]].map(([x, z]) => [px + x, pz + z]);
+  for (let i = 0; i < 4; i++) {
+    const [x0, z0] = c[i], [x1, z1] = c[(i + 1) % 4], nx = (x0 + x1) / 2 - px, nz = (z0 + z1) / 2 - pz;
+    W.quad([x0, py, z0], [x1, py, z1], [x1, py + 0.5, z1], [x0, py + 0.5, z0], [nx, 0, nz], POST);
+  }
+  W.quad(...c.map(([x, z]) => [x, py + 0.5, z]), [0, 1, 0], POST);
 }
 
 // a low stone parapet along an edge (Foggery's bridge, cubegen/towerarena.js): a wall of blocks
