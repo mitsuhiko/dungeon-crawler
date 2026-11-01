@@ -1159,9 +1159,12 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   plateau is cut off, a straight edge stays where it was.
 - **How far off:** a cell's middle and its linked sides' middles stay on its own side, `WALL`
   off a part higher than it (the hero's width), `DROP` off a part lower, `FENCED` off a fenced
-  drop (the fence stands in from the line: the hero gets round its posts to the middle). So a
-  line of one cell across for two along (26.6°) runs straight through an unfenced staircase, and
-  a fenced one goes at 45° and straight.
+  drop (the fence stands on the brink, `FENCE_IN` in from the line: the hero gets round its posts
+  to the middle). A line of one cell across for two along (26.6°) has little room: the middles of
+  the grid lie 0.447 apart across it. It runs straight through an unfenced staircase; a fenced
+  one's lower cells keep `WALL_FENCED` off it instead of `WALL`, so it fits too, the hero coming
+  within 0.07 of the middles on either side (as close as a click to move settles), and the fit
+  tries its starts in steps fine enough to find that room.
 - **Shores:** a bank is a step down to its water (the bank at the water's level or over it), so
   shores are cut the same way: the water's cells give a corner to the bank, the bank's take one of
   the water. A part that is water is the water's (`fluid`, `surf`, its bed's heights): physics

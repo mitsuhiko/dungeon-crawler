@@ -33,13 +33,8 @@ test('a cut cell: its two sides cover it, each with its own heights, a wall betw
   assert.deepEqual(clipPoly([[0, 0], [1, 0], [1, 1], [0, 1]], [1, 0], 0.25, 1).length, 4);
 });
 
-// ground at 6 levels over the cells x <= z (a staircase down the diagonal), 0 levels elsewhere;
-// cliff fences on all its risers (cubegen/fences.js); cut (cubegen/cuts.js) in style `style`
-function staircase(style = 'octo') {
-  const m = flatMap();
-  for (const f of m.floors) { const l = f.x <= f.z ? 6 : 0; Object.assign(f, { top: l, bottom: -2, cs: Array(4).fill(l * LH) }); }
-  for (const f of m.floors) f.link = f.link.map(g => g && g.top === f.top ? g : null);
-  const fenceList = [];
+// cliff fences on all the risers of map m's higher ground (cubegen/fences.js)
+function fenceRisers(m, fenceList) {
   for (const f of m.floors) if (f.top) for (let d = 0; d < 4; d++) {
     const g = f.link[d] === null && m.floors[(f.z + DIRS[d][1]) * N + f.x + DIRS[d][0]];
     if (!g || f.x + DIRS[d][0] < 0 || f.x + DIRS[d][0] >= N || f.z + DIRS[d][1] < 0 || f.z + DIRS[d][1] >= N) continue;
@@ -47,6 +42,15 @@ function staircase(style = 'octo') {
     fenceList.push(e);
     m.fences.set(e.key, [e]);
   }
+}
+// ground at 6 levels over the cells x <= z (a staircase down the diagonal), 0 levels elsewhere;
+// cliff fences on all its risers (cubegen/fences.js); cut (cubegen/cuts.js) in style `style`
+function staircase(style = 'octo') {
+  const m = flatMap();
+  for (const f of m.floors) { const l = f.x <= f.z ? 6 : 0; Object.assign(f, { top: l, bottom: -2, cs: Array(4).fill(l * LH) }); }
+  for (const f of m.floors) f.link = f.link.map(g => g && g.top === f.top ? g : null);
+  const fenceList = [];
+  fenceRisers(m, fenceList);
   const ctx = { ...m, fenceList, seed: 1, stats: {}, ladders: [], runs: [], moves: [], spec: { cuts: { [style]: 1 } },
     border: f => !f.x || !f.z || f.x === N - 1 || f.z === N - 1 };
   cutCliffs(ctx, () => style);
@@ -79,17 +83,20 @@ test('a 45° staircase is cut along one straight line through the middles of its
   }
 });
 
-test('a gentler staircase (two along, one across: 26.6°, the nearest to 22.5° a grid keeps straight) is cut along its slope in the sixteen style, never in the octo one', () => {
-  const angles = style => {
+test('a gentler staircase (two along, one across: 26.6°, the nearest to 22.5° a grid keeps straight) is cut along its slope in the sixteen style, never in the octo one; fenced too', () => {
+  const angles = (style, fenced = false) => {
     const m = flatMap();
     for (const f of m.floors) { const l = f.x <= 2 * f.z - 4 ? 6 : 0; Object.assign(f, { top: l, bottom: -2, cs: Array(4).fill(l * LH) }); }
     for (const f of m.floors) f.link = f.link.map(g => g && g.top === f.top ? g : null);
     const ctx = { ...m, fenceList: [], seed: 1, stats: {}, ladders: [], runs: [], moves: [], spec: {}, border: f => !f.x || !f.z || f.x === N - 1 || f.z === N - 1 };
+    if (fenced) fenceRisers(m, ctx.fenceList);
     cutCliffs(ctx, () => style);
+    if (fenced) assert.ok(ctx.lineFences?.size > 5, 'fenced along its lines');
     return new Set(m.floors.filter(f => f.cut).map(f => Math.round(Math.atan2(Math.abs(f.cut.n[0]), Math.abs(f.cut.n[1])) * 180 / Math.PI / 22.5)));
   };
   assert.ok(angles('sixteen').has(1) || angles('sixteen').has(3), 'a 26.6° line: ' + [...angles('sixteen')]);
   assert.ok(![...angles('octo')].some(k => k % 2), 'only 45° ones: ' + [...angles('octo')]);
+  assert.ok(angles('sixteen', true).has(1) || angles('sixteen', true).has(3), 'a fenced 26.6° line: ' + [...angles('sixteen', true)]);
 });
 
 function stand(m, x, z) {
@@ -115,7 +122,7 @@ test('walking at a cut: up against the higher side it is a wall, its fence holds
   const at = stand(m, 8.3, 8.6);
   assert.equal(at.s, f);
   push(1, -1, 1);
-  assert.ok(player.grounded && Math.abs(player.y - 6 * LH) < 0.01 && player.x - player.z < 0.5 - 0.07 - CHAR_R + 0.05, 'held by the fence: ' + [player.x, player.y, player.z]);
+  assert.ok(player.grounded && Math.abs(player.y - 6 * LH) < 0.01 && player.x - player.z < 0.5 - 0.03 - CHAR_R + 0.05, 'held by the fence: ' + [player.x, player.y, player.z]);
   // without fences, it walks off and drops down onto the low ground
   m.lineFences = null;
   stand(m, 8.3, 8.6);

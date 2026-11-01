@@ -32,13 +32,18 @@ export const DEFAULT_CUTS = { grid: 0.2, octo: 0.35, sixteen: 0.45 };
 // How far a cell's middle and its linked sides' middles stay off its cut, on its own side: from
 // a wall up (its part higher: the hero's width and a little) or from a drop (its part lower:
 // walked to its brink anyway). The fit keeps every cell round a chain as far off its line.
-// A fenced drop keeps its cells' middles further off (the fence stands a little in from the
-// line, and the hero must get round its posts to the middle).
-const WALL = 0.25, DROP = 0.1, FENCED = 0.33;
+// A fenced drop keeps its cells' middles further off (the fence stands on the brink, FENCE_IN in
+// from the line, and the hero must get round its posts to the middle); and so that a line at 26.6°
+// still fits between (the middles of a grid lie 0.447 apart across one), the lower side's come
+// nearer it there (WALL_FENCED): the body gets within a few hundredths of either.
+const WALL = 0.25, DROP = 0.1, FENCED = 0.24, WALL_FENCED = 0.2, FENCE_IN = 0.03;
 const MIN_PART = 0.03;  // the least of a cell a part may be
 const FENCE_DROP = 0.9; // a fence stands over a drop this deep (cubegen/fences.js)
 const SNAP = 0.04;      // where a line meets a side this close to a corner, it meets the corner
 const OUT = -1;         // (a cell's margin: all of it off the line)
+// where along its first riser's cells a chain's line may start: off the riser's middle, nearest
+// first, in steps fine enough to find the narrow room a fenced line at 26.6° has
+const STARTS = [0, ...Array.from({ length: 16 }, (_, i) => (i + 1) * 0.025).flatMap(s => [s, -s])];
 
 const key = (X, Z) => X * 1024 + Z;
 
@@ -160,8 +165,10 @@ export function cutCliffs(ctx, styleOf = null) {
     const r0 = part.R[0], st = style(r0.m[0], r0.m[1], hash32(ctx.seed ^ (key(...part.V[0]) * 7919) ^ r0.hi.id * 31 ^ (r0.lo?.id ?? 0)));
     const dirs = CUT_STYLES[st] ?? [];
     if (!dirs.length || part.R.length < 2) continue;
-    const drop = part.R.some(r => r.fenced) ? FENCED : DROP, pts = fit(part, dirs, topAt, sideOf, drop, hole);
-    if (pts.length > 2 || (pts.length === 2 && notGrid(pts[0], pts[1]))) polylines.push({ pts, R: part.R, sideOf, drop, hole });
+    // (how far off its line the middles stay: the higher side's, the lower side's)
+    const room = part.R.some(r => r.fenced) ? { hi: FENCED, lo: WALL_FENCED } : { hi: DROP, lo: WALL };
+    const pts = fit(part, dirs, topAt, sideOf, room, hole);
+    if (pts.length > 2 || (pts.length === 2 && notGrid(pts[0], pts[1]))) polylines.push({ pts, R: part.R, sideOf, room, hole });
   }
 
   // 4. rasterize: each cell crossed once, by one polyline
@@ -181,7 +188,7 @@ export function cutCliffs(ctx, styleOf = null) {
   for (const [c, v] of visits) {
     const f = top(c), s = f && v.pl.sideOf(f);
     if (clash.has(c) || !s || fixed(f) || (v.pl.hole && (s < 0 || f.fluid)) || !faceSafe(f, v.a, v.b)) continue;
-    const cut = v.pl.hole ? makeHole(f, v.a, v.b, v.pl.drop) : makeCut(f, v.a, v.b, g => v.pl.sideOf(g) === -s, v.pl.drop);
+    const cut = v.pl.hole ? makeHole(f, v.a, v.b, v.pl.room.hi) : makeCut(f, v.a, v.b, g => v.pl.sideOf(g) === -s, v.pl.room);
     if (cut) { f.cut = cut; made++; cutCells.push({ f, pl: v.pl }); }
   }
   ctx.stats.cuts = (ctx.stats.cuts || 0) + made;
@@ -235,7 +242,7 @@ export function cutCliffs(ctx, styleOf = null) {
   }
   // the cut of floor f along A -> B (the cube's coordinates), the part beyond taking the ground of
   // the cells round it on the other side (other(g))
-  function makeCut(f, A, B, other, drop) {
+  function makeCut(f, A, B, other, margins) {
     const a = [A[0] - f.x, A[1] - f.z], b = [B[0] - f.x, B[1] - f.z];
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
     if (len < 0.05) return null;
@@ -263,7 +270,7 @@ export function cutCliffs(ctx, styleOf = null) {
       return hs.length ? hs.reduce((s, v) => s + v) / hs.length : mean;
     });
     // its middle and linked sides' middles off the line: further off a wall up than a drop
-    const up = cs.reduce((s, v) => s + v) > (f.fluid ? 4 * f.surf * LH : f.cs.reduce((s, v) => s + v)), room = up ? WALL : drop;
+    const up = cs.reduce((s, v) => s + v) > (f.fluid ? 4 * f.surf * LH : f.cs.reduce((s, v) => s + v)), room = up ? margins.lo : margins.hi;
     if (-side(0.5, 0.5) < room) return null;
     for (let d = 0; d < 4; d++) if (crossed(f, d, cs) && side(...MID[d]) > -room) return null;
     const lowest = Math.min(...poly.map(([x, z]) => cornersY(cs, splitOf(cs), x, z)));
@@ -302,19 +309,19 @@ function orient({ V, R }) {
 
 // The polyline for a chain: from its first corner to its last, each piece in one of `dirs`, as
 // long as it goes with every cell round the corners it passes on its own side (the higher
-// ground's `drop` off it, the lower one's WALL); where nothing fits, along the risers round the
+// ground's `room.hi` off it, the lower one's `room.lo`); where nothing fits, along the risers round the
 // corner. It starts from the middle of the first riser, or a little to either side of it,
 // whichever takes the fewest pieces. Over a hole (`hole`) it never goes into a cell of the other
 // side (nothing there takes a corner of the higher ground), and where nothing fits round a corner
 // of the higher ground it cuts that corner off.
-function fit({ V, R, sigma }, dirs, topAt, sideOf, drop, hole = false) {
+function fit({ V, R, sigma }, dirs, topAt, sideOf, room, hole = false) {
   const n = R.length;
   // the cells round each corner of the chain: [x, z, side (+1: the higher one's), margin]
   const cellsAt = V.map(([X, Z]) => {
     const out = [];
     for (const [x, z] of [[X - 1, Z - 1], [X, Z - 1], [X - 1, Z], [X, Z]]) {
       const s = sideOf(topAt(x, z));
-      if (s) out.push([x + 0.5, z + 0.5, s * sigma, s > 0 ? drop : hole ? OUT : WALL, s > 0]);
+      if (s) out.push([x + 0.5, z + 0.5, s * sigma, s > 0 ? room.hi : hole ? OUT : room.lo, s > 0]);
     }
     return out;
   });
@@ -324,7 +331,7 @@ function fit({ V, R, sigma }, dirs, topAt, sideOf, drop, hole = false) {
     const side = ([x, z, sg, m]) => sg * (u[0] * (z - S[1]) - u[1] * (x - S[0])) >= (m === OUT ? (Math.abs(u[0]) + Math.abs(u[1])) / 2 - 1e-9 : m);
     for (let k = i; k <= j; k++) if (!cellsAt[k].every(side)) return false;
     const r = R[j];
-    return side([r.hi.x + 0.5, r.hi.z + 0.5, sigma, drop]) && side([r.lc[0] + 0.5, r.lc[1] + 0.5, -sigma, hole ? OUT : WALL]);
+    return side([r.hi.x + 0.5, r.hi.z + 0.5, sigma, room.hi]) && side([r.lc[0] + 0.5, r.lc[1] + 0.5, -sigma, hole ? OUT : room.lo]);
   };
   // the directions nearest the one from S to T
   const candidates = (S, T) => {
@@ -365,7 +372,7 @@ function fit({ V, R, sigma }, dirs, topAt, sideOf, drop, hole = false) {
   const r0 = R[0], w = r0.v0[0] === r0.v1[0] ? [1, 0] : [0, 1];
   const up = Math.sign(w[0] * (r0.hi.x + 0.5 - r0.m[0]) + w[1] * (r0.hi.z + 0.5 - r0.m[1]));
   let best = null;
-  for (const s of [0, 0.05, -0.05, 0.1, -0.1, 0.15, -0.15, 0.2, -0.2, 0.25, -0.25, 0.3, -0.3, 0.35, -0.35, 0.4, -0.4]) {
+  for (const s of STARTS) {
     if (hole && s * up < 0) continue;   // (over a hole: from the higher side)
     const got = run([r0.m[0] + w[0] * s, r0.m[1] + w[1] * s]);
     if (!best || got.cost < best.cost) best = got;
@@ -486,7 +493,7 @@ function moveFences(ctx, cutCells) {
     for (const s of cutLine(f)) {
       const hiOwn = s.own[0] + s.own[1] > s.part[0] + s.part[1], low = f.cut.part.empty ? [under, under] : s.part;
       if (Math.min(Math.abs(s.own[0] - low[0]), Math.abs(s.own[1] - low[1])) < FENCE_DROP) continue;
-      const k = hiOwn ? -1 : 1, inset = [f.cut.n[0] * 0.07 * k, f.cut.n[1] * 0.07 * k];
+      const k = hiOwn ? -1 : 1, inset = [f.cut.n[0] * FENCE_IN * k, f.cut.n[1] * FENCE_IN * k];
       fenceAlong([f.x + s.p[0], f.z + s.p[1]], [f.x + s.q[0], f.z + s.q[1]], inset, ground, f.layer, f.id, [f.c]);
     }
   }
