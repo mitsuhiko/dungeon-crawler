@@ -13,6 +13,8 @@ import { topTriangles, cutLine, clipPoly, cutPoints } from '../src/core/cuts.js'
 import { cutCliffs } from '../src/cubegen/cuts.js';
 import { edgeKey } from '../src/core/util.js';
 import { worldOf } from './worlds.js';
+import { placeProps } from '../src/render/propplace.js';
+import { themeOf } from '../src/themes/depth.js';
 
 const DT = 1 / 60;
 const area = t => Math.abs((t[1][0] - t[0][0]) * (t[2][2] - t[0][2]) - (t[1][2] - t[0][2]) * (t[2][0] - t[0][0])) / 2;
@@ -130,7 +132,7 @@ test('walking at a cut: up against the higher side it is a wall, its fence holds
   assert.ok(player.y < 0.5, 'dropped down: ' + player.y);
 });
 
-test('a generated room: its staircase cliffs are cut, and every cut keeps its cell\'s middle', () => {
+test('a generated room: its staircase cliffs are cut, every cut keeps its cell\'s middle, and its lines are dressed', () => {
   const m = worldOf(461656543).cube('0,-8,2').map;
   const cut = m.floors.filter(f => f.cut);
   assert.ok(cut.length >= 15, 'cut: ' + cut.length);
@@ -138,6 +140,10 @@ test('a generated room: its staircase cliffs are cut, and every cut keeps its ce
     assert.equal(partAt(f, 0.5, 0.5), f);
     assert.ok(f.cut.part.empty || (f.cut.part.donor && f.cut.part.donor !== f));
   }
+  // its lines dressed: a lip or wall prop off the higher side's edge along one, now and then
+  const { out } = placeProps(m, themeOf(m));
+  const on = out.filter(o => { const f = m.cols[Math.floor(o.z) * N + Math.floor(o.x)].at(-1); return f?.cut && Math.abs(f.cut.n[0] * (o.x - f.x) + f.cut.n[1] * (o.z - f.z) - f.cut.c) < 1e-6; });
+  assert.ok(on.length >= 2, 'props along its lines: ' + on.length);
 });
 
 test('a shore at 45°: the bank takes a corner of the water, the water one of the bank, and it is waded in', () => {

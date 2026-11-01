@@ -3,6 +3,7 @@
 import { N, LH, BASE, DIRS, EDGE_CORNERS, FLUID_NAME, CHAR_H, ROOM_AREA, drawnFluid } from '../core/constants.js';
 import { mulberry32, hash32, idx, inb, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
+import { cutLine } from '../core/cuts.js';
 import { restY } from './surface.js';
 import { props, propMetadata, signatureProp, CLUTTER } from '../core/propcatalog.js';
 import { small } from './device.js';
@@ -133,8 +134,10 @@ export function placeProps(m, theme) {
     // No ceiling props: undersides of slabs are never visible from the camera.
     // Hanging decoration is limited to lip props draped over visible ledges.
 
-    // (no lips on a cut cell's sides, nor on those facing one: its cliff runs along the line)
-    if (f.fluid || focal || nearPortal(f) || f.cut) continue;
+    // (a cut cell's line, core/cuts.js, has its own; its sides theirs where they are its own, none
+    // on the sides facing one)
+    if (f.cut && !focal && !nearPortal(f)) lineProps(f, s, ceiling);
+    if (f.fluid || focal || nearPortal(f)) continue;
     for (let d = 0; d < 4; d++) {
       const nx = f.x + DIRS[d][0], nz = f.z + DIRS[d][1];
       if (!inb(nx, nz) || f.link[d]) continue;
@@ -145,6 +148,7 @@ export function placeProps(m, theme) {
       const low = Math.max(-BASE, ...other.filter(g => g.top * LH < edgeTop - 0.1)
         .map(g => g.fluid ? g.surf * LH : Math.max(...g.cs)));
       const t = 0.3 + R() * 0.4, [ex, ez] = [[1, t], [0, t], [t, 1], [t, 0]][d];
+      if (!clearOfCut(f, ex, ez, 0.25)) continue;
       const yaw = Math.atan2(-DIRS[d][0], -DIRS[d][1]);
       if (R() < 0.15 * CLUTTER) {
         const p = pick('lip', p => !p.blocking && p.drop * s + 0.2 < edgeTop - low);
@@ -159,6 +163,30 @@ export function placeProps(m, theme) {
         if (fits(p, y, s, wallLow, edgeTop)) add(p, f.x + ex, y, f.z + ez, yaw, s);
       }
     }
+  }
+  // The lip and wall props along a cut's line: off the higher side's edge along it, facing the
+  // lower side (over a fluid: down to its surface; over an empty part: to what lies under the
+  // floor, if anything), as on a cell's side, as often for as long a line
+  function lineProps(f, s, ceiling) {
+    const { n, part } = f.cut, line = cutLine(f);
+    const k = line.reduce((a, q, i) => Math.hypot(q.q[0] - q.p[0], q.q[1] - q.p[1]) > Math.hypot(line[a].q[0] - line[a].p[0], line[a].q[1] - line[a].p[1]) ? i : a, 0);
+    const q = line[k], len = Math.hypot(q.q[0] - q.p[0], q.q[1] - q.p[1]), t = 0.3 + R() * 0.4;
+    const hiOwn = q.own[0] + q.own[1] > q.part[0] + q.part[1], high = hiOwn ? f : part, lowS = hiOwn ? part : f;
+    if (high.fluid) return;
+    const at = ys => ys[0] + (ys[1] - ys[0]) * t, edgeTop = at(hiOwn ? q.own : q.part);
+    const col = m.cols[f.c], under = col.indexOf(f) > 0 ? Math.max(...col[col.indexOf(f) - 1].cs) : -BASE;
+    const low = lowS.empty ? under : lowS.fluid ? lowS.surf * LH : at(hiOwn ? q.part : q.own);
+    if (edgeTop - low < 0.3) return;
+    const x = f.x + q.p[0] + (q.q[0] - q.p[0]) * t, z = f.z + q.p[1] + (q.q[1] - q.p[1]) * t;
+    const out = hiOwn ? n : [-n[0], -n[1]], yaw = Math.atan2(-out[0], -out[1]);
+    if (R() < 0.15 * CLUTTER * len) {
+      const p = pick('lip', p => !p.blocking && p.drop * s + 0.2 < edgeTop - low);
+      if (p && edgeTop + p.maxY * s + 0.1 < ceiling) add(p, x, edgeTop, z, yaw, s);
+    }
+    const wallLow = Math.max(low, f.bottom * LH);
+    if (edgeTop - wallLow < 1.2 || R() > 0.12 * CLUTTER * len) return;
+    const p = pick('wall', p => !p.blocking), y = wallLow + (edgeTop - wallLow) * 0.5;
+    if (p && fits(p, y, s, wallLow, edgeTop)) add(p, x, y, z, yaw, s);
   }
   if (theme.grove && !m.sparse) grove(m, theme, add, out, blockers, { walkCols, reserved, nearSite, nearPortal, nearHorde });
   if (theme.waylights && !m.sparse) waylights(m, theme, add, out, blockers, { walkCols, reserved, nearSite, nearPortal, nearHorde });

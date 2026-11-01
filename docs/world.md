@@ -1208,7 +1208,10 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   donor of a part (`core/mountains.js freeCells`: the two would part).
 - **Drawn** (`render/floors.js`): each side's top triangles clipped to its side, the wall along the
   line from the lower side up to the higher (`cutWalls`), the sides' walls in pieces where a cut
-  meets them (`wallPieces`).
+  meets them (`wallPieces`). Dressed (`render/propplace.js`): the props on the ground keep off the
+  line (`clearOfCut`), a lip or wall prop hangs off the higher side's edge along it (`lineProps`,
+  as often for as long a line as on a cell's side), and the cell's sides keep theirs where they
+  are its own.
 - **Physics** (`physics/canmove.js`): crossing the line inside the cell is crossing an edge: what
   is past it stands in the way if it is higher than a step, and a drop is a brink. Enemies never
   stand on a part (`enemynav.js floorAt`; their bodies may lean over a line), click to move walks the nodes' sides only
