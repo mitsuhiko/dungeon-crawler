@@ -1,5 +1,7 @@
 // Cube coordinates and the six faces. Y = 0 is the surface, deeper cubes have Y < 0.
 // Directions 0-3 match DIRS (+x, -x, +z, -z); 4 = down, 5 = up.
+import { N } from '../core/constants.js';
+
 // learn: space.html#cube-address (see learn/README.md)
 export const D6 = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0], [0, 1, 0]];
 export const OPP6 = [1, 0, 3, 2, 5, 4];
@@ -22,7 +24,7 @@ export const hashKey = k => { let h = 2166136261; for (let i = 0; i < k.length; 
 // height, none: the highest ground there). A cube without a depth is on depth `here`, a depth
 // without a cube its entrance. { way } | { side } | { depth, cell?, spot? } | { error }
 const CELL = /^(-?\d+),(-?\d+)$/, NUM = '(-?\\d+(?:\\.\\d+)?)', SPOT = new RegExp(`^${NUM},(?:${NUM},)?${NUM}$`);
-export function readPlace([where, ...rest], here, maxDepth, size = 16) {
+export function readPlace([where, ...rest], here, maxDepth, size = N) {
   rest = rest.filter(w => w !== undefined);
   if (where === 'down' || where === 'up' || DIR_NAME.indexOf(where) >= 0) {
     if (rest.length) return { error: `/goto ${where} takes nothing after it` };

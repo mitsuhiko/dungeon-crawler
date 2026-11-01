@@ -11,6 +11,7 @@
 // Only the game that runs the cube's enemies runs the raid (alone: ours; playing together: the
 // runner, net/foes.js); the others fight the raiders it shows them.
 import * as THREE from 'three';
+import { ROOM_SCALE, count16 } from '../core/constants.js';
 import { camera } from '../render/scene.js';
 import { state, player, setStatus, worldLevel } from './state.js';
 import { addEnemies, allEnemies, mirroring, removeEnemies } from './enemies.js';
@@ -60,7 +61,7 @@ function begin(goal, spot) {
 function arrivals(height) {
   // the floors the raiders can walk to the cart from (over the enemies' floor graph, out from it)
   const seen = new Set(raid.ring), queue = [...raid.ring];
-  for (let i = 0; i < queue.length && queue.length < 400; i++) for (const g of neighbors(queue[i], height)) if (!seen.has(g)) { seen.add(g); queue.push(g); }
+  for (let i = 0; i < queue.length && queue.length < count16(400); i++) for (const g of neighbors(queue[i], height)) if (!seen.has(g)) { seen.add(g); queue.push(g); }
   const to = f => seen.has(f);
   const fits = f => walkable(f, height) && !f.spot && !f.fluid;
   const near = (x, z, lo, hi) => state.map.floors.filter(f => { const d = Math.hypot(f.x + .5 - x, f.z + .5 - z); return d >= lo && d < hi && fits(f); });
@@ -68,7 +69,7 @@ function arrivals(height) {
   let out = portals.flatMap(p => near(p.x + .5, p.z + .5, 0, 3).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)).slice(0, 4)).filter(to);
   if (out.length < 3) out = near(raid.cart.x, raid.cart.z, 4.5, 8).filter(to);
   // each with the post by the cart it has a way to (the graph's drops go one way only)
-  return out.slice(0, 24).map(f => ({ f, post: raid.ring.find(p => findPath(f, p, 48, height)) })).filter(a => a.post);
+  return out.slice(0, 24).map(f => ({ f, post: raid.ring.find(p => findPath(f, p, Math.round(48 * ROOM_SCALE), height)) })).filter(a => a.post);
 }
 
 function spawnWave() {

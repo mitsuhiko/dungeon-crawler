@@ -4,7 +4,7 @@
 // change the game's numbers with a way back (game/tune.js). None of it changes how the game plays
 // except pace and tune, and reset() undoes all of it.
 //
-// Places are in cube coordinates, like the player's: x and z run from 0 to 16 across the cube
+// Places are in cube coordinates, like the player's: x and z run from 0 to N (24) across the cube
 // (the grid lens shows them), y is the height. A place (`at`) is one of:
 //   { x, z } or [x, z]       on the floor there (the floor nearest the player's height)
 //   { x, y, z } or [x, y, z]

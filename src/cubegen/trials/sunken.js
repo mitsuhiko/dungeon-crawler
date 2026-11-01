@@ -4,7 +4,7 @@
 // flooded; each puzzle solved drains the room a stage further, uncovering the way to the next, until
 // the ground and the exit come out of the water.
 //
-// The room is split in two halves along one axis (A), 7 cells each: the entry's and the exit's.
+// The room is split in two halves along one axis (A), N / 2 - 1 cells each (11): the entry's and the exit's.
 // Along the other axis (B) each half holds its puzzle's deck at the far end (the field's short side
 // across the half) and, at the near end, its part of the strip (STRIP cells wide) where the portals
 // stand. The entry's half stands at the entry's height (its strip the terrace you come in on, the
@@ -32,7 +32,7 @@ export function sunkenLayout(entry, exit, L) {
       if (across.includes(dir)) return (end ? pos - 1 >= N - 1 - L : pos + 1 <= L) ? (dir === across[0] ? 1 : 0) : null;
       // on the strip's own face: its half by where it stands along it (the pad all in one)
       if (dir !== near) return null;
-      return pos + 1 <= 7 ? 0 : pos - 1 >= 8 ? 1 : null;
+      return pos + 1 <= N / 2 - 1 ? 0 : pos - 1 >= N / 2 ? 1 : null;
     };
     const he = half(entry), hx = half(exit);
     if (he != null && hx != null && he !== hx) return { axis, end, entryHalf: he };
@@ -63,7 +63,7 @@ export function shapeSunken(ctx) {
   const L = sunkenStrip(depth), lay = sunkenLayout(entry, exit, L), levels = lay && sunkenLevels(entry.level, exit.level, 2);
   if (!levels) return;
   const at = (a, b) => lay.axis === 'x' ? idx(a, b) : idx(b, a), xz = (a, b) => lay.axis === 'x' ? [a, b] : [b, a];
-  const halfA = h => h ? [8, N - 2] : [1, 7], strip = lay.end ? [N - 1 - L, N - 2] : [1, L];
+  const halfA = h => h ? [N / 2, N - 2] : [1, N / 2 - 1], strip = lay.end ? [N - 1 - L, N - 2] : [1, L];
   const halves = [lay.entryHalf, 1 - lay.entryHalf];   // (stage i's half)
   // every cell of a half its stage's platform: the entry's at the terrace's height
   const terrace = [];

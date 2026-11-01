@@ -25,7 +25,7 @@ export const edgeOf = (d, side, t) => [[d.w - 1, t], [0, t], [t, d.h - 1], [t, 0
 export function placeDeck(ctx, w, h, towards, within = null, rim = true) {
   const { lvl0, void0, R } = ctx, margin = within ? within.walk ?? 0 : 2;
   const pads = ctx.spec.portals.filter(p => p.dir < 4).map(p => [[N - 2, p.pos], [1, p.pos], [p.pos, N - 2], [p.pos, 1]][p.dir]);
-  const [lx, lz, hx, hz] = within ? [within.x0, within.z0, within.x1, within.z1] : [2, 2, 13, 13];
+  const [lx, lz, hx, hz] = within ? [within.x0, within.z0, within.x1, within.z1] : [2, 2, N - 3, N - 3];
   const options = [];
   for (let rz = lz; rz + h + 1 <= hz; rz++) for (let rx = lx; rx + w + 1 <= hx; rx++) {
     const cx = rx + (w + 2) / 2, cz = rz + (h + 2) / 2;

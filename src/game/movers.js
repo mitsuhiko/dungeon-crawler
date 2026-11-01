@@ -40,7 +40,7 @@ export function updateMovers(dt) {
       link: [null, null, null, null] }));
     setMovers(list);
     setStatus(tr('Platforms rise out of the lava!'));
-    sfx('rumble', { at: { x: 8, y: m.top, z: 8 }, pitch: 0.8 });
+    sfx('rumble', { at: { x: N / 2, y: m.top, z: N / 2 }, pitch: 0.8 });
   }
   // the lava draining away: the fight is over, they float down and under the floor
   if (!sinking && (state.tide == null || state.tide < t.high - DRAINED)) sinking = true;

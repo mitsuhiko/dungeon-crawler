@@ -24,7 +24,7 @@ export function shapeStorm(ctx) {
   const { summit: rs, lap: w, rise } = HILL, rOut = rs + w, foot = rOut + 1;
   // the hill's middle: in the middle of the room, as far from the pads as it gets
   const ps = pads(spec), spots = [];
-  for (let z = 6; z <= 9; z++) for (let x = 6; x <= 9; x++)
+  for (let z = N / 2 - 2; z <= N / 2 + 1; z++) for (let x = N / 2 - 2; x <= N / 2 + 1; x++)
     spots.push({ x, z, d: Math.min(...ps.map(([px, pz]) => Math.hypot(px - x, pz - z))) + R() * 1.5 });
   spots.sort((a, b) => b.d - a.d);
   const cx = spots[0].x + 0.5, cz = spots[0].z + 0.5;

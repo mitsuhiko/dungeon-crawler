@@ -318,7 +318,7 @@ exit come out of the water.
 - **Population:** a few on the platforms; more on the ground, waiting for the water to go.
 - **As built** (`cubegen/trials/sunken.js`): three layers (you come in at level 16; the room before
   gets as many, `world/wfc.js`, and its portal stands on the top layer, `world/faces.js`). The
-  room in two halves across one axis, 7 cells each (a deck's short side, 5, and its rim or ring):
+  room in two halves across one axis, `N / 2 - 1` cells each (11; a deck's short side, 5, and its rim or ring, take 7):
   the entry's and the exit's. Along the other axis each half has its puzzle's deck at the far end
   and its part of a strip at the near end (`sunkenStrip`: 6 cells, 5 from depth 10, what the
   longest decks leave) where both portals stand, the entry's in its half and the exit's in the

@@ -960,7 +960,8 @@ frog shrinks and spins away in a puff of steam and the ball swells up. Then he f
   onto the one within reach nearest to theirs, and on from there. On a platform (`deck`) it fights
   like any Fire-cat, its steps kept on the slab (`physics/enemynav.js onDeck`), and the platform
   carries it, so a blade reaches it there too, not only a bow or a staff. A player back on the top
-  of the tower (out of the lava) it leaps back down to. It waits 0.6 s after landing before it
+  of the tower (out of the lava) it leaps back down to, from a platform too far out over the lava
+  for one leap (more than 6 cells) first onto the one in reach nearest to the top. It waits 0.6 s after landing before it
   leaps again, and never leaps in the middle of a bite.
 - **Fireball** (within 9 cells, `FoggerySpit`, 1.1 s): he draws back and spits a fireball at 0.6 s
   (7.5 cells/s) that sets you on fire.

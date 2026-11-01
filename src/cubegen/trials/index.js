@@ -485,11 +485,12 @@ export function placeClues(ctx, safe) {
   }
   return out;
 }
+const MID = (N - 1) / 2;   // the middle of the room, in cells counted from 0
 function placeClue(ctx, safe, clue, taken) {
   const pads = new Set(ctx.portals.flatMap(p => p.cells || []));
   const ok = f => !f.fluid && !f.landing && !pads.has(f.c) && (!safe || safe.has(f.id)) && Math.max(...f.cs) - Math.min(...f.cs) <= 0.2
     && !ctx.pieces[f.c].length && !(ctx.spots || []).some(s => s.cells?.includes(f.c)) && taken.every(t => Math.hypot(t.x - f.x - 0.5, t.z - f.z - 0.5) >= 2.5);
-  const f = ctx.floors.filter(ok).sort((a, b) => (a.layer > 0) - (b.layer > 0) || Math.hypot(a.x - 7.5, a.z - 7.5) - Math.hypot(b.x - 7.5, b.z - 7.5))[0];
+  const f = ctx.floors.filter(ok).sort((a, b) => (a.layer > 0) - (b.layer > 0) || Math.hypot(a.x - MID, a.z - MID) - Math.hypot(b.x - MID, b.z - MID))[0];
   if (!f) return null;
   f.noSpawn = true;
   const { glyphs, order } = runeOrder(clue.id, clue.depth);

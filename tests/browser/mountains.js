@@ -7,7 +7,7 @@
 // heights), as after it stood its time. Each shape, raised here by the developer command's spec.
 import { paused } from './combat.js';
 import { state, player } from '../../src/game/state.js';
-import { LH } from '../../src/core/constants.js';
+import { N, LH } from '../../src/core/constants.js';
 import { floorY } from '../../src/core/surfaces.js';
 import { damageEnemy } from '../../src/core/combat.js';
 import { SHAPES, MOUNTAIN, placeMountain } from '../../src/core/mountains.js';
@@ -43,7 +43,7 @@ export async function runMountainChecks() {
     // each shape, raised under the hero (the developer command's way: no Monteur needed)
     const quiet = () => { tough(); for (const e of allEnemies()) e.stun = 1; };
     for (const shape of SHAPES) {
-      const f = base.floors.filter(g => g.encounter && base.cols[g.c].length === 1).sort((p, q) => Math.hypot(p.x - 8, p.z - 8) - Math.hypot(q.x - 8, q.z - 8))[0];
+      const f = base.floors.filter(g => g.encounter && base.cols[g.c].length === 1).sort((p, q) => Math.hypot(p.x - N / 2, p.z - N / 2) - Math.hypot(q.x - N / 2, q.z - N / 2))[0];
       spawnAt(f.x + 0.5, floorY(f, 0.5, 0.5), f.z + 0.5);
       run(0.3, quiet);
       const spec = { n: Math.floor(Math.random() * 1e9), seed: 1234 + shape.length, shape, a: 0.5, x: player.x, z: player.z, phase: 'crack', t: 0, life: 6 };
@@ -58,7 +58,7 @@ export async function runMountainChecks() {
         const g = groundAt(m.x + 0.5, m.z + 0.5, 100, 0);
         check(g.s === m.f && Math.abs(g.h - floorY(m.f, 0.5, 0.5)) < 1e-6 && Math.abs(m.f.top - m.top) < 1e-9, `${shape}: its floor at its height`);
       }
-      const on = plan.cells.get(Math.floor(player.z) * 16 + Math.floor(player.x));
+      const on = plan.cells.get(Math.floor(player.z) * N + Math.floor(player.x));
       if (on) check(Math.abs(player.y - floorY(on.f, player.x - on.f.x, player.z - on.f.z)) < 0.05, `${shape}: the hero rode up on it (${player.y.toFixed(2)})`);
       check(plan.ladders.every(l => state.map.ladders.includes(l)), `${shape}: its ladders are there`);
       downMountain();

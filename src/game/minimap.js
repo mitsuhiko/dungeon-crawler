@@ -231,7 +231,7 @@ export function drawMinimap() {
     else {
       // just outside the gate, so that our own arrow does not hide it
       const p = faces[way]?.portal, [ux, uy] = [[1, 0], [-1, 0], [0, 1], [0, -1]][way];
-      const [ex, ey] = edgePt(px, pz, way, p && !isFaceOpen(state.openedFaces, key(X0, Y, Z0), way) ? (p.pos + 0.5) / 16 : 0.5);
+      const [ex, ey] = edgePt(px, pz, way, p && !isFaceOpen(state.openedFaces, key(X0, Y, Z0), way) ? (p.pos + 0.5) / N : 0.5);
       pointer(screen(ex + ux * 7, ey + uy * 7), [ux * cos - uy * sin, ux * sin + uy * cos]);
     }
   }

@@ -27,7 +27,7 @@ export const PARTS = [
 
 // Vertex layout (all padded to four components so every attribute is 4-byte aligned, which
 // Metal and D3D need to use the data as is):
-//   position Int16 x4 in units of `scale` (1/1024: +-32 world units, a cube spans -0.6..17)
+//   position Int16 x4 in units of `scale` (1/1024: +-32 world units, a cube spans -0.6..25)
 //   normal   Int8 x4, normalized
 //   color    Uint16 x4, normalized (solids only; alpha 1); linear colours keep their dark shades
 //   uv       Float32 x2 (fluids, falls and swaying solids only; a fluid's say what each face is

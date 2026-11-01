@@ -7,6 +7,7 @@
 // settings come back afterwards. From the console:
 //   await (await import('./tests/browser/camera.js')).runCameraChecks()
 import * as THREE from 'three';
+import { N } from '../../src/core/constants.js';
 import { player, state, view } from '../../src/game/state.js';
 import { cameraMode, setCameraMode } from '../../src/game/settings.js';
 import { settleCamera, closeView, closeArm, updateCamera } from '../../src/game/camera.js';
@@ -90,7 +91,7 @@ export async function runCameraChecks() {
       view.yaw = view.yawTarget = k * Math.PI / 8;
       settleCamera();
       const c = camera.position;
-      check(!insideSolid(c.x, c.z, c.y) || c.x < 0 || c.z < 0 || c.x >= 16 || c.z >= 16, `The camera is in a solid at yaw ${k}/16`);
+      check(!insideSolid(c.x, c.z, c.y) || c.x < 0 || c.z < 0 || c.x >= N || c.z >= N, `The camera is in a solid at yaw ${k}/16`);
       check(closeArm() <= closeDistance(view.zoom) + 1e-6, 'The arm is never longer than the zoom says');
       shortest = Math.min(shortest, closeArm());
     }

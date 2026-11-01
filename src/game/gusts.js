@@ -13,6 +13,7 @@
 // nothing (an attack with `exposed`), every game shows him crashing down and says so (Squarlo
 // out of breath, or stuck with his foot down, says so too). Squarlo calling the tide (a `cast` of
 // 'tide') is announced by every game as he starts. Squarlo's jet is a gust (kind 'jet').
+import { ROOM_SCALE } from '../core/constants.js';
 import { player, setStatus } from './state.js';
 import { party, alive } from './party.js';
 import { attackOf, blowOf, enemyName } from '../core/enemies.js';
@@ -73,5 +74,5 @@ function felled(e, x) {
 // Squarlo starts calling the tide
 function calls(e) {
   tideCallFx(e);
-  if (Math.hypot(e.x - player.x, e.z - player.z) < 24) setStatus(tr('{name} calls the tide! Get up a hill!', { name: enemyName(e.profile) }));
+  if (Math.hypot(e.x - player.x, e.z - player.z) < 24 * ROOM_SCALE) setStatus(tr('{name} calls the tide! Get up a hill!', { name: enemyName(e.profile) }));
 }

@@ -68,7 +68,10 @@ sun.target.position.set(N / 2, 4, N / 2);
 sun.position.set(...NOON).multiplyScalar(38).add(sun.target.position);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 90 });
+// (its box: the cube, VIEW_H high, seen from the sun as low as it goes, SUN_LOW, wants about
+// 0.85 N either way)
+const SUN_BOX = N * 7 / 8;
+Object.assign(sun.shadow.camera, { left: -SUN_BOX, right: SUN_BOX, top: SUN_BOX, bottom: -SUN_BOX, near: 1, far: 90 });
 sun.shadow.bias = -0.0006;
 sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);

@@ -258,7 +258,7 @@ function hopTo(f, platforms) {
 // later it leaps after them (`jump`), straight onto theirs if it is in reach (G.leap.reach, edge
 // to edge), else onto the one in reach nearest to theirs, and fights them there (`deck`). One on a
 // platform after a player standing on the top of the tower (out of the lava) leaps back down to
-// them. A platform carries what stands on it, the living and the dead.
+// them (from one too far out for a leap, onto the one in reach nearest to the top first). A platform carries what stands on it, the living and the dead.
 const L = G.leap;
 const cats = () => foggerys.filter(e => e.type === 'fogcat');
 function carry() {
@@ -301,26 +301,37 @@ function wanted(c, decks) {
 }
 // how far (x, z) is from the platform o's edge (0 on it)
 const gap = (o, x, z) => Math.hypot(Math.max(o.x0 - x, 0, x - o.x1), Math.max(o.z0 - z, 0, z - o.z1));
+// the platform in reach of cat c (not its own) nearest to `far` (how far a platform is from where
+// it wants to go), if nearer than `now`: on the way there, too far for one leap
+const stepping = (c, decks, far, now) => decks.filter(q => q !== c.deck && gap(q, c.x, c.z) <= L.reach && far(q) < now).sort((a, b) => far(a) - far(b))[0];
 function leap(c, to, decks) {
   const r = c.profile.radius + 0.15;
+  // (onto platform o's near side)
+  const onto = o => {
+    const x = Math.min(o.x1 - r, Math.max(o.x0 + r, c.x)), z = Math.min(o.z1 - r, Math.max(o.z0 + r, c.z));
+    return { deck: o, lx: x - o.x0, lz: z - o.z0 };
+  };
   let j = null;
   if (to.deck) {
     let o = to.deck;
     if (gap(o, c.x, c.z) > L.reach) {   // (too far: onto the one in reach nearest to theirs)
-      const now = gap(o, c.x, c.z), mid = (q) => gap(o, (q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2);
-      o = decks.filter(q => q !== c.deck && gap(q, c.x, c.z) <= L.reach && mid(q) < now).sort((a, b) => mid(a) - mid(b))[0];
+      o = stepping(c, decks, q => gap(o, (q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2), gap(o, c.x, c.z));
       if (!o) return;
     }
-    // (onto its near side)
-    const x = Math.min(o.x1 - r, Math.max(o.x0 + r, c.x)), z = Math.min(o.z1 - r, Math.max(o.z0 + r, c.z));
-    j = { deck: o, lx: x - o.x0, lz: z - o.z0 };
+    j = onto(o);
   } else {
     // (down next to the player, on the top of the tower)
     const p = to.p, d = Math.hypot(c.x - p.x, c.z - p.z) || 1, k = Math.min(1.1, d);
     const x = p.x + (c.x - p.x) / d * k, z = p.z + (c.z - p.z) / d * k, g = groundAt(x, z, p.y + 0.3, 0.6);
     const ok = g.s && !g.s.mover && g.s.tower === 'top' && walkable(g.s, c.profile.height) && Math.abs(g.h - p.y) < 0.6;
     j = ok ? { floor: g.s, x, y: g.h, z } : { floor: to.floor, x: to.floor.x + 0.5, y: groundAt(to.floor.x + 0.5, to.floor.z + 0.5, p.y + 0.3, 0.6).h, z: to.floor.z + 0.5 };
-    if (gap({ x0: j.x, x1: j.x, z0: j.z, z1: j.z }, c.x, c.z) > L.reach + 1) return;
+    // (too far, from a platform out over the lava: first onto the one in reach nearest to the top)
+    const now = Math.hypot(j.x - c.x, j.z - c.z);
+    if (now > L.reach + 1) {
+      const o = stepping(c, decks, q => gap(q, j.x, j.z), gap(c.deck, j.x, j.z));
+      if (!o) return;
+      j = onto(o);
+    }
   }
   const tx = j.deck ? j.deck.x0 + j.lx : j.x, tz = j.deck ? j.deck.z0 + j.lz : j.z, d = Math.hypot(tx - c.x, tz - c.z);
   Object.assign(j, { x0: c.x, y0: c.y, z0: c.z, t: 0, T: 0.25 + d / L.speed, h: L.arc[0] + L.arc[1] * d });

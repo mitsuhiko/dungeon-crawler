@@ -5,6 +5,7 @@
 // await (await import('./tests/browser/neighbor.js')).runShaftViewChecks()
 import * as THREE from 'three';
 import { N, WATER, LAVA, ACID, FLUIDS } from '../../src/core/constants.js';
+import { VIEW_DISTANCE, VIEW_FADE } from '../../src/core/viewdistance.js';
 import { camera, scene, renderer } from '../../src/render/scene.js';
 import { GeoBuilder } from '../../src/render/builder.js';
 import { packParts, PARTS } from '../../src/render/parts.js';
@@ -61,12 +62,17 @@ export async function runExpandedTravelChecks() {
       await newWorld(3);
       const cubes = await Promise.all([...state.cubes.layout(1).exists].map(k => state.cubes.get(k)));
       cubes.forEach(c => c.visits = 1);
-      const source = cubes[Math.floor(cubes.length / 2)];
-      enterCube(source, source.map.portals.find(p => p.kind === 'side').dir);
+      // (from the middle of the depth, through the first side portal that is not locked: a
+      // guardian's, a trial's or a task's gate keeps travel from starting)
+      const { portalLocked } = await import('../../src/core/guardians.js');
+      const mid = Math.floor(cubes.length / 2), order = [...cubes.slice(mid), ...cubes.slice(0, mid)];
+      const source = order.find(c => c.map.portals.some(p => p.kind === 'side' && !portalLocked(c.map, state.run, p)));
+      check(source, 'A cube with a side portal that is not locked');
+      const portal = source.map.portals.find(p => p.kind === 'side' && !portalLocked(source.map, state.run, p));
+      enterCube(source, portal.dir);
       tickNeighbors(1);
       const before = detachNeighbors(), originals = new Map(before.map(g => [g.key, g]));
       adoptNeighbors(before);
-      const portal = state.map.portals.find(p => p.kind === 'side');
       const common = visitedNeighbors(step(state.cubeKey, portal.dir)).map(g => g.key).filter(k => originals.has(k));
       check(common.length > 4, 'Test must cover more than immediate neighbors');
       startTravel(portal);
@@ -177,7 +183,7 @@ export async function runNeighborChecks() {
         scene.fog.far = 0; cullNeighbors(8, 8);
         check(!list[1].cull.visible, 'Wholly fogged cubes must be culled');
       } finally { scene.fog.far = fogFar; }
-      cullNeighbors(-30, 8);
+      cullNeighbors(N - VIEW_DISTANCE + VIEW_FADE / 2, 8);   // (the east cube within the fade's band)
       check(east.group.userData.rangeFadeU.value > 0 && east.group.userData.rangeFadeU.value < 1,
         'Distance boundary must fade, not pop');
       const inst = east.instances[0], data = inst.batch.data.value.image.data;

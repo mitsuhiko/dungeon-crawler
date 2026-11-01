@@ -2,6 +2,7 @@
 // gets injected into them. The cut outline is a nine-cornered polygon on a circle around the
 // character (corners at irregular angles), turning slowly.
 import * as THREE from 'three';
+import { N } from '../core/constants.js';
 
 // learn: drawing.html#cut-how (see learn/README.md)
 const CORNERS = 9, TURN = 0.18;   // rad/s
@@ -13,10 +14,10 @@ export const U = {
   uAspect: { value: 1 }, uSide: { value: new THREE.Vector3() }, uRes: { value: new THREE.Vector2(1, 1) },
   uFront: { value: new THREE.Vector4() }, uWallY: { value: 1e3 },
   // the walls that come down: within uWallBand inside the box (x0, x1, z0, z1)
-  uWallBox: { value: new THREE.Vector4(0, 16, 0, 16) }, uWallBand: { value: 2.2 },
-  // ... but never below the land behind them: per side (+x, -x, +z, -z) 16 heights along it
-  // (section.js wallFloors)
-  uWallFloor: { value: new Float32Array(64) },
+  uWallBox: { value: new THREE.Vector4(0, N, 0, N) }, uWallBand: { value: 2.2 },
+  // ... but never below the land behind them: N heights along the sides, each the four sides'
+  // (+x, -x, +z, -z) there (section.js wallFloors)
+  uWallFloor: { value: new Float32Array(4 * N) },
   // 1: what the walls lose is drawn again as glass, like the cutaway's (ghosts.js; not in houses)
   uWallGlass: { value: 0 },
   // which kinds of material come down with them: rock, stone, wood, the rest (see inject)
@@ -72,12 +73,12 @@ const REGION = `
   // side that comes down there
   float wallFloor(vec3 p) {
     vec4 d = vec4(uWallBox.y - p.x, p.x - uWallBox.x, uWallBox.w - p.z, p.z - uWallBox.z);
-    int tx = clamp(int(floor(p.x)), 0, 15), tz = clamp(int(floor(p.z)), 0, 15);
+    int tx = clamp(int(floor(p.x)), 0, ${N - 1}), tz = clamp(int(floor(p.z)), 0, ${N - 1});
     float b = uWallBand, h = uWallY;
-    if (d.x < b && uFront.x > 0.5) h = max(h, uWallFloor[tz]);
-    if (d.y < b && uFront.y > 0.5) h = max(h, uWallFloor[16 + tz]);
-    if (d.z < b && uFront.z > 0.5) h = max(h, uWallFloor[32 + tx]);
-    if (d.w < b && uFront.w > 0.5) h = max(h, uWallFloor[48 + tx]);
+    if (d.x < b && uFront.x > 0.5) h = max(h, uWallFloor[tz].x);
+    if (d.y < b && uFront.y > 0.5) h = max(h, uWallFloor[tz].y);
+    if (d.z < b && uFront.z > 0.5) h = max(h, uWallFloor[tx].z);
+    if (d.w < b && uFront.w > 0.5) h = max(h, uWallFloor[tx].w);
     return h;
   }
   // whether something has been cut away in front of this point: it lies in the cutaway's shape
@@ -119,7 +120,7 @@ export function inject(mat, fragCode, key, kind = 3) {
     Object.assign(sh.uniforms, U);
     sh.vertexShader = 'varying vec3 vCutW;\n' + sh.vertexShader.replace('#include <project_vertex>',
       '#include <project_vertex>\n#if defined(USE_BATCHING)\n  vCutW = (modelMatrix * batchingMatrix * vec4(transformed, 1.0)).xyz;\n#elif defined(USE_INSTANCING)\n  vCutW = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;\n#else\n  vCutW = (modelMatrix * vec4(transformed, 1.0)).xyz;\n#endif');
-    sh.fragmentShader = `varying vec3 vCutW;\nuniform float uCutY, uRadius, uAspect, uWallY, uWallBand, uFrontCorners, uWallGlass;\nuniform vec2 uCenter, uRes;\nuniform vec3 uSide;\nuniform vec4 uFront, uWallBox, uFrontKinds, uBack;\nuniform float uWallFloor[64];\n#define CUT_KIND ${kind}\nuniform vec3 uCapRock, uCapStone, uCapWood;\nuniform vec2 uPoly[${CORNERS}];\n`
+    sh.fragmentShader = `varying vec3 vCutW;\nuniform float uCutY, uRadius, uAspect, uWallY, uWallBand, uFrontCorners, uWallGlass;\nuniform vec2 uCenter, uRes;\nuniform vec3 uSide;\nuniform vec4 uFront, uWallBox, uFrontKinds, uBack;\nuniform vec4 uWallFloor[${N}];\n#define CUT_KIND ${kind}\nuniform vec3 uCapRock, uCapStone, uCapWood;\nuniform vec2 uPoly[${CORNERS}];\n`
       + REGION + '\n' + fragCode(sh.fragmentShader);
   };
   mat.customProgramCacheKey = () => key;

@@ -7,7 +7,8 @@ import { newWorld, enterCube } from '../../src/game/flow.js';
 import { endHandover } from '../../src/game/handover.js';
 import { clearInput } from '../../src/game/input.js';
 import { updatePlayer } from '../../src/game/update.js';
-import { step } from '../../src/world/coords.js';
+import { step, parse } from '../../src/world/coords.js';
+import { VIEW_DISTANCE } from '../../src/core/viewdistance.js';
 import { BUILDINGS, MERCHANTS, STREET } from '../../src/world/town.js';
 import { props } from '../../src/render/props.js';
 import { liveNeighbors, tickNeighbors, cullNeighbors, neighborOf } from '../../src/render/neighbors.js';
@@ -74,8 +75,10 @@ export async function runTownChecks() {
           for (const name of new Set(boxes.map(b => b.name)))
             check(boxes.some(box => box.name === name && c.map.blockers.some(list => list.includes(box))), 'Rendering discarded static building collision');
           check(state.world.glass.userData.seams?.every((s, i) => s === c.map.seams[i]), 'The glass knows no seams');
-          const others = liveNeighbors().filter(g => town.tiles.has(g.key));
-          check(others.length === town.keys.length - 1 && others.every(g => g.dim === NEIGHBOR_DIM.town), 'The other tiles are not drawn round it, half as dim');
+          // (the others within the view's reach of the tile: the far end of the town lies beyond it)
+          const others = liveNeighbors().filter(g => town.tiles.has(g.key)), [x, , z] = parse(k);
+          const inReach = town.keys.filter(o => { const [ox, , oz] = parse(o), gap = d => Math.max(0, Math.abs(d) - 1) * N; return o !== k && Math.hypot(gap(ox - x), gap(oz - z)) < VIEW_DISTANCE; });
+          check(others.length === inReach.length && others.every(g => g.dim === NEIGHBOR_DIM.town), 'The other tiles are not drawn round it, half as dim');
           checkSurroundings(`seed ${seed}, in ${k}`);
         }
         // walking across a seam: the tile beyond takes over at once, the hero where they were

@@ -7,7 +7,7 @@
 //   await (await import('./tests/browser/clickmove.js')).runWayChecks()
 import { idx } from '../../src/core/util.js';
 import { topOf } from '../../src/core/surfaces.js';
-import { SIT_IMPACT } from '../../src/core/constants.js';
+import { N, SIT_IMPACT } from '../../src/core/constants.js';
 import { player, state } from '../../src/game/state.js';
 import { newWorld, enterCube } from '../../src/game/flow.js';
 import { updatePlayer } from '../../src/game/update.js';
@@ -120,7 +120,7 @@ export async function runWayChecks() {
     results.push('door in / door out');
     // the town's gate (in the gate's tile), hovered and clicked
     const g = await state.cubes.get(gateTile);
-    enterCube(g, null, null, { x: 8, y: g.map.floors[0].top * 0.5, z: 8 });
+    enterCube(g, null, null, { x: N / 2, y: g.map.floors[0].top * 0.5, z: N / 2 });
     let dir = null;
     await through(() => waysHere().find(w => w.kind === 'side' && !portalLocked(state.map, state.run, w.portal)), 'Through the town gate',
       gate => { check(hover(gate) === gate, 'The cursor on a gate hovers it'); dir = gate.portal.dir; });

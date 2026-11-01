@@ -769,7 +769,7 @@ function orchard({ tree, put, piece, land, G, R, tile }) {
     const name = variant(R, R() < .75 ? 'meadow_tree_round' : 'meadow_tree_tall');
     if (tree(name, x, z, 1.05 + R() * .3) && R() < .08) put(variant(R, 'town_hay_bales'), near(x + gap / 2, z, .4));
   }
-  if (R() < .6) piece('town_beehives_a', near(8, 8, 6).filter(() => R() < .2));
+  if (R() < .6) piece('town_beehives_a', near(u16(8), u16(8), u16(6)).filter(() => R() < .2));
 }
 
 // The marsh's ponds and the hollow's pool (world/townland.js): lily pads on them (not on a pool of
@@ -1595,7 +1595,7 @@ const TILES = [
       garlands(t, [[u16(7.1), u16(1.2)], [u16(9.9), u16(3.8)], [u16(7.1), u16(6.4)]]);
       garlands(t, [[u16(5.4), u16(12.4)], [STREET, u16(13.4)], [u16(11.6), u16(12.4)]]);
       for (const [x, z] of [[u16(5), u16(12)], [u16(12), u16(12.2)], [u16(6), u16(4)], [u16(11.2), u16(5)]]) put(variant(R, 'town_flower_pots'), near(x, z, .8), { s: .9 + R() * .25 });
-      for (const [x, z] of [[STREET - 2.6, 12.6], [STREET + 2.6, 12.6]]) piece('town_garden_bed_b', [[x, z, 0], ...near(x, z, .6).map(([a, b]) => [a, b, 0])]);
+      for (const [x, z] of [[STREET - 2.6, u16(12.6)], [STREET + 2.6, u16(12.6)]]) piece('town_garden_bed_b', [[x, z, 0], ...near(x, z, .6).map(([a, b]) => [a, b, 0])]);
       put(variant(R, 'meadow_flowers'), [...near(u16(3.4), u16(6), 1.5), ...near(u16(13.4), u16(6.4), 1.5)], { s: 1 });
     } },
     { name: 'windmill', rural: true, dress(t) {

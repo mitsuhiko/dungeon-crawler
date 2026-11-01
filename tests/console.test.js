@@ -6,6 +6,7 @@ import { RELAYED, CHAT_BURST, CHAT_WINDOW, chatAllowed, PROTOCOL } from '../src/
 import { ITEMS } from '../src/core/items.js';
 import { ENEMY_KINDS } from '../src/core/enemies.js';
 import { readPlace, isCellText } from '../src/world/coords.js';
+import { N } from '../src/core/constants.js';
 import { noun, useLanguage, loadLocale } from '../src/i18n/i18n.js';
 
 const de = await loadLocale('de');
@@ -141,7 +142,7 @@ test('/goto reads a way, a side, or a depth, a cube and a spot', () => {
   assert.match(readPlace(['east', '1,1'], 4, 20).error, /nothing after/);
   assert.match(readPlace(['21'], 4, 20).error, /0 to 20/);
   assert.match(readPlace(['7', '3'], 4, 20).error, /not a cube/);
-  assert.match(readPlace(['7', '3,2', '17,1'], 4, 20).error, /0 to 16/);
+  assert.match(readPlace(['7', '3,2', `${N + 1},1`], 4, 20).error, new RegExp(`0 to ${N}$`));
   assert.match(readPlace(['7', '3,2', '1,1', 'x'], 4, 20).error, /Too many/);
 });
 

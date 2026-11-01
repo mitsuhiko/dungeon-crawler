@@ -52,8 +52,9 @@ export default function mount(el) {
   function draw() {
     const { map: m, d } = last, theme = themeOf(m);
     g.clearRect(0, 0, W, H);
-    const TW = 34, TH = 17, HS = 17, ox = W / 2, oy = 130;
-    // turn a point in cube coordinates (x, z in 0..16) by the view rotation
+    // (sized so that a cube of any width N fills the canvas as one of 16 did)
+    const S = 16 / N, TW = 34 * S, TH = 17 * S, HS = 17 * S, ox = W / 2, oy = 130;
+    // turn a point in cube coordinates (x, z in 0..N) by the view rotation
     const turn = (x, z) => [[x, z], [N - z, x], [N - x, N - z], [z, N - x]][rot];
     const P = (x, z, y) => { const [u, v] = turn(x, z); return [ox + (u - v) * TW / 2, oy + (u + v) * TH / 2 - y * HS]; };
     const poly = (pts, fill, stroke) => {

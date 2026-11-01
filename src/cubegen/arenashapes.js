@@ -84,7 +84,8 @@ function openSpot(fr, gap, tries = 40, edge = 3) {
   }
   return null;
 }
-const middle = (fr, pull = .5) => lerp(lerp(fr.E, fr.U, .5), [7.5, 7.5], pull);
+const MID = (N - 1) / 2;   // the middle of the room, in cells counted from 0
+const middle = (fr, pull = .5) => lerp(lerp(fr.E, fr.U, .5), [MID, MID], pull);
 
 // 1. Rolling hills: soft noise, one or two broad mounds and a gentle dip, slopes everywhere.
 function hills(fr) {
@@ -247,7 +248,7 @@ function grove(fr) {
 // 8. Courtyard: a ruined walled yard, broken by the entrance and gate lanes, a few breaches
 // and short wall stubs for cover.
 function courtyard(fr) {
-  const s = blank(), { R } = fr, C = [7.5, 7.5];
+  const s = blank(), { R } = fr, C = [MID, MID];
   const x0 = 3 + Math.floor(R() * 2), x1 = N - 4 - Math.floor(R() * 2);
   const z0 = 3 + Math.floor(R() * 2), z1 = N - 4 - Math.floor(R() * 2);
   const walls = new Set();

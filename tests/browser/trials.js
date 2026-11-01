@@ -16,7 +16,7 @@ import { pendingAction, useAction } from '../../src/game/action.js';
 import { sealedIn, sealedDirs } from '../../src/game/trials.js';
 import { portalLocked } from '../../src/core/guardians.js';
 import { trialFluid } from '../../src/physics/fluid.js';
-import { DIRS } from '../../src/core/constants.js';
+import { N, DIRS } from '../../src/core/constants.js';
 import { answerDeath } from '../../src/game/deathask.js';
 
 const check = (value, message) => { if (!value) throw Error(message); };
@@ -69,7 +69,7 @@ export async function runSlideChecks(role = 'branch') {
   }
   // in through the gap, then the solution, one push each
   const g = m.entryGap;
-  Object.assign(player, { x: g % 16 + 0.5, y: m.deck.level * 0.5, z: Math.floor(g / 16) + 0.5, vx: 0, vz: 0 });
+  Object.assign(player, { x: g % N + 0.5, y: m.deck.level * 0.5, z: Math.floor(g / N) + 0.5, vx: 0, vz: 0 });
   const now = () => [Math.floor(player.x) - m.deck.x0, Math.floor(player.z) - m.deck.z0];
   let at = slideStop(F, F.entry.x, F.entry.z, F.entry.side ^ 1);   // stepping in slides straight on
   player.autoDir = SD[F.entry.side ^ 1];
@@ -123,14 +123,14 @@ export async function runSunkenChecks() {
         for (let k = 0; k < n; k++) { useAction(); await delay(30); }
       }
       // (off it: where you stand to begin it, on the platform in front of it)
-      Object.assign(player, { x: pz.approach % 16 + 0.5, y: pz.deck.level * 0.5, z: Math.floor(pz.approach / 16) + 0.5, vx: 0, vz: 0 });
+      Object.assign(player, { x: pz.approach % N + 0.5, y: pz.deck.level * 0.5, z: Math.floor(pz.approach / N) + 0.5, vx: 0, vz: 0 });
       await until(() => state.trial.stage === i + 1 || state.trial.phase === 'resolved', `stage ${i} solved`, 3000);
       await delay(4500);
       out.push(`stage ${i} (${pz.kind})`);
       continue;
     }
     const F = pz.field, g = pz.entryGap, now = () => [Math.floor(player.x) - pz.deck.x0, Math.floor(player.z) - pz.deck.z0];
-    Object.assign(player, { x: g % 16 + 0.5 + SD[F.entry.side][0], y: pz.deck.level * 0.5, z: Math.floor(g / 16) + 0.5 + SD[F.entry.side][1], vx: 0, vz: 0 });
+    Object.assign(player, { x: g % N + 0.5 + SD[F.entry.side][0], y: pz.deck.level * 0.5, z: Math.floor(g / N) + 0.5 + SD[F.entry.side][1], vx: 0, vz: 0 });
     let at = slideStop(F, F.entry.x, F.entry.z, F.entry.side ^ 1);
     player.autoDir = SD[F.entry.side ^ 1];
     await until(() => `${now()}` === `${at}` && Math.hypot(player.vx, player.vz) < 0.1, `onto the ice of stage ${i}`, 4000);
@@ -420,11 +420,11 @@ export async function runTrialChecks(kind = 'flood') {
     Object.assign(player, { x: path[0].x, y: path[0].y, z: path[0].z, vx: 0, vz: 0 });
     await walkIn(into, () => state.trial.phase === 'running', 'running', 6000);
     const { stormPhase } = await import('../../src/core/trials.js');
-    const cell = p => Math.floor(p.z) * 16 + Math.floor(p.x);
+    const cell = p => Math.floor(p.z) * N + Math.floor(p.x);
     const open = path.find(p => exposed.has(cell(p)));
     const cover = path.find((p, i) => i > path.indexOf(open) && !exposed.has(cell(p)) && m.check.path.length - i > 3);
     await until(() => stormPhase(state.trial.t).phase === 'warning', 'a warning', 9000);
-    const floorAt = q => state.map.cols[Math.floor(q.z) * 16 + Math.floor(q.x)].find(f => !f.fluid);
+    const floorAt = q => state.map.cols[Math.floor(q.z) * N + Math.floor(q.x)].find(f => !f.fluid);
     for (const [q, moved] of [[open, true], [cover, false]]) {
       await until(() => stormPhase(state.trial.t).phase === 'warning', 'a warning', 9000);
       const y = floorAt(q).top * 0.5;
@@ -473,7 +473,7 @@ export async function runTrialChecks(kind = 'flood') {
     useAction();
     check(state.trial.phase === 'resolved', 'the portcullis dropped');
     const hall = new Set(m.hall), still = allEnemies().find(e => e.warden && e.mode !== 'dead');
-    check(!still || hall.has(Math.floor(still.z) * 16 + Math.floor(still.x)), 'the warden shut in the hall, or gone');
+    check(!still || hall.has(Math.floor(still.z) * N + Math.floor(still.x)), 'the warden shut in the hall, or gone');
     results.push('outran it');
   }
   if (kind === 'flood' || kind === 'miasma' || kind === 'cold' || kind === 'storm') {

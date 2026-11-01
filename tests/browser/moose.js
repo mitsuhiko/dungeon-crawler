@@ -5,6 +5,7 @@
 // the player, and a charge that runs into the room's edge with nobody run over leaves it dazed,
 // every blow hurting it more.
 import { paused } from './combat.js';
+import { N } from '../../src/core/constants.js';
 import { state, player } from '../../src/game/state.js';
 import { updateEnemies } from '../../src/game/enemies.js';
 import { updatePlayer } from '../../src/game/update.js';
@@ -76,7 +77,7 @@ export async function runMooseChecks() {
 
       // a charge into the room's edge, nobody in the way: dazed, blows hurting it more
       e = fresh(0, 3, Math.PI / 2);
-      Object.assign(e, { x: 8.5, z: 12.5 });
+      Object.assign(e, { x: 8.5, z: N - 3.5 });
       const i = e.profile.attacks.findIndex(a => a.name === 'charge'), c = e.profile.attacks[i];
       Object.assign(e, { mode: 'attack', attack: i, t: c.roll.from - 0.02, bit: false, attacks: e.attacks + 1, stun: 0 });
       player.x = 2.5; player.z = 3.5;

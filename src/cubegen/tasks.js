@@ -93,7 +93,7 @@ function place(ctx, t) {
       if (!level(f) || runCells.has(f.c) || nearPortal(f, 1)) continue;
       const ring = ROUND.map(([dx, dz]) => beside(f, dx, dz, level, 1)).filter(Boolean);
       if (ring.length < 6) continue;
-      const d = exitPad ? Math.hypot(exitPad.x - f.x, exitPad.z - f.z) : Math.hypot(f.x - 7.5, f.z - 7.5);
+      const d = exitPad ? Math.hypot(exitPad.x - f.x, exitPad.z - f.z) : Math.hypot(f.x - (N - 1) / 2, f.z - (N - 1) / 2);
       if (exitPad && (d < 2.5 || d > 9 || Math.abs(exitPad.top - f.top) > 6)) continue;
       options.push({ f, ring, s: Math.abs(d - (exitPad ? 4.5 : 0)) + Math.abs((exitPad ?? f).top - f.top) * 0.3 + (8 - ring.length) * 0.5 + jitter() });
     }

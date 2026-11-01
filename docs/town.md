@@ -44,7 +44,8 @@ still to come.
   map, drawn as surroundings, their faces open. The town is home. This is the one exception to
   "Only where you have been" ([world.md](world.md#only-where-you-have-been)).
 - **One cube at a time.** Only the tile the hero is in is simulated and drawn in full; the other
-  tiles are surroundings, drawn with all their houses, trees and dressing (the small dressing,
+  tiles are surroundings (as far as the view reaches, `core/viewdistance.js`: from one end of the
+  town its far row lies beyond it), drawn with all their houses, trees and dressing (the small dressing,
   flowers and grass, only within the quality level's reach of the hero: docs/lighting.md), and
   dimmed like any surroundings but half as much (the town is one place).
 - **No seams.** Between two town tiles there is no glass (no panes, no edges), no travel slide and

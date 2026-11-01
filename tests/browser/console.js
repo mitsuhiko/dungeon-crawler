@@ -3,6 +3,7 @@
 // chronicle (deaths, depths, kills) and chat. Resets to a fresh seed-3 run before and after.
 // With ?dev=1&lang=en (it reads the game's English), from the devtools console:
 //   await (await import('/tests/browser/console.js')).runConsoleChecks()
+import { N } from '../../src/core/constants.js';
 import { player, state } from '../../src/game/state.js';
 import { newWorld } from '../../src/game/flow.js';
 import { clearInput } from '../../src/game/input.js';
@@ -158,8 +159,8 @@ export async function runConsoleChecks() {
     await runCommand(`/goto ${ox},${oz}`);
     check(state.cubeKey === state.cubes.layout(2).route[2], `/goto ${ox},${oz}: that cube of this depth, not ${state.cubeKey}`);
     const [px, , pz] = state.cubes.layout(3).route[1].split(',').map(Number);
-    await runCommand(`/goto 3 ${px},${pz} 8,8`);
-    check(state.cubeKey === state.cubes.layout(3).route[1] && Math.hypot(player.x - 8, player.z - 8) < 3, `/goto 3 ${px},${pz} 8,8: near the middle of that cube`);
+    await runCommand(`/goto 3 ${px},${pz} ${N / 2},${N / 2}`);
+    check(state.cubeKey === state.cubes.layout(3).route[1] && Math.hypot(player.x - N / 2, player.z - N / 2) < 3, `/goto 3 ${px},${pz} ${N / 2},${N / 2}: near the middle of that cube`);
     await runCommand('/where');
     const line = last().data.text.split('\n').at(-1), was = [state.cubeKey, player.x, player.y, player.z];
     check(line.startsWith(`/goto 3 ${px},${pz} `), '/where must say a /goto line: ' + line);

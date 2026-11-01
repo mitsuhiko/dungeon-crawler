@@ -175,8 +175,8 @@ function capColors(map, y) {
 // Caves and canyons: the walls on the camera's sides never come down below what stands behind
 // them (the ground, a stair or bridge on it, at its lowest in that cell, and a little more):
 // lower, they would hide nothing more. That is the first cell inside the band (uWallBand) the
-// walls are cut in (in a corner, diagonally inside); per side (+x, -x, +z, -z), 16 heights
-// along it.
+// walls are cut in (in a corner, diagonally inside): N places along the sides, at each the four
+// sides' (+x, -x, +z, -z) heights.
 const OVER_LAND = 0.25;
 let floorsOf = null;
 function wallFloors(map) {
@@ -189,7 +189,7 @@ function wallFloors(map) {
   const tops = map.cols.map(col => Math.max(0, ...col.filter(f => !map.flip || f.encounter).map(f => f.fluid ? f.surf * LH : Math.min(...f.cs))));
   for (const r of map.runs) for (const p of r.pieces) tops[p.z * N + p.x] = Math.max(tops[p.z * N + p.x], Math.min(p.y0, p.y1));
   const top = (x, z) => tops[Math.min(N - 3, Math.max(2, z)) * N + Math.min(N - 3, Math.max(2, x))] + OVER_LAND;
-  for (let t = 0; t < N; t++) { a[t] = top(N - 3, t); a[N + t] = top(2, t); a[2 * N + t] = top(t, N - 3); a[3 * N + t] = top(t, 2); }
+  for (let t = 0; t < N; t++) { a[4 * t] = top(N - 3, t); a[4 * t + 1] = top(2, t); a[4 * t + 2] = top(t, N - 3); a[4 * t + 3] = top(t, 2); }
 }
 
 // y = height of the cut (Infinity for none), (px, py, pz) = the point to keep visible; walls:
