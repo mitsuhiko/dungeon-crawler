@@ -1202,7 +1202,8 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
 - **What keeps its square:** what the generator pinned (portals, ramps, landings, reward sites
   and spots, the ends of stairs and bridges, ladders, the cells a jump or drop of the route starts
   or ends in, the ground under a stair), built floors (`surface`), the crumbling crust, the
-  cells of a fall, a cell crossed twice, and a cut that would come too close to its middle or a linked side's middle, or leave a part
+  cells of a fall, a cell crossed twice, a piece of a line along the grid (it would only move the
+  cell's edge over a little), and a cut that would come too close to its middle or a linked side's middle, or leave a part
   smaller than `MIN_PART`, a part under the floor's bottom or over a gap under a slab (that edge
   is cut over nothing instead). Monteur's mountains never rise from a cut cell, nor from the
   donor of a part (`core/mountains.js freeCells`: the two would part).
@@ -1218,8 +1219,10 @@ cube (`cutCliffs`) straightens such staircases: a straight line through a cell p
   (`playernav.js nodeAt`) and a click on a part goes to its donor (`orders.js`).
 - **Fences:** a fenced riser's fence comes off its edge; what is left of a cliff along it keeps
   one, and a cut cell's line takes one where most of the risers near it were fenced. These stand
-  along a line (`map.lineFences`, per cell; `canmove.js lineFenced`); the edge keeps its old fence,
-  `navOnly`, for the jumps and the water's ways.
+  along a line (`map.lineFences`, per cell; `canmove.js lineFenced`), one along a cell's whole
+  line where it can, its posts turned along it; where two meet at a cut point they reach it (no
+  gap to slip through). The edge keeps its old fence, `navOnly`, for the jumps and the water's
+  ways.
 - **The outer ring:** its faces must match the neighbours' (`world/faces.js`: the ground's
   profile along each), so a cell on it is cut only where its line keeps off the face but for its
   corners and leaves the face's side to the floor's own side (`faceSafe`). A staircase that runs

@@ -226,7 +226,7 @@ export function cutCliffs(ctx, styleOf = null) {
   function makeHole(f, A, B, drop) {
     const a = [A[0] - f.x, A[1] - f.z], b = [B[0] - f.x, B[1] - f.z];
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    if (len < 0.05) return null;
+    if (len < 0.05 || alongGrid(a, b)) return null;
     let nrm = [-(b[1] - a[1]) / len, (b[0] - a[0]) / len], c = nrm[0] * a[0] + nrm[1] * a[1];
     if (nrm[0] * 0.5 + nrm[1] * 0.5 > c) { nrm = [-nrm[0], -nrm[1]]; c = -c; }
     const side = (x, z) => nrm[0] * x + nrm[1] * z - c;
@@ -245,7 +245,7 @@ export function cutCliffs(ctx, styleOf = null) {
   function makeCut(f, A, B, other, margins) {
     const a = [A[0] - f.x, A[1] - f.z], b = [B[0] - f.x, B[1] - f.z];
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    if (len < 0.05) return null;
+    if (len < 0.05 || alongGrid(a, b)) return null;
     let nrm = [-(b[1] - a[1]) / len, (b[0] - a[0]) / len], c = nrm[0] * a[0] + nrm[1] * a[1];
     if (nrm[0] * 0.5 + nrm[1] * 0.5 > c) { nrm = [-nrm[0], -nrm[1]]; c = -c; }
     const side = (x, z) => nrm[0] * x + nrm[1] * z - c;   // < 0: the floor's own
@@ -289,6 +289,8 @@ export function cutCliffs(ctx, styleOf = null) {
 const SQUARE = [[0, 0], [1, 0], [1, 1], [0, 1]], MID = [[1, .5], [0, .5], [.5, 1], [.5, 0]];
 const area = poly => poly.reduce((s, p, i) => { const q = poly[(i + 1) % poly.length]; return s + (p[0] * q[1] - q[0] * p[1]) / 2; }, 0);
 const splitOf = cs => Math.abs(cs[0] - cs[3]) <= Math.abs(cs[1] - cs[2]) ? 0 : 1;
+// (a line along the grid through a cell would only move its edge over a little: none such)
+const alongGrid = (a, b) => Math.abs(a[0] - b[0]) < 1e-9 || Math.abs(a[1] - b[1]) < 1e-9;
 const notGrid = (p, q) => Math.abs(p[0] - q[0]) > 1e-9 && Math.abs(p[1] - q[1]) > 1e-9;
 
 // a chain's pieces with its higher side on one side all along, and no floor on both of its
@@ -442,14 +444,16 @@ function moveFences(ctx, cutCells) {
     ctx.fenceList.push(fence);
     for (const c of new Set(cells)) { if (!lines.has(c)) lines.set(c, []); lines.get(c).push(fence); }
   };
-  // a fence along p -> q (the cube's coordinates), set in by `inset` (a vector), on the ground of h
-  const fenceAlong = (p, q, inset, h, layer, cliff, cells) => {
+  // a fence along p -> q (the cube's coordinates), set in by `inset` (a vector), on the ground of h;
+  // its ends a little in from a corner of the grid (`shrink`: at p, at q), right at a cut point
+  // (where the next one goes on: no gap between them to slip through)
+  const fenceAlong = (p, q, inset, h, layer, cliff, cells, shrink = [true, true]) => {
     const len = Math.hypot(q[0] - p[0], q[1] - p[1]);
-    if (len < 0.12) return;
-    const e = Math.min(0.07 / len, 0.25), k = Math.max(2, Math.round(len / 0.43) + 1);
+    if (len < (shrink[0] || shrink[1] ? 0.12 : 0.02)) return;
+    const e = Math.min(0.07 / len, 0.25), e0 = shrink[0] ? e : 0, e1 = shrink[1] ? e : 0, k = Math.max(2, Math.round(len / 0.43) + 1);
     const A = [p[0] + inset[0], p[1] + inset[1]], B = [q[0] + inset[0], q[1] + inset[1]];
     const pts = Array.from({ length: k }, (_, i) => {
-      const t = e + (1 - 2 * e) * i / (k - 1), x = A[0] + (B[0] - A[0]) * t, z = A[1] + (B[1] - A[1]) * t;
+      const t = e0 + (1 - e0 - e1) * i / (k - 1), x = A[0] + (B[0] - A[0]) * t, z = A[1] + (B[1] - A[1]) * t;
       return [x, h(x, z), z];
     });
     const ys = pts.map(p => p[1]);
@@ -480,7 +484,7 @@ function moveFences(ctx, cutCells) {
       const z0 = deep ? -Infinity : cornersY(there.cs, there.split, ...sidePoint(OPP[d], t0)), z1 = deep ? -Infinity : cornersY(there.cs, there.split, ...sidePoint(OPP[d], t1));
       if (Math.min(y0 - z0, y1 - z1) < FENCE_DROP) continue;
       const p = sidePoint(d, t0), q = sidePoint(d, t1), [dx, dz] = DIRS[d];
-      fenceAlong([hi.x + p[0], hi.z + p[1]], [hi.x + q[0], hi.z + q[1]], [-dx * 0.07, -dz * 0.07], ground, hi.layer, hi.id, [hi.c, idx(...lc)]);
+      fenceAlong([hi.x + p[0], hi.z + p[1]], [hi.x + q[0], hi.z + q[1]], [-dx * 0.07, -dz * 0.07], ground, hi.layer, hi.id, [hi.c, idx(...lc)], [t0 === 0, t1 === 1]);
     }
   }
   // the cut cells' lines, where the risers near them were fenced
@@ -490,11 +494,18 @@ function moveFences(ctx, cutCells) {
     if (!on || on * 2 < near.length) continue;
     // (an empty part: down to what lies under the floor, if anything)
     const col = ctx.cols[f.c], under = col.indexOf(f) > 0 ? Math.max(...col[col.indexOf(f) - 1].cs) : -Infinity;
+    // (the pieces of its line over a drop deep enough, on the higher side's, joined where they go on)
+    const runs = [];
     for (const s of cutLine(f)) {
       const hiOwn = s.own[0] + s.own[1] > s.part[0] + s.part[1], low = f.cut.part.empty ? [under, under] : s.part;
       if (Math.min(Math.abs(s.own[0] - low[0]), Math.abs(s.own[1] - low[1])) < FENCE_DROP) continue;
+      const last = runs.at(-1);
+      if (last && last.hiOwn === hiOwn && Math.hypot(last.q[0] - s.p[0], last.q[1] - s.p[1]) < 1e-9) last.q = s.q;
+      else runs.push({ p: s.p, q: s.q, hiOwn });
+    }
+    for (const { p, q, hiOwn } of runs) {
       const k = hiOwn ? -1 : 1, inset = [f.cut.n[0] * FENCE_IN * k, f.cut.n[1] * FENCE_IN * k];
-      fenceAlong([f.x + s.p[0], f.z + s.p[1]], [f.x + s.q[0], f.z + s.q[1]], inset, ground, f.layer, f.id, [f.c]);
+      fenceAlong([f.x + p[0], f.z + p[1]], [f.x + q[0], f.z + q[1]], inset, ground, f.layer, f.id, [f.c], [false, false]);
     }
   }
 }
