@@ -18,6 +18,7 @@ import { player, state } from './state.js';
 import { pointer, pickFloor, hoveredEnemy } from './pointer.js';
 import { queueAttack } from './sword.js';
 import { groundAt } from '../physics/collide.js';
+import { nodeOf } from '../core/cuts.js';
 import { lootHere, takePickup, canReachPickup } from './loot.js';
 import { canReachChest, openChest } from './chests.js';
 import { TRADE_REACH } from '../core/shops.js';
@@ -36,7 +37,8 @@ export function clearOrder() { order.kind = null; order.enemy = null; order.pick
 // Teleports/travel invalidate cube-local targets; a held click must not recreate them.
 export function clearMouseInput() { clearOrder(); pointer.down = false; pointer.mode = null; }
 
-const floorOf = s => s && s.kind !== 'pillar' ? s : null;
+// (a cut cell's part: the ground it carries on, core/cuts.js)
+const floorOf = s => s && s.kind !== 'pillar' ? nodeOf(s) : null;
 
 // the way to order.x, z on `floor` (y: its height there, if known)
 function plan(floor, y = null) {

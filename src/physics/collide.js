@@ -1,7 +1,7 @@
 // World queries against floors, structure pieces and pillars.
 import { LH, N, DIRS } from '../core/constants.js';
 import { idx, inb, clamp } from '../core/util.js';
-import { floorY, runY, topOf } from '../core/surfaces.js';
+import { floorY, runY, topOf, partAt } from '../core/surfaces.js';
 import { player, state } from '../game/state.js';
 import { containsXZ } from '../core/blockers.js';
 
@@ -100,7 +100,8 @@ function ground(x, z, y, step, map, moving) {
   if (!locate(x, z, map)) return { h: -Infinity, s: null, i: -1 };
   const { m, i } = at, [fx, fz] = local(x, z);
   let h = -Infinity, s = null;
-  for (const f of m.cols[i]) { if (!here(f, m)) continue; const t = floorY(f, fx, fz); if (t <= y + step && t > h) { h = t; s = f; } }
+  // (a cut cell: what of it lies here, the floor or its part, core/cuts.js)
+  for (const f of m.cols[i]) { if (!here(f, m)) continue; const t = floorY(f, fx, fz); if (t <= y + step && t > h) { h = t; s = partAt(f, fx, fz); } }
   for (const p of m.pieces[i]) {
     if (p.kind === 'pillar') continue;
     const t = runY(p, fx, fz);
@@ -169,7 +170,7 @@ export function solidTop(x, z, y, map = state.map) {
   if (!locate(x, z, map)) return null;
   const { m, i } = at, [fx, fz] = local(x, z);
   let top = null;
-  for (const f of m.cols[i]) { if (!here(f, m)) continue; const t = floorY(f, fx, fz); if (t > y && f.bottom * LH < y) top = { h: t, s: f }; }
+  for (const f of m.cols[i]) { if (!here(f, m)) continue; const t = floorY(f, fx, fz); if (t > y && f.bottom * LH < y) top = { h: t, s: partAt(f, fx, fz) }; }
   for (const p of m.pieces[i]) {
     if (p.kind === 'pillar') continue;
     const t = runY(p, fx, fz);

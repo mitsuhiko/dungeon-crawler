@@ -25,6 +25,7 @@ import { placeStructures } from './place.js';
 import { smooth } from './smooth.js';
 import { shapeStructures } from './shape.js';
 import { addFences, openTraps } from './fences.js';
+import { cutCliffs } from './cuts.js';
 import { generateClearing } from './town.js';
 import { generateGuardian } from './guardian.js';
 import { reserveSites, prepareSites, routeSites, finishSites } from './sites.js';
@@ -154,11 +155,12 @@ function tryGenerate(seed, spec) {
   // some pools are mud, with pockets of it round them (cubegen/mudpools.js; on their own random stream)
   const mudPockets = muddyWater(ctx, new Set(sites.siteReservations.map(r => r.c)));
   sites.siteReservations.push(...mudPockets.map(p => ({ c: p.c, layer: p.layer })));   // (no props in them)
-  const { K, B, cols, floors, pieces, runs, falls, fences, fenceList, stats, moves } = ctx;
+  cutCliffs(ctx);   // cliffs at an angle through the cells of a staircase (cubegen/cuts.js), last: the ways stay as they are
+  const { K, B, cols, floors, pieces, runs, falls, fences, fenceList, lineFences, stats, moves } = ctx;
   const portals = ctx.portals.map(p => ({ id: p.id, kind: p.kind, dir: p.dir, layer: p.layer, cells: p.cells,
     x: p.c % N, z: (p.c / N) | 0, y: p.level * LH, floor: p.floor }));
   return {
-    seed, K, B, cols, floors, pieces, runs, falls, fences, fenceList, stats, moves, portals, ...sites, horde, spots: spots.spots,
+    seed, K, B, cols, floors, pieces, runs, falls, fences, fenceList, lineFences: lineFences ?? null, stats, moves, portals, ...sites, horde, spots: spots.spots,
     vignettes: vignettes.list,   // the theme's little set pieces (cubegen/vignettes.js): [{ name, x, y, z, yaw }]
     mudPockets,   // pockets of mud on the ground round a mud pool (cubegen/mudpools.js): [{ x, z, y, r, vol }]
     roomRole: spec.roomRole, biome: spec.biome, populationScale: spec.populationScale, annexRoom: !!spec.annexRoom,

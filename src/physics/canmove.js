@@ -1,7 +1,8 @@
 // Can the character's body move to a new position? Cliffs, walls, structures and fences.
 import { N, STEP, SWIM_STEP, STEEP, WADE_CLIMB } from '../core/constants.js';
 import { clamp, edgeKey } from '../core/util.js';
-import { topOf } from '../core/surfaces.js';
+import { topOf, partAt } from '../core/surfaces.js';
+import { crosses } from '../core/cuts.js';
 import { player, state } from '../game/state.js';
 import { spotAt, groundAt, blockedAt } from './collide.js';
 import { wadeable } from './fluid.js';
@@ -20,18 +21,36 @@ function fenceBlocks(a, b, y) {
   const ax = a.i % N, az = (a.i / N) | 0, bx = b.i % N, bz = (b.i / N) | 0;
   if (Math.abs(ax - bx) + Math.abs(az - bz) !== 1) return false;
   const f = a.m.fences?.get(edgeKey(ax, az, bx, bz));
-  return !!f && f.some(e => (e.show || walking()) && y > e.ymin - 0.45 && y < e.ymax + 0.6);
+  return !!f && f.some(e => !e.navOnly && (e.show || walking()) && y > e.ymin - 0.45 && y < e.ymax + 0.6);
 }
-
-// Surfaces are continuous inside a cell, so the only real obstacles are height jumps across a
-// cell edge (cliffs, slab sides, stair sides) and structures at body height. (rx,rz) is a
-// reference point on our side, (px,pz) the probe point.
+// The fences that stand along a line (a cut cell's, cubegen/cuts.js; map.lineFences: per cell):
+// does one stand across the step from spot a to spot b (physics/collide.js spotAt; each in its own
+// map's coordinates)?
+function lineFenced(a, b, y) {
+  if (!a || !b || a.m !== b.m) return false;   // (none stands on a side of the cube)
+  for (const i of a.i === b.i ? [a.i] : [a.i, b.i]) {
+    for (const e of a.m.lineFences?.get(i) || []) if ((e.show || walking()) && y > e.ymin - 0.45 && y < e.ymax + 0.6
+      && crosses(a.x, a.z, b.x, b.z, e.line[0][0], e.line[0][1], e.line[1][0], e.line[1][1])) return true;
+  }
+  return false;
+}
+// Surfaces are continuous inside a cell (but across a cut cell's line), so the only real obstacles
+// are height jumps across a cell edge (cliffs, slab sides, stair sides) or a cut, and structures at
+// body height. (rx,rz) is a reference point on our side, (px,pz) the probe point.
 const sameCell = (a, b) => a.m === b.m && a.i === b.i;
 // is surface s (a floor or a piece) in the cell of spot q?
 const inCell = (s, q) => !!s && !!q && s.c === q.i && (q.m.cols[q.i].includes(s) || q.m.pieces[q.i].includes(s));
+// which side of a cut cell spot q lies on (the floor's own, 0; its part, 1; no cut, 0)
+function partOf(q) {
+  for (const f of q.m.cols[q.i]) if (f.cut) return partAt(f, q.x - Math.floor(q.x), q.z - Math.floor(q.z)) === f ? 0 : 1;
+  return 0;
+}
 function hopBlocked(rx, rz, px, pz, y, step) {
   const ri = spotAt(rx, rz), pi = spotAt(px, pz);
   if (!pi) return true;
+  // across a cut cell's line (core/cuts.js) as across a cell's edge: what lies past it stands in
+  // the way if it is higher than a step
+  if (ri && sameCell(ri, pi) && partOf(ri) !== partOf(pi)) return blockedAt(px, pz, y, step);
   if (!ri || sameCell(ri, pi)) return blockedAt(px, pz, y, step, true);
   const e = 0.002;
   const qx = clamp(px, Math.floor(rx) + e, Math.floor(rx) + 1 - e), qz = clamp(pz, Math.floor(rz) + e, Math.floor(rz) + 1 - e);
@@ -73,7 +92,8 @@ export function canMove(nx, nz, axis, sign) {
   const r = player.r, y = player.y, step = stepOf(player);
   const ci = spotAt(nx, nz);
   if (!ci) return false;
-  if (fenceBlocks(spotAt(player.x, player.z), ci, y)) return false;
+  const at = spotAt(player.x, player.z);
+  if (fenceBlocks(at, ci, y) || lineFenced(at, ci, y)) return false;
   const pts = [[nx, nz]];
   if (axis === 'x') { const lx = nx + sign * r; pts.push([lx, nz], [lx, nz - 0.7 * r], [lx, nz + 0.7 * r]); }
   else { const lz = nz + sign * r; pts.push([nx, lz], [nx - 0.7 * r, lz], [nx + 0.7 * r, lz]); }
@@ -96,7 +116,7 @@ export function canMove(nx, nz, axis, sign) {
     // nor is a rail or a fence: what lies past it is never teetered at nor jumped over by itself
     // (a stair's or a bridge's side is left with the jump key only).
     if (hopBlocked(rx, rz, sx, sz, y, step)) return false;
-    if (fenceBlocks(ci, si, y)) return false;
+    if (fenceBlocks(ci, si, y) || lineFenced(ci, si, y)) return false;
     if (player.grounded && !player.swimming) {
       const gr = groundAt(sx, sz, y, step + STEEP * Math.hypot(sx - nx, sz - nz));
       if (!gr.s || !wadeable(gr, true)) { brink = true; return false; }

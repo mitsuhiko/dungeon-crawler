@@ -5,7 +5,7 @@
 // Wherever these take a body's height they take a walker too: a fluid dweller's (the Squirtles,
 // physics/dwell.js), which says itself which floors it may stand on and what lies next to one.
 import { DIRS } from '../core/constants.js';
-import { topOf } from '../core/surfaces.js';
+import { topOf, inCut } from '../core/surfaces.js';
 import { floorWalkable, navNeighbor, structureLinks } from './floornav.js';
 import { state } from '../game/state.js';
 import { cellAt, insideSolid } from './collide.js';
@@ -22,6 +22,11 @@ const dirOf = (dx, dz) => DIRS.findIndex(([x, z]) => x === dx && z === dz);
 const via = (f, d, height, ok) => typeof height === 'object' ? height.step(f, d) : navNeighbor(state.map, f, d, height, ok);
 export const neighbors = (f, height = 0.9, ok) => [0, 1, 2, 3].map(d => via(f, d, height, ok)).filter(Boolean);
 export function floorAt(f, x, z, height = 0.9) {
+  const g = floorThere(f, x, z, height);
+  // (not on a cut cell's part, core/cuts.js: that is other ground, no node's)
+  return g && g.cut && inCut(g, x - g.x, z - g.z) ? null : g;
+}
+function floorThere(f, x, z, height) {
   const c = cellAt(x, z);
   if (c < 0) return null;
   if (c === f.c) return walkable(f, height) ? f : null;
@@ -43,7 +48,7 @@ export function stepEnemy(s, mx, mz, radius = s.profile.radius, height = walkerO
     const g = floorAt(s.f, x, z, height);
     if (!g) return false;
     for (const [ox, oz] of [[radius, 0], [-radius, 0], [0, radius], [0, -radius]])
-      if (!floorAt(g, x + ox, z + oz, height)) return false;
+      if (!floorThere(g, x + ox, z + oz, height)) return false;   // (a body may lean over a cut's line: core/cuts.js)
     s.x = x; s.z = z; s.f = g; s.y = standY(s.profile, g, x, z);
     return true;
   };

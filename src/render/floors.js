@@ -6,7 +6,8 @@ import { cliffWall, wallRegion } from './walls.js';
 import { palRow } from '../themes/fluids.js';
 import { buildInteriorFloors } from './interior.js';
 import { restY } from './surface.js';
-import { floorY } from '../core/surfaces.js';
+import { floorY, partAt, cornersY } from '../core/surfaces.js';
+import { cutPoints, sidePoint, topTriangles, cutLine } from '../core/cuts.js';
 import { townShade } from '../core/footing.js';
 import { groundAt, slopeAt, triangleSlope, waterSolids, WET_LIFT } from './shore.js';
 
@@ -44,27 +45,59 @@ function topColor(m, f) {
 // and under its `ups` (lines: [y at P0, y at P1]). Its cliff wall (walls) and the wet bands on it
 // (wetWall: a cube's own fluid's banks, a standing fluid's walls, render/trials.js) alike.
 export function wallPieces(m, f, d) {
-  const fb = f.bottom * LH, cs = f.cs;
-  const [ea, eb] = EDGE_CORNERS[d], [na, nb] = EDGE_CORNERS[OPP[d]];
-  const topLine = [cs[ea], cs[eb]];
+  const fb = f.bottom * LH;
   const nx = f.x + DIRS[d][0], nz = f.z + DIRS[d][1];
   const nbs = inb(nx, nz) ? m.cols[idx(nx, nz)].filter(g => !g.crust).sort((a, b) => a.bottom - b.bottom) : [];
-  const [P0, P1] = edgePts(f.x, f.z, d);
-  let gl = [-1e9, -1e9];
-  const pieces = [];
-  for (const g of nbs) { pieces.push({ lows: [[fb, fb], gl], ups: [topLine, [g.bottom * LH, g.bottom * LH]] }); gl = [g.cs[na], g.cs[nb]]; }
-  pieces.push({ lows: [[fb, fb], gl], ups: [topLine, [1e9, 1e9]] });
-  return { d, P0, P1, topLine, pieces };
+  // (in pieces where a cut, ours or the neighbour's, meets the side: core/cuts.js)
+  const ts = [0, 1, ...cutPoints(f, d), ...nbs.flatMap(g => cutPoints(g, OPP[d]))].sort((a, b) => a - b);
+  const [E0, E1] = edgePts(f.x, f.z, d), out = [];
+  const at = t => [E0[0] + (E1[0] - E0[0]) * t, E0[1] + (E1[1] - E0[1]) * t];
+  for (let i = 0; i + 1 < ts.length; i++) {
+    const t0 = ts[i], t1 = ts[i + 1], tm = (t0 + t1) / 2;
+    if (t1 - t0 < 1e-6) continue;
+    const own = partAt(f, ...sidePoint(d, tm)), line = (s, e, t) => cornersY(s.cs, s.split, ...sidePoint(e, t));
+    const topLine = [line(own, d, t0), line(own, d, t1)];
+    let gl = [-1e9, -1e9];
+    const pieces = [];
+    for (const g of nbs) {
+      const gs = partAt(g, ...sidePoint(OPP[d], tm));
+      pieces.push({ lows: [[fb, fb], gl], ups: [topLine, [g.bottom * LH, g.bottom * LH]] });
+      gl = [line(gs, OPP[d], t0), line(gs, OPP[d], t1)];
+    }
+    pieces.push({ lows: [[fb, fb], gl], ups: [topLine, [1e9, 1e9]] });
+    out.push({ d, P0: at(t0), P1: at(t1), topLine, pieces, own });
+  }
+  return out;
 }
 // our side faces minus whatever the neighbouring columns cover (none on a seam of the town: the
 // ground goes on in the next tile, docs/town.md; its edge would show as a line)
 function walls(m, f, b) {
   for (let d = 0; d < 4; d++) {
     if (m.seams?.[d] && !inb(f.x + DIRS[d][0], f.z + DIRS[d][1])) continue;
-    const w = wallPieces(m, f, d);
-    for (const p of w.pieces) {
+    for (const w of wallPieces(m, f, d)) for (const p of w.pieces) {
       if (f.surface) builtWall(b, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], SURFACE[f.surface].side, f.c + d);
-      else cliffWall(b, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], !f.fluid);
+      else cliffWall(b, w.P0, w.P1, p.lows, p.ups, w.topLine, DIRV[d], !w.own.fluid);
+    }
+  }
+  if (f.cut) cutWalls(f, b);
+}
+// The wall along a cut cell's line (core/cuts.js): from the lower side's ground up to the higher
+// side's, facing the lower side, in pieces where its heights run straight (and where the sides
+// swap which is higher)
+function cutWalls(f, b) {
+  const [nx, nz] = f.cut.n;
+  for (const s of cutLine(f)) {
+    const d0 = s.own[0] - s.part[0], d1 = s.own[1] - s.part[1], pieces = [];
+    if (d0 * d1 < 0) {
+      const t = d0 / (d0 - d1), m = [s.p[0] + (s.q[0] - s.p[0]) * t, s.p[1] + (s.q[1] - s.p[1]) * t];
+      const own = s.own[0] + (s.own[1] - s.own[0]) * t, part = s.part[0] + (s.part[1] - s.part[0]) * t;
+      pieces.push({ p: s.p, q: m, own: [s.own[0], own], part: [s.part[0], part] }, { p: m, q: s.q, own: [own, s.own[1]], part: [part, s.part[1]] });
+    } else pieces.push(s);
+    for (const q of pieces) {
+      const high = q.own[0] + q.own[1] > q.part[0] + q.part[1], top = high ? q.own : q.part, low = high ? q.part : q.own;
+      if (Math.max(top[0] - low[0], top[1] - low[1]) < 1e-4) continue;
+      const P0 = [f.x + q.p[0], f.z + q.p[1]], P1 = [f.x + q.q[0], f.z + q.q[1]], nrm = high ? [nx, 0, nz] : [-nx, 0, -nz];
+      cliffWall(b, P0, P1, [low], [top], top, nrm, !(high ? f : f.cut.part).fluid);
     }
   }
 }
@@ -84,10 +117,12 @@ function builtWall(b, P0, P1, lows, ups, topLine, nrm, [a, c], seed) {
 // triangles steeper than flat), WET_LIFT over it (its `shore` w 3: the shader goes by the
 // ground's height under it). b: the fluid's builder, its uvNow set.
 const WHITE = C('#ffffff');
-export function wetWall(b, w, lo, hi) {
-  const ox = DIRS[w.d][0] * 0.005, oz = DIRS[w.d][1] * 0.005;
-  const P0 = [w.P0[0] + ox, w.P0[1] + oz], P1 = [w.P1[0] + ox, w.P1[1] + oz];
-  for (const p of w.pieces) wallRegion(b, P0, P1, [...p.lows, [lo, lo]], [...p.ups, [hi, hi]], DIRV[w.d], WHITE);
+export function wetWall(b, ws, lo, hi) {
+  for (const w of ws) {
+    const ox = DIRS[w.d][0] * 0.005, oz = DIRS[w.d][1] * 0.005;
+    const P0 = [w.P0[0] + ox, w.P0[1] + oz], P1 = [w.P1[0] + ox, w.P1[1] + oz];
+    for (const p of w.pieces) wallRegion(b, P0, P1, [...p.lows, [lo, lo]], [...p.ups, [hi, hi]], DIRV[w.d], WHITE);
+  }
 }
 const SLOPED = 0.03, ON_SLOPE = [0, 0, 0, 3];
 export function wetSlope(b, f) {
@@ -177,19 +212,20 @@ export function buildFloors(m, layers) {
   for (const f of m.floors) {
     if (f.crust) continue;   // the crumbling crust: drawn on its own, it falls (render/trials.js)
     const L = layers[f.layer], x = f.x, z = f.z, cs = f.cs, B = f.surface === 'masonry' ? L.stone : L.terrain;
-    const P = [[x, cs[0], z], [x + 1, cs[1], z], [x, cs[2], z + 1], [x + 1, cs[3], z + 1]];
-    // smooth top surface: 2 triangles, shared normals for soft shading
-    const top = topColor(m, f);
-    const tris = f.split ? [[0, 1, 2], [1, 3, 2]] : [[0, 1, 3], [0, 3, 2]];
-    tris.forEach((t, ti) => {
-      const col = top.clone().multiplyScalar(0.95 + (hash32(f.c * 2 + ti + f.layer * 977) % 100) / 1000);
-      B.tri(P[t[0]], P[t[1]], P[t[2]], col, [0, 1, 0], true);
-    });
+    // smooth top surface: 2 triangles, shared normals for soft shading (a cut cell: each side's
+    // triangles clipped to its side of the line, core/cuts.js)
+    for (const side of f.cut ? [0, 1] : [0]) {
+      const top = topColor(m, side ? f.cut.part : f);
+      topTriangles(f, side).forEach((t, ti) => {
+        const col = top.clone().multiplyScalar(0.95 + (hash32(f.c * 2 + (ti > 1 ? 1 : ti) + f.layer * 977) % 100) / 1000);
+        B.tri(...t.map(([px, py, pz]) => [x + px, py, z + pz]), col, [0, 1, 0], true);
+      });
+    }
     walls(m, f, B);
     // its underside (none where its top comes down onto it: the town's ground at level 0, its
     // quarry's floor, its pool's bed; drawn both sides, it would fight with the top)
     const fb = f.bottom * LH;
-    if (Math.min(...cs) - fb > 0.01) B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
+    if (Math.min(...cs, ...(f.cut ? f.cut.part.cs : [])) - fb > 0.01) B.quad([x, fb, z], [x + 1, fb, z], [x + 1, fb, z + 1], [x, fb, z + 1], [0, -1, 0], f.surface ? SURFACE[f.surface].under : UNDERSIDE);
     if (f.fluid) fluidVolume(m, f, L.fluids[drawnFluid(f)]);   // (a mud pool: its own part, render/parts.js)
   }
   if (m.town) buildClearingPaths(m, m.town.paths, layers[0].terrain);

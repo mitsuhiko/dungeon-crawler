@@ -16,7 +16,8 @@
 // ladder that does not work out is left out from then on, and the way planned anew.
 import { CHAR_H, CHAR_R, DIRS, OPP, EDGE_CORNERS, N, LH, RUN_SPEED, CLIMB_SPEED, SWIM_SPEED, SWIM_DEPTH, SWIM_FEET, SWIM_STEP, WATER } from '../core/constants.js';
 import { idx, inb, edgeKey } from '../core/util.js';
-import { topOf } from '../core/surfaces.js';
+import { topOf, inCut } from '../core/surfaces.js';
+import { nodeOf } from '../core/cuts.js';
 import { containsXZ } from '../core/blockers.js';
 import { Heap } from '../core/heap.js';
 import { player, state } from '../game/state.js';
@@ -144,7 +145,7 @@ export function retarget(w, to, x, z, y = null, nearest = w.nearest) {
   if (walkBusy(w)) w.replan = true; else plan(w);
 }
 function plan(w) {
-  const from = player.support;
+  const from = nodeOf(player.support);   // (on a cut cell's part: the ground it carries on, core/cuts.js)
   Object.assign(w, { path: null, how: null, nodes: null, i: 1, run: false, air: false, push: 0, lost: 0, replan: false, done: false, reached: false });
   if (!from || !w.to || from === w.to || !state.map) { w.reached = !!from && from === w.to; return; }
   const { path, how } = findWay(from, w.to, { x: w.x, y: w.y, z: w.z }, w.bad);
@@ -163,6 +164,11 @@ function fail(w) {
 // The node walked to from node n at (x, z), on the way (or, `any`, wherever walking goes), or null.
 const dirOf = (dx, dz) => DIRS.findIndex(([x, z]) => x === dx && z === dz);
 function nodeAt(w, n, x, z, any = false) {
+  const g = nodeThere(w, n, x, z, any);
+  // (not on a cut cell's part: core/cuts.js)
+  return g && g.cut && inCut(g, x - g.x, z - g.z) ? null : g;
+}
+function nodeThere(w, n, x, z, any) {
   const cx = Math.floor(x), cz = Math.floor(z);
   if (!inb(cx, cz)) return null;
   const dx = cx - n.x, dz = cz - n.z;
@@ -180,7 +186,7 @@ function nodeAt(w, n, x, z, any = false) {
 // is the straight walk from the hero to (x, z) on the way's nodes (body width included)?
 function clearTo(w, x, z) {
   const p = player;
-  let n = p.support;
+  let n = nodeOf(p.support);
   if (!p.grounded || !w.nodes.has(n)) return false;
   const dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz), steps = Math.ceil(d / 0.2);
   const px = -dz / (d || 1) * 0.22, pz = dx / (d || 1) * 0.22;
@@ -221,7 +227,7 @@ export function steerWalk(w, dt) {
   }
   // where on the way we stand (lost for a while: a new way from here); swimming too
   if (p.grounded || p.swimming) {
-    const at = path.indexOf(p.support);
+    const at = path.indexOf(nodeOf(p.support));
     if (at >= 0) {
       w.lost = 0;
       if (at + 1 !== w.i) { w.i = at + 1; w.run = false; w.push = 0; }

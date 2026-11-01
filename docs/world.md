@@ -1131,6 +1131,64 @@ fainter, its lines leaning towards teal (never into the greens).
   and drawn, and themes building their own (logs in the roots, ice in the frozen caves,
   flags in the highlands).
 
+## Angled cliffs: cut cells (`cubegen/cuts.js`, `core/cuts.js`)
+
+The ground is cells, and a cliff between two heights used to run along cell edges only: a ledge
+that goes across the room at a slant stepped round every cell in a staircase. The last stage of a
+cube (`cutCliffs`) straightens such staircases: a straight line through a cell parts it in two.
+
+- **A cut cell:** a floor with `cut = { n, c, a, b, part }`: the line `n · (fx, fz) = c` through
+  its cell, from `a` to `b` on its sides. The floor keeps the side its middle is on (all its links,
+  its node in every graph); `part` is the other side: the ground beyond the line carried on into
+  the cell, a floor-like piece with its own corner heights (`cs`, `split`) from the floor's
+  bottom up, and `donor`, the floor whose ground it is. `floorY` gives the part's height there,
+  physics finds the part (`collide.js` returns it as the surface: what is underfoot, what a click
+  hits) and the graphs take it for its donor (`nodeOf`). Nothing else in the world changes: the
+  floors, their links, the moves, the routes and every check before it are as they were.
+- **Where:** risers are the cell edges where the top floors of two cells meet in a step with no
+  link between them (a slope never: it is one ground). They make chains from grid corner to grid
+  corner, on through a corner where the ground on each side goes on round it (its other edges
+  links), broken where a third ground comes in, or where one ground would be on both sides of it
+  (a ramp between the two). Each chain is fitted with a polyline from (near) the middle of its first
+  riser to the middle of its last, its pieces at the chain's style's angles, each as long as every
+  cell round it stays far enough on its own side (where nothing fits, it goes round the corner
+  along the risers); it starts a little to one side or the other of the first riser's middle,
+  whichever takes the fewest pieces. The polyline cuts each cell it crosses once, along the chord
+  from where it comes in to where it goes out. A 45° staircase becomes a 45° line through the
+  middles of its risers (a corner off each step, the same filled in under it), a corner of a square
+  plateau is cut off, a straight edge stays where it was.
+- **How far off:** a cell's middle and its linked sides' middles stay on its own side, `WALL`
+  off a part higher than it (the hero's width), `DROP` off a part lower, `FENCED` off a fenced
+  drop (the fence stands in from the line: the hero gets round its posts to the middle). So a
+  line of one cell across for two along (26.6°) runs straight through an unfenced staircase, and
+  a fenced one goes at 45° and straight.
+- **Styles:** `grid` (no cuts: square steps), `octo` (multiples of 45°) or `sixteen` (those and
+  one across for two along, 26.6°, 63.4° and round: the nearest to 22.5° that a grid carries
+  straight; a line at 22.5° itself comes too close to every other cell's middle), drawn per chain from the room's weights (`DEFAULT_CUTS`, a theme's `cuts`, a room's
+  `spec.cuts`); now and then a whole room keeps its square steps. A feature with a shape of its own
+  says how it is cut (the spiral's ramp, Foggery's tower).
+- **What keeps its square:** what the generator pinned (portals, ramps, landings, reward sites
+  and spots, the ends of stairs and bridges, ladders, the cells a jump or drop of the route starts
+  or ends in, the ground under a stair), built floors (`surface`), the crumbling crust, the cube's
+  outer ring (its faces must match the neighbours'), the cells of a fall, a cell crossed twice,
+  and a cut that would come too close to its middle or a linked side's middle, or leave a part
+  smaller than `MIN_PART`, a part under the floor's bottom or over a gap under a slab.
+- **Drawn** (`render/floors.js`): each side's top triangles clipped to its side, the wall along the
+  line from the lower side up to the higher (`cutWalls`), the sides' walls in pieces where a cut
+  meets them (`wallPieces`).
+- **Physics** (`physics/canmove.js`): crossing the line inside the cell is crossing an edge: what
+  is past it stands in the way if it is higher than a step, and a drop is a brink. Enemies never
+  stand on a part (`enemynav.js floorAt`; their bodies may lean over a line), click to move walks the nodes' sides only
+  (`playernav.js nodeAt`) and a click on a part goes to its donor (`orders.js`).
+- **Fences:** a fenced riser's fence comes off its edge; what is left of a cliff along it keeps
+  one, and a cut cell's line takes one where most of the risers near it were fenced. These stand
+  along a line (`map.lineFences`, per cell; `canmove.js lineFenced`); the edge keeps its old fence,
+  `navOnly`, for the jumps and the water's ways.
+- **Checks:** `tests/cuts.test.js` (the geometry, walking against and along a cut, its fences),
+  the sweep (`tests/sweeps/cuts.js`: every cut keeps its cell's middle, linked sides and body
+  room, its part meets its donor's ground at the shared corners, and the cuts of two cells meet on
+  their shared side).
+
 ## Ladders and jumps (`cubegen/climbs.js`, `physics/climb.js`)
 
 Routes can now also use these moves:
