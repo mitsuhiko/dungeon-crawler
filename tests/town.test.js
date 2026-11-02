@@ -341,9 +341,8 @@ test('the way into the town: the forest\'s banks run on into the rock\'s room ei
     for (const f of banks) assert.ok(f.top >= TOWN_LEVEL + FOREST_RISE[0] && (atFace(f) || f.top === a.bank[f.c]), `${seed}: ${f.x},${f.z} at ${f.top}`);
     // the road between them level with the gate, from the gate to the mouth of the cutting
     for (let c = 0; c < N * N; c++) if (a.lane[c]) assert.equal(m.cols[c][0].top, TOWN_LEVEL);
-    const [p, q] = a.paths[0].points, gatePortal = m.portals.find(o => o.dir === a.dir);
-    assert.ok(Math.hypot(p[0] - gatePortal.x - .5, p[1] - gatePortal.z - .5) < 1.01, 'the street on from the gate');
-    assert.ok(a.lane[Math.floor(q[1]) * N + Math.floor(q[0])] || !bank(m.cols[Math.floor(q[1]) * N + Math.floor(q[0])][0]), 'down the cutting, not up a bank');
+    const gatePortal = m.portals.find(o => o.dir === a.dir);
+    assert.ok(gatePortal.cells.every(c => a.lane[c]), 'the gate opens onto the road');
     // nothing leads up there: no ladder, stair or bridge, no railing along their edges
     const on = c => a.bank[c] > 0;
     assert.ok(!m.ladders.some(l => on(m.floors[l.lo].c) || on(m.floors[l.hi].c)), 'no ladder');

@@ -187,8 +187,6 @@ function tryGenerate(seed, spec) {
     sparse: !!spec.sparse,   // a mostly empty set piece (cubegen/setpieces.js): few props
     grotto,   // the hidden cave behind a waterfall (cubegen/grotto.js): { fall, cells, site, front }, else null
     firstGlass,   // the beginning's third room (core/intro.js): { glass, ladder, foot }, else null
-    // ... the way into the town (cubegen/setpieces.js shapeApproach): the town's street on down its cutting
-    approach: spec.approach ? { paths: spec.approach.paths } : null,
     routes: ctx.segments.map(s => pathPoints(ctx, s)),   // each portal -> the exit, then the way back
   };
 }

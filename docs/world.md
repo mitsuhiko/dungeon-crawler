@@ -281,8 +281,8 @@ from it (`tileGround` in `world/town.js`).
   rock), as high banks along the whole face (`APPROACH`: three to five cells deep at the room's
   sides, five and a half to seven and a half by the road), the town's wood on them
   (`approachWood`: its trees, as close and tall, hiding the hero as the town's do). The road runs
-  on level with the gate between them, the town's street drawn on down the cutting
-  (`map.approach.paths`), which widens at its mouth into the room. The banks stand a cliff over
+  on level with the gate between them, down a cutting that widens at its mouth into the room
+  (grass: the town's street is not drawn on, its ribbon showed the grass through it). The banks stand a cliff over
   all round them (`BANK_OVER`, the ground beside them brought down for it): no stair, bridge or
   ladder up, no way the generator adds to them (`setPieceRoute`, `addAccess`), no railing on their
   edges; the rock stands out in the room past them (`rockBeside` in `world/world.js`), beside the

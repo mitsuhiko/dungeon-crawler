@@ -1915,9 +1915,7 @@ export function townApproach(world) {
     if (trees.some(q => Math.hypot(q.x - jx, q.z - jz) < .85)) { trees.push({ name: pick(R, wood.under), x: jx, z: jz, s: .9 + R() * .4, yaw, under: true }); continue; }
     trees.push({ name, x: jx, z: jz, s, yaw, ...(TREES.find(q => q.name === name) ?? {}), name });
   }
-  // (the town's street runs on out of its gate, down the cutting to its mouth: render/floors.js)
-  const road = [[STREET, 0], [STREET, -cut - 1]].map(([x, z]) => rotateTownPoint(x, z, exitYaw[t.exit])).map(([x, z]) => [x - dx * N, z - dz * N]);
-  const out = { key: step(t.gate, t.exit), dir: t.exit ^ 1, pos: townExitPosition(t.exit), bank, lane, cut, trees, paths: [{ points: road, width: .75 }] };
+  const out = { key: step(t.gate, t.exit), dir: t.exit ^ 1, pos: townExitPosition(t.exit), bank, lane, cut, trees };
   if (approaches.size > 16) approaches.clear();
   approaches.set(world, out);
   return out;

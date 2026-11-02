@@ -115,7 +115,7 @@
     "src/cubegen/heights.js#shapePinnacle": "611834f5",
     "src/cubegen/heights.js#shapeShaft": "1184ee1d",
     "src/cubegen/index.js#generate": "465ab03c",
-    "src/cubegen/index.js#tryGenerate": "3bb41f04",
+    "src/cubegen/index.js#tryGenerate": "3f68231a",
     "src/cubegen/reach.js#reachTo": "f03a56c3",
     "src/cubegen/route.js#search": "6d99732d",
     "src/cubegen/setpieces.js#shapeLake": "563ed8c1",
