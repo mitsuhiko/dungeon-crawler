@@ -30,8 +30,9 @@ export function addAccess(ctx) {
   ctx.bigLadders = true;
   // (the floors stay as they are meanwhile: their graph and moves kept, cubegen/reach.js, route.js)
   ctx.graphs = new Map(); ctx.moveMemo = new Map();
-  // never onto the cube's rim, nor from the foot of a spiral's mountain (cubegen/areas.js: the way up is the ramp)
-  const stand = f => f && !f.fluid && !f.prot && !f.siteBlocked && !f.landing && !ctx.border(f) && !ctx.foot?.has(f.c);
+  // never onto the cube's rim, nor from the foot of a spiral's mountain (cubegen/areas.js: the way up
+  // is the ramp), nor onto the banks of the way into the town (cubegen/setpieces.js: nobody goes there)
+  const stand = f => f && !f.fluid && !f.prot && !f.siteBlocked && !f.landing && !ctx.border(f) && !ctx.foot?.has(f.c) && !ctx.banks?.has(f.c);
   const failed = new Set();
   for (let n = 0; n < ACCESS; n++) {
     const seen = reachable(ctx, false), adj = graph(ctx, false), und = new Map();

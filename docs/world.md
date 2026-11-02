@@ -86,8 +86,7 @@ the gate's row). The gate's tile is `(0,0,0)`; a new world starts in the inn's t
   (`dim`, `render/materials.js NEIGHBOR_DIM`) and with all they are dressed with, houses and trees
   too (`shownFar`). From outside the town they look like any other surroundings.
 - **No seams.** Between two tiles (a tile's `map.seams`, the sides with another tile beyond) there
-  is no portal, no glass and no step in the ground: their faces are flat at the town's level (as
-  every face touching the town). Each tile's glass draws only its share of one hull round the whole
+  is no portal, no glass and no step in the ground: their faces are flat at the town's level. Each tile's glass draws only its share of one hull round the whole
   town: no pane on a seam, none of the edges on it, the brighter corners only at the hull's own
   (`setGlassSeams`, `render/glass.js`). A seam is walked across as any open face is ("Opened side
   connections" below, `game/handover.js`): the physics reads the tile beyond as it lies there, up to
@@ -273,9 +272,21 @@ from it (`tileGround` in `world/town.js`).
   `world/town.js`), in the way all the way up. Each piece stands on a footing sunk into
   the ground under it, so it follows the ground's levels, the cliff too; it stands in the way as
   its box and hides the hero behind it (the cutaway). It runs on across the seams (the one thing
-  that does). Outside it the forest stands close and tall on ground three to six levels over the
-  town's, a cliff down to the road from the gate: nobody walks there, and the generator's checks
-  leave it out (its seams' cells, `map.town.wallSide`). Lanes run along it inside.
+  that does). Outside it the forest stands close and tall on ground four to seven levels over the
+  town's (`FOREST_RISE`: a cliff no jump gets up, a leaping potion's either), a cliff down to the
+  road from the gate: nobody walks there, and the generator's checks leave it out (its seams'
+  cells, `map.town.wallSide`). Lanes run along it inside.
+- **The way in** (`townApproach` in `world/town.js`, `shapeApproach` in `cubegen/setpieces.js`):
+  the forest's floor runs on out of the gate's face into the road's first room (the beginning's
+  rock), as high banks along the whole face (`APPROACH`: three to five cells deep at the room's
+  sides, five and a half to seven and a half by the road), the town's wood on them
+  (`approachWood`: its trees, as close and tall, hiding the hero as the town's do). The road runs
+  on level with the gate between them, the town's street drawn on down the cutting
+  (`map.approach.paths`), which widens at its mouth into the room. The banks stand a cliff over
+  all round them (`BANK_OVER`, the ground beside them brought down for it): no stair, bridge or
+  ladder up, no way the generator adds to them (`setPieceRoute`, `addAccess`), no railing on their
+  edges; the rock stands out in the room past them (`rockBeside` in `world/world.js`), beside the
+  road's line.
 - **What stands level**: the buildings, streets, lanes and paths, the people, the crash, the
   spawn and the gate keep the level they stand on; the wild ground round them takes its band's
   form (above: up to five levels over it, or a couple under it in a dell; less towards the seams
@@ -286,9 +297,11 @@ from it (`tileGround` in `world/town.js`).
 - **Seams**: the cells either side of one stand alike and level, dry or as deep in water, and
   nothing stands near one.
 
-Every tile is pinned to a lowland socket and one layer **before the surface collapses**. Every face
-touching the town is flat at the lower town's level, and neighbouring terrain's shared boundary
-corners are pinned during smoothing. No tile depends on generation retries, exploration order or
+Every tile is pinned to a lowland socket and one layer **before the surface collapses**. A face on
+the town's outer sides takes the town's ground along its edge (`townEdge`, `townCorner`:
+`world/profile.js`), so what lies beyond meets it without a step, and the neighbouring terrain's
+shared boundary corners are pinned to it during smoothing. Only the road's first room ever lies
+there (the layout keeps a cube clear all round the town, below). No tile depends on generation retries, exploration order or
 the `?arche=` debug override. A tile is checked as it is made (`cubegen/town.js`): a
 body-radius-aware flood fill (`townReach`: walking, wading, swimming the deep water) reaches its
 gate and spawn (if it has them), every cell along its seams, every frontage and doorstep, the town
@@ -441,14 +454,17 @@ Which cubes exist and how they connect depends only on the world seed:
 
 - **Depth 0:** the town's tiles (above, "The town") lie round `(0,0,0)`, its gate's tile, the
   first room of an 18–24-room route to the first well; the road runs straight out of the gate for
-  two rooms, then anywhere within five cubes of the axis but the town (no branch into it). The
+  two rooms, then anywhere within five cubes of the axis but the town and a cube all round it, its
+  corners too (`margin` in `build`): no room, branch, span or area comes next to the town but the
+  road's first room, the way into it (above, "The way in"). The cells kept clear still draw their
+  random priorities, so a world whose road never came there keeps it. The
   town's gate and the next room's way out are gates of the beginning (`gateFaces`, `intro:sword`
   and `intro:glass`, `core/intro.js`, [story.md](story.md#the-beginning)): shut until the
   glassmaker's sword is taken at the crash in town and his glass found on the next room's rock.
   The town's tiles but the gate's are no rooms of the route (no `routeIndex`, nothing planned in
   them: they are added to `exists` last). That room
-  (`firstGlass`) is always a lone peak (`cubegen/setpieces.js`, its tile pinned flat all round), his
-  glass on its top where a discovery's chest would be, three grass snakes at its foot.
+  (`firstGlass`) is always a lone peak (`cubegen/setpieces.js`, its tile pinned flat all round) and
+  the way into the town (its banks and its cutting, above), his glass on its top where a discovery's chest would be, three grass snakes at its foot.
 - **Depths 1–19:** seeded routes through a two-cube-wide ring around the axis. Each route's
   length, counting the up ring and well, comes from its band in `ROUTE_ROOMS`: 18–24 rooms
   at depths 0–3, 16–22 at 4–7, 14–20 at 8–11, 12–18 at 12–15 and 9–16 at 16–19. The next

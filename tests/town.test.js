@@ -9,8 +9,10 @@ import { World } from '../src/world/world.js';
 import { worldOf } from './worlds.js';
 import { step, faceKey } from '../src/world/coords.js';
 import { BUILDINGS, MERCHANTS, HOMES, TOWN_LEVEL, TOWN_PORTAL_SPOT, TOWN_ACROSS, TOWN_DEEP, VILLAGERS, VILLAGER_R, SEAM_CLEAR, STREET,
-  PORTAL_TILE, START_TILE, enemyFreeAt, townOf, townLand, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
-import { INN_STAIR, UPPER, WALL, WATER_FROM } from '../src/world/townland.js';
+  PORTAL_TILE, START_TILE, enemyFreeAt, townOf, townLand, townApproach, isTown, rotateTownPoint, TILE_NAMES } from '../src/world/town.js';
+import { makeLayouts } from '../src/world/layout.js';
+import { findWay } from '../src/physics/playernav.js';
+import { INN_STAIR, UPPER, WALL, WATER_FROM, FOREST_RISE } from '../src/world/townland.js';
 import { floorY, runY } from '../src/core/surfaces.js';
 import { ITEMS, outfitOf } from '../src/core/items.js';
 import { state } from './fixtures.js';
@@ -291,21 +293,86 @@ test('only the gate joins the town to what lies round it; inside, every seam ope
   }
 });
 
-test('the gate\'s face and the road\'s edges are flat, even when the road is made first', () => {
+test('the gate\'s face is the town\'s edge: the road level with the gate, the forest\'s floor high either side; the road\'s room meets it, even when made first', () => {
   for (let seed = 0; seed < TOWNS; seed++) for (const first of [true, false]) {
     const w = new World(seed), t = townOf(seed), roadKey = step(t.gate, t.exit);
     const road = first ? w.cube(roadKey).map : null;
     const gate = w.cube(t.gate).map, neighbour = road || w.cube(roadKey).map;
     assert.deepEqual(signature(gate), signature(new World(seed).cube(t.gate).map));
-    const face = w.faces.get(faceKey(t.gate, t.exit));
-    assert.ok([...face.profile].every(h => h === TOWN_LEVEL));
+    const face = w.faces.get(faceKey(t.gate, t.exit)), pos = face.portal.pos, profile = [...face.profile];
+    // (its levels: the gate's tile's own along its edge)
+    const edge = gate.floors.filter(f => f.layer === 0 && [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0][t.exit]).sort((a, b) => a.x - b.x || a.z - b.z);
+    assert.deepEqual(profile, edge.map(f => f.top));
+    profile.forEach((h, i) => assert.ok(Math.abs(i - pos) <= 1 ? h === TOWN_LEVEL : h >= TOWN_LEVEL + FOREST_RISE[0], `${seed}: ${profile}`));
     assert.equal(face.river, null); assert.equal(face.spout, null);
     const nd = t.exit ^ 1;
-    for (const f of neighbour.floors) if (f.layer === 0 && [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0][nd])
-      for (const c of EDGE_CORNERS[nd]) assert.equal(f.cs[c], TOWN_LEVEL * LH);
+    // (its edge on the face's levels: a corner shared with the next cell along it sloping with it)
+    for (const f of neighbour.floors) if (f.layer === 0 && [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0][nd]) {
+      const i = nd < 2 ? f.z : f.x, may = [profile[i], (profile[i] + (profile[i - 1] ?? profile[i])) / 2, (profile[i] + (profile[i + 1] ?? profile[i])) / 2];
+      for (const c of EDGE_CORNERS[nd]) assert.ok(may.some(h => Math.abs(f.cs[c] - h * LH) < 1e-9), `${seed}: ${f.cs[c]} at ${i}`);
+      if (Math.abs(i - pos) <= 1) for (const c of EDGE_CORNERS[nd]) assert.equal(f.cs[c], TOWN_LEVEL * LH, 'the road level with the gate');
+    }
     const portal = neighbour.portals.find(p => p.dir === nd);
     assert.equal(portal.layer, 0); assert.equal(portal.y, gate.portals[0].y);
     assert.equal(neighbour.town, undefined); assert.equal(neighbour.enemyFree, false);
+  }
+});
+
+test('the road keeps a cube clear all round the town: none of its rooms comes next to it, not even at a corner, but the rock\'s, the way in', () => {
+  for (let seed = 0; seed < 40; seed++) {
+    const L = makeLayouts(seed)(0), t = townOf(seed), tiles = t.keys.map(k => k.split(',').map(Number));
+    for (const k of L.exists) {
+      if (isTown(k, seed)) continue;
+      const [x, , z] = k.split(',').map(Number), near = tiles.some(([X, , Z]) => Math.max(Math.abs(X - x), Math.abs(Z - z)) <= 1);
+      assert.ok(!near || k === L.route[1], `${seed}: ${k} by the town`);
+    }
+  }
+});
+
+test('the way into the town: the forest\'s banks run on into the rock\'s room either side of the road, a cliff no jump gets up, the town\'s wood on them', () => {
+  for (let seed = 0; seed < 4; seed++) {
+    const w = worldOf(seed), t = townOf(seed), a = townApproach(seed), m = state.map = w.cube(a.key).map;
+    assert.equal(a.key, w.layout(0).route[1]);
+    assert.ok(m.stats.mode.includes('the way into the town'), m.stats.mode);
+    const bank = f => f.layer === 0 && a.bank[f.c] > 0, banks = m.floors.filter(bank);
+    const atFace = f => [f.x === N - 1, f.x === 0, f.z === N - 1, f.z === 0][a.dir];
+    assert.ok(banks.length > N * 3, 'banks along the whole face, deeper by the road');
+    // (along the face as high as the town's edge there; inside, the forest's floor run on)
+    for (const f of banks) assert.ok(f.top >= TOWN_LEVEL + FOREST_RISE[0] && (atFace(f) || f.top === a.bank[f.c]), `${seed}: ${f.x},${f.z} at ${f.top}`);
+    // the road between them level with the gate, from the gate to the mouth of the cutting
+    for (let c = 0; c < N * N; c++) if (a.lane[c]) assert.equal(m.cols[c][0].top, TOWN_LEVEL);
+    const [p, q] = a.paths[0].points, gatePortal = m.portals.find(o => o.dir === a.dir);
+    assert.ok(Math.hypot(p[0] - gatePortal.x - .5, p[1] - gatePortal.z - .5) < 1.01, 'the street on from the gate');
+    assert.ok(a.lane[Math.floor(q[1]) * N + Math.floor(q[0])] || !bank(m.cols[Math.floor(q[1]) * N + Math.floor(q[0])][0]), 'down the cutting, not up a bank');
+    // nothing leads up there: no ladder, stair or bridge, no railing along their edges
+    const on = c => a.bank[c] > 0;
+    assert.ok(!m.ladders.some(l => on(m.floors[l.lo].c) || on(m.floors[l.hi].c)), 'no ladder');
+    assert.ok(!m.runs.some(r => [r.from, r.to].some(f => f && on(f.c)) || (r.cells ?? []).some(on)), 'no stair or bridge');
+    assert.ok(!m.fenceList.some(e => on(e.c)), 'no railing');
+    // ... and no way up for the hero (click to move: walking, jumping, climbing), a leaping potion's either
+    for (const fx of [{}, { 'buff:jump': { value: .5 } }]) {
+      Object.assign(player, { x: gatePortal.floor.x + .5, z: gatePortal.floor.z + .5, y: gatePortal.y, effects: fx });
+      const out = m.portals.find(o => o.kind === 'side' && o.dir !== a.dir).floor;
+      assert.equal(findWay(gatePortal.floor, out, { x: out.x + .5, z: out.z + .5 }).path.at(-1), out, 'out through the room');
+      for (const f of banks.filter((_, i) => i % 3 === 0)) {
+        const way = findWay(gatePortal.floor, f, { x: f.x + .5, z: f.z + .5, y: f.top * LH });
+        assert.notEqual(way.path.at(-1), f, `${seed}: up onto the bank at ${f.x},${f.z}`);
+      }
+    }
+    player.effects = {};
+    // the rock out in the room, apart from the banks and the road
+    const rock = m.floors.filter(f => f.layer === 0 && !on(f.c) && Math.abs(f.top * LH - m.firstGlass.glass.y) < .3);
+    assert.equal(rock.length, 25, 'its top');
+    for (const f of rock) for (let c = 0; c < N * N; c++)
+      if (a.bank[c] || a.lane[c]) assert.ok(Math.max(Math.abs(c % N - f.x), Math.abs(Math.floor(c / N) - f.z)) > 2, `${seed}: the rock by the way in`);
+    // the town's wood on the banks, standing on their ground, hiding the hero behind it as the town's
+    const wood = m.sitePlacements.filter(q => a.trees.some(t => t.x === q.x && t.z === q.z));
+    assert.ok(wood.length > 20, `${seed}: ${wood.length} trees`);
+    for (const q of wood) {
+      const f = m.cols[Math.floor(q.z) * N + Math.floor(q.x)][0];
+      assert.ok(on(f.c) && Math.abs(floorY(f, q.x - f.x, q.z - f.z) - q.y) < .4, `${seed}: ${q.name} on a bank`);
+    }
+    assert.ok(m.occluders.some(o => wood.some(q => q.x === o.x && q.z === o.z)));
   }
 });
 

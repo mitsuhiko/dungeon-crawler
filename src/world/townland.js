@@ -84,6 +84,10 @@ export const MUD_POCKETS = { quarry: 4, mire: 3, r: [.35, .6], deep: [.08, .12] 
 // The wall: the cells of the forest outside it on each outer side (the wall stands in the next row
 // in), how wide its gate is where the street comes in (cells, round the street)
 export const WALL = 3, WALL_GATE = 5;
+// The forest's floor outside the wall: how high it stands over the lower town (levels, the least and
+// the most: a cliff no jump gets up, a leaping potion's either), and how far either side of the
+// street's middle the road runs through it level (cells)
+export const FOREST_RISE = [4, 7], ROAD = 1.6;
 // where cell (x, z) of a town W x D cells lies: 0 inside the wall, 1 on it, 2 outside it
 export function wallSide(W, D, x, z) {
   const a = WALL, bx = W - 1 - WALL, bz = D - 1 - WALL;
@@ -902,6 +906,10 @@ export function makeLand(seed, opts, { stages = true, flip = false, again = 0 } 
   // (and what form a cell's ground is in: its band's)
   const formAt = (x, z) => base(clamp(Math.floor(x), 0, W - 1), clamp(Math.floor(z), 0, D - 1)) === upper ? landscape.upper : landscape.lower;
 
+  // how high the forest's floor outside the wall stands over its band (FOREST_RISE): it rolls with
+  // the land's hills, and runs on past the town's sides (the road's first room, townApproach in
+  // world/town.js)
+  const outsideRise = (x, z) => FOREST_RISE[0] + clamp(Math.round((roll(x * .09 + 5, z * .09 + 5) - .5) * 11) + 1, 0, FOREST_RISE[1] - FOREST_RISE[0]);
   const L = new Int16Array(W * D);
   for (let c = 0; c < W * D; c++) {
     const [x, z] = xz(c), b = base(x, z);
@@ -916,9 +924,9 @@ export function makeLand(seed, opts, { stages = true, flip = false, again = 0 } 
     const near = ['terraces', 'highland', 'ridge', 'rocky'].includes(b === upper ? landscape.upper : landscape.lower) ? [1.2, 1.2] : [1.4, 1.8];
     L[c] = b + (s === 1 ? 0 : Math.round(shaped * clamp((kg[c] - near[0]) / near[1], 0, 1)));
     // (outside the wall the forest's floor stands high, over a cliff along the road: it is not
-    // walked into from the road)
-    const road = z < WALL && Math.abs(x + .5 - gate[0]) < 1.6;
-    if (s === 2 && !road) L[c] = b + 3 + clamp(hills + 1, 0, 3);
+    // walked into from the road, nor jumped up to, a leaping potion's jump too)
+    const road = z < WALL && Math.abs(x + .5 - gate[0]) < ROAD;
+    if (s === 2 && !road) L[c] = b + outsideRise(x, z);
     const dh = Math.hypot(x + .5 - hill.x, z + .5 - hill.z), dl = Math.hypot(x + .5 - hollow.x, z + .5 - hollow.z);
     // (the hill coming down to the wall: no more than a level over it beside it, two more a cell)
     if (dh < hill.r1 && b === upper && s === 0) L[c] = Math.max(L[c], Math.min(hill.top - Math.max(0, Math.ceil((dh - hill.r0) * (hill.slope ?? 1))), b + 2 * wallIn - 1));
@@ -1179,7 +1187,10 @@ export function makeLand(seed, opts, { stages = true, flip = false, again = 0 } 
     // (what is kept, the cells beside a seam: their corners pinned flat, cubegen/smooth.js)
     level: (x, z) => L[clamp(z, 0, D - 1) * W + clamp(x, 0, W - 1)],
     water: (x, z) => (x < 0 || z < 0 || x >= W || z >= D ? null : water.get(z * W + x) ?? null),
-    flat: (x, z) => (kept(z * W + x) && !ramped[z * W + x] && (side(x, z) < 2 || (z < WALL && Math.abs(x + .5 - gate[0]) < 1.6))) || strip(x, z) || built.has(z * W + x) || tongue.has(z * W + x),
+    flat: (x, z) => (kept(z * W + x) && !ramped[z * W + x] && (side(x, z) < 2 || (z < WALL && Math.abs(x + .5 - gate[0]) < ROAD))) || strip(x, z) || built.has(z * W + x) || tongue.has(z * W + x),
+    // the forest's floor at (x, z) outside the town's front (z < 0 too: the road's first room), its
+    // level over the lower town's ground
+    outsideRise: (x, z) => outsideRise(Math.floor(x), Math.floor(z)),
     seamCell: (x, z) => strip(x, z),
     keepDist, trailDist, waterDist, forest, structureAt, spring,
     // which trees grow where (0..1: firs low, broadleaves high)

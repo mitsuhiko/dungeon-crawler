@@ -42,10 +42,11 @@ const direction = (a, b) => AXES.findIndex(([x, z]) => a[0] + x === b[0] && a[1]
 // Bounded DFS, with a stable random priority per cell. Unlike a shortest path this
 // can keep the deep, small rings long enough without creating disconnected gates.
 // template: { kind, at }: a large area (areas.js) whose cells, in their fixed order and any way
-// round, the route takes from index `at` on
+// round, the route takes from index `at` on; banned: candidates it never takes (their priorities are
+// drawn all the same)
 // learn: world.html#backtracking #route-code (see learn/README.md)
-function route(candidates, prefix, length, goal, R, template = null) {
-  const allowed = new Set(candidates.map(id)), used = new Set(prefix.map(id));
+function route(candidates, prefix, length, goal, R, template = null, banned = () => false) {
+  const allowed = new Set(candidates.filter(c => !banned(c)).map(id)), used = new Set(prefix.map(id));
   const priority = new Map(candidates.map(c => [id(c), R()])), out = [...prefix];
   function visit() {
     const c = out.at(-1);
@@ -112,6 +113,10 @@ function build(seed, d, above, theme, opts = {}) {
   // the town (world/town.js, docs/town.md): its tiles are no rooms of the road; its gate tile is
   // the route's first room, the road out of it runs straight past the beginning's rock
   const town = d === 0 ? townOf(seed) : null, inTown = c => !!town?.tiles.has(K(c));
+  // (and a cube all round it, its corners too, is kept clear: no room there but the road's first,
+  // the way into the town, world/town.js townApproach. Its cells still draw their priorities in
+  // route(), so a world whose road never came there keeps it)
+  const margin = c => d === 0 && !inTown(c) && id(c) !== id(AXES[town.exit]) && [-1, 0, 1].some(dx => [-1, 0, 1].some(dz => inTown([c[0] + dx, c[1] + dz])));
   if (d === 0) {
     const a = AXES[town.exit];
     prefix = Array.from({ length: 3 }, (_, i) => [a[0] * i, a[1] * i]);
@@ -139,12 +144,12 @@ function build(seed, d, above, theme, opts = {}) {
       const length = lengthAt(i), starts = areaStarts(length, size, 2);
       for (let j = starts.length - 1; j > 0; j--) { const k = Math.floor(TR() * (j + 1)); [starts[j], starts[k]] = [starts[k], starts[j]]; }
       for (const at of starts) {
-        spine = route(candidates, prefix, length, goal, TR, { kind: slots.big, at });
+        spine = route(candidates, prefix, length, goal, TR, { kind: slots.big, at }, margin);
         if (spine) { area = { kind: slots.big, at, size }; break; }
       }
     }
   }
-  for (let i = 0; i <= max - min && !spine; i++) spine = route(candidates, prefix, lengthAt(i), goal, R);
+  for (let i = 0; i <= max - min && !spine; i++) spine = route(candidates, prefix, lengthAt(i), goal, R, null, margin);
   if (!spine) throw new Error(`No bounded route at depth ${d}`);
   const start = spine[0], end = spine.at(-1), cells = [...spine], portals = new Set();
   const link = (a, b) => portals.add(faceKey(K(a), direction(a, b)));
@@ -181,11 +186,11 @@ function build(seed, d, above, theme, opts = {}) {
   const hordes = planHordes(seed, d, spine.map(K), guardians, k => areaRooms.some(a => K(a) === k));
   // One-room branches only, never attached to arenas or the town.
   // No loops: all sideways guardians are articulation points on the required route.
-  const used = new Set(cells.map(id)), allowed = new Set(candidates.map(id));
+  const used = new Set(cells.map(id)), allowed = new Set(candidates.filter(c => !margin(c)).map(id));
   const annexes = above?.annexes ?? 0, wantAnnex = d >= 2 && d < MAX_DEPTH && annexes < ANNEX_FROM.length && d >= ANNEX_FROM[annexes];
   const branchBudget = Math.min(4, max - cells.length) - (wantAnnex ? 1 : 0);
   // gorge spans (spans.js): on the route, and maybe a lonely island branch over a bridge
-  const free = c => !used.has(id(c)) && !inTown(c);
+  const free = c => !used.has(id(c)) && !inTown(c) && !margin(c);
   // (nor next to a boss's arena of its own shape, core/bosses.js BOSS_ARENAS: Flip's box, Foggery's
   // caldera, whose ground does not meet a gorge's at their face)
   const shaped = [...guardians].filter(([, g]) => BOSS_ARENAS[g.boss]?.type).map(([k]) => k.split(',').map(Number).filter((_, i) => i !== 1));

@@ -326,6 +326,7 @@ export function buildFloors(m, layers) {
     if (f.cut?.part.fluid) fluidVolume(m, f.cut.part, L.fluids[drawnFluid(f.cut.part)], f, 1);   // (its side of a cut: core/cuts.js)
   }
   if (m.town) buildClearingPaths(m, m.town.paths, layers[0].terrain);
+  if (m.approach) buildClearingPaths(m, m.approach.paths, layers[0].terrain);   // (the town's street on out of its gate)
 }
 
 // The town's paths are narrow straight ribbons along the grid, not whole-cell paving, lying on the

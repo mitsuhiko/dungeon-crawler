@@ -7,7 +7,7 @@ import { clamp } from '../core/util.js';
 import { key, parse, step } from './coords.js';
 import { MAX_DEPTH } from '../themes/depth.js';
 import { voidAllowed, isVoid } from './voids.js';
-import { isTown, TOWN_LEVEL } from './town.js';
+import { isTown, townEdge, townCorner, TOWN_LEVEL } from './town.js';
 import { spanFace, spanVertex, spanU, valleyFloor } from './spans.js';
 import { heightProfile, heightVertex } from './heights.js';
 import { areaProfile, areaVertex, innerCorner } from './areas.js';
@@ -30,7 +30,10 @@ function sockAt(world, X, Y, Z, d) {
 // highland if most of the four faces there are
 function vertexLevel(world, vx, Y, vz) {
   const cubes = [key(vx - 1, Y, vz - 1), key(vx, Y, vz - 1), key(vx - 1, Y, vz), key(vx, Y, vz)];
-  if (cubes.some(k => isTown(k, world.seed))) return TOWN_LEVEL;
+  // (by the town: its land's ground in the corner, world/town.js townCorner; inside it, its level)
+  const town = cubes.filter(k => isTown(k, world.seed));
+  if (town.length === 4) return TOWN_LEVEL;
+  if (town.length) return Math.max(...town.map(k => townCorner(world.seed, k, vx, vz)));
   const sv = spanVertex(world, vx, Y, vz);
   if (sv && !sv.natural) return valleyFloor(sv.span, world.noise, vx * N, vz * N, Y);
   const hv = heightVertex(world, vx, Y, vz) ?? areaVertex(world, vx, Y, vz);
@@ -44,7 +47,11 @@ function vertexLevel(world, vx, Y, vz) {
 export function profile(world, fk, sock) {
   const [k, d] = fk.split('/'), [X, Y, Z] = parse(k), out = new Int16Array(N);
   const other = d === '0' ? key(X + 1, Y, Z) : key(X, Y, Z + 1);
-  if (isTown(k, world.seed) || isTown(other, world.seed)) return out.fill(TOWN_LEVEL);
+  // (between two of the town's tiles its level; on its outer sides its land's ground at its edge, so
+  // what lies beyond meets it without a step: world/town.js townEdge)
+  if (isTown(k, world.seed) && isTown(other, world.seed)) return out.fill(TOWN_LEVEL);
+  if (isTown(k, world.seed)) return out.set(townEdge(world.seed, k, +d)), out;
+  if (isTown(other, world.seed)) return out.set(townEdge(world.seed, other, +d ^ 1)), out;
   const open = voidAllowed(world, k) && voidAllowed(world, d === '0' ? key(X + 1, Y, Z) : key(X, Y, Z + 1));
   const theme = world.layout(-Y).theme;
   for (let t = 0; t < N; t++) {

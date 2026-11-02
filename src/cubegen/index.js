@@ -35,7 +35,7 @@ import { placeVignettes, finishVignettes, indexBox } from './vignettes.js';
 import { spanBridge } from './span.js';
 import { descentRoute, pinnacleRoute } from './heights.js';
 import { areaRoute } from './areas.js';
-import { setPieceRoute } from './setpieces.js';
+import { setPieceRoute, approachWood } from './setpieces.js';
 import { routeTrial, finishTrial, trialCosts, placeClues } from './trials/index.js';
 import { placeTask, finishTask } from './tasks.js';
 
@@ -159,6 +159,9 @@ function tryGenerate(seed, spec) {
   // and a task's things, mud pockets, and what stands in the way)
   ctx.noCut = [...sites.siteReservations.map(r => r.c), ...sites.staticBlockers.flatMap((list, c) => list.length ? [c] : [])];
   cutCliffs(ctx);   // cliffs at an angle through the cells of a staircase (cubegen/cuts.js), last: the ways stay as they are
+  // the town's wood on the banks of the way into it (cubegen/setpieces.js), where the ground came out for it
+  const wood = approachWood(ctx);
+  sites.sitePlacements.push(...wood.placements); sites.occluders.push(...wood.occluders);
   const { K, B, cols, floors, pieces, runs, falls, fences, fenceList, lineFences, stats, moves } = ctx;
   const portals = ctx.portals.map(p => ({ id: p.id, kind: p.kind, dir: p.dir, layer: p.layer, cells: p.cells,
     x: p.c % N, z: (p.c / N) | 0, y: p.level * LH, floor: p.floor }));
@@ -184,6 +187,8 @@ function tryGenerate(seed, spec) {
     sparse: !!spec.sparse,   // a mostly empty set piece (cubegen/setpieces.js): few props
     grotto,   // the hidden cave behind a waterfall (cubegen/grotto.js): { fall, cells, site, front }, else null
     firstGlass,   // the beginning's third room (core/intro.js): { glass, ladder, foot }, else null
+    // ... the way into the town (cubegen/setpieces.js shapeApproach): the town's street on down its cutting
+    approach: spec.approach ? { paths: spec.approach.paths } : null,
     routes: ctx.segments.map(s => pathPoints(ctx, s)),   // each portal -> the exit, then the way back
   };
 }

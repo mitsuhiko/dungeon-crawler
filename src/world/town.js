@@ -7,12 +7,12 @@
 // (TILES: what stands where, in the tile's own frame), turned with the gate: a tile's local z = 0
 // side faces the gate's side of the town, local +x the next tile across.
 import { N, LH, CHAR_R, CHAR_H, DIRS, OPP, EDGE_CORNERS, WATER, MUD, at16, count16, ROOM_SCALE } from '../core/constants.js';
-import { mulberry32, hash32 } from '../core/util.js';
+import { mulberry32, hash32, makeNoise, clamp } from '../core/util.js';
 import { propMetadata, CLUTTER } from '../core/propcatalog.js';
 import { floorY } from '../core/surfaces.js';
 import { containsXZ, indexBlockers } from '../core/blockers.js';
 import { key, step } from './coords.js';
-import { makeLand, INN_STAIR, WALL, MUD_POCKETS } from './townland.js';
+import { makeLand, INN_STAIR, WALL, MUD_POCKETS, ROAD } from './townland.js';
 import { createContext } from '../cubegen/context.js';
 import { smooth } from '../cubegen/smooth.js';
 import { shapeStructures } from '../cubegen/shape.js';
@@ -1836,6 +1836,91 @@ export function townLand(world) {
   if (lands.size > 16) lands.clear();
   lands.set(world, land);
   return land;
+}
+
+// ---- What lies round the town (docs/world.md "The town"): its land runs on past its outer sides.
+// The land's cell (its frame, whole cells; past its sides too) under cube cell (x, z) of the town's
+// tile k (x, z may lie off the tile: the cube beside it, in the tile's frame)
+function landPoint(world, k, x, z) {
+  const t = townOf(world), { i, j } = t.tiles.get(k), [lx, lz] = rotateTownPoint(x, z, -exitYaw[t.exit]);
+  return [i * N + lx, j * N + lz];
+}
+const landCell = (world, k, x, z) => landPoint(world, k, x + .5, z + .5).map(Math.floor);
+// (the cube cell at t along side d)
+const sideCell = (d, t) => d === 0 ? [N - 1, t] : d === 1 ? [0, t] : d === 2 ? [t, N - 1] : [t, 0];
+// The levels along side d (DIRS) of the town's tile k: the ground where an outer side of the town
+// meets the cube beyond (a face's profile, world/profile.js), so the two meet without a step
+export function townEdge(world, k, d) {
+  const land = townLand(world);
+  return Array.from({ length: N }, (_, t) => land.level(...landCell(world, k, ...sideCell(d, t))));
+}
+// ... and at the corner of the town's tile k round the point between cubes (vx, vz) (world/profile.js
+// vertexLevel: the corner column all four faces there agree on)
+export function townCorner(world, k, vx, vz) {
+  const [X, , Z] = k.split(',').map(Number);
+  return townLand(world).level(...landCell(world, k, vx === X ? 0 : N - 1, vz === Z ? 0 : N - 1));
+}
+
+// The road's first room (world/layout.js: the beginning's rock, core/intro.js) is the way into the
+// town: the forest's floor outside the wall runs on into it as high banks, as far as APPROACH (cells
+// from the town: by the road, at the room's sides), and the road runs on between them, level with the
+// town's gate, out of a cutting that widens into the room (MOUTH: cells from its end on). The banks
+// stand a cliff over everything round them, never walked onto (cubegen/setpieces.js shapeApproach);
+// the town's wood grows on them, as close and tall as outside its wall.
+export const APPROACH = { road: [5.5, 7.5], side: [3, 5] }, MOUTH = 2.5;
+const approaches = new Map();
+export function townApproach(world) {
+  world >>>= 0;
+  if (approaches.has(world)) return approaches.get(world);
+  const t = townOf(world), land = townLand(world), [dx, dz] = DIRS[t.exit], gate = land.wall.gate[0];
+  const R = mulberry32(hash32(world ^ 0xa9910c)), wob = makeNoise(R), x0 = GATE_TILE[0] * N;
+  // (the room's cell (x, z) in the land's frame: in front of the town, its z under 0)
+  const at = (x, z) => landPoint(world, t.gate, x + dx * N, z + dz * N);
+  const bank = new Int16Array(N * N), lane = new Uint8Array(N * N);
+  // how far into the room the banks reach at the land's x: deepest by the road, the cutting
+  const cut = APPROACH.road[0] + (APPROACH.road[1] - APPROACH.road[0]) * wob(3.1, 7.7);
+  const reach = gx => {
+    const by = 1 - clamp((Math.abs(gx - gate) - ROAD - 1) / 5, 0, 1), side = APPROACH.side[0] + (APPROACH.side[1] - APPROACH.side[0]) * wob(gx * .21 + 11, 2);
+    return side + (cut - side) * by * by * (3 - 2 * by) + (wob(gx * .3, 5) - .5) * 1.2;
+  };
+  for (let c = 0; c < N * N; c++) {
+    const [gx, gz] = at(c % N + .5, Math.floor(c / N) + .5), u = -gz, off = Math.abs(gx - gate);
+    if (u >= reach(gx)) continue;
+    // (the cutting: as wide as the road through the town's forest, widening at its mouth)
+    if (off < ROAD + Math.max(0, u - (cut - MOUTH)) * 1.1) lane[c] = 1;
+    else bank[c] = TOWN_LEVEL + land.outsideRise(gx, gz);
+  }
+  // (no notch a cell wide in a bank's edge: a pit nobody would leave by the way they came)
+  const across = DIRS[t.exit ^ 1][0] ? [0, 1] : [1, 0];
+  for (let c = 0; c < N * N; c++) {
+    const x = c % N, z = Math.floor(c / N), a = [x - across[0], z - across[1]], b = [x + across[0], z + across[1]];
+    if (bank[c] || lane[c] || [a, b].some(([ax, az]) => ax < 0 || az < 0 || ax >= N || az >= N || !bank[az * N + ax])) continue;
+    bank[c] = Math.min(bank[a[1] * N + a[0]], bank[b[1] * N + b[0]]);
+  }
+  // the wood on the banks (world coordinates of the room, in cells): on a loose grid, as outside the
+  // wall, where the trunk stands well in on a bank; a bush where a tree does not
+  const wood = woodOf(land), st = land.style ?? STYLE, trees = [];
+  const onBank = (x, z, r) => {
+    for (let cz = Math.floor(z - r); cz <= Math.floor(z + r); cz++) for (let cx = Math.floor(x - r); cx <= Math.floor(x + r); cx++)
+      if (cx >= 0 && cz >= 0 && cx < N && cz < N && !bank[cz * N + cx]) return false;
+    return true;
+  };
+  for (let z = .5; z < N; z += 1.05) for (let x = .5; x < N; x += 1.05) {
+    const jx = x + (R() - .5) * .6, jz = z + (R() - .5) * .6, roll = R();
+    if (!onBank(jx, jz, .7) || roll > .85) continue;
+    const [gx, gz] = at(jx, jz);
+    const name = R() < .15 ? pick(R, wood.small) : wood.trees ? pick(R, draw(R, wood.trees)[0])
+      : land.kind(gx, gz) + (R() - .5) * .3 - st.firs < .45 ? pick(R, FIRS) : pick(R, BROADLEAVES);
+    const s = scaleOf(R, name) * (name.startsWith('darkforest') ? 1.15 : 1.05), yaw = R() * Math.PI * 2;
+    if (trees.some(q => Math.hypot(q.x - jx, q.z - jz) < .85)) { trees.push({ name: pick(R, wood.under), x: jx, z: jz, s: .9 + R() * .4, yaw, under: true }); continue; }
+    trees.push({ name, x: jx, z: jz, s, yaw, ...(TREES.find(q => q.name === name) ?? {}), name });
+  }
+  // (the town's street runs on out of its gate, down the cutting to its mouth: render/floors.js)
+  const road = [[STREET, 0], [STREET, -cut - 1]].map(([x, z]) => rotateTownPoint(x, z, exitYaw[t.exit])).map(([x, z]) => [x - dx * N, z - dz * N]);
+  const out = { key: step(t.gate, t.exit), dir: t.exit ^ 1, pos: townExitPosition(t.exit), bank, lane, cut, trees, paths: [{ points: road, width: .75 }] };
+  if (approaches.size > 16) approaches.clear();
+  approaches.set(world, out);
+  return out;
 }
 
 // The plan of the town's tile (i, j): exit the town's (townExit), seed the tile's own, world the

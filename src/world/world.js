@@ -2,7 +2,7 @@
 // per depth), decides its faces, and then generates its map from a spec built out of those faces.
 import { hash32 } from '../core/util.js';
 import { cleanWorldLevel } from '../core/enemies.js';
-import { WATER, LAVA, at16 } from '../core/constants.js';
+import { WATER, LAVA, N, at16 } from '../core/constants.js';
 import { worldNoise } from '../core/wnoise.js';
 import { generate } from '../cubegen/index.js';
 import { WFC } from './wfc.js';
@@ -11,7 +11,7 @@ import { decideFaces, LAYER_BASE } from './faces.js';
 import { worldThemes } from '../themes/depth.js';
 import { makeLayouts } from './layout.js';
 import { voidAllowed, fallMask } from './voids.js';
-import { isTown, townTile, townOf, townSeams, isInterior } from './town.js';
+import { isTown, townTile, townOf, townSeams, isInterior, townApproach } from './town.js';
 import { generateInterior } from '../cubegen/interior.js';
 import { stampFluidBodies } from '../cubegen/fluidbodies.js';
 import { spanSpec } from './spans.js';
@@ -87,8 +87,12 @@ export class World {
     const discovery = (L.sitePlans.get(k) || []).find(i => !i.landmark), Rs = this.wfc.rng(k, 0x5e7c);
     // (the beginning's third room is one too, with his first glass on top: core/intro.js)
     const firstGlass = L.firstGlass === k;
+    // (... the way into the town, too: its forest's banks either side of the road coming out of its
+    // gate, world/town.js townApproach; the rock stands out in the room, beside the road's line)
+    const approach = firstGlass && -Y === 0 ? townApproach(this.seed) : null;
     const peak = (L.peak === k || firstGlass) && !special ? { x: Math.floor(at16(5 + Rs() * 3)), z: Math.floor(at16(5 + Rs() * 3)),
       side: firstGlass || discovery && discovery.prestige !== 'basic' ? 5 : 4, rise: (firstGlass ? 6 : 10) + Math.floor(Rs() * 4) } : null;
+    if (approach && peak) Object.assign(peak, rockBeside(approach, peak.side, this.wfc.rng(k, 0x70c4)));
     const lake = L.lake === k && !special ? { islet: discovery ? { x: at16(7 + Rs()), z: at16(7 + Rs()), r: discovery.prestige === 'basic' ? 2.3 : 2.9 } : null } : null;
     // a short tunnel the way leads through (cubegen/tunnel.js): not where rivers run, falls come
     // or go, spouts pour, a horde waits, or something else shapes the cube
@@ -113,6 +117,7 @@ export class World {
       // how its cliffs are cut at an angle (cubegen/cuts.js): a spiral's ramp as round as it goes
       cuts: area?.kind === 'spiral' ? { sixteen: 1 } : theme.cuts ?? null,   // sparse: mostly empty (few props, render/propplace.js)
       firstGlass,   // the beginning's third room: his first glass on the peak (core/intro.js)
+      approach,   // ... the way into the town (world/town.js townApproach, cubegen/setpieces.js shapeApproach)
       // islands without pillars: lakes, the sky islands near the top and the abyss
       // the town's tile (world/town.js): its place in the town, the way the town turns, which sides
       // are seams, its gate, and the world's seed (the town's land is the world's: world/townland.js)
@@ -167,4 +172,15 @@ export class World {
     c.map.level = cleanWorldLevel(this.opts.level);   // (every map says the world's level: core/enemies.js enemyRoll)
     return c;
   }
+}
+
+// Where the rock of the road's first room stands (its block of `side` cells, cubegen/setpieces.js
+// shapePeak): out past the banks of the way into the town (world/town.js APPROACH), beside the line
+// of the road coming out of the gate, on one side of it or the other
+export const ROCK_FROM = 10;
+function rockBeside(approach, side, R) {
+  const u = ROCK_FROM + Math.floor(R() * 3), off = 3 + Math.floor(R() * 3);
+  const t = R() < .5 ? approach.pos + off : approach.pos - off - side + 1, d = approach.dir;
+  const across = d === 0 || d === 2 ? N - side - u : u;
+  return d < 2 ? { x: across, z: t } : { x: t, z: across };
 }
