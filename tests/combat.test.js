@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, MECKED, TORNADO, ENEMY_KINDS, GUSTO, makeEnemy, attackOf, pickAttack,
+import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, MECKED, TORNADO, ENEMY_KINDS, ENEMY_PROFILES, GUSTO, makeEnemy, attackOf, pickAttack,
   attacksInReach, isRanged, attackDamage, blowOf, lungeDistance, lungeAt, retreatAt, fireAt, shotOf, airborne } from '../src/core/enemies.js';
 import { launchTwister, stayTwister, stepTwister, twisterAt, catches, twirlAt } from '../src/core/twisters.js';
 import { startBeam, aimBeam, castBeam, beamHits, beamDistance, muzzleAt, aiming, aimPoint } from '../src/core/beams.js';
@@ -10,6 +10,21 @@ import { SWORD, HEAVY_HIT, swordState, startSwing, advanceSwing, cancelSwing, in
 const hero = () => ({ x: 0, y: 0, z: 0, yaw: 0, hp: 100, stun: 0, sword: swordState() });
 const enemy = (profile = SPIDER) => makeEnemy({ x: 0, y: 0, z: 0.8, yaw: Math.PI }, profile);
 function swing(p) { assert.ok(startSwing(p)); advanceSwing(p, SWORD.activeStart + 0.01); }
+
+test('ordinary species notice from 1.5 times as far and pursue 25 percent further', () => {
+  const before = [[3, 6], [4.5, 8], [3.5, 6], [4, 7], [6, 9], [5.5, 9], [6, 10], [5, 8], [5.5, 9],
+    [5, 8], [5.5, 9], [5.5, 9], [4.5, 8], [5.5, 9], [6, 9], [5.5, 9], [3.8, 7], [4.5, 9]];
+  assert.equal(ENEMY_PROFILES.length, before.length);
+  ENEMY_PROFILES.forEach((p, i) => {
+    assert.ok(Math.abs(p.aggro - before[i][0] * 1.5) < 1e-9, p.type);
+    assert.equal(p.giveUp, before[i][1] * 1.25, p.type);
+    assert.ok(p.giveUp > p.aggro, `${p.type} keeps pursuing past its detection range`);
+    assert.equal(enemy(p).profile.aggro, p.aggro, 'living enemies use the tuned range');
+  });
+  assert.equal(ENEMY_KINDS.redback.aggro, SPIDER.aggro, 'variants inherit awareness');
+  assert.equal(ENEMY_KINDS.shadowmamba.giveUp, SNAKE.giveUp, 'variants inherit pursuit');
+  assert.equal(GUSTO.aggro, 7, 'boss-specific awareness stays unchanged');
+});
 
 test('sword is a timed, one-press attack with wind-up and recovery', () => {
   const p = hero(), e = enemy();

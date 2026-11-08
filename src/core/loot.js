@@ -6,8 +6,9 @@ import { RARITY } from './gear/rarities.js';
 import { ENCHANT } from './gear/enchants.js';
 
 export const WALK_RADIUS = 0.45;   // walking over a pickup takes it
-export const MAGNET_RADIUS = 1;    // coins pull themselves in this close (cells)
-export const COLLECT_RADIUS = 4;   // C sucks up stackable pickups this close (cells)
+export const MAGNET_RADIUS = 3;    // coins pull themselves in this close (cells)
+export const COLLECT_RADIUS = 8;   // the action key pulls in stackable pickups this close (cells)
+export const FLOOR_RADIUS = 4;     // labelled pickups the inventory can take (cells)
 export const COLLECT_HEIGHT = 1.5; // ... and at most this far above or below
 const MAX_PILES = 4;               // per coin kind: a few coins scatter, larger sums share piles
 
@@ -30,15 +31,15 @@ export const walkTakes = p => !isGear(p.itemId);
 // what gets a name label (X) and can be clicked to pick up: everything but coins
 export const labelled = p => !isCoin(p.itemId);
 
-// can C collect pickup p from (x, y, z)?
+// can the action key collect pickup p from (x, y, z)?
 export const inCollectReach = (p, x, y, z) => stackable(p.itemId)
   && Math.hypot(p.x - x, p.z - z) <= COLLECT_RADIUS && Math.abs(p.y - y) <= COLLECT_HEIGHT;
 // does coin p pull itself to the player at (x, y, z)?
 export const inMagnetReach = (p, x, y, z) => isCoin(p.itemId)
   && Math.hypot(p.x - x, p.z - z) <= MAGNET_RADIUS && Math.abs(p.y - y) <= COLLECT_HEIGHT;
-// is pickup p close enough to the player at (x, y, z) to take from the inventory? (C's reach)
+// is pickup p close enough to the player at (x, y, z) to take from the inventory?
 export const inFloorReach = (p, x, y, z) => labelled(p)
-  && Math.hypot(p.x - x, p.z - z) <= COLLECT_RADIUS && Math.abs(p.y - y) <= COLLECT_HEIGHT;
+  && Math.hypot(p.x - x, p.z - z) <= FLOOR_RADIUS && Math.abs(p.y - y) <= COLLECT_HEIGHT;
 // is the player at (x, y, z) standing on pickup p?
 export const steppedOn = (p, x, y, z) => Math.hypot(p.x - x, p.z - z) <= WALK_RADIUS && Math.abs(p.y - y) <= 0.8;
 

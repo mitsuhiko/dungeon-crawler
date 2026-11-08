@@ -55,14 +55,14 @@ export const budgetAt = depth => BUDGET[Math.min(BUDGET.length - 1, Math.max(0, 
 export const FIRST_GLASS = { type: 'snake', count: 3 };
 
 export const DEPTH_SPAWNS = [
-  /*  0 road out of town */ D(2, ['snake', 1, 1, 2],
+  /*  0 road out of town */ D(2, ['snake', 1, 1, 2, 2],
     // (for a hero who has been down before: worlds of a higher level)
     ['spider', .5, 2, 4, 2, { spider: 1 }, null, 3], ['wolk', .3, 1, 1, 1, { wolk: 1 }, null, 5], ['stunder', .25, 1, 1, 1, { stunder: 1 }, null, 7]),
-  /*  1 act I */ D(2, ['snake', 1, 2, 4], ['stunder', .2, 1, 1], ['wolk', .25, 1, 1],
+  /*  1 act I */ D(2, ['snake', 1, 2, 4, 2], ['stunder', .2, 1, 1], ['wolk', .25, 1, 1],
     ['squirtle', .6, 1, 2, 1, { squirtle: 1 }, ['lagoon']],
     ['spider', .7, 2, 4, 2, { gloomspider: 1 }, ['darkforest']], ['fireface', .3, 1, 1, 1, { lanternface: 1 }, ['darkforest']],
     ['spider', .5, 2, 4, 2, { spider: 1 }, ['!darkforest'], 3], ['tornado', .3, 1, 1, 1, { tornado: 1 }, null, 5]),
-  /*  2 act I */ D(3, ['snake', 1, 2, 5, 1, { snake: 3, sandviper: 1 }], ['spider', .6, 2, 4, 2, { spider: 1 }, ['!darkforest']],
+  /*  2 act I */ D(3, ['snake', 1, 2, 5, 2, { snake: 3, sandviper: 1 }], ['spider', .6, 2, 4, 2, { spider: 1 }, ['!darkforest']],
     ['stunder', .25, 1, 1], ['wolk', .35, 1, 2], ['tornado', .3, 1, 1], ['squirtle', .6, 1, 3, 1, { squirtle: 1 }, ['lagoon']], ['flimmer', .35, 3, 3, 3],
     ['spider', .8, 3, 5, 2, { gloomspider: 3, spider: 1 }, ['darkforest']], ['fireface', .4, 1, 2, 1, { lanternface: 1 }, ['darkforest']],
     ['moose', .4, 2, 2, 2, { moose: 1 }, ['darkforest', 'highlands']], ['moose', .4, 2, 2, 2, { frostmoose: 1 }, ['peaks']],
@@ -156,6 +156,7 @@ export const DEPTH_SPAWNS = [
     ['wolla', .5, 1, 2, 1, { emberwolla: 1 }], ['tornado', .4, 1, 2, 1, { firetornado: 1 }], ['spider', .25, 14, 20, 6, { redback: 1 }],
     ['squirtle', .7, 1, 3, 2, { lavasquirtle: 1 }, ['volcanic', 'abyss']]),
   /* 19 act III */ D(3, ['fireface', 1, 2, 3, 1, { fireface: 1, blazeface: 1 }], ['firecat', 1, 5, 8, 3, { firecat: 1, voidcat: 1 }],
+    ['snake', .5, 10, 14, 4, { shadowmamba: 1 }],
     ['shraps', .6, 1, 2, 1, { fireshraps: 1 }], ['triangle', .6, 1, 2, 1, { crimsontriangle: 1 }],
     ['wolla', .5, 1, 2, 1, { emberwolla: 1 }], ['stunder', .7, 1, 2, 1, { magmastunder: 1 }], ['tornado', .35, 1, 1, 1, { firetornado: 1 }],
     ['squirtle', .7, 1, 3, 2, { lavasquirtle: 1 }, ['volcanic', 'abyss']]),

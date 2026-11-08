@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { coinDrops, inCollectReach, inMagnetReach, inFloorReach, steppedOn, stackable, walkTakes, labelled, COLLECT_RADIUS, MAGNET_RADIUS, COLLECT_HEIGHT } from '../src/core/loot.js';
+import { coinDrops, inCollectReach, inMagnetReach, inFloorReach, steppedOn, stackable, walkTakes, labelled, COLLECT_RADIUS, MAGNET_RADIUS, FLOOR_RADIUS, COLLECT_HEIGHT } from '../src/core/loot.js';
 import { ITEMS, WEAPONS } from '../src/core/items.js';
 import { createInventory, addItem, copperTotal, fits } from '../src/core/inventory.js';
 
@@ -16,7 +16,8 @@ test('coin drops hold exactly the amount, in a few piles per coin kind', () => {
   assert.equal(coinDrops(6).length, 4);   // a spider's handful scatters
 });
 
-test('C reaches stackable pickups within four cells, walking over takes all but weapons', () => {
+test('the action key reaches stackable pickups within eight cells, walking over takes all but weapons', () => {
+  assert.equal(COLLECT_RADIUS, 8);
   const coin = { itemId: 'item_coin_copper', x: 5, y: 1, z: 5 };
   assert.ok(stackable(coin.itemId) && stackable('item_crystal_ruby') && !stackable(WEAPONS[1].id));
   assert.ok(inCollectReach(coin, 5 + COLLECT_RADIUS, 1, 5));
@@ -28,19 +29,26 @@ test('C reaches stackable pickups within four cells, walking over takes all but 
   assert.ok(walkTakes(coin) && walkTakes({ itemId: 'item_crystal_ruby' }) && !walkTakes({ itemId: WEAPONS[1].id }));
 });
 
-test('labels and the inventory floor column cover everything but coins, within C\'s reach', () => {
+test('labels and the inventory floor column keep their four-cell reach, excluding coins', () => {
+  assert.equal(FLOOR_RADIUS, 4);
   const sword = { itemId: WEAPONS[2].id, x: 5, y: 1, z: 5 }, ruby = { ...sword, itemId: 'item_crystal_ruby' };
   assert.ok(labelled(sword) && labelled(ruby) && !labelled({ itemId: 'item_coin_gold' }));
-  assert.ok(inFloorReach(sword, 5 + COLLECT_RADIUS, 1, 5) && inFloorReach(ruby, 5, 1 + COLLECT_HEIGHT, 5));
-  assert.ok(!inFloorReach(sword, 5 + COLLECT_RADIUS + 0.01, 1, 5) && !inFloorReach(sword, 5, 1 + COLLECT_HEIGHT + 0.01, 5));
+  assert.ok(inFloorReach(sword, 5 + FLOOR_RADIUS, 1, 5) && inFloorReach(ruby, 5, 1 + COLLECT_HEIGHT, 5));
+  assert.ok(!inFloorReach(sword, 5 + FLOOR_RADIUS + 0.01, 1, 5) && !inFloorReach(sword, 5, 1 + COLLECT_HEIGHT + 0.01, 5));
   assert.ok(!inFloorReach({ ...sword, itemId: 'item_coin_gold' }, 5, 1, 5));
 });
 
-test('coins pull themselves in from half as far as C, other pickups do not', () => {
+test('coins pull themselves in from three cells, other pickups do not', () => {
+  assert.equal(MAGNET_RADIUS, 3);
   const coin = { itemId: 'item_coin_copper', x: 5, y: 1, z: 5 };
   assert.ok(inMagnetReach(coin, 5 + MAGNET_RADIUS, 1, 5));
   assert.ok(!inMagnetReach(coin, 5 + MAGNET_RADIUS + 0.01, 1, 5));
   assert.ok(!inMagnetReach(coin, 5, 3, 5), 'not from a different level');
+  assert.ok(inMagnetReach(coin, 5, 1 + COLLECT_HEIGHT, 5), 'vertical boundary');
+  assert.ok(!inMagnetReach(coin, 5, 1 + COLLECT_HEIGHT + 0.01, 5));
+  assert.ok(inMagnetReach(coin, 6.8, 1, 7.4), 'radial boundary');
+  assert.ok(!inMagnetReach(coin, 7.2, 1, 7.2), 'not a square');
+  assert.ok(inCollectReach(coin, 10, 1, 5) && !inMagnetReach(coin, 10, 1, 5), 'F reaches beyond the magnet');
   assert.ok(!inMagnetReach({ ...coin, itemId: 'item_crystal_ruby' }, 5, 1, 5), 'only coins');
 });
 

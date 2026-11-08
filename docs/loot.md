@@ -16,9 +16,11 @@ chests in `src/core/chests.js` and `src/game/chests.js`. How much of it there is
 
 - **F** or **right Ctrl** is the action key (`game/action.js`): it does the first that works of
   opening the closed treasure chest beside you, trading with the villager beside you and
-  collecting every coin and stackable item within four cells (only when there is one; else it
+  collecting every coin and stackable item within eight cells (only when there is one; else it
   does nothing). On touch screens the use button above the action button does the same.
   Enter is the chat.
+- Coins automatically pull themselves in within **three cells**, once they have landed.
+  Both automatic and action-key collection reach at most 1.5 cells above or below the hero.
 - Weapons and armor are **not** taken by walking over them, by the coin magnet or by collecting (the action key).
 - **Click** a weapon or a piece of armor (or its label) to walk there and pick it up. The enemy under the cursor
   still wins over an item; an item wins over a chest, a chest over the floor. A full bag says so
@@ -32,9 +34,9 @@ chests in `src/core/chests.js` and `src/game/chests.js`. How much of it there is
   under the cursor shows its name. Labels are in the rarity's colour and stack instead of
   overlapping; they are clickable.
 - **I** (or **V**) opens the inventory (paused) with a **Floor** column beside the bag whenever
-  something lies within collecting reach (4 cells across, 1.5 up or down): every item but coins, best
-  first, then nearest. Once shown it stays while the panel is open (dropping the first item
-  shows it). Take moves a floor item into the bag, Drop puts a bag item down at your feet.
+  something lies within the inventory's reach (4 cells across, 1.5 up or down; unchanged by
+  the action key's longer reach): every item but coins, best first, then nearest. Once shown
+  it stays while the panel is open (dropping the first item shows it). Take moves a floor item into the bag, Drop puts a bag item down at your feet.
   Enter (or Space) on a floor item, or a double-click, takes it; on a bag item it equips or
   uses it; arrows move through both columns. I, V or Esc closes.
 - With touch controls ([touch.md](touch.md)) a long press on the game collects like the action key.
@@ -314,6 +316,7 @@ browser console:
 
 ```js
 const checks = await import('./tests/browser/inventory.js');
+await (await import('./tests/browser/combat.js')).runCollectionRangeChecks(); // auto coins: 3 cells, F: 8, inventory: 4
 await checks.runWeaponLootChecks();   // guardian drops, walk-over / collect, labels, click pickup, the floor column, drops, deaths
 await (await import('./tests/browser/chests.js')).runChestChecks();   // hover, click, open, spill, deaths, potions
 await (await import('./tests/browser/chests.js')).runActionKeyChecks();   // F / right Ctrl: chest, collect, nothing, trader; Enter chats; the use button

@@ -1,7 +1,7 @@
 // Loot lying in the cubes: defeated enemies scatter their coins and sometimes a weapon. Walking
-// over coins and stackables takes them, coins within a cell pull themselves in, and the action
+// over coins and stackables takes them, coins within three cells pull themselves in, and the action
 // key (F or right Ctrl, game/action.js, when no chest or villager is beside the player) pulls in
-// every stackable pickup within four cells. Weapons are only taken on purpose: click one (or
+// every stackable pickup within eight cells. Weapons are only taken on purpose: click one (or
 // its label) to walk there and pick it up, or take it in the inventory (game/inventory.js), which also
 // puts things from the bag back on the floor. Pickups stay where they fell (per cube, for the
 // whole run) until collected. They are credited when they reach the player.
@@ -219,7 +219,7 @@ export function takeNow(p) {
   if (p.claim === 'mine') { list.splice(list.indexOf(p), 1); receive(p); }
   return true;
 }
-// labelled pickups within C's reach, best first, then nearest: what the inventory lists beside the bag
+// labelled pickups within the inventory's reach, best first, then nearest: listed beside the bag
 export function floorItems() {
   const d = p => Math.hypot(p.x - player.x, p.z - player.z);
   return lootHere().filter(p => !p.fly && !p.claim && p.toss >= 0 && inFloorReach(p, player.x, player.y, player.z) && !drowned(p))

@@ -14,7 +14,7 @@ import { population } from '../core/spawns.js';
 import { swarmKind, HORDE } from '../core/hordes.js';
 import { mulberry32, hash32 } from '../core/util.js';
 import { step as stepKey } from '../world/coords.js';
-import { walkable, neighbors, groundY, floorAt } from '../physics/enemynav.js';
+import { walkable, neighbors, groundY, floorAt, findPath } from '../physics/enemynav.js';
 import { fixedWet, livesOn, walker, standY } from '../physics/dwell.js';
 
 const CLOSE = 1.2;   // the least distance between two members of a pack
@@ -64,12 +64,13 @@ export function enemySpots(map, profile) {
     if (spots.length >= count) break;
     if (used.has(a) || !clear(a, profile.spacing)) continue;
     // the rest of the pack: ceil(pack / 2)..pack in all (a troop: exactly that many), within
-    // reach of the first on its level
+    // reach of the first on its level, with a short walkable path between them
     const size = Math.min(count - spots.length, troop ?? Math.ceil(pack / 2) + Math.floor(R() * (Math.floor(pack / 2) + 1)));
     const reach = 1.5 + Math.sqrt(size), members = [a];
     for (let n = 1; n < size; n++) {
       const f = cand.find(f => !used.has(f) && !members.includes(f) && Math.abs(f.top - a.top) < 1
-        && Math.hypot(f.x - a.x, f.z - a.z) <= reach && clear(f, CLOSE) && members.every(g => Math.hypot(g.x - f.x, g.z - f.z) >= CLOSE));
+        && Math.hypot(f.x - a.x, f.z - a.z) <= reach && clear(f, CLOSE) && members.every(g => Math.hypot(g.x - f.x, g.z - f.z) >= CLOSE)
+        && findPath(a, f, Math.ceil(reach * 2), height));
       if (!f) break;
       members.push(f);
     }

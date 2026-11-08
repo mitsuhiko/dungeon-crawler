@@ -6,12 +6,14 @@ import { N, DIRS, WALK_SPEED, RUN_SPEED, RUN_RAMP } from '../../src/core/constan
 import { player, state } from '../../src/game/state.js';
 import { SWORD, cancelSwing, startSwing, damageEnemy, combatStats, reloadTime } from '../../src/core/combat.js';
 import { ITEMS } from '../../src/core/items.js';
-import { addItem, equipItem } from '../../src/core/inventory.js';
+import { addItem, equipItem, copperTotal } from '../../src/core/inventory.js';
 import { BURST_SHARE, chainShare } from '../../src/core/shots.js';
 import { shots, clearShots } from '../../src/game/shots.js';
 import { shotModelsReady } from '../../src/render/shots.js';
 import { createPlayerStats, createRun } from '../../src/core/progression.js';
 import { resetEnemies, allEnemies, updateEnemies, drawEnemies } from '../../src/game/enemies.js';
+import { lootHere, updateLoot, requestCollect, floorItems } from '../../src/game/loot.js';
+import { notices, stepEnemies } from '../../src/game/enemyai.js';
 import { spiders } from '../../src/game/spiders.js';
 import { stunders } from '../../src/game/stunders.js';
 import { snakes } from '../../src/game/snakes.js';
@@ -485,6 +487,91 @@ export async function runFireChecks() {
       state.map = originalMap; state.run = savedRun;
       Object.assign(player, saved); cancelSwing(player, true);
       resetEnemies(); tickBurning(1);
+    }
+  });
+}
+
+// Real pickup flights: the coin magnet, action key and inventory keep distinct radii.
+export async function runCollectionRangeChecks() {
+  return paused(async () => {
+    const originalMap = state.map, saved = { ...player }, savedRun = state.run;
+    try {
+      state.map = arena(); state.run = createRun(); hero();
+      const pickup = (id, distance, itemId = 'item_coin_copper') => ({
+        id, source: id, seq: 1, itemId, count: 1, x: player.x + distance, y: 0, z: player.z,
+        from: { x: player.x + distance, y: 0, z: player.z }, toss: 1, phase: 0, fly: null, claim: null,
+      });
+      const auto = pickup('auto', 3), manual = pickup('manual', 3.01), edge = pickup('edge', 8),
+        outside = pickup('outside', 8.01), potion = pickup('potion', 2.5, 'item_potion_health'),
+        sword = pickup('sword', 5, 'weapon_sword_short');
+      state.run.loot.set(state.cubeKey, [auto, manual, edge, outside, potion, sword]);
+      const coins = copperTotal(player.inventory);
+      updateLoot(1 / 60, 0);
+      check(auto.claim === 'mine' && auto.fly, 'Coins at three cells automatically fly in');
+      check([manual, edge, outside, potion, sword].every(p => !p.claim), 'No longer auto range or magnet for other items');
+      check(!floorItems().includes(sword), 'The inventory does not inherit the longer F range');
+      requestCollect(); updateLoot(1 / 60, 0.1);
+      check([manual, edge, potion].every(p => p.claim === 'mine'), 'F collects stackables through eight cells');
+      check(!outside.claim && !sword.claim, 'F leaves distant coins and equipment');
+      for (let i = 0; i < 150; i++) updateLoot(1 / 60, 0.2 + i / 60);
+      check(copperTotal(player.inventory) === coins + 3, 'Flying coins are credited exactly once');
+      check(lootHere().length === 2 && lootHere().includes(outside) && lootHere().includes(sword), 'Only uncollected loot remains');
+      return ['automatic coins: 3 cells', 'F: 8 cells, stackables only', 'inventory floor: still 4 cells', 'flight credits once'];
+    } finally {
+      state.map = originalMap; state.run = savedRun; Object.assign(player, saved);
+    }
+  });
+}
+
+// Real awareness and hunt decisions on a controlled floor, without moving the hunter.
+export async function runAwarenessChecks() {
+  return paused(async () => {
+    const originalMap = state.map, saved = { ...player }, passive = state.devPassive;
+    try {
+      state.map = arena(); hero(); state.devPassive = false;
+      const e = makeEnemy({ f: at(6.5, 6.5), x: 6.5, y: 0, z: 6.5, yaw: 0 }, SPIDER);
+      const putHero = (x, z) => Object.assign(player, { x, z, support: at(x, z) });
+      putHero(6.5, 6.5 + SPIDER.aggro);
+      check(notices(e), 'Notices at the enlarged forward boundary');
+      player.z += 0.01;
+      check(!notices(e), 'Not beyond the forward boundary');
+      putHero(6.5, 6.5 - SPIDER.aggro / 2);
+      check(notices(e), 'Notices at half range behind');
+      player.z -= 0.01;
+      check(!notices(e), 'Not beyond the rear boundary');
+      putHero(6.5, 10.5); player.y = 1.61;
+      check(!notices(e), 'Awareness still respects height');
+      player.y = 0;
+      state.map.blockers[8 * N + 6] = [{ shape: 'box', x0: 6, x1: 7, z0: 8, z1: 9, bottom: -1, top: 3 }];
+      check(!notices(e), 'Awareness still respects walls');
+      state.map.blockers[8 * N + 6] = [];
+
+      // Keep its feet still while the real decision clock hunts a distant last-seen spot.
+      e.profile = { ...e.profile, chase: 0 };
+      const startHunt = (x, z, provoked = 0) => {
+        putHero(x, z);
+        Object.assign(e, { mode: 'chase', think: 0, lost: 0, provoked, path: null,
+          seen: { x, y: 0, z, f: at(x, z) } });
+      };
+      const think = () => { e.think = 0; stepEnemies([e], 0.2); };
+      putHero(6.5, 6.5 + SPIDER.giveUp - 0.1);
+      startHunt(player.x, player.z); think();
+      check(e.lost === 0, 'Tracks a visible target beyond the old six-cell pursuit range');
+
+      for (const [provoked, memory] of [[0, 4], [8, 8]]) {
+        startHunt(18.5, 18.5, provoked);
+        for (let i = 0; i < (memory - 0.4) / 0.2; i++) think();
+        check(e.mode === 'chase', 'Still hunts near the end of its ' + memory + '-second memory');
+        for (let i = 0; i < 4 && e.mode === 'chase'; i++) think();
+        check(e.mode === 'search', 'Searches after its ' + memory + '-second memory expires');
+      }
+
+      e.x = e.z = 3.5; e.f = at(3.5, 3.5);
+      startHunt(18.5, 18.5); think();
+      check(e.path?.at(-1) === at(18.5, 18.5) && e.path.length === 31, 'Hunts along a thirty-step path');
+      return ['awareness: front / rear / height / walls', 'pursuit: longer visibility / 4s memory / 8s after a hit / 30-step path'];
+    } finally {
+      state.map = originalMap; state.devPassive = passive; Object.assign(player, saved);
     }
   });
 }

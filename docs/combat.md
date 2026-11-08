@@ -66,10 +66,11 @@ The controls are the same for all.
 - Each depth has its own roster (`src/core/spawns.js`, see [depths.md](depths.md)):
   snakes and a rare Stunder near the surface, then spiders, then the stronger species
   further down. Each cube rolls which species it holds, how many, and which one leads.
-  Melee species spawn in packs that grow with depth; ranged ones stay at a few per cube.
+  Melee species spawn in packs that grow with depth; light snakes or spiders can form packs
+  at every depth, including the road and the deepest rooms. Ranged ones stay at a few per cube.
   Spawn sites must be dry, clear for the species' height, linked to walkable floors,
-  at least four cells from portals and spaced apart (a pack gathers closer around its
-  first member). If no safe site exists, spawn fewer.
+  at least four cells from portals and spaced apart (a pack gathers closer around its first
+  member, on connected ground). If no safe site exists, spawn fewer.
 - Every layer has one [wild horde pack](hordes.md) in ordinary terrain: numerous lighter melee enemies
   rally together on sight or damage, approaching from different sides. Their
   attack starts are staggered and capped at three simultaneous attacks. Hordes
@@ -383,20 +384,21 @@ times a second (0.2 s, jittered so a pack does not decide in lockstep) and acts 
   body probe is kept within 0.42 cells, so broad bodies fit on one-cell structures.
 - **Noticing** (idle, walk, home, search): within `aggro` ahead of it (100° either side of its
   heading), half that behind it, or within 1.6 cells whatever it faces; with a clear line from
-  its eyes to your chest and within 1.6 height. Within 1.4 × aggro in sight it turns towards
+  its eyes to your chest and within 1.6 height. A spider notices you from 4.5 cells ahead and
+  keeps tracking you within 7.5 cells (`giveUp`). Within 1.4 × aggro in sight it turns towards
   you slowly, so sneaking up from behind works only so long. Noticing puts it in `alert` (a
   "!" over its head) for 0.3–0.6 s, then it gives chase and calls the others: idle enemies
   within 5 cells react a little later. A hit (any damage, also unstaggered ones) makes it hunt at
   once, for longer, and calls the others too. Hordes and guardian defenders keep their group
   logic ([hordes.md](hordes.md), [guardians.md](guardians.md)).
-- **Hunting** (`chase`): a path (up to 24 steps; 40 for 6 s after a hit) to the node you stand
-  on; while you are not on one it can walk (jumping, swimming, on a ladder, under a ceiling too
-  low for it), to the one you jumped from while you are above it; else to the nearest node it
+- **Hunting** (`chase`): a path (up to 30 steps; 40 × room scale for 8 s after a hit) to the
+  node you stand on; while you are not on one it can walk (jumping, swimming, on a ladder,
+  under a ceiling too low for it), to the one you jumped from while you are above it; else to the nearest node it
   can start an attack on you from (`game/tactics.js` `postPath`: a blow's reach from the edge of
   the cell, a throw's within its reach with a clear line from its muzzle), so a thrower goes to
   the bank across the river and shoots. It sees you within the larger of `aggro` and `giveUp`,
   all around and up to 4 above or below. A hit tells it where you stand even out of sight, so
-  shot from afar it comes. Out of sight it keeps going for 3 s (6 s after a hit); once it
+  shot from afar it comes. Out of sight it keeps going for 4 s (8 s after a hit); once it
   reaches the spot where it lost you or runs out of memory, it `search`es: it walks as close
   to that spot as it gets, looks around near there for 4 s, then goes home.
 - **Out of reach** (`hide`): with no way to you and no spot to attack you from, it walks as
@@ -716,6 +718,7 @@ await checks.runCombatChecks(); // real input (click on an enemy, Shift), contro
 await checks.runControlChecks(); // run ramp / left Ctrl walk (not right) / Ctrl+W, Space jump, Shift auto-attack only in reach, F unbound
 await checks.runNewEnemyChecks(); // snake bite, Octonaut slap / spin kick, their clips and corpses
 await checks.runFireChecks(); // fireball + burning, Triangle punch / dodge / walls, Fire-cat chase and pounce
+await checks.runAwarenessChecks(); // front / rear detection, height / walls, pursuit range / memory / paths
 await checks.runTacticsChecks(); // out of reach: shot takes cover, seen glares then hides, back out; shot from afar comes; a thrower shoots from its bank
 await checks.runClimbChecks(); // ladder controller, reverse / hold / exits, dynamic weapon
 await checks.runGetUpChecks(); // knockdown -> ragdoll -> GetUpFront / GetUpBack, move time, idle pose

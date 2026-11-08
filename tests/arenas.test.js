@@ -11,6 +11,7 @@ import { ARENA_TYPES } from '../src/cubegen/arenashapes.js';
 import { propMetadata } from '../src/core/propcatalog.js';
 import { guardianSpots } from '../src/game/enemyspawn.js';
 import { walkable, findPath } from '../src/physics/enemynav.js';
+import { walker } from '../src/physics/dwell.js';
 import { buildCubeGeometry } from '../src/render/cubegeo.js';
 import { placeProps } from '../src/render/propplace.js';
 import { BOSS_ARENAS } from '../src/core/bosses.js';
@@ -56,11 +57,11 @@ test('every arena type keeps a connected zone, flat doorways, out-of-reach scene
     for (const p of m.portals) for (const c of p.cells) assert.ok(m.floors[c].cs.every(y => y === level * LH), `${type}: pad ${c}`);
     assert.ok(!blocked.has(m.guardian.floor.c));
     for (const p of m.portals) for (const c of p.cells) assert.ok(!blocked.has(c));
-    // every free zone floor is reachable on foot from the entrance
+    // every free dry zone floor is reachable on foot; a pond is for its fluid dwellers
     const seen = new Set([m.portals[0].floor]), queue = [m.portals[0].floor];
     for (let i = 0; i < queue.length; i++) for (const g of queue[i].link)
       if (g && !seen.has(g) && !blocked.has(g.c)) { seen.add(g); queue.push(g); }
-    for (const f of m.floors) if (f.encounter && !blocked.has(f.c)) assert.ok(seen.has(f), `${type}: stranded ${f.x},${f.z}`);
+    for (const f of m.floors) if (f.encounter && !f.fluid && !blocked.has(f.c)) assert.ok(seen.has(f), `${type}: stranded ${f.x},${f.z}`);
     // scenery beside the zone is a wall, or lower ground behind a rail
     for (const f of m.floors) if (f.encounter) for (const [dx, dz] of DIRS) {
       const g = m.floors[(f.z + dz) * N + f.x + dx];
@@ -71,9 +72,13 @@ test('every arena type keeps a connected zone, flat doorways, out-of-reach scene
     // clutter: real props, blockers inside their own cell
     for (const q of m.arenaPlacements) assert.ok(propMetadata.has(q.name) && Number.isFinite(q.y), q.name);
     m.staticBlockers.forEach((list, c) => { for (const b of list) assert.equal(Math.floor(b.z) * N + Math.floor(b.x), c); });
-    // the doubled roster fits and every body can reach the guardian
-    const spots = guardianSpots(m), guard = spots.find(s => s.guardian);
-    for (const s of spots) assert.ok(walkable(s.f, s.kind.height) && findPath(s.f, guard.f, 40, s.kind.height), `${type}: spot`);
+    // the doubled roster fits: dry bodies reach the post, fluid dwellers stay in their ponds
+    const spots = guardianSpots(m);
+    for (const s of spots) {
+      const body = s.kind.dwells ? walker(s.kind) : s.kind.height;
+      assert.ok(walkable(s.f, body), `${type}: spot`);
+      if (!s.kind.dwells) assert.ok(findPath(s.f, m.guardian.floor, 40, body), `${type}: path to post`);
+    }
     assert.ok(findPath(m.portals[0].floor, m.guardian.floor, 40));
     assert.equal(buildCubeGeometry(m).length, 1);
   }

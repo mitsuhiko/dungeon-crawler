@@ -5,7 +5,7 @@ import { edgeKey } from '../src/core/util.js';
 import { flatMap, state } from './fixtures.js';
 import { SPIDER, STUNDER, ENEMY_PROFILES, ENEMY_KINDS, makeEnemy, isRanged } from '../src/core/enemies.js';
 import { enemySpots } from '../src/game/enemyspawn.js';
-import { DEPTH_SPAWNS, population, livesIn, comesTo, entryWorth, budgetAt, SPREAD } from '../src/core/spawns.js';
+import { D, DEPTH_SPAWNS, population, livesIn, comesTo, entryWorth, budgetAt, SPREAD } from '../src/core/spawns.js';
 import { walkable, neighbors, findPath, pathToward, stepEnemy, clearLine } from '../src/physics/enemynav.js';
 import { topOf } from '../src/core/surfaces.js';
 import { World } from '../src/world/world.js';
@@ -118,7 +118,7 @@ test('each depth draws its species from its own roster, within the mix, worth ab
   const index = new Map(ENEMY_PROFILES.map(p => [p.type, p]));
   for (const [depth, row] of DEPTH_SPAWNS.entries()) {
     const seen = new Set();
-    let worth = 0, cubes = 0;
+    let worth = 0, cubes = 0, packed = false;
     for (const e of row.roster) assert.ok(index.has(e.type) && e.lo >= 1 && e.hi >= e.lo && e.pack >= 1 && e.chance > 0 && e.world >= 1, `${depth} ${e.type}`);
     // (a species that keeps to some themes, `where`: cubes of those and of others; one that comes
     // to worlds of a higher level only, `world`: worlds of level 1 and of level 10)
@@ -142,10 +142,13 @@ test('each depth draws its species from its own roster, within the mix, worth ab
       for (const p of ENEMY_PROFILES) {
         const spots = enemySpots(map, p);
         assert.ok(spots.length <= (pop.get(p.type)?.count ?? 0));
+        if (['snake', 'spider'].includes(p.type) && spots.some((a, i) => spots.slice(i + 1)
+          .some(b => Math.hypot(a.x - b.x, a.z - b.z) < p.spacing))) packed = true;
         for (const e of spots) assert.ok(walkable(e.f, p.height) && Math.hypot(e.f.x, e.f.z) >= 4);
       }
     }
     assert.deepEqual([...seen].sort(), [...new Set(row.roster.map(e => e.type))].sort(), `depth ${depth}`);
+    assert.ok(packed, `depth ${depth} can place ordinary light-enemy packs`);
     // (on average: the rooms of shooters alone stay under it, see core/spawns.js fitBudget)
     const mean = worth / cubes, budget = budgetAt(depth) * ROOM_SCALE;   // (core/spawns.js: a bigger room holds more)
     assert.ok(mean > budget * (1 - SPREAD) && mean < budget * (1 + SPREAD), `depth ${depth}: ${mean.toFixed(0)} for ${budget}`);
@@ -199,6 +202,21 @@ test('melee swarms grow with depth and spawn in packs, ranged species stay few',
   }
   assert.ok(packed > 0);
 });
+test('ordinary packs gather on connected ground, not across a river', () => {
+  for (const seed of [1, 2, 3]) {
+    const map = at(seed, 3);
+    map.spawns = D(1, ['spider', 1, 6, 6, 6]);
+    for (const f of map.floors) {
+      f.noSpawn = f.z < 6 || f.z > 9 || f.x < 5 || f.x > 11;
+      if (f.x === 8) f.fluid = true;
+    }
+    const spots = enemySpots(map, SPIDER);
+    assert.ok(spots.length >= 2);
+    for (const a of spots) for (const b of spots) if (a !== b && Math.hypot(a.x - b.x, a.z - b.z) < SPIDER.spacing)
+      assert.ok(findPath(a.f, b.f, 10, SPIDER.height), 'close pack members share walkable ground');
+  }
+});
+
 test('every cube of a world of a higher level says so, arenas and the town too, and its enemies stand higher', () => {
   const plain = new World(5), high = new World(5, { level: 9 });
   const guarded = [...high.layout(2).guardians.keys()];

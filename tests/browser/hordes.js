@@ -35,12 +35,15 @@ export async function runHordeChecks() {
         const map = state.map, list = allEnemies(), ids = list.map(e => e.id);
         check(list.length === map.horde.count && list.every(e => e.hordeId === map.horde.id), 'full crowd and group survive worker loading');
         check(!portalLocked(map, state.run, map.portals.find(p => p.dir === map.exit)), 'horde adds no onward gate');
-        player.hp = player.maxHp = 10000; state.enemyGrace = 60;
+        player.hp = player.maxHp = 10000; player.god = false; state.enemyGrace = 60;
         check(map.archetype !== 'arena' && map.horde.wild, 'horde lives in normal terrain, not a new arena');
         const approach = around(map.horde.floor, 10, list[0].profile.height).filter(f => f.hordeReserved)
           .sort((a, b) => Math.hypot(b.x - map.horde.floor.x, b.z - map.horde.floor.z) - Math.hypot(a.x - map.horde.floor.x, a.z - map.horde.floor.z))[0];
         spawnAt(approach.x + .5, floorY(approach, .5, .5), approach.z + .5);
         const initial = list.map(e => [e, e.x, e.z]);
+        // Keep a survivor outside its own awareness even when the species' range is tuned.
+        const distant = list.at(-1);
+        distant.profile = { ...distant.profile, aggro: .1 };
         damageEnemy(list[0], list[0].hp); updateEnemies(.05);
         check(list[1].horde.group.active, 'killing a scout wakes surviving group');
         check(list.some(e => Math.hypot(player.x - e.x, player.z - e.z) > e.profile.aggro), 'alarm reaches beyond individual aggro');
