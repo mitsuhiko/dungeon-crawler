@@ -544,6 +544,13 @@ language of the moment, and it goes into the chronicle (kind `narration`). Setti
 narrator's volume (Sound), and the subtitles on or off and their size (General, Guidance; the
 size is the films' subtitles' too).
 
+**Memory:** a clip's file (Ogg Opus, 10 kbit/s) is kept once fetched (about 5 MB for a whole
+language); what it decodes to is 150 times as big (32-bit samples at the sound's rate, 48 kHz on
+most devices: 11 MB a minute, the whole narration about 600 MB a language). Only the clips decoded
+last are kept, up to 16 MB (`DECODED`): a line is said once in a world, and a film or the memories
+playing one again decode it again from its file (milliseconds). What is playing holds its own
+clip. Decoding 80 lines (8.4 minutes) in a row used to keep 93 MB; now 16.
+
 The sibling's gender (`SIBLING` forms) should be the hero's (story.md, "What the game needs"
 1); until heroes have one, the world's seed picks it. Playing together, every screen has its own
 narrator, telling what happens there.

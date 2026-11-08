@@ -73,19 +73,54 @@ function fetchManifest() {
 }
 const clipEntry = (lang, key) => manifest?.clips?.[lang]?.[key] ?? null;
 
+// The clips' files (Ogg Opus at 10 kbit/s: about 5 MB a language) are kept once fetched; what
+// they decode to is 150 times as big (32-bit samples at the sound's rate: 11 MB a minute at
+// 48 kHz, the whole narration 600 MB a language), so only the clips decoded last are kept, up
+// to DECODED bytes. A line is said once in a world: the decoded clip is wanted while the line
+// waits and is said, and again only by a film or the memories, which decode it again (it takes
+// milliseconds). What plays holds its own clip (the line being said, a film's), whatever the
+// cache lets go.
+const DECODED = 16 * 2 ** 20;
+const files = new Map();     // `${lang}/${key}` -> a promise of its file (null: it did not come)
+const decoded = new Map();   // `${lang}/${key}` -> { clip: a promise of it decoded, bytes }, the last used last
+let decodedBytes = 0;
+function fileOf(k) {
+  if (!files.has(k)) {
+    files.set(k, fetch(new URL(`../../assets/narration/${k}.opus`, import.meta.url))
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
+      .catch(e => { console.warn(`narration ${k}: ${e.message}`); files.delete(k); return null; }));
+  }
+  return files.get(k);
+}
+function forget(k, e) { if (decoded.get(k) === e) { decoded.delete(k); decodedBytes -= e.bytes; } }
+// the clips decoded longest ago go while there are more than DECODED bytes (the one just decoded
+// stays)
+function trimDecoded(keep) {
+  for (const [k, e] of decoded) {
+    if (decodedBytes <= DECODED) break;
+    if (e.bytes && k !== keep) forget(k, e);
+  }
+}
 // `${lang}/${key}` -> a promise of the decoded clip (null: it did not come)
-const clips = new Map();
 function clipOf(lang, key) {
   const k = `${lang}/${key}`;
-  if (!clips.has(k)) {
-    if (!ctx) return Promise.resolve(null);
-    clips.set(k, fetch(new URL(`../../assets/narration/${lang}/${key}.opus`, import.meta.url))
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
-      .then(b => ctx.decodeAudioData(b))
-      .catch(e => { console.warn(`narration ${k}: ${e.message}`); clips.delete(k); return null; }));
-  }
-  return clips.get(k);
+  let e = decoded.get(k);
+  if (e) { decoded.delete(k); decoded.set(k, e); return e.clip; }
+  if (!ctx) return Promise.resolve(null);
+  const ac = ctx;
+  e = { bytes: 0 };
+  // (decoding takes the bytes it is given away: a copy, the file stays)
+  e.clip = fileOf(k).then(file => file && ac.decodeAudioData(file.slice(0))).then(buffer => {
+    if (!buffer) { forget(k, e); return null; }
+    if (decoded.get(k) === e) { e.bytes = buffer.length * buffer.numberOfChannels * 4; decodedBytes += e.bytes; trimDecoded(k); }
+    return buffer;
+  }, err => { console.warn(`narration ${k}: ${err.message}`); forget(k, e); return null; });
+  decoded.set(k, e);
+  return e.clip;
 }
+// what the narration holds (the perf overlay, tests/browser): its decoded clips' bytes and count,
+// the files fetched
+export const narrationMemory = () => ({ decoded: decodedBytes, clips: decoded.size, files: files.size });
 
 // a clip's source through the voice bus; worn: thin, as an old recording sounds (the film's lines,
 // the glassmaker's recordings). -> its gain (to fade it, and to disconnect when it is over)
