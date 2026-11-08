@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { N } from '../core/constants.js';
 import { NOON } from '../core/daycycle.js';
 import { bakeScene, bakeRenderer } from './lighthook.js';
+import { nativeRatio } from '../core/resolution.js';
+import { small } from './device.js';
 
 // no antialias: the anti-aliasing is our own, at the level of the settings (msaa.js)
 export const renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -13,13 +15,14 @@ bakeRenderer(renderer);   // (its programs, and only its, take the fixed lights:
 // Chrome that waits for everything the GPU process has queued (other programs compiling ahead
 // among it): 100-400 ms stalls on entering a cube. Only with the dev tools (?dev=1).
 renderer.debug.checkShaderErrors = new URLSearchParams(location.search).get('dev') === '1';
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 // The canvas fills the window by CSS (style.css, #view), so it can never be wider or taller than
 // the page: on an iPad a canvas bigger than the page for a moment (turning it, the keyboard) made
 // Safari change its zoom, and nothing turned it back. Its drawing buffer follows the layout
 // viewport: not innerWidth / innerHeight, which in Safari are the visual viewport (smaller while
 // the keyboard is up or the page is zoomed, stale while an iPad turns).
 export const viewSize = () => ({ w: document.documentElement.clientWidth || innerWidth, h: document.documentElement.clientHeight || innerHeight });
+// (from the first frame as render/resolution.js has it: a small device's canvas never at more)
+renderer.setPixelRatio(nativeRatio(devicePixelRatio, viewSize().w, viewSize().h, small));
 //
 // The canvas only changes size right before a frame is drawn (main.js calls fitView before
 // rendering): resizing a WebGL canvas clears it, and the browser then shows that empty canvas.

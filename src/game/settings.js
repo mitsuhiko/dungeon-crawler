@@ -30,6 +30,7 @@ import { setMusicEnabled } from '../audio/music.js';
 import { setVolume, setQuietBehind as quietAudio } from '../audio/context.js';
 import { clampLookSpeed, CLOSE_FOV } from '../core/view.js';
 import { ZOOM_LEVELS, DEFAULT_ZOOM } from '../core/zoom.js';
+import { small, handheld } from '../render/device.js';
 import { SETTINGS_KEY, isLanguage, setLanguage, language } from '../i18n/i18n.js';
 
 const KEY = SETTINGS_KEY, OLD_MUSIC = 'crawler.music';
@@ -46,15 +47,16 @@ function read() {
 const volume = v => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1);
 export const FRAME_RATES = [30, 60, 0];       // frames a second at most; 0: as many as the screen shows
 // MSAA samples; 0: off (the GPU may offer fewer, render/msaa.js). 'auto' (the default) picks once,
-// when the page starts, by the screen: 2x on a high-DPI one (it looks like 4x there, for less of
-// the GPU's work), 4x on others. It never changes by itself after that (render/msaa.js: a new
-// number of samples freezes the game for a moment). Where the screen is touched (phones,
-// tablets) 30 frames a second at first: they stay cooler and last longer, and the GPU has twice
-// the time for a frame.
+// when the page starts, by the screen: off on a small device (render/device.js: its MSAA buffers
+// would be twice the canvas's memory again; its pixels are dense, its edges small), 2x on a
+// high-DPI one (it looks like 4x there, for less of the GPU's work), 4x on others. It never
+// changes by itself after that (render/msaa.js: a new number of samples freezes the game for a
+// moment). On phones and tablets (render/device.js handheld: an iPad with a trackpad too) 30
+// frames a second at first: they stay cooler and last longer, and the GPU has twice the time for
+// a frame.
 export const ANTIALIAS = ['auto', 0, 2, 4, 8];
-const AUTO_MSAA = (globalThis.devicePixelRatio || 1) >= 1.5 ? 2 : 4;
-const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-const DEFAULT_FPS = touch ? 30 : 60, DEFAULT_MSAA = 'auto';
+const AUTO_MSAA = small ? 0 : (globalThis.devicePixelRatio || 1) >= 1.5 ? 2 : 4;
+const DEFAULT_FPS = handheld ? 30 : 60, DEFAULT_MSAA = 'auto';
 export const CAMERAS = ['overview', 'close'];
 // the lighting's quality level (game/quality.js): 'auto' (it follows the frame rate,
 // render/resolution.js) or one of them pinned, the best first

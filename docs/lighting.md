@@ -355,10 +355,11 @@ changes is how much is drawn for that:
   over 3× its median: a shader compiling, a cube built) are not counted. A level's step is judged
   a second later than the others (its fades). Up after a calm spell: the resolution, then the
   level. The level reached is kept
-  for the next visit (`crawler.quality`); a first visit starts at Low where the screen is touched,
+  for the next visit (`crawler.quality`); a first visit starts at Low on a small device (below),
   at Medium elsewhere.
 
-Where the screen is touched the frame rate cap is 30 at first (a setting like any other).
+On phones and tablets (`render/device.js handheld`: a touched screen, or iOS, so an iPad with a
+trackpad too) the frame rate cap is 30 at first (a setting like any other).
 
 ## Small devices (`render/device.js`)
 
@@ -372,6 +373,20 @@ finer than Low (`BAKE_DETAIL.light`, so its worlds' lightmaps have 8 texels a un
 of what moves is at most 1024² (`SMALL_SUN_MAP`), and it keeps one bake and bakes one cube ahead
 (`CACHE`, `AHEAD`). What the levels change otherwise (the shadows drawn, the lights a point takes,
 the town's dressing) still follows the frame rate.
+
+**Its pixels** are memory too, as long as the page lives: the canvas's colour and depth, the MSAA
+buffers (as big again, times the samples) and what Safari keeps to show the canvas. A tablet's GPU
+holds 30 frames a second at 2× (an 11" iPad 2360×1640, 3.9 million pixels), so Auto, which follows
+the frame rate, would climb back to it from any lower start. So a small device's Auto goes no
+higher than `SMALL_PIXELS` (2.1 million: `core/resolution.js nativeRatio`, following the window's
+size), never under the CSS pixels: phones keep their 2× (1.3 million on an iPhone 16e, 1.7 on a
+Pro Max), an 11" iPad draws at about 1.45×, a 13" at 1.2×. A resolution pinned in the settings is
+a share of the screen's own pixels, as asked for. And its anti-aliasing's Auto is off: 2× MSAA
+would cost twice the canvas's memory again, and at well over one pixel a CSS pixel its edges are
+small (side by side at 1.47× without MSAA and 2× with 2×, Chrome emulating an iPad, they look the
+same). Chrome emulating an iPad (1180×820, its town): what WebGL holds at the start from 132 MB to
+73 MB (the MSAA buffers' 59 MB gone), and the canvas's own buffers, which `render/gpumem.js` does
+not see, from about 30 to 16 MB.
 It also draws only a share of the small dressing (grass, flowers, stones, little clutter: under a
 unit, blocking nothing, glowing nothing; `render/propplace.js thinDressing`), about as much as a
 cube of 16 cells had, in the cube played in and in the town's surroundings. Only what is drawn: the

@@ -1,13 +1,18 @@
 // The render resolution follows the frame rate (core/resolution.js): main.js hands over when each
 // frame began, after it rendered. With the lighting on Auto the quality level (game/quality.js)
 // goes down before the resolution; the anti-aliasing stays as set (render/msaa.js).
+// Auto goes no higher than the screen's ratio, on a small device no higher than its pixel budget
+// (core/resolution.js nativeRatio: a tablet's memory), which follows the window's size.
 // The settings (game/settings.js resolution) may pin it too: a share of the screen's own pixels
-// (main.js setResolution). ?res=<pixel ratio> pins it over both (1: CSS pixels), e.g. to compare.
-import { requestFit } from './scene.js';
-import { resolutionController } from '../core/resolution.js';
+// (main.js setResolution: asked for, so not held to the budget). ?res=<pixel ratio> pins it over
+// both (1: CSS pixels), e.g. to compare.
+import { requestFit, viewSize } from './scene.js';
+import { resolutionController, nativeRatio } from '../core/resolution.js';
+import { small } from './device.js';
 
 const pinned = Number(new URLSearchParams(location.search).get('res'));
-const native = () => Math.min(devicePixelRatio, 2);
+const screenRatio = () => Math.min(devicePixelRatio, 2);
+const native = () => { const { w, h } = viewSize(); return nativeRatio(devicePixelRatio, w, h, small); };
 const control = pinned > 0 ? null : resolutionController(native());
 let share = 'auto';
 let last = 0;
@@ -33,8 +38,13 @@ export function tickResolution(start, fps = 0, drawn = true) {
 export function setResolution(s) {
   if (!control || s === share) return;
   share = s;
-  apply(s === 'auto' ? control.setRange(native()) : control.setRange(native() * s, native() * s));
+  apply(s === 'auto' ? control.setRange(native()) : control.setRange(screenRatio() * s, screenRatio() * s));
 }
+// the window changed size (Split View, Stage Manager; turning keeps its pixels): Auto starts
+// again from the budget's ratio when that moved
+if (control && small) addEventListener('resize', () => {
+  if (share === 'auto' && Math.abs(native() / control.max - 1) > 0.02) apply(control.setRange(native()));
+});
 
 // the quality levels Auto steps through (levels above the lowest; 0: not on Auto) and the one
 // to start from; the level it chose (game/quality.js follows it)

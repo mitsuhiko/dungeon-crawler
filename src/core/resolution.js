@@ -45,6 +45,20 @@ function steady(list) {
   return n ? sum / n : s[s.length >> 1];
 }
 
+// The pixel ratio the screen asks for (devicePixelRatio, at most 2: a 3x phone draws at 2x),
+// and on a small device (render/device.js) no more than SMALL_PIXELS pixels in a w x h CSS
+// pixel view, but never under 1. Auto (render/resolution.js) goes no higher. Memory, not the
+// frame rate: a tablet holds 30 frames a second at 2x, and Auto then climbs back to it, but
+// every pixel of the canvas (its colour and depth, the MSAA buffers, what Safari keeps to show
+// it) stays in memory as long as the page, which iOS Safari kills past its limit. Phones keep
+// their 2x (an iPhone 16e is 1.3 million pixels at 2x, a Pro Max 1.7); an 11" iPad draws about
+// 1.45x, a 13" 1.2x.
+export const SMALL_PIXELS = 2.1e6;
+export function nativeRatio(dpr, w, h, small = false) {
+  const r = Math.min(dpr || 1, 2);
+  return small && w * h > 0 ? Math.min(r, Math.max(1, Math.sqrt(SMALL_PIXELS / (w * h)))) : r;
+}
+
 export function resolutionController(max, min = Math.min(max, Math.max(0.6, max / 2)), quality = {}) {
   let levels = quality.levels ?? 0, level = quality.level ?? levels;
   let ratio = max, sum = 0, work = 0, n = 0, span = 0;

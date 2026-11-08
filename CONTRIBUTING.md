@@ -106,10 +106,11 @@ The game is plain ES modules and a vendored three.js; there is no build step.
       Cmd+Enter on a Mac, Alt+Enter elsewhere: `src/game/display.js`); under Guidance the
       narrator's subtitles and their size (the films' too), and the tutorial ("Show again" starts
       it over once it is done or skipped).
-    - Graphics: the frame rate cap (30, 60 or unlimited, `src/main.js`; 30 at first on touch
-      screens), the render resolution (Auto: it follows the frame rate, or 50% to 100% of the
-      screen's pixels: `src/render/resolution.js`), the anti-aliasing (Auto: 2x MSAA on high-DPI
-      screens, 4x elsewhere, picked once; or off to 8x, `src/render/msaa.js`), the lighting's
+    - Graphics: the frame rate cap (30, 60 or unlimited, `src/main.js`; 30 at first on phones
+      and tablets), the render resolution (Auto: it follows the frame rate, on phones and tablets within a
+      budget of pixels; or 50% to 100% of the screen's pixels: `src/render/resolution.js`), the
+      anti-aliasing (Auto: off on phones and tablets, 2x MSAA on high-DPI screens, 4x elsewhere,
+      picked once; or off to 8x, `src/render/msaa.js`), the lighting's
       quality level (Auto, or Lowest to High: `src/game/quality.js`, `docs/lighting.md`), the
       particles; the camera (the overview or the close view behind the hero; Tab or C taps
       between them: `src/game/camera.js`, `docs/camera.md`), the zoom a game starts at, the close

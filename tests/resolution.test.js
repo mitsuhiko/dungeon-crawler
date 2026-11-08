@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolutionController } from '../src/core/resolution.js';
+import { resolutionController, nativeRatio, SMALL_PIXELS } from '../src/core/resolution.js';
 
 // feed `ms` of frames, each `interval` apart and `spent` of them the frame's own work; returns
 // the ratios the controller switched to
@@ -178,4 +178,15 @@ test('a few hitches in a second of smooth frames step nothing down', () => {
   }
   assert.equal(c.ratio, 2);
   assert.ok(c.level >= 2, String(c.level));   // (smooth enough to try one up, even)
+});
+
+test('a small device draws no more than its pixel budget, phones keep their 2x', () => {
+  assert.equal(nativeRatio(3, 390, 844, true), 2);              // iPhone 16e
+  assert.equal(nativeRatio(3, 440, 956, true), 2);              // a Pro Max
+  const ipad = nativeRatio(2, 1180, 820, true);                 // iPad Air 11"
+  assert.ok(ipad > 1.3 && ipad < 1.5, String(ipad));
+  assert.ok(Math.abs(1180 * 820 * ipad ** 2 - SMALL_PIXELS) < 1);
+  assert.equal(nativeRatio(2, 4000, 3000, true), 1);            // never under the CSS pixels
+  assert.equal(nativeRatio(2, 1180, 820, false), 2);            // elsewhere the screen's, at most 2
+  assert.equal(nativeRatio(1, 1180, 820, true), 1);
 });

@@ -1,8 +1,8 @@
 // The lighting's quality level (the settings, game/settings.js graphics): one pinned, or Auto,
 // which follows the frame rate (render/resolution.js, core/resolution.js: down before the
 // resolution, up again after it once frames have been calm a while). The level Auto
-// reached is kept for the next visit (KEY); it starts low where the screen is touched and at
-// medium elsewhere.
+// reached is kept for the next visit (KEY); it starts low on a small device (render/device.js:
+// phones, tablets, an iPad with a trackpad too) and at medium elsewhere.
 //
 // Every level looks the same in kind: every fixed light with its baked shadow (render/bake.js),
 // the hero's lamp and the sun casting shadows. What changes is how much is drawn for that, and
@@ -31,7 +31,7 @@ import { setMoteRate } from '../render/motes.js';
 import { setCellDetail } from '../render/watercells.js';
 import { setAutoQuality, autoQuality } from '../render/resolution.js';
 import { setBakeDetail } from '../render/bake.js';
-import { small, touchScreen, SMALL_SUN_MAP } from '../render/device.js';
+import { small, SMALL_SUN_MAP } from '../render/device.js';
 import { setProxyDressing } from '../render/neighbors.js';
 
 export const LEVELS = ['lowest', 'low', 'medium', 'high'];
@@ -56,7 +56,7 @@ let level = -1, cells = BAKE.uBakeK.value;
 const asked = () => graphics() === 'auto' ? autoQuality() : LEVELS.indexOf(graphics());
 function settings() {
   if (graphics() === 'auto') {
-    const start = level >= 0 ? level : saved() >= 0 ? saved() : touchScreen ? 1 : 2;
+    const start = level >= 0 ? level : saved() >= 0 ? saved() : small ? 1 : 2;
     setAutoQuality(LEVELS.length - 1, start);
   } else setAutoQuality(0, LEVELS.indexOf(graphics()));
 }
