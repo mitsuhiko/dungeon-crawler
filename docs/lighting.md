@@ -10,7 +10,7 @@ anti-aliasing (MSAA) and every material's own look stay what they were.
 |---|---|---|
 | the sun (and the moon of the night themes and of the world's nights) | `render/scene.js` `sun`, where the cube played in has it (`render/bake.js setCurrentBake`) | of the fixed parts: baked, again as it moves (below); of what moves: three.js's shadow map |
 | the fixed lights | what a cube's glowing things give off, every one of them (`render/props.js`): lanterns, fires, lava, portals, crystals, a trial's braziers (`render/lightpool.js adoptLights` takes those not on a villager; at most 128 a cube) | baked when the cube is shown (`render/bake.js`) |
-| the moving lights | the hero's lamp (`render/character.js`, a three.js light); shots, enemies, loot, villagers' lamps, a partner (`trackLight`, `render/lightpool.js`) | the hero's lamp: a cube of shadow maps, as the quality level asks (`render/shadows.js`), but none of the hero and none where the sun outshines it; the others: none |
+| the moving lights | the hero's lamp (`render/character.js`) and our robot's core (`render/robotlight.js`), persistent three.js lights; shots, enemies, loot, villagers' lamps, a partner and their robot (`trackLight`, `render/lightpool.js`) | the hero's lamp: a cube of shadow maps, as the quality level asks (`render/shadows.js`), but none of the hero and none where the sun outshines it; our robot: a cube of shadow maps, including the hero but not the robot itself; the others: none |
 
 **Where a prop's light is:** where it glows (`core/glowspots.js`): its glowing triangles in
 pieces (a big piece in parts 0.8 across), the pieces nearer than 0.5 one spot, at most six a prop
@@ -235,11 +235,16 @@ every shader, so no program changes its cache key.
   the normal), soft; the sun from the kept shadow maps of the fixed parts (the two places',
   blended).
 - Times three.js's shadow map of the sun for what moves, as before.
-- The hero's lamp: three.js's cube of shadow maps, its bias in world units along the ray
+- The hero's lamp and our robot's core: three.js's cubes of shadow maps, their bias in world units along the ray
   (`render/character.js` `POINT_BIAS`, 0.03): three.js's own is in the map's depth, which made
   it grow with the square of the distance, and at the lamp's night reach the shadows of cliffs
   and walls started most of a unit from their foot.
-- **No double shadows:** the hero casts nothing into the lamp's maps (the lamp hangs over the
+- **The robot's light** is a little stronger and reaches 4.8 cells (`render/robotlight.js`). It
+  casts the hero's shadow, including worn and held things, but not its own body's: the core is
+  inside it. Its maps follow the lamp's quality level (including every-other-frame on Low and
+  fading out on Lowest), without the sun suppressing them. Hidden or asleep it goes dark or
+  dims with its model, as before. Other players' robots stay in the moving light pool.
+- **No double shadows from the hero's own lamp:** the hero casts nothing into the lamp's maps (the lamp hangs over the
   head, and its shadow of the figure lay next to the sun's), and where the sun outshines the
   lamp the lamp's shadows go altogether (`render/look.js sunShare`: the sun's share of the light
   on the ground at the hero's feet, from half to 0.68 the lamp's shadows fade out). By day under
@@ -415,7 +420,7 @@ keep up (and taking them back after a calm spell) was the worst of the stutters.
   phone shows what the game holds.
 - The lightmap is laid out for every cube the worker builds (10-25 ms), proxies too.
 - More than eleven overlapping lights: some shine without shadows (a dark forest cube: one of 40).
-- The moving lights (but the hero's lamp) cast no shadows: one inside what carries it (an enemy's
+- The moving lights (but the hero's lamp and our robot's core) cast no shadows: one inside what carries it (an enemy's
   glow) would be shut in by it.
 - The cells are a grid on the ground: lights of a floor far above or below share a point's list
   (what they cannot reach is cheap: a distance test).

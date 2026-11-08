@@ -48,7 +48,7 @@ export const lamp = light;
 // square of the distance: -0.002 was a few centimetres by the hero and most of a unit at the
 // lamp's night reach (10), so the shadows of cliffs and walls started that far from their foot.
 // (The map holds the casters' far sides: at the foot of a wall its depth is the ground's, and
-// any bias leaves that much lit there.) Only the lamp casts point shadows in the scene.
+// any bias leaves that much lit there.) This applies to the robot's light too (robotlight.js).
 const POINT_DP = /float dp = (\([^;]*\));\s*dp [+-]= shadowBias;/g;
 const POINT_BIAS = THREE.ShaderChunk.shadowmap_pars_fragment.replace(POINT_DP, (_, depth) =>
   `float biasedZ = max( viewSpaceZ + shadowBias, shadowCameraNear );\n\t\t\tfloat dp = ${depth.replaceAll('viewSpaceZ', 'biasedZ')};`);
