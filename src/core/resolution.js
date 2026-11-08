@@ -8,7 +8,8 @@
 //     mostly that work are CPU-bound, and fewer pixels would not help.
 //   - Every step down has to prove itself: if the next second is not clearly faster (a CPU-bound
 //     frame after all, or a browser that caps the frame rate, like Safari in low power mode), it
-//     is taken back and stepping down rests for a while.
+//     is taken back and that kind of step rests for a while: a quality level that did not help
+//     says nothing about the pixels, so the resolution goes down next (and the other way round).
 //   - Stepping up again waits for a calm spell, twice as long each time a step up had to be taken
 //     back right away, so the resolution does not see-saw.
 //   - Under a frame rate cap (the settings, game/settings.js) frames are judged against the cap:
@@ -30,7 +31,7 @@ const WINDOW = 1000;                 // ms of frames judged at a time
 const DOWN = 0.85, UP = 1.1;         // a step's factor
 const PROOF = 0.9;                   // a step down must make frames at least this much shorter
 const CALM = 4000, CALM_MAX = 64000; // ms of smooth frames before a step up
-const REST = 30000;                  // ms without stepping down after a step down that did not help
+const REST = 30000;                  // ms without that kind of step down after one that did not help
 const QUALITY_SETTLE = 1;           // windows a quality step waits before it is judged
 // A window's hitches are not counted: frames over HITCH times its median (and over HITCH_MS) are
 // a shader compiling or a cube built, not slow frames; a level stepped down for them was kept for
@@ -48,14 +49,14 @@ export function resolutionController(max, min = Math.min(max, Math.max(0.6, max 
   let levels = quality.levels ?? 0, level = quality.level ?? levels;
   let ratio = max, sum = 0, work = 0, n = 0, span = 0;
   const seen = [];   // the window's intervals
-  let smooth = 0, calm = CALM, rest = 0, trial = null, raised = -Infinity, clock = 0;
+  let smooth = 0, calm = CALM, rest = 0, restLevel = 0, trial = null, raised = -Infinity, clock = 0;
   const clamp = r => Math.min(max, Math.max(min, r));
   // interval: ms since the last frame; spent: ms the frame's own work took; target: ms between
   // frames the frame rate cap asks for (0: no cap).
   // Returns the new ratio when it changes, else null (`level` may have changed all the same).
   function tick(interval, spent, target = 0) {
     if (!(interval > 0) || interval > STALL) return null;
-    clock += interval; rest = Math.max(0, rest - interval);
+    clock += interval; rest = Math.max(0, rest - interval); restLevel = Math.max(0, restLevel - interval);
     sum += interval; work += spent; n++; span += interval; seen.push(interval);
     if (span < WINDOW) return null;
     const avg = steady(seen), busy = work / sum;
@@ -64,15 +65,14 @@ export function resolutionController(max, min = Math.min(max, Math.max(0.6, max 
     if (trial) {   // the second after a step down: did it help?
       if (trial.wait > 0) { trial.wait--; return null; }
       const t = trial; trial = null;
-      if (avg > t.before * PROOF) { rest = REST; level = t.level; return set(t.from); }
+      if (avg > t.before * PROOF) { if (t.pixels) rest = REST; else restLevel = REST; level = t.level; return set(t.from); }
     }
     if (avg > slow) {
       smooth = 0;
       if (clock - raised < 3000) calm = Math.min(CALM_MAX, calm * 2);   // the step up was too much
-      if (rest > 0) return null;
       const gpu = busy < CPU_BOUND;
-      if (level > 0) { trial = { from: ratio, level, before: avg, wait: QUALITY_SETTLE }; level--; return null; }
-      if (gpu && ratio > min) { trial = { from: ratio, level, before: avg }; return set(clamp(ratio * DOWN)); }
+      if (level > 0 && !restLevel) { trial = { from: ratio, level, before: avg, wait: QUALITY_SETTLE }; level--; return null; }
+      if (gpu && ratio > min && !rest) { trial = { from: ratio, level, before: avg, pixels: true }; return set(clamp(ratio * DOWN)); }
       return null;
     }
     smooth = avg < fast ? smooth + WINDOW : 0;
@@ -88,7 +88,7 @@ export function resolutionController(max, min = Math.min(max, Math.max(0.6, max 
   // returns it
   function setRange(hi, lo = Math.min(hi, Math.max(0.6, hi / 2))) {
     max = hi; min = Math.min(lo, hi); ratio = max;
-    trial = null; smooth = 0; calm = CALM; rest = 0;
+    trial = null; smooth = 0; calm = CALM; rest = restLevel = 0;
     return ratio;
   }
   // the quality levels to step through (0: none, the lighting is not on Auto), the level now

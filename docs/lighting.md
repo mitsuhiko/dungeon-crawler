@@ -348,7 +348,10 @@ changes is how much is drawn for that:
   point takes eased (`uBakeK`, a float: the last light fades); the fluids' patterns and the sun's
   map size simply switch.
 - **Auto** (`core/resolution.js`, with the resolution, unless the settings pin that): too slow, a step down: the level first,
-  then the resolution; CPU-bound slow frames take only the level down. A second's hitches (frames
+  then the resolution; CPU-bound slow frames take only the level down. A step that did not make
+  the frames faster is taken back and that kind of step rests for 30 s: a level that did not help
+  leaves the next step to the resolution (it used to try the level again, and the resolution never
+  came down while the pixels were what cost). A second's hitches (frames
   over 3× its median: a shader compiling, a cube built) are not counted. A level's step is judged
   a second later than the others (its fades). Up after a calm spell: the resolution, then the
   level. The level reached is kept

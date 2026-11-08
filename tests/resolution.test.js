@@ -139,6 +139,19 @@ test('a quality step that does not help is taken back after its settling second'
   assert.deepEqual(leveled(c, 20000, 30, 25), []);         // and it rests
 });
 
+test('a quality step that does not help leaves the resolution to step down next', () => {
+  // GPU-bound, the pixels are what costs: the level changes nothing
+  const c = resolutionController(2, undefined, { levels: 3, level: 1 });
+  const seen = [];
+  for (let t = 0; t < 15000;) {
+    const interval = Math.max(1000 / 60, 3 + 8 * c.ratio * c.ratio), before = `${c.ratio},${c.level}`;
+    c.tick(interval, 3); t += interval;
+    if (`${c.ratio},${c.level}` !== before) seen.push([+c.ratio.toFixed(3), c.level]);
+  }
+  assert.deepEqual(seen.slice(0, 3), [[2, 0], [2, 1], [1.7, 1]]);   // tried, taken back, the pixels next
+  assert.ok(c.ratio < 1.5 && c.level === 1, `${c.ratio} ${c.level}`);
+});
+
 test('smooth frames raise the resolution first, then the quality level', () => {
   const c = resolutionController(2, undefined, { levels: 3, level: 1 });
   leveled(c, 1000, 30, 5);                                 // 2,0
