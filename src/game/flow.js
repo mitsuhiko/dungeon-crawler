@@ -9,6 +9,7 @@ import { WorldClient } from '../world/client.js';
 import { step } from '../world/coords.js';
 import { buildWorld, disposeWorld, setWorldOpenFaces } from '../render/world.js';
 import { baked, bakeDensity } from '../render/bake.js';
+import { small } from '../render/device.js';
 import { groundAt } from '../physics/collide.js';
 import { respawnPoint } from '../physics/respawn.js';
 import { player, state, setStatus, worldLevel } from './state.js';
@@ -400,12 +401,19 @@ function prefetchAround(c, since = performance.now()) {
 
 // Visited cubes within the render budget, on the active stratum only, and nothing else: no
 // feature shows a cube before you have been in it (docs/world.md, "Only where you have been").
+// Cube k is the one played in from now: the geometry of the cubes away from it goes
+// (world/client.js trimGeometry); one round it without its geometry (it went while the hero was
+// away) shows once that is here again.
 export function visitedNeighbors(k) {
+  const cubes = state.cubes;
+  cubes.trimGeometry(k);
   if (!state.showNeighbors || isInterior(k)) return [];   // inside a house: nothing around
   // (landmarks show in the surroundings too: they are what you find your way by)
   // (the town's tiles: one place under one glass; from inside it half as dim, docs/town.md)
-  const inTown = !!state.cubes.cubes.get(k)?.map.town;
-  return discoveredCubes(state.cubes.cubes, k).map(c => {
+  const inTown = !!cubes.cubes.get(k)?.map.town;
+  const list = discoveredCubes(cubes.cubes, k), missing = list.filter(c => !c.geo);
+  for (const c of missing) cubes.geometry(c.key).then(() => { if (state.cubes === cubes && state.cubeKey === k) updateNeighbors(); });
+  return list.filter(c => c.geo).map(c => {
     const map = state.cubes.cubes.get(c.key).map;
     return { ...c, open: openedSides(state.openedFaces, c.key), shut: portalsOnly(map, state.run),
       landmarks: shownFar(map), seams: map.seams ?? null, dim: inTown && map.town ? NEIGHBOR_DIM.town : NEIGHBOR_DIM.world };
@@ -457,7 +465,7 @@ export function newWorld(seed = (Math.random() * 1e9) >>> 0, { keepPlayer = stat
   // dev: ?arche=<archetype> everywhere, ?theme=clouds,forge picks those themes for their depths,
   // ?bridge=chain / ?ladder=vine one bridge / ladder style wherever it fits, ?trial=flood a trial on every depth
   level ??= state.dev && Number(params.get('worldlevel')) || 1;
-  state.cubes = new WorldClient(seed, { level, load: cubeAssets, warm: warmCube, lightmap: bakeDensity(), arche: state.dev && params.get('arche'),
+  state.cubes = new WorldClient(seed, { level, load: cubeAssets, warm: warmCube, lightmap: bakeDensity(), geometry: (small ? 16 : 64) * 2 ** 20, arche: state.dev && params.get('arche'),
     themes: state.dev && params.get('theme') ? params.get('theme').split(',') : [],
     bridge: state.dev && params.get('bridge'), ladder: state.dev && params.get('ladder'),
     trial: state.dev && params.get('trial') || null });   // ?trial=flood: every depth gets one (world/trials.js)

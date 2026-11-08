@@ -4,7 +4,8 @@
 // (someone waits in a portal for it, world/client.js) goes to the front: the cube you walk into
 // is not made after all the ones fetched ahead around it. Between two cubes the worker lets new
 // requests in. A cube comes back as its map (structured clone keeps the object graph) plus what
-// the minimap needs to know about its tile and faces.
+// the minimap needs to know about its tile and faces. A cube's geometry asked for again (the main
+// thread let it go: world/client.js trimGeometry) is made from the map kept here, first too.
 import { World } from './world.js';
 import { faceKey } from './coords.js';
 import { isInterior } from './town.js';
@@ -28,19 +29,32 @@ function info(k) {
   return { kind: t.kind, sock: t.sock, K: t.K, faces };
 }
 
+const bytesOf = buffers => buffers.reduce((n, b) => n + b.byteLength, 0);
 function make(k) {
   try {
     const c = world.cube(k);
-    const geo = buildCubeParts(c.map);
-    postMessage({ type: 'cube', key: k, map: c.map, geo, info: info(k) }, partBuffers(geo));
+    const geo = buildCubeParts(c.map), buffers = partBuffers(geo);
+    postMessage({ type: 'cube', key: k, map: c.map, geo, bytes: bytesOf(buffers), info: info(k) }, buffers);
   } catch (e) {
     postMessage({ type: 'error', key: k, message: String(e.message || e) });
   }
 }
+// a cube's geometry again (the main thread let it go: world/client.js trimGeometry), from its
+// map kept here; null if it failed (the cube is then built from its map there)
+function remake(k) {
+  try {
+    const geo = buildCubeParts(world.cube(k).map), buffers = partBuffers(geo);
+    postMessage({ type: 'geo', key: k, geo, bytes: bytesOf(buffers) }, buffers);
+  } catch (e) {
+    console.error('cube geometry failed', k, e);
+    postMessage({ type: 'geo', key: k, geo: null });
+  }
+}
+const GEO = 'geo|';   // (a request for a geometry again, in the queue)
 
 function next() {
   scheduled = false;
-  if (queue.length) make(queue.shift());
+  if (queue.length) { const k = queue.shift(); if (k.startsWith(GEO)) remake(k.slice(GEO.length)); else make(k); }
   schedule();
 }
 function schedule() {
@@ -58,4 +72,5 @@ onmessage = ({ data }) => {
     if (data.urgent) queue.unshift(data.key); else queue.push(data.key);
     schedule();
   }
+  if (data.type === 'geo' && !queue.includes(GEO + data.key)) { queue.unshift(GEO + data.key); schedule(); }   // (someone waits for it)
 };

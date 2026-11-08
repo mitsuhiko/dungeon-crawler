@@ -202,8 +202,8 @@
       <li data-at="core" lang="de">Dabei benutzt sie die ganze Zeit das Regelbuch: wie groß ein Würfel ist, wie hoch eine Stufe ist, ihre eigenen Würfel zum Würfeln.</li>
       <li data-at="render" lang="en">Still in the worker, one file of the painter (<code>render/cubegeo.js</code>) turns the cube into triangles.</li>
       <li data-at="render" lang="de">Noch im Worker macht eine Datei des Malers (<code>render/cubegeo.js</code>) aus dem Würfel Dreiecke.</li>
-      <li data-at="world" lang="en">The worker sends a letter back: the map and the triangles. <code>world/client.js</code> keeps them.</li>
-      <li data-at="world" lang="de">Der Worker schickt einen Brief zurück: die Karte und die Dreiecke. <code>world/client.js</code> hebt sie auf.</li>
+      <li data-at="world" lang="en">The worker sends a letter back: the map and the triangles. <code>world/client.js</code> keeps them. The maps stay, but the triangles of cubes far away are thrown out again: they take ten times as much memory. Come back, and the worker makes them once more.</li>
+      <li data-at="world" lang="de">Der Worker schickt einen Brief zurück: die Karte und die Dreiecke. <code>world/client.js</code> hebt sie auf. Die Karten bleiben, aber die Dreiecke weit entfernter Würfel wirft es wieder weg: Sie brauchen zehnmal so viel Speicher. Kommst du zurück, macht der Worker sie noch einmal.</li>
       <li data-at="render" lang="en">The painter loads what the cube shows (decorations, monster models) and draws it once where nobody sees it, so the graphics card already knows its shaders.</li>
       <li data-at="render" lang="de">Der Maler lädt, was der Würfel zeigt (Dekorationen, Monstermodelle), und malt ihn einmal dort, wo ihn niemand sieht, damit die Grafikkarte seine Shader schon kennt.</li>
       <li data-at="render" lang="en">Once the cube you are in is ready, the painter builds the cube behind a near portal again where nobody sees it, and bakes its shadows (<a href="light.html#bake">baking</a>), so they are there the moment you come in.</li>
@@ -359,6 +359,8 @@ frame();</code></pre>
         <li lang="de">Ein Brief vom Typ <code>'cube'</code> sagt: "Bau diesen Würfel." Er kommt in die Warteschlange (<code>queue</code>), und der Worker nimmt sich vorne immer einen Würfel nach dem anderen: Er baut ihn, macht Dreiecke daraus (<code>make</code>) und antwortet mit <code>postMessage</code>: dem Brief zurück.</li>
         <li lang="en">An <code>urgent</code> letter (you are already standing in the portal) goes to the front of the queue. Between two cubes the worker checks its mailbox, so such a letter never waits behind the whole line.</li>
         <li lang="de">Ein dringender Brief (<code>urgent</code>: du stehst schon im Portal) kommt ganz nach vorne in die Schlange. Zwischen zwei Würfeln schaut der Worker in seinen Briefkasten, damit so ein Brief nie hinter der ganzen Schlange wartet.</li>
+        <li lang="en">A letter of type <code>'geo'</code> says: "I threw away the triangles of this cube, please make them again" (<code>remake</code>). The worker still has the cube's map, so that is quick.</li>
+        <li lang="de">Ein Brief vom Typ <code>'geo'</code> sagt: "Ich habe die Dreiecke dieses Würfels weggeworfen, bitte mach sie noch einmal" (<code>remake</code>). Der Worker hat die Karte des Würfels noch, darum geht das schnell.</li>
         <li lang="en">If building fails, the answer is a letter of type <code>'error'</code> instead, so the game is never left waiting forever.</li>
         <li lang="de">Wenn das Bauen schiefgeht, ist die Antwort stattdessen ein Brief vom Typ <code>'error'</code>, damit das Spiel nie ewig wartet.</li>
       </ul>

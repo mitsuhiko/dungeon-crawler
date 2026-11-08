@@ -1879,6 +1879,15 @@ parts). The main thread receives each map by structured clone (the object graph 
 the parts as transferred buffers, and only wraps them into meshes; the proxies' batches copy
 them once per cached cube.
 
+The main thread keeps every map it got (about 0.1 MB a cube: the map, the minimap, the quests
+and the saves read every cube visited), but not every cube's geometry (0.25 to 1.1 MB a cube):
+entering a cube lets go of the geometry of the cubes away from it (`WorldClient.trimGeometry`):
+its layer within four cubes keeps theirs, the others only the most recently used up to 64 MB (16
+on a small device, `render/device.js`). A cube without its geometry gets it again from the worker,
+which keeps the maps (`get` waits for it; the surroundings show it once it is back). Chrome
+emulating an iPad, eight depths' hordes and two side portals each: 43 MB of geometry in 53 cubes
+before, 19 MB in 19 of them now.
+
 After entering a cube, the cubes behind its portals (and doors) are prefetched, so travel
 usually starts at once: their maps, what they show (`render/cubeassets.js` `cubeAssets`: prop
 sets, enemy models, the coins they drop) and their shaders (`warmCube`). One step further, the
