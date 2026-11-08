@@ -4,12 +4,13 @@ import { N, WALK_SPEED, RUN_SPEED, RUN_RAMP, BRAKE } from '../src/core/constants
 import { flatMap, state } from './fixtures.js';
 import { player } from '../src/game/state.js';
 import { movePlayer } from '../src/physics/move.js';
+import { flinchPlayer, PLAYER_POISE } from '../src/core/combat.js';
 
 const DT = 1 / 60;
 function stand() {
   const m = flatMap();
   Object.assign(player, { x: 2.5, z: 8.5, y: 0, vx: 0, vy: 0, vz: 0, grounded: true, swimming: false,
-    fluid: 0, support: m.floors[8 * N + 2], stun: 0, coyote: 0, jumpBuf: 0 });
+    fluid: 0, support: m.floors[8 * N + 2], stun: 0, poised: 0, coyote: 0, jumpBuf: 0 });
 }
 const speed = () => Math.hypot(player.vx, player.vz);
 // steps until the speed reaches `v` (or the limit), and how far that took
@@ -21,6 +22,21 @@ function until(v, dx, dz, run, limit = 120) {
   }
   return { t: Infinity, d: player.x - x0 };
 }
+
+test('the controller leaves a full poise window after a flinch so the hero can move under rapid hits', () => {
+  stand(); flinchPlayer(player);
+  for (let i = 0; i < 6; i++) movePlayer(DT, 1, 0, true, false);
+  assert.ok(player.stun > 0 && player.poised === PLAYER_POISE.recovery);
+  for (let i = 0; i < 4; i++) movePlayer(DT, 1, 0, true, false);
+  assert.ok(player.stun <= 0);
+  const x = player.x;
+  for (let i = 0; i < 30; i++) {
+    assert.equal(flinchPlayer(player), false);
+    movePlayer(DT, 1, 0, true, false);
+  }
+  assert.ok(player.x > x + 0.5, 'held movement escapes instead of being stunlocked');
+  assert.ok(player.poised > 0 && player.poised < 0.11);
+});
 
 test('running ramps up over RUN_RAMP, passing walking pace early, so taps stay precise', () => {
   stand();

@@ -3,8 +3,8 @@
 // animation mixers on a controlled floor grid. Restores the live level afterward.
 import * as THREE from 'three';
 import { N, DIRS, WALK_SPEED, RUN_SPEED, RUN_RAMP } from '../../src/core/constants.js';
-import { player, state } from '../../src/game/state.js';
-import { SWORD, cancelSwing, startSwing, damageEnemy, combatStats, reloadTime } from '../../src/core/combat.js';
+import { player, state, worldPaused } from '../../src/game/state.js';
+import { SWORD, PLAYER_POISE, cancelSwing, startSwing, damageEnemy, combatStats, reloadTime } from '../../src/core/combat.js';
 import { ITEMS } from '../../src/core/items.js';
 import { addItem, equipItem, copperTotal } from '../../src/core/inventory.js';
 import { BURST_SHARE, chainShare } from '../../src/core/shots.js';
@@ -14,6 +14,8 @@ import { createPlayerStats, createRun } from '../../src/core/progression.js';
 import { resetEnemies, allEnemies, updateEnemies, drawEnemies } from '../../src/game/enemies.js';
 import { lootHere, updateLoot, requestCollect, floorItems } from '../../src/game/loot.js';
 import { notices, stepEnemies } from '../../src/game/enemyai.js';
+import { hitPlayer, resetEnemyCombat } from '../../src/game/enemycombat.js';
+import { spawnAt } from '../../src/game/flow.js';
 import { spiders } from '../../src/game/spiders.js';
 import { stunders } from '../../src/game/stunders.js';
 import { snakes } from '../../src/game/snakes.js';
@@ -22,7 +24,7 @@ import { fireFaces } from '../../src/game/firefaces.js';
 import { triangles } from '../../src/game/triangles.js';
 import { fireCats } from '../../src/game/firecats.js';
 import { projectiles, clearProjectiles } from '../../src/game/projectiles.js';
-import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, makeEnemy } from '../../src/core/enemies.js';
+import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, makeEnemy, blowOf } from '../../src/core/enemies.js';
 import { rolls } from '../../src/game/sword.js';
 import { D } from '../../src/core/spawns.js';
 import { updatePlayer } from '../../src/game/update.js';
@@ -94,7 +96,7 @@ function place(e, x, z) {
 function hero() {
   cancelSwing(player, true);
   Object.assign(player, { x: 6.5, y: 0, visY: 0, z: 6.5, yaw: 0, vx: 0, vy: 0, vz: 0,
-    ...createPlayerStats(), grounded: true, swimming: false, climb: null, ragdoll: null, getUp: null, stun: 0, burning: null,
+    ...createPlayerStats(), grounded: true, swimming: false, climb: null, ragdoll: null, getUp: null, stun: 0, poised: 0, burning: null,
     support: at(6.5, 6.5), safe: { x: 6.5, y: 0, z: 6.5 }, coyote: 0, jumpBuf: 0 });
 }
 function press(code) {
@@ -487,6 +489,66 @@ export async function runFireChecks() {
       state.map = originalMap; state.run = savedRun;
       Object.assign(player, saved); cancelSwing(player, true);
       resetEnemies(); tickBurning(1);
+    }
+  });
+}
+
+// Rapid real hits must leave a counterattack window, without taking damage or boss control away.
+export async function runPlayerPoiseChecks() {
+  check(character.ready, 'Wait for the character assets');
+  check(!worldPaused() && !state.transitioning, 'Close menus and wait for travel to finish');
+  return paused(async () => {
+    const originalMap = state.map, saved = { ...player }, savedRun = state.run, passive = state.devPassive;
+    const bite = { ...blowOf(SPIDER), damage: 1 };
+    const hit = (blow = bite, nx = 1) => hitPlayer(blow, player.x - nx, player.z, nx, 0);
+    const step = () => updatePlayer(1 / 60);
+    try {
+      state.run = createRun(); state.map = arena(); resetEnemies(); hero(); state.devPassive = false;
+      for (const e of allEnemies()) place(e, 1.5, 1.5);
+      hit();
+      check(player.hp === 99 && player.stun === 0.15 && player.poised === 0.6, 'First bite hurts and flinches');
+      for (let i = 0; i < 6; i++) step();
+      const stun = player.stun, vx = player.vx, vz = player.vz;
+      hit(bite, -1);
+      check(player.hp === 98 && player.stun === stun && player.vx === vx && player.vz === vz,
+        'A second bite hurts but neither renews the flinch nor reverses the shove');
+      for (let i = 0; i < 60 && player.stun > 0; i++) step();
+      check(player.stun <= 0 && player.poised > 0.58, 'Protection starts after the flinch, not at the first bite');
+
+      const target = makeEnemy({ f: at(player.x, player.z + 0.8), x: player.x, y: 0, z: player.z + 0.8, yaw: Math.PI }, SPIDER);
+      place(target, target.x, target.z); spiders.push(target);
+      check(startSwing(player), 'Can start a counterattack');
+      for (let i = 0; i < 12; i++) { hit(bite, i % 2 ? -1 : 1); step(); updateEnemies(1 / 60); }
+      check(player.hp === 86 && player.sword.active && target.hp === SPIDER.hp - SWORD.damage,
+        'A real sword hit connects under twelve more bites; every bite still deals damage');
+      const remaining = player.poised;
+      hit({ ...bite, burn: blowOf(FIREFACE).burn });
+      check(player.burning && player.poised === remaining && player.stun <= 0, 'Burn still applies without refreshing poise');
+      cancelSwing(player, true);
+      for (let i = 0; i < 60 && player.poised > 0; i++) step();
+      check(player.poised === 0, 'Poise expires while the simulation runs');
+      hit();
+      check(player.stun === PLAYER_POISE.flinch, 'An ordinary hit flinches again after poise expires');
+
+      hero(); player.poised = 0.6; hit({ ...bite, shock: 0.9 });
+      check(player.shocked === 0.9 && player.stun === 0.9, 'Lightning bypasses ordinary-hit poise');
+      hit();
+      check(player.stun === 0.9, 'An ordinary bite does not shorten the lightning stun');
+      hero(); player.poised = 0.6; hit({ ...bite, daze: 1 });
+      check(player.dazed === 1 && player.stun === 1, 'Dazing still works');
+      hero(); player.poised = 0.6; hit({ ...bite, knockDown: true });
+      check(player.ragdoll && player.hp === 99, 'A heavy hit still knocks down');
+      hero(); player.hp = 1; player.poised = 0.6; hit();
+      check(player.hp === 0 && player.ragdoll, 'Poise cannot prevent a lethal ordinary hit');
+      hero(); player.poised = 0.6; resetEnemyCombat();
+      check(player.poised === 0, 'Combat reset clears poise');
+      state.map = originalMap;
+      player.poised = 0.6; spawnAt(saved.x, saved.y, saved.z);
+      check(player.poised === 0, 'Spawning clears poise');
+      return ['rapid hits: damage without renewable flinches or shoves', 'counterattack connects', 'burn / lightning / daze / knockdown / lethal hits preserved', 'poise expires and resets'];
+    } finally {
+      state.map = originalMap; state.run = savedRun; state.devPassive = passive;
+      resetEnemies(); Object.assign(player, saved);
     }
   });
 }

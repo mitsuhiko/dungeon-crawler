@@ -3,6 +3,7 @@
 // (game/party.js): our player, or a friend's stand-in, who gets it sent over (hitBody).
 import { player, state, setStatus } from './state.js';
 import { takeDamage } from '../core/progression.js';
+import { PLAYER_POISE, flinchPlayer } from '../core/combat.js';
 import { flash } from './hud.js';
 import { playerHurtFx, burnHurtFx, poisonHurtFx, zappedFx, squashedFx } from './juice.js';
 import { knockDown } from './ragdoll.js';
@@ -20,7 +21,7 @@ import { twirlPlayer } from './twirl.js';
 import { guardBlow, wornDefense } from './armor.js';
 import { tr, msg } from '../i18n/i18n.js';
 
-export const resetEnemyCombat = () => { player.burning = null; player.chilled = null; player.slowed = null; player.toxic = null; player.gust = null; player.pull = null; player.shocked = 0; player.dazed = 0; player.flat = 0; player.held = null; player.engulfed = null; player.gulped = false; };
+export const resetEnemyCombat = () => { player.poised = 0; player.burning = null; player.chilled = null; player.slowed = null; player.toxic = null; player.gust = null; player.pull = null; player.shocked = 0; player.dazed = 0; player.flat = 0; player.held = null; player.engulfed = null; player.gulped = false; };
 // who struck a blow, for the chronicle when it kills us (game/log.js logDeath); it goes along
 // with the blow (core/enemies.js blowOf), over the network too
 export const attacker = e => ({ words: enemyWords(e.profile), level: e.level, guardian: !!e.guardian });
@@ -55,7 +56,12 @@ export function hitPlayer(blow, fx, fz, nx, nz) {
     if (blow.damage > 0) { p.lastHurt = { reason: blow.reason, by: blow.by ?? null }; takeDamage(p, blow.damage, state.time); }
     return;
   }
-  p.vx = nx * blow.knock; p.vz = nz * blow.knock;
+  const shock = blow.shock > 0 && blow.shock < 3 ? blow.shock : 0;
+  const daze = blow.daze > 0 && blow.daze <= 5 && !p.climb && !p.swimming ? blow.daze : 0;
+  // Heavy knockdowns and explicit crowd control keep their own rules. Ordinary hits
+  // cannot keep renewing the flinch or shove while the hero is poised.
+  const reacts = blow.knockDown || p.hp <= blow.damage || shock || daze || flinchPlayer(p);
+  if (reacts) { p.vx = nx * blow.knock; p.vz = nz * blow.knock; }
   playerHurtFx(Math.min(blow.damage, p.hp), fx, fz);
   // fire thaws a chill and ice puts a fire out
   const by = blow.by ?? null;
@@ -69,14 +75,12 @@ export function hitPlayer(blow, fx, fz, nx, nz) {
   }
   if (blow.damage > 0) p.lastHurt = { reason: blow.reason, by };
   takeDamage(p, blow.damage, state.time); flash(); setStatus(tr(blow.reason));
-  p.vx *= 0.6; p.vz *= 0.6; p.stun = 0.15;
+  if (reacts) { p.vx *= 0.6; p.vz *= 0.6; }
   // a fire geyser (Foggery's) pops the player up into the air
   if (blow.pop > 0 && blow.pop < 12 && !p.climb) { p.vy = blow.pop; p.grounded = false; }
-  const shock = blow.shock;
-  if (shock > 0 && shock < 3) { p.stun = Math.max(p.stun, shock); p.shocked = shock; zappedFx(); }
-  const daze = blow.daze;
-  if (daze > 0 && daze <= 5 && !p.climb && !p.swimming) {
-    p.vx = p.vz = 0; p.stun = Math.max(p.stun, daze); p.dazed = daze;
+  if (shock) { p.stun = Math.max(p.stun, PLAYER_POISE.flinch, shock); p.shocked = shock; zappedFx(); }
+  if (daze) {
+    p.vx = p.vz = 0; p.stun = Math.max(p.stun, PLAYER_POISE.flinch, daze); p.dazed = daze;
     p.landImpact = SIT_IMPACT + 1; p.landCount++;   // (down on our bottom: render/blendtree.js sits)
     squashedFx();
   }

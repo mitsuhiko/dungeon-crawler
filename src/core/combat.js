@@ -67,6 +67,21 @@ export const AIM_BAND = { below: 2.2, above: 2.6 };
 // a blow taking at least this share of an enemy's health staggers it even while it is poised
 // learn: combat.html#stagger-code (see learn/README.md)
 export const HEAVY_HIT = 0.25;
+// Ordinary hits flinch the hero once, then leave time to move or finish an attack.
+// This is stagger protection only: damage and status effects still apply.
+// learn: combat.html#damage (see learn/README.md)
+export const PLAYER_POISE = { flinch: 0.15, recovery: 0.6 };
+export function flinchPlayer(p) {
+  if (p.poised > 0) return false;
+  p.stun = Math.max(p.stun ?? 0, PLAYER_POISE.flinch);
+  p.poised = PLAYER_POISE.recovery;
+  return true;
+}
+// Called before the controller reduces stun: only time after recovery spends poise.
+export function stepPlayerPoise(p, dt) {
+  const free = Math.max(0, dt - Math.max(0, p.stun ?? 0));
+  p.poised = Math.max(0, (p.poised ?? 0) - free);
+}
 // how far beyond blade reach the wind-up steps in towards a target (game/update.js)
 export const LUNGE_REACH = 0.6;
 // The player's attack, whatever the weapon (named for the sword it once was).

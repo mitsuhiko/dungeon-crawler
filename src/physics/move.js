@@ -2,6 +2,7 @@
 import { STEP, GRAV, SNAP, STEEP, WALK_SPEED, RUN_SPEED, SWIM_SPEED, JUMP_V, RUN_RAMP, BRAKE, HEAD_Y, WADE_SLOW,
   SWIM_DEPTH, SWIM_FEET } from '../core/constants.js';
 import { player, state } from '../game/state.js';
+import { stepPlayerPoise } from '../core/combat.js';
 import { groundAt, ceilingAt, slopeAt } from './collide.js';
 import { canMove, stepOf, stoppedAtBrink } from './canmove.js';
 import { atBrink, brinkJump, offEdge } from './brink.js';
@@ -165,6 +166,7 @@ export function movePlayer(dt, dx, dz, run, jump, own = false) {
   // (on the ground before this frame, steering themselves at a run: for running off an edge)
   const ran = own && run && p.grounded && !p.swimming && Math.hypot(dx, dz) >= 0.3 && !(p.stun > 0)
     && { x: p.x, z: p.z, y: p.y, jumps: p.jumpCount, ux: dx / Math.hypot(dx, dz), uz: dz / Math.hypot(dx, dz) };
+  stepPlayerPoise(p, dt);
   if (p.stun > 0) { p.stun -= dt; dx = dz = 0; jump = false; }
   // standing on a moving platform (game/movers.js): it carries us along
   // (and their feet, held where they stand: render/animator.js)

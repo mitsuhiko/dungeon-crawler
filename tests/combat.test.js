@@ -5,7 +5,7 @@ import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, 
 import { launchTwister, stayTwister, stepTwister, twisterAt, catches, twirlAt } from '../src/core/twisters.js';
 import { startBeam, aimBeam, castBeam, beamHits, beamDistance, muzzleAt, aiming, aimPoint } from '../src/core/beams.js';
 import { launch, touches, stepProjectile, ignite, burnStep, burntOut, chillFrom, chillStep, chillFactor, THAW } from '../src/core/projectiles.js';
-import { SWORD, HEAVY_HIT, swordState, startSwing, advanceSwing, cancelSwing, inSwordArc, swordHit, softTarget, damageEnemy } from '../src/core/combat.js';
+import { SWORD, HEAVY_HIT, PLAYER_POISE, flinchPlayer, stepPlayerPoise, swordState, startSwing, advanceSwing, cancelSwing, inSwordArc, swordHit, softTarget, damageEnemy } from '../src/core/combat.js';
 
 const hero = () => ({ x: 0, y: 0, z: 0, yaw: 0, hp: 100, stun: 0, sword: swordState() });
 const enemy = (profile = SPIDER) => makeEnemy({ x: 0, y: 0, z: 0.8, yaw: Math.PI }, profile);
@@ -24,6 +24,45 @@ test('ordinary species notice from 1.5 times as far and pursue 25 percent furthe
   assert.equal(ENEMY_KINDS.redback.aggro, SPIDER.aggro, 'variants inherit awareness');
   assert.equal(ENEMY_KINDS.shadowmamba.giveUp, SNAKE.giveUp, 'variants inherit pursuit');
   assert.equal(GUSTO.aggro, 7, 'boss-specific awareness stays unchanged');
+});
+
+test('player poise prevents ordinary hits from extending a flinch or cancelling the counterattack', () => {
+  const p = hero();
+  assert.ok(flinchPlayer(p));
+  assert.equal(p.stun, 0.15);
+  assert.equal(p.poised, 0.6);
+  stepPlayerPoise(p, 0.1); p.stun -= 0.1;
+  const remaining = p.stun;
+  assert.equal(flinchPlayer(p), false);
+  assert.equal(p.stun, remaining, 'another hit cannot renew the flinch');
+  assert.equal(p.poised, PLAYER_POISE.recovery, 'protection is not spent while stunned');
+
+  stepPlayerPoise(p, remaining); p.stun = 0;
+  assert.ok(startSwing(p), 'can strike back once the flinch ends');
+  for (let i = 0; i < 12; i++) {
+    assert.equal(flinchPlayer(p), false);
+    advanceSwing(p, 1 / 60); stepPlayerPoise(p, 1 / 60);
+  }
+  assert.ok(p.sword.active && p.sword.t > SWORD.activeStart, 'rapid hits do not interrupt the blade');
+  assert.ok(Math.abs(p.poised - 0.4) < 1e-9, 'protected hits do not refresh poise');
+  stepPlayerPoise(p, p.poised);
+  assert.equal(p.poised, 0);
+  assert.ok(flinchPlayer(p), 'ordinary hits can stagger again after protection expires');
+});
+
+test('player poise counts only unstunned time, including a frame straddling recovery', () => {
+  const p = hero();
+  flinchPlayer(p);
+  stepPlayerPoise(p, 0.2);
+  assert.ok(Math.abs(p.poised - 0.55) < 1e-9);
+  p.stun = 1;
+  assert.equal(flinchPlayer(p), false);
+  assert.equal(p.stun, 1, 'ordinary hits cannot shorten stronger crowd control');
+  stepPlayerPoise(p, 0.5);
+  assert.ok(Math.abs(p.poised - 0.55) < 1e-9);
+  p.poised = 0;
+  flinchPlayer(p);
+  assert.equal(p.stun, 1, 'the first ordinary hit also preserves a longer stun');
 });
 
 test('sword is a timed, one-press attack with wind-up and recovery', () => {

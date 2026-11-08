@@ -49,6 +49,12 @@ The controls are the same for all.
 - Hit feedback (`game/juice.js`): a short hit pause (critical hits only), a camera nudge, sparks and
   ichor, a knockback, a damage number and generated sounds (`audio/sfx.js`).
   Spider bites are a short flinch; a Stunder ram or a lethal bite knocks you over.
+- **Player poise:** an ordinary hit flinches the hero for 0.15 s, then leaves 0.6 s to move or
+  counterattack (`PLAYER_POISE`, `core/combat.js`). Further ordinary hits still deal full damage
+  through armor and apply status effects, but cannot renew the flinch, cancel a swing or reset
+  knockback. They do not refresh the protection. Its timer only spends time after stun ends;
+  spawning or resetting combat clears it. Heavy knockdowns, lightning, dazes, grabs and special
+  movement effects keep their own rules: this is not damage immunity or general crowd-control immunity.
 - The armor you wear takes its share off every blow first, and a shield in hand now and then
   blocks one: a clang, "Blocked!", a fifth of it and nothing else, no shove, no fire or poison
   (`game/armor.js guardBlow`, [armor.md](armor.md)).
@@ -718,6 +724,7 @@ await checks.runCombatChecks(); // real input (click on an enemy, Shift), contro
 await checks.runControlChecks(); // run ramp / left Ctrl walk (not right) / Ctrl+W, Space jump, Shift auto-attack only in reach, F unbound
 await checks.runNewEnemyChecks(); // snake bite, Octonaut slap / spin kick, their clips and corpses
 await checks.runFireChecks(); // fireball + burning, Triangle punch / dodge / walls, Fire-cat chase and pounce
+await checks.runPlayerPoiseChecks(); // repeated bites, counterattack, damage / status effects, special control, resets
 await checks.runAwarenessChecks(); // front / rear detection, height / walls, pursuit range / memory / paths
 await checks.runTacticsChecks(); // out of reach: shot takes cover, seen glares then hides, back out; shot from afar comes; a thrower shoots from its bank
 await checks.runClimbChecks(); // ladder controller, reverse / hold / exits, dynamic weapon

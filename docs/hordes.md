@@ -140,8 +140,9 @@ bow or short sword an invalid loadout.
   concurrent melee wind-ups). Several enemies still rush and attack together;
   this must not reduce the encounter to one designated attacker at a time.
 - Attack coordination must never cancel a committed wind-up or remove telegraphs.
-  Test rapid flinches explicitly; only add short swarm-hit flinch protection if
-  attack pacing alone does not allow reliable movement between hits.
+  Player poise (`core/combat.js` `PLAYER_POISE`) prevents renewable ordinary-hit flinches and
+  shoves: after the first 0.15 s flinch the hero gets 0.6 s to act, without damage immunity.
+  This applies to ordinary packs too. Test rapid flinches and a real counterattack explicitly.
 - Crowd separation and reachable flank destinations should produce a front and
   pressure from the sides, not a stack of bodies targeting the exact same point.
 - Preserve space to fight and retreat. Packs do not spawn on narrow bridges or

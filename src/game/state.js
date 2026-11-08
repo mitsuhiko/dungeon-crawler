@@ -21,6 +21,7 @@ export const player = {
   grounded: true, swimming: false, fluid: 0, fluidDeath: 0, support: null,
   carried: { x: 0, z: 0 },   // how far a moving platform carried them since the animator last posed them (their held feet go along)
   airTime: 0, coyote: 0, jumpBuf: 0, stun: 0,
+  poised: 0,      // ordinary-hit stagger protection left after the current stun ends
   burning: null,   // on fire (core/projectiles.js ignite)
   chilled: null,   // slowed by an ice ball (core/projectiles.js chillFrom)
   slowed: null,    // slowed by slime (core/status.js slowFrom)
