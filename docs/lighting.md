@@ -415,7 +415,11 @@ Nothing of what shows is lost for the rest (`render/shadows.js colourless`, `ren
 - The lightmaps a light is baked into go as each is filled out (fewer at once).
 - A small device keeps fewer proxies of cubes no longer shown (`render/neighbors.js`: 32 cubes,
   12 MB of their geometry, not 64 and 32 MB): their geometry stays in the batches, on the GPU and
-  beside it.
+  beside it. The batches' room grows by doubling and shrinks again to twice what they hold once
+  they hold less than a quarter of it (a new world: they were let go all at once; 36 to 20 MB
+  after two depths). While playing a world it does not: the cache fills its batches half to most
+  of the way (Chrome emulating an iPad, eight depths: 41 MB of room for 12 MB of cubes kept; the
+  town's landmarks, kept for good, 15 MB of it).
 
 `?perf=1` shows what WebGL holds (counted from the start: only with it in the address) and
 whether the device counts as small.

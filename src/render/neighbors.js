@@ -100,11 +100,14 @@ const glowing = sh => {
 };
 
 // One BatchedMesh with room that grows: geometry space is compacted first and doubled when
-// that is not enough, instance slots double too (with the fade texture).
+// that is not enough, instance slots double too (with the fade texture). It shrinks again
+// (shrink: to twice what it holds) once it holds less than a quarter of its room: the town's
+// surroundings took 41 MB of room (and as much on the GPU) that the cubes after it never filled.
+const VERTICES = 1 << 14, INDICES = 1 << 15;
 class Batch {
   // glass: draw what the cut takes away again as glass (solids)
   constructor(material, order, key, edit, glass = false) {
-    this.capacity = 64; this.vertices = 1 << 14; this.indices = 1 << 15;
+    this.capacity = 64; this.vertices = VERTICES; this.indices = INDICES;
     // (the fade texture: a texel an instance in its first row, its fades; in its second what the
     // instance is besides, setLamp)
     this.data = { value: this.fadeTexture(this.capacity) };
@@ -155,6 +158,15 @@ class Batch {
       }
     }
     return mesh.addGeometry(geometry);
+  }
+  shrink() {
+    if (this.vertices <= VERTICES) return;
+    let v = 0, i = 0;   // (what its geometries take; deleted ones leave holes until optimize)
+    for (const g of this.mesh._geometryInfo) if (g.active) { v += g.reservedVertexCount; i += g.reservedIndexCount; }
+    if (v * 4 > this.vertices || i * 4 > this.indices) return;
+    this.mesh.optimize();
+    this.vertices = Math.max(VERTICES, v * 2); this.indices = Math.max(INDICES, i * 2);
+    this.mesh.setGeometrySize(this.vertices, this.indices);
   }
   addInstance(geometryId) {
     if (this.mesh.instanceCount >= this.capacity) {
@@ -384,6 +396,7 @@ export function showNeighbors(list, instant = false, hold = null) {
   if (instant) for (const g of current) if (!g.continuing) setFade(g.group, 1);
   const held = hold ? old.filter(hold) : [];
   disposeNeighbors(old.filter(g => !held.includes(g)));
+  for (const b of batches.values()) b.shrink();   // (what the cubes left took is free now)
   return held;
 }
 export const showsNeighbor = key => current.some(g => g.key === key);
