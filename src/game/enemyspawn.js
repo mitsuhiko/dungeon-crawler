@@ -9,7 +9,7 @@
 // (`dwellerSpots`), and in an arena in its pond (cubegen/guardian.js).
 import { N, LH } from '../core/constants.js';
 import { enemyRoll, coinRange, guardianLevel, ENEMY_KINDS, GUARDIAN_KINDS, DESCENT_GUARDIAN_KINDS, isRanged } from '../core/enemies.js';
-import { guardianId } from '../core/guardians.js';
+import { guardianId, partnerId } from '../core/guardians.js';
 import { population } from '../core/spawns.js';
 import { swarmKind, HORDE } from '../core/hordes.js';
 import { mulberry32, hash32 } from '../core/util.js';
@@ -208,7 +208,7 @@ export function guardianSpots(map) {
   if (!species.length) return [];
   const R = mulberry32(hash32(map.seed ^ 0x6a7d1a)), guard = map.guardian;
   const role = guard.role ?? 'descent';
-  if (guard.boss) return [bossSpot(map, ENEMY_KINDS[guard.boss], role)];
+  if (guard.boss) return bossSpots(map, ENEMY_KINDS[guard.boss], role);
   const { chosen, kind } = promoted(species, role, R);
   // the guardian's level follows the depth (and the world's level) alone (core/enemies.js guardianLevel); its coins
   // still come from the arena's seeded roll. (A fluid dweller guards from the arena's pond, the
@@ -265,10 +265,29 @@ export function guardianKind(map) {
 }
 
 // A real boss (core/bosses.js) stands on the guardian's spot alone, at the guardian's level, with
-// the guardian's id and gate: no defenders, it brings its own (game/gusto.js).
-function bossSpot(map, kind, role) {
+// the guardian's id and gate: no defenders, it brings its own (game/gusto.js). A boss of two (his
+// `partner`: Rollie's Megalimmer) has the other beside him (`partnerFloor`), with an id of his own
+// (core/guardians.js partnerId); the gate is neither's while both stand (`pairGate`: their fight
+// gives it to the last one, game/rollie.js), and both have their key (`pair`).
+function bossSpots(map, kind, role) {
   const guard = map.guardian, level = guardianLevel(map.depth, role, map.level), [lo, hi] = coinRange(kind, level);
   const R = mulberry32(hash32(map.seed ^ 0x6a7d1b));
-  return { id: guardianId(map.key), level, coinDrop: lo + Math.floor(R() * (hi - lo + 1)), guardian: true, guardianRole: role,
+  const spot = { id: guardianId(map.key), level, coinDrop: lo + Math.floor(R() * (hi - lo + 1)), guardian: true, guardianRole: role,
     bossPlaceholder: false, boss: kind.boss, guardianGate: map.key, kind, f: guard.floor, x: guard.x, z: guard.z, y: guard.y, yaw: guard.yaw };
+  const other = kind.partner && ENEMY_KINDS[kind.partner];
+  if (!other) return [spot];
+  const f = partnerFloor(map, guard, other), [plo, phi] = coinRange(other, level), x = f.x + 0.5, z = f.z + 0.5;
+  const two = { ...spot, id: partnerId(map.key), coinDrop: plo + Math.floor(R() * (phi - plo + 1)), boss: other.boss, kind: other,
+    f, x, z, y: standY(other, f, x, z) };
+  return [spot, two].map(s => ({ ...s, guardianGate: undefined, pairGate: map.key, pair: map.key }));
+}
+// where the second of a pair stands: a floor of the fight zone about the guardian's level, 3 cells
+// to his right (as he faces), or as near to that as there is room
+function partnerFloor(map, guard, kind) {
+  const rx = -Math.cos(guard.yaw), rz = Math.sin(guard.yaw), tx = guard.x + rx * 3.2, tz = guard.z + rz * 3.2;
+  const fits = f => f.encounter && walkable(f, kind.height) && Math.abs(groundY(f, f.x + 0.5, f.z + 0.5) - guard.y) < 0.6
+    && Math.hypot(f.x + 0.5 - guard.x, f.z + 0.5 - guard.z) > 2.2
+    && [[kind.radius, 0], [-kind.radius, 0], [0, kind.radius], [0, -kind.radius]].every(([dx, dz]) => floorAt(f, f.x + 0.5 + dx, f.z + 0.5 + dz, kind.height));
+  const list = map.floors.filter(fits).sort((a, b) => Math.hypot(a.x + 0.5 - tx, a.z + 0.5 - tz) - Math.hypot(b.x + 0.5 - tx, b.z + 0.5 - tz));
+  return list[0] ?? guard.floor;
 }

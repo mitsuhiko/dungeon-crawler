@@ -13,7 +13,7 @@ export const EPITHETS = Object.freeze({
   gusto: msg('The Hungry Grin'), totnar: msg('The Ember in the Brambles'), squarlo: msg('Small Lord of the Tides'),
   flip: msg('Who Turns the World'), foggery: msg('Lord of the Lava'), renew: msg('The Echo of Time'),
   mansk: msg('The Hollow Mask'), monteur: msg('The Stone That Walks'), sollmeldon: msg('The Three-Headed Mire'), slomo: msg('King of the Slime'),
-  umbra: msg('The Drowned Coil'), qualmos: msg('At the End of the World'), temp: msg('Keeper of the Well'),
+  umbra: msg('The Drowned Coil'), qualmos: msg('At the End of the World'), rollie: msg('The Laser and the Ghost'), temp: msg('Keeper of the Well'),
 });
 export const epithetOf = e => EPITHETS[e?.boss] ?? EPITHETS.temp;
 
@@ -33,7 +33,8 @@ export const epithetOf = e => EPITHETS[e?.boss] ?? EPITHETS.temp;
 //   shots      the camera's keys (shotAt), each point [anchor, ahead, right, up] in the frame of
 //              shotFrame: anchors 'hero', 'spot' (where he stands), 'boss' (where he is now) and
 //              what the reveal adds (Totnar's, Foggery's and Qualmos's 'start', Foggery's 'wide',
-//              'near', 'front' and 'front2', Qualmos's 'behind', 'shore', 'bank' and 'aside',
+//              'near', 'front' and 'front2', Qualmos's 'behind', 'shore', 'bank' and 'aside', Rollie's 'pair'
+//              (between him and Megalimmer) and 'ghost' (Megalimmer),
 //              Mansk's 'house' and 'stalls'). game/bossintro.js moves a key's camera
 //              out of what is in the way (or what hides him) before the intro starts.
 // over the hero's shoulder, towards where the boss will be
@@ -243,6 +244,20 @@ export const INTROS = Object.freeze({
       { t: 8.25, cam: ['aside', 0.4, 0, 0.65], look: ['boss', 0, 0, 0.5], fov: 48, ease: 'out' },
       { t: 8.3, cam: ['spot', -3.0, 0.9, 0.2], look: ['boss', 0, 0, 0.75], fov: 52, roll: 3, cut: true },
       { t: 10.6, cam: ['spot', -5.0, 2.0, 0.4], look: ['boss', 0, 0, 0.7], fov: 30, roll: 0, ease: 'inOut' }] },
+  // Rollie and Megalimmer: the light goes; a rumble of wheels, and Rollie comes rolling in fast from
+  // the side, brakes and skids round onto his spot in a spray of dust and sparks; his eyes light up;
+  // beside him specks of light gather out of nothing into a blur that sharpens into Megalimmer
+  // (`ghost`), and Rollie throws his arms out (his sweep's clip) as the light comes back. The camera
+  // wide on his spot as he comes, then on the pair (`pair`, between them), closing in
+  rollie: { reveal: 'rollie', length: 8.2, hold: 7.9, walk: 1.4, letterbox: [0.3, 7.9], name: [5.5, 7.6], bar: 7.7,
+    blend: [0.6, 2.0, 7.6], shake: 0.02, dim: { at: [0.3, 2.0, 5.0, 6.8], to: 0.6 }, fires: { out: 0.4, back: 5.4 },
+    at: { rumble: 1.2, roll: [1.8, 3.7], skid: 3.7, eyes: 4.0, ghost: [4.4, 5.6], roar: 5.7, release: 7.3, reach: [5, 9] },
+    shots: [{ ...OPEN, look: ['spot', 0, 0, 1.0] },
+      { t: 2.0, cam: ['spot', -6.4, 1.6, 2.2], look: ['spot', 0, 0, 0.8], fov: 46 },
+      { t: 3.7, cam: ['spot', -5.6, 0.9, 1.6], look: ['boss', 0, 0, 1.0], fov: 44, ease: 'linear' },
+      { t: 4.4, cam: ['pair', -5.6, -0.6, 1.5], look: ['pair', 0, 0, 1.0], fov: 46, ease: 'out' },
+      { t: 5.7, cam: ['pair', -5.2, 0.4, 1.2], look: ['pair', 0, 0, 1.1], fov: 44 },
+      { t: 7.6, cam: ['pair', -6.0, 1.2, 1.4], look: ['pair', 0, 0, 1.0], fov: 38 }] },
   // met before: his name a moment, the bar; nothing taken away
   again: { reveal: null, length: 3.2, hold: 0, walk: 0, letterbox: null, name: [0.2, 2.8], bar: 0.5, blend: null, dim: null, fires: null,
     shake: 0, shots: [] },

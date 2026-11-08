@@ -24,6 +24,9 @@ export const guardianLockMessage = (map, kind = null) => map.guardian?.role === 
   ? tr('Defeat {who:the} to unlock this descent', { who: guardianCalled(map, kind) })
   : tr('Defeat {who:the} to unlock this passage', { who: guardianCalled(map, kind) });
 export const guardianId = key => `${key}:guardian`;
+// a boss of two (Rollie and Megalimmer, core/bosses.js): the second's id; and both a gate's ids
+export const partnerId = key => `${key}:guardian:partner`;
+export const guardianIds = key => [guardianId(key), partnerId(key)];
 // what a trial's gate (`trial:<key>`, core/trials.js) says: in its own room what opens it, by the
 // family of what the room holds (a puzzle, an event, a room task: map.trial, cubegen/trials/,
 // cubegen/tasks.js) and its name; from the room beyond it only that it opens from the other side
@@ -70,6 +73,6 @@ export function steersOut(p, dir, dx, dz) {
 // Ordinary kills made during this visit roll back on death; an opened gate never does.
 // learn: memory.html#death (see learn/README.md)
 export function restoreDefeated(run, before) {
-  const permanent = new Set([...run.unlockedGates].map(guardianId));
+  const permanent = new Set([...run.unlockedGates].flatMap(guardianIds));
   for (const id of run.defeated) if (!before.has(id) && !permanent.has(id)) run.defeated.delete(id);
 }

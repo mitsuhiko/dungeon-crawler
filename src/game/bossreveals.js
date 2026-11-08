@@ -912,4 +912,73 @@ const sollmeldon = {
   },
 };
 
-export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, sollmeldon, umbra, qualmos };
+// --- Rollie and Megalimmer: Rollie rolling in fast from the side and skidding round onto his spot,
+// his eyes lighting up; then Megalimmer coming out of nothing beside him, a blur that sharpens into
+// a ghost, and both rear up ---------------------------------------------------------------------
+
+const SKID = ['#cfc6b4', '#a89f8c', '#e8e2d6'], SPECKS = ['#ffffff', '#e6ecf8', '#c8d0e0'];
+// how far along his way in he is at t (0 .. 1): quick, braking at the end
+const rolledAt = (at, t) => { const u = clamp01((t - at.roll[0]) / (at.roll[1] - at.roll[0])); return 1 - (1 - u) ** 2.2; };
+function rollieAt(r, t) {
+  const { spot } = r, from = r.data.from, k = rolledAt(r.at, t);
+  return { x: from.x + (spot.x - from.x) * k, y: wayY(from, spot, k), z: from.z + (spot.z - from.z) * k };
+}
+// the other of the pair (Megalimmer beside Rollie: game/rollie.js `other`), standing
+const otherOf = e => e.other && e.other.mode !== 'dead' ? e.other : null;
+const rollie = {
+  where: rollieAt,
+  seen: r => ({ ...rollieAt(r, r.t ?? 0) }),
+  // (before it starts: Rollie away, Megalimmer not there yet)
+  waiting(e) { e.veil = 0; const m = otherOf(e); if (m) m.hidden = 1; },
+  start(r) {
+    const { e, spot, at } = r, D = r.data, from = wayIn(r, at.reach) ?? { ...spot, side: 1, len: 0 };
+    D.from = from;
+    r.side = from.side;
+    D.m = otherOf(e);
+    r.anchors.ghost = D.m ? { x: D.m.x, y: D.m.y, z: D.m.z } : { ...spot };
+    r.anchors.pair = D.m ? { x: (D.m.x + spot.x) / 2, y: spot.y, z: (D.m.z + spot.z) / 2 } : { ...spot };
+    if (D.m) Object.assign(D.m, { staged: true, hidden: 1, yaw: facing(D.m, player) });
+    Object.assign(e, { veil: undefined, ...rollieAt(r, 0), yaw: from.len ? facing(from, spot) : facing(spot, player) });
+  },
+  step(r, t, dt) {
+    const { e, spot, at } = r, D = r.data, m = D.m;
+    if (once(D, 'rumble', t, at.rumble)) { sfx('rumble', { at: D.from, pitch: 0.7, volume: 0.8 }); sfx('charge', { at: D.from, pitch: 0.5, volume: 0.6 }); }
+    // rolling in, then skidding round to face the camera, dust and sparks off his wheels
+    const was = { x: e.x, z: e.z };
+    Object.assign(e, rollieAt(r, t));
+    const moving = Math.hypot(e.x - was.x, e.z - was.z) > 1e-3;
+    if (t < at.skid && moving) e.yaw = facing(was, e);
+    else faceCamera(r, dt, t < at.skid + 0.6 ? 7 : 3);
+    if (t >= at.roll[0] && t < at.skid + 0.5 && Math.random() < dt * (t >= at.skid - 0.4 ? 70 : 25)) {
+      const side = Math.random() < 0.5 ? -1 : 1, c = Math.cos(e.yaw), n = Math.sin(e.yaw), x = e.x + c * side * 0.75, z = e.z - n * side * 0.75;
+      emit(soft, x, e.y + 0.1, z, { v: [rand(-0.6, 0.6), rand(0.4, 1.2), rand(-0.6, 0.6)], life: rand(0.6, 1), size: rand(0.25, 0.45), grow: 1.4,
+        color: SKID[Math.floor(Math.random() * 3)], alpha: 0.4, drag: 1.2 });
+      if (t >= at.skid - 0.4) emit(glow, x, e.y + 0.1, z, { v: [rand(-3, 3), rand(1, 3), rand(-3, 3)], life: 0.3, size: 0.05, color: '#ffd08a', gravity: -9 });
+    }
+    if (once(D, 'skid', t, at.skid - 0.4)) { sfx('swish', { at: e, pitch: 0.45, volume: 1 }); sfx('thud', { at: e, pitch: 0.6, volume: 0.6 }); }
+    // his eyes lighting up (the laser's brace), then his arms thrown out (the sweep of his arms)
+    e.pose = t >= at.eyes && t < at.roar ? { clip: 'laser', t: Math.min(1.5, 0.6 + (t - at.eyes)) }
+      : t >= at.roar && t < at.release ? { clip: 'swipe', t: Math.min(0.75, (t - at.roar) * 0.8) } : null;
+    if (once(D, 'eyes', t, at.eyes)) sfx('laser', { at: e, pitch: 0.6, volume: 0.7 });
+    // Megalimmer out of nothing: specks gathering into a blur that sharpens into him
+    if (m) {
+      const [a, b] = at.ghost, k = clamp01((t - a) / (b - a));
+      m.hidden = 1 - smooth(k);
+      m.yaw = facing(m, player);
+      if (t >= a - 0.4 && t < b && Math.random() < dt * 50) {
+        const ang = rand(0, Math.PI * 2), d = rand(0.6, 1.6) * (1 - k);
+        emit(glow, m.x + Math.cos(ang) * d, m.y + rand(0.3, 2), m.z + Math.sin(ang) * d, { v: [-Math.cos(ang) * 1.2, rand(-0.2, 0.4), -Math.sin(ang) * 1.2],
+          life: rand(0.4, 0.7), size: rand(0.04, 0.08), color: SPECKS[Math.floor(Math.random() * 3)], alpha: 0.8, drag: 0.6 });
+      }
+      if (once(D, 'ghost', t, a)) sfx('blur', { at: m, pitch: 0.5, volume: 1 });
+    }
+    if (once(D, 'roar', t, at.roar)) { roar(e, 0.8); if (m) sfx('blur', { at: m, pitch: 0.7, volume: 0.8 }); }
+  },
+  end(r) {
+    Object.assign(r.e, { pose: null, veil: undefined, x: r.spot.x, y: r.spot.y, z: r.spot.z });
+    if (r.data.m) Object.assign(r.data.m, { staged: false, hidden: 0 });
+    hideIntroFx();
+  },
+};
+
+export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, sollmeldon, umbra, qualmos, rollie };

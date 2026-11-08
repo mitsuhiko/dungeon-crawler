@@ -177,11 +177,13 @@ const SALT = 0x3e1a5c7;
 export function population(map) {
   if (map.enemyFree) return new Map();
   // a boss's arena (core/bosses.js): the boss alone; `also`: the kinds it brings along (its
-  // minions, summoned or come to life where its projectiles land, in any of its stages)
+  // minions, summoned or come to life where its projectiles land, in any of its stages; a boss of
+  // two his `partner` and the partner's)
   const boss = map.guardian?.boss && ENEMY_KINDS[map.guardian.boss];
+  const partner = boss?.partner ? [ENEMY_KINDS[boss.partner]] : [];
   if (boss) return new Map([[boss.species, { count: 1, pack: 1, lead: true, kinds: { [boss.type]: 1 },
-    also: [...new Set([boss, ...STAGE_PROFILES[boss.boss] ?? []].flatMap(p => p.attacks ?? [])
-      .flatMap(a => [a.summon?.kind, a.summon?.also, a.projectile?.becomes].filter(Boolean)))] }]]);
+    also: [...new Set([...partner.map(p => p.type), ...[boss, ...partner, ...STAGE_PROFILES[boss.boss] ?? []].flatMap(p => p.attacks ?? [])
+      .flatMap(a => [a.summon?.kind, a.summon?.also, a.projectile?.becomes].filter(Boolean))])] }]]);
   if (map.horde) {
     const { kind, count } = map.horde, base = ENEMY_KINDS[kind];
     const ordinary = population({ ...map, horde: null, populationScale: 1 });

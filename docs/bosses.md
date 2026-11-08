@@ -6,15 +6,17 @@ boss placeholders ([guardians.md](guardians.md)): the game calls them **Temp Bos
 depth has which: so far the first descent, on the road out of town (depth 0), has **Gusto**, the
 second (depth 1) **Totnar**, the third (depth 2) **Squarlo**, the fourth (depth 3) **Flip**, the
 fifth (depth 4) **Foggery**, the sixth (depth 5) **Renew** and the seventh (depth 6, the last of
-act I) **Mansk**; the first of act II (depth 7) **Monteur**; in the middle of act II (depth 10) **Sollmeldon**; at the bottom of act II (depth 13) **Slomo**; in the middle of act III (depth 16) **Umbra**; and at the core (depth 20), where
+act I) **Mansk**; the first of act II (depth 7) **Monteur**; at depth 9 **Rollie and Megalimmer**, two bosses at once; in the middle of act II (depth 10) **Sollmeldon**; at the bottom of act II (depth 13) **Slomo**; in the middle of act III (depth 16) **Umbra**; and at the core (depth 20), where
 there is no descent, **Qualmos** guards the last cube (a prototype for now, see [Qualmos](#qualmos)).
 A boss may bring an arena of its own (`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's
-caldera, Mansk's museum, Sollmeldon's mire, Slomo's slime bowl, Umbra's reef), or only braziers lit round the one his depth has
+caldera, Mansk's museum, Sollmeldon's mire, Slomo's slime bowl, Umbra's reef), one of the ordinary arenas'
+shapes always (`shape`: Rollie and Megalimmer's colosseum), or only braziers lit round the one his depth has
 (Totnar, Renew, Qualmos).
 
 The layout marks that arena's guardian with `boss` (`world/layout.js`, `cubegen/guardian.js`;
 `bossPlaceholder` is false there). The boss stands on the guardian's spot **alone**: no
-defenders, it brings its own (`game/enemyspawn.js` `bossSpot`). It is a guardian in every other
+defenders, it brings its own (`game/enemyspawn.js` `bossSpots`; a boss of two has the other beside
+him: [Rollie and Megalimmer](#rollie-and-megalimmer)). It is a guardian in every other
 way: the descent guardian's level, id, gate, seal, boss bar and drops; its death alone opens
 the well, for good. Its health shows in the boss bar along the top of the screen, not over its
 head, under its name (`♛ Gusto · Lv 1`; [ui.md](ui.md#the-boss-bar)), the locked well says
@@ -28,8 +30,8 @@ Like every guardian's arena, leaving it while the boss lives asks first, and bei
 the entrance never takes you out ([guardians.md](guardians.md#encounter-and-persistence)).
 
 Each boss runs its own fight (`game/gusto.js`, `game/totnar.js`, `game/squarlo.js`, `game/flip.js`,
-`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/sollmeldon.js`, `game/slomo.js`, `game/umbra.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
-`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/sollmeldon.js`, `core/slomo.js`, `core/umbra.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
+`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/rollie.js`, `game/sollmeldon.js`, `game/slomo.js`, `game/umbra.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
+`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/rollie.js`, `core/sollmeldon.js`, `core/slomo.js`, `core/umbra.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
 body into it, the floors a body fits on, putting minions down round their boss and letting
 bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they pay a little XP
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
@@ -135,6 +137,12 @@ anybody's head.
   up out of it antlers first, stone falling off him; his stones float up between his antlers one
   after the other, and he rears up and stomps down (his summon's clip). The camera low on the
   ground, looking up at him.
+- **Rollie and Megalimmer:** a rumble of wheels, and Rollie comes rolling in fast from the side
+  (`wayIn`), brakes and skids round onto his spot in a spray of dust and sparks; his eyes light up
+  (his laser's clip); beside him specks of light gather out of nothing into a blur that sharpens
+  into Megalimmer (his `hidden` going from 1 to 0), and Rollie throws his arms out (his swipe's
+  clip). Their name comes up as "Rollie and Megalimmer". The camera wide on his spot as he comes,
+  then on the pair (`pair`, between them). Megalimmer is out of sight while it is due (`waiting`).
 - **Sollmeldon:** his mire lies flooded with his black mud as the hero comes in, a little over
   the doorways' level (his `flood`, set while his intro is due: `waiting`), him under it. The mud
   over his spot bubbles, more and more, and he rises out of it, the mud pouring off him (what is
@@ -1419,6 +1427,106 @@ get to him, climbing and jumping too. A mountain he only cracked is gone at once
 |---|---|---|---|
 | Moose (`MONT_MOOSE`) | Moose | 1× | plain, ×0.6 health, ×0.55 damage |
 
+## Rollie and Megalimmer
+
+![Rollie](img/model-rollie.jpg)
+
+After a child's drawing: **two bosses at once**, the boss of depth 9 (`BOSSES[9]`, `rollie`), each
+with a bar of his own, stacked ([ui.md](ui.md#the-boss-bar)). One phase.
+
+**Rollie** (`blender/rollie.py`, `assets/rollie.glb`) is a big Spicy, twice its size (2.6 cells):
+a barrel of a body with a glowing grille down its front on two big wheels (the game spins them by
+the way he rolls), two eyes on wavy stalks under angry V brows, and two long wavy arms ending in
+glowing balls, out of which come his laser blades. **Megalimmer** is a Flimmer, but a ghost twice
+the hero's height (2.2 cells) and nobody underneath: a ball with a pale grey sheet thrown over it,
+simulated (`core/cloth.js`: it drapes, trails behind as he glides, streams as he runs, and falls
+onto the floor when he dies), blurry like a Flimmer and drawn like one (`render/megalimmerview.js`):
+blows go through him while he shimmers, a fifth of the time (a Flimmer's: two fifths). Two hidden
+balls under the sheet are his hands: they push it out as he punches. He floats.
+
+Profiles: `ROLLIE` and `MEGALIMMER` in `src/core/enemies.js` (both `boss: 'rollie'`, each the
+other's `partner`); the fight's rules in `src/core/rollie.js` (`ROLLIE_FIGHT`), the fight in
+`src/game/rollie.js`, the blades, the sweep's beam and the grid drawn by `src/render/rollieview.js`.
+
+| | Level 11 |
+|---|---|
+| Health | Rollie 2970 (`hp` 1100), Megalimmer 2295 (`hp` 850) |
+| Damage | 48 each (Rollie: the laser ×1, a blade ×0.6, the sweep ×0.16 a tick, the grid ×0.7, his arms ×1; Megalimmer: a punch ×0.3, the last ×0.7, a twister ×0.45) |
+| XP | 420 and 380 grown; coins 110–190 and 100–170 at level 1; each drops a descent guardian's loot |
+| Poise | 2 s; nothing staggers them (`steadfast`) |
+
+### Their arena, the two of them, the gate
+
+Their arena is always the **colosseum** of the ordinary arenas (`BOSS_ARENAS.rollie.shape`,
+`cubegen/arenashapes.js` `colosseum`): a flat oval of sand inside rings of stepped seating, open
+ground for Rollie to roll over and Megalimmer to run round you on. Rollie stands on the guardian's
+spot, Megalimmer beside him (`game/enemyspawn.js` `bossSpots`, `partnerFloor`: about 3 cells to his
+right, on the fight's ground), each with an id of his own (`core/guardians.js` `guardianId`,
+`partnerId`) and their key (`pair`). The gate is neither's while both stand (`pairGate`): their fight
+gives it to the last one standing (`guardianGate`), so the well opens with the second. A death
+before brings the first back with the second; once the gate is open neither comes back
+(`guardianIds`, `restoreDefeated`). Woken one (a player within 6 cells, a blow, a strike), both are.
+
+### Taking turns
+
+One of them is the **main** one (`main`: his eyes glow brighter, his row of the boss bar lights up):
+he goes for you with all he has, the shared AI's way. The other keeps to the side, so that most of
+the time you have one to watch. They swap after 15 to 20 s (`turn`), sooner once the main one loses
+15% of his health within 4 s (`hurt`; not in the first 6 s of his turn): hurt him fast, and he hands
+over. The first swap the robot calls ("They swapped!"). The one at the side joins in only now and
+then, and **never while the main one is in the middle of an attack** (nor for a second after,
+`calm`):
+
+- **Rollie at the side** keeps 6 to 9 cells off, round to the side of the main one (110°, the nearer
+  way round to where he is: `sidePoint`), never behind you as you face the main one, and only
+  sweeps his beam and makes the floor blink.
+- **Megalimmer at the side** runs round you, fast (twice the hero's run, `spiral`), from 4.5 cells
+  out to 1.5 in 9 s, sending twisters at you every 2.2 to 3.2 s (at most three about; `twisters`,
+  `game/twisters.js throwTwister`: they run at you, catch you, spin you up and fling you down). He
+  breaks off to beat you: now and then once midway (four times in ten), and always at the end,
+  dashing in and punching (his `pummel`); then he runs round again, after the last one from the
+  widest. Running round he is moved by his fight, not by the shared AI (`circling`).
+
+Beaten one, the other fights on as he did: his turns as the main one and at the side go on, with
+nobody to take the other's (`stepTurns`, `side`).
+
+### Rollie
+
+- **The laser** (clip `RollieLaser`, 2.3 s, within 11 cells): the Spicy's, bigger: he rolls back
+  a cell, the beam shines from his eyes 0.8 s, following you, and bursts.
+- **The laser blades** (`sabers`, clip `RollieSabers`, 1.7 s): he flings both arms and two blades
+  of light spin out of his hands, curving after you (2.6 rad/s), and after 1.15 s turn back and fly
+  into his hands again (`stepSaber`), cutting whom they touch on the way out and again on the way
+  back.
+- **The sweep** (clip `RollieSweep`, 4 s, every 8 to 11 s): a thin beam from his eyes that starts
+  2.6 cells beside you and follows you for 3 s, slower than you run (1.9 cells/s), burning every
+  0.35 s while it touches you; he turns with it.
+- **The grid** (clip `RollieGrid`, 1.8 s, every 9 to 12 s): he slams his hands down, and three waves
+  of eight floor cells round you (your own among them, within 3.5 cells: `gridCells`), 1.1 s apart,
+  blink red for 1 s, faster and brighter, then lasers strike them from high above. Step off the red.
+- **His arms** (clip `RollieSwipe`, 1.4 s, close): both swept round in front, knocking you away.
+- **Spark spicies** (clip `RollieSummon`, every 18 to 22 s, as the main one): as many as fill up to two.
+
+### Megalimmer
+
+- **The beating** (`pummel`): a Flimmer's five punches, bigger, his hands bulging the sheet.
+- **Invisible** (`vanish`, every 12 to 16 s, as the main one): he waves and fades out, for 3 s only a
+  faint shimmer of him left (`hidden`; "Megalimmer turns invisible!"); blows still reach him, and
+  he often comes out of it with his fists.
+- **The Stun flimmer** (`stunner`, every 10 to 14 s, at most one about): a little Flimmer, quick,
+  that runs at you and beats you once: stunned 1.3 s. Then it fades away (or after 7 s anyway).
+- **Ghost flimmers** (`flimmers`, every 18 to 22 s): a troop of three, as many as fill up to three.
+
+Their deaths take their minions along; the blades, the beam and the grid go out.
+
+## Rollie and Megalimmer's minions
+
+| | Kind of | Size | Notes |
+|---|---|---|---|
+| Spark spicy (`ROLLIE_SPICY`) | Spicy | 0.85× | pale, ×0.6 health, ×0.55 damage |
+| Ghost flimmer (`MEGA_FLIMMER`) | Flimmer | 1× | plain, ×0.8 health, ×0.7 damage |
+| Stun flimmer (`STUN_FLIMMER`) | Flimmer | 1× | pale blue, ×0.5 health, ×1.75 speed; one blow that stuns (its `shock`), then it goes |
+
 ## Sollmeldon
 
 ![Sollmeldon's clips](img/model-sollmeldon.jpg)
@@ -2007,7 +2115,12 @@ his volcanoes, the volley of jets running and the wall he is still coming out of
 suit, slows its own hero in his mud and draws his volcanoes, jets and hole; the runner's blows reach the others through `hitBody`. The bodies along his
 body are sent like any enemy (hit there, the blow goes to the runner and is his); a friend's game
 makes his body's trail from where he is shown. A friend who takes the diving suit tells the runner
-(`suit`), and everyone in the reef puts theirs on.
+(`suit`), and everyone in the reef puts theirs on. Rollie and Megalimmer are two enemies like any,
+their key (`pair`) in the roster (so every game stacks their two bars), and their rows carry nine more
+slots (the first eight unused): who goes for you now, how invisible Megalimmer is and whether he runs
+round you (`net/protocol.js rollieRow`). Their fight's own shots (the blades, the sweep's beam, the
+grid, Megalimmer's twisters) are only the runner's game's for now: the others are hurt by them
+(`hitBody`) but do not see them.
 
 ## Dev
 
@@ -2031,6 +2144,10 @@ there is no mud, the world still tips), `/spawn mudsquirtle`, `/arena mire`, `/b
 `/spawn deepsquirtle`, `/spawn murksquirtle`, `/arena reef`, `/boss umbra`; `/air <s>` sets the air
 left in the suit's tank, `/rise` makes his mud rise a step at once. `/roll` and `/rollkeys` turn the world without him, `/mountain` pulls one of his
 mountains out of the floor anywhere ([console.md](console.md)). `/spawn qualmos` (`addQualmoses`; with no water near he never dives), `/boss qualmos`.
+`/spawn rollie` (`addRollies`: Megalimmer comes along beside him, their whole fight anywhere),
+`/spawn megalimmer` (alone: he fights alone, taking turns with nobody), `/spawn rolliespicy`,
+`/spawn megaflimmer`, `/spawn stunflimmer`, `/boss rollie`; the test room's lineup has Rollie, who
+brings Megalimmer.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
 becomes the boss's level, takes a Long Sword of it and goes into his arena (`goBoss`).
@@ -2053,7 +2170,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/umbra.test.js tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/sollmeldon.test.js tests/slomo.test.js tests/qualmos.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/umbra.test.js tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/sollmeldon.test.js tests/slomo.test.js tests/qualmos.test.js tests/rollie.test.js tests/cloth.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -2065,6 +2182,7 @@ await (await import('./tests/browser/renew.js')).runRenewChecks()      // Renew'
 await (await import('./tests/browser/mansk.js')).runManskChecks()      // Mansk's, in his museum: breathing in and the spit, the balls of light, flying and landing, slowed time, the horns breaking, the ribbons catching and squeezing
 await (await import('./tests/browser/slomo.js')).runSlomoChecks()      // Slomo's, in his bowl: the slug arms latching on, the meteorites, the blob bursting, the flood from a side, his slimes
 await (await import('./tests/browser/qualmos.js')).runQualmosChecks()  // Qualmos's, at the core: the grab's glow, catch, lift and slam; phase 2 harder, the belly flop's rhythm; into his lagoon, under it, up and out at you
+await (await import('./tests/browser/rollie.js')).runRollieChecks()    // Rollie and Megalimmer's, in their colosseum: both there, two bars, taking turns, Megalimmer running round and his twisters, the blades, the sweep, the grid, invisible, the Stun flimmer, the gate with the second
 await (await import('./tests/browser/sollmeldon.js')).runSollmeldonChecks() // Sollmeldon's, in his mire: bites by turns, mud and its puddles, Mud squirtles, a head cut off, flying and landing, the world tipping and the mud running downhill, his death draining it
 await (await import('./tests/browser/umbra.js')).runUmbraChecks()      // Umbra's, in his reef: the suit, no way out, the water rising, under water (slower, the high jump), the air; bites, the earthquake and lying exposed, volcanoes, squirtles; a blow on his body; the jets and his shield; the mud slowing; his death draining it all
 await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
@@ -2127,6 +2245,12 @@ Qualmos: `Blender -b --python blender/qualmos.py -- assets/qualmos.glb blender/q
 blender/previews/qualmos-preview.png [blender/previews/qualmos-clips]` (the last: the clips as videos), then
 `node tools/compress-assets.mjs assets/qualmos.glb`. His clips must last as long as his attacks,
 and the grip and the muzzles it prints must match `QUALMOS_GRAB` and `QUALMOS_AT` (`tests/assets.test.js`).
+
+Rollie: `Blender -b --python blender/rollie.py -- assets/rollie.glb blender/rollie.blend
+blender/previews/rollie-preview.png`, then `node tools/compress-assets.mjs assets/rollie.glb`. His
+clips must last as long as his attacks, and the eyes, hands, grid and summon points it prints must
+match `ROLLIE_AT` (`tests/assets.test.js`). Megalimmer has no model: his sheet is simulated
+(`core/cloth.js`) and drawn by `render/megalimmerview.js`.
 
 Umbra: `Blender -b --python blender/umbra.py -- assets/umbra.glb blender/umbra.blend
 blender/previews/umbra-preview.png`, then `node tools/compress-assets.mjs assets/umbra.glb`. His

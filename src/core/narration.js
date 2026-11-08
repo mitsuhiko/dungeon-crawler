@@ -1018,6 +1018,10 @@ export const LINES = [
     'Qualmos\'s arena at the core: a blue-green amphibian on six tentacles, grinning. For now the boss at the core (docs/story.md).', UNEASY),
   says('arena', { boss: 'qualmos' }, 'arena.qualmos.tricks', 'It gets angrier every time it is hurt, and learns a new trick. Be ready for anything!',
     'Qualmos has five phases, each with new attacks.', TIP),
+  says('arena', { boss: 'rollie' }, 'arena.rollie.two', 'Two of them at once! A big Spicy on wheels, and a ghost under a sheet.',
+    'Rollie and Megalimmer\'s arena at depth 9: two bosses at once.', WONDER),
+  says('arena', { boss: 'rollie' }, 'arena.rollie.turns', 'They take turns. Fight the one whose eyes glow brightest, and keep the other in sight.',
+    'One of them goes for you at a time (his eyes glow brighter, his bar lights up); the other keeps to the side.', TIP),
 
   // --- in a boss's fight: its start, an attack as it starts, a stage changing (short: it is quick) -
   says('boss', { boss: 'gusto', what: 'summon' }, 'boss.gusto.summon', 'Little triangles! Mind your back.',
@@ -1215,6 +1219,14 @@ export const LINES = [
     'A wide wave that shoves.', WARN),
   says('boss', { boss: 'qualmos', what: 'bellyFlop' }, 'boss.qualmos.flop', 'It is puffing up! Get out from under it, then hit it while it lies there!',
     'Blown up, he flops onto you; then he lies there a moment, exposed.', TIP, { seed: { en: 3 } }),
+  says('boss', { boss: 'rollie', what: 'swap' }, 'boss.rollie.swap', 'They swapped! Now the other one is coming for you.',
+    'Rollie and Megalimmer swap who goes for the hero (game/rollie.js), the first time.', WARN),
+  says('boss', { boss: 'rollie', what: 'sabers' }, 'boss.rollie.sabers', 'Spinning lasers! They fly back to him, so watch out twice.',
+    'Rollie throws two laser blades that come back like boomerangs.', WARN),
+  says('boss', { boss: 'rollie', what: 'grid' }, 'boss.rollie.grid', 'The floor is blinking! Get off the red squares!',
+    'Rollie makes floor cells blink; lasers strike them from above.', WARN),
+  says('boss', { boss: 'rollie', what: 'vanish' }, 'boss.rollie.vanish', 'Where did the ghost go? It is still here somewhere!',
+    'Megalimmer turns invisible for a while; blows still reach him.', UNEASY),
 
   // --- a boss beaten: a cheer, and a scrap of what it remembers coming back --------------------
   says('beaten', { boss: 'gusto' }, 'beaten.gusto.open', 'We did it! The well is open!',
@@ -1265,6 +1277,8 @@ export const LINES = [
     'Qualmos beaten, at the core (for now he ends nothing: docs/story.md).', CHEER),
   says('beaten', { boss: 'qualmos' }, 'beaten.qualmos.where', 'But where is the glassmaker? I was so sure he would be here.',
     'The glassmaker is not found yet: the ending is still to come. Puzzled, sad.', SOFT),
+  says('beaten', { boss: 'rollie' }, 'beaten.rollie.both', 'Both of them! The wheels and the ghost, beaten!',
+    'Rollie and Megalimmer beaten, the second of them.', CHEER),
 
   // --- the hero died (said once they are back where they came into the cube) -------------------
   // the boss whose arena it was first (a tip), then the depth's, then any; a world picks its order
@@ -1314,6 +1328,10 @@ export const LINES = [
     'Died fighting Qualmos.', KIND),
   says('death', { boss: 'qualmos' }, 'death.qualmos.pull', 'When it pulls you in, run away at once. The longer you wait, the harder it pulls.',
     'Died to Qualmos again.', TIP),
+  says('death', { boss: 'rollie' }, 'death.rollie.turns', 'Watch which one comes for you, and fight that one. The other only joins in now and then.',
+    'Died fighting Rollie and Megalimmer.', KIND),
+  says('death', { boss: 'rollie' }, 'death.rollie.circle', 'When the ghost runs round you, mind its twisters, and hit it when it comes in close.',
+    'Died to Rollie and Megalimmer again: Megalimmer\'s run round you.', TIP),
   says('death', { depth: 13 }, 'death.13.together', 'It is dark and sticky down here. Let us be careful together.',
     'Died at depth 13. Gentle.', KIND),
   says('death', { depth: [7, 12] }, 'death.caves.find', 'Up you get. Even down in the caves, I will always find you.',

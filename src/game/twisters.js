@@ -75,6 +75,16 @@ function spinUp(e, dt) {
     Object.assign(x, { path: stayTwister(e.x, e.z, Math.random() * 9), grow: 1 });
   }
 }
+// A twister sent by a fight of its own (Megalimmer's, game/rollie.js), not by an attack's clock:
+// from over his first `hands` spot it drops to the floor and runs off ahead of him, crossing `at`
+// cells along his heading, with `blow` for whom it catches. Only the game that runs the enemies
+// sends them.
+export function throwTwister(e, spec, blow, at) {
+  const w = add({ kind: 'hand', e, attacks: -1, i: 0, spec, profile: e.profile, blow, ...muzzleAt(e, spec.hands[0]) });
+  loose(w, e, Math.max(1.2, Math.min(spec.range - 1.5, at)));
+  w.grow = 0.3;
+  return w;
+}
 // let go: it drops from the hand to the floor below it and runs off
 function loose(w, e, at) {
   const path = launchTwister(e, w.spec, w.i, at, Math.random() * 9), y = floorUnder(path.x0, path.z0, e.y + 0.6);

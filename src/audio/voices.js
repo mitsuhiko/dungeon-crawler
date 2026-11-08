@@ -324,6 +324,37 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         noise(t + 1, 1, filter('lowpass', 700 * p, 1, amp(t + 1, 0.1, 0.3, 0.9, out)));
       },
     },
+    rollie: {   // a big Spicy: a grumbling motor revving up into an angry two-tone honk, a charging whine over whirring wheels, a power-down groan clanking to a halt
+      alert: (t, out, p) => {
+        tone('sawtooth', 70 * p, 140 * p, t, 0.4, filter('lowpass', 900 * p, 2, amp(t, 0.02, 0.25, 0.38, out)));
+        for (const [i, [f0, f1]] of [[330, 420], [250, 330]].entries())
+          tone('square', f0 * p, f1 * p, t + 0.3 + i * 0.16, 0.14, filter('lowpass', 1800 * p, 1, amp(t + 0.3 + i * 0.16, 0.006, 0.18, 0.13, out)));
+      },
+      windup: (t, out, p) => {
+        sweep(t, 0.7, 300 * p, 900 * p, 400 * p, 4, 0.22, out, 0.05);
+        tone('sine', 200 * p, 1100 * p, t + 0.2, 0.5, amp(t + 0.2, 0.05, 0.14, 0.45, out));
+        clicks(t, 6, 0.1, 1800 * p, 0.25, out);
+      },
+      death: (t, out, p) => {
+        tone('sawtooth', 480 * p, 45 * p, t, 1.6, filter('bandpass', 700 * p, 2, amp(t, 0.02, 0.3, 1.55, out)));
+        clicks(t + 0.3, 12, 0.11, 1400 * p, 0.35, out);
+        noise(t + 1.4, 0.4, filter('lowpass', 600 * p, 1, amp(t + 1.4, 0.01, 0.35, 0.38, out)));   // (tipping over onto his back)
+      },
+    },
+    megalimmer: {   // a big blurry ghost: a low hollow "oooh" wobbling, a breathy rising whoosh as he comes into focus, a long sigh blowing away
+      alert: (t, out, p) => {
+        bend(t, 0.9, 180 * p, 240 * p, 150 * p, 700 * p, 0.35, out);
+        noise(t, 0.8, filter('bandpass', 900 * p, 3, amp(t, 0.15, 0.12, 0.65, out)));
+      },
+      windup: (t, out, p) => {
+        noise(t, 0.4, filter('bandpass', 1200 * p, 2, amp(t, 0.1, 0.2, 0.3, out)));
+        tone('triangle', 300 * p, 900 * p, t + 0.1, 0.3, amp(t + 0.1, 0.02, 0.12, 0.28, out));
+      },
+      death: (t, out, p) => {
+        bend(t, 1.6, 220 * p, 160 * p, 60 * p, 800 * p, 0.35, out);
+        noise(t + 0.2, 1.8, filter('highpass', 1500 * p, 0.7, amp(t + 0.2, 0.3, 0.14, 1.5, out)));   // (the sheet settling, the specks blowing away)
+      },
+    },
     slug: {   // a Slug: a low wet gurgle, a slurp drawing breath, a long deflating sigh
       alert: (t, out, p) => { bend(t, 0.4, 110 * p, 150 * p, 95 * p, 500 * p, 0.4, out); gloops(t + 0.2, 4, 150 * p, 300 * p, 0.07, 0.18, out, false); },
       windup: (t, out, p) => {

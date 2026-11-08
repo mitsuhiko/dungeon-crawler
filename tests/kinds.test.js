@@ -60,6 +60,7 @@ test('every kind recolours materials its species model has, and only those', () 
   assert.equal(new Set(Object.values(ENEMY_KINDS).map(k => k.type)).size, Object.keys(ENEMY_KINDS).length);
   const species = new Map([...ENEMY_PROFILES, ...BOSS_PROFILES, ...MINION_PROFILES].map(p => [p.type, p]));
   for (const p of [...ENEMY_PROFILES, ...BOSS_PROFILES, ...MINION_PROFILES]) {
+    if (p.cloth) continue;   // (Megalimmer has no model: a sheet the game hangs over a ball, render/megalimmerview.js)
     const m = materials(p.model ?? p.species);   // (Renew and the Flimmers are the hero's own figure: assets/character.glb)
     for (const [role, names] of Object.entries(p.parts)) for (const name of names) assert.ok(m[name], `${p.type} ${role}: ${name}`);
     for (const name of Object.keys(m)) if (/Teeth|Fangs|Pupils|Mouth/.test(name) && name !== 'StunderMouth')

@@ -164,9 +164,11 @@ test('climb: every ladder style, the hanging ones hanging too, and every ladder 
   }
 });
 
-test('enemies and guardians: every kind lined up once (the Temp Bosses not yet, the bosses in their room), on the ground, apart, the shortest in front', () => {
+test('enemies and guardians: every kind lined up once (the Temp Bosses not yet, the bosses in their room, a boss\'s partner with him), on the ground, apart, the shortest in front', () => {
   const w = new World(6), rooms = ['enemies', 'guardians'].map(n => w.cube(testRoomKey(n, 5)).map);
-  const bosses = Object.keys(BOSSES).map(d => w.cube(testRoomKey('boss', +d)).map.testRoom.lineup.map(l => l.type)).flat();
+  // (a boss of two brings the other along: game/rollie.js)
+  const bosses = Object.keys(BOSSES).map(d => w.cube(testRoomKey('boss', +d)).map.testRoom.lineup.map(l => l.type)).flat()
+    .flatMap(t => [t, ...ENEMY_KINDS[t].partner ? [ENEMY_KINDS[t].partner] : []]);
   const all = rooms.flatMap(m => m.testRoom.lineup.map(l => l.type));
   assert.deepEqual([...all, ...bosses].sort(), Object.keys(ENEMY_KINDS).filter(k => !ENEMY_KINDS[k].bossPlaceholder).sort(), 'every kind, once');
   assert.ok(rooms[1].testRoom.lineup.every(l => ENEMY_KINDS[l.type].guardianRole === 'side'));

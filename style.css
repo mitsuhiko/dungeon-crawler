@@ -897,13 +897,23 @@ body.touch #tutorial { top: calc(26% + env(safe-area-inset-top)); width: 230px; 
   box-sizing: border-box; width: min(520px, 60%); padding: 5px 14px 10px; text-align: center;
   opacity: 0; visibility: hidden; transition: opacity .6s, visibility 0s .6s; }
 #boss-bar.on { opacity: 1; visibility: visible; transition: opacity .25s; }
-#boss-name { display: block; overflow: hidden; color: var(--ember-text); font: 15px/1.5 var(--font-display); letter-spacing: .04em;
+.boss-name { display: block; overflow: hidden; color: var(--ember-text); font: 15px/1.5 var(--font-display); letter-spacing: .04em;
   white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 0 8px #ffa04059, 0 1px 2px #000; }
-#boss-meter { position: relative; height: 10px; margin-top: 2px; overflow: hidden; background: #070909e6; box-shadow: inset 0 1px 2px #000;
+.boss-meter { position: relative; height: 10px; margin-top: 2px; overflow: hidden; background: #070909e6; box-shadow: inset 0 1px 2px #000;
   clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
-#boss-meter i { position: absolute; inset: 0; transform-origin: left center; }
-#boss-trail { background: #ffe6c4bf; }
-#boss-fill { background: linear-gradient(#ffd08a, #ff9b35 45%, #c8601e); box-shadow: inset 0 1px 0 #fff0d8aa; }
+.boss-meter i { position: absolute; inset: 0; transform-origin: left center; }
+.boss-trail { background: #ffe6c4bf; }
+.boss-fill { background: linear-gradient(#ffd08a, #ff9b35 45%, #c8601e); box-shadow: inset 0 1px 0 #fff0d8aa; }
+/* a boss of two (Rollie and Megalimmer): two bars stacked (.duo), the one who goes for you now lit up (.lead), the other dimmer; a
+   beaten one's dimmer still (.down) */
+#boss-row2 { display: none; margin-top: 4px; }
+#boss-bar.duo #boss-row2 { display: block; }
+#boss-bar.duo .boss-row { opacity: .62; transition: opacity .4s; }
+#boss-bar.duo .boss-row.lead { opacity: 1; }
+#boss-bar.duo .boss-row.lead .boss-name { color: var(--ember-hi, var(--ember-text)); text-shadow: 0 0 10px #ffa04099, 0 1px 2px #000; }
+#boss-bar.duo .boss-row.down { opacity: .35; }
+#boss-bar.duo .boss-name { font-size: 13px; line-height: 1.35; }
+#boss-bar.duo .boss-meter { height: 8px; }
 body.touch #boss-bar { top: calc(74px + env(safe-area-inset-top)); width: min(420px, 70%); }
 #boss-bar.on.intro { transition: opacity 1s; }   /* (in his intro it fades in slowly) */
 /* the air in the diving suit's tank under Umbra's water (game/dive.js): a pale cyan bar under his, the minutes left beside it;

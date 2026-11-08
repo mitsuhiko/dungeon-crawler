@@ -290,7 +290,7 @@ export function rosterOf(list, cube, seed) {
     return { id: e.id, p: seen.get(key), level: e.level, coinDrop: e.coinDrop,
       kind: e.kind && { xp: e.kind.xp, dropXP: e.kind.dropXP, dropScale: e.kind.dropScale, drops: e.kind.drops },
       guardian: e.guardian, guardianRole: e.guardianRole, bossPlaceholder: e.bossPlaceholder, guardianGate: e.guardianGate,
-      boss: e.boss, proxy: e.proxy, summoned: e.summoned, noReward: e.noReward,
+      boss: e.boss, proxy: e.proxy, summoned: e.summoned, noReward: e.noReward, pair: e.pair,
       hordeId: e.hordeId, respawn: e.respawn, wave: e.wave, x: r3(e.x), y: r3(e.y), z: r3(e.z), yaw: r3(e.yaw), hp: e.hp, mode: e.mode };
   });
   return { t: 'roster', cube, seed, profiles, list: entries };
@@ -308,8 +308,10 @@ export function rosterOf(list, cube, seed) {
 // for Renew three more: 0, 0 and renewRow, and for Slomo four more: 0, 0, 0 and slomoRow (his flood
 // is his tide), and for Mansk five more: 0, 0, 0, 0 and manskRow, and for Monteur six more: 0, 0, 0,
 // 0, 0 and monteurRow, and for Sollmeldon seven more: 0, 0, 0, 0, 0, 0 and sollmeldonRow, and for Umbra eight
-// more: seven 0 and umbraRow
+// more: seven 0 and umbraRow, and for Rollie and Megalimmer nine more: eight 0 and rollieRow
 const beamRow = b => [r2(b.t), r2(b.ex), r2(b.ey), r2(b.ez)];
+// Rollie's and Megalimmer's (game/rollie.js): whether he goes for you now, how invisible, whether he runs round you
+const rollieRow = e => [e.main ? 1 : 0, r2(e.hidden ?? 0), e.circling ? 1 : 0];
 const flipRow = e => [e.orient ?? 0, e.turns ?? 0, (e.holes ?? []).map(h => [h.n, r2(h.x), r2(h.y), r2(h.z), r2(h.t), h.life])];
 // Foggery's: [eyes ([left, right]: 0 thrown .. 1 grown back), guard (1 while his shield holds), the
 // clock of his platforms] (game/foggery.js)
@@ -359,6 +361,7 @@ export function rowOf(e, i, runner = 0) {
       : e.boss === 'mansk' && e.lift !== undefined ? [0, 0, 0, 0, manskRow(e)]
       : e.boss === 'monteur' && e.stones !== undefined ? [0, 0, 0, 0, 0, monteurRow(e)]
       : e.boss === 'sollmeldon' && e.heads !== undefined ? [0, 0, 0, 0, 0, 0, sollmeldonRow(e)]
-      : e.boss === 'umbra' && e.dive ? [0, 0, 0, 0, 0, 0, 0, umbraRow(e)] : []];
+      : e.boss === 'umbra' && e.dive ? [0, 0, 0, 0, 0, 0, 0, umbraRow(e)]
+      : e.boss === 'rollie' && e.pair !== undefined ? [0, 0, 0, 0, 0, 0, 0, 0, rollieRow(e)] : []];
 }
 

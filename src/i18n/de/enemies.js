@@ -80,6 +80,9 @@ export default {
   "Mud squirtle": { text: 'Schlammsquirtle', g: 'm', pl: 'Schlammsquirtles' },
   "Deep squirtle": { text: 'Tiefseesquirtle', g: 'm', pl: 'Tiefseesquirtles' },
   "Murk squirtle": { text: 'Trübsquirtle', g: 'm', pl: 'Trübsquirtles' },
+  "Spark spicy": { text: 'Funkenspicy', g: 'm', pl: 'Funkenspicys' },
+  "Ghost flimmer": { text: 'Geisterflimmer', g: 'm', pl: 'Geisterflimmer' },
+  "Stun flimmer": { text: 'Betäubungsflimmer', g: 'm', pl: 'Betäubungsflimmer' },
   Gusto: { text: 'Gusto', g: 'm' },
   Totnar: { text: 'Totnar', g: 'm' },
   Squarlo: { text: 'Squarlo', g: 'm' },
@@ -92,6 +95,8 @@ export default {
   Sollmeldon: { text: 'Sollmeldon', g: 'm' },
   Umbra: { text: 'Umbra', g: 'm' },
   Qualmos: { text: 'Qualmos', g: 'm' },
+  Rollie: { text: 'Rollie', g: 'm' },
+  Megalimmer: { text: 'Megalimmer', g: 'm' },
   'Guardian {kind}': 'Wächter-{kind}',
   'Temp Boss {kind}': 'Temp-Boss-{kind}',
 
@@ -259,6 +264,16 @@ export default {
   'Soaked by Qualmos!': 'Von Qualmos durchnässt!',
   'Inked by Qualmos!': 'Von Qualmos mit Tinte bespritzt!',
   "Hit by Qualmos's spine!": "Von Qualmos' Stachel getroffen!",
+  "Blasted by Rollie's laser!": 'Von Rollies Laser getroffen!',
+  "Cut by Rollie's laser blade!": 'Von Rollies Laserklinge geschnitten!',
+  "Burned by Rollie's beam!": 'Von Rollies Strahl verbrannt!',
+  'Struck by a laser from above!': 'Von einem Laser von oben getroffen!',
+  "Swept away by Rollie's arms!": 'Von Rollies Armen weggefegt!',
+  'Beaten up by Megalimmer!': 'Von Megalimmer verprügelt!',
+  "Caught in Megalimmer's twister!": 'In Megalimmers Wirbelwind geraten!',
+  'Blasted by a Spark spicy!': 'Von einem Funkenspicy beschossen!',
+  'Beaten up by a Ghost flimmer!': 'Von einem Geisterflimmer verprügelt!',
+  'Stunned by a Stun flimmer!': 'Von einem Betäubungsflimmer betäubt!',
 
   // other ways to get hurt
   'Bitten!': 'Gebissen!',
@@ -383,6 +398,9 @@ export default {
   'The mud sinks back a little': 'Der Schlamm sinkt ein wenig zurück',
   '{name} enters phase {phase}!': '{name} beginnt Phase {phase}!',
   '{name} slips under the water!': '{name} taucht unter!',
+  '{name} turns invisible!': '{name} wird unsichtbar!',
+  // two bosses at once, in the intro (game/bossintro.js): 'Rollie and Megalimmer'
+  '{one} and {two}': '{one} und {two}',
 
   // the line under a boss's name in his intro (core/bossintro.js)
   'The Hungry Grin': 'Das hungrige Grinsen',
@@ -397,6 +415,7 @@ export default {
   'King of the Slime': 'König des Schleims',
   'The Drowned Coil': 'Die ertrunkene Windung',
   'At the End of the World': 'Am Ende der Welt',
+  'The Laser and the Ghost': 'Der Laser und der Geist',
   'Keeper of the Well': 'Hüter des Brunnens',
 
   // guardians (core/guardians.js)

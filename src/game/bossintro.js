@@ -14,7 +14,7 @@
 // curtain shut over his stage).
 import { player, state } from './state.js';
 import { allEnemies, mirroring, resetEnemies } from './enemies.js';
-import { bossOf } from '../core/bossbar.js';
+import { bossesOf } from '../core/bossbar.js';
 import { enemyName } from '../core/enemies.js';
 import { INTROS, introOf, shotAt, shotFrame, shotScale, blendAt, blinking, BLINK, dimAt, within, epithetOf } from '../core/bossintro.js';
 import { REVEALS } from './reveals.js';
@@ -43,6 +43,11 @@ let run = null;        // the intro under way
 let visit = null, waited = 0;   // the visit (state.visit) the boss was looked for in
 let voidVisit = null;  // the visit an intro took the world round the arena away in (state.introVoid)
 let waiting = null;    // { e, reveal }: the boss whose intro is due, his arena set for it (wait)
+// the boss to meet (core/bossbar.js): of a pair, the first still standing (Rollie: theirs is his intro,
+// game/bossreveals.js, and Megalimmer comes in it too)
+const bossHere = () => bossesOf(allEnemies(), player).find(b => b.mode !== 'dead') ?? null;
+// his name, and with a pair's other still standing, both
+const introName = e => e.other && e.other.mode !== 'dead' ? tr('{one} and {two}', { one: enemyName(e.profile), two: enemyName(e.other.profile) }) : enemyName(e.profile);
 
 export const introPlaying = () => !!run;
 export const introFull = () => !!run?.full;
@@ -74,7 +79,7 @@ export function updateBossIntro(dt) {
 function look(dt) {
   if (state.transitioning || curtained() || !state.visit || visit === state.visit) return;
   if (state.map.testRoom || state.map.interior) { visit = state.visit; return; }   // (/intro there)
-  const e = bossOf(allEnemies(), player);
+  const e = bossHere();
   if (!e) { if ((waited += dt) > WAIT) visit = state.visit; return; }
   if (e.holdIntro) return;   // (not here yet: Umbra comes once his reef is flooded, game/umbra.js)
   visit = state.visit; waited = 0;
@@ -92,7 +97,7 @@ function due(e) {
 // over his stage). No longer due without it starting (someone came, he woke): back as it was.
 const unseen = e => { e.veil = 0; };
 function wait() {
-  const b = visit !== state.visit && !state.map.testRoom && !state.map.interior ? bossOf(allEnemies(), player) : null, e = b?.holdIntro ? null : b;
+  const b = visit !== state.visit && !state.map.testRoom && !state.map.interior ? bossHere() : null, e = b?.holdIntro ? null : b;
   const w = e && due(e) ? { e, reveal: REVEALS[introOf(e, false).reveal] } : null;
   if (waiting && waiting.e !== w?.e) unwait();
   waiting = w;
@@ -123,7 +128,7 @@ function start(e, full) {
   // only, his reveal shows him as it starts)
   if (set && (set.e !== e || set.reveal !== reveal || !reveal?.waiting)) { Object.assign(set.e, { veil: undefined, flood: 0 }); hideIntroFx(); }
   state.intro = { full, bar: false };
-  $('boss-intro-name').textContent = enemyName(e.profile);
+  $('boss-intro-name').textContent = introName(e);
   $('boss-intro-title').textContent = tr(epithetOf(e));
   if (!full) return;
   e.staged = true;
@@ -254,13 +259,13 @@ renderer.domElement.addEventListener('pointerdown', skipped, true);
 // dev (/intro): this arena's boss's intro again, as the first time (him back on his spot, the hero
 // at the way in) or as after; the hero met him either way
 export function devIntro(full = true) {
-  const e = bossOf(allEnemies(), player);
+  const e = bossHere();
   if (!e) return 'No boss here';
   if (run) stop();
   let boss = e;
   if (full) {   // (the cube's enemies as on coming in: him fresh on his spot, his fight not begun)
     resetEnemies();
-    boss = bossOf(allEnemies(), player) ?? e;
+    boss = bossHere() ?? e;
     const a = state.arrival;
     if (a) spawnAt(a.x, a.y, a.z);
   }

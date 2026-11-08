@@ -16,7 +16,7 @@ import { allEnemies, mirrorEnemies, adoptEnemies } from '../game/enemies.js';
 import { mirrorBeam } from '../game/beams.js';
 import { clearProjectiles } from '../game/projectiles.js';
 import { removeEnemyViews } from '../render/enemies.js';
-import { guardianId } from '../core/guardians.js';
+import { guardianIds } from '../core/guardians.js';
 import { STAGE_PROFILES, enemyProfile } from '../core/enemies.js';
 import { followMovers } from '../game/movers.js';
 import { SHAPES, PHASES } from '../core/mountains.js';
@@ -64,6 +64,7 @@ function replica(entry, profile, i) {
     guardianGate: entry.guardianGate, hordeId: entry.hordeId,
     respawn: typeof entry.respawn === 'string' ? entry.respawn : undefined, wave: Number.isInteger(entry.wave) && entry.wave > 0 ? entry.wave : 0,
     boss: entry.boss, proxy: !!entry.proxy, summoned: !!entry.summoned, noReward: !!entry.noReward,
+    ...(typeof entry.pair === 'string' && { pair: entry.pair }),
     x: entry.x, y: entry.y, z: entry.z, yaw: entry.yaw, hp: entry.hp, mode: entry.mode === 'dead' ? 'dead' : 'idle',
     t: 0, attacks: 0, attack: 0, speed: 0, deadT: entry.mode === 'dead' ? 1e9 : 0, hurtT: 0, stun: 0, cool: 0,
     phase: (i * 0.37) % 1, shownHp: entry.hp };
@@ -101,7 +102,7 @@ export class Viewer {
   roster(m) {
     if (m.cube !== state.cubeKey || m.seed !== state.cubes?.seed) return;
     const old = new Map(this.mirror.list.map(e => [e.id, e]));
-    const permanent = new Set([...state.run.unlockedGates].map(guardianId));
+    const permanent = new Set([...state.run.unlockedGates].flatMap(guardianIds));
     this.byIndex = m.list.map((entry, i) => {
       const e = old.get(entry.id);
       // what the runner has alive, we have not defeated (it came back, after a death there)
@@ -231,6 +232,11 @@ export class Viewer {
           .filter(j => Array.isArray(j) && j.length === 4 && j.every(fin)).slice(0, 6)
           .map(j => j[0] === 1 ? { kind: 'down', x: j[1], z: j[2], floor: j[3] } : { kind: 'wall', side: j[1] & 3, u: j[2] }) } : null;
         e.holdIntro = e.dive.phase !== 'wet' && e.dive.phase !== 'drain' && e.dive.phase !== 'over';
+      }
+      // Rollie's and Megalimmer's turns, Megalimmer invisible and running round (game/rollie.js)
+      if (Array.isArray(b[27])) {
+        const [main, hidden, circling] = b[27];
+        Object.assign(e, { main: main === 1, hidden: Number.isFinite(hidden) ? Math.max(0, Math.min(1, hidden)) : 0, circling: circling === 1 });
       }
       if (e.mode === 'dead') { e.hp = 0; e.deadT = b[6]; e.dark = 0; (e.beam || e.bolts) && mirrorBeam(e, null); return; }
       mirrorBeam(e, Array.isArray(b[12]) ? b[12] : null, Array.isArray(b[16]) ? b[16] : null);

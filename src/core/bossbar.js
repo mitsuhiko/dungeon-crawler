@@ -4,7 +4,8 @@
 // bodies that pass for him (Gusto's proxies, `proxy`): nothing over their heads (that would tell
 // them from him), and they never drive the bar. Everything else that can be hit keeps its small
 // bar over its head (render/enemies.js). The bar shows no phases: one fill, his health, and behind
-// it the damage strip (`trailStep`).
+// it the damage strip (`trailStep`). A boss of two shows two bars, stacked (`bossesOf`), the one of
+// them who goes for you now lit up (`main`).
 import { tr } from '../i18n/i18n.js';
 import { guardianTitle } from './guardians.js';
 
@@ -22,6 +23,17 @@ export function bossOf(enemies, at) {
     if (d < best) { best = d; boss = e; }
   }
   return boss;
+}
+
+// The bosses whose bars show, one row each (at most two): the one bossOf picks, and with him the
+// other of his pair (`pair`: Rollie and Megalimmer, game/rollie.js), beaten too while he is still
+// about (his row empties and goes), in the pair's order (`PAIR_ORDER`: Rollie's row on top).
+export const PAIR_ORDER = Object.freeze(['rollie', 'megalimmer']);
+export function bossesOf(enemies, at) {
+  const boss = bossOf(enemies, at);
+  if (!boss?.pair) return boss ? [boss] : [];
+  const rank = e => { const i = PAIR_ORDER.indexOf(e.profile?.species); return i < 0 ? PAIR_ORDER.length : i; };
+  return enemies.filter(e => e.pair === boss.pair && bossBarred(e) && !e.proxy && !e.host).sort((a, b) => rank(a) - rank(b)).slice(0, 2);
 }
 
 // how full his bar is: his health of his profile's (Renew's a phase's: it fills again with each)

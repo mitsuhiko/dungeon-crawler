@@ -5,37 +5,48 @@
 // behind it lags after a hit. In his intro (game/bossintro.js) it waits until the intro says, and
 // fades in slowly (.intro). Beaten, the fill drops to nothing, the strip drains after it and the
 // bar fades away (`OUT` s). It is not there while the curtain is down or between cubes, and the
-// menus hide it (style.css body.in-menu).
+// menus hide it (style.css body.in-menu). A boss of two (Rollie and Megalimmer) has two bars, stacked,
+// each his own; the one of them who goes for you now has his lit up.
 import { player, state } from './state.js';
 import { allEnemies } from './enemies.js';
 import { reduceMotion } from './settings.js';
 import { curtained } from './hud.js';
 import { language } from '../i18n/i18n.js';
-import { bossOf, bossFill, bossTitle, trailStep } from '../core/bossbar.js';
+import { bossesOf, bossFill, bossTitle, trailStep } from '../core/bossbar.js';
 
 const OUT = 1.2;   // s the bar stays, empty, once he is beaten, before it fades
 const $ = id => document.getElementById(id);
-let boss = null, trail = null, out = 0, said = null;
-const shown = {};
+// a boss of two has two rows (core/bossbar.js bossesOf), the second under the first
+const ROWS = [{ row: 'boss-row', name: 'boss-name', meter: 'boss-meter', fill: 'boss-fill', trail: 'boss-trail' },
+  { row: 'boss-row2', name: 'boss-name2', meter: 'boss-meter2', fill: 'boss-fill2', trail: 'boss-trail2' }];
+let bosses = [], out = 0;   // bosses: [{ e, trail }], a row each
+const said = [], shown = {};
 // write only on change
 const put = (key, value, write) => { if (shown[key] !== value) { shown[key] = value; write(value); } };
 
 export function updateBossBar(dt) {
   const el = $('boss-bar');
   if (!el) return;
-  const pick = state.transitioning ? null : bossOf(allEnemies(), player);
-  if (pick) { if (pick !== boss) trail = null; boss = pick; out = 0; }
-  else if (boss && boss.mode === 'dead' && out < OUT && !state.transitioning) out += dt;   // beaten: it empties, then goes
-  else boss = null;
-  const on = !!boss && out < OUT && !curtained() && (!state.intro || state.intro.bar);
+  const picks = state.transitioning ? [] : bossesOf(allEnemies(), player);
+  if (picks.length) { bosses = picks.map(e => ({ e, trail: bosses.find(b => b.e === e)?.trail ?? null })); out = 0; }
+  else if (bosses.length && bosses.every(b => b.e.mode === 'dead') && out < OUT && !state.transitioning) out += dt;   // beaten: it empties, then goes
+  else bosses = [];
+  const on = bosses.length > 0 && out < OUT && !curtained() && (!state.intro || state.intro.bar);
   put('on', on, v => el.classList.toggle('on', v));
   put('intro', !!state.intro, v => el.classList.toggle('intro', v));
-  if (!boss) { trail = null; return; }
-  const fill = boss.mode === 'dead' ? 0 : bossFill(boss);
-  trail = trailStep(trail, fill, dt, reduceMotion());
-  const key = `${boss.id}|${boss.profile.type}|${boss.level}|${language()}`;
-  if (key !== said) { said = key; $('boss-name').textContent = bossTitle(boss); }
-  put('fill', fill.toFixed(4), v => { $('boss-fill').style.transform = `scaleX(${v})`; });
-  put('trail', trail.at.toFixed(4), v => { $('boss-trail').style.transform = `scaleX(${v})`; });
-  put('now', Math.round(fill * 100), v => $('boss-meter').setAttribute('aria-valuenow', v));
+  put('duo', bosses.length > 1, v => el.classList.toggle('duo', v));
+  bosses.forEach((b, i) => row(i, b, dt));
+}
+// row i: boss b's name, fill and damage strip; of two, the one who goes for you lit up (`main`,
+// game/rollie.js), a beaten one's row dimmed
+function row(i, b, dt) {
+  const R = ROWS[i], e = b.e, fill = e.mode === 'dead' ? 0 : bossFill(e);
+  b.trail = trailStep(b.trail, fill, dt, reduceMotion());
+  const key = `${e.id}|${e.profile.type}|${e.level}|${language()}`;
+  if (key !== said[i]) { said[i] = key; $(R.name).textContent = bossTitle(e); }
+  put(`fill${i}`, fill.toFixed(4), v => { $(R.fill).style.transform = `scaleX(${v})`; });
+  put(`trail${i}`, b.trail.at.toFixed(4), v => { $(R.trail).style.transform = `scaleX(${v})`; });
+  put(`now${i}`, Math.round(fill * 100), v => $(R.meter).setAttribute('aria-valuenow', v));
+  put(`lead${i}`, !!e.main && e.mode !== 'dead', v => $(R.row).classList.toggle('lead', v));
+  put(`down${i}`, e.mode === 'dead', v => $(R.row).classList.toggle('down', v));
 }

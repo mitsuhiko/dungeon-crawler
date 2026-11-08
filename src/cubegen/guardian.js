@@ -240,7 +240,8 @@ export function generateGuardian(spec) {
 
   // (Flip's box, any side of which can be the floor, cubegen/fliparena.js)
   if (custom) return custom.build({ ...given, U, approach: [dx, dz], R, frame });
-  const requested = own?.type ?? (spec.guardian.arena && SHAPES[spec.guardian.arena] ? spec.guardian.arena : 'hills');
+  // (a boss's `shape`: one of the ordinary arenas' always, BOSS_ARENAS: Rollie's colosseum)
+  const requested = own?.type ?? own?.shape ?? (spec.guardian.arena && SHAPES[spec.guardian.arena] ? spec.guardian.arena : 'hills');
   const tint = rockTint(themeOf(spec));
   // a boss who makes it dark has braziers lit round its arena (core/bosses.js)
   const braziers = own?.braziers ?? 0;

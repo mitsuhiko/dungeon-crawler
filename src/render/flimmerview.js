@@ -48,7 +48,7 @@ export const BLUR = {
 };
 // the haze's soft round falloff (one texture for all: its brightness is the haze's opacity)
 let hazeMap = null;
-function hazeTexture() {
+export function hazeTexture() {
   if (hazeMap) return hazeMap;
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const ctx = c.getContext('2d'), g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -57,7 +57,7 @@ function hazeTexture() {
   return hazeMap = new THREE.CanvasTexture(c);
 }
 const hazeGeometry = new THREE.PlaneGeometry(1, 1);
-const FLINCH = 0.35;   // s a flicker aside lasts
+export const FLINCH = 0.35;   // s a flicker aside lasts
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const angleTo = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
@@ -82,8 +82,9 @@ rigReady.then(gltf => {
 
 // One program for every part of every Flimmer: its uniforms move the skinned surface off the
 // skeleton's pose (uShift: the whole of it, in the mesh's own units; uPuff: out along its normals;
-// uJitter: a wobble over time) and fade it towards its outline (uRim).
-function blurry(base, color) {
+// uJitter: a wobble over time) and fade it towards its outline (uRim). (Megalimmer's sheet is drawn
+// with it too, unskinned: render/megalimmerview.js.)
+export function blurry(base, color) {
   const m = base.clone();
   m.color.copy(color); m.transparent = true; m.forceSinglePass = true;
   const u = { uShift: { value: new THREE.Vector3() }, uPuff: { value: 0 }, uJitter: { value: 0 }, uTime: { value: 0 },

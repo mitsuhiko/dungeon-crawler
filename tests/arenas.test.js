@@ -23,7 +23,8 @@ function* forced(seeds, depths) {
     for (const d of depths) for (const [key] of w.layout(d).guardians) {
       w.prepare(key);
       const spec = w.spec(key);
-      if (BOSS_ARENAS[spec.guardian.role === 'descent' && spec.guardian.boss]?.type) continue;   // (a boss's arena of his own)
+      const own = BOSS_ARENAS[spec.guardian.role === 'descent' && spec.guardian.boss];
+      if (own?.type || own?.shape) continue;   // (a boss's arena of his own, or one shape always: Rollie's colosseum)
       for (const type of ARENA_TYPES) yield { type, d, map: generate({ ...spec, guardian: { ...spec.guardian, arena: type } }) };
     }
   }

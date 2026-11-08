@@ -1394,7 +1394,108 @@ export const QUALMOS_STAGES = Object.freeze([1, 2, 3, 4, 5].map(phase => {
   return phase === 1 ? QUALMOS : { ...QUALMOS, phase, damage: QUALMOS.damage * (1 + P.damage * k), chase: QUALMOS.chase * (1 + P.chase * k),
     cooldown: QUALMOS.cooldown * rest, attacks: QUALMOS.attacks.map(a => a.recover ? { ...a, recover: a.recover * rest } : a) };
 }));
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, SOLLMELDON, UMBRA, QUALMOS];
+// Rollie and Megalimmer, the boss of depth 9 (core/bosses.js), after the kids' drawing: two bosses
+// at once, one fight (core/rollie.js holds its rules, game/rollie.js runs it, docs/bosses.md tells
+// it). Each has a bar of his own, stacked (core/bossbar.js). They take turns being the one who goes
+// for you (`main`); the other keeps to the side and only now and then joins in.
+// Rollie (blender/rollie.py): a big Spicy, twice its size, on two big wheels, with two eyes on
+// stalks under angry brows and two long wavy arms ending in glowing balls. He fights from afar with
+// lasers: the Spicy's laser (a `beam`), two spinning laser blades thrown like boomerangs (`sabers`,
+// a cast), a beam that follows you for a while (`sweep`, a cast: weaker, burning while it touches),
+// floor cells that blink and are struck by lasers from above (`grid`, a cast), and close by a sweep
+// of both arms. He calls Spicies.
+// Where things are on him (model space: x, up, forward), read off his clips (blender/rollie.py)
+export const ROLLIE_AT = Object.freeze({
+  eyes: [0, 2.285, 0.444], sweep: [0.014, 2.227, 0.447], hands: [[1.418, 0.93, 1.87], [-1.418, 0.93, 1.87]], grid: [0, 0.238, 1.565], summon: [0, 0.654, 0.562],
+});
+const ROLLIE_LASER = {
+  name: 'laser', clip: 'laser', weight: 3, reach: 11, minReach: 2.2, hitAt: 54 / 30, trackUntil: 1.3, attackTime: 69 / 30, hitReach: 0,
+  arc: 0.5, power: 1, knock: 5, knockDown: false, hop: 3.2, reason: "Blasted by Rollie's laser!",
+  retreat: { from: 0.05, to: 0.8, dist: 0.8 },
+  beam: { kind: 'laser', time: 0.8, track: 1.1, radius: 0.42, range: 16, color: '#ff4a3a', muzzle: ROLLIE_AT.eyes },
+};
+// two blades of light out of his hands (game/rollie.js flies them: core/rollie.js sabers)
+const ROLLIE_SABERS = {
+  name: 'sabers', clip: 'sabers', weight: 3, reach: 12, minReach: 2.5, hitAt: 24 / 30, trackUntil: 0.7, attackTime: 51 / 30, hitReach: 0,
+  arc: -1, power: 0.6, knock: 4, knockDown: false, hop: 3, reason: "Cut by Rollie's laser blade!", cast: 'sabers',
+};
+// a thin beam that follows you for a while and burns while it touches you (game/rollie.js)
+const ROLLIE_SWEEP = {
+  name: 'sweep', clip: 'sweep', weight: 2, reach: 14, hitAt: 24 / 30, trackUntil: 0.6, attackTime: 120 / 30, hitReach: 0,
+  arc: -1, power: 0.16, knock: 1, knockDown: false, hop: 1, reason: "Burned by Rollie's beam!", cast: 'sweep',
+};
+// floor cells blink round you, then lasers strike them from above (game/rollie.js)
+const ROLLIE_GRID = {
+  name: 'grid', clip: 'grid', weight: 2, reach: 16, hitAt: 30 / 30, trackUntil: 0.6, attackTime: 54 / 30, hitReach: 0,
+  arc: -1, power: 0.7, knock: 3, knockDown: false, hop: 3, reason: 'Struck by a laser from above!', cast: 'grid',
+};
+const ROLLIE_SWIPE = {
+  name: 'swipe', clip: 'swipe', weight: 3, reach: 2.6, hitAt: 21 / 30, trackUntil: 0.45, attackTime: 42 / 30, hitReach: 3.2,
+  arc: -0.3, power: 1, knock: 7, knockDown: false, hop: 3.5, reason: "Swept away by Rollie's arms!",
+};
+const ROLLIE_SUMMON = {
+  name: 'summon', clip: 'summon', weight: 2, reach: 14, hitAt: 30 / 30, trackUntil: 0.5, attackTime: 48 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Rollie', cast: 'summon',
+  summon: { kind: 'rolliespicy', muzzle: ROLLIE_AT.summon },
+};
+export const ROLLIE = {
+  type: 'rollie', species: 'rollie', label: 'Rollie', hp: 1100, damage: 24, knock: 4,
+  xp: 420, coins: [110, 190],
+  radius: 0.85, height: 2.7, bodyHeight: 2, mass: 12, wheel: 0.42, turnSpeed: 2.6,
+  aggro: 12, giveUp: 30, chase: 1.8, wander: 0.5, homeSpeed: 0.9,
+  ...ROLLIE_LASER, cooldown: 1.3, ichor: ['#c6ff5a', '#4f8f12'], pitch: 0.7,
+  attacks: [ROLLIE_LASER, ROLLIE_SABERS, ROLLIE_SWEEP, ROLLIE_GRID, ROLLIE_SWIPE, ROLLIE_SUMMON],
+  poise: 2, hitStun: 0.2, deathTime: 2.4, corpseTime: 5, steadfast: true,
+  parts: { body: ['RollieBody'], arms: ['RollieArms'], brow: ['RollieBrow'], wheels: ['RollieTire'], hubs: ['RollieHub'],
+    eyes: ['RollieEyes_glow'], grille: ['RollieGrille_glow'], hands: ['RollieHands_glow'] },
+  colors: paints({ body: 'moss.light', arms: 'moss.mid', brow: 'ink.dark', wheels: 'ink.dark', hubs: 'ink.mid', eyes: 'eyes.ember', grille: 'moss.glow', hands: 'eyes.ember' }),
+  light: '#ff6a4a', sparks: ['#fff0d0', '#ff8a5a', '#c6ff5a'],
+  style: 'ranged', keep: [3.2, 7], guardian: true, guardianRole: 'descent', boss: 'rollie', partner: 'megalimmer',
+  seedSalt: 0x7011e5, spacing: 6,
+};
+// Megalimmer: a Flimmer, but a ghost twice the hero's height: no person under it, a ball with a
+// sheet thrown over it (core/cloth.js hangs it, render/megalimmerview.js draws it, blurry like a
+// Flimmer's; `cloth`). Blows may go through him while he shimmers, but less often than through a
+// Flimmer. He beats you like a Flimmer, bigger (his hands push the sheet out as they punch), turns
+// invisible for a while (`vanish`, a cast), sends a little Flimmer that runs at you and stuns you
+// (`stunner`) and calls a troop of Flimmers (`flimmers`). In his turn at the side he runs round you
+// fast, closer and closer, sending twisters at you, and now and then breaks off to beat you
+// (game/rollie.js).
+const MEGA_PUMMEL = {
+  ...FLIMMER_PUMMEL, reach: 1.6, hitReach: 1.9, arc: 0.45, power: 0.3, knock: 2, hop: 3, reason: 'Beaten up by Megalimmer!',
+  more: [...PUMMEL_HITS.slice(1, 4).map(at => ({ at })), { at: PUMMEL_HITS[4], power: 0.7, knock: 7 }],
+  press: { from: PUMMEL_HITS[0] - 0.1, to: PUMMEL_HITS[4], speed: 2.8, stop: 1.1 },
+};
+const MEGA_VANISH = {
+  name: 'vanish', clip: 'cast', weight: 2, reach: 14, hitAt: 0.45, trackUntil: 0.3, attackTime: 0.8, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Megalimmer', cast: 'vanish',
+};
+const MEGA_STUNNER = {
+  name: 'stunner', clip: 'cast', weight: 2, reach: 14, hitAt: 0.5, trackUntil: 0.4, attackTime: 1, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Megalimmer', cast: 'summon',
+  summon: { kind: 'stunflimmer', muzzle: [0, 1.2, 0.7] },
+};
+const MEGA_FLIMMERS = {
+  name: 'flimmers', clip: 'cast', weight: 2, reach: 14, hitAt: 0.6, trackUntil: 0.4, attackTime: 1.2, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Megalimmer', cast: 'summon',
+  summon: { kind: 'megaflimmer', muzzle: [0, 1.2, 0.7] },
+};
+// the twisters he sends at you while he runs round you (game/rollie.js, game/twisters.js)
+export const MEGA_TWISTER = Object.freeze({ name: 'twister', power: 0.45, knock: 4, knockDown: true, hop: 3, reason: "Caught in Megalimmer's twister!" });
+export const MEGALIMMER = {
+  type: 'megalimmer', species: 'megalimmer', label: 'Megalimmer', hp: 850, damage: 24, knock: 2,
+  xp: 380, coins: [100, 170], blur: { evade: 0.2 }, cloth: true,
+  radius: 0.6, height: 2.2, bodyHeight: 2, mass: 6, hover: true,
+  aggro: 12, giveUp: 30, chase: 2.6, wander: 0.6, homeSpeed: 1.2,
+  ...MEGA_PUMMEL, cooldown: 1.1, ichor: ['#eef2fa', '#9aa6bf'], pitch: 0.8,
+  attacks: [MEGA_PUMMEL, MEGA_VANISH, MEGA_STUNNER, MEGA_FLIMMERS],
+  poise: 2, hitStun: 0.2, deathTime: 2.4, corpseTime: 3.2, steadfast: true,
+  colors: paints({ skin: 'ink.light' }),
+  light: '#dfe6f5', sparks: ['#ffffff', '#e6ecf8', '#9aa6bf'],
+  style: 'skirmish', circle: 2.4, strafe: true, guardian: true, guardianRole: 'descent', boss: 'rollie', partner: 'rollie',
+  seedSalt: 0x3e6a11, spacing: 6,
+};
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, SOLLMELDON, UMBRA, QUALMOS, ROLLIE, MEGALIMMER];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp
@@ -1891,6 +1992,29 @@ export const MONT_MOOSE = enemyKind(MOOSE, {
   type: 'montmoose', label: 'Mont Moose', reason: 'Tossed by a Mont Moose!', attacks: mooseAttacks('Mont Moose'), minion: true, plain: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.05),
   puff: { colors: ['#e0dacd', '#b8b0a0', '#8d877c'], size: 0.45 }, mods: { hp: 0.6, damage: 0.55, xp: 0.15 },
 });
+// Rollie's and Megalimmer's (game/rollie.js): Spark spicies, smaller and weaker, out of Rollie's
+// grille; Ghost flimmers, a troop of three out of Megalimmer's sheet; and the Stun flimmer he sends
+// at you: quick, it runs at you, beats you once and stuns you (its blow's `shock`, s), then fades
+// away, whether it hit or not
+export const ROLLIE_SPICY = enemyKind(SPICY, {
+  type: 'rolliespicy', label: 'Spark spicy', reason: 'Blasted by a Spark spicy!', minion: true, aggro: 14, giveUp: 18, coins: [0, 0],
+  drops: MINION_DROPS(0.05), colors: paints({ body: 'moss.pale', glow: 'eyes.ember', wheels: 'ink.dark', eyes: 'eyes.ember' }),
+  puff: { colors: ['#e8ffd0', '#c6ff5a', '#6f8f4a'], size: 0.45 }, mods: { hp: 0.6, damage: 0.55, xp: 0.15, size: 0.85 },
+});
+export const MEGA_FLIMMER = enemyKind(FLIMMER, {
+  type: 'megaflimmer', label: 'Ghost flimmer', reason: 'Beaten up by a Ghost flimmer!', attacks: flimmerAttacks('Beaten up by a Ghost flimmer!'),
+  minion: true, plain: true, aggro: 14, giveUp: 18, coins: [0, 0], drops: MINION_DROPS(0.05),
+  mods: { hp: 0.8, damage: 0.7, xp: 0.2 },
+});
+const STUN_BLOW = {
+  name: 'stun', clip: 'pummel', weight: 1, reach: 0.9, hitAt: PUMMEL_HITS[0], trackUntil: PUMMEL_HITS[0] - 0.05, attackTime: 0.9,
+  hitReach: 1.15, arc: 0.5, power: 0.25, knock: 0.5, knockDown: false, hop: 1, shock: 1.3, reason: 'Stunned by a Stun flimmer!',
+};
+export const STUN_FLIMMER = enemyKind(FLIMMER, {
+  type: 'stunflimmer', label: 'Stun flimmer', reason: 'Stunned by a Stun flimmer!', attacks: [STUN_BLOW], ...STUN_BLOW,
+  minion: true, aggro: 30, giveUp: 30, coins: [0, 0], drops: MINION_DROPS(0), colors: paints({ skin: 'azure.light' }),
+  style: 'brute', blur: { evade: 0.3 }, mods: { hp: 0.5, damage: 1, xp: 0.1, speed: 1.75 },
+});
 // small spiders of twigs, poured out of his ball by the dozen
 export const TOT_SPIDER = enemyKind(SPIDER, {
   type: 'totspider', label: 'Twig spider', reason: 'Bitten by a twig spider!', minion: true,
@@ -1991,7 +2115,7 @@ export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.valu
   GLOOM_SPIDER, REDBACK, FROST_STUNDER, STONE_STUNDER, MAGMA_STUNDER, BOG_OCTONAUT, CORAL_OCTONAUT, EMERALD_TRIANGLE, CRIMSON_TRIANGLE, FIRE_SHRAPS,
   BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, LAVA_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
   NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, FROST_MOOSE, BOG_MOOSE, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
-  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE, MUD_SQUIRTLE,
+  SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE, MUD_SQUIRTLE, ROLLIE_SPICY, MEGA_FLIMMER, STUN_FLIMMER,
   DEEP_SQUIRTLE, MURK_SQUIRTLE, UMBRA_BODY].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
@@ -2092,7 +2216,7 @@ export function blowOf(profile, a = profile) {
     ...((a.projectile?.slow ?? a.slow) && { slow: a.projectile?.slow ?? a.slow }),
     ...(a.gust && { push: { speed: a.gust.push, time: a.gust.pushTime } }),
     ...(a.projectile?.push && { push: { speed: a.projectile.push, time: a.projectile.pushTime } }),
-    ...(a.beam?.shock && { shock: a.beam.shock }), ...(a.pop && { pop: a.pop }), ...(a.daze && { daze: a.daze }) };
+    ...((a.beam?.shock ?? a.shock) && { shock: a.beam?.shock ?? a.shock }), ...(a.pop && { pop: a.pop }), ...(a.daze && { daze: a.daze }) };
 }
 // what a shockwave (an attack's `wave`, game/quakes.js) does to a player it rolls under
 export function waveBlowOf(profile, a) {

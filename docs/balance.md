@@ -48,7 +48,8 @@ chests, quest rewards, combat stats) and prints where the player stands on arriv
   guardian: dodge its telegraphed attacks, use the poise windows, or drink. The real bosses
   ([bosses.md](bosses.md)) are made one by one around their mechanics and stand apart from that on
   purpose: most take 11 to 14 s, Mansk, Slomo and Qualmos hit softly (their danger lies
-  elsewhere), Monteur has twice a boss's health (25 s), Sollmeldon half again (18 s), and Renew
+  elsewhere), Monteur has twice a boss's health (25 s), Rollie and Megalimmer are two at once (13 s and
+  about 10 s more; the simulation counts Rollie), Sollmeldon half again (18 s), and Renew
   has four lives of 727 (19 s all told: the simulation counts them all).
 - **Loot matters, and keeps mattering.** Weapon damage grows with item level, so a drop from
   further down beats an older one of the same rarity; an Unusual one catches up with a Fabled one about

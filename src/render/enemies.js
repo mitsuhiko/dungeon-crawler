@@ -75,12 +75,14 @@ import { umbraModel } from './umbramodel.js';
 import { makeUmbraLook, umbraLook, disposeUmbraLook } from './umbraview.js';
 import { makeMonteurLook, monteurLook } from './monteurview.js';
 import { qualmosModel } from './qualmosmodel.js';
+import { rollieModel } from './rolliemodel.js';
 import { mooseModel } from './moosemodel.js';
 import { mooseLook } from './mooseview.js';
 import { makeQualmosLook, qualmosLook, disposeQualmosLook } from './qualmosview.js';
 import { makeManskLook, manskLook, disposeManskLook } from './manskview.js';
 import { isFigure, animateFigures, removeFigureViews } from './renewview.js';
 import { isFlimmer, animateFlimmers, removeFlimmerViews, flimmerWarmup } from './flimmerview.js';
+import { isMegalimmer, animateMegalimmers, removeMegalimmerViews, megalimmerWarmup } from './megalimmerview.js';
 import { isSquirtle, animateSquirtles, removeSquirtleViews, squirtleWarmup } from './squirtleview.js';
 import { STAGE_PROFILES, enemyName } from '../core/enemies.js';
 import { SQUARLO_FIGHT } from '../core/squarlo.js';
@@ -112,7 +114,7 @@ import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
 const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
-  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, sollmeldon: sollmeldonModel, umbra: umbraModel, qualmos: qualmosModel, moose: mooseModel };
+  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, sollmeldon: sollmeldonModel, umbra: umbraModel, qualmos: qualmosModel, rollie: rollieModel, moose: mooseModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
 export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.load()));
 // light: [color, intensity, distance, height]; pulse: emissive / light swing with the
@@ -136,6 +138,8 @@ const GLOW = {
   // Slomo's stuff glows inside him, his eyes flare up to a throw
   slomo: { light: [0x9aff5a, 2.2, 4.5, 1.3], flare: 0.6 },
   qualmos: { light: [0x73ffe0, 4, 5.5, 2.1], flare: 0.6 },
+  // Rollie's eyes and hands glow red, flaring up to a laser (brighter while he is the main one: glowFx)
+  rollie: { light: [0xff6a4a, 2.2, 4.5, 2.2], flare: 0.8 },
   // Mansk's diamond glows blue (render/manskview.js: brighter while he slows time)
   mansk: { light: [0x6fb4ff, 1.6, 4.5, 1.95], flare: 0.6 },
   // Monteur's red eyes and the cracks in his stones glow warm; his eyes flare up to a throw
@@ -743,8 +747,10 @@ function glowFx(v, e, dt, life) {
   if (fx.pulse) v.material.emissiveIntensity = (0.6 + 0.4 * life) * swing;   // every part's glow (times its own strength)
   if (fx.flare) {   // eyes flaring up to the strike
     const a = e.mode === 'attack' ? attackOf(e) : null, up = a ? Math.min(1, e.t / Math.max(0.1, a.hitAt)) : 0;
-    v.material.emissiveIntensity = life * (1 + fx.flare * up * up);
-    if (v.light) v.light.intensity *= 1 + fx.flare * up * up;
+    // (one of a pair taking turns, game/rollie.js: brighter while he is the one who goes for you)
+    const lead = e.main === undefined ? 1 : (v.lead = (v.lead ?? 1) + ((e.main ? 1.5 : 0.7) - (v.lead ?? 1)) * Math.min(1, dt * 3));
+    v.material.emissiveIntensity = life * (1 + fx.flare * up * up) * lead;
+    if (v.light) v.light.intensity *= (1 + fx.flare * up * up) * lead;
   }
   if (fx.embers && life > 0.3 && Math.hypot(e.x - player.x, e.z - player.z) < 12)
     for (let i = Math.floor(fx.embers.rate * dt * life + Math.random()); i > 0; i--) {
@@ -809,6 +815,7 @@ export function animateEnemies(list, dt, off = ZERO) {
   let made = 0;
   for (const e of list) {
     if (isFlimmer(e)) { animateFlimmers([e], dt, off); continue; }   // (a figure of its own, render/flimmerview.js)
+    if (isMegalimmer(e)) { animateMegalimmers([e], dt, off); continue; }   // (a sheet over a ball, render/megalimmerview.js)
     if (isSquirtle(e)) { animateSquirtles([e], dt, off); continue; }   // (drawn as its fluid, render/squirtleview.js)
     if (isFigure(e)) { animateFigures([e], dt, off); continue; }   // (Renew: a figure, render/renewview.js)
     if (e.profile.viewless) continue;   // (the bodies along Umbra's body: his view is all of him, render/umbraview.js)
@@ -953,12 +960,13 @@ export function enemyWarmup(kinds) {
     list.push(e);
   }
   list.push(...flimmerWarmup(kinds));   // (the Flimmers: the hero's figure, blurred)
+  list.push(...megalimmerWarmup(kinds));   // (Megalimmer: his sheet, blurred)
   list.push(...squirtleWarmup(kinds));   // (the Squirtles: drawn as their fluid)
   return { objects: list.flatMap(e => [e.view.group, ...(e.view.trail?.list ?? []).map(p => p.mesh)]), dispose: () => removeEnemyViews(list) };
 }
 
 export function removeEnemyViews(list) {
-  removeFigureViews(list); removeFlimmerViews(list); removeSquirtleViews(list);
+  removeFigureViews(list); removeFlimmerViews(list); removeMegalimmerViews(list); removeSquirtleViews(list);
   for (const e of list) if (e.view) {
     const v = e.view;
     scene.remove(v.group);

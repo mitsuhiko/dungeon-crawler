@@ -88,7 +88,7 @@ over an amber fill: `♛ Gusto · Lv 1`, `♛ Temp Boss Spider · Lv 3`.
 
 - **Whose:** every descent guardian, a real boss and a Temp Boss alike (`bossBarred`: `guardian`
   with `guardianRole` `'descent'`, [guardians.md](guardians.md)), wherever it stands, a dev spawn
-  and the boss test room too. There is one bar: of several (dev spawns) the nearest. Nothing shows
+  and the boss test room too. There is one bar (of a boss of two, two: below): of several (dev spawns) the nearest. Nothing shows
   over his head, nor over the bodies that pass for him (Gusto's proxies, which never drive the
   bar: only the real one does, vanished too). Everything else that can be hit keeps its small bar
   over its head (`render/enemies.js`, `render/flimmerview.js`, `render/squirtleview.js`): side
@@ -105,6 +105,11 @@ over an amber fill: `♛ Gusto · Lv 1`, `♛ Temp Boss Spider · Lv 3`.
   starts that again, so a combo makes one chunk, but at most `TRAIL.most`, 1.2 s, so a burn ticking
   on does not hold it up), then eases down to the fill (`TRAIL.rate`). Health coming back takes it
   up at once. With reduce motion it goes along with the fill.
+- **Two at once:** a boss of two (Rollie and Megalimmer, [bosses.md](bosses.md#rollie-and-megalimmer))
+  has two bars stacked in the strip (`.duo`, `core/bossbar.js bossesOf`: the nearer one's pair,
+  Rollie's on top), each with his own name, fill and damage strip, a little smaller. The one who
+  goes for you now has his lit up (`.lead`), the other's is dimmer; a beaten one's dims further
+  and empties, and his row goes once he is gone, the other's staying.
 - On touch the quick bar is along the top: the boss bar goes under it.
 
 In a boss's intro ([bosses.md](bosses.md#the-intro)) his name comes up big under his feet

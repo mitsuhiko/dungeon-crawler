@@ -2171,6 +2171,20 @@
         "dur": 7.94,
         "hash": "3e6f9848ad22d411"
       },
+      "robot.arena.rollie.two": {
+        "text": "Two of them at once! A big Spicy on wheels, and a ghost under a sheet.",
+        "source": "Two of them at once! A big Spicy on wheels, and a ghost under a sheet.",
+        "seed": 0,
+        "dur": 5.18,
+        "hash": "fc1d8b6480609c75"
+      },
+      "robot.arena.rollie.turns": {
+        "text": "They take turns. Fight the one whose eyes glow brightest, and keep the other in sight.",
+        "source": "They take turns. Fight the one whose eyes glow brightest, and keep the other in sight.",
+        "seed": 0,
+        "dur": 7.38,
+        "hash": "8975955a24dd651c"
+      },
       "robot.boss.gusto.summon": {
         "text": "Little triangles! Mind your back.",
         "source": "Little triangles! Mind your back.",
@@ -2815,6 +2829,34 @@
         "dur": 5.99,
         "hash": "8a7ba864d56601b8"
       },
+      "robot.boss.rollie.swap": {
+        "text": "They swapped! Now the other one is coming for you.",
+        "source": "They swapped! Now the other one is coming for you.",
+        "seed": 0,
+        "dur": 2.98,
+        "hash": "4141bc448332f087"
+      },
+      "robot.boss.rollie.sabers": {
+        "text": "Spinning lasers! They fly back to him, so watch out twice.",
+        "source": "Spinning lasers! They fly back to him, so watch out twice.",
+        "seed": 0,
+        "dur": 4.67,
+        "hash": "c69b34bf939538d8"
+      },
+      "robot.boss.rollie.grid": {
+        "text": "The floor is blinking! Get off the red squares!",
+        "source": "The floor is blinking! Get off the red squares!",
+        "seed": 0,
+        "dur": 4.21,
+        "hash": "e629b711f3533348"
+      },
+      "robot.boss.rollie.vanish": {
+        "text": "Where did the ghost go? It is still here somewhere!",
+        "source": "Where did the ghost go? It is still here somewhere!",
+        "seed": 0,
+        "dur": 4.3,
+        "hash": "97371119b4ebc481"
+      },
       "robot.beaten.gusto.open": {
         "text": "We did it! The well is open!",
         "source": "We did it! The well is open!",
@@ -2983,6 +3025,13 @@
         "dur": 5.34,
         "hash": "cdc465eb9bbc940e"
       },
+      "robot.beaten.rollie.both": {
+        "text": "Both of them! The wheels and the ghost, beaten!",
+        "source": "Both of them! The wheels and the ghost, beaten!",
+        "seed": 0,
+        "dur": 4.31,
+        "hash": "bfa066d2e9a88585"
+      },
       "robot.death.gusto.arms": {
         "text": "Its arms! Wide arms mean it is about to grab. Step back then.",
         "source": "Its arms! Wide arms mean it is about to grab. Step back then.",
@@ -3143,6 +3192,20 @@
         "seed": 0,
         "dur": 5.91,
         "hash": "836acfacc2734e6f"
+      },
+      "robot.death.rollie.turns": {
+        "text": "Watch which one comes for you, and fight that one. The other only joins in now and then.",
+        "source": "Watch which one comes for you, and fight that one. The other only joins in now and then.",
+        "seed": 0,
+        "dur": 7.59,
+        "hash": "efa376b3ae0e9be6"
+      },
+      "robot.death.rollie.circle": {
+        "text": "When the ghost runs round you, mind its twisters, and hit it when it comes in close.",
+        "source": "When the ghost runs round you, mind its twisters, and hit it when it comes in close.",
+        "seed": 0,
+        "dur": 6.16,
+        "hash": "cdc8f12ee613dcab"
       },
       "robot.death.13.together": {
         "text": "It is dark and sticky down here. Let us be careful together.",
@@ -6142,6 +6205,20 @@
         "dur": 7.77,
         "hash": "5eecfacb56a23c3b"
       },
+      "robot.arena.rollie.two": {
+        "text": "Zwei auf einmal! Ein großer Spicy auf Rädern, und ein Geist unter einem Laken.",
+        "source": "Zwei auf einmal! Ein großer Spicy auf Rädern, und ein Geist unter einem Laken.",
+        "seed": 0,
+        "dur": 7.62,
+        "hash": "478b18b225ab2f69"
+      },
+      "robot.arena.rollie.turns": {
+        "text": "Sie wechseln sich ab. Kämpf gegen den, dessen Augen am hellsten leuchten, und behalt den anderen im Blick.",
+        "source": "Sie wechseln sich ab. Kämpf gegen den, dessen Augen am hellsten leuchten, und behalt den anderen im Blick.",
+        "seed": 0,
+        "dur": 9.7,
+        "hash": "51f4b9efb1f7c90f"
+      },
       "robot.boss.gusto.summon": {
         "text": "Kleine Dreiecke! Pass auf deinen Rücken auf.",
         "source": "Kleine Dreiecke! Pass auf deinen Rücken auf.",
@@ -6786,6 +6863,34 @@
         "dur": 7.76,
         "hash": "58e5101987d1e4de"
       },
+      "robot.boss.rollie.swap": {
+        "text": "Sie haben getauscht! Jetzt kommt der andere auf dich zu.",
+        "source": "Sie haben getauscht! Jetzt kommt der andere auf dich zu.",
+        "seed": 0,
+        "dur": 3.27,
+        "hash": "065214a0ae6682cb"
+      },
+      "robot.boss.rollie.sabers": {
+        "text": "Wirbelnde Laser! Sie fliegen zu ihm zurück, also pass doppelt auf.",
+        "source": "Wirbelnde Laser! Sie fliegen zu ihm zurück, also pass doppelt auf.",
+        "seed": 0,
+        "dur": 5.44,
+        "hash": "59c0c2afc3c878c0"
+      },
+      "robot.boss.rollie.grid": {
+        "text": "Der Boden blinkt! Runter von den roten Feldern!",
+        "source": "Der Boden blinkt! Runter von den roten Feldern!",
+        "seed": 0,
+        "dur": 3.49,
+        "hash": "1c49c802d2e8581a"
+      },
+      "robot.boss.rollie.vanish": {
+        "text": "Wo ist der Geist hin? Er ist noch irgendwo hier!",
+        "source": "Wo ist der Geist hin? Er ist noch irgendwo hier!",
+        "seed": 0,
+        "dur": 3.56,
+        "hash": "ff5b677621e7e098"
+      },
       "robot.beaten.gusto.open": {
         "text": "Geschafft! Der Brunnen ist offen!",
         "source": "Geschafft! Der Brunnen ist offen!",
@@ -6954,6 +7059,13 @@
         "dur": 6.26,
         "hash": "5c111bf26b9bb2c8"
       },
+      "robot.beaten.rollie.both": {
+        "text": "Alle beide! Die Räder und der Geist, besiegt!",
+        "source": "Alle beide! Die Räder und der Geist, besiegt!",
+        "seed": 0,
+        "dur": 6.1,
+        "hash": "2a2300250b3ff2f4"
+      },
       "robot.death.gusto.arms": {
         "text": "Seine Arme! Weite Arme heißt, er will gleich packen. Dann geh zurück.",
         "source": "Seine Arme! Weite Arme heißt, er will gleich packen. Dann geh zurück.",
@@ -7114,6 +7226,20 @@
         "seed": 0,
         "dur": 7.3,
         "hash": "a4bc941055bdb2ec"
+      },
+      "robot.death.rollie.turns": {
+        "text": "Schau, welcher auf dich losgeht, und kämpf gegen den. Der andere macht nur ab und zu mit.",
+        "source": "Schau, welcher auf dich losgeht, und kämpf gegen den. Der andere macht nur ab und zu mit.",
+        "seed": 0,
+        "dur": 10.06,
+        "hash": "4d9ae67828eb42f3"
+      },
+      "robot.death.rollie.circle": {
+        "text": "Wenn der Geist um dich herumrennt, pass auf seine Wirbelwinde auf, und schlag zu, wenn er nah herankommt.",
+        "source": "Wenn der Geist um dich herumrennt, pass auf seine Wirbelwinde auf, und schlag zu, wenn er nah herankommt.",
+        "seed": 0,
+        "dur": 6.31,
+        "hash": "67abec511b6e117d"
       },
       "robot.death.13.together": {
         "text": "Hier unten ist es dunkel und klebrig. Lass uns zusammen vorsichtig sein.",

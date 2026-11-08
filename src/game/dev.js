@@ -7,7 +7,7 @@
 // The console's developer commands (game/devcommands.js: /find, /goto, /where, /horde, /arena) do
 // the same, and more: /goto a depth, a cube on it, a spot in that cube (goPlace).
 import { BOSS_ARENAS, BOSSES, bossAt } from '../core/bosses.js';
-import { guardianId } from '../core/guardians.js';
+import { guardianIds } from '../core/guardians.js';
 import { ENEMY_KINDS, guardianLevel } from '../core/enemies.js';
 import { xpForLevel, levelFromXP, fullHealth } from '../core/progression.js';
 import { testRoomKey, isTestRoom } from '../world/testrooms.js';
@@ -295,7 +295,7 @@ export async function goBoss(kind) {
   const cubes = state.cubes, depth = Number(Object.keys(BOSSES).find(d => BOSSES[d] === kind));
   const key = [...cubes.layout(depth).guardians].find(([, g]) => g.boss === kind)?.[0];
   if (!key) { setStatus(`No ${ENEMY_KINDS[kind].label} in this world`); return; }
-  state.run.defeated.delete(guardianId(key));
+  for (const id of guardianIds(key)) state.run.defeated.delete(id);
   clearMouseInput(); state.transitioning = true;
   try {
     const c = await whenReady(cubes.get(key));

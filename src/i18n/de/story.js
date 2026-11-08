@@ -1089,6 +1089,10 @@ export default {
     "So viele Tentakel, und es grinst uns an. Das ist der Grund von allem, und es wohnt hier.",
   "It gets angrier every time it is hurt, and learns a new trick. Be ready for anything!":
     "Jedes Mal, wenn es verletzt wird, wird es wütender und lernt einen neuen Trick. Sei auf alles gefasst!",
+  "Two of them at once! A big Spicy on wheels, and a ghost under a sheet.":
+    "Zwei auf einmal! Ein großer Spicy auf Rädern, und ein Geist unter einem Laken.",
+  "They take turns. Fight the one whose eyes glow brightest, and keep the other in sight.":
+    "Sie wechseln sich ab. Kämpf gegen den, dessen Augen am hellsten leuchten, und behalt den anderen im Blick.",
   "He throws the stones from his antlers! Keep moving.":
     "Er wirft die Steine aus seinem Geweih! Bleib in Bewegung.",
   "Head down, here he comes! Jump out of the way!":
@@ -1125,6 +1129,14 @@ export default {
     "Eine große Welle! Sie schubst dich, also mach dich bereit.",
   "It is puffing up! Get out from under it, then hit it while it lies there!":
     "Es bläst sich auf! Raus unter ihm, und dann schlag zu, solange es daliegt!",
+  "They swapped! Now the other one is coming for you.":
+    "Sie haben getauscht! Jetzt kommt der andere auf dich zu.",
+  "Spinning lasers! They fly back to him, so watch out twice.":
+    "Wirbelnde Laser! Sie fliegen zu ihm zurück, also pass doppelt auf.",
+  "The floor is blinking! Get off the red squares!":
+    "Der Boden blinkt! Runter von den roten Feldern!",
+  "Where did the ghost go? It is still here somewhere!":
+    "Wo ist der Geist hin? Er ist noch irgendwo hier!",
   "Three heads! And all of him is mud. Black, sticky mud.":
     "Drei Köpfe! Und er ist ganz aus Schlamm. Schwarzer, klebriger Schlamm.",
   "If the ground tips, get up high. The mud runs downhill, and there it gets deep.":
@@ -1194,6 +1206,8 @@ export default {
     "Wir haben es besiegt! Das Ding am Grund der Welt!",
   "But where is the glassmaker? I was so sure he would be here.":
     "Aber wo ist der Glasmacher? Ich war mir so sicher, dass er hier ist.",
+  "Both of them! The wheels and the ghost, beaten!":
+    "Alle beide! Die Räder und der Geist, besiegt!",
   "Let him charge into a wall. Then he is dazed, and every hit counts double.":
     "Lass ihn gegen eine Wand rennen. Dann ist er benommen, und jeder Schlag zählt doppelt.",
   "When the floor cracks, a mountain is coming. Ride it up with him, or keep well away.":
@@ -1202,6 +1216,10 @@ export default {
     "Wenn es sich aufbläst, lauf. Nach dem Bauchklatscher liegt es einen Moment still, und das ist deine Chance.",
   "When it pulls you in, run away at once. The longer you wait, the harder it pulls.":
     "Wenn es dich anzieht, lauf sofort weg. Je länger du wartest, desto stärker zieht es.",
+  "Watch which one comes for you, and fight that one. The other only joins in now and then.":
+    "Schau, welcher auf dich losgeht, und kämpf gegen den. Der andere macht nur ab und zu mit.",
+  "When the ghost runs round you, mind its twisters, and hit it when it comes in close.":
+    "Wenn der Geist um dich herumrennt, pass auf seine Wirbelwinde auf, und schlag zu, wenn er nah herankommt.",
   "Up you get. Even down in the caves, I will always find you.":
     "Hoch mit dir. Sogar unten in den Höhlen finde ich dich immer.",
   "You scared me. It is far too dark down here to lose you.":
