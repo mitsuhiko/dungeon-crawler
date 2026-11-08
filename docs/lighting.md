@@ -288,6 +288,16 @@ compiling happens in another process: a frame waiting for it comes late with alm
 page's own time in it, so `/perf`'s count of shaders compiled while drawing misses it. The first
 visit's frames into a deep cube still stall (0.5-1 s in the simulator), later ones less (Safari
 keeps what it compiled). The simulator draws with the Mac's GPU and enforces no memory limits.
+`--memory` measures what the page holds instead: in the town, at a few depths' hordes and back in
+the town, what the game counts (pixels, MSAA, WebGL's buffers and textures, the cubes' geometry,
+the narrator's clips) and the footprint of the simulator's Safari processes (the page's
+WebContent, the GPU process). On an iPad Air 11" (iOS 27, 820×1048 CSS pixels under Safari's bars):
+a small device (an iPad's Safari says it is a Mac, but its screen is touched); MSAA offers only 4×
+there, so the Auto MSAA's 2× was off on iPads already; the pixel budget draws 1281×1638 for
+1640×2096. The town takes about 350 MB in WebContent and 130 MB in the GPU process, eight depths
+later 510 and 170 MB. The canvas's surfaces do not show in those processes' footprints (the GPU
+process held the same at either size), and one run to the next the WebContent differs by tens of
+MB (its garbage is collected when Safari likes): compare runs, not single numbers.
 
 ## Light in the deep
 

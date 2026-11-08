@@ -1,11 +1,15 @@
-// Added to the game's page by tools/sim-probe.py; runs only with ?probe=caps|full. Each step is
-// posted to /report/<step> (the tool prints it).
+// Added to the game's page by tools/sim-probe.py; runs only with ?probe=caps|full|memory. Each
+// step is posted to /report/<step> (the tool prints it).
 //   caps  WebGL's features where the page runs
 //   full  also: a shader compiled ahead (does it finish in the background?), a fence (does it
 //         signal without blocking?), entering a deep cube behind the curtain, portal trips, a
 //         quality level switch; the frames over 50 ms of each, how much of them the world's own
 //         drawing took (in Safari the compiling happens in another process: a frame comes late
 //         with little time of the page's own), and the shaders compiled while drawing.
+//   memory  what the page holds (with ?perf=1): in the town, at the horde of each of `depths`
+//         (2,4,6,8), in the town again; its pixels, MSAA, quality level, WebGL's buffers and
+//         textures (render/gpumem.js), the cubes' geometry, the narrator's decoded clips (the tool
+//         adds what Safari's processes hold).
 const P = new URLSearchParams(location.search);
 const mode = P.get('probe');
 const post = (step, data) => fetch('/report/' + step, { method: 'POST', body: JSON.stringify(data) }).catch(() => {});
@@ -114,7 +118,38 @@ async function full() {
   post('done', { programs: renderer.info.programs.length, lost: lost(), memory: renderer.info.memory });
 }
 
+async function memory() {
+  for (let i = 0; i < 300 && !window.__game?.state?.world; i++) await sleep(200);
+  const g = window.__game, bake = await import('/src/render/bake.js'), dev = await import('/src/game/dev.js');
+  const { renderer } = await import('/src/render/scene.js'), { gpuMemory } = await import('/src/render/gpumem.js');
+  const { msaaSamples, MSAA_LEVELS } = await import('/src/render/msaa.js'), S = await import('/src/game/settings.js'), Q = await import('/src/game/quality.js');
+  const D = await import('/src/render/device.js'), N = await import('/src/game/narrator.js');
+  const gl = renderer.getContext(), mb = b => +(b / 2 ** 20).toFixed(1);
+  const settle = async (ms = 4000) => {
+    for (let i = 0; i < 600 && g.transitioning; i++) await sleep(50);
+    for (let i = 0; i < 1200 && !bake.baked(g.state.world); i++) await sleep(50);
+    await sleep(ms);
+  };
+  const state = () => {
+    const m = gpuMemory(), geo = g.state.cubes.geometryHeld?.(), voice = N.narrationMemory?.();
+    return { cube: g.state.cubeKey, small: D.small, fps: S.frameRate(), msaa: msaaSamples(), msaaLevels: MSAA_LEVELS, asked: S.antialiasSamples(), level: Q.qualityLevel(), ratio: +renderer.getPixelRatio().toFixed(3),
+      px: [gl.drawingBufferWidth, gl.drawingBufferHeight], gl: m && { total: Math.round(m.total), peak: Math.round(m.peak), renderbuffers: Math.round(m.renderbuffers) },
+      geometry: geo && { mb: mb(geo.bytes), cubes: geo.cubes, of: geo.of }, voice: voice && { mb: mb(voice.decoded), clips: voice.clips } };
+  };
+  await settle(8000);
+  post('town', state());
+  await g.chat.run('/god on');
+  for (const d of (P.get('depths') ?? '2,4,6,8').split(',').filter(Boolean).map(Number)) {
+    await g.goHorde(d); await settle(); await g.chat.run('/remove');
+    post('depth' + d, state());
+  }
+  await dev.goPlace({ depth: 0 }); await settle(6000);
+  post('town-again', state());
+  post('done', {});
+}
+
 if (mode) {
   post('caps', caps());
   if (mode === 'full') full().catch(e => post('error', { msg: String(e.stack || e) }));
+  if (mode === 'memory') memory().catch(e => post('error', { msg: String(e.stack || e) }));
 }

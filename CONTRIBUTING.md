@@ -160,7 +160,8 @@ The game is plain ES modules and a vendored three.js; there is no build step.
   (`node tools/townmap.mjs [seed ...]`), the balance simulation
   (`node tools/balance.mjs`, see `docs/balance.md`), the enemy palette page
   (`/tools/palette.html`, see `docs/enemy-kinds.md`) and the iOS Safari probe in an Xcode simulator
-  (`uv run --no-project tools/sim-probe.py --full`, see `docs/lighting.md`), the menus' glass
+  (`uv run --no-project tools/sim-probe.py --full`, or `--memory` for what the page holds, see
+  `docs/lighting.md`), the menus' glass
   facets (`node tools/facets.mjs`, see `docs/ui.md`).
 - `docs/`: design notes; `docs/assets/` documents the asset libraries.
 - `learn/`: an interactive guide for children (about 12), in English and German (the German in the
