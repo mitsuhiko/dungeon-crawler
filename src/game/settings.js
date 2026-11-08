@@ -77,7 +77,10 @@ const clampBrightness = b => (Number.isFinite(b) ? Math.round(Math.min(BRIGHTNES
 // the close view's vertical field of view, in degrees
 export const FOV_MIN = 50, FOV_MAX = 90;
 const clampFov = f => (Number.isFinite(f) ? Math.round(Math.min(FOV_MAX, Math.max(FOV_MIN, f))) : CLOSE_FOV);
-// the zoom a game starts at: one of core/zoom.js ZOOM_LEVELS (closest first)
+// the zoom a game starts at: one of core/zoom.js ZOOM_LEVELS (closest first). Settings kept
+// before version 4 always had it, the fourth (the default then) unless chosen otherwise: that one
+// is the default now (the second closer), the others are where they were (a preset of about the
+// same zoom at the same place).
 const DEFAULT_START_ZOOM = ZOOM_LEVELS.indexOf(DEFAULT_ZOOM);
 const zoomStep = i => (Number.isInteger(i) && i >= 0 && i < ZOOM_LEVELS.length ? i : DEFAULT_START_ZOOM);
 // in the guide's game window the guide is in front: the game is not quiet when it has the focus
@@ -99,6 +102,7 @@ function settingsFrom(stored) {
   const storedMusic = typeof stored.music !== 'boolean' || (stored.v ?? 1) < 3 && !stored.music ? null : stored.music;
   // (settings kept before version 2 always had msaa: 2x was the default then, not a choice)
   const storedMsaa = (stored.v ?? 1) < 2 && stored.msaa === 2 ? 'auto' : stored.msaa;
+  const storedZoom = (stored.v ?? 1) < 4 && stored.startZoom === 3 ? DEFAULT_START_ZOOM : stored.startZoom;
   return {
     language: isLanguage(stored.language) ? stored.language : null,   // null: the browser's
     fps: oneOf(FRAME_RATES, stored.fps, DEFAULT_FPS), msaa: oneOf(ANTIALIAS, storedMsaa, DEFAULT_MSAA),
@@ -108,7 +112,7 @@ function settingsFrom(stored) {
     resolution: oneOf(RESOLUTIONS, stored.resolution, 'auto'), particles: stored.particles in PARTICLES ? stored.particles : 'high',
     motion: oneOf(MOTIONS, stored.motion, 'system'), brightness: clampBrightness(stored.brightness), fov: clampFov(stored.fov),
     minimap: stored.minimap in MINIMAPS ? stored.minimap : 'normal', itemNames: stored.itemNames === true, damageNumbers: stored.damageNumbers !== false,
-    clickMove: stored.clickMove !== false, invertZoom: stored.invertZoom === true, startZoom: zoomStep(stored.startZoom),
+    clickMove: stored.clickMove !== false, invertZoom: stored.invertZoom === true, startZoom: zoomStep(storedZoom),
     music: storedMusic, quietBehind: typeof stored.quietBehind === 'boolean' ? stored.quietBehind : !embedded,
     masterVolume: volume(stored.masterVolume), musicVolume: volume(stored.musicVolume), soundVolume: volume(stored.soundVolume),
     voiceVolume: volume(stored.voiceVolume), ambienceVolume: volume(stored.ambienceVolume), subtitles: stored.subtitles !== false,
@@ -132,7 +136,7 @@ function changed() {
   sound();
   try {
     const { language: lang, keys, ...rest } = settings;
-    localStorage.setItem(KEY, JSON.stringify({ v: 3, ...(lang && { language: lang }), ...rest, keys: overrides(keys) }));
+    localStorage.setItem(KEY, JSON.stringify({ v: 4, ...(lang && { language: lang }), ...rest, keys: overrides(keys) }));
   } catch { /* private mode: for this page only */ }
   for (const fn of listeners) fn();
 }

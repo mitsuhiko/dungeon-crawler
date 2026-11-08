@@ -40,8 +40,14 @@ Tab is taken anyway.
   refuses to lock again for a moment after Esc.
 
 Q / E still turn by a quarter in both views; the zoom keys and the wheel keep their six
-presets, which in the close view set the arm's length (`closeDistance`: about 1.2 to 4.7 units).
-The settings can turn the wheel round and pick the preset a game starts at (the fourth at first).
+presets, which in the close view set the arm's length (`closeDistance`: about 1.2 to 4.7 units,
+3 at the default). The overview starts at the third from the closest (`core/zoom.js`), 22% closer
+than it used to: the cube played in fills more of the screen. The two closer presets are even
+steps of 22%, the three further ones the old default and the two past it; the closest and the
+farthest are where they were. The close view's arm keeps its old lengths (it grows faster
+closing in than going out: `CLOSE_IN`, `CLOSE_OUT`).
+The settings can turn the wheel round and pick the preset a game starts at (the third at first;
+settings kept before had the old default, the fourth, and start at the new one).
 Where motion is reduced (the settings; at first as the system says) hits do not kick the camera
 and the ground does not shake it. Otherwise "Camera shake" (Graphics, Comfort: Off, Low, Full)
 says how much they do, a film's shake too (`shakeAmount`, applied where the camera is placed, so

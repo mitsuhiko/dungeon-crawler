@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { snapYaw, SIDE0, closeDistance, clampPitch, PITCH, PITCH_MIN, PITCH_MAX, keyPress, keyMove, keyRelease, TAP_MS, ORBIT_PX,
   look, forwardYaw, clampLookSpeed, LOOK_PER_PX, LOOK_SPEED_MIN, LOOK_SPEED_MAX } from '../src/core/view.js';
-import { DEFAULT_ZOOM, stepZoom } from '../src/core/zoom.js';
+import { DEFAULT_ZOOM, ZOOM_LEVELS, stepZoom } from '../src/core/zoom.js';
 import { ACTION, defaultBindings, resolveBindings } from '../src/core/keybinds.js';
 
 const close = (a, b) => Math.abs(a - b) < 1e-9;
@@ -21,6 +21,7 @@ test('the overview settles on the nearest of its four diagonal sides', () => {
 
 test('the close view zooms with the same presets, from about 1.2 to 4.7 units', () => {
   assert.equal(closeDistance(DEFAULT_ZOOM), 3);
+  for (let i = 1; i < ZOOM_LEVELS.length; i++) assert.ok(closeDistance(ZOOM_LEVELS[i]) > closeDistance(ZOOM_LEVELS[i - 1]));
   let zoom = DEFAULT_ZOOM;
   for (let i = 0; i < 10; i++) zoom = stepZoom(zoom, -1);
   assert.ok(closeDistance(zoom) > 1.1 && closeDistance(zoom) < 1.3);

@@ -13,13 +13,17 @@ export const snapYaw = yaw => SIDE0 + Math.round((yaw - SIDE0) / (Math.PI / 2)) 
 
 // The close view: the camera on an arm from a point at the hero's shoulders, `pitch` over the
 // level (rad, looking down; less looks up), as long as the zoom says (the same six presets:
-// about 1.2 to 4.7 units) and shorter where something is in the way (game/camera.js). The middle
-// of the screen is the pivot, a little over the hero's head: the crosshair (game/mouselook.js).
+// about 1.2 to 4.7 units, 3 at the default) and shorter where something is in the way
+// (game/camera.js). The middle of the screen is the pivot, a little over the hero's head: the
+// crosshair (game/mouselook.js). The overview's presets lie closer round its default than they
+// spread out past it (core/zoom.js), so the arm grows faster closing in than going out
+// (CLOSE_IN, CLOSE_OUT): the same lengths as before the overview started closer.
 export const ANCHOR = 1.2;          // the arm's pivot over the feet
 export const AHEAD = 2;             // the camera looks at a point this far past the pivot
 export const PITCH = 0.24, PITCH_MIN = -0.45, PITCH_MAX = 1.1;
 export const clampPitch = p => Math.min(PITCH_MAX, Math.max(PITCH_MIN, p));
-export const closeDistance = zoom => 3 * (zoom / DEFAULT_ZOOM) ** 1.6;
+const CLOSE_IN = 2.4, CLOSE_OUT = 0.943;
+export const closeDistance = zoom => 3 * (zoom / DEFAULT_ZOOM) ** (zoom < DEFAULT_ZOOM ? CLOSE_IN : CLOSE_OUT);
 // where the close camera looks (seen from above): its yaw is where it stands, seen from the hero
 export const forwardYaw = yaw => yaw + Math.PI;
 
