@@ -151,6 +151,9 @@ function pushPlayer(dx, dz) {
   if (dx && canMove(p.x + dx, p.z, 'x', Math.sign(dx))) p.x += dx;
   if (dz && canMove(p.x, p.z + dz, 'z', Math.sign(dz))) p.z += dz;
 }
+// a push on an enemy: none on one its fight holds where it puts it (`anchored`: Woppylava walked by
+// his fight, Foggery over his tower), which stepEnemy would set onto the floor under it
+const shove = (e, mx, mz) => { if (!e.anchored) stepEnemy(e, mx, mz); };
 // moveEnemies: false where the enemies are only shown here (another player runs them): they push
 // the player but nobody here moves them
 export function contactEnemies(list, dt, moveEnemies = true) {
@@ -162,7 +165,7 @@ export function contactEnemies(list, dt, moveEnemies = true) {
     const nx = d ? dx / d : 1, nz = d ? dz / d : 0, depth = body - d;
     const share = e.profile.mass / (e.profile.mass + 0.45);
     pushPlayer(nx * depth * share, nz * depth * share);
-    if (moveEnemies) stepEnemy(e, -nx * depth * (1 - share), -nz * depth * (1 - share));
+    if (moveEnemies) shove(e, -nx * depth * (1 - share), -nz * depth * (1 - share));
   }
   if (!moveEnemies) return;
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
@@ -172,7 +175,7 @@ export function contactEnemies(list, dt, moveEnemies = true) {
     if (d >= r) continue;
     const nx = d ? dx / d : 1, nz = d ? dz / d : 0, push = Math.min(r - d, dt * 1.5);
     const share = b.profile.mass / (a.profile.mass + b.profile.mass);
-    stepEnemy(a, nx * push * share, nz * push * share);
-    stepEnemy(b, -nx * push * (1 - share), -nz * push * (1 - share));
+    shove(a, nx * push * share, nz * push * share);
+    shove(b, -nx * push * (1 - share), -nz * push * (1 - share));
   }
 }

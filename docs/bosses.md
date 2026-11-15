@@ -1984,7 +1984,9 @@ fuse under his bar by `src/game/fusebar.js`. The volcano is one of Monteur's mou
 
 He is too big for the ways the others walk: once his fight is on (`anchored`) his fight walks him
 straight at whom he fights (`walk`: 1.2 cells/s, 1.35 in phase 2, stopping 1.9 cells from them),
-over everything, the mound, the volcano and the lava, his feet following the ground under him. The
+over everything, the mound, the volcano and the lava, his feet following the ground under him
+(`climb` units/s: the volcano carries him only as it rises, and nothing shoving him sets him onto
+the floor under him, `game/mountains.js`, `game/enemycombat.js`). The
 shared AI only starts his attacks (`game/enemyai.js`): in reach, his lava arm; anywhere, the casts
 when they are due (`barred`).
 

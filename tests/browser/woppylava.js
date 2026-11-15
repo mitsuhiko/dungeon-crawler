@@ -3,7 +3,8 @@
 // say (a wall a hero standing off its gap, not one in it; a hand one in its locked ring, not one who
 // ran; a bomb one at its mark); no blow takes him below two thirds in phase 1; there he rises and
 // the volcano comes up out of the middle of the arena, the hero on its road riding up; the lava
-// rises over the basin, the road stays dry; phase 2 his fire creatures come and the fuse burns; it
+// rises over the basin, the road stays dry; he walks up the volcano smoothly after a hero (no jumps
+// from cell to cell); phase 2 his fire creatures come and the fuse burns; it
 // runs out and the volcano erupts: the lava pours down it, a few isles on its road stay dry; the
 // robot pulls a hero out of the lava onto dry ground; his death drains the lava and brings the
 // volcano down. (His effects drawn: tests/browser/woppylavafx.js; /woppyfx shows them running.)
@@ -176,6 +177,15 @@ export async function runWoppylavaChecks() {
       const wetRoad = ways.filter(m => lavaOver(state.map, m.c) > 0).map(m => `${m.x},${m.z} top ${m.top} h ${m.h} cs ${m.f.cs.map(v => v.toFixed(2))} over ${lavaOver(state.map, m.c).toFixed(2)}`);
       check(dryRoad === ways.length, `the road dry (${dryRoad} of ${ways.length}: ${wetRoad.join('; ')}; lava ${(state.tide * LH).toFixed(2)}, basin ${(vo.basin * LH).toFixed(2)})`);
       out.flood = { basin: `${wet}/${basinCells.length}`, road: `${dryRoad}/${ways.length}` };
+
+      // --- he walks up the volcano after a hero at the top of its road: his feet ease up and down its -----
+      // cells (`walk.climb`), never set onto each in a jump (game/mountains.js leaves him to his fight)
+      const high = ways.at(-1);
+      standAt(high.x + 0.5, high.z + 0.5);
+      let lastY = b.y, jolt = 0, walked = 0;
+      run(10, () => { still(); jolt = Math.max(jolt, Math.abs(b.y - lastY)); lastY = b.y; walked += b.speed > 0 ? 1 : 0; });
+      check(walked > 30 && jolt <= G.walk.climb / 30 + 1e-6, `he walks the volcano smoothly (${walked} steps, at most ${jolt.toFixed(2)} up or down a step)`);
+      out.walk = { steps: walked, jolt: +jolt.toFixed(3) };
 
       // --- phase 2: his fire creatures; the fuse burns --------------------------------------------------------
       standAt(on.x + 0.5, on.z + 0.5);

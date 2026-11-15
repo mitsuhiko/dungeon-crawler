@@ -160,9 +160,11 @@ function heights(s, list, rising = false) {
     });
     player.y = r.p[0][1] - 0.35;   // (as game/ragdoll.js has it)
   }
-  // the enemies (those this game runs): on its floors, at its height
+  // the enemies (those this game runs): on its floors, at its height; but one its fight holds
+  // (`anchored`: Woppylava, his feet easing up and down the ground under him, game/woppylava.js
+  // walk) only while it rises under him: up, set onto each cell's floor he would jump cell by cell
   for (const e of list) {
-    if (!e.f || !cells.has(e.f.c) || e.drop || e.riding || e.deck) continue;
+    if (!e.f || !cells.has(e.f.c) || e.drop || e.riding || e.deck || e.anchored && !rising) continue;
     e.y = standY(e.profile, e.f, e.x, e.z);
   }
   // the loot lying on it
