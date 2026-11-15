@@ -56,6 +56,7 @@ import { holdTilt, tiltNow } from './tilt.js';
 import { devMud, mudNow } from './mud.js';
 import { SHAPES, placeMountain, freeCells } from '../core/mountains.js';
 import { devMountain, downMountain, mountainNow } from './mountains.js';
+import { devWoppylavaFx } from '../render/woppylavafx.js';
 
 const dev = cmd => addCommand(commands, { ...cmd, dev: true });
 const ahead = (d = 2.5) => ({ x: player.x + Math.sin(player.yaw) * d, y: player.y, z: player.z + Math.cos(player.yaw) * d });
@@ -193,24 +194,37 @@ dev({
 
 // Monteur's mountains (game/mountains.js, core/mountains.js) to try out: one of a shape (or the
 // next at random) pulled up out of the floor round the hero, anywhere, no Monteur needed; off:
-// brought down. It stands its time and falls apart like his.
+// brought down. It stands its time and falls apart like his. Woppylava's volcano too: in his cinder
+// pit where his fight raises it (map.volcano), elsewhere round the hero where it fits.
 const MOUNTAIN_SAY = { mesa: 'sheer sides, flat on top, a ladder now and then', terraces: 'a stepped cone: slopes and ledges to jump up',
   ridge: 'a long back sloping down to both ends', tiers: 'a ledge round a needle, ladders now and then', crag: 'lumps and cliffs at random',
-  off: 'the one standing falls apart' };
+  volcano: 'Woppylava\'s volcano: a cone with a road winding up to its crater', off: 'the one standing falls apart' };
 addType(commands, { name: 'mountain', values: () => Object.entries(MOUNTAIN_SAY).map(([v, hint]) => ({ value: v, label: v, hint })) });
 dev({
-  name: 'mountain', help: 'pull one of Monteur\'s mountains out of the floor round you: mesa, terraces, ridge, tiers or crag (none: any), or off',
+  name: 'mountain', help: 'pull one of Monteur\'s mountains out of the floor round you: mesa, terraces, ridge, tiers or crag (none: any), Woppylava\'s volcano, or off',
   args: [{ name: 'shape', type: 'mountain', optional: true }],
   run({ shape }) {
     const now = mountainNow();
     if (shape === 'off') { downMountain(); return now ? 'The mountain falls apart' : 'There is no mountain here'; }
     const spec = { n: Math.floor(Math.random() * 2 ** 30), seed: Math.floor(Math.random() * 2 ** 31), shape: shape ?? SHAPES[Math.floor(Math.random() * SHAPES.length)],
       a: Math.round(player.yaw * 100) / 100, x: player.x, z: player.z, phase: 'crack', t: 0, life: 25, any: true };
-    const at = state.map && placeMountain(state.map, spec, 2, freeCells(state.map, true));
+    const pit = shape === 'volcano' && state.map?.volcano;
+    if (pit) Object.assign(spec, { a: pit.a, life: 60, any: false });
+    const at = state.map && (pit ? { x: pit.x, z: pit.z } : placeMountain(state.map, spec, 2, freeCells(state.map, true)));
     if (!at) return 'No room for a mountain here';
     devMountain(Object.assign(spec, at));
     return `A mountain comes up out of the floor (${spec.shape})`;
   },
+});
+// Woppylava's effects round the hero, no Woppylava needed (render/woppylavafx.js devWoppylavaFx)
+const WOPPYFX_SAY = { walls: 'walls of lava rolling across, one after the other', hands: 'lava hands coming down on you (and one beside you)',
+  bombs: 'his eruption\'s bombs landing round you', erupt: 'the crater\'s lava pouring out over the floor, smoke and a fountain of lava',
+  mound: 'the mound asleep, stirring and settling again', all: 'walls, hands and bombs at once', off: 'none again' };
+addType(commands, { name: 'woppyfx', values: () => Object.entries(WOPPYFX_SAY).map(([v, hint]) => ({ value: v, label: v, hint })) });
+dev({
+  name: 'woppyfx', help: 'Woppylava\'s effects round you: walls, hands, bombs, erupt, mound, all, or off',
+  args: [{ name: 'what', type: 'woppyfx' }],
+  run: ({ what }) => devWoppylavaFx(what) === 'off' ? 'His effects are gone' : `Woppylava's ${what} round you`,
 });
 
 // --- getting about -------------------------------------------------------------------------

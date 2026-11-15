@@ -8,7 +8,7 @@ import { idx, inb } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { propMetadata, CLUTTER } from '../core/propcatalog.js';
 import { PROP_METADATA } from '../core/propmetadata.js';
-import { segDist, STAGE } from './arenashapes.js';
+import { segDist, STAGE, CINDER } from './arenashapes.js';
 
 const L = (set, names) => names.split(' ').map(b => set + '_' + b);
 const RUBBLE = [...L('ruins', 'rubble'), ...L('any', 'stone_chips gravel_patch')];
@@ -412,6 +412,21 @@ export function dressArena(arena) {
       scatter(open.filter(f => !deep(f)), loose(5), loose2(pal.small));
       for (const m of (shape.marks.peaks || []).slice(0, 5)) put(floors[m], loose2([...sea.small, sea.ritual]), { center: true });
       faces(.3, .4, [...sea.wall, ...pal.wall], [...sea.lip, ...pal.lip]);
+      break;
+    }
+    case 'cinder': {
+      // Woppylava's cinder pit: nothing that blocks (a big body walks it, his walls of lava roll
+      // across it, his volcano rises out of its middle): cinders and pumice over the basin, the
+      // theme's cover among them, its small things and the volcanic rocks, obsidian and vents (the
+      // sets he brings, BOSS_ARENAS `props`) only round the edge, out of the way of the volcano
+      // (CINDER.clear), on the mound only cinders
+      const fire = PALETTES.volcanic, [mx, mz] = CINDER.at, out = f => Math.hypot(f.x + 0.5 - mx, f.z + 0.5 - mz) > CINDER.clear;
+      const loose2 = list => list.filter(n => variantsOf(n).every(v => !propMetadata.get(v).blocking));
+      const mound = f => shape.surface?.[f.c] === 'crust';
+      cover(zone.filter(f => !mound(f)), .6, [...fire.cover, ...fire.cover, ...pal.cover]);
+      cover(zone.filter(mound), .5, fire.cover);
+      scatter(open.filter(out), loose(8), [...loose2(fire.small), ...loose2(pal.small), ...smallProps(arena.props ?? [], 0.6)]);
+      faces(.3, .3, [...fire.wall, ...pal.wall], pal.lip);
       break;
     }
     case 'stage': {

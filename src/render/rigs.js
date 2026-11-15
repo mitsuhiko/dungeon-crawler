@@ -48,6 +48,9 @@ export const RIGS = {
   // from the hips: blender/qualmos.py REACH; the curling tip keeps its turn)
   qualmos: { look: [['chest', 0.3], ['head', 0.7]], arms: arms('arm', 'forearm', 'hand'),
     legs: range(6, i => [`tentacle${i}.2`, `tentacle${i}.3`, `tentacle${i}.4`]) },
+  // (his floating face looks at the hero; his seven legs stand on the ground under them, the volcano's slopes too)
+  woppylava: { look: [['face', 1]], limits: { yaw: 0.6, pitch: 0.4 },
+    legs: Array.from({ length: 7 }, (_, i) => [`leg.${i}`, `leg.${i}.lower`, `foot.${i}`]) },
 };
 // the human figure (assets/character.glb): the hero, the villagers, the people out in the world
 // (its arms, left then right, for the hero's grips: render/animator.js)

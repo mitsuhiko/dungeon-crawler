@@ -170,6 +170,7 @@ TRIANGLE_BUDGET = {
     "Qualmos": 12000,                                                    # (six tentacles with suckers, spines, teeth; qualmos.py splits it)
     "Rollie": 10000,                                                     # (wheels, a grille, stalk eyes, long wavy arms)
     "Sollmeldon": 12000,                                                 # (three heads on long necks, bat wings, three legs; sollmeldon.py splits it)
+    "Woppylava": 12000,                                                  # (a volcano on seven legs, lava arms and a plume, a floating face)
     "FireFaceBall": 1500, "ShrapsIceBall": 1500, "TrianglePunch": 1500, "TotnarSkull": 1500, "FlipBall": 1200, "FoggeryEye": 1500, "SlomoArmSlug": 1500,   # projectiles
     "MonteurStone": 600,
     "TornadoTwister": 1500,                                              # (its twisters)

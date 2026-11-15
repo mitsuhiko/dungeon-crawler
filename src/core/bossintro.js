@@ -13,7 +13,8 @@ export const EPITHETS = Object.freeze({
   gusto: msg('The Hungry Grin'), totnar: msg('The Ember in the Brambles'), squarlo: msg('Small Lord of the Tides'),
   flip: msg('Who Turns the World'), foggery: msg('Lord of the Lava'), renew: msg('The Echo of Time'),
   mansk: msg('The Hollow Mask'), monteur: msg('The Stone That Walks'), sollmeldon: msg('The Three-Headed Mire'), slomo: msg('King of the Slime'),
-  umbra: msg('The Drowned Coil'), qualmos: msg('At the End of the World'), rollie: msg('The Laser and the Ghost'), temp: msg('Keeper of the Well'),
+  umbra: msg('The Drowned Coil'), qualmos: msg('At the End of the World'), rollie: msg('The Laser and the Ghost'), woppylava: msg('The Walking Volcano'),
+  temp: msg('Keeper of the Well'),
 });
 export const epithetOf = e => EPITHETS[e?.boss] ?? EPITHETS.temp;
 
@@ -258,6 +259,20 @@ export const INTROS = Object.freeze({
       { t: 4.4, cam: ['pair', -5.6, -0.6, 1.5], look: ['pair', 0, 0, 1.0], fov: 46, ease: 'out' },
       { t: 5.7, cam: ['pair', -5.2, 0.4, 1.2], look: ['pair', 0, 0, 1.1], fov: 44 },
       { t: 7.6, cam: ['pair', -6.0, 1.2, 1.4], look: ['pair', 0, 0, 1.0], fov: 38 }] },
+  // Woppylava: the light goes; the ground on his spot rumbles, glows up and steams; two eyes light up
+  // in the dark over it (his floating face); a fountain of lava bursts up and he rises out of it,
+  // stomps his legs one after the other and slams down, his crater blasting, roaring (his rising's
+  // clip) as the light comes back. The camera low on the ground, looking up at him as he rises, back
+  // out for the slam
+  woppylava: { reveal: 'woppylava', length: 8.6, hold: 8.3, walk: 1.4, letterbox: [0.3, 8.3], name: [5.9, 8.0], bar: 8.2,
+    blend: [0.6, 2.0, 8.1], shake: 0.02, dim: { at: [0.3, 2.0, 6.2, 7.4], to: 0.65 }, fires: { out: 0.4, back: 6.4 },
+    at: { rumble: 1.2, glow: [1.6, 3.0], eyes: 2.2, burst: 3.1, rise: [3.1, 5.0], rear: 5.0, release: 7.8 },
+    shots: [{ ...OPEN, look: ['spot', 0, 0, 0.4] },
+      { t: 2.0, cam: ['spot', -4.8, 1.4, 0.35], look: ['spot', 0, 0, 0.6], fov: 48 },
+      { t: 4.9, cam: ['spot', -4.4, 1.3, 0.3], look: ['spot', 0, 0, 0.85], fov: 54, ease: 'linear' },
+      { t: 5.8, cam: ['spot', -5.2, 0.8, 0.45], look: ['boss', 0, 0, 0.9], fov: 56 },
+      { t: 6.5, cam: ['spot', -5.8, 0.4, 0.5], look: ['boss', 0, 0, 0.85], fov: 54, ease: 'out' },
+      { t: 8.0, cam: ['spot', -6.4, -0.6, 0.6], look: ['boss', 0, 0, 0.8], fov: 50 }] },
   // met before: his name a moment, the bar; nothing taken away
   again: { reveal: null, length: 3.2, hold: 0, walk: 0, letterbox: null, name: [0.2, 2.8], bar: 0.5, blend: null, dim: null, fires: null,
     shake: 0, shots: [] },

@@ -21,8 +21,11 @@ const groundShade = (m, level) => m.town ? townShade(level) : level;
 // A built floor (its `surface`: a role, themes/surfaces.js; Foggery's tower and the floor of his
 // caldera, cubegen/towerarena.js; Mansk's museum, cubegen/arenashapes.js `stage`) is the theme's
 // colour for that role, not the terrain's by height; paving in a checker of its two tiles
+// (a floor `tint`ed: drawn in that colour, THREE.Color: the road up Woppylava's volcano and its
+// crater, render/mountains.js; only in what a view builds, never in a cube's map)
 function topColor(m, f) {
   const cs = f.cs;
+  if (f.tint) return f.tint.clone().multiplyScalar(shade(f.x, f.z) * (0.94 + (hash32(f.c * 13 + 5) % 100) / 900));
   if (f.surface) return SURFACE[f.surface][f.surface === 'paving' && (f.x + f.z) & 1 ? 'alt' : 'top'].clone().multiplyScalar(shade(f.x, f.z) * (0.92 + (hash32(f.c * 7 + Math.round(cs[0] * 4)) % 100) / 600));
   if (f.fluid) return fluidBed(drawnFluid(f));
   if (f.soft) return SOFT.clone().multiplyScalar(shade(f.x, f.z));   // a plunge's landing

@@ -108,6 +108,9 @@ export default {
   'Air {time}': 'Luft {time}',
   '{time} of air left!': 'Nur noch {time} Luft!',
   'Ran out of air!': 'Keine Luft mehr!',
+  // the fuse of Woppylava's volcano (game/fusebar.js)
+  Eruption: 'Ausbruch',
+  'Eruption {time}': 'Ausbruch {time}',
   'Teleport to': 'Teleportieren zu',
   'Turn the view left': 'Ansicht nach links drehen',
   'Turn the view right': 'Ansicht nach rechts drehen',

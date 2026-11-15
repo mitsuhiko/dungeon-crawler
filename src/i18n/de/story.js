@@ -1093,6 +1093,10 @@ export default {
     "Zwei auf einmal! Ein großer Spicy auf Rädern, und ein Geist unter einem Laken.",
   "They take turns. Fight the one whose eyes glow brightest, and keep the other in sight.":
     "Sie wechseln sich ab. Kämpf gegen den, dessen Augen am hellsten leuchten, und behalt den anderen im Blick.",
+  "That mountain is walking! It has legs, and arms of lava, and its face is just floating there.":
+    "Der Berg läuft! Er hat Beine, und Arme aus Lava, und sein Gesicht schwebt einfach in der Luft.",
+  "Look at the middle of the floor. It is smoking, and it glows from inside. Something is asleep under there.":
+    "Schau mal in die Mitte vom Boden. Da raucht es, und es glüht von innen. Da unten schläft etwas.",
   "He throws the stones from his antlers! Keep moving.":
     "Er wirft die Steine aus seinem Geweih! Bleib in Bewegung.",
   "Head down, here he comes! Jump out of the way!":
@@ -1137,6 +1141,20 @@ export default {
     "Der Boden blinkt! Runter von den roten Feldern!",
   "Where did the ghost go? It is still here somewhere!":
     "Wo ist der Geist hin? Er ist noch irgendwo hier!",
+  "A wall of lava! Run to the gap!":
+    "Eine Wand aus Lava! Lauf zur Lücke!",
+  "Hands of lava, coming down! Do not stand in the rings!":
+    "Hände aus Lava, die kommen runter! Bleib nicht in den Ringen stehen!",
+  "He is erupting! Watch where the glowing spots are!":
+    "Er bricht aus! Pass auf, wo die glühenden Stellen sind!",
+  "The floor is breaking! A whole volcano is coming up!":
+    "Der Boden bricht auf! Da kommt ein ganzer Vulkan hoch!",
+  "The lava is rising! Up the volcano, quickly!":
+    "Die Lava steigt! Rauf auf den Vulkan, schnell!",
+  "The volcano is rumbling! It is going to blow!":
+    "Der Vulkan grollt! Gleich bricht er aus!",
+  "Find a dry spot on the road, and hold on!":
+    "Such dir eine trockene Stelle auf dem Weg, und halt durch!",
   "Three heads! And all of him is mud. Black, sticky mud.":
     "Drei Köpfe! Und er ist ganz aus Schlamm. Schwarzer, klebriger Schlamm.",
   "If the ground tips, get up high. The mud runs downhill, and there it gets deep.":
@@ -1208,6 +1226,10 @@ export default {
     "Aber wo ist der Glasmacher? Ich war mir so sicher, dass er hier ist.",
   "Both of them! The wheels and the ghost, beaten!":
     "Alle beide! Die Räder und der Geist, besiegt!",
+  "He has gone all cold and quiet. Just a big grey rock now.":
+    "Er ist ganz kalt und still geworden. Jetzt ist er nur noch ein großer grauer Stein.",
+  "Fire, and sand, and something glowing coming out of it... I think somebody made glass in a fire like that.":
+    "Feuer, und Sand, und etwas Glühendes, das herauskommt... Ich glaube, jemand hat in so einem Feuer Glas gemacht.",
   "Let him charge into a wall. Then he is dazed, and every hit counts double.":
     "Lass ihn gegen eine Wand rennen. Dann ist er benommen, und jeder Schlag zählt doppelt.",
   "When the floor cracks, a mountain is coming. Ride it up with him, or keep well away.":
@@ -1220,6 +1242,10 @@ export default {
     "Schau, welcher auf dich losgeht, und kämpf gegen den. Der andere macht nur ab und zu mit.",
   "When the ghost runs round you, mind its twisters, and hit it when it comes in close.":
     "Wenn der Geist um dich herumrennt, pass auf seine Wirbelwinde auf, und schlag zu, wenn er nah herankommt.",
+  "When a wall of lava comes, look for the dark gap, and run there straight away.":
+    "Wenn eine Wand aus Lava kommt, such die dunkle Lücke, und lauf sofort dorthin.",
+  "Once the volcano is up, we have to beat him before it blows. Hit him as much as you can!":
+    "Wenn der Vulkan oben ist, müssen wir ihn besiegen, bevor er ausbricht. Schlag zu, so viel du kannst!",
   "Up you get. Even down in the caves, I will always find you.":
     "Hoch mit dir. Sogar unten in den Höhlen finde ich dich immer.",
   "You scared me. It is far too dark down here to lose you.":

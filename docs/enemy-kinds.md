@@ -222,6 +222,8 @@ same of his mud (drawn as it: `drawn`), their spit slowing.
 Foggery's Fire-faces and Fire-cats are
 `plain` minions: they look like and are called what they are (×0.6 health and damage, the cats ×0.8
 health); both are `lavaproof`: they walk on his lava.
+Woppylava's Magma-faces and Magma cats (`MAGMA_FACE`, `MAGMA_CAT`) are a Blaze-face and an Ash cat,
+weaker (×0.6 health and damage, the cats ×0.8 health) and `lavaproof` like Foggery's.
 
 The Crimson triangle also throws 20% more often (`cooldown` × 0.8). Grass snake, Sand viper,
 Blood viper and Shadow mamba are strength tiers: green, ochre, red, then near-black. The red

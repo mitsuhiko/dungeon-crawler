@@ -8,7 +8,7 @@ import { SLASH_CLIP, SHOOT_CLIP, CROSSBOW_CLIP, CAST_CLIP, THRUST_CLIP, THROW_CL
 import { MUZZLES } from '../src/core/shots.js';
 import { WEAPONS, WEARABLES, OUTFIT_SLOTS, POTIONS } from '../src/core/items.js';
 import { SPIDER, STUNDER, SNAKE, OCTONAUT, FIREFACE, TRIANGLE, FIRECAT, SHRAPS, FIRE_SHRAPS, SPICY, WOLK, GUSTO, GUSTO_SPLIT, TOTNAR, SNAP_SKULL,
-  SQUARLO, SQUARLO_GIANT, MECKED, MOOSE, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, MONTEUR, MONTEUR_SUN, QUALMOS, ROLLIE, ROLLIE_AT,
+  SQUARLO, SQUARLO_GIANT, MECKED, MOOSE, TORNADO, SLUG, BOLIME, FLIMMER, FLIP, FOGGERY, FOGGERY_BALL, SLOMO, SLOMO_SLUG, MANSK, MANSK_SKY, MANSK_RIBBONS, MONTEUR, MONTEUR_SUN, QUALMOS, ROLLIE, ROLLIE_AT, WOPPYLAVA, WOPPYLAVA_AT,
   SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE, SQUIRTLE, fireAt } from '../src/core/enemies.js';
 import { SOLLMELDON_FIGHT } from '../src/core/sollmeldon.js';
 import { MANSK_FIGHT, MANSK_DANCE } from '../src/core/mansk.js';
@@ -42,6 +42,7 @@ const BUDGETS = {
   squarlo: { Squarlo: 8000 }, squirtle: { Squirtle: 6000 }, flip: { Flip: 10000, FlipBall: 1200 },
   foggery: { Foggery: 12000, FoggeryEye: 1500 }, mecked: { Mecked: 7000 }, moose: { Moose: 8000 }, tornado: { Tornado: 7000, TornadoTwister: 1500 }, slug: { Slug: 6000, SlugBall: 800 }, bolime: { Bolime: 6000 },
   slomo: { Slomo: 12000, SlomoArmSlug: 1500 }, mansk: { Mansk: 9000 }, monteur: { Monteur: 12000, MonteurStone: 600 }, sollmeldon: { Sollmeldon: 12000 }, qualmos: { Qualmos: 12000 }, rollie: { Rollie: 10000 }, robot: { Robot: 3000 },
+  woppylava: { Woppylava: 12000 },
 };
 test('characters and enemies keep to their triangle budgets', () => {
   for (const [file, budget] of Object.entries(BUDGETS)) {
@@ -738,6 +739,23 @@ test('Rollie: one skinned body on two wheels, a clip for each of his attacks as 
   assert.deepEqual(a.RollieSabers.extras.hands, ROLLIE_AT.hands);
   assert.deepEqual(a.RollieGrid.extras.hands_mid, ROLLIE_AT.grid);
   assert.deepEqual(a.RollieSummon.extras.muzzle, ROLLIE_AT.summon); assert.deepEqual(at('summon').summon.muzzle, ROLLIE_AT.summon);
+});
+test('Woppylava: one skinned body, a clip for each of his attacks as long as it, his death held, his crater and his arm where the game takes them', () => {
+  const { json: j, duration } = glb('woppylava'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));
+  const clip = name => 'Woppylava' + name[0].toUpperCase() + name.slice(1);
+  assert.deepEqual(Object.keys(a).sort(), ['WoppylavaDeath', 'WoppylavaWalk', ...WOPPYLAVA.attacks.map(at => clip(at.clip))].sort());
+  assert.equal(j.skins.length, 1);
+  assert.equal(a.WoppylavaWalk.extras.loop, true);
+  assert.ok(Math.abs(a.WoppylavaWalk.extras.speed - WOPPYLAVA.chase) <= 0.2);
+  for (const n of ['face', 'plume', ...Array.from({ length: 7 }, (_, i) => `leg.${i}`)]) assert.ok(j.nodes.some(o => o.name === n), n);
+  assert.ok(Math.abs(duration(a.WoppylavaDeath) - WOPPYLAVA.deathTime) < 1e-5); assert.equal(a.WoppylavaDeath.extras.hold_last_frame, true);
+  for (const at of WOPPYLAVA.attacks) {
+    assert.ok(Math.abs(duration(a[clip(at.clip)]) - at.attackTime) < 1e-5, at.clip);
+    assert.equal(a[clip(at.clip)].extras.hit_frame / 30, at.hitAt, at.clip);
+  }
+  assert.deepEqual(a.WoppylavaErupt.extras.muzzle, WOPPYLAVA_AT.crater);
+  assert.deepEqual(a.WoppylavaSummon.extras.muzzle, WOPPYLAVA_AT.summon);
+  assert.deepEqual(a.WoppylavaSwipe.extras.muzzle, WOPPYLAVA_AT.swipe);
 });
 test('Mansk: a mask with horns, his clips match his attacks, his mouth, horns and ribbons\' stumps where the game takes them', () => {
   const { json: j, duration } = glb('mansk'), a = Object.fromEntries(j.animations.map(c => [c.name, c]));

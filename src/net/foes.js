@@ -19,7 +19,7 @@ import { removeEnemyViews } from '../render/enemies.js';
 import { guardianIds } from '../core/guardians.js';
 import { STAGE_PROFILES, enemyProfile } from '../core/enemies.js';
 import { followMovers } from '../game/movers.js';
-import { SHAPES, PHASES } from '../core/mountains.js';
+import { ALL_SHAPES, PHASES } from '../core/mountains.js';
 import { Timeline, lerpAngle, PREDICT } from './sync.js';
 import { MODES, BURNING, TOXIC, CHILLED, ZAPPED, rosterOf, rowOf, DIVE_PHASES } from './protocol.js';
 
@@ -238,6 +238,19 @@ export class Viewer {
         const [main, hidden, circling] = b[27];
         Object.assign(e, { main: main === 1, hidden: Number.isFinite(hidden) ? Math.max(0, Math.min(1, hidden)) : 0, circling: circling === 1 });
       }
+      // Woppylava's volcano, his lava's fuse and eruption, his walls, hands and bombs' marks (game/woppylava.js;
+      // game/mountains.js raises our volcano after it, game/tide.js lets our lava stand, render/woppylavafx.js
+      // draws the rest, running their clocks on between rows)
+      if (Array.isArray(b[28])) {
+        const [stir, mountain, fuse, burst, seed, walls, hands, marks] = b[28], fin = Number.isFinite, list = v => Array.isArray(v) ? v : [];
+        e.stir = fin(stir) ? Math.max(0, Math.min(1, stir)) : 0;
+        e.mountain = mountainOf(mountain, e.mountain);
+        e.fuse = fin(fuse) ? Math.min(1e4, fuse) : -1; e.burst = fin(burst) ? Math.min(1e5, burst) : -1;
+        e.seed = Number.isInteger(seed) ? seed >>> 0 : 0;
+        e.walls = list(walls).filter(w => Array.isArray(w) && w.length === 4 && w.every(fin)).slice(0, 4).map(([n, side, gap, t]) => ({ n, side: side & 3, gap, t }));
+        e.hands = list(hands).filter(h => Array.isArray(h) && h.length === 4 && h.every(fin)).slice(0, 12).map(([n, x, z, t]) => ({ n, x, z, t }));
+        e.marks = list(marks).filter(m => Array.isArray(m) && m.length === 6 && m.every(fin)).slice(0, 24).map(([n, x, y, z, t, flight]) => ({ n, x, y, z, t, flight }));
+      }
       if (e.mode === 'dead') { e.hp = 0; e.deadT = b[6]; e.dark = 0; (e.beam || e.bolts) && mirrorBeam(e, null); return; }
       mirrorBeam(e, Array.isArray(b[12]) ? b[12] : null, Array.isArray(b[16]) ? b[16] : null);
     });
@@ -255,12 +268,12 @@ export class Viewer {
 // is the player able to take a blow from the runner's enemies now?
 export const canBeHit = () => player.hp > 0 && !player.ragdoll && !state.transitioning;
 
-// Monteur's mountain from his row ([n, seed, x, z, shape, a, phase, t, life], net/protocol.js), the
+// Monteur's mountain (or Woppylava's volcano) from his row ([n, seed, x, z, shape, a, phase, t, life], net/protocol.js), the
 // one he had kept if it is the same (game/mountains.js runs its clock on between rows); null: none
 function mountainOf(row, had) {
   if (!Array.isArray(row)) return null;
   const [n, seed, x, z, shape, a, phase, t, life] = row;
-  if (![n, seed, x, z, a, t, life].every(Number.isFinite) || !SHAPES[shape] || !PHASES[phase]) return null;
-  const m = had?.n === n ? had : { n, seed, x, z, shape: SHAPES[shape], a };
+  if (![n, seed, x, z, a, t, life].every(Number.isFinite) || !ALL_SHAPES[shape] || !PHASES[phase]) return null;
+  const m = had?.n === n ? had : { n, seed, x, z, shape: ALL_SHAPES[shape], a };
   return Object.assign(m, { phase: PHASES[phase], t, life });
 }

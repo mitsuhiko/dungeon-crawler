@@ -20,12 +20,13 @@ import { slowPlayer } from './enemycombat.js';
 import { SLOMO_FIGHT, floodBox } from '../core/slomo.js';
 import { guardianId } from '../core/guardians.js';
 import { updateMud, resetMud } from './mud.js';
+import { lavaOf, keepLava } from './woppylava.js';
 
 // how fast a shown level follows the boss's (levels/s): it moves smoothly between rows (a tide's
 // own `follow`, else this)
 const FOLLOW = 1.2;
 let shown = null;
-const dry = () => { state.tide = null; setTide(null); setTrialWater(state.world, null, null); setFloodFront(state.world, null); drawFloodFront(null); };
+const dry = () => { keepLava(null); state.tide = null; setTide(null); setTrialWater(state.world, null, null); setFloodFront(state.world, null); drawFloodFront(null); };
 // Foggery's lava (map.tide.gone, cubegen/towerarena.js) can go over the top of his tower (his
 // `tide` over 1) and drain away (under 0); once he is beaten it is gone for good
 const beaten = m => m.tide.gone !== undefined && !!m.guardian && state.run.defeated.has(guardianId(m.key));
@@ -45,7 +46,11 @@ export function updateTide(list, dt) {
   state.tide = shown;
   // (a flood: only as far across as its front has come)
   const box = t.flood ? floodBox(t.box, by?.floodSide ?? 0, by ? by.front ?? 1 : 1) : t.box;
-  setTide({ y: shown * LH, fluid: t.fluid, look: t.look, box });
+  // (Woppylava's: the crater's pool and the eruption's lava stand higher than the basin's in places:
+  // game/woppylava.js lavaOf)
+  const ys = by?.boss === 'woppylava' ? lavaOf(by, shown * LH) : null;
+  keepLava(ys);
+  setTide({ y: shown * LH, fluid: t.fluid, look: t.look, box, ...ys && { ys } });
   setTrialWater(state.world, shown * LH, 'running');
   if (t.flood) {
     setFloodFront(state.world, box);

@@ -1,8 +1,9 @@
 // Monteur's mountains in the active cube (core/mountains.js has the rules; render/mountains.js shows
-// them; game/monteur.js pulls them up and brings them down, docs/bosses.md "Monteur"). Every game
-// raises its own after the spec the Monteur here carries (his `mountain`, sent to friends with his
+// them; game/monteur.js pulls them up and brings them down, docs/bosses.md "Monteur"), and
+// Woppylava's volcano (game/woppylava.js raises it, core/mountains.js `volcano`). Every game
+// raises its own after the spec the boss here carries (his `mountain`, sent to friends with his
 // row, net/protocol.js), or after the developer command's (/mountain, game/devcommands.js: no
-// Monteur needed). The game that runs him moves the spec's clock on (core/mountains.js
+// boss needed). The game that runs him moves the spec's clock on (core/mountains.js
 // stepMountain); a friend's runs it on between his rows.
 //
 // The mountain's cells stay the cube's own floors: while it stands their corners and heights (and
@@ -43,7 +44,7 @@ export const mountainPlan = () => cur?.plan && cur.applied ? cur.plan : null;
 // where the runner says)
 export function updateMountains(list, dt, own = true) {
   if (dev && stepMountain(dev, dt) === 'gone') dev = null;
-  const boss = list.find(e => e.boss === 'monteur' && e.mountain);
+  const boss = list.find(e => e.boss && e.mountain);
   const spec = boss?.mountain ?? dev;
   if (cur && (cur.cube !== state.cubeKey || cur.world !== state.world)) end();
   if (!spec || spec.phase === 'gone') { if (cur) end(); return; }
@@ -124,12 +125,16 @@ function apply(list, dt) {
     cur.applied = want;
   }
   const s = sunk(cur.plan, want, cur.t);
-  if (want !== 'crack') heights(s, list);
+  if (want !== 'crack') heights(s, list, want === 'rise');
   tickMountainView(cur.view, want, cur.t, s, dt);
 }
 
-// its cells' floors `s` under its height, and who stands on them carried along
-function heights(s, list) {
+// a body this far under the floor of a rising cell it is over is in it (shoved there by a cliff
+// beside it coming up, or the floor having come up past its feet within a frame): lifted out onto it
+const CAUGHT = 0.8, RAGDOLL_R = 0.06;   // (a ragdoll's points' radius, physics/ragdoll.js RAD)
+// its cells' floors `s` under its height, and who stands on them carried along (`rising`: also who
+// was caught a little under one)
+function heights(s, list, rising = false) {
   const cells = cur.plan.cells, under = cells.get(cellAt(player.x, player.z));
   const at = f => floorY(f, player.x - f.x, player.z - f.z), before = under ? at(under.f) : 0;
   for (const m of cells.values()) {
@@ -137,11 +142,23 @@ function heights(s, list) {
     for (let k = 0; k < 4; k++) m.f.cs[k] = cs[k];
     m.f.top = Math.max(m.baseTop, Math.round(m.top - s / LH));
   }
-  // the hero over it (standing, or in the air): up with it as it rises past their feet; down
-  // they come by themselves (physics/move.js)
-  if (under && !player.climb && !player.ragdoll && before <= player.y + 0.05) {
+  // the hero over it (standing, or in the air): up with it as it rises past their feet (or out of
+  // it, caught a little under its floor while it rises); down they come by themselves (physics/move.js)
+  if (under && !player.climb && !player.ragdoll) {
     const y = at(under.f);
-    if (y > player.y) { player.y = y; if (player.vy < 0) player.vy = 0; }
+    if (y > player.y && (before <= player.y + 0.05 || rising && y - player.y < CAUGHT)) { player.y = y; if (player.vy < 0) player.vy = 0; }
+  }
+  // the hero knocked over on it (a ragdoll: physics/ragdoll.js): each of its points the floor comes up
+  // past carried up with it, its speed kept (a ragdoll finds no ground once the floor is over it)
+  if (player.ragdoll && !player.down) {
+    const r = player.ragdoll;
+    r.p.forEach((q, i) => {
+      const m = cells.get(cellAt(q[0], q[2]));
+      if (!m) return;
+      const y = floorY(m.f, q[0] - m.f.x, q[2] - m.f.z) + RAGDOLL_R, d = y - q[1];
+      if (d > 0 && d < CAUGHT) { q[1] += d; r.o[i][1] += d; }
+    });
+    player.y = r.p[0][1] - 0.35;   // (as game/ragdoll.js has it)
   }
   // the enemies (those this game runs): on its floors, at its height
   for (const e of list) {

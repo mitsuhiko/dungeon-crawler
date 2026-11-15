@@ -561,4 +561,34 @@ function reef(fr) {
   s.min = 0;   // (the basin may sink lower than other arenas' floors)
   return s;
 }
-export const BOSS_SHAPES = { tidal, bowl, stage, mire, reef };
+// 14. Cinder pit (Woppylava's): a wide basin `low` levels under the doorways, its floor flat, a bank
+// of scenery all round the cube just inside its edge, and in the middle of the cube (`at`, cells)
+// the volcano asleep under it: a low mound `mound` cells round, `rise` levels over the basin (a
+// level lower at its edge, `dimple` round its top a level lower too), its ground scorched crust.
+// The volcano rises out of it in his fight (core/mountains.js VOLCANO, `foot` cells round): the
+// doorways, the well and his spot lie further out than `clear` (cubegen/guardian.js puts the well
+// in the corner furthest from the entrance, his spot beside it), so nothing built stands where it
+// rises. His lava (game/tide.js) floods the basin `flood` levels deep, under the volcano's road.
+export const CINDER = { low: -2, at: [N / 2, N / 2], mound: 2.6, top: 1.6, rise: 2, dimple: 0.8, flood: 0.3, clear: 9.5 };
+function cinder(fr) {
+  const s = blank(), [mx, mz] = CINDER.at;
+  s.surface = new Array(N * N).fill(null);
+  const bank = (x, z) => x === 1 || z === 1 || x === N - 2 || z === N - 2;
+  const active = new Uint8Array(N * N), fixed = new Uint8Array(N * N);
+  each((x, z, c) => {
+    if (bank(x, z) && !fr.flat[c]) { s.rel[c] = 2; s.crisp[c] = 1; return; }
+    s.zone[c] = 1; active[c] = 1; s.rel[c] = CINDER.low;
+    const d = Math.hypot(x + 0.5 - mx, z + 0.5 - mz);
+    if (d <= CINDER.mound) {
+      s.rel[c] = CINDER.low + (d <= CINDER.dimple || d > CINDER.top ? CINDER.rise - 1 : CINDER.rise);
+      s.surface[c] = 'crust'; fixed[c] = 1;
+    }
+  });
+  finish(s, fr, CINDER.low, 2);
+  each((x, z, c) => { if (fr.flat[c]) fixed[c] = 1; });
+  relax(s.rel, active, fixed);
+  s.marks.mound = { x: mx, z: mz, r: CINDER.mound };
+  s.min = 0;   // (the basin may sink lower than other arenas' floors)
+  return s;
+}
+export const BOSS_SHAPES = { tidal, bowl, stage, mire, reef, cinder };

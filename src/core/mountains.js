@@ -5,7 +5,9 @@
 // fights and falls off it). After `life` s it falls apart, sinking back into the floor in jolts
 // (`fall` s), and whoever is on it rides down; `next` s later he may pull up another. Each looks
 // different (SHAPES): a mesa with sheer sides, a terraced cone, a ridge, a ledge round a needle, a
-// crag. A way up is some slopes, a ladder now and then, a jump or none at all.
+// crag. A way up is some slopes, a ladder now and then, a jump or none at all. Woppylava's volcano
+// (`volcano`, VOLCANO; not his to draw: ALL_SHAPES) is one too, raised once by his fight out of the
+// middle of his cinder pit and standing till his death: a cone, its crater, a road winding up it.
 //
 // A mountain is given by a spec: { n (which one), seed, x, z (its middle), shape, a (the heading of a
 // ridge), phase, t (s into it), life }; every game raises the same mountain out of the same cube
@@ -30,8 +32,27 @@ export const MOUNTAIN = Object.freeze({
   settle: 1,        // s up before that counts
   least: 16,        // the fewest cells a mountain takes
 });
+// Woppylava's volcano (core/woppylava.js; his fight raises it once, between his phases, and it
+// stands till his death): its own times, slower and heavier than Monteur's, rising in `jolts` too
+export const VOLCANO_TIMES = Object.freeze({ crack: 2.5, rise: 7, riseJolts: 6, fall: 4, jolts: 5 });
+// The volcano's shape (`wanted`), in cells and levels over the ground at its foot (the lowest under
+// it): a cone `foot` cells round, its crater `crater` cells round with its rim out to `rim` cells,
+// the rim `top` levels up and the crater's floor `deep` levels under it; a road `half` * 2 cells
+// wide winding `turns` times round it, its middle from `from` cells out at its foot (`start` levels
+// up) to `to` cells out at the rim, a level higher every two cells or so; the rock beside it a
+// cliff (at least `wall` levels over the road on its inner side and under it on its outer side),
+// otherwise a cone steepening towards the top (`steep`) and rough (`rough` levels), and none round
+// the road's foot (`mouth`: radians to either side of where it starts), the basin's ground
+export const VOLCANO = Object.freeze({ foot: 8.6, crater: 1.7, rim: 2.9, top: 18, deep: 3, from: 7.45, to: 3.85, half: 1, turns: 1.15, start: 1,
+  wall: 3, steep: 1.3, rough: 1.4, mouth: 0.45 });
 export const SHAPES = ['mesa', 'terraces', 'ridge', 'tiers', 'crag'];
+// every shape there is: Monteur's (SHAPES, which he draws from) and Woppylava's volcano, which only
+// his fight raises (game/woppylava.js); a shape's index here goes to friends (net/protocol.js)
+export const ALL_SHAPES = Object.freeze([...SHAPES, 'volcano']);
 export const PHASES = ['crack', 'rise', 'up', 'fall'];
+// the times of a mountain of `shape`: { crack, rise, fall (s), jolts (falling), riseJolts (rising;
+// none: smoothly) }
+export const mountainTimes = shape => shape === 'volcano' ? VOLCANO_TIMES : MOUNTAIN;
 
 // The cells a mountain may take (1) in map: open ground of the fight, one floor in its column
 // (nothing over it), not a fluid, not by the cube's edge, nothing built or standing on it (a
@@ -93,6 +114,7 @@ function wanted(spec, R) {
       each(rad, (x, z, d) => d > rad ? 0 : Math.hypot(x - nx, z - nz) <= nr ? H2 : H1);
       break;
     }
+    case 'volcano': return volcano(spec, R);
     default: {   // crag: lumps and cliffs at random
       const rad = 3.3 + R() * 0.9, salt = Math.floor(R() * 1e9), S = 2.2;
       const at = (i, j) => (hash32((i * 73856093) ^ (j * 19349663) ^ salt) % 1000) / 1000;
@@ -104,6 +126,47 @@ function wanted(spec, R) {
       each(rad, (x, z, d) => d > rad ? 0 : Math.max(1, 2 + 8 * noise(x, z) * (1 - 0.5 * (d / rad) ** 2)));
     }
   }
+  return out;
+}
+
+// Woppylava's volcano (VOLCANO): c -> h like the others', and which cells are its road (`road`:
+// c -> its way up it, 0 at the foot .. 1 at the rim) and its crater's floor (`crater`). The road
+// starts at the foot on the side spec.a points to (from the middle) and winds up the way R draws.
+// Along it the height grows with the way walked (its radius shrinking as it climbs, so a cell's
+// step is the same all the way up); across it the same at the same angle.
+function volcano(spec, R) {
+  const V = VOLCANO, out = new Map(), road = new Map(), crater = new Set(), { x: cx, z: cz } = spec;
+  const spin = R() < 0.5 ? 1 : -1, salt = Math.floor(R() * 1e9), a0 = spec.a ?? 0;
+  const PHI = V.turns * Math.PI * 2, k = Math.log(V.from / V.to) / PHI;
+  const radius = phi => V.from * Math.exp(-k * phi);
+  const way = phi => (V.from - radius(phi)) / (V.from - V.to);
+  const level = phi => Math.round(V.start + (V.top - V.start) * way(phi));
+  const cone = d => V.top * Math.max(0, (V.foot - d) / (V.foot - V.rim)) ** V.steep;
+  for (let z = Math.floor(cz - V.foot - 1); z <= Math.ceil(cz + V.foot + 1); z++) for (let x = Math.floor(cx - V.foot - 1); x <= Math.ceil(cx + V.foot + 1); x++) {
+    if (!inb(x, z)) continue;
+    const dx = x + 0.5 - cx, dz = z + 0.5 - cz, d = Math.hypot(dx, dz), c = idx(x, z);
+    if (d > V.foot) continue;
+    if (d < V.crater) { out.set(c, V.top - V.deep); crater.add(c); continue; }
+    if (d < V.rim) { out.set(c, V.top); continue; }
+    let th = spin * (Math.atan2(dx, dz) - a0);
+    th = ((th % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    // the turns of the road at this angle
+    const turns = [0, 1, 2].map(i => th + i * 2 * Math.PI).filter(phi => phi <= PHI);
+    const on = turns.find(phi => Math.abs(d - radius(phi)) <= V.half);
+    if (on !== undefined) { out.set(c, level(on)); road.set(c, way(on)); continue; }
+    // (the ground clear round the road's foot, but for the turn over it: you walk onto it off the basin)
+    if (d > V.from - V.half - 0.5 && Math.min(th, 2 * Math.PI - th) < V.mouth) continue;
+    // rock: the cone, rough, a cliff up from the turn of the road outside it and down to the one inside
+    let lo = 1, hi = V.top;
+    for (const phi of turns) {
+      if (d < radius(phi)) lo = Math.max(lo, level(phi) + V.wall);
+      else hi = Math.min(hi, level(phi) - V.wall);
+    }
+    const rough = ((hash32(x * 92821 + z * 68917 + salt) % 1000) / 1000 - 0.5) * 2 * V.rough;
+    const h = Math.min(V.top, Math.max(lo, Math.min(hi, Math.round(cone(d) + rough))));
+    if (h >= 1 && hi >= 1) out.set(c, h);
+  }
+  out.road = road; out.crater = crater;
   return out;
 }
 
@@ -164,8 +227,14 @@ export function planMountain(map, spec, ok = freeCells(map)) {
     const f = map.cols[c][0];
     cells.set(c, { c, x: c % N, z: (c / N) | 0, f, h: free.get(c), base: [...f.cs], baseTop: f.top });
   }
-  const ref = Math.max(...[...cells.values()].map(m => m.baseTop));
-  for (const m of cells.values()) m.top = ref + m.h;
+  // (the volcano stands on the lowest ground under it, its foot meeting the basin round it: never
+  // under the floor it rises from, a mound under its crater)
+  const tall = spec.shape === 'volcano', bases = [...cells.values()].map(m => m.baseTop);
+  const ref = tall ? Math.min(...bases) : Math.max(...bases);
+  for (const m of cells.values()) {
+    m.top = tall ? Math.max(m.baseTop + 1, ref + m.h) : ref + m.h;
+    if (tall) { m.h = m.top - ref; if (want.road.has(m.c)) { m.road = true; m.way = want.road.get(m.c); } if (want.crater.has(m.c)) m.crater = true; }
+  }
   // the slopes: between its cells a level apart at most, and down onto the ground beside it where
   // that was walked onto before
   for (const m of cells.values()) m.link = DIRS.map(([dx, dz], d) => {
@@ -241,15 +310,23 @@ function corners(cells, ladders) {
 const ease = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
 // How far under its height mountain plan is in `phase`, t s into it (units): all of it before it
 // rises; rising fast at first, slowing to a stop; up: 0; falling apart, a jolt at a time
+// (the volcano rises in jolts too, each a heave and a pause)
 export function sunk(plan, phase, t) {
-  const D = plan.drop;
+  const D = plan.drop, T = mountainTimes(plan.spec.shape);
   if (phase === 'crack') return D;
-  if (phase === 'rise') { const u = Math.min(1, t / MOUNTAIN.rise); return D * (1 - u) * (1 - u); }
+  if (phase === 'rise') return D * underRising(T, t);
   if (phase === 'fall') {
-    const u = Math.min(1, Math.max(0, t / MOUNTAIN.fall)), n = MOUNTAIN.jolts, i = Math.min(n - 1, Math.floor(u * n)), f = u * n - i;
+    const u = Math.min(1, Math.max(0, t / T.fall)), n = T.jolts, i = Math.min(n - 1, Math.floor(u * n)), f = u * n - i;
     return D * (i + ease(f / 0.4)) / n;
   }
   return phase === 'up' ? 0 : D;
+}
+// the share of its height still under the ground t s into its rising
+function underRising(T, t) {
+  const u = Math.min(1, Math.max(0, t / T.rise));
+  if (!T.riseJolts) return (1 - u) * (1 - u);
+  const n = T.riseJolts, i = Math.min(n - 1, Math.floor(u * n)), f = u * n - i;
+  return u >= 1 ? 0 : 1 - (i + ease(f / 0.45)) / n;
 }
 // the corners of its cell m with the mountain `s` under its height: never under the ground
 export const cornersAt = (m, s) => m.cs.map((y, k) => Math.max(m.base[k], y - s));
@@ -259,7 +336,7 @@ export const cornersAt = (m, s) => m.cs.map((y, k) => Math.max(m.base[k], y - s)
 export function stepMountain(spec, dt) {
   if (spec.phase === 'gone') return null;
   spec.t += dt;
-  const T = spec.phase === 'crack' ? MOUNTAIN.crack : spec.phase === 'rise' ? MOUNTAIN.rise : spec.phase === 'up' ? spec.life : MOUNTAIN.fall;
+  const M = mountainTimes(spec.shape), T = spec.phase === 'crack' ? M.crack : spec.phase === 'rise' ? M.rise : spec.phase === 'up' ? spec.life : M.fall;
   if (spec.t < T) return null;
   spec.t -= T;
   spec.phase = PHASES[PHASES.indexOf(spec.phase) + 1] ?? 'gone';
@@ -269,6 +346,6 @@ export function stepMountain(spec, dt) {
 export function bringDown(spec) {
   if (spec.phase === 'crack') { spec.phase = 'gone'; spec.t = 0; return; }
   if (spec.phase === 'fall' || spec.phase === 'gone') return;
-  const up = spec.phase === 'rise' ? (1 - Math.min(1, spec.t / MOUNTAIN.rise)) ** 2 : 0;
-  spec.phase = 'fall'; spec.t = up * MOUNTAIN.fall;
+  const M = mountainTimes(spec.shape), up = spec.phase === 'rise' ? underRising(M, spec.t) : 0;
+  spec.phase = 'fall'; spec.t = up * M.fall;
 }

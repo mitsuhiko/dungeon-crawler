@@ -5,7 +5,7 @@
 // holds the doubled population; an arena that cannot falls back to a plainer one. Its fluid
 // dwellers (the Squirtles, physics/dwell.js) get a pond of their fluid dug into it (`digPonds`).
 import { DEFAULT_CUTS } from './cuts.js';
-import { N, LH, DIRS, OPP, MAX_L, WATER, ACID, MUD, FLUID_NAME } from '../core/constants.js';
+import { N, LH, DIRS, OPP, MAX_L, WATER, LAVA, ACID, MUD, FLUID_NAME } from '../core/constants.js';
 import { idx, edgeKey, clamp, mulberry32, hash32, makeNoise } from '../core/util.js';
 import { floorY } from '../core/surfaces.js';
 import { population } from '../core/spawns.js';
@@ -15,7 +15,8 @@ import { rockTint } from '../themes/surfaces.js';
 import { createContext } from './context.js';
 import { groundHeights } from './ground.js';
 import { placePortals } from './portals.js';
-import { SHAPES, BOSS_SHAPES, TIDAL, BOWL, STAGE, MIRE, REEF } from './arenashapes.js';
+import { SHAPES, BOSS_SHAPES, TIDAL, BOWL, STAGE, MIRE, REEF, CINDER } from './arenashapes.js';
+import { edgeCell } from './portals.js';
 import { dressArena } from './arenaprops.js';
 import { BOSS_ARENAS } from '../core/bosses.js';
 import { flipArena } from './fliparena.js';
@@ -211,9 +212,11 @@ export function generateGuardian(spec) {
     for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) { ctx.lvl0[idx(x, z)] = level; ctx.void0[idx(x, z)] = 0; }
     return custom.build(given);
   }
-  // Wells sit opposite the entrance; side exits retain their shared face position.
-  const gx = dx ? dx > 0 ? 4 : N - 5 : N / 2;
-  const gz = dz ? dz > 0 ? 4 : N - 5 : N / 2;
+  // Wells sit opposite the entrance; side exits retain their shared face position. (Woppylava's
+  // cinder pit: in the corner furthest from the entrance, out of the way of his volcano)
+  const cinder = own?.type === 'cinder', door = edgeCell(entry.dir, entry.pos, 0), far = cinder ? farCorner(door % N, (door / N) | 0) : null;
+  const gx = far ? far[0] : dx ? dx > 0 ? 4 : N - 5 : N / 2;
+  const gz = far ? far[1] : dz ? dz > 0 ? 4 : N - 5 : N / 2;
   ctx.spec = { ...spec, portals: [entry, exit < 4 ? onward : { dir: 4, x: gx, z: gz }] };
   for (let z = 1; z < N - 1; z++) for (let x = 1; x < N - 1; x++) {
     ctx.lvl0[idx(x, z)] = level; ctx.void0[idx(x, z)] = 0;
@@ -227,7 +230,9 @@ export function generateGuardian(spec) {
   // The frame every arena type is drawn around (cell coordinates).
   const xz = c => [c % N, (c / N) | 0], inward = (p, d) => [p[0] - DIRS[d][0], p[1] - DIRS[d][1]];
   const [ex, ez] = xz(ctx.portals[0].c), [px, pz] = xz(ctx.portals[1].c);
-  const U = [px + dx * 2, pz + dz * 2];
+  // (his spot: before the well, but beside it in the cinder pit, along the side of the cube nearer
+  // the entrance, outside where the volcano rises)
+  const U = cinder ? cinderSpot([px, pz], [ex, ez]) : [px + dx * 2, pz + dz * 2];
   const flat = new Uint8Array(N * N);
   const flatten = (x, z, r) => { for (let b = -r; b <= r; b++) for (let a = -r; a <= r; a++) if (inner(x + a, z + b)) flat[idx(x + a, z + b)] = 1; };
   for (const p of ctx.portals) for (const c of p.cells) flatten(...xz(c), 1);
@@ -309,14 +314,38 @@ export function generateGuardian(spec) {
       // bank; `rest`: how high it stands at first (its volume: what that holds, level); waded
       // through as water, drawn as mud (`look`); his fight adds to it and the world's tilt leans it
       : arena.type === 'mire' ? { rest: level + MIRE.low + MIRE.mud, high: level + MIRE.low + MIRE.mud, fluid: WATER, look: MUD,
-        box: [2, 2, N - 2, N - 2], mud: true } : null,
+        box: [2, 2, N - 2, N - 2], mud: true }
+      // Woppylava's lava (game/tide.js, core/woppylava.js): over the basin of his cinder pit, inside
+      // the bank; none at rest (under the basin's floor, and gone for good once he is beaten); his
+      // `tide` 1 floods the basin `CINDER.flood` deep, under the foot of his volcano's road
+      : arena.type === 'cinder' ? { rest: level + CINDER.low - 0.5, gone: level + CINDER.low - 0.5, high: level + CINDER.low + CINDER.flood,
+        fluid: LAVA, box: [2, 2, N - 2, N - 2], follow: 1 } : null,
     // Umbra's reef (game/dive.js, core/umbra.js): dry until the fight starts, then flooded up to
     // `surface` (world units) inside `box`; `low`: its lowest floor; his hills (core/umbra.js
     // swimSpots: their tops in world units); the diving suit's stand beside the entrance and the
     // entrance (where the robot waits while the water is in)
-    more: arena.type === 'reef' ? { dive: reefDive(arena.shape, floors, level, entrance, entry.dir, guardFloor, dress.blocked) } : {},
+    more: arena.type === 'reef' ? { dive: reefDive(arena.shape, floors, level, entrance, entry.dir, guardFloor, dress.blocked) }
+      // Woppylava's volcano (core/mountains.js `volcano`, game/woppylava.js): its middle (cells), the
+      // heading from it to the entrance (where its road starts: atan2(dx, dz)), the basin's floor
+      // (levels) and the mound it sleeps under (cells round, its top in levels)
+      : arena.type === 'cinder' ? { volcano: { x: CINDER.at[0], z: CINDER.at[1], basin: level + CINDER.low,
+        a: Math.round(Math.atan2(ex + 0.5 - CINDER.at[0], ez + 0.5 - CINDER.at[1]) * 1000) / 1000,
+        mound: { r: CINDER.mound, top: level + CINDER.low + CINDER.rise } } } : {},
     fences, fenceList, placements: dress.placements, blockers: dress.blockers,
     cuts: spec.cuts ?? DEFAULT_CUTS });   // (its cliffs at an angle too, cubegen/cuts.js)
+}
+
+// The corner (a well's middle, cells) furthest from the doorway at (x, z)
+function farCorner(x, z) {
+  const corners = [[4, 4], [N - 5, 4], [4, N - 5], [N - 5, N - 5]];
+  return corners.sort((a, b) => Math.hypot(b[0] - x, b[1] - z) - Math.hypot(a[0] - x, a[1] - z))[0];
+}
+// Woppylava's spot in his cinder pit: beside the well (w), along the side of the cube that runs
+// nearer the entrance (e), a cell nearer that side: clear of the well's pad and of the volcano
+function cinderSpot([wx, wz], [ex, ez]) {
+  const sx = wx < N / 2 ? -1 : 1, sz = wz < N / 2 ? -1 : 1;
+  const a = [wx - sx * 3, wz + sz], b = [wx + sx, wz - sz * 3];
+  return Math.hypot(a[0] - ex, a[1] - ez) <= Math.hypot(b[0] - ex, b[1] - ez) ? a : b;
 }
 
 // Umbra's reef, as his fight wants it (map.dive; game/dive.js): the lowest floor of its fight and its

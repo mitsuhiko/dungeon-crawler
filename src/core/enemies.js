@@ -1495,7 +1495,56 @@ export const MEGALIMMER = {
   style: 'skirmish', circle: 2.4, strafe: true, guardian: true, guardianRole: 'descent', boss: 'rollie', partner: 'rollie',
   seedSalt: 0x3e6a11, spacing: 6,
 };
-export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, SOLLMELDON, UMBRA, QUALMOS, ROLLIE, MEGALIMMER];
+// Woppylava, the boss of depth 18 (core/bosses.js; blender/woppylava.py, after the kids' drawing): a
+// walking volcano on seven stubby legs, his stone sides in waves, arms of lava bursting out of them
+// sideways, a plume of lava spraying out of his crater and his face floating over it. He fights in
+// his cinder pit (cubegen/arenashapes.js `cinder`), where a volcano sleeps under the floor;
+// game/woppylava.js runs his fight, core/woppylava.js holds its rules. Lava does not burn him
+// (`lavaproof`): his fight walks him straight at you over everything, the lava too (`anchored`: the
+// shared AI only starts his attacks). Two phases (WOPPYLAVA, WOPPYLAVA_TWO): at two thirds of his
+// health he rises, the volcano comes up out of the middle of the arena and the lava rises round it.
+// He sweeps a lava arm at whoever is close (`swipe`); the rest are casts (game/woppylava.js): he
+// erupts (lava bombs out of his crater), sends walls of lava in from the sides, calls lava hands down
+// from above, and (phase 2) fire creatures out of his crater.
+// Where things are on him (model space: x, up, forward), read off his clips (blender/woppylava.py)
+export const WOPPYLAVA_AT = Object.freeze({ crater: [-0.019, 2.677, 0], swipe: [0.071, 0.515, 2.139], summon: [0, 2.513, -0.004] });
+const WOPPY_BURN = { time: 1.5, damage: 6, ticks: 3 };   // (what his lava does: it sets you on fire)
+const WOPPY_SWIPE = {
+  name: 'swipe', clip: 'swipe', weight: 3, reach: 3.1, hitAt: 21 / 30, trackUntil: 15 / 30, attackTime: 42 / 30, hitReach: 3.3,
+  arc: 0.1, power: 1, knock: 7, knockDown: true, hop: 3, reason: "Swept by Woppylava's lava arm!", burn: WOPPY_BURN,
+  rise: 2.2,   // (his long arm reaches a hero on the volcano's road a turn above or below him)
+};
+const woppyCast = (name, clip, attackTime, hitAt, more = {}) => ({
+  name, clip, weight: 2, reach: 40, hitAt, trackUntil: Math.min(hitAt, 0.5), attackTime, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Woppylava', cast: name, ...more,
+});
+const WOPPY_ERUPT = woppyCast('erupt', 'erupt', 54 / 30, 27 / 30, { weight: 3, power: 0.6, reason: "Hit by Woppylava's lava bomb!", burn: WOPPY_BURN, muzzle: WOPPYLAVA_AT.crater });
+const WOPPY_WALLS = woppyCast('walls', 'wall', 54 / 30, 30 / 30, { power: 0.85, knockDown: true, reason: "Swept away by Woppylava's wall of lava!", burn: WOPPY_BURN });
+const WOPPY_HANDS = woppyCast('hands', 'hands', 54 / 30, 27 / 30, { power: 0.8, knock: 3, knockDown: true, hop: 2, reason: "Grabbed by Woppylava's lava hand!", burn: WOPPY_BURN });
+const WOPPY_SUMMON = {
+  name: 'summon', clip: 'summon', weight: 2, reach: 40, hitAt: 27 / 30, trackUntil: 0.5, attackTime: 48 / 30, hitReach: 0,
+  arc: -1, power: 0, knock: 0, knockDown: false, hop: 0, reason: 'Woppylava', rise: Infinity,   // (however high the hero is on the volcano)
+  summon: { kind: 'magmaface', also: 'magmacat', muzzle: WOPPYLAVA_AT.summon },
+};
+// between the phases (`weight` 0: only game/woppylava.js starts it), nothing hurting him (`ward`)
+const WOPPY_RISE = woppyCast('rise', 'rise', 90 / 30, 45 / 30, { weight: 0, ward: true, cast: undefined });
+export const WOPPYLAVA = {
+  type: 'woppylava', species: 'woppylava', label: 'Woppylava', hp: 1550, damage: 28, knock: 5,
+  xp: 950, coins: [240, 420],
+  radius: 1.25, height: 4.2, bodyHeight: 2.6, mass: 40, lavaproof: true, fireproof: true,
+  aggro: 16, giveUp: 30, chase: 1.2, wander: 0.4, homeSpeed: 0.8,
+  ...WOPPY_SWIPE, cooldown: 1.3, attacks: [WOPPY_SWIPE, WOPPY_ERUPT, WOPPY_WALLS, WOPPY_HANDS, WOPPY_SUMMON, WOPPY_RISE], phase: 1,
+  ichor: ['#ffb347', '#5a3a2a'], pitch: 0.45,
+  poise: 2, hitStun: 0.15, deathTime: 72 / 30, corpseTime: 6, steadfast: true,
+  parts: { stone: ['WoppylavaStone'], rim: ['WoppylavaRim'], legs: ['WoppylavaLegs'], face: ['WoppylavaFace'], arms: ['WoppylavaArms_glow', 'WoppylavaArmsHot_glow'],
+    crater: ['WoppylavaCrater_glow'], plume: ['WoppylavaPlume_glow'], cracks: ['WoppylavaCracks_glow'], eyes: ['WoppylavaEyes_glow'] },
+  light: '#ff7a2a', sparks: ['#fff0b0', '#ffb347', '#ff5a1a'],
+  style: 'brute', guardian: true, guardianRole: 'descent', boss: 'woppylava',
+  seedSalt: 0x5a7a1a, spacing: 6,
+};
+// ... phase 2 (two thirds of his health to death): a little quicker, his fire creatures too
+export const WOPPYLAVA_TWO = { ...WOPPYLAVA, type: 'woppylavatwo', chase: 1.35, cooldown: 1.15, phase: 2 };
+export const BOSS_PROFILES = [GUSTO, TOTNAR, SQUARLO, FLIP, FOGGERY, RENEW, SLOMO, MANSK, MONTEUR, SOLLMELDON, UMBRA, QUALMOS, ROLLIE, MEGALIMMER, WOPPYLAVA];
 
 // What an enemy kind is called, as words to say in any language (src/i18n/i18n.js say): its kind's
 // noun ('Spider', a Spinne in German), a boss's name, a guardian's 'Guardian Spider' or 'Temp
@@ -1857,7 +1906,8 @@ export const SQUARLO_GIANT = enemyKind(SQUARLO, {
 // the runner sends, net/foes.js)
 export const STAGE_PROFILES = { squarlo: [SQUARLO, SQUARLO_GIANT], foggery: [FOGGERY, FOGGERY_BALL, FOGGERY_BALL],
   renew: [RENEW, RENEW_BOW, RENEW_FLAIL, RENEW_TWIN], slomo: [SLOMO, SLOMO_SLUG], mansk: [MANSK, MANSK_SKY, MANSK_RIBBONS],
-  monteur: [MONTEUR, MONTEUR_SUN], sollmeldon: [SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE], umbra: [UMBRA, UMBRA_TWO, UMBRA_THREE], qualmos: QUALMOS_STAGES };
+  monteur: [MONTEUR, MONTEUR_SUN], sollmeldon: [SOLLMELDON, SOLLMELDON_TWO, SOLLMELDON_ONE], umbra: [UMBRA, UMBRA_TWO, UMBRA_THREE], qualmos: QUALMOS_STAGES,
+  woppylava: [WOPPYLAVA, WOPPYLAVA_TWO] };
 // One full attack and recovery, averaged over a species' attacks (s), and what it deals per
 // second at level 1 (a projectile's burn included): how dangerous it is to stand next to.
 export function attackCycle(profile) {
@@ -1975,6 +2025,19 @@ export const FOG_FACE = enemyKind(FIREFACE, {
 export const FOG_CAT = enemyKind(FIRECAT, {
   type: 'fogcat', minion: true, plain: true, lavaproof: true, aggro: 12, giveUp: 16, coins: [0, 0], drops: MINION_DROPS(0.08), puff: EMBER_PUFF,
   mods: { hp: 0.8, damage: 0.6, xp: 0.2 },
+});
+// Woppylava's fire creatures (game/woppylava.js, phase 2), spat out of his crater: Magma-faces (a
+// white-hot flame) and Magma cats (orange fur, a yellow flame), a Blaze-face and an Ash cat that lava does not burn (`lavaproof`: they walk on it, game/tide.js
+// walkOnLava), weaker, going for the player at once
+export const MAGMA_FACE = enemyKind(BLAZE_FACE, {
+  type: 'magmaface', label: 'Magma-face', reason: 'Scorched by a Magma-face!', minion: true, lavaproof: true,
+  colors: paints({ flame: 'ember.pale', eyes: 'eyes.ember' }), light: '#ffe0b0', sparks: ['#ffffff', '#fff0c8', '#ffb347'],
+  aggro: 14, giveUp: 18, coins: [0, 0], drops: MINION_DROPS(0.05), puff: EMBER_PUFF, mods: { hp: 0.6, damage: 0.6, xp: 0.15 },
+});
+export const MAGMA_CAT = enemyKind(ASH_CAT, {
+  type: 'magmacat', label: 'Magma cat', reason: 'Bitten by a Magma cat!', minion: true, lavaproof: true,
+  colors: paints({ fur: 'ember.mid', flame: 'ochre.glow', eyes: 'eyes.sun' }), light: '#ffc23a', sparks: ['#fff3b0', '#ffd84a', '#ffa82a'],
+  aggro: 14, giveUp: 18, coins: [0, 0], drops: MINION_DROPS(0.08), puff: EMBER_PUFF, mods: { hp: 0.8, damage: 0.6, xp: 0.2 },
 });
 // Renew's minions, cast out of the sky onto the floor (game/renew.js): plain spiders (phase 2) and
 // Fire-faces (phase 3), weaker, going for the player at once
@@ -2116,7 +2179,7 @@ export const ENEMY_KINDS = Object.fromEntries([...ENEMY_PROFILES, ...Object.valu
   BOG_WOLLA, STORM_WOLLA, EMBER_WOLLA, LAVA_SQUIRTLE, BLAZE_FACE, LANTERN_FACE, WISP_FACE, ASH_CAT, VOID_CAT, AMETHYST_SHRAPS, HABANERO,
   NIGHTSHADE, DUST_WOLK, STORM_WOLK, TOXIC_SQUIRTLE, FROST_MECKED, BOG_MECKED, BONE_MECKED, DUST_TORNADO, FROST_TORNADO, FIRE_TORNADO, SPOTTED_SLUG, BLACK_SLUG, TOXIC_BOLIME, GLOW_BOLIME, FROST_FLIMMER, HAZE_FLIMMER, SHADOW_FLIMMER, FROST_MOOSE, BOG_MOOSE, ...BOSS_PROFILES, CUSTO_TRIANGLE, SNAP_SKULL, TOT_SPIDER, TOT_STUNDER,
   SQUARLO_SQUIRTLE, SKY_WOLLA, FOG_FACE, FOG_CAT, REN_SPIDER, REN_FACE, ARM_SLUG, OOZE_SLUG, OOZE_BOLIME, SLIME_SQUIRTLE, STAGE_TORNADO, MONT_MOOSE, MUD_SQUIRTLE, ROLLIE_SPICY, MEGA_FLIMMER, STUN_FLIMMER,
-  DEEP_SQUIRTLE, MURK_SQUIRTLE, UMBRA_BODY].map(k => [k.type, k]));
+  DEEP_SQUIRTLE, MURK_SQUIRTLE, UMBRA_BODY, MAGMA_FACE, MAGMA_CAT].map(k => [k.type, k]));
 // gone: not here for now (Gusto between his vanishing and his coming back, game/gusto.js), or
 // under the floor (a burrowing Squirtle, game/enemyai.js): it cannot be seen, hit or touched,
 // like the dead

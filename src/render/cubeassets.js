@@ -23,6 +23,7 @@ import { meteorWarmup } from './meteors.js';
 import { cellWarmup } from './watercells.js';
 import { turn } from './turns.js';
 import { jetWarmup } from './divejets.js';
+import { woppylavaWarmup } from './woppylavafx.js';
 import { holeWarmup } from './umbrahole.js';
 import { speciesIn, kindsIn } from '../core/spawns.js';
 import { COINS } from '../core/items.js';
@@ -39,7 +40,7 @@ export async function warmCube(c) {
   scene.remove(world.group);   // never drawn
   const enemies = enemyWarmup(kindsIn(c.map));
   try {
-    await warm([world.group, ...proxyWarmup(c.geo, shownFar(c.map)), ...enemies.objects, ...lootWarmup(c.map.enemyFree ? [] : coins), ...warmBake(), ...flameWarmup(), ...introWarmup(c.map), ...jetWarmup(c.map), ...holeWarmup(c.map), ...cellWarmup(), ...footprintWarmup(), ...themeOf(c.map).meteors ? meteorWarmup() : []]);
+    await warm([world.group, ...proxyWarmup(c.geo, shownFar(c.map)), ...enemies.objects, ...lootWarmup(c.map.enemyFree ? [] : coins), ...warmBake(), ...flameWarmup(), ...introWarmup(c.map), ...jetWarmup(c.map), ...woppylavaWarmup(c.map), ...holeWarmup(c.map), ...cellWarmup(), ...footprintWarmup(), ...themeOf(c.map).meteors ? meteorWarmup() : []]);
   } finally {
     disposeWorld(world);
     enemies.dispose();

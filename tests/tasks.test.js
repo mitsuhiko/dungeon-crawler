@@ -50,7 +50,8 @@ test('room tasks come with the seed: 2-4 a depth in ordinary rooms, never two ga
       }
     }
   }
-  assert.ok(tasks / depths > 2 && tasks / depths < 3.6, `${(tasks / depths).toFixed(2)} a depth`);
+  // (a boss arena of its own takes a room a task might have had: Woppylava's at depth 18)
+  assert.ok(tasks / depths > 1.9 && tasks / depths < 3.6, `${(tasks / depths).toFixed(2)} a depth`);
   assert.ok(branch > 10, `${branch} in branches`);
   for (const k of TASK_KINDS) assert.ok(kinds.get(k) > 10, `${k}: ${kinds.get(k) ?? 0}`);
 });

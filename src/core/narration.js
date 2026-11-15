@@ -1022,6 +1022,10 @@ export const LINES = [
     'Rollie and Megalimmer\'s arena at depth 9: two bosses at once.', WONDER),
   says('arena', { boss: 'rollie' }, 'arena.rollie.turns', 'They take turns. Fight the one whose eyes glow brightest, and keep the other in sight.',
     'One of them goes for you at a time (his eyes glow brighter, his bar lights up); the other keeps to the side.', TIP),
+  says('arena', { boss: 'woppylava' }, 'arena.woppylava.walks', 'That mountain is walking! It has legs, and arms of lava, and its face is just floating there.',
+    'Woppylava\'s arena at depth 18: a walking volcano on seven legs, lava arms, a face floating over his crater.', WONDER),
+  says('arena', { boss: 'woppylava' }, 'arena.woppylava.mound', 'Look at the middle of the floor. It is smoking, and it glows from inside. Something is asleep under there.',
+    'The dormant mound in the middle of his arena: a volcano rises out of it in phase 2.', UNEASY),
 
   // --- in a boss's fight: its start, an attack as it starts, a stage changing (short: it is quick) -
   says('boss', { boss: 'gusto', what: 'summon' }, 'boss.gusto.summon', 'Little triangles! Mind your back.',
@@ -1227,6 +1231,20 @@ export const LINES = [
     'Rollie makes floor cells blink; lasers strike them from above.', WARN),
   says('boss', { boss: 'rollie', what: 'vanish' }, 'boss.rollie.vanish', 'Where did the ghost go? It is still here somewhere!',
     'Megalimmer turns invisible for a while; blows still reach him.', UNEASY),
+  says('boss', { boss: 'woppylava', what: 'walls' }, 'boss.woppylava.wall', 'A wall of lava! Run to the gap!',
+    'Woppylava sends a wall of lava across the arena; a gap in it is the way through.', WARN),
+  says('boss', { boss: 'woppylava', what: 'hands' }, 'boss.woppylava.hands', 'Hands of lava, coming down! Do not stand in the rings!',
+    'Lava hands come down from above onto glowing rings that follow you.', WARN),
+  says('boss', { boss: 'woppylava', what: 'erupt' }, 'boss.woppylava.erupt', 'He is erupting! Watch where the glowing spots are!',
+    'His crater blasts lava bombs; their landing spots glow first.', WARN),
+  says('boss', { boss: 'woppylava', what: 'split', stage: 1 }, 'boss.woppylava.volcano', 'The floor is breaking! A whole volcano is coming up!',
+    'At two thirds of his health he rises, and a great volcano rises out of the middle of the arena.', UNEASY),
+  says('boss', { boss: 'woppylava', what: 'flood' }, 'boss.woppylava.climb', 'The lava is rising! Up the volcano, quickly!',
+    'The lava rises over the basin; only the volcano stands out of it.', WARN, { seed: { de: 3 } }),   // (seed 0 said "Auf auf")
+  says('boss', { boss: 'woppylava', what: 'fuse' }, 'boss.woppylava.fuse', 'The volcano is rumbling! It is going to blow!',
+    'Thirty seconds left before the volcano erupts.', WARN, { seed: { de: 2 } }),   // ("grollt" comes out as "grölt" or "growl" in most takes)
+  says('boss', { boss: 'woppylava', what: 'burst' }, 'boss.woppylava.burst', 'Find a dry spot on the road, and hold on!',
+    'The volcano erupted: lava everywhere but a few dry patches on its road.', WARN),
 
   // --- a boss beaten: a cheer, and a scrap of what it remembers coming back --------------------
   says('beaten', { boss: 'gusto' }, 'beaten.gusto.open', 'We did it! The well is open!',
@@ -1279,6 +1297,10 @@ export const LINES = [
     'The glassmaker is not found yet: the ending is still to come. Puzzled, sad.', SOFT),
   says('beaten', { boss: 'rollie' }, 'beaten.rollie.both', 'Both of them! The wheels and the ghost, beaten!',
     'Rollie and Megalimmer beaten, the second of them.', CHEER),
+  says('beaten', { boss: 'woppylava' }, 'beaten.woppylava.cool', 'He has gone all cold and quiet. Just a big grey rock now.',
+    'Woppylava beaten: the lava drains, the volcano sinks back.', CHEER),
+  says('beaten', { boss: 'woppylava' }, 'beaten.woppylava.kiln', 'Fire, and sand, and something glowing coming out of it... I think somebody made glass in a fire like that.',
+    'A scrap of memory: the glassmaker\'s furnace (docs/story.md). Wistful.', SOFT),
 
   // --- the hero died (said once they are back where they came into the cube) -------------------
   // the boss whose arena it was first (a tip), then the depth's, then any; a world picks its order
@@ -1332,6 +1354,10 @@ export const LINES = [
     'Died fighting Rollie and Megalimmer.', KIND),
   says('death', { boss: 'rollie' }, 'death.rollie.circle', 'When the ghost runs round you, mind its twisters, and hit it when it comes in close.',
     'Died to Rollie and Megalimmer again: Megalimmer\'s run round you.', TIP),
+  says('death', { boss: 'woppylava' }, 'death.woppylava.gap', 'When a wall of lava comes, look for the dark gap, and run there straight away.',
+    'The hero died fighting Woppylava. A tip.', KIND),
+  says('death', { boss: 'woppylava' }, 'death.woppylava.fast', 'Once the volcano is up, we have to beat him before it blows. Hit him as much as you can!',
+    'Died to Woppylava again: the fuse; beat him before the eruption.', TIP),
   says('death', { depth: 13 }, 'death.13.together', 'It is dark and sticky down here. Let us be careful together.',
     'Died at depth 13. Gentle.', KIND),
   says('death', { depth: [7, 12] }, 'death.caves.find', 'Up you get. Even down in the caves, I will always find you.',

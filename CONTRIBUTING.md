@@ -280,7 +280,7 @@ keeping each prop's exact bounds in its extras, and regenerates the prop metadat
 
 ```sh
 Blender -b --python blender/props.py          # likewise character, spider, stunder, snake, octonaut,
-                                              # fireface, triangle, firecat, shraps, spicy, wolla, wolk, mecked, moose, tornado, gusto, mansk, monteur, sollmeldon, sword
+                                              # fireface, triangle, firecat, shraps, spicy, wolla, wolk, mecked, moose, tornado, gusto, mansk, monteur, sollmeldon, woppylava, sword
 Blender -b --python blender/clutter.py        # libraries: clutter, items, town, town_trees
 Blender -b --python blender/town_clutter.py   # the town's lamps, benches, well, carts, garlands ... (docs/assets/town.md)
 Blender -b --python blender/town_walls.py     # the wall round the town: its stretches, towers, gatehouse (docs/assets/town.md)

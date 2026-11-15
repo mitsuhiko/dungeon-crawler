@@ -76,6 +76,7 @@ import { makeUmbraLook, umbraLook, disposeUmbraLook } from './umbraview.js';
 import { makeMonteurLook, monteurLook } from './monteurview.js';
 import { qualmosModel } from './qualmosmodel.js';
 import { rollieModel } from './rolliemodel.js';
+import { woppylavaModel } from './woppylavamodel.js';
 import { mooseModel } from './moosemodel.js';
 import { mooseLook } from './mooseview.js';
 import { makeQualmosLook, qualmosLook, disposeQualmosLook } from './qualmosview.js';
@@ -114,7 +115,7 @@ import { makeBar, makeLevelLabel, makeAlertMark } from './bars.js';
 
 const prefabs = { spider: spiderModel, stunder: stunderModel, snake: snakeModel, octonaut: octonautModel,
   fireface: fireFaceModel, triangle: triangleModel, firecat: fireCatModel, shraps: shrapsModel, spicy: spicyModel, wolla: wollaModel, wolk: wolkModel, gusto: gustoModel,
-  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, sollmeldon: sollmeldonModel, umbra: umbraModel, qualmos: qualmosModel, rollie: rollieModel, moose: mooseModel };
+  totnar: totnarModel, snapskull: snapSkullModel, squarlo: squarloModel, squirtle: squirtleModel, mecked: meckedModel, tornado: tornadoModel, slug: slugModel, bolime: bolimeModel, flip: flipModel, foggery: foggeryModel, slomo: slomoModel, mansk: manskModel, monteur: monteurModel, sollmeldon: sollmeldonModel, umbra: umbraModel, qualmos: qualmosModel, rollie: rollieModel, woppylava: woppylavaModel, moose: mooseModel };
 // the models of these species (core/spawns.js speciesIn), loaded once
 export const loadSpecies = species => Promise.all(species.map(s => prefabs[s]?.load()));
 // light: [color, intensity, distance, height]; pulse: emissive / light swing with the
@@ -148,6 +149,9 @@ const GLOW = {
   sollmeldon: { light: [0xe8d49a, 1.3, 4.5, 2.6], flare: 0.9 },
   // Umbra's glowing eyes and markings light the dark water round his head, flaring to a strike
   umbra: { light: [0x7ae8ff, 2.6, 5.5, 0.5], flare: 0.5 },
+  // Woppylava's lava arms, crater and plume light the dark round him, embers rising off his crater;
+  // his eyes flare up to an attack
+  woppylava: { light: [0xff7a2a, 3, 6, 2.6], flare: 0.7, embers: { rate: 12, from: 2.6, spread: 0.5 } },
 };
 const EMBERS = ['#ffd25a', '#ff8a2a', '#ff5a14'];
 const GHOST = 0xff6a5a, GHOST_OPACITY = 0.4;

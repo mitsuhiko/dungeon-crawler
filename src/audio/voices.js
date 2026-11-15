@@ -341,6 +341,20 @@ export function voices({ amp, noise, filter, tone, sweep }) {
         noise(t + 1.4, 0.4, filter('lowpass', 600 * p, 1, amp(t + 1.4, 0.01, 0.35, 0.38, out)));   // (tipping over onto his back)
       },
     },
+    woppylava: {   // the walking volcano: a deep rumbling roar out of his crater, lava bubbling and hissing under it; a long groan as it cools, cracking
+      alert: (t, out, p) => {
+        bend(t, 1.3, 55 * p, 110 * p, 60 * p, 360 * p, 0.5, out);
+        noise(t, 1.2, filter('lowpass', 280 * p, 2, amp(t, 0.2, 0.4, 1, out)));
+        gloops(t + 0.3, 8, 70 * p, 200 * p, 0.08, 0.2, out, false);
+        noise(t + 0.5, 0.6, filter('highpass', 2200 * p, 1, amp(t + 0.5, 0.05, 0.12, 0.5, out)));   // (the hiss of the lava)
+      },
+      windup: (t, out, p) => { noise(t, 0.4, filter('lowpass', 320 * p, 2, amp(t, 0.05, 0.45, 0.32, out))); gloops(t + 0.05, 4, 80 * p, 180 * p, 0.06, 0.15, out, false); },
+      death: (t, out, p) => {
+        bend(t, 2.2, 100 * p, 60 * p, 28 * p, 300 * p, 0.45, out);
+        noise(t + 0.2, 1.8, filter('highpass', 1800 * p, 0.7, amp(t + 0.2, 0.2, 0.15, 1.5, out)));   // (steam as the lava cools)
+        for (let i = 0; i < 5; i++) noise(t + 0.6 + i * 0.3, 0.1, filter('bandpass', (260 + 90 * i) * p, 3, amp(t + 0.6 + i * 0.3, 0.005, 0.3, 0.09, out)));
+      },
+    },
     megalimmer: {   // a big blurry ghost: a low hollow "oooh" wobbling, a breathy rising whoosh as he comes into focus, a long sigh blowing away
       alert: (t, out, p) => {
         bend(t, 0.9, 180 * p, 240 * p, 150 * p, 700 * p, 0.35, out);

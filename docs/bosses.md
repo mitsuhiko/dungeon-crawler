@@ -6,10 +6,10 @@ boss placeholders ([guardians.md](guardians.md)): the game calls them **Temp Bos
 depth has which: so far the first descent, on the road out of town (depth 0), has **Gusto**, the
 second (depth 1) **Totnar**, the third (depth 2) **Squarlo**, the fourth (depth 3) **Flip**, the
 fifth (depth 4) **Foggery**, the sixth (depth 5) **Renew** and the seventh (depth 6, the last of
-act I) **Mansk**; the first of act II (depth 7) **Monteur**; at depth 9 **Rollie and Megalimmer**, two bosses at once; in the middle of act II (depth 10) **Sollmeldon**; at the bottom of act II (depth 13) **Slomo**; in the middle of act III (depth 16) **Umbra**; and at the core (depth 20), where
+act I) **Mansk**; the first of act II (depth 7) **Monteur**; at depth 9 **Rollie and Megalimmer**, two bosses at once; in the middle of act II (depth 10) **Sollmeldon**; at the bottom of act II (depth 13) **Slomo**; in the middle of act III (depth 16) **Umbra**; near the bottom of act III (depth 18) **Woppylava**; and at the core (depth 20), where
 there is no descent, **Qualmos** guards the last cube (a prototype for now, see [Qualmos](#qualmos)).
 A boss may bring an arena of its own (`BOSS_ARENAS`: Squarlo's tidal hills, Flip's box, Foggery's
-caldera, Mansk's museum, Sollmeldon's mire, Slomo's slime bowl, Umbra's reef), one of the ordinary arenas'
+caldera, Mansk's museum, Sollmeldon's mire, Slomo's slime bowl, Umbra's reef, Woppylava's cinder pit), one of the ordinary arenas'
 shapes always (`shape`: Rollie and Megalimmer's colosseum), or only braziers lit round the one his depth has
 (Totnar, Renew, Qualmos).
 
@@ -30,8 +30,8 @@ Like every guardian's arena, leaving it while the boss lives asks first, and bei
 the entrance never takes you out ([guardians.md](guardians.md#encounter-and-persistence)).
 
 Each boss runs its own fight (`game/gusto.js`, `game/totnar.js`, `game/squarlo.js`, `game/flip.js`,
-`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/rollie.js`, `game/sollmeldon.js`, `game/slomo.js`, `game/umbra.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
-`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/rollie.js`, `core/sollmeldon.js`, `core/slomo.js`, `core/umbra.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
+`game/foggery.js`, `game/renew.js`, `game/mansk.js`, `game/monteur.js`, `game/rollie.js`, `game/sollmeldon.js`, `game/slomo.js`, `game/umbra.js`, `game/woppylava.js`, `game/qualmos.js`, its rules in `core/gusto.js`, `core/totnar.js`, `core/squarlo.js`,
+`core/flip.js`, `core/foggery.js`, `core/renew.js`, `core/mansk.js`, `core/monteur.js`, `core/rollie.js`, `core/sollmeldon.js`, `core/slomo.js`, `core/umbra.js`, `core/woppylava.js`, `core/qualmos.js`); what they share is `game/bossfight.js`: the players in the fight, sending a
 body into it, the floors a body fits on, putting minions down round their boss and letting
 bodies go. A boss's minions (`minion` kinds, summoned) live in no roster: they pay a little XP
 once, no coins, no weapons, now and then a minor health potion, and go with their boss when it
@@ -167,6 +167,11 @@ anybody's head.
   of it to his spot comes near the gates (`gatesOf` in `game/umbra.js`: the arch, the side gates'
   frames). The camera low and wide over his spot, closing in for the roar. Without his intro (after
   the first time) he comes out of the same hole and swims to his spot first.
+- **Woppylava:** the ground on his spot rumbles, more and more, glows up from under it and steams;
+  two eyes light up in the dark over it (his floating face, before he is there); a fountain of lava
+  bursts up and he rises out of it (what is under the floor not drawn), stomps his legs one after
+  the other and slams down, his crater blasting, roaring (his rising's clip) as the light comes
+  back. The camera low on the ground, looking up at him as he rises, back out for the slam.
 - **Qualmos**, the last and the longest: the ground rumbles, more and more (the view shaking);
   bubbles come up in his lagoon (`lagoonSpot`: deep water 2½ to 9 cells from his spot), it
   starts to turn, a whirlpool, and two sea-green eyes light up under it. He rises up out of it,
@@ -1951,6 +1956,142 @@ away and the water drains.
 | Deep squirtle (`DEEP_SQUIRTLE`) | Squirtle | 0.85× | a living wave swimming free through his water (`free`: no fluid to live in, bobbing over the bottom, `lift`), spitting; ×0.9 health, ×0.7 damage |
 | Murk squirtle (`MURK_SQUIRTLE`) | Squirtle | 0.85× | phase 3: the same, of his mud (drawn as it, `drawn`), its spit slowing |
 
+## Woppylava
+
+![Woppylava's clips](img/model-woppylava.jpg)
+
+From the kids' drawing (`blender/woppylava.py`, `assets/woppylava.glb`): a walking volcano. Seven
+stubby, curvy legs under a dark rim of stone carry a volcano's cone, its sides wavy, lumpy basalt
+with glowing cracks; out of its open crater a plume of lava sprays up (the bone `plume`, which his
+clips scale: a gentle fountain at rest, huge as he erupts), and out of its sides two arms of lava
+burst sideways, ending in big hands. His face floats over the plume, apart from him: a broad pale
+face of ash with an angry V of a brow, two small glowing eyes and a wide grin glowing like lava
+inside. About 4.2 cells to the top of his face. Lava does not burn him (`lavaproof`, `fireproof`).
+
+Profiles: `WOPPYLAVA` and `WOPPYLAVA_TWO` (`STAGE_PROFILES.woppylava`) in `src/core/enemies.js`; the
+fight's rules in `src/core/woppylava.js` (`WOPPYLAVA_FIGHT`), the fight in `src/game/woppylava.js`,
+his walls, hands, bombs' marks and the lava over the plane drawn by `src/render/woppylavafx.js`, the
+fuse under his bar by `src/game/fusebar.js`. The volcano is one of Monteur's mountains
+(`core/mountains.js`, shape `volcano`: [His mountains](#his-mountains)); his lava a boss's tide
+(`game/tide.js`) with surfaces of its own where it stands higher (`lavaOf`).
+
+| | Level 20 |
+|---|---|
+| Health | 6557 (`hp` 1550 grown), a third in phase 1; under Qualmos's |
+| Damage | 81 (his lava arm ×1; a lava bomb ×0.6; a wall of lava ×0.85; a lava hand ×0.8: each sets you on fire, the arm, the walls and the hands knock you down) |
+| XP | 950 grown; coins 240–420 at level 1; two weapons and two potions like a descent guardian |
+| Poise | 2 s; nothing staggers him (`steadfast`) |
+
+He is too big for the ways the others walk: once his fight is on (`anchored`) his fight walks him
+straight at whom he fights (`walk`: 1.2 cells/s, 1.35 in phase 2, stopping 1.9 cells from them),
+over everything, the mound, the volcano and the lava, his feet following the ground under him. The
+shared AI only starts his attacks (`game/enemyai.js`): in reach, his lava arm; anywhere, the casts
+when they are due (`barred`).
+
+### His arena: the cinder pit
+
+His descent arena is always a cinder pit (`BOSS_ARENAS.woppylava.type`, `cubegen/arenashapes.js`
+`cinder`, `CINDER`): a wide basin two levels under the doorways, flat, a bank of scenery round the
+cube, and in the middle of the cube a low mound, 2.6 cells round and two levels high with a dimple on
+top, its ground the theme's crust (`surface: 'crust'`): the volcano asleep under it. Nothing is built
+within 9.5 cells of the middle (`CINDER.clear`), where it rises: the well lies in the corner furthest
+from the entrance, his spot beside it along the side nearer the entrance (`cubegen/guardian.js`
+`farCorner`, `cinderSpot`). Nothing that blocks stands anywhere; cinders and pumice lie all over, and
+the small things (the theme's, and the volcanic rocks, obsidian and vents he brings,
+`BOSS_ARENAS.woppylava.props`) only round the edge (`cubegen/arenaprops.js` `cinder`). `map.volcano`
+says where it rises: its middle, the heading from it to the entrance (where its road starts), the
+basin's level and the mound. His lava (`map.tide`, `game/tide.js`) stands under the basin's floor at
+rest (there is none); his `tide` at 1 floods the basin inside the bank 0.3 levels deep (`CINDER.flood`:
+lava burns however shallow), under the doorways and the volcano's road; beaten, it is gone for good.
+
+**The volcano** is a mountain like Monteur's (`core/mountains.js`, shape `volcano`, `VOLCANO`;
+`game/mountains.js` raises it, `render/mountains.js` shows it, its geometry `render/mountaingeo.js`).
+It is not one of Monteur's `SHAPES` (`ALL_SHAPES` has it). It is raised once, from the spec his fight
+makes out of `map.volcano`, and stands till his death, when it comes down. It is a cone 8.6 cells
+round its foot, standing on the lowest ground under it (the basin; the mound ends up under its
+crater). Its rim, out to 2.9 cells from the middle, stands 18 levels (9 cells) over the basin, round a
+crater 1.7 cells round and 3 levels deeper (`m.crater`: his lava pool). A road 2 cells wide (`m.road`;
+`m.way`: how far up it) winds 1.15 times round it, from its foot on the side of the entrance, 7.45
+cells out, to the rim, 3.85 cells out. Its radius shrinks as it climbs while its height grows with
+the way walked, so each cell is about half a level over the one before: a slope you walk. Beside the
+road the rock is a cliff, at least 3 levels over it on the inner side and under it on the outer side;
+where two turns pass each other there is a wall about a cell thick between them. Elsewhere the rock
+is the cone, steeper towards the top and rough by about a level and a half; round the road's foot the
+ground is left clear, so you walk onto it off the basin. Its times are its own (`VOLCANO_TIMES`): the
+floor cracks for 2.5 s; it rises in 7 s in six heaves, each a lurch and a roar, ash and sparks
+bursting from the glowing seam round its foot; it falls in 4 s in five jolts. Whoever stands on it
+rides along, knocked down or not. It is drawn in basalt made from the theme's rock and underside,
+red-brown near the crater, its road paler ash, its crater's floor near-black (`volcanoLook`).
+
+### Phase 1 (full health to two thirds)
+
+- **Lava arm** (`swipe`, within 3.1 cells, clip `WoppylavaSwipe`, 1.4 s): he draws his right arm
+  back and sweeps it across in front of him at 0.7 s, low and wide (`arc` 0.1): it knocks you down
+  and sets you on fire.
+- **Eruption** (`erupt`, clip `WoppylavaErupt`, 1.8 s; the first 3 s into the fight, then every 8–11
+  s): he crouches and his crater blasts at 0.9 s: `count` lava bombs (7, 11 in phase 2) fly out of it,
+  lobbed (`fireball`s like Umbra's), three of them round the heroes (0.4–2.6 cells off), the rest
+  anywhere on the floors of the fight, each landing 1.2–1.9 s after it left. Each one's landing spot
+  glows from the moment it leaves (`marks`), so there is time to step off it; landing, it bursts (1
+  cell round) and sets on fire. Every eruption shakes the ground, the harder the nearer the volcano
+  under the floor is to waking (`stir`).
+- **Walls of lava** (`walls`, clip `WoppylavaWall`, 1.8 s; the first 7 s in, then every 13–17 s): he
+  swings his arms out wide and slams them down at 1.0 s, and a wall of lava rises along one side of
+  the arena (`warn` 1.5 s: a glowing seam, its gap dark), then rolls across all of it at 3.4 cells/s
+  (faster than a hero runs: nobody outruns it), 1.1 cells thick and 1.7 high over the ground
+  (nobody jumps it). Its **gap**, 3.4 cells wide, is the way through: 2 to 4.5 cells from where the
+  hero stood (`gapOff`), so they have to run for it as it rises. Caught, it hurts once, sets on fire,
+  knocks down and throws you along with it (7 cells/s for 0.5 s). One wall a time in phase 1.
+- **Lava hands** (`hands`, clip `WoppylavaHands`, 1.8 s; the first 10 s in, then every 11–15 s): he
+  raises his arms high, and a glowing ring opens on the floor under each hero and follows them (1.5
+  s at 3.6 cells/s: faster than they run), holds still (0.6 s), and a hand of lava comes down on it
+  out of the dark above (0.3 s), clutches the floor (0.8 s) and draws back up. Who is within 1.15
+  cells as it lands is hurt, set on fire and knocked down: keep moving once the ring holds still.
+  0–1 more hands come down round the heroes, held still from the start (1–2 in phase 2).
+- **The mound** in the middle of the arena smokes and glows from inside, harder and harder as his
+  health goes down to two thirds (`stir`, sent with his row). No blow takes him below two thirds in
+  phase 1 (`hpFloor`).
+
+### The volcano rises
+
+At two thirds of his health (a third of his life lost) he stops (mode `split`, posed in his clip
+`WoppylavaRise`, 3 s, nothing hurting him): he stomps his legs one after the other, raises his arms
+and roars, and at 1.5 s the floor of the mound cracks open (the volcano's `crack`, 2.5 s): the volcano
+rises out of the middle of the arena (`rise`, 7 s in six heaves) and whoever stands on it rides up.
+Till it stands he only watches (no attack, no step: `rising_`). Once it stands, the lava rises over the basin in 10 s (his `tide`, 0 to 1, "The lava is rising! Climb the
+volcano!"), just over the basin's floor: from then on only the volcano stands out of it, its road
+the way up. The crater holds a pool of lava (0.35 over its floor). Falling into the lava is falling
+into any lava: the robot pulls you out onto dry ground for a quarter of your most health
+([combat.md](combat.md#fluids-and-falls)).
+
+### Phase 2 (two thirds to death)
+
+- Everything of phase 1, a little quicker, and he **climbs the volcano** after you (his walk goes
+  over its rock too). The walls of lava roll over the volcano as over the floor, one or two a time
+  (the second from across the first, 2.8 s later), their gap 0 to 2 cells from where you stood.
+- **Fire creatures** (`summon`, clip `WoppylavaSummon`, 1.6 s; 6 s into the phase, then every 12 s):
+  his crater spits Magma-faces and Magma cats by turns onto the floors round him, as many as fill up
+  to four. Lava does not burn them: they walk on it.
+- **The fuse**: once the lava stands, the volcano starts to rumble, a bar under his (`#boss-fuse`,
+  "Eruption 2:30") running down for 150 s (`fuse`), red and pulsing in the last 30 s ("The volcano is
+  about to erupt!").
+- **The eruption** (`burst`), when it runs out: the volcano blows; lava pours down it from the crater
+  (5 s, from the top down) over every floor of the fight, and the basin's rises a level. Four dry
+  patches (`isles`, a road cell and the road cells touching it, spread up the road) stay dry, and the
+  lowest of them goes 14 s after the lava has poured down, the next 14 s after it, till none is left
+  (`lavaSurfaces`). With four rescues at a quarter of your health each, the end comes soon: beat him
+  before it. He fights on meanwhile.
+
+His death drains the lava (`game/tide.js`), brings the volcano down (it sinks back into the floor in
+jolts) and takes his fire creatures along; his loot falls where he dies.
+
+## Woppylava's minions
+
+| | Kind of | Notes |
+|---|---|---|
+| Magma-face (`MAGMA_FACE`) | Blaze-face | lava does not burn it (`lavaproof`); ×0.6 health, ×0.6 damage |
+| Magma cat (`MAGMA_CAT`) | Ash cat | lava does not burn it; ×0.8 health, ×0.6 damage |
+
 ## Qualmos
 
 After a child's drawing: a slender blue-green amphibian, about three cells tall, on six tentacles
@@ -2120,7 +2261,13 @@ their key (`pair`) in the roster (so every game stacks their two bars), and thei
 slots (the first eight unused): who goes for you now, how invisible Megalimmer is and whether he runs
 round you (`net/protocol.js rollieRow`). Their fight's own shots (the blades, the sweep's beam, the
 grid, Megalimmer's twisters) are only the runner's game's for now: the others are hurt by them
-(`hitBody`) but do not see them.
+(`hitBody`) but do not see them. Woppylava's stage swaps his profile like the others', his tide is
+his lava's, and his row carries ten more slots (the first nine unused): how hard the mound smokes,
+his volcano (a mountain's spec, like Monteur's), the fuse, the time since the eruption, his seed (the
+dry isles) and his walls, hands and bombs' marks (`net/protocol.js woppylavaRow`). Every game raises
+its own volcano after it, lets its own lava stand (the crater's pool and the eruption's too), draws
+the rest running their clocks on between rows and shows the fuse; only the runner's game hurts
+anybody with them (`hitBody`), and his bombs fly there like any projectile.
 
 ## Dev
 
@@ -2147,7 +2294,9 @@ mountains out of the floor anywhere ([console.md](console.md)). `/spawn qualmos`
 `/spawn rollie` (`addRollies`: Megalimmer comes along beside him, their whole fight anywhere),
 `/spawn megalimmer` (alone: he fights alone, taking turns with nobody), `/spawn rolliespicy`,
 `/spawn megaflimmer`, `/spawn stunflimmer`, `/boss rollie`; the test room's lineup has Rollie, who
-brings Megalimmer.
+brings Megalimmer. `/spawn woppylava` (`addWoppylavas`: out of his cinder pit a volcano rises round
+where he stands if one fits, with no lava and no fuse), `/spawn magmaface`, `/spawn magmacat`,
+`/boss woppylava`; `/mountain volcano` pulls his volcano out of the floor without him.
 
 `?at=<boss>` (with `?dev=1`, e.g. `?dev=1&seed=123&at=qualmos`): once the world is there, the hero
 becomes the boss's level, takes a Long Sword of it and goes into his arena (`goBoss`).
@@ -2170,7 +2319,7 @@ without a boss of its own has no boss room yet.
 ## Checks
 
 ```sh
-node --test tests/umbra.test.js tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/sollmeldon.test.js tests/slomo.test.js tests/qualmos.test.js tests/rollie.test.js tests/cloth.test.js tests/testrooms.test.js tests/assets.test.js
+node --test tests/umbra.test.js tests/bossbar.test.js tests/bossintro.test.js tests/gusto.test.js tests/totnar.test.js tests/squarlo.test.js tests/flip.test.js tests/foggery.test.js tests/renew.test.js tests/mansk.test.js tests/ribbon.test.js tests/monteur.test.js tests/mountains.test.js tests/roll.test.js tests/sollmeldon.test.js tests/slomo.test.js tests/qualmos.test.js tests/rollie.test.js tests/cloth.test.js tests/woppylava.test.js tests/cinder.test.js tests/testrooms.test.js tests/assets.test.js
 ```
 
 ```js
@@ -2185,12 +2334,17 @@ await (await import('./tests/browser/qualmos.js')).runQualmosChecks()  // Qualmo
 await (await import('./tests/browser/rollie.js')).runRollieChecks()    // Rollie and Megalimmer's, in their colosseum: both there, two bars, taking turns, Megalimmer running round and his twisters, the blades, the sweep, the grid, invisible, the Stun flimmer, the gate with the second
 await (await import('./tests/browser/sollmeldon.js')).runSollmeldonChecks() // Sollmeldon's, in his mire: bites by turns, mud and its puddles, Mud squirtles, a head cut off, flying and landing, the world tipping and the mud running downhill, his death draining it
 await (await import('./tests/browser/umbra.js')).runUmbraChecks()      // Umbra's, in his reef: the suit, no way out, the water rising, under water (slower, the high jump), the air; bites, the earthquake and lying exposed, volcanoes, squirtles; a blow on his body; the jets and his shield; the mud slowing; his death draining it all
+await (await import('./tests/browser/woppylava.js')).runWoppylavaChecks() // Woppylava's, in his cinder pit: walls and their gap, hands, bombs, the split, the volcano rising (riding it up), the flood, his fire creatures, the fuse, the eruption and its isles, the rescue, his death draining it all
+await (await import('./tests/browser/woppylavafx.js')).runWoppylavaFxChecks() // his effects drawn through their phases
 await (await import('./tests/browser/roll.js')).runRollChecks()       // the world Monteur turns: the keys, the mouse, the slow turn
 await (await import('./tests/browser/mountains.js')).runMountainChecks() // Monteur's mountains: each shape rising and falling, him pulling one up, bringing it down
 await (await import('./tests/browser/bossroom.js')).runBossRoomChecks() // each boss's test room: idle until hit
 await (await import('./tests/browser/bossbar.js')).runBossBarChecks()   // the boss bar: up on coming in, the damage strip, Gusto's proxies, Renew's rewind, a Temp Boss
 await (await import('./tests/browser/intros.js')).runIntroChecks()     // every boss's intro in his arena: his own reveal, on his spot for his name, nothing left of it after (whole and skipped); Mansk's curtain shut, then open, then gone
 ```
+
+Woppylava: `Blender -b --python blender/woppylava.py` (its header names the arguments), then `npm run
+compress-assets`; his muzzles must match `WOPPYLAVA_AT` (`tests/assets.test.js`).
 
 Re-export the model with `Blender -b --python blender/gusto.py -- assets/gusto.glb
 blender/gusto.blend blender/previews/gusto-preview.png`, then `npm run compress-assets`. The

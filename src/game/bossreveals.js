@@ -981,4 +981,66 @@ const rollie = {
   },
 };
 
-export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, sollmeldon, umbra, qualmos, rollie };
+// --- Woppylava: the floor glowing on his spot, a fountain of lava, him rising out of it, erupting --
+
+const MAGMA = ['#fff0b0', '#ffd25a', '#ff8a2a', '#e8401a'], CINDER = ['#5a4a44', '#3a302c', '#7a6a60'];
+function woppylavaY(r, t) {
+  const { at, spot } = r, deep = r.e.profile.height + 0.6;
+  return spot.y - deep * (1 - smooth((t - at.rise[0]) / (at.rise[1] - at.rise[0])) ** 0.8);
+}
+const woppylava = {
+  seen: r => ({ x: r.spot.x, y: Math.max(r.e.y, r.spot.y), z: r.spot.z }),
+  start(r) {
+    const { e, spot } = r;
+    Object.assign(e, { y: woppylavaY(r, 0), yaw: facing(spot, player) });
+  },
+  step(r, t, dt) {
+    const { e, spot, at } = r, D = r.data, R = e.profile.radius * 1.3;
+    faceCamera(r, dt, 2.5);
+    // the ground rumbling, more and more; the floor on his spot glowing up, cracking, steaming
+    const k = clamp01((t - at.rumble) / (at.burst - at.rumble));
+    if (t >= at.rumble && t < at.rise[1]) {
+      quake(0.004 + 0.014 * k);
+      for (let i = Math.floor((8 + 28 * k) * dt + Math.random()); i > 0; i--) {
+        const a = rand(0, Math.PI * 2), d = rand(0, R * 1.3);
+        emit(i % 2 ? glow : soft, spot.x + Math.cos(a) * d, spot.y + 0.05, spot.z + Math.sin(a) * d, i % 2
+          ? { v: [rand(-0.3, 0.3), rand(1.5, 3.5), rand(-0.3, 0.3)], life: rand(0.3, 0.6), size: rand(0.05, 0.1), color: MAGMA[i % 4], gravity: 6 }
+          : { v: [rand(-0.2, 0.2), rand(0.4, 1), rand(-0.2, 0.2)], life: rand(1, 1.6), size: rand(0.3, 0.55), grow: 1.5, color: CINDER[i % 3], alpha: 0.35, drag: 1 });
+      }
+    }
+    if (once(D, 'rumble', t, at.rumble)) sfx('rumble', { at: spot, pitch: 0.4, volume: 1 });
+    const pool = clamp01((t - at.glow[0]) / (at.glow[1] - at.glow[0])) * (1 - smooth((t - at.rise[1]) / 1.2));
+    showPool(spot.x, spot.y, spot.z, R * (0.5 + 0.8 * pool), 0.9 * pool, '#ff6a1a', true);
+    // two eyes glowing in the dark over the glow (his face, floating, before he is there)
+    const eyes = clamp01((t - at.eyes) / 0.5) * (1 - smooth((t - at.rise[0] - 0.6) / 0.5));
+    if (eyes > 0) {
+      const y = spot.y + e.profile.height * 0.85, s = Math.sin(e.yaw), c = Math.cos(e.yaw);
+      showEyes([[spot.x - c * 0.32, y, spot.z + s * 0.32], [spot.x + c * 0.32, y, spot.z - s * 0.32]], 0.5, eyes, '#ffb030');
+    } else showEyes([], 0, 0);
+    // the fountain of lava bursting up, him rising out of it (what is under the floor not drawn)
+    if (once(D, 'burst', t, at.burst)) {
+      sfx('fireball', { at: spot, pitch: 0.3, volume: 1 }); sfx('boom', { at: spot, pitch: 0.4, volume: 0.8 });
+      splashFx(spot.x, spot.y, spot.z, { colors: MAGMA, n: 60, up: 9, wide: 2.2, size: [0.08, 0.18], layer: glow });
+      cameraKick(0, 0, 0, 0.06);
+    }
+    if (t >= at.burst && t < at.rise[1] + 0.4) for (let i = Math.floor(60 * dt + Math.random()); i > 0; i--) {
+      const a = rand(0, Math.PI * 2), d = rand(0, 0.5);
+      emit(glow, spot.x + Math.cos(a) * d, Math.max(spot.y, e.y) + rand(0.2, e.profile.height), spot.z + Math.sin(a) * d,
+        { v: [Math.cos(a) * rand(0.5, 2), rand(3, 7), Math.sin(a) * rand(0.5, 2)], life: rand(0.5, 1), size: rand(0.06, 0.16), color: MAGMA[i % 4], gravity: 9 });
+    }
+    e.y = woppylavaY(r, t);
+    e.clipBelow = t < at.rise[1] ? spot.y - 0.02 : undefined;
+    const rising = t >= at.rise[0] && t < at.rise[1];
+    e.x = spot.x + (rising ? Math.sin(t * 41) * 0.03 : 0); e.z = spot.z + (rising ? Math.cos(t * 37) * 0.03 : 0);
+    if (once(D, 'rise', t, at.rise[0])) sfx('rumble', { at: spot, pitch: 0.35, volume: 1 });
+    // he stomps his legs and erupts (his clip `rise`, from its stomps to its slam), roaring
+    e.pose = t >= at.rear && t < at.release ? { clip: 'rise', t: Math.min(2.9, (t - at.rear) * 1.1) } : null;
+    if (once(D, 'slam', t, at.rear + 45 / 30 / 1.1)) { landFx(e, CINDER, 1.4); roar(e, 0.8); splashFx(e.x, e.y + e.profile.bodyHeight, e.z, { colors: MAGMA, n: 50, up: 8, wide: 2.5, layer: glow }); }
+  },
+  end(r) {
+    Object.assign(r.e, { pose: null, clipBelow: undefined, x: r.spot.x, y: r.spot.y, z: r.spot.z });
+    hideIntroFx();
+  },
+};
+
+export const BOSS_REVEALS = { squarlo, flip, foggery, renew, mansk, monteur, slomo, sollmeldon, umbra, qualmos, rollie, woppylava };

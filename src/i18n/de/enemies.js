@@ -66,6 +66,8 @@ export default {
   "Frost moose": { text: 'Frostmoose', g: 'm', pl: 'Frostmoose' },
   "Bog moose": { text: 'Sumpfmoose', g: 'm', pl: 'Sumpfmoose' },
   "Mont Moose": { text: 'Mont-Moose', g: 'm', pl: 'Mont-Moose' },
+  "Magma-face": { text: 'Magmagesicht', g: 'n', pl: 'Magmagesichter' },
+  "Magma cat": { text: 'Magmakatze', g: 'f', pl: 'Magmakatzen' },
   "Frost tornado": { text: 'Frosttornado', g: 'm', pl: 'Frosttornados' },
   "Fire tornado": { text: 'Feuertornado', g: 'm', pl: 'Feuertornados' },
   "Custo triangle": { text: 'Custo-Dreieck', g: 'n', pl: 'Custo-Dreiecke' },
@@ -97,6 +99,7 @@ export default {
   Qualmos: { text: 'Qualmos', g: 'm' },
   Rollie: { text: 'Rollie', g: 'm' },
   Megalimmer: { text: 'Megalimmer', g: 'm' },
+  Woppylava: { text: 'Woppylava', g: 'm' },
   'Guardian {kind}': 'Wächter-{kind}',
   'Temp Boss {kind}': 'Temp-Boss-{kind}',
 
@@ -269,6 +272,13 @@ export default {
   "Burned by Rollie's beam!": 'Von Rollies Strahl verbrannt!',
   'Struck by a laser from above!': 'Von einem Laser von oben getroffen!',
   "Swept away by Rollie's arms!": 'Von Rollies Armen weggefegt!',
+  "Swept by Woppylava's lava arm!": 'Von Woppylavas Lava-Arm erwischt!',
+  "Hit by Woppylava's lava bomb!": 'Von Woppylavas Lavabombe getroffen!',
+  "Swept away by Woppylava's wall of lava!": 'Von Woppylavas Lavawand weggerissen!',
+  "Grabbed by Woppylava's lava hand!": 'Von Woppylavas Lavahand gepackt!',
+  'Scorched by a Magma-face!': 'Von einem Magmagesicht versengt!',
+  'Bitten by a Magma cat!': 'Von einer Magmakatze gebissen!',
+  'Poisoned by a Magma cat!': 'Von einer Magmakatze vergiftet!',
   'Beaten up by Megalimmer!': 'Von Megalimmer verprügelt!',
   "Caught in Megalimmer's twister!": 'In Megalimmers Wirbelwind geraten!',
   'Blasted by a Spark spicy!': 'Von einem Funkenspicy beschossen!',
@@ -399,6 +409,14 @@ export default {
   '{name} enters phase {phase}!': '{name} beginnt Phase {phase}!',
   '{name} slips under the water!': '{name} taucht unter!',
   '{name} turns invisible!': '{name} wird unsichtbar!',
+  '{name} erupts!': '{name} bricht aus!',
+  '{name} sends a wall of lava! Find the gap!': '{name} schickt eine Wand aus Lava! Finde die Lücke!',
+  'Lava hands are reaching down! Keep moving!': 'Hände aus Lava greifen herab! Bleib in Bewegung!',
+  '{name} rises! The volcano is waking up!': '{name} erhebt sich! Der Vulkan erwacht!',
+  'A volcano is rising out of the floor!': 'Ein Vulkan steigt aus dem Boden!',
+  'The lava is rising! Climb the volcano!': 'Die Lava steigt! Klettere auf den Vulkan!',
+  'The volcano is about to erupt!': 'Der Vulkan bricht gleich aus!',
+  'The volcano erupts! Find a dry spot!': 'Der Vulkan bricht aus! Such dir eine trockene Stelle!',
   // two bosses at once, in the intro (game/bossintro.js): 'Rollie and Megalimmer'
   '{one} and {two}': '{one} und {two}',
 
@@ -416,6 +434,7 @@ export default {
   'The Drowned Coil': 'Die ertrunkene Windung',
   'At the End of the World': 'Am Ende der Welt',
   'The Laser and the Ghost': 'Der Laser und der Geist',
+  'The Walking Volcano': 'Der wandelnde Vulkan',
   'Keeper of the Well': 'Hüter des Brunnens',
 
   // guardians (core/guardians.js)

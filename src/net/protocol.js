@@ -108,7 +108,7 @@
 import { ITEMS } from '../core/items.js';
 import { RARITY } from '../core/gear/rarities.js';
 import { parseLook } from '../core/looks.js';
-import { SHAPES, PHASES } from '../core/mountains.js';
+import { ALL_SHAPES, PHASES } from '../core/mountains.js';
 
 // raised whenever two versions of the game could no longer understand each other
 export const PROTOCOL = 21;   // (20: cubes of 24 cells, core/constants.js N; 21: the rune stones, in the cubes and `rune`)
@@ -308,7 +308,8 @@ export function rosterOf(list, cube, seed) {
 // for Renew three more: 0, 0 and renewRow, and for Slomo four more: 0, 0, 0 and slomoRow (his flood
 // is his tide), and for Mansk five more: 0, 0, 0, 0 and manskRow, and for Monteur six more: 0, 0, 0,
 // 0, 0 and monteurRow, and for Sollmeldon seven more: 0, 0, 0, 0, 0, 0 and sollmeldonRow, and for Umbra eight
-// more: seven 0 and umbraRow, and for Rollie and Megalimmer nine more: eight 0 and rollieRow
+// more: seven 0 and umbraRow, and for Rollie and Megalimmer nine more: eight 0 and rollieRow, and for
+// Woppylava ten more: nine 0 and woppylavaRow
 const beamRow = b => [r2(b.t), r2(b.ex), r2(b.ey), r2(b.ez)];
 // Rollie's and Megalimmer's (game/rollie.js): whether he goes for you now, how invisible, whether he runs round you
 const rollieRow = e => [e.main ? 1 : 0, r2(e.hidden ?? 0), e.circling ? 1 : 0];
@@ -329,10 +330,10 @@ const slomoRow = e => [(e.arms ?? [1, 1]).map(r2), e.floodSide ?? 0, r2(e.front 
 const manskRow = e => [r2(e.lift ?? 0), e.horns ?? 1, r2(e.grow ?? 0), r2(e.slowing ?? 0)];
 // Monteur's: [stones (how many float between his antlers, 0..5), quarter (how far round he has
 // turned the world, 0..3), mountain (the one he pulled up: [n, seed, x, z, shape, a, phase, t,
-// life], shape and phase their indices in core/mountains.js SHAPES and PHASES; 0: none)]
+// life], shape and phase their indices in core/mountains.js ALL_SHAPES and PHASES; 0: none)]
 // (game/monteur.js; every game turns its own view after it, game/roll.js, and raises its own
 // mountain after it, game/mountains.js)
-const mountainRow = m => m ? [m.n, m.seed, m.x, m.z, SHAPES.indexOf(m.shape), m.a ?? 0, PHASES.indexOf(m.phase), r2(m.t), m.life] : 0;
+const mountainRow = m => m ? [m.n, m.seed, m.x, m.z, ALL_SHAPES.indexOf(m.shape), m.a ?? 0, PHASES.indexOf(m.phase), r2(m.t), m.life] : 0;
 const monteurRow = e => [r2(e.stones ?? 5), e.quarter ?? 0, mountainRow(e.mountain)];
 // Sollmeldon's: [heads (a bit each), cutting (the head being cut off, -1: none), lift (how high he
 // flies), tilt ([x, z]: the way the world is tipped, how far), drops (his last drops of mud: [n, x,
@@ -351,6 +352,14 @@ const jetRow = j => j.kind === 'down' ? [1, r2(j.x), r2(j.z), r2(j.floor ?? 0)] 
 const umbraRow = e => [Math.max(0, DIVE_PHASES.indexOf(e.dive.phase)), r2(e.dive.t), Number.isFinite(e.fightT) ? r2(e.fightT) : -1, r2(e.shield ?? 0),
   Number.isFinite(e.mudY) ? r2(e.mudY) : null, (e.vents ?? []).map(v => [v.n, r2(v.x), r2(v.y), r2(v.z), r2(v.t)]),
   e.jets ? [e.jets.i, r2(e.jets.t), e.jets.list.map(jetRow)] : 0, e.clipWall ? e.clipWall.map(r2) : 0];
+// Woppylava's: [stir (how hard the mound smokes, 0..1), mountain (his volcano, like Monteur's), fuse (s
+// left of it; -1: not burning), burst (s since the volcano erupted; -1: not yet), seed (his isles),
+// walls ([n, side, gap, t] each), hands ([n, x, z, t] each), marks (his bombs' landing spots: [n, x, y, z,
+// t, flight] each)] (game/woppylava.js; every game raises its own volcano after it, game/mountains.js,
+// lets its own lava stand, game/tide.js, and draws the rest, render/woppylavafx.js)
+const woppylavaRow = e => [r2(e.stir ?? 0), mountainRow(e.mountain), r2(e.fuse ?? -1), r2(e.burst ?? -1), e.seed ?? 0,
+  (e.walls ?? []).map(w => [w.n, w.side, r2(w.gap), r2(w.t)]), (e.hands ?? []).map(h => [h.n, r2(h.x), r2(h.z), r2(h.t)]),
+  (e.marks ?? []).map(b => [b.n, r2(b.x), r2(b.y), r2(b.z), r2(b.t), r2(b.flight)])];
 export function rowOf(e, i, runner = 0) {
   const b = e.beam;
   return [i, r2(e.x), r2(e.y), r2(e.z), r2(e.yaw), Math.max(0, MODES.indexOf(e.mode)), r2(e.mode === 'dead' ? e.deadT : e.t),
@@ -362,6 +371,7 @@ export function rowOf(e, i, runner = 0) {
       : e.boss === 'monteur' && e.stones !== undefined ? [0, 0, 0, 0, 0, monteurRow(e)]
       : e.boss === 'sollmeldon' && e.heads !== undefined ? [0, 0, 0, 0, 0, 0, sollmeldonRow(e)]
       : e.boss === 'umbra' && e.dive ? [0, 0, 0, 0, 0, 0, 0, umbraRow(e)]
-      : e.boss === 'rollie' && e.pair !== undefined ? [0, 0, 0, 0, 0, 0, 0, 0, rollieRow(e)] : []];
+      : e.boss === 'rollie' && e.pair !== undefined ? [0, 0, 0, 0, 0, 0, 0, 0, rollieRow(e)]
+      : e.boss === 'woppylava' && e.walls ? [0, 0, 0, 0, 0, 0, 0, 0, 0, woppylavaRow(e)] : []];
 }
 

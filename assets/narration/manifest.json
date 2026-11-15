@@ -2185,6 +2185,20 @@
         "dur": 7.38,
         "hash": "8975955a24dd651c"
       },
+      "robot.arena.woppylava.walks": {
+        "text": "That mountain is walking! It has legs, and arms of lava, and its face is just floating there.",
+        "source": "That mountain is walking! It has legs, and arms of lava, and its face is just floating there.",
+        "seed": 0,
+        "dur": 8.05,
+        "hash": "155544231e8c9555"
+      },
+      "robot.arena.woppylava.mound": {
+        "text": "Look at the middle of the floor. It is smoking, and it glows from inside. Something is asleep under there.",
+        "source": "Look at the middle of the floor. It is smoking, and it glows from inside. Something is asleep under there.",
+        "seed": 0,
+        "dur": 9,
+        "hash": "a960cacd9e4c0d6e"
+      },
       "robot.boss.gusto.summon": {
         "text": "Little triangles! Mind your back.",
         "source": "Little triangles! Mind your back.",
@@ -2857,6 +2871,55 @@
         "dur": 4.3,
         "hash": "97371119b4ebc481"
       },
+      "robot.boss.woppylava.wall": {
+        "text": "A wall of lava! Run to the gap!",
+        "source": "A wall of lava! Run to the gap!",
+        "seed": 0,
+        "dur": 3.14,
+        "hash": "aceabd62b27a4d00"
+      },
+      "robot.boss.woppylava.hands": {
+        "text": "Hands of lava, coming down! Do not stand in the rings!",
+        "source": "Hands of lava, coming down! Do not stand in the rings!",
+        "seed": 0,
+        "dur": 5.2,
+        "hash": "e00a86ec5ac1e2ed"
+      },
+      "robot.boss.woppylava.erupt": {
+        "text": "He is erupting! Watch where the glowing spots are!",
+        "source": "He is erupting! Watch where the glowing spots are!",
+        "seed": 0,
+        "dur": 3.49,
+        "hash": "a59fe50d465d9f18"
+      },
+      "robot.boss.woppylava.volcano": {
+        "text": "The floor is breaking! A whole volcano is coming up!",
+        "source": "The floor is breaking! A whole volcano is coming up!",
+        "seed": 0,
+        "dur": 4.48,
+        "hash": "66b89f91b05c9727"
+      },
+      "robot.boss.woppylava.climb": {
+        "text": "The lava is rising! Up the volcano, quickly!",
+        "source": "The lava is rising! Up the volcano, quickly!",
+        "seed": 0,
+        "dur": 3.65,
+        "hash": "dba9eef8eccae69f"
+      },
+      "robot.boss.woppylava.fuse": {
+        "text": "The volcano is rumbling! It is going to blow!",
+        "source": "The volcano is rumbling! It is going to blow!",
+        "seed": 0,
+        "dur": 4.03,
+        "hash": "b6f7c0272f72e650"
+      },
+      "robot.boss.woppylava.burst": {
+        "text": "Find a dry spot on the road, and hold on!",
+        "source": "Find a dry spot on the road, and hold on!",
+        "seed": 0,
+        "dur": 4.07,
+        "hash": "436a1291042ec725"
+      },
       "robot.beaten.gusto.open": {
         "text": "We did it! The well is open!",
         "source": "We did it! The well is open!",
@@ -3032,6 +3095,20 @@
         "dur": 4.31,
         "hash": "bfa066d2e9a88585"
       },
+      "robot.beaten.woppylava.cool": {
+        "text": "He has gone all cold and quiet. Just a big grey rock now.",
+        "source": "He has gone all cold and quiet. Just a big grey rock now.",
+        "seed": 0,
+        "dur": 5.97,
+        "hash": "6f8ac65bed86a75c"
+      },
+      "robot.beaten.woppylava.kiln": {
+        "text": "Fire, and sand, and something glowing coming out of it... I think somebody made glass in a fire like that.",
+        "source": "Fire, and sand, and something glowing coming out of it... I think somebody made glass in a fire like that.",
+        "seed": 0,
+        "dur": 10.42,
+        "hash": "8e8a87b8b1a247b6"
+      },
       "robot.death.gusto.arms": {
         "text": "Its arms! Wide arms mean it is about to grab. Step back then.",
         "source": "Its arms! Wide arms mean it is about to grab. Step back then.",
@@ -3206,6 +3283,20 @@
         "seed": 0,
         "dur": 6.16,
         "hash": "cdc8f12ee613dcab"
+      },
+      "robot.death.woppylava.gap": {
+        "text": "When a wall of lava comes, look for the dark gap, and run there straight away.",
+        "source": "When a wall of lava comes, look for the dark gap, and run there straight away.",
+        "seed": 0,
+        "dur": 6.1,
+        "hash": "031d79931c2fd6dc"
+      },
+      "robot.death.woppylava.fast": {
+        "text": "Once the volcano is up, we have to beat him before it blows. Hit him as much as you can!",
+        "source": "Once the volcano is up, we have to beat him before it blows. Hit him as much as you can!",
+        "seed": 0,
+        "dur": 7.02,
+        "hash": "0a2f7087b98346e2"
       },
       "robot.death.13.together": {
         "text": "It is dark and sticky down here. Let us be careful together.",
@@ -6219,6 +6310,20 @@
         "dur": 9.7,
         "hash": "51f4b9efb1f7c90f"
       },
+      "robot.arena.woppylava.walks": {
+        "text": "Der Berg läuft! Er hat Beine, und Arme aus Lava, und sein Gesicht schwebt einfach in der Luft.",
+        "source": "Der Berg läuft! Er hat Beine, und Arme aus Lava, und sein Gesicht schwebt einfach in der Luft.",
+        "seed": 0,
+        "dur": 10.19,
+        "hash": "02ce82fca10393b5"
+      },
+      "robot.arena.woppylava.mound": {
+        "text": "Schau mal in die Mitte vom Boden. Da raucht es, und es glüht von innen. Da unten schläft etwas.",
+        "source": "Schau mal in die Mitte vom Boden. Da raucht es, und es glüht von innen. Da unten schläft etwas.",
+        "seed": 0,
+        "dur": 8.15,
+        "hash": "ff59895017edc876"
+      },
       "robot.boss.gusto.summon": {
         "text": "Kleine Dreiecke! Pass auf deinen Rücken auf.",
         "source": "Kleine Dreiecke! Pass auf deinen Rücken auf.",
@@ -6891,6 +6996,55 @@
         "dur": 3.56,
         "hash": "ff5b677621e7e098"
       },
+      "robot.boss.woppylava.wall": {
+        "text": "Eine Wand aus Lava! Lauf zur Lücke!",
+        "source": "Eine Wand aus Lava! Lauf zur Lücke!",
+        "seed": 0,
+        "dur": 2.94,
+        "hash": "e75f35d600f33b46"
+      },
+      "robot.boss.woppylava.hands": {
+        "text": "Hände aus Lava, die kommen runter! Bleib nicht in den Ringen stehen!",
+        "source": "Hände aus Lava, die kommen runter! Bleib nicht in den Ringen stehen!",
+        "seed": 0,
+        "dur": 5.97,
+        "hash": "ddc0dd55f5e95db7"
+      },
+      "robot.boss.woppylava.erupt": {
+        "text": "Er bricht aus! Pass auf, wo die glühenden Stellen sind!",
+        "source": "Er bricht aus! Pass auf, wo die glühenden Stellen sind!",
+        "seed": 0,
+        "dur": 5.56,
+        "hash": "5b4f510af05216b3"
+      },
+      "robot.boss.woppylava.volcano": {
+        "text": "Der Boden bricht auf! Da kommt ein ganzer Vulkan hoch!",
+        "source": "Der Boden bricht auf! Da kommt ein ganzer Vulkan hoch!",
+        "seed": 0,
+        "dur": 4.26,
+        "hash": "e71ac34536342876"
+      },
+      "robot.boss.woppylava.climb": {
+        "text": "Die Lava steigt! Rauf auf den Vulkan, schnell!",
+        "source": "Die Lava steigt! Rauf auf den Vulkan, schnell!",
+        "seed": 3,
+        "dur": 3.49,
+        "hash": "f495a0d6005a01ea"
+      },
+      "robot.boss.woppylava.fuse": {
+        "text": "Der Vulkan grollt! Gleich bricht er aus!",
+        "source": "Der Vulkan grollt! Gleich bricht er aus!",
+        "seed": 2,
+        "dur": 3.29,
+        "hash": "5516169b095e48ba"
+      },
+      "robot.boss.woppylava.burst": {
+        "text": "Such dir eine trockene Stelle auf dem Weg, und halt durch!",
+        "source": "Such dir eine trockene Stelle auf dem Weg, und halt durch!",
+        "seed": 0,
+        "dur": 4.16,
+        "hash": "4b6fc67f2d34a475"
+      },
       "robot.beaten.gusto.open": {
         "text": "Geschafft! Der Brunnen ist offen!",
         "source": "Geschafft! Der Brunnen ist offen!",
@@ -7066,6 +7220,20 @@
         "dur": 6.1,
         "hash": "2a2300250b3ff2f4"
       },
+      "robot.beaten.woppylava.cool": {
+        "text": "Er ist ganz kalt und still geworden. Jetzt ist er nur noch ein großer grauer Stein.",
+        "source": "Er ist ganz kalt und still geworden. Jetzt ist er nur noch ein großer grauer Stein.",
+        "seed": 0,
+        "dur": 7.42,
+        "hash": "a9ee0570a6f4f3ad"
+      },
+      "robot.beaten.woppylava.kiln": {
+        "text": "Feuer, und Sand, und etwas Glühendes, das herauskommt... Ich glaube, jemand hat in so einem Feuer Glas gemacht.",
+        "source": "Feuer, und Sand, und etwas Glühendes, das herauskommt... Ich glaube, jemand hat in so einem Feuer Glas gemacht.",
+        "seed": 0,
+        "dur": 13.41,
+        "hash": "d759bdcb186ede9a"
+      },
       "robot.death.gusto.arms": {
         "text": "Seine Arme! Weite Arme heißt, er will gleich packen. Dann geh zurück.",
         "source": "Seine Arme! Weite Arme heißt, er will gleich packen. Dann geh zurück.",
@@ -7240,6 +7408,20 @@
         "seed": 0,
         "dur": 6.31,
         "hash": "67abec511b6e117d"
+      },
+      "robot.death.woppylava.gap": {
+        "text": "Wenn eine Wand aus Lava kommt, such die dunkle Lücke, und lauf sofort dorthin.",
+        "source": "Wenn eine Wand aus Lava kommt, such die dunkle Lücke, und lauf sofort dorthin.",
+        "seed": 0,
+        "dur": 7.73,
+        "hash": "9931819df83435a6"
+      },
+      "robot.death.woppylava.fast": {
+        "text": "Wenn der Vulkan oben ist, müssen wir ihn besiegen, bevor er ausbricht. Schlag zu, so viel du kannst!",
+        "source": "Wenn der Vulkan oben ist, müssen wir ihn besiegen, bevor er ausbricht. Schlag zu, so viel du kannst!",
+        "seed": 0,
+        "dur": 7.96,
+        "hash": "633b3e4134997a7e"
       },
       "robot.death.13.together": {
         "text": "Hier unten ist es dunkel und klebrig. Lass uns zusammen vorsichtig sein.",

@@ -51,7 +51,8 @@ export default [{
         assert.ok(findPath(entry.floor, m.guardian.floor, Math.round(40 * ROOM_SCALE), cfg.height));
         assert.ok(findPath(m.guardian.floor, down.floor, Math.round(40 * ROOM_SCALE), cfg.height));
       }
-      if (!m.tower) assert.equal(Math.hypot(m.guardian.x - down.x - .5, m.guardian.z - down.z - .5), 2);
+      // (but in Foggery's caldera, and in Woppylava's cinder pit: there beside the well, out of the way of his volcano)
+      if (!m.tower && m.arena?.type !== 'cinder') assert.equal(Math.hypot(m.guardian.x - down.x - .5, m.guardian.z - down.z - .5), 2);
       assert.equal(clone.guardian.floor, clone.floors[m.guardian.floor.id]);
       assert.equal(buildCubeGeometry(m).length, 1);
       const neighbor = w.cube(step(m.key, entry.dir)).map;
